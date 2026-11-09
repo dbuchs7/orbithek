@@ -784,6 +784,9 @@ a.kanban-chip { text-decoration: none; border: 1px solid var(--accent); }
 }
 /* The account menu and profile pictures (ADR-0050). */
 .account { position: relative; }
+/* "New" with its menu for administrators: a page or item, or a room. */
+.new-wrap { position: relative; flex: none; }
+.new-menu { left: 0; right: auto; }
 /* The language and the light or dark look (ADR-0095). */
 .look-toggles { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
 #nav > .search ~ .look-toggles { margin-left: 0; }
@@ -1151,6 +1154,10 @@ section.hold .chip, #governance .chip { font-size: 11px; padding: 1px 8px; borde
 .segmented { display: inline-flex; margin: 0 0 12px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
 .segmented .segment { border: 0; border-radius: 0; background: var(--surface); color: var(--text); padding: 4px 12px; font-size: 13px; }
 .segmented .segment[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink, #fff); }
+/* The start page's rooms: the layout switch and, for administrators, a new room beside it. */
+.spaces-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; }
+.spaces-bar .segmented { margin: 0; }
+#spaces-new { padding: 4px 12px; font-size: 13px; }
 .space-tile-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 /* Every tile is the same size, with or without an icon: the head keeps
    the icon's height, and every row of tiles is as tall as the tallest. */
@@ -1720,7 +1727,8 @@ dialog.pm-dialog .error:empty { display: none; }
   .top { flex-wrap: wrap; row-gap: 0; padding-bottom: 8px; }
   #nav { display: contents; }
   #nav .search { order: 10; flex: 1 1 calc(100% - 130px); max-width: none; margin: 0; }
-  #nav-new { order: 11; }
+  #nav-new, .new-wrap { order: 11; }
+  .new-menu { left: auto; right: 0; }
   #nav > .bell { margin-left: auto; }
   #nav > .bell ~ .look-toggles { margin-left: 0; }
   .top > .look-toggles, #nav > .look-toggles:first-child { margin-left: auto; }
