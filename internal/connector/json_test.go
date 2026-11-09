@@ -312,13 +312,13 @@ func TestTheGuardKeepsToPublicAddresses(t *testing.T) {
 		g     guard
 		allow bool
 	}{
-		{"a public name", "https://source.example/", guard{next, resolve("203.0.114.7"), never}, true},
-		{"a name of a private address", "https://intranet.example/", guard{next, resolve("203.0.114.7", "10.0.0.3"), never}, false},
-		{"a loopback address", "http://127.0.0.1:8080/", guard{next, resolve(), never}, false},
-		{"the metadata address", "http://169.254.169.254/", guard{next, resolve(), never}, false},
-		{"a public address", "http://[2001:4860::1]/", guard{next, resolve(), never}, true},
-		{"a name only the proxy knows", "https://source.example/", guard{next, resolve(), always}, true},
-		{"a name nobody knows", "https://source.example/", guard{next, resolve(), never}, false},
+		{"a public name", "https://source.example/", guard{next: next, lookup: resolve("203.0.114.7"), proxy: never}, true},
+		{"a name of a private address", "https://intranet.example/", guard{next: next, lookup: resolve("203.0.114.7", "10.0.0.3"), proxy: never}, false},
+		{"a loopback address", "http://127.0.0.1:8080/", guard{next: next, lookup: resolve(), proxy: never}, false},
+		{"the metadata address", "http://169.254.169.254/", guard{next: next, lookup: resolve(), proxy: never}, false},
+		{"a public address", "http://[2001:4860::1]/", guard{next: next, lookup: resolve(), proxy: never}, true},
+		{"a name only the proxy knows", "https://source.example/", guard{next: next, lookup: resolve(), proxy: always}, true},
+		{"a name nobody knows", "https://source.example/", guard{next: next, lookup: resolve(), proxy: never}, false},
 	} {
 		req := httptest.NewRequest(http.MethodGet, c.url, nil)
 		before := next.asked

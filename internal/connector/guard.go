@@ -1,6 +1,7 @@
 package connector
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -32,6 +33,9 @@ type guard struct {
 	next   http.RoundTripper
 	lookup func(ctx context.Context, host string) ([]netip.Addr, error)
 	proxy  func(*http.Request) bool
+	// allow is the variable that lets requests reach the own network,
+	// named in a refusal.
+	allow string
 }
 
 func (g guard) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -51,7 +55,7 @@ func (g guard) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 	for _, a := range addrs {
 		if !linkcheck.Public(a) {
-			return nil, fmt.Errorf("%w: %s is %s; set %s=on to allow sources in the server's own network", ErrPrivateAddress, host, a, AllowPrivateVar)
+			return nil, fmt.Errorf("%w: %s is %s; set %s=on to allow sources in the server's own network", ErrPrivateAddress, host, a, cmp.Or(g.allow, AllowPrivateVar))
 		}
 	}
 	return g.next.RoundTrip(req)
@@ -60,11 +64,16 @@ func (g guard) RoundTrip(req *http.Request) (*http.Response, error) {
 // PublicOnly keeps next to public addresses as a connector's requests are
 // kept: a refusal is ErrPrivateAddress. Process engines are kept so too
 // (ADR-0129).
-func PublicOnly(next http.RoundTripper) http.RoundTripper {
+func PublicOnly(next http.RoundTripper) http.RoundTripper { return PublicOnlyUnless(next, AllowPrivateVar) }
+
+// PublicOnlyUnless keeps next to public addresses as PublicOnly does; a
+// refusal names variable as the one that allows the own network, as
+// OT_CALENDAR_ALLOW_PRIVATE does for people's calendars (ADR-0172).
+func PublicOnlyUnless(next http.RoundTripper, variable string) http.RoundTripper {
 	lookup := func(ctx context.Context, host string) ([]netip.Addr, error) {
 		return net.DefaultResolver.LookupNetIP(ctx, "ip", host)
 	}
-	return guard{next: next, lookup: lookup, proxy: viaProxy}
+	return guard{next: next, lookup: lookup, proxy: viaProxy, allow: variable}
 }
 
 // httpClient is the client a connector reaches its source with: through
