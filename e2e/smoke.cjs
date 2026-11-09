@@ -4503,7 +4503,7 @@ function gitSource() {
     await quickPage.waitForSelector("#body.reading .ProseMirror p:has-text('Stored.')");
     await quickCtx.close();
 
-    step("whiteboard: bert and admin work on one drawing at once: a note, an agent's notes, a vote with its result as a comment, the timer, a comment on an element, a presentation, and a checkpoint the drawing editor opens again (ADR-0169, ADR-0170, ADR-0171)");
+    step("whiteboard: bert and admin work on one drawing at once: a note, an agent's notes, a vote with its result as a comment, the timer, a comment on an element, a presentation, a picture and a laser pointer both see, a checkpoint, and the drawing opened alone only once nobody is on it (ADR-0169, ADR-0170, ADR-0171, ADR-0172)");
     const retro = await page.evaluate(async () => (await (await fetch("/api/items", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ space: "PLAT", type: "task", title: "Retro", properties: { priority: "low" } }) })).json()).item.key);
     await page.goto(base + "/#/item/" + retro);
@@ -4575,6 +4575,50 @@ function gitSource() {
     check((await board.locator("#wb-slide").textContent()) === "Frame 1 of 1", "bert presents the frame");
     await board.locator("#wb-stop").click();
     await boardOther.locator("#wb-banner").waitFor({ state: "detached" });
+    // A picture bert drops in is drawn on admin's canvas too, and admin
+    // sees the trail of bert's laser pointer.
+    const boardFrameOf = (p) => p.frames().find((f) => f.url().endsWith("/draw"));
+    await boardFrameOf(page).evaluate(async () => {
+      const c = document.createElement("canvas");
+      c.width = c.height = 120;
+      const g = c.getContext("2d");
+      g.fillStyle = "#ff0000";
+      g.fillRect(0, 0, 120, 120);
+      const blob = await new Promise((resolve) => c.toBlob(resolve, "image/png"));
+      const dt = new DataTransfer();
+      dt.items.add(new File([blob], "red.png", { type: "image/png" }));
+      const target = document.querySelector("canvas.excalidraw__canvas.interactive");
+      const r = target.getBoundingClientRect();
+      for (const type of ["dragenter", "dragover", "drop"]) {
+        target.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 }));
+      }
+    });
+    await boardOther.locator("body[data-elements='6']").waitFor();
+    const redOn = (p) => boardFrameOf(p).evaluate(() => {
+      const c = document.querySelector("canvas.excalidraw__canvas.static");
+      const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i] > 200 && d[i + 1] < 60 && d[i + 2] < 60) n++;
+      return n;
+    });
+    let red = 0;
+    for (let i = 0; i < 50 && red < 400; i++) {
+      red = await redOn(boardAdmin);
+      if (red < 400) await boardAdmin.waitForTimeout(100);
+    }
+    check(red >= 400, "admin sees the picture bert dropped in: " + red + " red pixels");
+    const laserAt = { x: boardBox.x + boardBox.width * 0.25, y: boardBox.y + boardBox.height * 0.75 };
+    await page.mouse.click(laserAt.x, laserAt.y);
+    await page.keyboard.press("k");
+    await page.mouse.down();
+    let trail = 0;
+    for (let i = 0; i < 25 && trail < 50; i++) {
+      await page.mouse.move(laserAt.x + i * 12, laserAt.y - i * 4);
+      await page.waitForTimeout(40);
+      trail = await boardFrameOf(boardAdmin).evaluate(() => Math.max(0, ...[...document.querySelectorAll(".SVGLayer path")].map((p) => (p.getAttribute("d") || "").length)));
+    }
+    await page.mouse.up();
+    check(trail >= 50, "admin sees the trail of bert's laser pointer");
     // A checkpoint: the keeper draws, the server writes its scene; the
     // drawing editor opens the new version with every element.
     await board.locator("#wb-save").click();
@@ -4596,20 +4640,37 @@ function gitSource() {
       return { ref, elements: [] };
     };
     let checkpoint = null;
-    for (let i = 0; i < 100 && !(checkpoint && checkpoint.ref !== boardFile && checkpoint.elements.length === 5); i++) {
+    for (let i = 0; i < 100 && !(checkpoint && checkpoint.ref !== boardFile && checkpoint.elements.length === 6); i++) {
       checkpoint = await shownScene();
-      if (checkpoint.elements.length !== 5) await page.waitForTimeout(200);
+      if (checkpoint.elements.length !== 6) await page.waitForTimeout(200);
     }
-    check(checkpoint.ref !== boardFile && checkpoint.elements.length === 5, "the text shows a checkpoint with every element: " + checkpoint.elements.length);
+    check(checkpoint.ref !== boardFile && checkpoint.elements.length === 6, "the text shows a checkpoint with every element: " + checkpoint.elements.length);
     check(checkpoint.elements.some((e) => e.type === "text" && (e.originalText || e.text) === "Keep the daily"), "the note's text is in the checkpoint");
-    await boardCtx.close();
+    // bert leaves while admin stays: the page offers to join, not to edit
+    // alone, and the server takes no version from the drawing editor.
     await page.goto(base + "/#/item/" + retro);
     await page.waitForSelector("#comments .comment-element a");
     check(await page.locator("#attachments li:has-text('.drawing.png')").count() === 2, "the checkpoint is a new version of the drawing");
-    await page.click("#edit");
-    await page.waitForSelector("#body.editing .pm-redraw");
-    await page.click("#body .pm-redraw");
-    await page.frameLocator("dialog.drawing iframe").locator("body[data-state=open][data-elements='5']").waitFor();
+    await page.waitForSelector("#body.reading .pm-drawing-open a.pm-whiteboard");
+    await page.waitForFunction(() => document.querySelector(".pm-drawing-open a.pm-whiteboard").textContent.startsWith("Join the whiteboard"));
+    check(await page.locator(".pm-drawing-open a.pm-draw-alone").count() === 0, "no editing alone while admin is on the whiteboard");
+    const retroItem = (await (await page.request.get(base + "/api/items/" + retro)).json()).item;
+    const shownPicture = await (await page.request.get(base + `/api/items/${retro}/attachments/${checkpoint.ref}`)).body();
+    const saveAlone = await page.request.post(base + `/api/items/${retro}/attachments?name=Board.drawing.png&sourceItem=${retroItem.id}&sourceAttachment=${checkpoint.ref}`,
+      { headers: { "Content-Type": "application/octet-stream" }, data: shownPicture });
+    check(saveAlone.status() === 409, "the drawing editor cannot save a version while admin is on the whiteboard: " + saveAlone.status());
+    // Once admin left too (the agent does not count), the drawing opens
+    // alone in the drawing editor, with every element of the checkpoint.
+    await boardCtx.close();
+    for (let i = 0; i < 20 && !(await page.locator(".pm-drawing-open a.pm-draw-alone").count()); i++) {
+      await page.waitForTimeout(300);
+      await page.goto(base + "/#/whiteboards");
+      await page.goto(base + "/#/item/" + retro);
+      await page.waitForSelector("#body.reading .pm-drawing-open a.pm-whiteboard");
+    }
+    await page.click(".pm-drawing-open a.pm-draw-alone");
+    await page.frameLocator("dialog.drawing iframe").locator("body[data-state=open][data-elements='6']").waitFor();
+    check(!page.url().includes("draw="), "the address forgets the drawing it opened");
     await page.click("dialog.drawing button:has-text('Cancel')");
     await page.click("#edit-done");
     await page.waitForSelector("#body.reading");

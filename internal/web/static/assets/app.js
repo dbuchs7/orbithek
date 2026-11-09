@@ -526,8 +526,11 @@ const childPagesOf = (item) => async () =>
 
 // filesOf serves and stores an item's attachments for its body (ADR-0045),
 // and knows which of them are drawings (ADR-0053).
-const filesOf = (item, attachments = []) => {
+const filesOf = (item, attachments = [], canEdit = false) => {
   const known = new Map(attachments.map((a) => [a.id, a]));
+  // The live whiteboards, asked once per text shown (ADR-0172).
+  let boards = null;
+  const liveBoards = () => (boards ??= get("/api/whiteboards").then((r) => r.whiteboards || []).catch(() => []));
   return {
     item: item.id,
     url: (id) => `/api/items/${item.id}/attachments/${id}`,
@@ -538,6 +541,16 @@ const filesOf = (item, attachments = []) => {
       return a;
     },
     isDrawing: (id) => isDrawing(known.get(id)?.name),
+    // A drawing opens as a live whiteboard, or alone in the drawing editor
+    // for one who may edit (ADR-0172); live says how many people work on
+    // it now with a browser (an agent does not keep anyone from it), asked
+    // anew when fresh.
+    whiteboard: item.key ? (id) => `#/whiteboard/${encodeURIComponent(item.key)}/${id}` : null,
+    drawHref: canEdit && item.key ? (id) => `#/item/${encodeURIComponent(item.key)}?edit&draw=${id}` : null,
+    live: (id, fresh = false) => {
+      if (fresh) boards = null;
+      return liveBoards().then((list) => list.find((w) => w.versions?.includes(id))?.people || 0);
+    },
     // list is the item's files known here, for choosing one, and knows
     // whether a file is among them (ADR-0142).
     list: () => [...known.values()],
@@ -3865,7 +3878,9 @@ async function whiteboardsView() {
   const drawings = pictures.length
     ? h("ul", { class: "whiteboards", id: "drawings" }, pictures.map((p) => h("li", {},
       link(href(p.item.key, p.attachment.id), p.attachment.name.replace(/\.drawing\.png$/, "")),
-      h("span", { class: "muted", text: ` · ${p.item.key} ${p.item.title}` }))))
+      h("span", { class: "muted", text: ` · ${p.item.key} ${p.item.title}` }),
+      // The same drawing alone in the drawing editor (ADR-0172).
+      p.editable ? [" · ", link(`#/item/${encodeURIComponent(p.item.key)}?edit&draw=${p.attachment.id}`, t("draw.openDrawing"), "wb-as-drawing")] : null)))
     : empty(t("wb.noDrawings"));
   const editable = favouritesFirst(spaces.filter((sp) => mayEdit(sp.role)));
   const fit = types.filter((ty) => ty.body && !ty.fields.some((f) => f.required));
@@ -4490,6 +4505,9 @@ async function itemView(ref, params = new URLSearchParams()) {
     const b = bodySection(item, embeds.embeds, editing, threads, attachments, protect, edit, notes, showEditors);
     body = framed(b.element);
     session = b.session;
+    // Opened to edit one drawing alone (ADR-0172): its editor opens once
+    // the text has loaded, and the address forgets it.
+    if (editing && params.get("draw")) openDrawingOnceShown(params.get("draw"));
     // A reader follows the text: who edits it, and each version saved by
     // someone else shows without a reload (ADR-0115). A selection made to
     // comment or note is not taken away; the text follows after it.
@@ -4602,6 +4620,21 @@ async function relocateForm(box, item, mode, spaces, status) {
   box.querySelector("select")?.focus();
 }
 
+// openDrawingOnceShown opens the drawing editor of a drawing in the text
+// being edited, as its "Edit drawing" does, once the live text shows it.
+function openDrawingOnceShown(ref) {
+  const n = navigation;
+  history.replaceState(null, "", location.pathname + location.hash.replace(/&draw=[^&]*/, ""));
+  let tries = 0;
+  const tick = () => {
+    if (n !== navigation) return;
+    const button = document.querySelector(`#body .pm-image[data-ref="${CSS.escape(ref)}"] .pm-redraw`);
+    if (button) return button.click();
+    if (++tries < 50) setTimeout(tick, 200);
+  };
+  tick();
+}
+
 // bodySection shows an item's body: for reading, with the passages
 // commented on highlighted and commenting on a selection offered; or, when
 // editing, in its live session (ADR-0010), where changes reach everyone at
@@ -4610,7 +4643,7 @@ function bodySection(item, embeds, editing, threads, attachments, protect, edit,
   const resolve = async (ref) => (await get("/api/items/" + encodeURIComponent(ref))).item;
   if (!editing) {
     // The files are known, so a drawing shows its processes live (ADR-0142).
-    const view = createEditor({ blocks: item.body, embeds, editable: false, resolve, childPages: childPagesOf(item), files: filesOf(item, attachments),
+    const view = createEditor({ blocks: item.body, embeds, editable: false, resolve, childPages: childPagesOf(item), files: filesOf(item, attachments, !!edit),
       extra: item.presence === "live" ? [threads.plugin, ...(notes ? [notes.plugin] : [])] : [], comment: item.presence === "live" ? threads.start : undefined,
       note: notes ? notes.start : undefined, protect: protect || undefined,
       actions: edit ? [edit] : [], embedContent: embedLoader([item.id]), tasks: taskTools(item, false) });

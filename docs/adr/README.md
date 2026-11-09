@@ -184,3 +184,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0169](0169-live-whiteboards-on-drawings.md) | Live whiteboards: a drawing edited by up to twenty people at once, with a lock per element | Accepted | Partial |
 | [0170](0170-workshop-tools-on-a-whiteboard.md) | Workshop tools on a whiteboard: notes, voting, a timer and a presentation | Accepted | Landed |
 | [0171](0171-comments-on-the-elements-of-a-drawing.md) | Comments on the elements of a drawing | Accepted | Landed |
+| [0172](0172-a-drawing-opens-as-a-whiteboard-or-alone.md) | A drawing opens as a whiteboard or alone, and is not saved alone while it is live | Accepted | Landed |

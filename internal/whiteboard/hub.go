@@ -103,11 +103,15 @@ type LockState struct {
 	Client string `json:"client"`
 }
 
-// Pointer is a client's cursor on the scene.
+// Pointer is a client's cursor on the scene: the tool it points with
+// ("pointer", or "laser" for the laser pointer, whose trail the others see)
+// and whether its button is down.
 type Pointer struct {
 	Client string  `json:"client"`
 	X      float64 `json:"x"`
 	Y      float64 `json:"y"`
+	Tool   string  `json:"tool,omitempty"`
+	Button string  `json:"button,omitempty"`
 }
 
 // TimerState is the session's countdown (ADR-0170). Ends is when it ends,
@@ -559,10 +563,13 @@ type Op struct {
 	File    json.RawMessage `json:"file,omitempty"`
 	// lock, release: elements.
 	IDs []string `json:"ids,omitempty"`
-	// pointer, view: a point of the scene; view: and a zoom.
-	X    float64 `json:"x,omitempty"`
-	Y    float64 `json:"y,omitempty"`
-	Zoom float64 `json:"zoom,omitempty"`
+	// pointer, view: a point of the scene; view: and a zoom; pointer: the
+	// tool (pointer or laser) and the button (up or down).
+	X      float64 `json:"x,omitempty"`
+	Y      float64 `json:"y,omitempty"`
+	Zoom   float64 `json:"zoom,omitempty"`
+	Tool   string  `json:"tool,omitempty"`
+	Button string  `json:"button,omitempty"`
 	// timer, vote, present: what to do, and with what.
 	Action  string `json:"action,omitempty"`
 	Seconds int    `json:"seconds,omitempty"`
@@ -670,7 +677,7 @@ func (h *Hub) Apply(k Key, clientID, principal string, ops []Op) (Result, error)
 				}
 			}
 		case "pointer":
-			c.pointer = &Pointer{Client: c.id, X: op.X, Y: op.Y}
+			c.pointer = &Pointer{Client: c.id, X: op.X, Y: op.Y, Tool: op.Tool, Button: op.Button}
 			h.schedulePointers(s)
 		case "background":
 			s.bg = op.Background
@@ -733,7 +740,11 @@ func (h *Hub) check(s *session, op Op) error {
 		if _, err := colour(op.Background, ""); err != nil || op.Background == "" {
 			return fmt.Errorf("%w: background %q", ErrInvalid, op.Background)
 		}
-	case "pointer", "timer", "vote", "present", "frame", "view", "comments", "save":
+	case "pointer":
+		if !slices.Contains([]string{"", "pointer", "laser"}, op.Tool) || !slices.Contains([]string{"", "up", "down"}, op.Button) {
+			return fmt.Errorf("%w: a pointer's tool is pointer or laser, its button up or down", ErrInvalid)
+		}
+	case "timer", "vote", "present", "frame", "view", "comments", "save":
 	default:
 		return fmt.Errorf("%w: unknown operation %q", ErrInvalid, op.Op)
 	}
@@ -1088,10 +1099,37 @@ func (h *Hub) Shutdown() {
 	h.mu.Unlock()
 }
 
-// Info describes an open session, for the list of live whiteboards.
+// Yield tells whether a drawing may take a new version from outside its
+// whiteboard's session (ADR-0172). It may not while someone is in the
+// session with a browser, nor while what was done in it is still to be
+// saved: the session's next save would write over that version. A
+// session with nothing to save and only agents in it is closed, so an
+// agent's next change starts from the new version.
+func (h *Hub) Yield(k Key) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	s := h.sessions[k]
+	if s == nil {
+		return true
+	}
+	if s.change != s.saved || s.saving {
+		return false
+	}
+	for _, c := range s.clients {
+		if !c.agent() {
+			return false
+		}
+	}
+	h.close(s, "the drawing was saved outside the whiteboard")
+	return true
+}
+
+// Info describes an open session, for the list of live whiteboards:
+// everyone in it, agents included, and the people with a browser.
 type Info struct {
 	Key          Key
 	Participants int
+	People       int
 }
 
 // Sessions lists the open sessions with their participants.
@@ -1100,11 +1138,14 @@ func (h *Hub) Sessions() []Info {
 	defer h.mu.Unlock()
 	out := make([]Info, 0, len(h.sessions))
 	for k, s := range h.sessions {
-		people := map[string]bool{}
+		everyone, people := map[string]bool{}, map[string]bool{}
 		for _, c := range s.clients {
-			people[c.principal] = true
+			everyone[c.principal] = true
+			if !c.agent() {
+				people[c.principal] = true
+			}
 		}
-		out = append(out, Info{Key: k, Participants: len(people)})
+		out = append(out, Info{Key: k, Participants: len(everyone), People: len(people)})
 	}
 	return out
 }

@@ -94,6 +94,10 @@ export function startWhiteboard({ root, dark, lang, item, file, palette, bind, o
 
   // --- the scene -------------------------------------------------------------
   const sceneOf = () => S.api.getSceneElementsIncludingDeleted();
+  // Excalidraw changes its elements in place. What the server holds (truth)
+  // and what is queued to be sent are therefore copies, never the objects
+  // the scene shows, or a change would already look known when it is made.
+  const copy = (el) => structuredClone(el);
 
   // apply puts elements from the server into the scene, shown locked where
   // someone else holds them; force puts them even when not newer.
@@ -103,9 +107,14 @@ export function startWhiteboard({ root, dark, lang, item, file, palette, bind, o
     for (const el of els) {
       if (!force && !P.newer(el, S.truth.get(el.id)) && map.has(el.id)) continue;
       S.truth.set(el.id, el);
-      map.set(el.id, P.shown(el, S.heldBy, S.client));
+      map.set(el.id, copy(P.shown(el, S.heldBy, S.client)));
     }
     S.api.updateScene({ elements: P.byIndex([...map.values()]), captureUpdate: NEVER });
+    // Excalidraw loads the pictures of image elements only when files are
+    // added, not when elements arrive: a picture whose file came first
+    // would stay blank. Adding no file loads what is missing.
+    if (els.some((el) => el.type === "image")) S.api.addFiles([]);
+    redraw(P.pictures(els));
     measure(els);
     paint();
   }
@@ -114,11 +123,45 @@ export function startWhiteboard({ root, dark, lang, item, file, palette, bind, o
   function relock(ids) {
     if (!S.api) return;
     const map = new Map(sceneOf().map((e) => [e.id, e]));
+    const shownAnew = [];
     for (const id of ids) {
       const el = S.truth.get(id);
-      if (el) map.set(id, P.shown(el, S.heldBy, S.client));
+      if (!el) continue;
+      map.set(id, copy(P.shown(el, S.heldBy, S.client)));
+      shownAnew.push(el);
     }
     S.api.updateScene({ elements: P.byIndex([...map.values()]), captureUpdate: NEVER });
+    redraw(P.pictures(shownAnew));
+  }
+
+  // redraw shows the image elements of files anew once their pictures are
+  // decoded. Excalidraw draws a picture it has loaded only for the element
+  // objects it began loading for; an element shown anew meanwhile, as a
+  // lock or a newer version arrives, keeps the blank placeholder it was
+  // first drawn with. What one holds is left alone, so as not to disturb
+  // one's own work on it.
+  const decoding = new Set();
+  function redraw(fileIds) {
+    const files = S.api?.getFiles() || {};
+    for (const id of fileIds) {
+      if (decoding.has(id) || !files[id]?.dataURL) continue;
+      decoding.add(id);
+      const img = new Image();
+      img.src = files[id].dataURL;
+      img.decode().catch(() => {}).then(() => {
+        decoding.delete(id);
+        // Excalidraw began loading the same picture first; a moment more
+        // lets it finish.
+        setTimeout(() => {
+          const scene = sceneOf();
+          const again = scene.filter((el) => el.type === "image" && el.fileId === id && !S.mine.has(el.id));
+          if (!again.length) return;
+          const map = new Map(scene.map((e) => [e.id, e]));
+          again.forEach((el) => map.set(el.id, copy(el)));
+          S.api.updateScene({ elements: P.byIndex([...map.values()]), captureUpdate: NEVER });
+        }, 50);
+      });
+    }
   }
 
   function onChange(elements, appState, files) {
@@ -140,7 +183,10 @@ export function startWhiteboard({ root, dark, lang, item, file, palette, bind, o
     }
     const all = sceneOf();
     for (const el of P.changed(all, S.truth)) {
-      const out = P.sendable(el, S.truth, S.heldBy, S.client);
+      // An image goes out once its file has, or the others would get a
+      // picture they cannot show.
+      if (el.type === "image" && el.fileId && !el.isDeleted && !S.files.has(el.fileId)) continue;
+      const out = copy(P.sendable(el, S.truth, S.heldBy, S.client));
       S.truth.set(el.id, out);
       ops.push({ op: "put", element: out });
     }
@@ -163,7 +209,9 @@ export function startWhiteboard({ root, dark, lang, item, file, palette, bind, o
     if (ops.length) enqueue(...ops);
   }
 
-  const sendPointer = P.throttle((x, y) => enqueue({ op: "pointer", x, y }), 100);
+  // The cursor, with its tool and button: the laser pointer's trail is
+  // drawn for the others while its button is down.
+  const sendPointer = P.throttle((x, y, tool, button) => enqueue({ op: "pointer", x, y, tool, button }), 100);
   const sendView = P.throttle(() => S.appState && enqueue({ op: "view", ...P.viewOf(S.appState) }), 250);
 
   // collaborators are the others as Excalidraw draws them: a cursor and
@@ -178,7 +226,8 @@ export function startWhiteboard({ root, dark, lang, item, file, palette, bind, o
       const at = S.pointers.get(p.client);
       map.set(p.client, {
         id: p.client, socketId: p.client, username: p.name, color: { background: colour, stroke: colour },
-        selectedElementIds: held, button: "up", ...(at ? { pointer: { x: at.x, y: at.y, tool: "pointer" } } : {}),
+        selectedElementIds: held, button: at?.button === "down" ? "down" : "up",
+        ...(at ? { pointer: { x: at.x, y: at.y, tool: at.tool === "laser" ? "laser" : "pointer" } } : {}),
       });
     }
     S.api?.updateScene({ collaborators: map, captureUpdate: NEVER });
@@ -200,7 +249,7 @@ export function startWhiteboard({ root, dark, lang, item, file, palette, bind, o
         if (!made) continue;
         const { [KEY]: _, ...custom } = el.customData;
         fixed.push({
-          ...el, text: made.text, width: made.width, height: made.height, x: made.x, y: made.y, lineHeight: made.lineHeight,
+          ...copy(el), text: made.text, width: made.width, height: made.height, x: made.x, y: made.y, lineHeight: made.lineHeight,
           customData: Object.keys(custom).length ? custom : undefined, version: el.version + 1, versionNonce: Math.floor(Math.random() * 2 ** 31),
         });
       } catch {
@@ -246,13 +295,14 @@ export function startWhiteboard({ root, dark, lang, item, file, palette, bind, o
     S.message = "";
     document.body.dataset.client = S.client;
     document.body.dataset.keeper = String(S.keeper);
-    const elements = P.byIndex([...S.truth.values()]).map((e) => P.shown(e, S.heldBy, S.client));
+    const elements = P.byIndex([...S.truth.values()]).map((e) => copy(P.shown(e, S.heldBy, S.client)));
     const files = Object.values(d.files || {});
     if (!S.api) {
       S.initial = { elements, files: Object.fromEntries(files.map((f) => [f.id, f])), appState: { viewBackgroundColor: d.background || "#ffffff" } };
     } else {
       S.api.updateScene({ elements, captureUpdate: NEVER });
       if (files.length) S.api.addFiles(files);
+      redraw(P.pictures(elements));
       collaborators();
     }
     paint();
@@ -264,6 +314,7 @@ export function startWhiteboard({ root, dark, lang, item, file, palette, bind, o
     const files = Object.values(d.files || {});
     files.forEach((f) => S.files.add(f.id));
     if (files.length) S.api?.addFiles(files);
+    redraw(files.map((f) => f.id));
   });
   on("locks", (d) => {
     const ids = [];
@@ -688,7 +739,7 @@ export function startWhiteboard({ root, dark, lang, item, file, palette, bind, o
       h(Excalidraw, {
         excalidrawAPI, langCode: lang === "de" ? "de-DE" : "en", theme: dark ? "dark" : "light", initialData: S.initial,
         isCollaborating: true, viewModeEnabled: !S.editable || following, onChange, onLibraryChange: onLibrary,
-        onPointerUpdate: ({ pointer }) => pointer && sendPointer(pointer.x, pointer.y),
+        onPointerUpdate: ({ pointer, button }) => pointer && sendPointer(pointer.x, pointer.y, P.pointerTool(pointer.tool), button === "down" ? "down" : "up"),
         renderTopRightUI: topRight, UIOptions: UI,
       }),
       badges(), banner(),
