@@ -1,9 +1,9 @@
 # ADR-0170: Workshop tools on a whiteboard: notes, voting, a timer and a presentation
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-09
-- **Deciders:** Project initiators (request of 2026-11-09: on the whiteboard, the cursors of the others, notes, voting, a timer, comments and a presentation mode; external participants not yet)
+- **Deciders:** Project initiators (request of 2026-11-09: on the whiteboard, the cursors of the others, notes, voting, a timer, comments and a presentation mode; external participants not yet; accepted 2026-11-09)
 - **Open question:** whether a vote, a timer or a presentation needs a person in charge (a facilitator) who alone may start and end them; this record lets everyone who may edit do so. Whether the result of a vote should stay on the whiteboard itself, rather than in a comment, is open too.
 - **Question checked:** 2026-11
 

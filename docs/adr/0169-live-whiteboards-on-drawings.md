@@ -1,9 +1,9 @@
 # ADR-0169: Live whiteboards: a drawing edited by up to twenty people at once, with a lock per element
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Implementation:** Partial
 - **Date:** 2026-11-09
-- **Deciders:** Project initiators (request of 2026-11-09: a whiteboard for workshops of up to 20 people, built on the drawings, with the cursors of the others, a lock per element, and AI agents working on it over MCP)
+- **Deciders:** Project initiators (request of 2026-11-09: a whiteboard for workshops of up to 20 people, built on the drawings, with the cursors of the others, a lock per element, and AI agents working on it over MCP; accepted 2026-11-09)
 - **Open question:** whether a picture kept current only by the browsers of the participants is enough, or whether pages need a picture drawn on the server; this record keeps the browser as the only renderer and marks pictures written without one as stale (see *Checkpoints*). It also leaves open whether the version of a checkpoint should name every participant rather than the one whose browser saved it.
 - **Question checked:** 2026-11
 

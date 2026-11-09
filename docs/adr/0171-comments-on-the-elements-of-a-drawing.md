@@ -1,9 +1,9 @@
 # ADR-0171: Comments on the elements of a drawing
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-09
-- **Deciders:** Project initiators (request of 2026-11-09: comments on the whiteboard)
+- **Deciders:** Project initiators (request of 2026-11-09: comments on the whiteboard; accepted 2026-11-09)
 
 ## Context and problem statement
 
