@@ -2469,12 +2469,14 @@ function gitSource() {
     check(await page.inputValue("#calendar-who") === "me" && await page.inputValue("#calendar-status") === "open", "the tab's choices stand in the filters");
     check(!(await page.locator("#calendar-error").count()), "the tasks' choices are read without a mistake");
     await page.goto(base + "/#/calendar?labels=plan-q1&at=2026-03-01");
-    await page.waitForSelector("#calendar-summary");
+    // The calendar of the tasks' tab is still on the page until this one is
+    // drawn; its sentence names the label.
+    await page.waitForFunction(() => document.querySelector("#calendar-summary")?.textContent.includes("plan-q1"));
     // Opened once, the choices stay open while one chooses.
     if (!(await page.locator("#calendar-filters[open]").count())) await page.click("#calendar-filters summary");
     await page.fill("#calendar-text", "launch");
     await page.click("#calendar-apply");
-    await page.waitForFunction(() => location.hash.includes("text=launch"));
+    await page.waitForFunction(() => location.hash.includes("text=launch") && document.querySelector("#calendar-summary")?.textContent.includes("launch"));
     await page.waitForSelector(`#calendar-grid .cal-entry[data-key='${planned.launch}']`);
     check(await page.locator(`#calendar-grid .cal-entry[data-key='${planned.design}']`).count() === 0, "the words of the text narrow the calendar");
     check(await page.waitForSelector("#calendar-text", { state: "visible", timeout: 3000 }).then(() => true, () => false),
