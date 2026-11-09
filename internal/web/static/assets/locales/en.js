@@ -911,6 +911,7 @@ export default {
   "nav.notificationsUnread": "Notifications ({n})",
   "nav.new": "Create",
   "nav.newButton": "+ New",
+  "nav.newItem": "New item",
   "nav.account": "Account",
   "watch.start": "Watch",
   "watch.stop": "Stop watching",
