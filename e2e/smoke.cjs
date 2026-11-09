@@ -112,6 +112,27 @@ function zipEntry(buf, name) {
   return null;
 }
 
+// calendarSource publishes a calendar in iCalendar format over https, as
+// Google, Outlook or Apple do (ADR-0172), with the certificate the test
+// made for 127.0.0.1, which the server trusts through SSL_CERT_DIR.
+function calendarSource(cert, key) {
+  const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "X-WR-CALNAME:Holidays", "X-WR-TIMEZONE:Europe/Zurich",
+    "BEGIN:VEVENT", "UID:spring@example.org", "SUMMARY:Spring holiday", "DTSTART;VALUE=DATE:20260318", "DTEND;VALUE=DATE:20260320", "END:VEVENT",
+    "BEGIN:VEVENT", "UID:dentist@example.org", "SUMMARY:Dentist", "LOCATION:Bahnhofstrasse 1", "DTSTART:20260324T090000Z", "DTEND:20260324T093000Z", "END:VEVENT",
+    "END:VCALENDAR", ""].join("\r\n");
+  const server = require("https").createServer({ cert: require("fs").readFileSync(cert), key: require("fs").readFileSync(key) }, (req, res) => {
+    if (req.url !== "/secret-4711/holidays.ics") {
+      res.statusCode = 404;
+      res.end();
+      return;
+    }
+    res.setHeader("Content-Type", "text/calendar");
+    res.end(ics);
+  });
+  server.listen(0, "127.0.0.1");
+  return server;
+}
+
 // ckanSource answers package_search like the CKAN API of opendata.swiss,
 // with one data set that publishes an API and a CSV file (ADR-0075).
 function ckanSource() {
@@ -2632,6 +2653,45 @@ function gitSource() {
     check((await outsider.request.get(calFeedURL)).status() === 404, "an ended feed opens nothing");
     await outsider.close();
     await page.setViewportSize({ width: 1280, height: 720 });
+
+    step("calendar: a calendar of another service, allowed by an administrator, stands beside the items, read only (ADR-0172)");
+    if (!process.env.CALENDAR_CERT || !process.env.CALENDAR_KEY) {
+      console.log("  skipped: CALENDAR_CERT and CALENDAR_KEY are not set");
+    } else {
+      const holidays = calendarSource(process.env.CALENDAR_CERT, process.env.CALENDAR_KEY);
+      await new Promise((resolve) => holidays.listening ? resolve() : holidays.once("listening", resolve));
+      const icsURL = `https://127.0.0.1:${holidays.address().port}/secret-4711/holidays.ics`;
+      await page.goto(base + "/#/calendar?at=2026-03-01&type=standup");
+      await page.waitForSelector("#calendar-grid");
+      check(await page.locator("#calendar-others").count() === 0, "calendars of other services are not offered until an administrator allows them");
+      await page.goto(base + "/#/admin");
+      await page.waitForSelector("#calendars-external");
+      await page.check("#calendars-external");
+      await page.click("#calendars-form button[type=submit]");
+      await page.waitForSelector("#admin-calendars .notice");
+      check(/OT_GOOGLE_CLIENT_ID/.test(await page.textContent("#calendars-google")), "the administration says what Google needs");
+      await page.goto(base + "/#/calendar?at=2026-03-01&type=standup");
+      await page.click("#calendar-others > summary");
+      await page.click("#calendar-add-ics");
+      await page.fill("#calendar-ics-url", icsURL.replace("https://", "webcal://"));
+      await page.click("#calendar-ics-add");
+      await page.waitForSelector("#calendar-others-list li:has-text('Holidays')");
+      await page.waitForSelector("#calendar-grid .cal-external:has-text('Dentist')");
+      // The holiday spans two days in one row; the dentist has a time.
+      check(await page.locator("#calendar-grid .cal-external:has-text('Spring holiday')").count() === 1, "an all-day entry of another calendar spans its days");
+      check(await page.getAttribute("#calendar-grid .cal-external:has-text('Dentist')", "draggable") === null, "an entry of another calendar cannot be moved");
+      check(!(await page.content()).includes("secret-4711"), "the address, a credential, is not shown again");
+      await page.click("#calendar-grid .cal-external:has-text('Dentist')");
+      await page.waitForSelector("#calendar-dialog:has-text('Bahnhofstrasse 1')");
+      await page.click("#calendar-dialog button");
+      // Hidden, it is not shown; removed, it is gone.
+      await page.uncheck("#calendar-others-list [data-show-source]");
+      await page.waitForSelector("#calendar-grid .cal-external", { state: "detached" });
+      await page.click("#calendar-others-list [data-remove-source]");
+      await page.click("#calendar-dialog [data-choice=yes]");
+      await page.waitForSelector("#calendar-others-none");
+      holidays.close();
+    }
 
     step("starmap of the labels: a star per label, sized by its items, lines between labels carried together, filtered by labels (ADR-0165)");
     await page.goto(base + "/#/label/plan-q1");
