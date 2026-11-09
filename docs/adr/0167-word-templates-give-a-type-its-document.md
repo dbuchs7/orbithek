@@ -1,9 +1,9 @@
 # ADR-0167: Word templates give a type its document
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-09
-- **Deciders:** Project initiators (the maintainer asked on 2026-11-09 that a type such as "Word report" give its pages the structure, header and footer of a Word template and export them as a finished Word document; the editor stays as it is; the reading view shows the whole document with header and footer; only administrators keep templates; every page remembers the template version it was made with)
+- **Deciders:** Project initiators (the maintainer asked on 2026-11-09 that a type such as "Word report" give its pages the structure, header and footer of a Word template and export them as a finished Word document; the editor stays as it is; the reading view shows the whole document with header and footer; only administrators keep templates; every page remembers the template version it was made with; accepted 2026-11-09)
 - **Open question:** whether pages should follow a new template version on their own after a grace period, whether the PDF export should be drawn as the template too, and whether section breaks, footnotes and landscape pages inside a text are needed; this record decides none of them
 - **Question checked:** 2026-11
 
