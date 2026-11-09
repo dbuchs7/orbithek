@@ -25,6 +25,24 @@ test("an element someone else holds is shown locked, and sent with its own lock"
   assert.equal(P.sendable({ ...el("x"), locked: true }, new Map(), new Map([["x", "o"]]), "me").locked, false);
 });
 
+test("a change of locks replaces only elements whose lock shows otherwise", () => {
+  // bert drops a picture: Excalidraw adds the element, which is sent and
+  // selected, and sets its file on the same object once the file is read.
+  // The server's word that bert holds it must not replace that object
+  // with the server's copy, which has no file yet.
+  const adding = el("pic", { type: "image", fileId: null, status: "pending" });
+  const truth = new Map([["pic", { ...adding }], ["note", el("note")], ["box", el("box")], ["gone", el("gone")]]);
+  const scene = new Map([["pic", { ...adding, fileId: "f1", version: 2 }], ["note", el("note")], ["box", el("box", { locked: true })]]);
+  const held = new Map([["pic", "me"], ["note", "other"]]);
+  const out = P.relocked(["pic", "note", "box", "gone", "unknown"], scene, truth, held, "me");
+  assert.deepEqual(out.map((e) => [e.id, !!e.locked]), [["note", true], ["box", false], ["gone", false]]);
+  // Taken over by someone else, one's own copy is shown locked.
+  assert.deepEqual(P.relocked(["pic"], scene, truth, new Map([["pic", "other"]]), "me").map((e) => [e.id, e.locked]), [["pic", true]]);
+  // An element locked of its own stays as it is shown.
+  const locked = el("l", { locked: true });
+  assert.deepEqual(P.relocked(["l"], new Map([["l", locked]]), new Map([["l", locked]]), new Map([["l", "other"]]), "me"), []);
+});
+
 test("what changed, and what replaces what one holds", () => {
   const truth = new Map([["a", el("a", { version: 2 })], ["b", el("b")]]);
   const scene = [el("a", { version: 2 }), el("b", { version: 3 }), el("c")];
