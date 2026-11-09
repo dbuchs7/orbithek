@@ -178,7 +178,7 @@ function swatch(colour) {
   return el;
 }
 
-// externalEl draws an entry of a calendar of another service (ADR-0172):
+// externalEl draws an entry of a calendar of another service (ADR-0174):
 // in its calendar's colour, with its time and title, read only; a click
 // tells what is known of it, as it is no item to open.
 function externalEl(e, seg) {
@@ -423,7 +423,7 @@ function savedBar(container, params, helpers, state, today, views, feeds, after)
 // COLOURS are offered in turn to a calendar of another service.
 const COLOURS = ["#3a7bd5", "#2e9d5b", "#d9822b", "#8e5bd9", "#d64553", "#1f9aa8", "#7a7f2a", "#c2569e"];
 
-// othersBar shows one's calendars of other services (ADR-0172), which
+// othersBar shows one's calendars of other services (ADR-0174), which
 // stand beside the wiki's: each in its colour, shown or hidden, removed;
 // the accounts they come from, whose calendars one chooses and which one
 // disconnects; and the ways to add one: an iCalendar address, a Google
@@ -609,7 +609,7 @@ export async function calendarView(container, params, helpers, after = {}) {
       failed = err;
     }
   }
-  // One's calendars of other services stand beside the items (ADR-0172).
+  // One's calendars of other services stand beside the items (ADR-0174).
   let others = [], unreadable = [];
   if (cals.enabled && (cals.sources || []).some((src) => !src.hidden)) {
     let zone = "";

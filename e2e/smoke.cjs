@@ -113,7 +113,7 @@ function zipEntry(buf, name) {
 }
 
 // calendarSource publishes a calendar in iCalendar format over https, as
-// Google, Outlook or Apple do (ADR-0172), with the certificate the test
+// Google, Outlook or Apple do (ADR-0174), with the certificate the test
 // made for 127.0.0.1, which the server trusts through SSL_CERT_DIR.
 function calendarSource(cert, key) {
   const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "X-WR-CALNAME:Holidays", "X-WR-TIMEZONE:Europe/Zurich",
@@ -661,8 +661,9 @@ function gitSource() {
     await page.waitForSelector("#welcome h1:has-text('admin')");
     await page.waitForSelector("#welcome img.welcome-art");
     await page.waitForSelector("#welcome #home-version:has-text('Version')");
-    check(await page.locator(".home-tiles a").count() === 6, "six quick accesses, one's notes and the starmap among them");
-    check(await page.locator(".home-tiles a .module-icon svg").count() === 6, "each quick access wears the symbol of its module on the station");
+    check(await page.locator(".home-tiles a").count() === 7, "seven quick accesses, one's notes, the starmap and the whiteboards among them");
+    check(await page.getAttribute("#home-whiteboards", "href") === "#/whiteboards", "a quick access leads to the whiteboards (ADR-0169)");
+    check(await page.locator(".home-tiles a .module-icon svg").count() === 7, "each quick access wears the symbol of its module on the station");
     check(await page.getAttribute(".home-tiles a:first-child", "id") === "home-starmap" && await page.getAttribute("#home-starmap", "href") === "#/starmap"
       && await page.locator("#home-starmap .module-icon.module-starmap").count() === 1, "the starmap is the first quick access, with its module's symbol");
     await page.click("#home-starmap");
@@ -1221,7 +1222,10 @@ function gitSource() {
     // makes no pages (ADR-0112).
     check(await page.$eval(".page-head .actions", (p) => p.lastElementChild.id) === "watch" && await page.locator(".tree-box a.tree-new").count() === 0,
       "the bell is the last of the page's buttons");
+    // For an administrator New opens a menu: a page or item, or a room.
     await page.click("#nav-new");
+    await page.waitForSelector("#new-menu:not([hidden]) #new-menu-space");
+    await page.click("#new-menu-item");
     await page.waitForSelector("#new-item [name=under]:checked");
     await page.fill("#new-item [name=title]", "Created from New");
     await page.selectOption("#new-item [name=type]", "task");
@@ -1587,8 +1591,46 @@ function gitSource() {
     await page.goto(base + "/#/album");
     await page.waitForSelector("#album .album-card img");
     check(await page.locator("#album .album-card").count() === 2, "the album shows the image and the drawing, not the text file");
+    // Cards have their parts in the same places: the actions of a row of
+    // cards line up, whatever else a card shows (ADR-0173).
+    const actionTops = await page.$$eval("#album .album-grid > .album-card > .album-actions", (els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
+    check(actionTops.length === 2 && new Set(actionTops).size === 1, "the actions of a row of cards line up: " + actionTops);
     await page.selectOption("#album select[aria-label=Kind]", "drawing");
     await page.waitForFunction(() => document.querySelectorAll("#album .album-card").length === 1);
+
+    step("album export: a picture leaves as PNG or JPEG, a drawing also as SVG drawn from its scene (ADR-0173)");
+    {
+      const fs = require("fs");
+      const card = "#album .album-card";
+      const saved = async (format) => {
+        await page.click(card + " .album-export summary");
+        const [file] = await Promise.all([page.waitForEvent("download"), page.click(`${card} .album-export button[data-format=${format}]`)]);
+        await page.waitForSelector("#album .status .notice");
+        return { name: file.suggestedFilename(), bytes: fs.readFileSync(await file.path()) };
+      };
+      await page.click(card + " .album-export summary");
+      check((await page.locator(card + " .album-export button").allTextContents()).join("|") === "PNG (lossless)|JPEG (no transparency)|SVG (vector, drawn from the drawing)", "a drawing offers PNG, JPEG and SVG");
+      await page.click(card + " .album-export summary");
+      const src = await page.evaluate(() => (document.querySelector("#album .album-card .album-front") || document.querySelector("#album .album-card .album-thumb > img")).getAttribute("src"));
+      const stored = await (await page.request.get(base + src)).body();
+      const svg = await saved("svg");
+      const svgText = svg.bytes.toString("utf8");
+      check(svg.name.endsWith(".svg") && !svg.name.includes(".drawing"), "the SVG is named after the drawing: " + svg.name);
+      check(svgText.startsWith("<svg") && svgText.trimEnd().endsWith("</svg>") && svgText.includes("<path"), "the SVG draws the drawing's shapes: " + svgText.slice(0, 120));
+      check(!/<script|\son[a-z]+\s*=/i.test(svgText), "the SVG holds no script");
+      check(await page.locator("iframe.export-frame").count() === 0, "the frame that drew the SVG is gone");
+      const pngFile = await saved("png");
+      check(pngFile.name.endsWith(".png") && !pngFile.name.includes(".drawing") && pngFile.bytes.equals(stored), "a drawing's PNG is its stored picture, scene included");
+      const jpg = await saved("jpeg");
+      check(jpg.name.endsWith(".jpg") && jpg.bytes[0] === 0xff && jpg.bytes[1] === 0xd8 && jpg.bytes[2] === 0xff, "the drawing as JPEG: " + jpg.name);
+      await page.selectOption("#album select[aria-label=Kind]", "image");
+      // An image offers PNG and JPEG, no SVG.
+      await page.waitForFunction(() => { const c = document.querySelectorAll("#album .album-card"); return c.length === 1 && c[0].querySelectorAll(".album-export button").length === 2; });
+      const pixel = await saved("jpeg");
+      check(pixel.name === "pixel.jpg" && pixel.bytes[0] === 0xff && pixel.bytes[1] === 0xd8, "the image converted to JPEG: " + pixel.name);
+      check((await page.textContent("#album .status")).includes("pixel.jpg saved."), "the album says what it saved");
+    }
+
     await page.goto(base + "/#/item/PLAT-2?edit");
     await page.waitForSelector("#body.editing .ProseMirror");
     await page.locator("#body .ProseMirror").click();
@@ -1623,8 +1665,9 @@ function gitSource() {
     await page.waitForSelector("#album-upload");
     await page.setInputFiles("#album-files", { name: "brand.png", mimeType: "image/png", buffer: png });
     const brandCard = "#album .album-card:has(.album-name:text-is('brand'))";
-    await page.waitForSelector(brandCard + " .album-labels-input");
+    await page.waitForSelector(brandCard + " .album-labels-edit");
     check(await page.locator("#album .album-card").count() === 1, "the folder shows its own picture only");
+    await page.click(brandCard + " .album-labels-edit"); // the field opens on demand
     await page.fill(brandCard + " .album-labels-input", "Logo, print");
     await page.press(brandCard + " .album-labels-input", "Enter");
     await page.waitForSelector(brandCard + " .album-label:text-is('logo')");
@@ -1635,6 +1678,7 @@ function gitSource() {
     const itemLabels = await page.evaluate(async () => (await (await fetch("/api/labels")).json()).labels.map((l) => l.label));
     check(!itemLabels.includes("logo"), "a picture's label is no label of an item, so no kanban shows it");
     answer = true;
+    await page.click(brandCard + " .album-more summary"); // deleting is under More
     await page.click(brandCard + " .album-delete");
     await page.waitForSelector(brandCard, { state: "detached" });
 
@@ -1696,7 +1740,7 @@ function gitSource() {
     await page.waitForSelector("#album .album-card img");
     await page.fill("#album input[type=search]", drawingKey);
     await page.selectOption("#album select[aria-label=Kind]", "drawing");
-    await page.waitForSelector(stackCard + " .album-retention");
+    await page.click(stackCard + " .album-more summary"); // cleaning up is under More
     await page.click(stackCard + " .album-retention");
     await page.waitForSelector("dialog#retention-dialog[open] #retention-list li");
     check(await page.inputValue("#retention-keep") === "1", "the picture starts from the album's default");
@@ -2654,7 +2698,7 @@ function gitSource() {
     await outsider.close();
     await page.setViewportSize({ width: 1280, height: 720 });
 
-    step("calendar: a calendar of another service, allowed by an administrator, stands beside the items, read only (ADR-0172)");
+    step("calendar: a calendar of another service, allowed by an administrator, stands beside the items, read only (ADR-0174)");
     if (!process.env.CALENDAR_CERT || !process.env.CALENDAR_KEY) {
       console.log("  skipped: CALENDAR_CERT and CALENDAR_KEY are not set");
     } else {
@@ -2899,9 +2943,21 @@ function gitSource() {
     step("start page: a star marks a space as a favourite; favourites come first, as tiles, in the list and in every choice of a space (ADR-0145)");
     // A second space, last in the order, to bring to the front; removed for
     // good at the end of the step.
-    check((await page.request.post(base + "/api/spaces", { data: { key: "ZFAV", name: "Favourite" } })).status() === 201, "a second space");
-    await page.reload();
+    // It is made from the button beside the layout switch, which opens
+    // the same dialog as "New room" under New in the header.
+    await page.click("#spaces-new");
+    await page.waitForSelector("dialog#new-space-dialog[open]");
+    await page.click("#new-space-dialog-cancel");
+    await page.waitForSelector("dialog#new-space-dialog", { state: "detached" });
+    await page.click("#nav-new");
+    await page.click("#new-menu-space");
+    await page.fill("#new-space-dialog [name=key]", "ZFAV");
+    await page.fill("#new-space-dialog [name=name]", "Favourite");
+    await page.click("#new-space-dialog-ok");
+    await page.waitForFunction(() => location.hash === "#/space/ZFAV");
+    await page.click("a.brand");
     await page.waitForSelector("#spaces-overview .space-tile:has-text('Favourite')");
+    check(await page.locator("#new-space-card").count() === 0, "with rooms, the start page has no form for a new room below them");
     const tileKeys = () => page.$$eval("#spaces-overview .space-tiles > li .space-key", (els) => els.map((e) => e.textContent));
     const before = await tileKeys();
     check(before.length >= 2, "more than one space to order");
@@ -4562,7 +4618,7 @@ function gitSource() {
     await quickPage.waitForSelector("#body.reading .ProseMirror p:has-text('Stored.')");
     await quickCtx.close();
 
-    step("whiteboard: bert and admin work on one drawing at once: a note, an agent's notes, a vote with its result as a comment, the timer, a comment on an element, a presentation, and a checkpoint the drawing editor opens again (ADR-0169, ADR-0170, ADR-0171)");
+    step("whiteboard: bert and admin work on one drawing at once: a note, an agent's notes, a vote with its result as a comment, the timer, a comment on an element, a presentation, a picture and a laser pointer both see, a checkpoint, and the drawing opened alone only once nobody is on it (ADR-0169, ADR-0170, ADR-0171, ADR-0172)");
     const retro = await page.evaluate(async () => (await (await fetch("/api/items", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ space: "PLAT", type: "task", title: "Retro", properties: { priority: "low" } }) })).json()).item.key);
     await page.goto(base + "/#/item/" + retro);
@@ -4634,6 +4690,50 @@ function gitSource() {
     check((await board.locator("#wb-slide").textContent()) === "Frame 1 of 1", "bert presents the frame");
     await board.locator("#wb-stop").click();
     await boardOther.locator("#wb-banner").waitFor({ state: "detached" });
+    // A picture bert drops in is drawn on admin's canvas too, and admin
+    // sees the trail of bert's laser pointer.
+    const boardFrameOf = (p) => p.frames().find((f) => f.url().endsWith("/draw"));
+    await boardFrameOf(page).evaluate(async () => {
+      const c = document.createElement("canvas");
+      c.width = c.height = 120;
+      const g = c.getContext("2d");
+      g.fillStyle = "#ff0000";
+      g.fillRect(0, 0, 120, 120);
+      const blob = await new Promise((resolve) => c.toBlob(resolve, "image/png"));
+      const dt = new DataTransfer();
+      dt.items.add(new File([blob], "red.png", { type: "image/png" }));
+      const target = document.querySelector("canvas.excalidraw__canvas.interactive");
+      const r = target.getBoundingClientRect();
+      for (const type of ["dragenter", "dragover", "drop"]) {
+        target.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 }));
+      }
+    });
+    await boardOther.locator("body[data-elements='6']").waitFor();
+    const redOn = (p) => boardFrameOf(p).evaluate(() => {
+      const c = document.querySelector("canvas.excalidraw__canvas.static");
+      const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i] > 200 && d[i + 1] < 60 && d[i + 2] < 60) n++;
+      return n;
+    });
+    let red = 0;
+    for (let i = 0; i < 50 && red < 400; i++) {
+      red = await redOn(boardAdmin);
+      if (red < 400) await boardAdmin.waitForTimeout(100);
+    }
+    check(red >= 400, "admin sees the picture bert dropped in: " + red + " red pixels");
+    const laserAt = { x: boardBox.x + boardBox.width * 0.25, y: boardBox.y + boardBox.height * 0.75 };
+    await page.mouse.click(laserAt.x, laserAt.y);
+    await page.keyboard.press("k");
+    await page.mouse.down();
+    let trail = 0;
+    for (let i = 0; i < 25 && trail < 50; i++) {
+      await page.mouse.move(laserAt.x + i * 12, laserAt.y - i * 4);
+      await page.waitForTimeout(40);
+      trail = await boardFrameOf(boardAdmin).evaluate(() => Math.max(0, ...[...document.querySelectorAll(".SVGLayer path")].map((p) => (p.getAttribute("d") || "").length)));
+    }
+    await page.mouse.up();
+    check(trail >= 50, "admin sees the trail of bert's laser pointer");
     // A checkpoint: the keeper draws, the server writes its scene; the
     // drawing editor opens the new version with every element.
     await board.locator("#wb-save").click();
@@ -4655,20 +4755,37 @@ function gitSource() {
       return { ref, elements: [] };
     };
     let checkpoint = null;
-    for (let i = 0; i < 100 && !(checkpoint && checkpoint.ref !== boardFile && checkpoint.elements.length === 5); i++) {
+    for (let i = 0; i < 100 && !(checkpoint && checkpoint.ref !== boardFile && checkpoint.elements.length === 6); i++) {
       checkpoint = await shownScene();
-      if (checkpoint.elements.length !== 5) await page.waitForTimeout(200);
+      if (checkpoint.elements.length !== 6) await page.waitForTimeout(200);
     }
-    check(checkpoint.ref !== boardFile && checkpoint.elements.length === 5, "the text shows a checkpoint with every element: " + checkpoint.elements.length);
+    check(checkpoint.ref !== boardFile && checkpoint.elements.length === 6, "the text shows a checkpoint with every element: " + checkpoint.elements.length);
     check(checkpoint.elements.some((e) => e.type === "text" && (e.originalText || e.text) === "Keep the daily"), "the note's text is in the checkpoint");
-    await boardCtx.close();
+    // bert leaves while admin stays: the page offers to join, not to edit
+    // alone, and the server takes no version from the drawing editor.
     await page.goto(base + "/#/item/" + retro);
     await page.waitForSelector("#comments .comment-element a");
     check(await page.locator("#attachments li:has-text('.drawing.png')").count() === 2, "the checkpoint is a new version of the drawing");
-    await page.click("#edit");
-    await page.waitForSelector("#body.editing .pm-redraw");
-    await page.click("#body .pm-redraw");
-    await page.frameLocator("dialog.drawing iframe").locator("body[data-state=open][data-elements='5']").waitFor();
+    await page.waitForSelector("#body.reading .pm-drawing-open a.pm-whiteboard");
+    await page.waitForFunction(() => document.querySelector(".pm-drawing-open a.pm-whiteboard").textContent.startsWith("Join the whiteboard"));
+    check(await page.locator(".pm-drawing-open a.pm-draw-alone").count() === 0, "no editing alone while admin is on the whiteboard");
+    const retroItem = (await (await page.request.get(base + "/api/items/" + retro)).json()).item;
+    const shownPicture = await (await page.request.get(base + `/api/items/${retro}/attachments/${checkpoint.ref}`)).body();
+    const saveAlone = await page.request.post(base + `/api/items/${retro}/attachments?name=Board.drawing.png&sourceItem=${retroItem.id}&sourceAttachment=${checkpoint.ref}`,
+      { headers: { "Content-Type": "application/octet-stream" }, data: shownPicture });
+    check(saveAlone.status() === 409, "the drawing editor cannot save a version while admin is on the whiteboard: " + saveAlone.status());
+    // Once admin left too (the agent does not count), the drawing opens
+    // alone in the drawing editor, with every element of the checkpoint.
+    await boardCtx.close();
+    for (let i = 0; i < 20 && !(await page.locator(".pm-drawing-open a.pm-draw-alone").count()); i++) {
+      await page.waitForTimeout(300);
+      await page.goto(base + "/#/whiteboards");
+      await page.goto(base + "/#/item/" + retro);
+      await page.waitForSelector("#body.reading .pm-drawing-open a.pm-whiteboard");
+    }
+    await page.click(".pm-drawing-open a.pm-draw-alone");
+    await page.frameLocator("dialog.drawing iframe").locator("body[data-state=open][data-elements='6']").waitFor();
+    check(!page.url().includes("draw="), "the address forgets the drawing it opened");
     await page.click("dialog.drawing button:has-text('Cancel')");
     await page.click("#edit-done");
     await page.waitForSelector("#body.reading");

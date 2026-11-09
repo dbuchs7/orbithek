@@ -14,7 +14,7 @@ import (
 // a calendar and an account's password are sealed with keys of their own,
 // never on disk in plaintext; they survive a restart, removing them
 // destroys their keys, a leftover key goes at the next start, and the
-// journal is not backed up (ADR-0172).
+// journal is not backed up (ADR-0174).
 func TestCalendarCredentialsAreSealedAndTheirKeysGoWithThem(t *testing.T) {
 	const address = "https://calendar.example.org/private-0123456789abcdef/basic.ics"
 	const password = "abcd-efgh-ijkl-mnop"

@@ -51,7 +51,7 @@ type cached struct {
 }
 
 // NewReader reads with client, which must keep to the addresses the
-// server may reach (connector.PublicOnly, ADR-0172); google may be nil
+// server may reach (connector.PublicOnly, ADR-0174); google may be nil
 // when Google is not set up.
 func NewReader(store *Store, client *http.Client, google *Google) *Reader {
 	r := &Reader{store: store, client: client, google: google, now: time.Now, cache: map[string]cached{}}

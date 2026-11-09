@@ -1,4 +1,4 @@
-# ADR-0172: Calendars of other services in the calendar
+# ADR-0174: Calendars of other services in the calendar
 
 - **Status:** Proposed
 - **Implementation:** Partial

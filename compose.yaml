@@ -66,7 +66,7 @@ services:
       # Editors may show Markdown files of public repositories (ADR-0138).
       # OT_GIT_FILES: "on"
 
-      # --- Calendars of other services (ADR-0172) ----------------------
+      # --- Calendars of other services (ADR-0174) ----------------------
       # Turned on by an administrator in the UI. Google accounts use the
       # Google client of single sign-on above and OT_PUBLIC_URL. The
       # server reads only public addresses unless this allows calendars in

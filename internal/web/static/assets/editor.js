@@ -747,6 +747,14 @@ function imageView(node, view, getPos, files) {
   const redraw = async (status) => {
     status.textContent = "";
     try {
+      // A drawing open as a live whiteboard is worked on there: the drawing
+      // editor could not save it (ADR-0172).
+      const working = await files.live?.(node.attrs.ref, true);
+      if (working) {
+        status.replaceChildren(t("draw.busyLive", { n: working }), " ",
+          ...(files.whiteboard ? [h("a", { href: files.whiteboard(node.attrs.ref), text: t("draw.joinWhiteboard", { n: working }) })] : []));
+        return;
+      }
       const res = await fetch(files.url(node.attrs.ref), { credentials: "same-origin" });
       if (!res.ok) throw new Error(res.statusText);
       // The new picture is a version of the one edited (ADR-0055), so its
@@ -778,10 +786,26 @@ function imageView(node, view, getPos, files) {
       status.textContent = err.message;
     }
   };
+  // openWith offers a drawing as a live whiteboard and, to one who may
+  // edit, alone in the drawing editor; while people work on it live, it
+  // says so and offers to join (ADR-0172).
+  const openWith = () => {
+    const ref = node.attrs.ref;
+    const board = h("a", { class: "pm-whiteboard", href: files.whiteboard(ref), text: t("draw.openWhiteboard") });
+    const alone = files.drawHref ? h("a", { class: "pm-draw-alone", href: files.drawHref(ref), text: t("draw.openDrawing") }) : null;
+    const box = h("span", { class: "pm-drawing-open" }, board, ...(alone ? [" · ", alone] : []));
+    files.live?.(ref).then((n) => {
+      if (!n || node.attrs.ref !== ref) return;
+      board.textContent = t("draw.joinWhiteboard", { n });
+      alone?.replaceWith(h("span", { class: "muted", text: t("draw.aloneWhileLive") }));
+    });
+    return box;
+  };
   const render = () => {
     const key = node.attrs.ref + node.attrs.text + node.attrs.width + node.attrs.align + view.editable;
     if (shown === key) return;
     shown = key;
+    dom.dataset.ref = node.attrs.ref;
     const src = files ? files.url(node.attrs.ref) : "";
     // A video keeps its place in the playback while only its caption changes.
     if (img.getAttribute("src") !== src) img.src = src;
@@ -791,7 +815,8 @@ function imageView(node, view, getPos, files) {
     showLive();
     dom.classList.toggle("pm-sizable", view.editable);
     for (const a of ["left", "center", "right"]) dom.classList.toggle("pm-image-" + a, node.attrs.align === a);
-    if (!view.editable) return caption.replaceChildren(node.attrs.text);
+    const drawing = !video && files?.isDrawing?.(node.attrs.ref) && files.whiteboard;
+    if (!view.editable) return caption.replaceChildren(...[node.attrs.text, ...(drawing ? [" ", openWith()] : [])]);
     const size = h("select", { class: "pm-image-size", "aria-label": t("editor.imageSize"), onchange: (e) => setWidth(Number(e.target.value)) },
       [...new Set([...imageSizes, node.attrs.width])].sort((a, b) => a - b).map((w) =>
         h("option", { value: String(w), text: w ? `${w} %` : t("editor.imageOwnSize"), selected: w === node.attrs.width })));
@@ -816,6 +841,7 @@ function imageView(node, view, getPos, files) {
     } });
     caption.replaceChildren(...[input, " ", size, " ", place, " ", remove,
       ...(files?.isDrawing?.(node.attrs.ref) ? [" ", h("button", { type: "button", class: "link pm-redraw", text: t("draw.edit"), onclick: () => redraw(status) })] : []),
+      ...(drawing ? [" ", h("a", { class: "link pm-whiteboard", href: files.whiteboard(node.attrs.ref), text: t("draw.openWhiteboard") })] : []),
       ...(origin?.newer ? [" ", h("button", { type: "button", class: "link pm-take-over", text: t("att.takeOver", { key: origin.item.key }), onclick: () => takeOver(status, origin) })] : []),
       status]);
   };

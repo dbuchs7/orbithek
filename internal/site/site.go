@@ -149,7 +149,7 @@ type event struct {
 	// WordTemplate is set by WordTemplateSet, with the file in Data when
 	// it adds a version; WordTemplateRemoved names it in Asset (ADR-0167).
 	WordTemplate *wordTemplateEvent `json:"wordTemplate,omitempty"`
-	// Calendars is set by CalendarsSet (ADR-0172).
+	// Calendars is set by CalendarsSet (ADR-0174).
 	Calendars *Calendars `json:"calendars,omitempty"`
 }
 
@@ -202,7 +202,7 @@ type Settings struct {
 	// (ADR-0150).
 	diskSpace *diskspace.Thresholds
 	// calendars says whether people may show calendars of other services
-	// (ADR-0172).
+	// (ADR-0174).
 	calendars Calendars
 	// engines are the process engines by ID (ADR-0129).
 	engines map[string]Engine

@@ -52,7 +52,7 @@ const ConnectionsFile = "connections.wal"
 // connectionKey begins the ID of a connection's key in the keys file.
 const connectionKey = "engineconn:"
 
-// CalendarsFile holds people's calendars of other services (ADR-0172):
+// CalendarsFile holds people's calendars of other services (ADR-0174):
 // iCalendar addresses and accounts at Google or CalDAV servers, their
 // credentials sealed with a key of each calendar's or account's own, kept
 // in the keys file.
@@ -76,7 +76,7 @@ type DB struct {
 	// (ADR-0151). They take the writer's lock to seal, which guards the
 	// keys, so they are never changed within Write.
 	Connections *engineconn.Connections
-	// Calendars are people's calendars of other services (ADR-0172). They
+	// Calendars are people's calendars of other services (ADR-0174). They
 	// take the writer's lock to seal, as Connections do.
 	Calendars *extcal.Store
 
@@ -319,7 +319,7 @@ func (db *DB) heal() (int, error) {
 		liveCal[k] = true
 	}
 	for id := range db.keys.keys {
-		// A calendar's or account's key belongs to it (ADR-0172).
+		// A calendar's or account's key belongs to it (ADR-0174).
 		if k, ok := strings.CutPrefix(string(id), calendarKey); ok {
 			if !liveCal[k] {
 				ids = append(ids, id)
@@ -565,7 +565,7 @@ func (db *DB) openConnections() error {
 
 // keySealer seals with a key of each holder's own in the keys file, its ID
 // begun with prefix, as connSealer does: the credentials of people's
-// calendars (ADR-0172).
+// calendars (ADR-0174).
 type keySealer struct {
 	db     *DB
 	prefix string

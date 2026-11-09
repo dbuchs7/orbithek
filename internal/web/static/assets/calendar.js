@@ -249,7 +249,7 @@ export function entries(items, fields, range) {
 }
 
 // externalEntries turns the entries of a person's calendars of other
-// services (ADR-0172), as /api/me/calendars/events answers them, into
+// services (ADR-0174), as /api/me/calendars/events answers them, into
 // entries of the calendar: an all-day one over its days, its end being
 // the day after its last, one with a time on the days it touches where
 // the reader is. They stand beside the items but are none: their item has

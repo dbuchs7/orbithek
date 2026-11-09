@@ -43,7 +43,7 @@ var NotBackedUp = map[string]string{
 	TaskCursorsFile + ".tmp": "the cursors of the engines' feeds while they are replaced",
 	ConnectionsFile: "people's grants at process engines (ADR-0151): a refresh token is a credential of its person, replaced on every use; " +
 		"a restored or copied server must not act as people at an engine, and a backup's token would be spent already, so people connect again",
-	CalendarsFile: "people's calendars of other services (ADR-0172): their addresses and accounts are credentials of their person, " +
+	CalendarsFile: "people's calendars of other services (ADR-0174): their addresses and accounts are credentials of their person, " +
 		"which a restored or copied server must not read with; people add their calendars again",
 }
 

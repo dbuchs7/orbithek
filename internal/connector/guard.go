@@ -70,7 +70,7 @@ func PublicOnly(next http.RoundTripper) http.RoundTripper {
 
 // PublicOnlyUnless keeps next to public addresses as PublicOnly does; a
 // refusal names variable as the one that allows the own network, as
-// OT_CALENDAR_ALLOW_PRIVATE does for people's calendars (ADR-0172).
+// OT_CALENDAR_ALLOW_PRIVATE does for people's calendars (ADR-0174).
 func PublicOnlyUnless(next http.RoundTripper, variable string) http.RoundTripper {
 	lookup := func(ctx context.Context, host string) ([]netip.Addr, error) {
 		return net.DefaultResolver.LookupNetIP(ctx, "ip", host)

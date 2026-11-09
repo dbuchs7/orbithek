@@ -23,7 +23,7 @@ const googleCalendarCookie = "ot_calendar_state"
 
 // GoogleCalendarCallback is the path Google sends a person back to; the
 // public address and this path must be among the redirect addresses of
-// the Google client (ADR-0172).
+// the Google client (ADR-0174).
 const GoogleCalendarCallback = "/api/calendar-accounts/google/callback"
 
 // maxEventDays is the longest window one request reads.
@@ -32,7 +32,7 @@ const maxEventDays = 400
 // CalendarClient makes the client people's calendars are read with:
 // through the environment's proxy, with timeouts, following redirects only
 // to https, and kept to public addresses unless OT_CALENDAR_ALLOW_PRIVATE
-// allows others (ADR-0172).
+// allows others (ADR-0174).
 func CalendarClient(getenv func(string) string) *http.Client {
 	var transport http.RoundTripper = &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
@@ -54,7 +54,7 @@ type extcalHandlers struct {
 }
 
 // extcalRoutes let people show their calendars of other services in the
-// wiki's calendar, and administrators allow it (ADR-0172).
+// wiki's calendar, and administrators allow it (ADR-0174).
 func extcalRoutes(d Deps) []Route {
 	h := extcalHandlers{authHandlers: authHandlers{d: d}, log: d.Log}
 	if h.log == nil {

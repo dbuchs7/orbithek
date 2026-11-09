@@ -8,6 +8,8 @@
 //   page → UI  {type: "process", want, current}    asks for a process (ADR-0142)
 //   UI → page  {type: "process", picture}          {svg, width, height, data}, or null
 //   UI → page  {type: "live", lang, item, file}    open the drawing as a live whiteboard (ADR-0169)
+//   UI → page  {type: "svg", scene: Blob}          draw a drawing as SVG, for its export (ADR-0173)
+//   page → UI  {type: "svg", blob} | {type: "error", message}
 //
 // A drawing is a PNG that carries its scene (Excalidraw's exportEmbedScene),
 // so the picture shown in a page is also the source it is edited from.
@@ -15,7 +17,7 @@ import { isDark } from "./theme.js";
 import { setLanguage, t } from "./i18n.js";
 import { KEY, PADDING, processOf, regionsOf, rootsOf, withRegions } from "./drawprocesses.js";
 import {
-  React, createRoot, Excalidraw, exportToBlob, loadFromBlob, MIME_TYPES,
+  React, createRoot, Excalidraw, exportToBlob, exportToSvg, loadFromBlob, MIME_TYPES,
   convertToExcalidrawElements, getCommonBounds, newElementWith, CaptureUpdateAction,
 } from "/vendor/excalidraw.js";
 
@@ -142,20 +144,25 @@ function render(lang, initialData) {
   }), h("div", { className: "phone-tools" }, processChooser("process"), paletteChooser("palette"))));
 }
 
+// sceneOf reads the scene a drawing's PNG carries. The processes' regions
+// are written anew on saving. A picture saved with them in a text chunk
+// ahead of its scene, where Excalidraw looks for the scene, opens without
+// them (ADR-0142).
+async function sceneOf(scene) {
+  let picture = scene;
+  try {
+    picture = new Blob([withRegions(new Uint8Array(await scene.arrayBuffer()), [])], { type: MIME_TYPES.png });
+  } catch {
+    // Not a PNG: Excalidraw says what it is.
+  }
+  return loadFromBlob(picture, null, null);
+}
+
 async function open({ lang, scene }) {
   setLanguage(lang);
   let initialData = { appState: { viewBackgroundColor: "#ffffff" } };
   if (scene) {
-    // The processes' regions are written anew on saving. A picture saved
-    // with them in a text chunk ahead of its scene, where Excalidraw looks
-    // for the scene, opens without them (ADR-0142).
-    let picture = scene;
-    try {
-      picture = new Blob([withRegions(new Uint8Array(await scene.arrayBuffer()), [])], { type: MIME_TYPES.png });
-    } catch {
-      // Not a PNG: Excalidraw says what it is.
-    }
-    const data = await loadFromBlob(picture, null, null);
+    const data = await sceneOf(scene);
     initialData = { elements: data.elements, files: data.files, appState: { viewBackgroundColor: data.appState.viewBackgroundColor || "#ffffff" } };
   }
   render(lang, initialData);
@@ -178,6 +185,25 @@ async function picture() {
   return regions.length ? new Blob([withRegions(new Uint8Array(await blob.arrayBuffer()), regions)], { type: MIME_TYPES.png }) : blob;
 }
 
+// asSVG draws a drawing as SVG, for its export (ADR-0173), without opening
+// the editor: light and on its background, as the picture in pages is, with
+// the same margin, and with its fonts inside, so the file shows elsewhere
+// as it does here. The scene is not embedded: the export is a picture, and
+// the drawing's own PNG remains the file it is edited from.
+async function asSVG(scene) {
+  const data = await sceneOf(scene);
+  const elements = (data.elements || []).filter((el) => !el.isDeleted);
+  if (!elements.length) throw new Error("empty");
+  const picture = await exportToSvg({
+    elements, files: data.files || null, exportPadding: PADDING,
+    appState: {
+      ...data.appState, viewBackgroundColor: data.appState?.viewBackgroundColor || "#ffffff",
+      exportBackground: true, exportWithDarkMode: false, exportEmbedScene: false,
+    },
+  });
+  return new Blob([new XMLSerializer().serializeToString(picture)], { type: MIME_TYPES.svg });
+}
+
 window.addEventListener("message", async (e) => {
   if (e.origin !== origin || e.source !== parent || !e.data) return;
   try {
@@ -191,6 +217,7 @@ window.addEventListener("message", async (e) => {
       });
     }
     else if (e.data.type === "export") parent.postMessage({ type: "png", blob: await picture() }, origin);
+    else if (e.data.type === "svg") parent.postMessage({ type: "svg", blob: await asSVG(e.data.scene) }, origin);
     else if (e.data.type === "process") {
       if (e.data.picture) place(e.data.picture);
       else pending = null;

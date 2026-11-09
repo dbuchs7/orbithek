@@ -2,7 +2,7 @@ package site
 
 // Calendars is whether people may show their calendars of other services
 // — iCalendar addresses, Google and CalDAV accounts — in the wiki's
-// calendar (ADR-0172). It is off until an administrator turns it on, as
+// calendar (ADR-0174). It is off until an administrator turns it on, as
 // the server then reads addresses people give it and keeps their
 // credentials.
 type Calendars struct {

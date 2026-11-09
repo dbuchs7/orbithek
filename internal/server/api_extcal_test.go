@@ -78,7 +78,7 @@ END:VCALENDAR</c:calendar-data></d:prop></d:propstat></d:response>`))
 // then a person shows an iCalendar address, a CalDAV account's calendar
 // and a Google account's calendar beside the wiki's, nobody else sees or
 // changes them, their credentials are never answered, and adding,
-// removing, connecting and disconnecting is in the audit trail (ADR-0172).
+// removing, connecting and disconnecting is in the audit trail (ADR-0174).
 func TestCalendarsOfOtherServices(t *testing.T) {
 	srv := fakeServices(t)
 	var reader *extcal.Reader

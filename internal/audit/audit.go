@@ -53,7 +53,7 @@ const (
 	// other services on or off; CalendarSourceAdded and
 	// CalendarSourceRemoved a person's calendar of another service kept
 	// or removed, CalendarAccountConnected and CalendarAccountDisconnected
-	// an account at Google or a CalDAV server (ADR-0172).
+	// an account at Google or a CalDAV server (ADR-0174).
 	CalendarsChanged            = "calendars.change"
 	CalendarSourceAdded         = "calendar-source.add"
 	CalendarSourceRemoved       = "calendar-source.remove"

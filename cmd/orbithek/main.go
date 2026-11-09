@@ -306,7 +306,7 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 	diskDone := make(chan struct{})
 	go func() { disk.Loop(diskCtx); close(diskDone) }()
 	defer func() { stopDisk(); <-diskDone }()
-	// People's calendars of other services (ADR-0172): read with the
+	// People's calendars of other services (ADR-0174): read with the
 	// guarded client; Google through the client of single sign-on, when
 	// it and the public address are set.
 	var google *extcal.Google

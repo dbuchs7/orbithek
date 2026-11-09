@@ -158,3 +158,17 @@ test("throttle runs the last call once per interval", () => {
   pending.shift()();
   assert.deepEqual(calls, [3, 4]);
 });
+
+test("an image this browser could not load goes out unbroken, and the laser keeps its tool", () => {
+  const img = el("i", { type: "image", status: "error" });
+  assert.equal(P.sendable(img, new Map([["i", { ...img, status: "pending" }]]), new Map(), "me").status, "pending");
+  assert.equal(P.sendable(img, new Map(), new Map(), "me").status, "saved");
+  assert.equal(P.sendable(el("j", { type: "image", status: "saved" }), new Map(), new Map(), "me").status, "saved");
+  assert.deepEqual(P.pictures([
+    el("p", { type: "image", fileId: "f1" }), el("q", { type: "image", fileId: "f1" }), el("r", { type: "image", fileId: null }),
+    el("s", { type: "image", fileId: "f2", isDeleted: true }), el("t", { fileId: "f3" }), el("u", { type: "image", fileId: "f4" }),
+  ]), ["f1", "f4"]);
+  assert.equal(P.pointerTool("laser"), "laser");
+  assert.equal(P.pointerTool("eraser"), "pointer");
+  assert.equal(P.pointerTool(undefined), "pointer");
+});

@@ -300,7 +300,7 @@ test("an occurrence moves alone, or the whole series with its exceptions", () =>
   assert.deepEqual(occurrenceChanges(day, -1), [{ field: "every", value: "FREQ=WEEKLY;MOVE=2026-11-10@2026-11-09" }]);
 });
 
-test("entries of calendars of other services stand on their days where the reader is (ADR-0172)", () => {
+test("entries of calendars of other services stand on their days where the reader is (ADR-0174)", () => {
   const sources = [{ id: "s1", name: "Holidays", colour: "#336699" }, { id: "s2", name: "Work", colour: "#aa0000" }];
   const got = externalEntries([
     { source: "s1", title: "Christmas", start: "2026-12-24", end: "2026-12-27", allDay: true },

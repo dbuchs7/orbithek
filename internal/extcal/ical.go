@@ -1,6 +1,6 @@
 // Package extcal shows a person's calendars of other services — Google
 // Calendar, Apple iCloud, Outlook or any other that publishes iCalendar or
-// speaks CalDAV — beside the items of the wiki's calendar (ADR-0172). It
+// speaks CalDAV — beside the items of the wiki's calendar (ADR-0174). It
 // reads them, never writes them: what a person keeps elsewhere stays
 // there, and an entry read from it is shown, not made an item.
 //

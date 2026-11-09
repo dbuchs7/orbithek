@@ -104,7 +104,7 @@ type Deps struct {
 	// ADR-0168). Without it no feed address opens anything and none is
 	// made; saved views stay, and a feed can still be ended.
 	CalendarFeeds bool
-	// Calendars reads people's calendars of other services (ADR-0172);
+	// Calendars reads people's calendars of other services (ADR-0174);
 	// Routes makes one without Google from the environment when it is
 	// nil. CalendarAllowPrivate says that OT_CALENDAR_ALLOW_PRIVATE lets
 	// it read in the server's own network.

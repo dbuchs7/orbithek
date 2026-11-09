@@ -526,8 +526,11 @@ const childPagesOf = (item) => async () =>
 
 // filesOf serves and stores an item's attachments for its body (ADR-0045),
 // and knows which of them are drawings (ADR-0053).
-const filesOf = (item, attachments = []) => {
+const filesOf = (item, attachments = [], canEdit = false) => {
   const known = new Map(attachments.map((a) => [a.id, a]));
+  // The live whiteboards, asked once per text shown (ADR-0172).
+  let boards = null;
+  const liveBoards = () => (boards ??= get("/api/whiteboards").then((r) => r.whiteboards || []).catch(() => []));
   return {
     item: item.id,
     url: (id) => `/api/items/${item.id}/attachments/${id}`,
@@ -538,6 +541,16 @@ const filesOf = (item, attachments = []) => {
       return a;
     },
     isDrawing: (id) => isDrawing(known.get(id)?.name),
+    // A drawing opens as a live whiteboard, or alone in the drawing editor
+    // for one who may edit (ADR-0172); live says how many people work on
+    // it now with a browser (an agent does not keep anyone from it), asked
+    // anew when fresh.
+    whiteboard: item.key ? (id) => `#/whiteboard/${encodeURIComponent(item.key)}/${id}` : null,
+    drawHref: canEdit && item.key ? (id) => `#/item/${encodeURIComponent(item.key)}?edit&draw=${id}` : null,
+    live: (id, fresh = false) => {
+      if (fresh) boards = null;
+      return liveBoards().then((list) => list.find((w) => w.versions?.includes(id))?.people || 0);
+    },
     // list is the item's files known here, for choosing one, and knows
     // whether a file is among them (ADR-0142).
     list: () => [...known.values()],
@@ -1037,6 +1050,12 @@ const moduleGlyphs = {
     ["circle", { cx: "5", cy: "7", r: "1.9", fill: "#fff" }], ["circle", { cx: "19", cy: "6", r: "1.9", fill: "#fff" }],
     ["circle", { cx: "12", cy: "11", r: "2.4", fill: "#fff" }], ["circle", { cx: "8", cy: "19", r: "1.9", fill: "#fff" }],
     ["circle", { cx: "18", cy: "17", r: "1.9", fill: "#fff" }]],
+  // A whiteboard on its stand, a note stuck on it and lines written (ADR-0169).
+  whiteboard: [
+    ["rect", { x: "3", y: "4", width: "18", height: "12.5", rx: "2", fill: "none", stroke: "#fff", "stroke-width": "1.8" }],
+    ["path", { d: "M9 20.5l3-4 3 4", fill: "none", stroke: "#fff", "stroke-width": "1.8", "stroke-linecap": "round", "stroke-linejoin": "round" }],
+    ["rect", { x: "6", y: "7", width: "5.5", height: "5.5", rx: "1", fill: "#fff" }],
+    ["path", { d: "M14 8.5h4M14 11.5h3", fill: "none", stroke: "#fff", "stroke-width": "1.6", "stroke-linecap": "round" }]],
   protection: [
     ["path", { d: "M12 3l7 3v5c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6z", fill: "#fff" }],
     ["path", { d: "M8.8 11.8l2.3 2.3 4.2-4.4", fill: "none", class: "module-stroke", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }]],
@@ -1225,7 +1244,7 @@ function renderNav() {
   // page tree navigates within a space (ADR-0041).
   mount(nav,
     search,
-    h("button", { id: "nav-new", class: "primary", type: "button", text: t("nav.newButton"), onclick: () => { location.hash = newHref(); } }),
+    newButton(),
     bell,
     lookToggles(),
     accountMenu(),
@@ -1235,6 +1254,22 @@ function renderNav() {
     input.focus();
     input.setSelectionRange(keep.at, keep.at);
   }
+}
+
+// newButton is "New" in the header. It opens the creation view for the
+// place shown; administrators, who can also make rooms, get a menu below
+// it with both.
+function newButton() {
+  const go = () => { location.hash = newHref(); };
+  if (!me.admin) return h("button", { id: "nav-new", class: "primary", type: "button", text: t("nav.newButton"), onclick: go });
+  const button = h("button", { id: "nav-new", class: "primary", type: "button", text: t("nav.newButton"),
+    "aria-haspopup": "menu", "aria-expanded": "false", "aria-controls": "new-menu" });
+  const item = (id, text, onclick) => h("button", { type: "button", role: "menuitem", tabindex: "-1", class: "link", id, text, onclick });
+  const menu = h("div", { id: "new-menu", class: "menu new-menu", role: "menu", hidden: true, "aria-label": t("new.title") },
+    item("new-menu-item", t("nav.newItem"), go),
+    item("new-menu-space", t("admin.newSpace"), () => newSpaceDialog()));
+  popupMenu(button, menu);
+  return h("div", { class: "new-wrap" }, button, menu);
 }
 
 // --- reading mode (ADR-0101) --------------------------------------------------
@@ -1382,27 +1417,10 @@ function showRequests(button) {
   button.setAttribute("aria-label", button.title);
 }
 
-// accountMenu is the account's button in the header: the profile picture
-// or initials, opening a menu with the account, the AI assistants, the
-// administration for administrators, and signing out.
-function accountMenu() {
-  const button = h("button", { type: "button", id: "account-button", class: "account-button", "aria-haspopup": "menu", "aria-expanded": "false",
-    "aria-controls": "account-menu", title: t("nav.accountOf", { name: me.user.username }), "aria-label": t("nav.accountOf", { name: me.user.username }) },
-  avatar(me.user.id, me.user.username, me.avatar));
-  // Account requests waiting for an administrator show as a dot
-  // (ADR-0061).
-  showRequests(button);
-  const item = (href, text) => h("a", { href, role: "menuitem", text, tabindex: "-1" });
-  const roles = [me.admin ? t("admin.roleAdmin") : null, me.erasure ? t("admin.roleErasure") : null].filter(Boolean);
-  const menu = h("div", { id: "account-menu", class: "menu", role: "menu", hidden: true, "aria-label": t("nav.account") },
-    h("div", { class: "menu-head" }, avatar(me.user.id, me.user.username, me.avatar, 40),
-      h("div", {}, h("strong", { text: me.user.username }), roles.length ? h("div", { class: "muted", text: roles.join(", ") }) : null)),
-    item("#/account", t("nav.accountPage")),
-    item("#/mcp", t("nav.mcp")),
-    me.admin ? item("#/admin", me.requests ? t("nav.adminRequests", { n: me.requests }) : t("nav.admin")) : null,
-    h("hr"),
-    h("button", { type: "button", role: "menuitem", tabindex: "-1", class: "link", id: "logout", text: t("nav.logout"),
-      onclick: () => action(async () => { await post("/api/logout"); me = null; location.hash = "#/"; }) }));
+// popupMenu makes button open and close menu below it: the first entry
+// takes the focus, the arrow keys, Home and End move through the entries,
+// and Escape, Tab, a choice or a click elsewhere close it.
+function popupMenu(button, menu) {
   const entries = () => [...menu.querySelectorAll("[role=menuitem]")];
   const close = (focus) => {
     if (menu.hidden) return;
@@ -1431,6 +1449,30 @@ function accountMenu() {
     else if (ev.key === "Tab") close(false);
   });
   onLeave(() => close(false));
+}
+
+// accountMenu is the account's button in the header: the profile picture
+// or initials, opening a menu with the account, the AI assistants, the
+// administration for administrators, and signing out.
+function accountMenu() {
+  const button = h("button", { type: "button", id: "account-button", class: "account-button", "aria-haspopup": "menu", "aria-expanded": "false",
+    "aria-controls": "account-menu", title: t("nav.accountOf", { name: me.user.username }), "aria-label": t("nav.accountOf", { name: me.user.username }) },
+  avatar(me.user.id, me.user.username, me.avatar));
+  // Account requests waiting for an administrator show as a dot
+  // (ADR-0061).
+  showRequests(button);
+  const item = (href, text) => h("a", { href, role: "menuitem", text, tabindex: "-1" });
+  const roles = [me.admin ? t("admin.roleAdmin") : null, me.erasure ? t("admin.roleErasure") : null].filter(Boolean);
+  const menu = h("div", { id: "account-menu", class: "menu", role: "menu", hidden: true, "aria-label": t("nav.account") },
+    h("div", { class: "menu-head" }, avatar(me.user.id, me.user.username, me.avatar, 40),
+      h("div", {}, h("strong", { text: me.user.username }), roles.length ? h("div", { class: "muted", text: roles.join(", ") }) : null)),
+    item("#/account", t("nav.accountPage")),
+    item("#/mcp", t("nav.mcp")),
+    me.admin ? item("#/admin", me.requests ? t("nav.adminRequests", { n: me.requests }) : t("nav.admin")) : null,
+    h("hr"),
+    h("button", { type: "button", role: "menuitem", tabindex: "-1", class: "link", id: "logout", text: t("nav.logout"),
+      onclick: () => action(async () => { await post("/api/logout"); me = null; location.hash = "#/"; }) }));
+  popupMenu(button, menu);
   return h("div", { class: "account" }, button, menu);
 }
 
@@ -1472,7 +1514,8 @@ function onLeave(fn) { leaving.push(fn); }
 // Reading and editing go on; at full the wiki only reads (ADR-0150).
 let storageNow = "ok";
 const makesNew = "#nav-new, a[href^='#/new'], #space-new-page, #album-new-folder, .column-add, " +
-  "#new-kanban button[type=submit], #create-space button[type=submit], #new-space button[type=submit]";
+  "#new-kanban button[type=submit], #create-space button[type=submit], #new-space button[type=submit], " +
+  "#new-menu-item, #new-menu-space, #spaces-new, #new-space-dialog-ok";
 
 // pauseCreating pauses or resumes every control that makes something new
 // that the page shows now.
@@ -2070,11 +2113,12 @@ const mayEdit = (role) => role === "editor" || role === "space-admin";
 async function homeView() {
   const show = screen();
   if (me.admin) await loadTypeTemplates();
-  const [{ spaces }, { types }, notes, brand, { requests }, mine, storage] = await Promise.all([get("/api/spaces"), get("/api/types"),
+  const [{ spaces }, { types }, notes, brand, { requests }, mine, storage, boards] = await Promise.all([get("/api/spaces"), get("/api/types"),
     get("/api/notifications?limit=1").catch(() => ({ unread: 0 })), get("/branding.json").catch(() => ({})),
     me.admin ? get("/api/account-requests").catch(() => ({ requests: [] })) : { requests: [] },
     get("/api/notes").catch(() => ({ notes: [] })),
-    me.admin ? get("/api/storage").catch(() => null) : null]);
+    me.admin ? get("/api/storage").catch(() => null) : null,
+    get("/api/whiteboards").catch(() => ({ whiteboards: [] }))]);
   if (me.admin) setRequests(requests.length);
   const anyEditable = spaces.some((s) => mayEdit(s.role));
   // A greeting by the time of day, the reader's own clock.
@@ -2138,6 +2182,9 @@ async function homeView() {
       // One's personal notes, wherever they were made (ADR-0113).
       quick("#/my-notes", t("note.title"), mine.notes.length ? t("home.myNotesText", { n: mine.notes.length }) : t("home.myNotesNone"), "home-my-notes", null, "page"),
       quick("#/album", t("nav.album"), t("home.albumText"), "home-album", null, "pictures"),
+      // The whiteboards, and how many are in use now (ADR-0169).
+      quick("#/whiteboards", t("nav.whiteboards"), boards.whiteboards.length ? t("home.whiteboardsLive", { n: boards.whiteboards.length }) : t("home.whiteboardsText"),
+        "home-whiteboards", null, "whiteboard"),
       quick("#/mcp", t("nav.mcp"), t("home.mcpText"), "home-mcp", null, "protection")),
     h("h2", { text: t("spaces.title") }),
     spaces.length === 0
@@ -2146,7 +2193,9 @@ async function homeView() {
         me.admin ? h("ol", {}, h("li", { text: t("home.step1") }), h("li", { text: t("home.step2") }), h("li", { text: t("home.step3") })) : null)
       : spacesOverview(spaces),
     me.admin ? setupCard(types) : null,
-    me.admin ? newSpaceForm(spaces.length === 0) : null,
+    // With rooms, a new one is made from the button beside the layout
+    // switch; the first one from the open form here.
+    me.admin && spaces.length === 0 ? newSpaceForm(true) : null,
   );
 }
 
@@ -2198,7 +2247,9 @@ function spacesOverview(spaces) {
     const ordered = [...spaces.filter((s) => s.favourite), ...spaces.filter((s) => !s.favourite)];
     const favourite = (s) => (s.favourite ? t("spaces.favouriteYes") : t("spaces.favouriteNo"));
     box.replaceChildren(
-      h("div", { class: "segmented", role: "group", "aria-label": t("home.layout") }, toggle("tiles", t("home.tiles")), toggle("list", t("home.list"))),
+      h("div", { class: "spaces-bar" },
+        h("div", { class: "segmented", role: "group", "aria-label": t("home.layout") }, toggle("tiles", t("home.tiles")), toggle("list", t("home.list"))),
+        me.admin ? h("button", { type: "button", class: "secondary", id: "spaces-new", text: "+ " + t("admin.newSpace"), onclick: () => newSpaceDialog() }) : null),
       filtered(layout === "list"
         ? h("table", { class: "spaces space-list" },
           h("tr", {}, h("th", { class: "favourite-col", "aria-label": t("spaces.favouriteCol") }), h("th", { text: t("field.name") }), h("th", { text: t("admin.key") }), h("th", { text: t("admin.role") })),
@@ -2264,6 +2315,19 @@ function newSpaceForm(open) {
     location.hash = "#/space/" + encodeURIComponent(d.get("key"));
   });
   return h("details", { class: "card", id: "new-space-card", open: open || null }, h("summary", { text: t("admin.newSpace") }), f);
+}
+
+// newSpaceDialog creates a space in a modal and opens it
+// (administrators), from "New" in the header and the start page.
+function newSpaceDialog() {
+  return formDialog(t("admin.newSpace"), "new-space-dialog", [
+    field(t("admin.key"), h("input", { name: "key", required: true, pattern: "[A-Z][A-Z0-9]*", placeholder: "DOCS", title: t("admin.keyHint") })),
+    field(t("field.name"), h("input", { name: "name", required: true })),
+  ], async (f) => {
+    const d = new FormData(f);
+    await post("/api/spaces", { key: d.get("key"), name: d.get("name") });
+    location.hash = "#/space/" + encodeURIComponent(d.get("key"));
+  }, t("admin.createSpace"));
 }
 
 // typeTemplates are ready-made types for a new installation: types are
@@ -3855,7 +3919,9 @@ async function whiteboardsView() {
   const drawings = pictures.length
     ? h("ul", { class: "whiteboards", id: "drawings" }, pictures.map((p) => h("li", {},
       link(href(p.item.key, p.attachment.id), p.attachment.name.replace(/\.drawing\.png$/, "")),
-      h("span", { class: "muted", text: ` · ${p.item.key} ${p.item.title}` }))))
+      h("span", { class: "muted", text: ` · ${p.item.key} ${p.item.title}` }),
+      // The same drawing alone in the drawing editor (ADR-0172).
+      p.editable ? [" · ", link(`#/item/${encodeURIComponent(p.item.key)}?edit&draw=${p.attachment.id}`, t("draw.openDrawing"), "wb-as-drawing")] : null)))
     : empty(t("wb.noDrawings"));
   const editable = favouritesFirst(spaces.filter((sp) => mayEdit(sp.role)));
   const fit = types.filter((ty) => ty.body && !ty.fields.some((f) => f.required));
@@ -4480,6 +4546,9 @@ async function itemView(ref, params = new URLSearchParams()) {
     const b = bodySection(item, embeds.embeds, editing, threads, attachments, protect, edit, notes, showEditors);
     body = framed(b.element);
     session = b.session;
+    // Opened to edit one drawing alone (ADR-0172): its editor opens once
+    // the text has loaded, and the address forgets it.
+    if (editing && params.get("draw")) openDrawingOnceShown(params.get("draw"));
     // A reader follows the text: who edits it, and each version saved by
     // someone else shows without a reload (ADR-0115). A selection made to
     // comment or note is not taken away; the text follows after it.
@@ -4592,6 +4661,21 @@ async function relocateForm(box, item, mode, spaces, status) {
   box.querySelector("select")?.focus();
 }
 
+// openDrawingOnceShown opens the drawing editor of a drawing in the text
+// being edited, as its "Edit drawing" does, once the live text shows it.
+function openDrawingOnceShown(ref) {
+  const n = navigation;
+  history.replaceState(null, "", location.pathname + location.hash.replace(/&draw=[^&]*/, ""));
+  let tries = 0;
+  const tick = () => {
+    if (n !== navigation) return;
+    const button = document.querySelector(`#body .pm-image[data-ref="${CSS.escape(ref)}"] .pm-redraw`);
+    if (button) return button.click();
+    if (++tries < 50) setTimeout(tick, 200);
+  };
+  tick();
+}
+
 // bodySection shows an item's body: for reading, with the passages
 // commented on highlighted and commenting on a selection offered; or, when
 // editing, in its live session (ADR-0010), where changes reach everyone at
@@ -4600,7 +4684,7 @@ function bodySection(item, embeds, editing, threads, attachments, protect, edit,
   const resolve = async (ref) => (await get("/api/items/" + encodeURIComponent(ref))).item;
   if (!editing) {
     // The files are known, so a drawing shows its processes live (ADR-0142).
-    const view = createEditor({ blocks: item.body, embeds, editable: false, resolve, childPages: childPagesOf(item), files: filesOf(item, attachments),
+    const view = createEditor({ blocks: item.body, embeds, editable: false, resolve, childPages: childPagesOf(item), files: filesOf(item, attachments, !!edit),
       extra: item.presence === "live" ? [threads.plugin, ...(notes ? [notes.plugin] : [])] : [], comment: item.presence === "live" ? threads.start : undefined,
       note: notes ? notes.start : undefined, protect: protect || undefined,
       actions: edit ? [edit] : [], embedContent: embedLoader([item.id]), tasks: taskTools(item, false) });
@@ -5885,7 +5969,7 @@ async function adminView() {
 }
 
 // calendarsCard turns people's calendars of other services on or off
-// (ADR-0172) and says what the server needs for them: Google's client with
+// (ADR-0174) and says what the server needs for them: Google's client with
 // its redirect address, and OT_CALENDAR_ALLOW_PRIVATE for calendars in the
 // own network.
 async function calendarsCard() {
