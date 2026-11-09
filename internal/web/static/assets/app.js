@@ -23,6 +23,7 @@ import { taskLinksCard } from "./tasklinks.js";
 import { connectionsCard, silentConnect } from "./engineconn.js";
 import { freshNotice, taskDialog, taskPanel } from "./taskdialog.js";
 import { finishing } from "./taskparts.js";
+import { documentView, upgradeTemplate, wordTemplatesCard } from "./wordtemplates.js";
 
 const app = document.getElementById("app");
 const nav = document.getElementById("nav");
@@ -4308,8 +4309,13 @@ async function itemView(ref, params = new URLSearchParams()) {
     setVeiledContent((ref) => veiledBlockContent(ref));
     const protect = canEdit && readsAll && live && !editing ? (at) => protectPassageForm(protecting, path, item, at, status) : null;
     const edit = editing ? done : canEdit && readsAll ? link(itemHref + "?edit", t("item.edit"), "button primary", "edit") : null;
+    // A page of a type with a Word template reads as its template's
+    // document, with its header, footer and cover (ADR-0167); it is edited
+    // as every page is.
+    const wordDoc = type.template && !editing ? await get(path + "/document").catch(() => null) : null;
+    const framed = (el) => (wordDoc ? documentView(wordDoc, el, { canEdit, onUpgrade: () => action(() => upgradeTemplate(path), status) }) : el);
     const b = bodySection(item, embeds.embeds, editing, threads, attachments, protect, edit, notes, showEditors);
-    body = b.element;
+    body = framed(b.element);
     session = b.session;
     // A reader follows the text: who edits it, and each version saved by
     // someone else shows without a reload (ADR-0115). A selection made to
@@ -4320,7 +4326,7 @@ async function itemView(ref, params = new URLSearchParams()) {
         const sel = document.getSelection();
         if (sel && !sel.isCollapsed && body.contains(sel.anchorNode)) return void (timer = setTimeout(redraw, 2000));
         const [{ item: fresh }, fresher] = await Promise.all([get(path), get(path + "/embeds")]);
-        const next = bodySection(fresh, fresher.embeds, false, threads, attachments, protect, edit, notes, showEditors).element;
+        const next = framed(bodySection(fresh, fresher.embeds, false, threads, attachments, protect, edit, notes, showEditors).element);
         body.replaceWith(next);
         body = next;
       };
@@ -5465,13 +5471,15 @@ async function adminView() {
     ty.body ? t("admin.typeBody") : null,
     ty.fields.length ? t("admin.typeFields", { list: ty.fields.map((f) => `${f.name} (${f.kind}${f.required ? ", *" : ""})`).join(", ") }) : null,
     ty.workflow ? t("admin.typeStates", { list: ty.workflow.states.join(" → ") }) : null,
+    ty.template ? t("admin.typeTemplate", { id: ty.template }) : null,
   ].filter(Boolean).join(" · ");
   const typesSection = section("types", t("admin.types"),
     setupCard(types),
     types.length ? filtered(h("table", { id: "types" }, types.map((ty) => h("tr", { "data-f-kind": ty.workflow ? t("admin.typeWithWorkflow") : t("admin.typeWithoutWorkflow") },
       h("td", {}, h("strong", { text: ty.name }), ` v${ty.version}`), h("td", { class: "muted", text: describe(ty) }),
       h("td", {}, h("button", { type: "button", class: "link", text: t("common.edit"), onclick: () => {
-        const { version, ...def } = ty;
+        // The start text is edited as Markdown (ADR-0167).
+        const { version, start, ...def } = ty;
         typeText.value = JSON.stringify(def, null, 2);
         typeText.scrollIntoView({ block: "center" });
         typeText.focus();
@@ -5620,6 +5628,7 @@ async function adminView() {
   const catalogSection = section("connectors", t("connector.title"), connectorsCard(spaces, users));
   const enginesSection = section("engines", t("engine.title"), enginesCard());
   const designSection = section("design", t("design.title"), await designCard());
+  const wordTemplatesSection = section("wordtemplates", t("wt.title"), await wordTemplatesCard());
   const regulationsSection = section("regulations", t("dp.adminTitle"), await regulationsCard());
 
   const importSection = section("import", t("admin.import"),
@@ -5702,7 +5711,7 @@ async function adminView() {
     h("div", { class: "admin-layout" },
       h("nav", { class: "admin-toc", "aria-label": t("admin.contents") }, ...tocLinks),
       h("div", { class: "admin-sections" },
-        spacesSection, typesSection, usersSection, requestsSection, groupsSection, grantSection, storageSection, backupSection, albumSection, catalogSection, enginesSection, designSection, regulationsSection, importSection, auditSection)),
+        spacesSection, typesSection, usersSection, requestsSection, groupsSection, grantSection, storageSection, backupSection, albumSection, catalogSection, enginesSection, designSection, wordTemplatesSection, regulationsSection, importSection, auditSection)),
   );
 }
 

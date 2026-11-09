@@ -146,6 +146,9 @@ type event struct {
 	// TaskLinks is set by TaskLinksSet (ADR-0151); an engine's removal
 	// removes them.
 	TaskLinks *TaskLinks `json:"taskLinks,omitempty"`
+	// WordTemplate is set by WordTemplateSet, with the file in Data when
+	// it adds a version; WordTemplateRemoved names it in Asset (ADR-0167).
+	WordTemplate *wordTemplateEvent `json:"wordTemplate,omitempty"`
 }
 
 const (
@@ -199,11 +202,13 @@ type Settings struct {
 	// taskLinks are the task links of the engines, by engine ID
 	// (ADR-0151).
 	taskLinks map[string]TaskLinks
+	// wordTemplates are the Word templates by ID (ADR-0167).
+	wordTemplates map[string]*WordTemplate
 }
 
 // New rebuilds the settings from records and journals later changes.
 func New(records [][]byte, j Journal) (*Settings, error) {
-	s := &Settings{journal: j, now: time.Now, assets: map[string]Asset{}, regulations: map[string]Regulation{}, connectors: map[string]Connector{}, engines: map[string]Engine{}, taskLinks: map[string]TaskLinks{}}
+	s := &Settings{journal: j, now: time.Now, assets: map[string]Asset{}, regulations: map[string]Regulation{}, connectors: map[string]Connector{}, engines: map[string]Engine{}, taskLinks: map[string]TaskLinks{}, wordTemplates: map[string]*WordTemplate{}}
 	for i, r := range records {
 		var e event
 		if err := json.Unmarshal(r, &e); err != nil {
@@ -287,6 +292,8 @@ func (s *Settings) apply(e event) error {
 			return errors.New("a task links event without links")
 		}
 		s.taskLinks[e.TaskLinks.Engine] = *e.TaskLinks
+	case wordTemplateSet, wordTemplateRemoved:
+		return s.applyWordTemplate(e)
 	default:
 		return fmt.Errorf("unknown event %q", e.Kind)
 	}

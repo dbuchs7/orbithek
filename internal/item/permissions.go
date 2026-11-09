@@ -594,6 +594,15 @@ func (x *Session) SetTitle(id ID, title string) error {
 	return x.s.SetTitle(x.who, id, title)
 }
 
+// SetTemplate moves an editable item to a version of its type's Word
+// template (ADR-0167).
+func (x *Session) SetTemplate(id ID, ref TemplateRef) error {
+	if _, err := x.editable(id); err != nil {
+		return err
+	}
+	return x.s.SetTemplate(x.who, id, ref)
+}
+
 // SetLabels replaces the labels of an editable item (ADR-0044).
 func (x *Session) SetLabels(id ID, labels []string) error {
 	if _, err := x.editable(id); err != nil {

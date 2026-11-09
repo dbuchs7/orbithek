@@ -30,6 +30,17 @@ func Markdown(w io.Writer, d Document) error {
 	return err
 }
 
+// BlocksMarkdown writes blocks as Markdown, a heading of level 1 as "#":
+// a type's start text, edited as Markdown (ADR-0167).
+func BlocksMarkdown(blocks []item.Block) string {
+	m := &mdBuilder{picture: func(Page, item.ID, bool) string { return "" }}
+	parts := m.page(Page{Body: blocks}, 0, map[item.ID]bool{}, 0)
+	if len(parts) == 0 {
+		return ""
+	}
+	return strings.Join(parts, "\n\n") + "\n"
+}
+
 // MarkdownArchive writes the document as a ZIP archive: the Markdown as
 // name, and the pictures it shows in media/, linked by relative paths, so
 // the archive reads anywhere without the server. A video is named, not

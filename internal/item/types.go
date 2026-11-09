@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"net/url"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -86,6 +87,44 @@ type TypeDef struct {
 	// Review, if set, has the governance report ask for the items to be
 	// checked again from time to time (ADR-0074).
 	Review *Review
+	// Template names the Word template the type's pages are documents of
+	// (ADR-0167): their export is written into it and the reading view
+	// frames them as it. Start is the text a new page begins with when it
+	// is made without one. Both are system data of the type, not content
+	// of an item.
+	Template string `json:",omitempty"`
+	Start    *Doc   `json:",omitempty"`
+}
+
+// validTemplateID admits the IDs of Word templates (ADR-0167).
+var validTemplateID = regexp.MustCompile(`^[a-z][a-z0-9-]{0,39}$`)
+
+// ValidTemplateID reports whether a Word template's ID is well-formed.
+func ValidTemplateID(id string) bool { return validTemplateID.MatchString(id) }
+
+// startKinds are the blocks a type's start text may hold: text and the
+// blocks that show what the page itself holds. Blocks that name an item, a
+// file, an engine's process or a protection belong to one page and are
+// added to it, not to every new one.
+var startKinds = map[BlockKind]bool{
+	Paragraph: true, Heading: true, BulletItem: true, OrderedItem: true, Quote: true, CodeBlock: true, TaskItem: true, Panel: true,
+	Table: true, Divider: true, TOC: true, Children: true, Figures: true, Tables: true,
+}
+
+// checkStart validates a type's start text.
+func checkStart(d *Doc) error {
+	for i, b := range d.Blocks {
+		switch {
+		case !startKinds[b.Kind]:
+			return invalid("start block %d: a %s block belongs to one page, not to the start of every page", i+1, b.Kind)
+		case len(b.Mentions) > 0 || b.Ref != "" || b.Secret != "":
+			return invalid("start block %d names an item, a file or a protection", i+1)
+		}
+		if err := checkBlock(b, ""); err != nil {
+			return wrapf(err, "start block %d", i+1)
+		}
+	}
+	return nil
 }
 
 // reservedFields are intrinsic to every item and cannot be declared as
@@ -138,6 +177,17 @@ func (w *Workflow) transition(name string) (Transition, bool) {
 func (t TypeDef) validate() error {
 	if strings.TrimSpace(t.Name) == "" {
 		return invalid("type name is empty")
+	}
+	if t.Template != "" && !ValidTemplateID(t.Template) {
+		return invalid("template %q: a Word template's ID has lower-case letters, digits and dashes, starting with a letter", t.Template)
+	}
+	if t.Start != nil {
+		if !t.Body {
+			return invalid("a type without a body has no start text")
+		}
+		if err := checkStart(t.Start); err != nil {
+			return err
+		}
 	}
 	seen := map[string]bool{}
 	for _, f := range t.Fields {
