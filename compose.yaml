@@ -1,0 +1,70 @@
+# A template for running orbithek with Docker Compose (ADR-0024).
+#
+# Copy this file to the host, put the secrets in a file .env next to it
+# (one VARIABLE=value per line, never in this file), uncomment what the
+# installation needs and start the server:
+#
+#   docker compose up -d
+#
+# Every variable is described in README.md. Values that YAML would read as
+# a boolean or a number, such as on, off or 15, are quoted.
+
+name: orbithek
+
+services:
+  orbithek:
+    image: ghcr.io/dbuchs7/orbithek:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      # A named volume; a directory of the host works as well, e.g.
+      # /volume1/docker/orbithek/data:/data (ADR-0038).
+      - orbithek-data:/data
+    environment:
+      # --- Start and address -------------------------------------------
+      # The administrator the first start creates; ignored afterwards.
+      OT_ADMIN_PASSWORD: ${OT_ADMIN_PASSWORD:?set OT_ADMIN_PASSWORD in .env}
+      # OT_ADMIN_USERNAME: admin
+      # The address people open: links in messages, sign-in redirects.
+      # OT_PUBLIC_URL: https://wiki.example.org
+      # The reverse proxy's address as the server sees it (ADR-0037).
+      # OT_TRUSTED_PROXIES: 172.17.0.1
+      # The server's local time, for scheduled clean-ups (ADR-0105).
+      # TZ: Europe/Zurich
+      # Another account to own the files of /data (ADR-0038).
+      # OT_RUN_AS: "1026:100"
+
+      # --- Single sign-on (ADR-0030, ADR-0066) -------------------------
+      # OT_ENTRA_TENANT_ID: 00000000-0000-0000-0000-000000000000
+      # OT_ENTRA_CLIENT_ID: ${OT_ENTRA_CLIENT_ID}
+      # OT_ENTRA_CLIENT_SECRET: ${OT_ENTRA_CLIENT_SECRET}
+      # OT_GOOGLE_CLIENT_ID: ${OT_GOOGLE_CLIENT_ID}
+      # OT_GOOGLE_CLIENT_SECRET: ${OT_GOOGLE_CLIENT_SECRET}
+      # OT_GOOGLE_DOMAINS: example.org
+
+      # --- Mail and messages (ADR-0064) --------------------------------
+      # OT_SMTP_HOST: smtp.example.org
+      # OT_SMTP_PORT: "587"
+      # OT_SMTP_SECURITY: starttls
+      # OT_SMTP_USERNAME: wiki@example.org
+      # OT_SMTP_PASSWORD: ${OT_SMTP_PASSWORD}
+      # OT_SMTP_FROM: Wiki <wiki@example.org>
+      # OT_DIGEST_MINUTES: "15"
+
+      # --- Backups (ADR-0073) ------------------------------------------
+      # OT_BACKUP_PASSPHRASE: ${OT_BACKUP_PASSPHRASE}
+
+      # --- Features that are off unless turned on ----------------------
+      # Calendar feeds (ADR-0168): a saved calendar view may be subscribed
+      # to from a calendar program. A feed address is read without
+      # signing in, so a reverse proxy or sign-on gateway in front must
+      # let /calendar/ through.
+      # OT_CALENDAR_FEEDS: "on"
+      # Space administrators may check a space's web links (ADR-0039).
+      # OT_LINKCHECK: "on"
+      # Editors may show Markdown files of public repositories (ADR-0138).
+      # OT_GIT_FILES: "on"
+
+volumes:
+  orbithek-data:

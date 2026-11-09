@@ -133,6 +133,8 @@ docker run --rm -p 8080:8080 -v orbithek-data:/data \
   -e OT_ADMIN_PASSWORD='choose a long one' ghcr.io/dbuchs7/orbithek:latest
 ```
 
+With Docker Compose, the template [`compose.yaml`](compose.yaml) starts the same container and lists the common variables, commented out, the switches that are off by default among them (`OT_CALENDAR_FEEDS`, `OT_LINKCHECK`, `OT_GIT_FILES`); the secrets go into a file `.env` next to it.
+
 A directory of the host works as well as a volume, e.g. `-v /volume1/docker/orbithek/data:/data`: the server starts as root only to hand the directory to uid 65532 and then runs as that account ([ADR-0038](docs/adr/0038-container-starts-as-root-and-drops.md)). Set `OT_RUN_AS=<uid>:<gid>` to have another account own the files.
 
 From source (Go 1.26):
