@@ -325,7 +325,7 @@ const savedParams = (state, today) => address({ ...state, at: today }, today).re
 // savedBar offers the views one saved (ADR-0168): open one, save the view
 // as it is under a name, remove the one shown, and subscribe to it from a
 // calendar program with a feed address of its own.
-function savedBar(container, params, helpers, state, today, views, after) {
+function savedBar(container, params, helpers, state, today, views, feeds, after) {
   const current = savedParams(state, today);
   const active = views.find((v) => v.params === current);
   const redraw = (next) => calendarView(container, params, helpers, next);
@@ -369,7 +369,13 @@ function savedBar(container, params, helpers, state, today, views, after) {
     const ok = await ask(t("calendar.deleteView"), t("calendar.deleteViewConfirm", { name: active.name }), [["yes", t("calendar.deleteView"), "danger"], ["", t("calendar.cancel"), "link"]]);
     if (ok === "yes") run(async () => { await del("/api/me/calendar-views/" + active.id); return {}; }, t("calendar.viewDeleted", { name: active.name }));
   } }) : null;
-  const subscribe = !active ? null : !active.feed
+  // A server with feeds turned off offers none; a feed made before can
+  // still be ended.
+  const subscribe = !active ? null : !feeds
+    ? h("span", { class: "cal-feed-state" }, h("span", { class: "muted", id: "calendar-feeds-off", text: t("calendar.feedsOff") + " " }),
+      active.feed ? h("button", { type: "button", class: "link danger", id: "calendar-feed-revoke", text: t("calendar.feedRevoke"),
+        onclick: () => run(async () => { await del(`/api/me/calendar-views/${active.id}/feed`); return {}; }, t("calendar.feedRevoked")) }) : null)
+    : !active.feed
     ? h("button", { type: "button", class: "secondary", id: "calendar-feed-new", text: t("calendar.subscribe"),
       onclick: () => run(async () => ({ feed: await post(`/api/me/calendar-views/${active.id}/feed`, {}) })) })
     : h("span", { class: "cal-feed-state" },
@@ -410,8 +416,8 @@ export async function calendarView(container, params, helpers, after = {}) {
   const { readAll, favouritesFirst } = helpers;
   const today = todayDay();
   const state = readState(params, today);
-  const [{ types }, { spaces }, { views }] = await Promise.all([get("/api/types"), get("/api/spaces"),
-    get("/api/me/calendar-views").catch(() => ({ views: [] }))]);
+  const [{ types }, { spaces }, { views, feeds }] = await Promise.all([get("/api/types"), get("/api/spaces"),
+    get("/api/me/calendar-views").catch(() => ({ views: [], feeds: false }))]);
   const dated = types.filter((ty) => dateFields([ty]).length);
   const typeOf = new Map(types.map((ty) => [ty.name, ty]));
   const go = (change) => { location.hash = address({ ...state, ...change }, today); };
@@ -520,7 +526,7 @@ export async function calendarView(container, params, helpers, after = {}) {
   const controls = h("div", { class: "card tl-controls cal-controls", id: "calendar-controls" },
     h("nav", { class: "tabs", "aria-label": t("calendar.view") }, VIEWS.map((v) =>
       h("a", { href: address({ ...state, view: v }, today), class: v === state.view ? "tab active" : "tab", id: "calendar-view-" + v, text: viewName(v) }))),
-    savedBar(container, params, helpers, state, today, views, after),
+    savedBar(container, params, helpers, state, today, views, feeds, after),
     filters);
 
   const nav = h("div", { class: "cal-nav" },

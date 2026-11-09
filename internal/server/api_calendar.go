@@ -39,9 +39,9 @@ func calendarRoutes(d Deps) []Route {
 		{Method: http.MethodPost, Pattern: "/api/me/calendar-views", Summary: "Save a calendar view under a name", Handler: http.HandlerFunc(h.create)},
 		{Method: http.MethodPut, Pattern: "/api/me/calendar-views/{id}", Summary: "Rename a saved calendar view or change what it shows", Handler: http.HandlerFunc(h.update)},
 		{Method: http.MethodDelete, Pattern: "/api/me/calendar-views/{id}", Summary: "Remove a saved calendar view and its feed", Handler: http.HandlerFunc(h.remove)},
-		{Method: http.MethodPost, Pattern: "/api/me/calendar-views/{id}/feed", Summary: "Make a feed address for a saved calendar view, shown once; an earlier one stops working", Handler: http.HandlerFunc(h.newFeed)},
+		{Method: http.MethodPost, Pattern: "/api/me/calendar-views/{id}/feed", Summary: "Make a feed address for a saved calendar view, shown once; an earlier one stops working (refused when OT_CALENDAR_FEEDS=off)", Handler: http.HandlerFunc(h.newFeed)},
 		{Method: http.MethodDelete, Pattern: "/api/me/calendar-views/{id}/feed", Summary: "End the feed of a saved calendar view", Handler: http.HandlerFunc(h.revokeFeed)},
-		{Method: http.MethodGet, Pattern: "/calendar/{feed}", Summary: "A saved calendar view as iCalendar, opened by its feed's secret; it holds the key, title, time and a link of each entry its owner may read", Access: Public, Handler: http.HandlerFunc(h.feed)},
+		{Method: http.MethodGet, Pattern: "/calendar/{feed}", Summary: "A saved calendar view as iCalendar, opened by its feed's secret; it holds the key, title, time and a link of each entry its owner may read (nothing when OT_CALENDAR_FEEDS=off)", Access: Public, Handler: http.HandlerFunc(h.feed)},
 	}
 }
 
@@ -62,7 +62,8 @@ func (h calendarHandlers) viewError(w http.ResponseWriter, err error) {
 }
 
 func (h calendarHandlers) list(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"views": nonNilSlice(h.d.DB.Accounts.CalendarViews(h.user(r)))})
+	// feeds tells the calendar whether this server makes and opens feeds.
+	writeJSON(w, http.StatusOK, map[string]any{"views": nonNilSlice(h.d.DB.Accounts.CalendarViews(h.user(r))), "feeds": !h.d.CalendarFeedsOff})
 }
 
 type viewRequest struct {
@@ -122,6 +123,10 @@ func (h calendarHandlers) hasFeed(r *http.Request, id string) bool {
 }
 
 func (h calendarHandlers) newFeed(w http.ResponseWriter, r *http.Request) {
+	if h.d.CalendarFeedsOff {
+		writeError(w, http.StatusForbidden, "calendar feeds are turned off on this server")
+		return
+	}
 	id := r.PathValue("id")
 	secret, err := h.d.DB.Accounts.NewCalendarFeed(h.user(r), id)
 	if err != nil {
@@ -154,7 +159,8 @@ func (h calendarHandlers) revokeFeed(w http.ResponseWriter, r *http.Request) {
 func (h calendarHandlers) feed(w http.ResponseWriter, r *http.Request) {
 	secret := strings.TrimSuffix(r.PathValue("feed"), ".ics")
 	owner, view, ok := h.d.DB.Accounts.CalendarFeed(secret)
-	if !ok {
+	// With feeds turned off, a feed opens nothing, as an unknown one.
+	if !ok || h.d.CalendarFeedsOff {
 		writeError(w, http.StatusNotFound, "no such calendar")
 		return
 	}

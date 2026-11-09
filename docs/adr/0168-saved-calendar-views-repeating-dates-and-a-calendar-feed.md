@@ -78,6 +78,7 @@ Chosen option: **1**. The three choices were made by the requester on 2026-11-09
 - **Repeating items:** each occurrence is an entry of its own, with an identifier of the item and the occurrence's day. The feed carries no RRULE, so no time zone definition is needed and every program shows the same days.
 - **A view that no longer reads:** when a field or type is gone, the feed answers 400 with the reason.
 - **UI:** *Subscribe (iCal)* shows the address once, with a copy button and what holding it means; *New address* and *End feed* follow.
+- **Turning feeds off:** `OT_CALENDAR_FEEDS=off` turns feeds off for a server whose data must not leave it this way, or whose gateway lets nothing through unsigned. No feed is made then (403), and every feed address answers 404, as an unknown one does; the secrets stay stored and work again when feeds are turned on, unless they were ended. Saved views and the calendar work as before; the calendar says that feeds are off and still offers to end a feed made before. Feeds are on by default; an unknown value stops the server at start.
 
 ### Consequences
 
@@ -87,7 +88,7 @@ Chosen option: **1**. The three choices were made by the requester on 2026-11-09
   - a calendar program shows Orbithek's dates without an account there;
   - the feed shows nothing its owner may not read.
 - **Negative / trade-offs accepted:**
-  - **The address is a credential:** whoever holds it reads titles and times until it is renewed or ended. Access logs may hold it, as with every secret in an address that calendar programs require.
+  - **The address is a credential:** whoever holds it reads titles and times until it is renewed or ended. Access logs may hold it, as with every secret in an address that calendar programs require. A server where that is not acceptable turns feeds off.
   - **Two implementations:** field guessing, query and expansion exist in the browser and on the server. Shared test cases keep them alike.
   - **Moving a series:** a series moves its exceptions by whole days; `UNTIL` stays.
   - **Moving by keyboard:** an occurrence moved by keyboard asks each time.

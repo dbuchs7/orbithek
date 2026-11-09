@@ -2012,6 +2012,7 @@ export default {
   "calendar.feedActive": "Subscribable since {date}.",
   "calendar.feedRenew": "New address",
   "calendar.feedRevoke": "End feed",
+  "calendar.feedsOff": "Calendar feeds are turned off on this server.",
   "calendar.feedRevoked": "The feed is ended; its address opens nothing any more.",
   "calendar.repeats": "repeats",
   "calendar.movedOccurrence": "occurrence moved",

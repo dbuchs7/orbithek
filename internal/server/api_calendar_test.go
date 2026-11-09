@@ -143,3 +143,33 @@ func TestSavedCalendarViewsAndTheirFeed(t *testing.T) {
 		t.Errorf("audit: %d feeds made, %d ended", made, ended)
 	}
 }
+
+// TestCalendarFeedsTurnedOff: with OT_CALENDAR_FEEDS=off no feed is made
+// and a feed made before opens nothing; views stay, and an old feed can
+// still be ended (ADR-0168).
+func TestCalendarFeedsTurnedOff(t *testing.T) {
+	on := newWorld(t)
+	v := on.bert.expect("POST", "/api/me/calendar-views", `{"name":"Mine","params":""}`, http.StatusCreated)
+	vid := field(v, "view", "id").(string)
+	f := on.bert.expect("POST", "/api/me/calendar-views/"+vid+"/feed", "{}", http.StatusCreated)
+	feedURL, _ := url.Parse(f["url"].(string))
+	if list := on.bert.expect("GET", "/api/me/calendar-views", "", http.StatusOK); list["feeds"] != true {
+		t.Fatalf("feeds are on by default: %v", list)
+	}
+
+	// The same data directory, served with feeds turned off.
+	off := on.deps
+	off.CalendarFeedsOff = true
+	h := Handler(Routes(off), off.DB.Accounts)
+	bert := &client{t: t, h: h, cookie: on.bert.cookie}
+	anon := &client{t: t, h: h}
+	if rec := anon.do("GET", feedURL.Path, ""); rec.Code != http.StatusNotFound {
+		t.Fatalf("a feed opens with feeds off: %d", rec.Code)
+	}
+	list := bert.expect("GET", "/api/me/calendar-views", "", http.StatusOK)
+	if list["feeds"] != false || len(list["views"].([]any)) != 1 {
+		t.Fatalf("with feeds off: %v", list)
+	}
+	bert.expect("POST", "/api/me/calendar-views/"+vid+"/feed", "{}", http.StatusForbidden)
+	bert.expect("DELETE", "/api/me/calendar-views/"+vid+"/feed", "", http.StatusNoContent)
+}

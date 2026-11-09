@@ -2010,6 +2010,7 @@ export default {
   "calendar.feedActive": "Abonnierbar seit {date}.",
   "calendar.feedRenew": "Neue Adresse",
   "calendar.feedRevoke": "Feed beenden",
+  "calendar.feedsOff": "Kalender-Feeds sind auf diesem Server abgeschaltet.",
   "calendar.feedRevoked": "Der Feed ist beendet; seine Adresse öffnet nichts mehr.",
   "calendar.repeats": "wiederholt sich",
   "calendar.movedOccurrence": "Vorkommen verschoben",
