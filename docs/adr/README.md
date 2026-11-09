@@ -181,3 +181,6 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0166](0166-a-calendar-of-the-items-dates-and-a-field-kind-for-a-point-in-time.md) | A calendar of the items' dates, and a field kind for a point in time | Accepted | Landed |
 | [0167](0167-word-templates-give-a-type-its-document.md) | Word templates give a type its document | Accepted | Landed |
 | [0168](0168-saved-calendar-views-repeating-dates-and-a-calendar-feed.md) | Saved calendar views, repeating dates with exceptions, and a calendar feed | Accepted | Landed |
+| [0169](0169-live-whiteboards-on-drawings.md) | Live whiteboards: a drawing edited by up to twenty people at once, with a lock per element | Proposed | Partial |
+| [0170](0170-workshop-tools-on-a-whiteboard.md) | Workshop tools on a whiteboard: notes, voting, a timer and a presentation | Proposed | Partial |
+| [0171](0171-comments-on-the-elements-of-a-drawing.md) | Comments on the elements of a drawing | Proposed | Partial |

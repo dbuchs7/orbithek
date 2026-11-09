@@ -119,7 +119,10 @@ import (
 //   - 42: a field may be of the kind recurrence, the rule by which an
 //     item repeats, with its exceptions, written as text (ADR-0168).
 //     Versions 1 to 41 are still read.
-const CodecVersion = 42
+//   - 43: an anchor may name an element of a drawing, with Drawing and
+//     Element, sealed with the rest of it (ADR-0171). Versions 1 to 42 are
+//     still read.
+const CodecVersion = 43
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

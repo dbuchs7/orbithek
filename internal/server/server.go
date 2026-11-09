@@ -38,6 +38,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/sso"
 	"github.com/dbuchs7/orbithek/internal/storage"
 	"github.com/dbuchs7/orbithek/internal/tasklink"
+	"github.com/dbuchs7/orbithek/internal/whiteboard"
 )
 
 // Access is a route's access class (ADR-0011). The zero value is
@@ -83,6 +84,10 @@ type Deps struct {
 	// one over DB when it is nil. NewCollab makes one to share, for a
 	// caller that runs its Tick.
 	Collab *collab.Hub
+	// Whiteboards holds the live whiteboards (ADR-0169); Routes creates
+	// one over DB when it is nil. NewWhiteboards makes one to share, for a
+	// caller that runs its Tick.
+	Whiteboards *whiteboard.Hub
 	// Metrics is the metric registry (ADR-0016); Routes creates one when
 	// it is nil.
 	Metrics *metrics.Metrics
@@ -187,6 +192,9 @@ func Routes(d Deps) []Route {
 	if d.Collab == nil && d.DB != nil {
 		d.Collab = NewCollab(d.DB)
 	}
+	if d.Whiteboards == nil && d.DB != nil {
+		d.Whiteboards = NewWhiteboards(d.DB, d.Collab, d.Log)
+	}
 	if d.Messages == nil {
 		d.Messages = NewMessenger(nil, d.DB, d.Log, 0)
 	}
@@ -267,7 +275,8 @@ func Routes(d Deps) []Route {
 		// Event streams, downloads and the change feed's long polls run as
 		// long as they take; their
 		// durations would only blur the latency of everything else.
-		long := rt.Pattern == "/api/items/{ref}/live" && rt.Method == http.MethodGet || rt.Pattern == "/api/backup" || rt.Pattern == "/api/changes"
+		long := (rt.Pattern == "/api/items/{ref}/live" || rt.Pattern == "/api/items/{ref}/whiteboards/{file}/live") && rt.Method == http.MethodGet ||
+			rt.Pattern == "/api/backup" || rt.Pattern == "/api/changes"
 		routes[i].Handler = d.Metrics.Instrument(rt.Pattern, long, rt.Handler)
 	}
 	return routes
