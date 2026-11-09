@@ -45,14 +45,18 @@ const (
 	PasswordFailed  = "password.change.failed"
 	TokenCreated    = "token.create"
 	TokenRevoked    = "token.revoke"
-	UserCreated     = "user.create"
-	RoleGranted     = "role.grant"
-	SystemRole      = "system-role.grant"
-	GroupMember     = "group.add"
-	RoleRevoked     = "role.revoke"
-	SystemRoleTaken = "system-role.revoke"
-	GroupLeft       = "group.remove"
-	DesignChanged   = "design.change"
+	// CalendarFeedCreated and CalendarFeedRevoked record a calendar feed's
+	// secret made or ended for a saved view (ADR-0168).
+	CalendarFeedCreated = "calendar-feed.create"
+	CalendarFeedRevoked = "calendar-feed.revoke"
+	UserCreated         = "user.create"
+	RoleGranted         = "role.grant"
+	SystemRole          = "system-role.grant"
+	GroupMember         = "group.add"
+	RoleRevoked         = "role.revoke"
+	SystemRoleTaken     = "system-role.revoke"
+	GroupLeft           = "group.remove"
+	DesignChanged       = "design.change"
 	// RegulationChanged records a change of a data protection regulation
 	// (ADR-0058).
 	RegulationChanged = "regulation.change"

@@ -303,6 +303,22 @@ func TestLinkCheckConfiguration(t *testing.T) {
 	}
 }
 
+func TestCalendarFeedsConfiguration(t *testing.T) {
+	t.Setenv("OT_ADMIN_PASSWORD", "a given password!")
+	t.Setenv("OT_CALENDAR_FEEDS", "maybe")
+	code, _, errOut := runCmd(t, context.Background(), "serve", "-addr", freeAddr(t), "-data-dir", t.TempDir())
+	if code != 1 || !strings.Contains(errOut, "OT_CALENDAR_FEEDS is unusable") {
+		t.Errorf("unknown value: exit %d, stderr %q", code, errOut)
+	}
+	t.Setenv("OT_CALENDAR_FEEDS", "off")
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	code, _, errOut = runCmd(t, ctx, "serve", "-addr", freeAddr(t), "-data-dir", t.TempDir())
+	if code != 0 || !strings.Contains(errOut, "calendar feeds are off") {
+		t.Errorf("off: exit %d, stderr %q", code, errOut)
+	}
+}
+
 func TestAuditExpiryRunsOnEveryTick(t *testing.T) {
 	db, _, err := storage.Open(t.TempDir())
 	if err != nil {

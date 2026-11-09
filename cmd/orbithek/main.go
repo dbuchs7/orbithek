@@ -210,6 +210,17 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 		return 1
 	}
 
+	feedsOff := false
+	switch v := os.Getenv("OT_CALENDAR_FEEDS"); v {
+	case "", "on":
+	case "off":
+		feedsOff = true
+		log.Info("calendar feeds are off; no feed address opens anything and none is made")
+	default:
+		log.Error("OT_CALENDAR_FEEDS is unusable", "value", v, "want", "on or off")
+		return 1
+	}
+
 	ln, err := net.Listen("tcp", *addr)
 	if err != nil {
 		log.Error("cannot listen", "addr", *addr, "err", err)
@@ -294,7 +305,7 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 	diskDone := make(chan struct{})
 	go func() { disk.Loop(diskCtx); close(diskDone) }()
 	defer func() { stopDisk(); <-diskDone }()
-	routes := server.Routes(server.Deps{UI: web.FS(), DB: db, Log: log, SSO: providers, Collab: live, Whiteboards: boards, LinkCheck: links, Messages: messages, OAuthRegistration: registration, Backups: backups, Connectors: catalog, Engines: engines, TaskLinks: taskLinks, Connect: connect, Disk: disk})
+	routes := server.Routes(server.Deps{UI: web.FS(), DB: db, Log: log, SSO: providers, Collab: live, Whiteboards: boards, LinkCheck: links, Messages: messages, OAuthRegistration: registration, CalendarFeedsOff: feedsOff, Backups: backups, Connectors: catalog, Engines: engines, TaskLinks: taskLinks, Connect: connect, Disk: disk})
 	if err := server.Serve(ctx, ln, server.BehindProxies(proxies, server.WithPublicURL(notifier.PublicURL(), server.Handler(routes, db.Accounts))), log); err != nil {
 		log.Error("server failed", "err", err)
 		return 1

@@ -75,7 +75,7 @@ func TestAChangeThatIsNotPersistedDoesNotHappen(t *testing.T) {
 
 func TestDecodeRejectsWhatItCannotReadExactly(t *testing.T) {
 	cases := map[string]string{
-		"newer format":       `[{"v":43,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
+		"newer format":       `[{"v":44,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"no format version":  `[{"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"unknown field":      `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated","colour":"red"}]`,
 		"unknown role":       `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"RoleGranted","role":"owner"}]`,
@@ -169,10 +169,11 @@ func TestPersistedFormatIsStable(t *testing.T) {
 	sections := secretBlocksLog(t)
 	tasks := accessTaskLog(t)
 	moments := dateTimeLog(t)
+	series := recurrenceLog(t)
 	templates := templateLog(t)
 	drawingComments := drawingCommentLog(t)
 	kinds := map[EventKind]bool{}
-	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, drawingComments) {
+	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments) {
 		kinds[e.Kind] = true
 	}
 	for _, k := range allEventKinds {
@@ -185,69 +186,71 @@ func TestPersistedFormatIsStable(t *testing.T) {
 		sl   Sealer
 		log  []Event
 	}{
-		{"events.v42.golden.jsonl", nil, log},
-		{"events.v42.templates.golden.jsonl", fakeSealer{}, templates},
-		{"events.v42.templates.plain.golden.jsonl", nil, templates},
-		{"events.v42.datetime.golden.jsonl", fakeSealer{}, moments},
-		{"events.v42.datetime.plain.golden.jsonl", nil, moments},
-		{"events.v42.drawingcomments.golden.jsonl", fakeSealer{}, drawingComments},
-		{"events.v42.drawingcomments.plain.golden.jsonl", nil, drawingComments},
-		{"events.v42.sealed.golden.jsonl", fakeSealer{}, log},
-		{"events.v42.richtext.golden.jsonl", fakeSealer{}, rich},
-		{"events.v42.comments.golden.jsonl", fakeSealer{}, comments},
-		{"events.v42.tree.golden.jsonl", fakeSealer{}, tree},
-		{"events.v42.blocks.golden.jsonl", fakeSealer{}, blocks},
-		{"events.v42.labels.golden.jsonl", fakeSealer{}, labels},
-		{"events.v42.attachments.golden.jsonl", fakeSealer{}, files},
-		{"events.v42.attachments.plain.golden.jsonl", nil, files},
-		{"events.v42.watches.golden.jsonl", fakeSealer{}, watches},
-		{"events.v42.inline.golden.jsonl", fakeSealer{}, inline},
-		{"events.v42.revocations.golden.jsonl", nil, access},
-		{"events.v42.provenance.golden.jsonl", fakeSealer{}, provenance},
-		{"events.v42.imagesize.golden.jsonl", fakeSealer{}, sizes},
-		{"events.v42.dataprotection.golden.jsonl", fakeSealer{}, holds},
-		{"events.v42.dataprotection.plain.golden.jsonl", nil, holds},
-		{"events.v42.layout.golden.jsonl", fakeSealer{}, layout},
-		{"events.v42.kanbans.golden.jsonl", nil, kanbans},
-		{"events.v42.spaces.golden.jsonl", nil, spaces},
-		{"events.v42.catalog.golden.jsonl", nil, catalog},
-		{"events.v42.kanbancolumns.golden.jsonl", nil, columns},
-		{"events.v42.spacenames.golden.jsonl", nil, names},
-		{"events.v42.secrets.golden.jsonl", fakeSealer{}, secrets},
-		{"events.v42.secrets.plain.golden.jsonl", nil, secrets},
-		{"events.v42.secreterasure.golden.jsonl", fakeSealer{}, erasure},
-		{"events.v42.secreterasure.plain.golden.jsonl", nil, erasure},
-		{"events.v42.album.golden.jsonl", fakeSealer{}, album},
-		{"events.v42.album.plain.golden.jsonl", nil, album},
-		{"events.v42.typeremoval.golden.jsonl", nil, removal},
-		{"events.v42.video.golden.jsonl", fakeSealer{}, video},
-		{"events.v42.video.plain.golden.jsonl", nil, video},
-		{"events.v42.retention.golden.jsonl", fakeSealer{}, retention},
-		{"events.v42.retention.plain.golden.jsonl", nil, retention},
-		{"events.v42.tasklist.golden.jsonl", fakeSealer{}, tasklist},
-		{"events.v42.tasklist.plain.golden.jsonl", nil, tasklist},
-		{"events.v42.lists.golden.jsonl", fakeSealer{}, lists},
-		{"events.v42.lists.plain.golden.jsonl", nil, lists},
-		{"events.v42.bpmn.golden.jsonl", fakeSealer{}, diagrams},
-		{"events.v42.bpmn.plain.golden.jsonl", nil, diagrams},
-		{"events.v42.kanbanlook.golden.jsonl", nil, look},
-		{"events.v42.kanbanlanes.golden.jsonl", nil, lanes},
-		{"events.v42.bpmnview.golden.jsonl", fakeSealer{}, views},
-		{"events.v42.bpmnview.plain.golden.jsonl", nil, views},
-		{"events.v42.forms.golden.jsonl", fakeSealer{}, engines},
-		{"events.v42.forms.plain.golden.jsonl", nil, engines},
-		{"events.v42.architecture.golden.jsonl", fakeSealer{}, sketches},
-		{"events.v42.architecture.plain.golden.jsonl", nil, sketches},
-		{"events.v42.startform.golden.jsonl", fakeSealer{}, starts},
-		{"events.v42.startform.plain.golden.jsonl", nil, starts},
-		{"events.v42.linkedtask.golden.jsonl", fakeSealer{}, linked},
-		{"events.v42.linkedtask.plain.golden.jsonl", nil, linked},
-		{"events.v42.tasklistquery.golden.jsonl", fakeSealer{}, queried},
-		{"events.v42.tasklistquery.plain.golden.jsonl", nil, queried},
-		{"events.v42.secretblocks.golden.jsonl", fakeSealer{}, sections},
-		{"events.v42.secretblocks.plain.golden.jsonl", nil, sections},
-		{"events.v42.accesstasks.golden.jsonl", fakeSealer{}, tasks},
-		{"events.v42.accesstasks.plain.golden.jsonl", nil, tasks},
+		{"events.v43.golden.jsonl", nil, log},
+		{"events.v43.templates.golden.jsonl", fakeSealer{}, templates},
+		{"events.v43.templates.plain.golden.jsonl", nil, templates},
+		{"events.v43.datetime.golden.jsonl", fakeSealer{}, moments},
+		{"events.v43.datetime.plain.golden.jsonl", nil, moments},
+		{"events.v43.recurrence.golden.jsonl", fakeSealer{}, series},
+		{"events.v43.recurrence.plain.golden.jsonl", nil, series},
+		{"events.v43.drawingcomments.golden.jsonl", fakeSealer{}, drawingComments},
+		{"events.v43.drawingcomments.plain.golden.jsonl", nil, drawingComments},
+		{"events.v43.sealed.golden.jsonl", fakeSealer{}, log},
+		{"events.v43.richtext.golden.jsonl", fakeSealer{}, rich},
+		{"events.v43.comments.golden.jsonl", fakeSealer{}, comments},
+		{"events.v43.tree.golden.jsonl", fakeSealer{}, tree},
+		{"events.v43.blocks.golden.jsonl", fakeSealer{}, blocks},
+		{"events.v43.labels.golden.jsonl", fakeSealer{}, labels},
+		{"events.v43.attachments.golden.jsonl", fakeSealer{}, files},
+		{"events.v43.attachments.plain.golden.jsonl", nil, files},
+		{"events.v43.watches.golden.jsonl", fakeSealer{}, watches},
+		{"events.v43.inline.golden.jsonl", fakeSealer{}, inline},
+		{"events.v43.revocations.golden.jsonl", nil, access},
+		{"events.v43.provenance.golden.jsonl", fakeSealer{}, provenance},
+		{"events.v43.imagesize.golden.jsonl", fakeSealer{}, sizes},
+		{"events.v43.dataprotection.golden.jsonl", fakeSealer{}, holds},
+		{"events.v43.dataprotection.plain.golden.jsonl", nil, holds},
+		{"events.v43.layout.golden.jsonl", fakeSealer{}, layout},
+		{"events.v43.kanbans.golden.jsonl", nil, kanbans},
+		{"events.v43.spaces.golden.jsonl", nil, spaces},
+		{"events.v43.catalog.golden.jsonl", nil, catalog},
+		{"events.v43.kanbancolumns.golden.jsonl", nil, columns},
+		{"events.v43.spacenames.golden.jsonl", nil, names},
+		{"events.v43.secrets.golden.jsonl", fakeSealer{}, secrets},
+		{"events.v43.secrets.plain.golden.jsonl", nil, secrets},
+		{"events.v43.secreterasure.golden.jsonl", fakeSealer{}, erasure},
+		{"events.v43.secreterasure.plain.golden.jsonl", nil, erasure},
+		{"events.v43.album.golden.jsonl", fakeSealer{}, album},
+		{"events.v43.album.plain.golden.jsonl", nil, album},
+		{"events.v43.typeremoval.golden.jsonl", nil, removal},
+		{"events.v43.video.golden.jsonl", fakeSealer{}, video},
+		{"events.v43.video.plain.golden.jsonl", nil, video},
+		{"events.v43.retention.golden.jsonl", fakeSealer{}, retention},
+		{"events.v43.retention.plain.golden.jsonl", nil, retention},
+		{"events.v43.tasklist.golden.jsonl", fakeSealer{}, tasklist},
+		{"events.v43.tasklist.plain.golden.jsonl", nil, tasklist},
+		{"events.v43.lists.golden.jsonl", fakeSealer{}, lists},
+		{"events.v43.lists.plain.golden.jsonl", nil, lists},
+		{"events.v43.bpmn.golden.jsonl", fakeSealer{}, diagrams},
+		{"events.v43.bpmn.plain.golden.jsonl", nil, diagrams},
+		{"events.v43.kanbanlook.golden.jsonl", nil, look},
+		{"events.v43.kanbanlanes.golden.jsonl", nil, lanes},
+		{"events.v43.bpmnview.golden.jsonl", fakeSealer{}, views},
+		{"events.v43.bpmnview.plain.golden.jsonl", nil, views},
+		{"events.v43.forms.golden.jsonl", fakeSealer{}, engines},
+		{"events.v43.forms.plain.golden.jsonl", nil, engines},
+		{"events.v43.architecture.golden.jsonl", fakeSealer{}, sketches},
+		{"events.v43.architecture.plain.golden.jsonl", nil, sketches},
+		{"events.v43.startform.golden.jsonl", fakeSealer{}, starts},
+		{"events.v43.startform.plain.golden.jsonl", nil, starts},
+		{"events.v43.linkedtask.golden.jsonl", fakeSealer{}, linked},
+		{"events.v43.linkedtask.plain.golden.jsonl", nil, linked},
+		{"events.v43.tasklistquery.golden.jsonl", fakeSealer{}, queried},
+		{"events.v43.tasklistquery.plain.golden.jsonl", nil, queried},
+		{"events.v43.secretblocks.golden.jsonl", fakeSealer{}, sections},
+		{"events.v43.secretblocks.plain.golden.jsonl", nil, sections},
+		{"events.v43.accesstasks.golden.jsonl", fakeSealer{}, tasks},
+		{"events.v43.accesstasks.plain.golden.jsonl", nil, tasks},
 	}
 	for _, c := range cases {
 		name, sl, log := c.name, c.sl, c.log
@@ -1311,6 +1314,19 @@ func dateTimeLog(t *testing.T) []Event {
 	it := mustItem(t)(s.Create("anna", NewItem{Space: "PLAT", Type: "meeting", Title: "Review",
 		Properties: Props{"starts": time.Date(2026, 11, 9, 13, 30, 0, 0, time.UTC)}}))
 	noErr(t, s.SetProperty("anna", it.ID, "ends", time.Date(2026, 11, 9, 14, 15, 0, 0, time.FixedZone("CET", 3600))))
+	return s.Log()
+}
+
+// recurrenceLog defines a type with a field of the kind recurrence and
+// sets a rule with exceptions, so the golden file pins both (ADR-0168).
+func recurrenceLog(t *testing.T) []Event {
+	s := setup(t)
+	noErr(t, s.DefineType("admin", TypeDef{Name: "meeting", Body: true, Fields: []FieldDef{
+		{Name: "starts", Kind: KindDateTime}, {Name: "repeats", Kind: KindRecurrence},
+	}}))
+	it := mustItem(t)(s.Create("anna", NewItem{Space: "PLAT", Type: "meeting", Title: "Standup",
+		Properties: Props{"starts": time.Date(2026, 11, 9, 8, 0, 0, 0, time.UTC)}}))
+	noErr(t, s.SetProperty("anna", it.ID, "repeats", "FREQ=WEEKLY;BYDAY=MO,WE;TZID=Europe/Zurich;EXDATE=2026-11-11;MOVE=2026-11-16@2026-11-17T10:00"))
 	return s.Log()
 }
 

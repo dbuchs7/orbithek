@@ -116,6 +116,9 @@ import (
 //     template the item is made with, and TemplateSet moves an item to
 //     another (ADR-0167). Versions 1 to 40 are still read; their items
 //     have no template.
+//   - 42: a field may be of the kind recurrence, the rule by which an
+//     item repeats, with its exceptions, written as text (ADR-0168).
+//     Versions 1 to 41 are still read.
 //   - 43: an anchor may name an element of a drawing, with Drawing and
 //     Element, sealed with the rest of it (ADR-0171). Versions 1 to 42 are
 //     still read.

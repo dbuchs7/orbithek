@@ -140,7 +140,7 @@ var reservedFields = map[string]bool{
 func ReservedField(name string) bool { return reservedFields[name] }
 
 var validKinds = map[FieldKind]bool{
-	KindText: true, KindNumber: true, KindBool: true, KindDate: true, KindUser: true, KindEnum: true, KindURL: true, KindDateTime: true,
+	KindText: true, KindNumber: true, KindBool: true, KindDate: true, KindUser: true, KindEnum: true, KindURL: true, KindDateTime: true, KindRecurrence: true,
 }
 
 func (t TypeDef) field(name string) (FieldDef, bool) {
@@ -287,6 +287,14 @@ func checkValue(f FieldDef, v any) error {
 	case KindURL:
 		s, isString := v.(string)
 		ok = isString && validURL(s)
+	case KindRecurrence:
+		s, isString := v.(string)
+		if isString {
+			if _, err := ParseRecurrence(s); err != nil {
+				return invalid("field %q: %v", f.Name, err)
+			}
+			ok = true
+		}
 	}
 	if !ok {
 		return invalid("field %q: value %#v is not a valid %s", f.Name, v, f.Kind)

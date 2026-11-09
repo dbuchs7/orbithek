@@ -21,11 +21,11 @@
 // an advanced field, with the query the view sends shown beside it.
 import { h } from "./dom.js";
 import { t, language } from "./i18n.js";
-import { get, put } from "./api.js";
+import { del, get, post, put } from "./api.js";
 import { finished } from "./taskparts.js";
 import { dateFields, isoWeek, normalLabel, todayDay } from "./timeline.js";
-import { DAY_MINUTES, STATUS, VIEWS, WHO, address, agendaDays, dayAt, dayColumns, entries, listQuery, localDayOf, minutesAt, moves, overdue, period, readState, retime, shift,
-  timedSpan, typeFields, weekRows, withoutOrder } from "./calendar.js";
+import { DAY_MINUTES, STATUS, VIEWS, WHO, address, agendaDays, cancelChanges, dayAt, dayColumns, entries, listQuery, localDayOf, minutesAt, moves, occurrenceChanges,
+  overdue, period, readState, retime, seriesChanges, shift, timedSpan, typeFields, weekRows, withoutOrder } from "./calendar.js";
 
 const DAY = 86400000;
 const MONDAY = Date.UTC(2024, 0, 1) / DAY; // 1 January 2024 was a Monday.
@@ -63,6 +63,24 @@ const whenText = (day, ms) => (ms === null || ms === undefined ? dateText(day) :
 // unfolded.
 const FILTERS_OPEN = "ot-calendar-filters-open";
 
+// ask shows a modal dialog with a question and buttons, and resolves to
+// the value of the button chosen, or null when it is closed otherwise.
+function ask(title, text, choices) {
+  return new Promise((resolve) => {
+    const dialog = h("dialog", { class: "cal-dialog", id: "calendar-dialog", "aria-labelledby": "calendar-dialog-title" },
+      h("h2", { id: "calendar-dialog-title", text: title }),
+      h("p", { text }),
+      h("p", { class: "actions" }, choices.map(([value, label, cls]) => h("button", { type: "button", class: cls || "secondary", "data-choice": value, text: label,
+        onclick: () => { dialog.returnValue = value; dialog.close(); } }))));
+    dialog.addEventListener("close", () => {
+      dialog.remove();
+      resolve(dialog.returnValue || null);
+    });
+    document.body.append(dialog);
+    dialog.showModal();
+  });
+}
+
 // The keys that move an entry with Shift held, and by how many days.
 const moveKeys = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
 
@@ -90,6 +108,7 @@ function entryTitle(e, done, late) {
   if (done) parts.push(t("calendar.finished"));
   if (late) parts.push(t("calendar.overdue"));
   if (e.inverted) parts.push(t("calendar.inverted", { start: e.start, end: e.end }));
+  if (e.occurrence) parts.push(e.moved ? t("calendar.movedOccurrence") : t("calendar.repeats"));
   return parts.join(" · ");
 }
 
@@ -97,7 +116,8 @@ function entryTitle(e, done, late) {
 // before or after its week says so by its open ends.
 function entryEl(e, ctx, seg) {
   const done = ctx.done(e.item);
-  const late = overdue(e, ctx.today, done);
+  // Only work can be late: an item of a type with a workflow, not finished.
+  const late = ctx.hasWorkflow(e.item) && overdue(e, ctx.today, done);
   const cls = ["cal-entry", e.from !== e.to ? "cal-span" : "", done ? "cal-done" : "", late ? "cal-overdue" : "", e.inverted ? "cal-inverted" : "",
     seg?.before ? "cal-before" : "", seg?.after ? "cal-after" : ""].filter(Boolean).join(" ");
   const title = entryTitle(e, done, late);
@@ -107,6 +127,7 @@ function entryEl(e, ctx, seg) {
   const el = h("a", { class: cls + (movable ? " cal-movable" : ""), href: "#/item/" + encodeURIComponent(e.item.key), title, "aria-label": title, "data-key": e.item.key,
     draggable: movable ? "true" : null },
   late ? h("span", { class: "cal-mark", "aria-hidden": "true", text: "!" }) : null,
+  e.occurrence ? h("span", { class: "cal-repeat", "aria-hidden": "true", text: e.moved ? "↷" : "↻" }) : null,
   time, time ? " " : null,
   h("span", { class: "cal-key", text: e.item.key }), " ", h("span", { class: "cal-title", text: e.item.title }));
   if (seg) el.style.gridColumn = `${seg.col + 1} / span ${seg.span}`;
@@ -127,6 +148,12 @@ function entryEl(e, ctx, seg) {
       ctx.clearDrop();
     });
     el.addEventListener("keydown", (ev) => {
+      // Delete cancels one occurrence of a series, after asking.
+      if (e.occurrence && (ev.key === "Delete" || ev.key === "Backspace") && !ev.altKey && !ev.ctrlKey && !ev.metaKey) {
+        ev.preventDefault();
+        ctx.cancel(e);
+        return;
+      }
       const n = moveKeys[ev.key];
       if (!ev.shiftKey || ev.altKey || ev.ctrlKey || ev.metaKey || !n) return;
       ev.preventDefault();
@@ -248,7 +275,7 @@ function hoursEl(monday, list, ctx) {
       ctx.clearDrop();
       // A meeting goes to the day and time it is dropped at; an entry
       // without a time of its own moves by days only.
-      if (timedSpan(entry) || entry.at.from !== null) ctx.change(entry, day - entry.from, retime(entry, day - entry.from, target(ev)));
+      if (timedSpan(entry) || entry.at.from !== null) ctx.place(entry, day - entry.from, target(ev));
       else ctx.move(entry, day - from);
     });
     days.push(col);
@@ -291,6 +318,95 @@ function queryError(err, sent, state) {
   return { text: t("calendar.queryError", { error: message }), at: null };
 }
 
+// savedParams are the parameters of the view as it is saved: everything
+// chosen but the day shown, so a saved view always opens on today.
+const savedParams = (state, today) => address({ ...state, at: today }, today).replace(/^#\/calendar\??/, "");
+
+// savedBar offers the views one saved (ADR-0168): open one, save the view
+// as it is under a name, remove the one shown, and subscribe to it from a
+// calendar program with a feed address of its own.
+function savedBar(container, params, helpers, state, today, views, feeds, after) {
+  const current = savedParams(state, today);
+  const active = views.find((v) => v.params === current);
+  const redraw = (next) => calendarView(container, params, helpers, next);
+  const run = async (fn, okText) => {
+    try {
+      const next = await fn();
+      await redraw({ notice: okText ? { ok: true, text: okText } : null, ...next });
+    } catch (err) {
+      await redraw({ notice: { ok: false, text: err.message } });
+    }
+  };
+  const choose = h("select", { id: "calendar-saved-select", onchange: (ev) => {
+    const v = views.find((x) => x.id === ev.target.value);
+    location.hash = "#/calendar" + (v?.params ? "?" + v.params : "");
+  } },
+  h("option", { value: "", text: views.length ? t("calendar.savedNone") : t("calendar.savedEmpty"), selected: !active }),
+  views.map((v) => h("option", { value: v.id, text: v.name, selected: v === active })));
+  const name = h("input", { id: "calendar-saved-name", type: "text", maxlength: "80", placeholder: t("calendar.saveName"), value: active?.name || "" });
+  const saveForm = h("form", { class: "cal-save-form", id: "calendar-save-form", hidden: true, onsubmit: (ev) => {
+    ev.preventDefault();
+    const n = name.value.trim();
+    if (!n) return;
+    // A name already used saves over that view; a new one makes a view.
+    const same = views.find((v) => v.name === n);
+    run(async () => {
+      if (same) await put("/api/me/calendar-views/" + same.id, { name: n, params: current });
+      else await post("/api/me/calendar-views", { name: n, params: current });
+      return {};
+    }, t("calendar.viewSaved", { name: n }));
+  } },
+  name,
+  h("button", { type: "submit", class: "primary", id: "calendar-saved-save", text: t("calendar.save") }),
+  h("button", { type: "button", class: "link", text: t("calendar.cancel"), onclick: () => { saveForm.hidden = true; saveButton.hidden = false; } }));
+  const saveButton = h("button", { type: "button", class: "secondary", id: "calendar-saved-new", text: t("calendar.saveAs"), onclick: () => {
+    saveForm.hidden = false;
+    saveButton.hidden = true;
+    name.focus();
+    name.select();
+  } });
+  const remove = active ? h("button", { type: "button", class: "link danger", id: "calendar-saved-remove", text: t("calendar.deleteView"), onclick: async () => {
+    const ok = await ask(t("calendar.deleteView"), t("calendar.deleteViewConfirm", { name: active.name }), [["yes", t("calendar.deleteView"), "danger"], ["", t("calendar.cancel"), "link"]]);
+    if (ok === "yes") run(async () => { await del("/api/me/calendar-views/" + active.id); return {}; }, t("calendar.viewDeleted", { name: active.name }));
+  } }) : null;
+  // A server with feeds turned off offers none; a feed made before can
+  // still be ended.
+  const subscribe = !active ? null : !feeds
+    ? h("span", { class: "cal-feed-state" }, h("span", { class: "muted", id: "calendar-feeds-off", text: t("calendar.feedsOff") + " " }),
+      active.feed ? h("button", { type: "button", class: "link danger", id: "calendar-feed-revoke", text: t("calendar.feedRevoke"),
+        onclick: () => run(async () => { await del(`/api/me/calendar-views/${active.id}/feed`); return {}; }, t("calendar.feedRevoked")) }) : null)
+    : !active.feed
+    ? h("button", { type: "button", class: "secondary", id: "calendar-feed-new", text: t("calendar.subscribe"),
+      onclick: () => run(async () => ({ feed: await post(`/api/me/calendar-views/${active.id}/feed`, {}) })) })
+    : h("span", { class: "cal-feed-state" },
+      h("span", { class: "muted", text: t("calendar.feedActive", { date: new Date(active.feedCreated).toLocaleDateString(language() || undefined) }) + " " }),
+      h("button", { type: "button", class: "link", id: "calendar-feed-renew", text: t("calendar.feedRenew"),
+        onclick: () => run(async () => ({ feed: await post(`/api/me/calendar-views/${active.id}/feed`, {}) })) }), " · ",
+      h("button", { type: "button", class: "link danger", id: "calendar-feed-revoke", text: t("calendar.feedRevoke"),
+        onclick: () => run(async () => { await del(`/api/me/calendar-views/${active.id}/feed`); return {}; }, t("calendar.feedRevoked")) }));
+  return h("div", { class: "cal-saved", id: "calendar-saved" },
+    field(t("calendar.savedView"), choose), saveButton, saveForm, remove, subscribe);
+}
+
+// feedBox shows a feed's address once, as it was made, to copy into a
+// calendar program, with what holding it means.
+function feedBox(feed) {
+  const url = h("input", { id: "calendar-feed-url", type: "text", readonly: true, value: feed.url, "aria-label": t("calendar.feedUrl") });
+  const copied = h("span", { class: "muted", role: "status" });
+  return h("div", { class: "notice cal-feed", id: "calendar-feed" },
+    h("p", { text: t("calendar.feedMade") }),
+    h("p", { class: "cal-feed-row" }, url, h("button", { type: "button", class: "secondary", id: "calendar-feed-copy", text: t("calendar.feedCopy"), onclick: async () => {
+      url.select();
+      try {
+        await navigator.clipboard.writeText(feed.url);
+        copied.textContent = t("calendar.feedCopied");
+      } catch {
+        copied.textContent = t("calendar.feedCopyHint");
+      }
+    } }), copied),
+    h("p", { class: "muted", text: t("calendar.feedWarning") }));
+}
+
 // calendarView mounts the view into container. helpers are what app.js
 // shares: readAll reads a listing up to the boards' limit, and
 // favouritesFirst orders the spaces as every choice of a space does.
@@ -300,7 +416,8 @@ export async function calendarView(container, params, helpers, after = {}) {
   const { readAll, favouritesFirst } = helpers;
   const today = todayDay();
   const state = readState(params, today);
-  const [{ types }, { spaces }] = await Promise.all([get("/api/types"), get("/api/spaces")]);
+  const [{ types }, { spaces }, { views, feeds }] = await Promise.all([get("/api/types"), get("/api/spaces"),
+    get("/api/me/calendar-views").catch(() => ({ views: [], feeds: false }))]);
   const dated = types.filter((ty) => dateFields([ty]).length);
   const typeOf = new Map(types.map((ty) => [ty.name, ty]));
   const go = (change) => { location.hash = address({ ...state, ...change }, today); };
@@ -319,18 +436,33 @@ export async function calendarView(container, params, helpers, after = {}) {
       failed = err;
     }
   }
-  const list = entries(items, fields);
+  const list = entries(items, fields, { from: p.from, to: p.to });
   const editable = new Set(spaces.filter((sp) => sp.role === "editor" || sp.role === "space-admin").map((sp) => sp.key));
   const ctx = {
     today,
     done: (it) => finished(typeOf.get(it.type)?.workflow, it.state),
+    hasWorkflow: (it) => Boolean(typeOf.get(it.type)?.workflow?.states?.length),
     canMove: (it) => editable.has(it.space),
     drag: null,
     clearDrop: () => container.querySelectorAll(".cal-drop").forEach((el) => el.classList.remove("cal-drop")),
-    // move changes the entry's dates by n days, then draws the calendar
-    // again from what the server kept, telling what happened.
-    move: (e, n) => ctx.change(e, n, moves(e, n)),
-    change: async (e, n, changes) => {
+    // move changes the entry's dates by n days, place to a time of day as
+    // well, then the calendar is drawn again from what the server kept,
+    // telling what happened. An occurrence of a series asks whether only
+    // it moves or the whole series (ADR-0168).
+    move: (e, n) => ctx.place(e, n),
+    place: async (e, n, minutes) => {
+      if (!e.occurrence) return ctx.change(e, n, minutes === undefined ? moves(e, n) : retime(e, n, minutes));
+      const scope = await ask(t("calendar.scopeTitle"), t("calendar.scopeText", { key: e.item.key, date: dateText(e.from) }),
+        [["one", t("calendar.scopeOne"), "primary"], ["all", t("calendar.scopeAll")], ["", t("calendar.cancel"), "link"]]);
+      if (scope === "one") return ctx.change(e, n, occurrenceChanges(e, n, minutes));
+      if (scope === "all") return ctx.change(e, n, seriesChanges(e, n, minutes));
+    },
+    cancel: async (e) => {
+      const ok = await ask(t("calendar.cancelTitle"), t("calendar.cancelText", { key: e.item.key, date: dateText(e.from) }),
+        [["yes", t("calendar.cancelConfirm"), "danger"], ["", t("calendar.cancel"), "link"]]);
+      if (ok === "yes") return ctx.change(e, 0, cancelChanges(e), t("calendar.cancelled", { key: e.item.key, date: dateText(e.from) }));
+    },
+    change: async (e, n, changes, told) => {
       if (!changes.length) return;
       let notice;
       try {
@@ -338,7 +470,7 @@ export async function calendarView(container, params, helpers, after = {}) {
         // A point in time is told with its new time.
         const timed = changes.find((c) => (c.field === e.start && e.startTimed) || (c.field === e.end && e.endTimed));
         const when = timed ? whenText(localDayOf(timed.value), Date.parse(timed.value)) : dateText(e.from + n);
-        notice = { ok: true, text: t("calendar.moved", { key: e.item.key, date: when }) };
+        notice = { ok: true, text: told || t("calendar.moved", { key: e.item.key, date: when }) };
       } catch (err) {
         notice = { ok: false, text: t("calendar.moveFailed", { key: e.item.key, error: err.message }) };
       }
@@ -394,6 +526,7 @@ export async function calendarView(container, params, helpers, after = {}) {
   const controls = h("div", { class: "card tl-controls cal-controls", id: "calendar-controls" },
     h("nav", { class: "tabs", "aria-label": t("calendar.view") }, VIEWS.map((v) =>
       h("a", { href: address({ ...state, view: v }, today), class: v === state.view ? "tab active" : "tab", id: "calendar-view-" + v, text: viewName(v) }))),
+    savedBar(container, params, helpers, state, today, views, feeds, after),
     filters);
 
   const nav = h("div", { class: "cal-nav" },
@@ -416,6 +549,7 @@ export async function calendarView(container, params, helpers, after = {}) {
     controls,
     mistake ? h("p", { class: "notice warning", id: "calendar-error", role: "alert", text: mistake.text }) : null,
     after.notice ? h("p", { class: after.notice.ok ? "notice" : "notice warning", id: "calendar-moved", role: after.notice.ok ? "status" : "alert", text: after.notice.text }) : null,
+    after.feed ? feedBox(after.feed) : null,
     truncated ? h("p", { class: "notice warning", text: t("board.truncated", { n: items.length }) }) : null,
     nav,
     content,
