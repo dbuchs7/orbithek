@@ -14,6 +14,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/budget"
 	"github.com/dbuchs7/orbithek/internal/item"
 	"github.com/dbuchs7/orbithek/internal/storage"
+	"github.com/dbuchs7/orbithek/internal/whiteboard"
 )
 
 // attachmentRoutes are the routes of item attachments (ADR-0045).
@@ -340,6 +341,22 @@ func (h itemHandlers) uploadAttachment(w http.ResponseWriter, r *http.Request) {
 	a.Name = name
 	if q := r.URL.Query(); q.Get("sourceItem") != "" || q.Get("sourceAttachment") != "" {
 		a.Source = &item.Source{Item: item.ID(q.Get("sourceItem")), Attachment: item.ID(q.Get("sourceAttachment"))}
+	}
+	// A drawing in use as a live whiteboard gets its new versions from the
+	// whiteboard only: a version from the drawing editor would be written
+	// over by the session's next save (ADR-0172).
+	if a.Source != nil && a.Source.Item == id && h.d.Whiteboards != nil {
+		var first item.ID
+		h.d.DB.Read(func(s *item.Store) {
+			if d, err := s.As(who(r)).Drawing(id, a.Source.Attachment); err == nil {
+				first = d.First
+			}
+		})
+		if first != "" && !h.d.Whiteboards.Yield(whiteboard.Key{Item: id, First: first}) {
+			h.d.DB.DiscardAttachment(id, a.ID)
+			writeError(w, http.StatusConflict, "this drawing is open as a live whiteboard; work on it there, or save it once the whiteboard is closed")
+			return
+		}
 	}
 	h.write(w, r, http.StatusCreated, func(x *item.Session, _ *item.Store) (any, error) {
 		got, err := x.AddAttachment(id, a)

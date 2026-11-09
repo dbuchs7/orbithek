@@ -176,6 +176,12 @@ type liveWhiteboardJSON struct {
 	Space        string  `json:"space"`
 	File         item.ID `json:"file"`
 	Participants int     `json:"participants"`
+	// People are the participants with a browser: while there are any,
+	// the drawing is not edited alone (ADR-0172).
+	People int `json:"people"`
+	// Versions are the IDs of every version of the drawing, so a page
+	// that shows one of them knows it is in use (ADR-0172).
+	Versions []item.ID `json:"versions"`
 }
 
 func (h itemHandlers) liveWhiteboards(w http.ResponseWriter, r *http.Request) {
@@ -184,11 +190,13 @@ func (h itemHandlers) liveWhiteboards(w http.ResponseWriter, r *http.Request) {
 	h.d.DB.Read(func(s *item.Store) {
 		x := s.As(who(r))
 		for _, in := range infos {
-			if _, err := x.Drawing(in.Key.Item, in.Key.First); err != nil {
+			d, err := x.Drawing(in.Key.Item, in.Key.First)
+			if err != nil {
 				continue
 			}
 			if it, err := x.Get(in.Key.Item); err == nil {
-				out = append(out, liveWhiteboardJSON{Item: string(it.ID), Key: it.Key, Title: it.Title, Space: it.Space, File: in.Key.First, Participants: in.Participants})
+				out = append(out, liveWhiteboardJSON{Item: string(it.ID), Key: it.Key, Title: it.Title, Space: it.Space, File: in.Key.First,
+					Participants: in.Participants, People: in.People, Versions: d.Versions})
 			}
 		}
 	})

@@ -630,3 +630,62 @@ func TestSlowBrowserIsDropped(t *testing.T) {
 }
 
 func ptr(f float64) *float64 { return &f }
+
+// TestLaserPointerIsSent: the laser pointer reaches the others with its
+// tool and button, so they draw its trail; other tools and buttons are
+// refused.
+func TestLaserPointerIsSent(t *testing.T) {
+	h, _, _ := newTest(t)
+	var flush func()
+	h.after = func(_ time.Duration, f func()) { flush = f }
+	ann, _ := h.Join(key, "ann", "Ann")
+	bob, _ := h.Join(key, "bob", "Bob")
+	drain(bob)
+	if _, err := h.Apply(key, ann.Client, "ann", []Op{{Op: "pointer", X: 4, Y: 5, Tool: "laser", Button: "down"}}); err != nil {
+		t.Fatal(err)
+	}
+	flush()
+	p := next(t, bob, Pointers)
+	if len(p.Pointers) != 1 || p.Pointers[0].Tool != "laser" || p.Pointers[0].Button != "down" {
+		t.Fatalf("pointer = %+v", p.Pointers)
+	}
+	for _, op := range []Op{{Op: "pointer", Tool: "pen"}, {Op: "pointer", Button: "left"}} {
+		if _, err := h.Apply(key, ann.Client, "ann", []Op{op}); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("%+v: %v", op, err)
+		}
+	}
+}
+
+// TestActive counts the clients of a whiteboard's session.
+func TestYield(t *testing.T) {
+	h, _, clk := newTest(t)
+	if !h.Yield(key) {
+		t.Fatal("no session, yet no yield")
+	}
+	ann, _ := h.Join(key, "ann", "Ann")
+	if h.Yield(key) {
+		t.Fatal("yields with someone in it")
+	}
+	if _, err := h.Change(key, "ai", "AI", []Change{{Op: "note"}}); err != nil {
+		t.Fatal(err)
+	}
+	if in := h.Sessions(); len(in) != 1 || in[0].Participants != 2 || in[0].People != 1 {
+		t.Fatalf("sessions = %+v", in)
+	}
+	ann.Leave()
+	if h.Yield(key) {
+		t.Fatal("yields while a change waits to be saved")
+	}
+	clk.add(AloneSave)
+	h.Tick()
+	// Saved, with only the agent left: the session closes and yields.
+	if n, _ := h.Stats(); n != 1 {
+		t.Fatal("the agent's session closed early")
+	}
+	if !h.Yield(key) {
+		t.Fatal("no yield with only an agent and nothing to save")
+	}
+	if n, _ := h.Stats(); n != 0 {
+		t.Fatal("the session stayed open after yielding")
+	}
+}

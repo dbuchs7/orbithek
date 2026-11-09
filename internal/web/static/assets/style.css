@@ -569,6 +569,8 @@ label.upload { display: inline-flex; align-items: center; gap: 8px; }
 .pm-image { margin: 10px 0; text-align: center; }
 .pm-image img { max-width: 100%; height: auto; border-radius: 4px; border: 1px solid var(--border); }
 .pm-image figcaption { margin-top: 4px; color: var(--muted); font-size: 13px; }
+/* A drawing opens as a live whiteboard or alone in the drawing editor (ADR-0172). */
+.pm-drawing-open { display: block; margin-top: 2px; }
 .pm-image figcaption input { width: 60%; text-align: center; border: 0; border-bottom: 1px dashed var(--border-strong); background: transparent; color: inherit; font: inherit; }
 .pm-image.ProseMirror-selectednode img { outline: 2px solid var(--accent); }
 

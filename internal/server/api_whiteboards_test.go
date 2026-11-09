@@ -241,3 +241,46 @@ func TestWhiteboardNamesAndLimits(t *testing.T) {
 	}
 	w.carla.expect("POST", "/api/items/PLAT-1/whiteboards", `{}`, http.StatusNotFound)
 }
+
+// TestNoEditorVersionWhileLive: while people are in a whiteboard, the
+// drawing editor cannot save a new version of its drawing, which the next
+// checkpoint would overwrite; once they left, it can (ADR-0172). The live
+// whiteboards name every version of their drawing.
+func TestNoEditorVersionWhileLive(t *testing.T) {
+	w := newWorld(t)
+	srv := httptest.NewServer(w.bert.h)
+	t.Cleanup(srv.Close)
+	w.bert.expect("POST", "/api/items", `{"space":"PLAT","type":"task","title":"Retro","properties":{"priority":"low"}}`, http.StatusCreated)
+	file := w.bert.expect("POST", "/api/items/PLAT-1/whiteboards", `{}`, http.StatusCreated)["file"].(string)
+	upload := func() int {
+		req := httptest.NewRequest("POST", "/api/items/PLAT-1/attachments?name=b.drawing.png&sourceItem="+
+			field(w.bert.expect("GET", "/api/items/PLAT-1", "", http.StatusOK), "item", "id").(string)+"&sourceAttachment="+file, bytes.NewReader(whiteboard.Placeholder()))
+		req.Header.Set("Content-Type", "application/octet-stream")
+		req.AddCookie(w.bert.cookie)
+		rec := httptest.NewRecorder()
+		w.bert.h.ServeHTTP(rec, req)
+		return rec.Code
+	}
+	stream := boardStream(t, srv, w.bert, "/api/items/PLAT-1/whiteboards/"+file+"/live")
+	stream.next("snapshot")
+	live := w.bert.expect("GET", "/api/whiteboards", "", http.StatusOK)["whiteboards"].([]any)
+	if v := live[0].(map[string]any)["versions"].([]any); len(v) != 1 || v[0] != file {
+		t.Fatalf("versions = %v", v)
+	}
+	if n := live[0].(map[string]any)["people"]; n != 1.0 {
+		t.Fatalf("people = %v", n)
+	}
+	if code := upload(); code != http.StatusConflict {
+		t.Fatalf("a version from the editor while live: %d", code)
+	}
+	stream.res.Body.Close()
+	for i := 0; i < 100; i++ {
+		if len(w.bert.expect("GET", "/api/whiteboards", "", http.StatusOK)["whiteboards"].([]any)) == 0 {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if code := upload(); code != http.StatusCreated {
+		t.Fatalf("a version from the editor once everyone left: %d", code)
+	}
+}

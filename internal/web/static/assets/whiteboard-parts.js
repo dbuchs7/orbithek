@@ -46,12 +46,22 @@ export function shown(el, heldBy, me) {
 }
 
 // sendable is an element as it is sent: the lock shown for another's hold
-// is not the element's own.
+// is not the element's own, and an image this browser could not load is
+// not broken for the others.
 export function sendable(el, truth, heldBy, me) {
   const holder = heldBy.get(el.id);
-  if (holder && holder !== me) return { ...el, locked: truth.get(el.id)?.locked ?? false };
-  return el;
+  let out = el;
+  if (holder && holder !== me) out = { ...out, locked: truth.get(el.id)?.locked ?? false };
+  if (out.type === "image" && out.status === "error") out = { ...out, status: truth.get(el.id)?.status ?? "saved" };
+  return out;
 }
+
+// pictures are the files the image elements among els show, each once.
+export const pictures = (els) => [...new Set(els.filter((el) => el.type === "image" && el.fileId && !el.isDeleted).map((el) => el.fileId))];
+
+// pointerTool is the tool a cursor is sent with: the laser pointer, or the
+// plain pointer.
+export const pointerTool = (tool) => (tool === "laser" ? "laser" : "pointer");
 
 // changed lists the elements of the scene newer than the server's.
 export function changed(scene, truth) {
