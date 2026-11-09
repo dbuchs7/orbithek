@@ -47,6 +47,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/storage"
 	"github.com/dbuchs7/orbithek/internal/tasklink"
 	"github.com/dbuchs7/orbithek/internal/web"
+	"github.com/dbuchs7/orbithek/internal/whiteboard"
 )
 
 func main() {
@@ -231,6 +232,12 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 	go func() { runCollab(liveCtx, live, time.NewTicker(collabTick).C); close(liveDone) }()
 	// Runs before the data directory closes: open drafts are committed.
 	defer func() { stopLive(); <-liveDone }()
+	boards := server.NewWhiteboards(db, live, log)
+	boardsCtx, stopBoards := context.WithCancel(ctx)
+	boardsDone := make(chan struct{})
+	go func() { runWhiteboards(boardsCtx, boards, time.NewTicker(whiteboardTick).C); close(boardsDone) }()
+	// Runs before the data directory closes: unsaved scenes are written.
+	defer func() { stopBoards(); <-boardsDone }()
 	notifier, every, err := notifierFromEnv(os.Getenv)
 	if err != nil {
 		log.Error("message delivery is misconfigured", "err", err)
@@ -287,7 +294,7 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 	diskDone := make(chan struct{})
 	go func() { disk.Loop(diskCtx); close(diskDone) }()
 	defer func() { stopDisk(); <-diskDone }()
-	routes := server.Routes(server.Deps{UI: web.FS(), DB: db, Log: log, SSO: providers, Collab: live, LinkCheck: links, Messages: messages, OAuthRegistration: registration, Backups: backups, Connectors: catalog, Engines: engines, TaskLinks: taskLinks, Connect: connect, Disk: disk})
+	routes := server.Routes(server.Deps{UI: web.FS(), DB: db, Log: log, SSO: providers, Collab: live, Whiteboards: boards, LinkCheck: links, Messages: messages, OAuthRegistration: registration, Backups: backups, Connectors: catalog, Engines: engines, TaskLinks: taskLinks, Connect: connect, Disk: disk})
 	if err := server.Serve(ctx, ln, server.BehindProxies(proxies, server.WithPublicURL(notifier.PublicURL(), server.Handler(routes, db.Accounts))), log); err != nil {
 		log.Error("server failed", "err", err)
 		return 1
@@ -347,6 +354,25 @@ func runCollab(ctx context.Context, hub *collab.Hub, tick <-chan time.Time) {
 			// A commit in a live session may have restricted its item
 			// (ADR-0040); participants who may no longer read it leave.
 			hub.Revalidate()
+		}
+	}
+}
+
+// whiteboardTick is how often live whiteboards are checked for locks to
+// lapse and scenes to save.
+const whiteboardTick = 2 * time.Second
+
+// runWhiteboards keeps the live whiteboards (ADR-0168) on every tick: idle
+// locks lapse, keepers are asked for checkpoints, scenes nobody can draw
+// are saved. When ctx ends it shuts them down, writing what is unsaved.
+func runWhiteboards(ctx context.Context, hub *whiteboard.Hub, tick <-chan time.Time) {
+	for {
+		select {
+		case <-ctx.Done():
+			hub.Shutdown()
+			return
+		case <-tick:
+			hub.Tick()
 		}
 	}
 }

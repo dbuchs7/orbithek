@@ -1,6 +1,7 @@
 package item
 
 import (
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -35,11 +36,21 @@ type Comment struct {
 // passages of the same text. Its position is found again when the body is
 // shown; when the quoted text is gone, the comment is no longer on any
 // passage, and it says so.
+//
+// An anchor may name an element of a drawing instead (ADR-0170): Drawing
+// is the drawing's first version, Element the element's ID in its scene,
+// and Quote the element's text, which may be empty.
 type Anchor struct {
-	Quote  string
-	Prefix string `json:",omitempty"`
-	Suffix string `json:",omitempty"`
+	Quote   string
+	Prefix  string `json:",omitempty"`
+	Suffix  string `json:",omitempty"`
+	Drawing ID     `json:",omitempty"`
+	Element string `json:",omitempty"`
 }
+
+// elementIDRE is the form of an element's ID in a drawing's scene
+// (internal/whiteboard).
+var elementIDRE = regexp.MustCompile(`^[A-Za-z0-9_.:-]{1,128}$`)
 
 // NewComment is a comment to add: on the whole item, on a passage of its
 // body (Anchor) or in answer to another comment (Reply).
@@ -72,7 +83,16 @@ func (s *Store) Comment(actor string, id ID, n NewComment) (Comment, error) {
 			return Comment{}, invalid("type %q has no body to comment on", it.Type)
 		}
 		a := *n.Anchor
-		if strings.TrimSpace(a.Quote) == "" {
+		switch {
+		case a.Element != "" || a.Drawing != "":
+			if !elementIDRE.MatchString(a.Element) {
+				return Comment{}, invalid("element %q of a drawing", a.Element)
+			}
+			if _, ok := it.attachment(a.Drawing); !ok {
+				return Comment{}, invalid("item %s has no drawing %s", it.Key, a.Drawing)
+			}
+			a.Prefix, a.Suffix = "", ""
+		case strings.TrimSpace(a.Quote) == "":
 			return Comment{}, invalid("an inline comment needs the text it is on")
 		}
 		n.Anchor = &a

@@ -129,6 +129,11 @@ var (
 // such a type gets its start text as any caller does, and reads the page
 // as Markdown. Moving a page to a newer template version is not offered
 // either: it changes how a document others answer for looks.
+//
+// Of the live whiteboards (ADR-0168), agents make one, read one and
+// change it with plain changes; the live stream, the raw operations and
+// the checkpoints are a browser's, and starting or ending a vote, the
+// timer and a presentation are a person's (ADR-0169).
 var tools = []tool{
 	{Name: "list_spaces", Description: "List the spaces the caller holds a role in.", Method: "GET", Path: "/api/spaces"},
 	{Name: "get_own_roles", Description: "The caller's own roles: the system roles held, and every space role granted to the caller, directly or through a group (via), one entry per grant.",
@@ -235,8 +240,28 @@ var tools = []tool{
 	{Name: "add_comment", Description: "Comment on an item, in plain text: on the whole item, on a passage of its body (anchor), or in answer to a comment (reply). Needs the right to edit the item.",
 		Method: "POST", Path: "/api/items/{ref}/comments", Params: []param{refParam,
 			{"text", str, inBody, true, "The comment, plain text."},
-			{"anchor", object, inBody, false, "The passage commented on: {\"quote\": text of one body block, \"prefix\" and \"suffix\": up to 32 characters before and after it, to tell apart passages of the same text}."},
+			{"anchor", object, inBody, false, "The passage commented on: {\"quote\": text of one body block, \"prefix\" and \"suffix\": up to 32 characters before and after it, to tell apart passages of the same text}; " +
+				"or an element of a whiteboard: {\"drawing\": the whiteboard's file, \"element\": the element's ID as get_whiteboard lists it, \"quote\": its text}."},
 			{"reply", str, inBody, false, "The ID of the comment answered; the answer joins its thread."},
+		}},
+	{Name: "create_whiteboard", Description: "Make a whiteboard in an item the caller may edit: an empty drawing at the end of its body, which people and agents edit live. Answers its file, which names it in the other whiteboard tools.",
+		Method: "POST", Path: "/api/items/{ref}/whiteboards", Params: []param{refParam,
+			{"title", str, inBody, false, "The whiteboard's title, its caption in the body."},
+		}},
+	{Name: "get_whiteboard", Description: "Read a whiteboard: its elements in plain terms (id, kind: note, rectangle, ellipse, diamond, text, arrow, line, freedraw, image or frame; text, " +
+		"position and size in pixels, colour, the frame it lies in, the ends of an arrow, who is working on it, its votes once a vote is closed), " +
+		"who takes part, and the timer, vote and presentation of a live workshop. live says whether people are in it now.",
+		Method: "GET", Path: "/api/items/{ref}/whiteboards/{file}", Params: []param{refParam,
+			{"file", str, inPath, true, "The whiteboard's file: an attachment ID of the drawing, any of its versions."},
+		}},
+	{Name: "change_whiteboard", Description: "Change a whiteboard while people may be working on it, all changes or none. Each change is an object with op: " +
+		"note (text, colour: yellow, green, blue, pink, orange, violet or #rrggbb, frame: a frame's id, x and y or placed below the scene or inside the frame, width, height), " +
+		"shape (shape: rectangle, ellipse or diamond, text, colour, frame, x, y, width, height), text (text, colour, frame, x, y), frame (text: its name, x, y, width, height), " +
+		"connect (from and to: element ids, text: the arrow's label, colour), edit (id, text), move (id, x, y: its new top left corner), colour (id, colour), delete (id), " +
+		"vote and unvote (id: a note or shape, while a vote is open). An element someone is working on is refused with their name. Answers the element each change made or changed.",
+		Method: "POST", Path: "/api/items/{ref}/whiteboards/{file}/changes", Params: []param{refParam,
+			{"file", str, inPath, true, "The whiteboard's file: an attachment ID of the drawing, any of its versions."},
+			{"changes", array, inBody, true, "The changes, in order."},
 		}},
 }
 

@@ -105,39 +105,55 @@ type Budgets struct {
 	// (ADR-0159), the start included, across every space. Beyond it the
 	// walk keeps the nearest nodes and says it was cut.
 	ImpactNodes int
+	// WhiteboardSessions, WhiteboardClients, WhiteboardElements and
+	// WhiteboardSceneBytes bound live whiteboards (ADR-0168): sessions on
+	// the server, clients per session (browsers and agents), elements one
+	// session holds, deleted ones included, and the bytes of its elements
+	// and images together. WhiteboardRequestBytes bounds one request of
+	// operations, which may carry an image.
+	WhiteboardSessions     int
+	WhiteboardClients      int
+	WhiteboardElements     int
+	WhiteboardSceneBytes   int64
+	WhiteboardRequestBytes int64
 }
 
 // Default returns the budgets the server uses unless configured otherwise.
 func Default() Budgets {
 	return Budgets{
-		RequestBody:           64 << 10,
-		PageItems:             500,
-		SearchQueryBytes:      256,
-		SearchQueryTerms:      10,
-		QueryBytes:            2048,
-		QueryTerms:            64,
-		LiveSessions:          1000,
-		LiveClients:           50,
-		LiveBlocks:            5000,
-		LoginTracked:          100_000,
-		AccountRequests:       100,
-		OAuthClients:          200,
-		SSOPending:            10_000,
-		LinkCheckLinks:        500,
-		AttachmentBytes:       25 << 20,
-		AvatarBytes:           256 << 10,
-		BrandingBytes:         2 << 20,
-		WordTemplateBytes:     10 << 20,
-		ExportRows:            10_000,
-		ChangesPage:           1000,
-		ChangesWait:           30,
-		ChangesWaiting:        1000,
-		EngineResponseBytes:   8 << 20,
-		EngineOpenTasks:       20_000,
-		EngineConnectsPending: 10_000,
-		MarkdownPictureBytes:  50 << 20,
-		StarmapNodes:          600,
-		ImpactNodes:           1000,
+		RequestBody:            64 << 10,
+		PageItems:              500,
+		SearchQueryBytes:       256,
+		SearchQueryTerms:       10,
+		QueryBytes:             2048,
+		QueryTerms:             64,
+		LiveSessions:           1000,
+		LiveClients:            50,
+		LiveBlocks:             5000,
+		LoginTracked:           100_000,
+		AccountRequests:        100,
+		OAuthClients:           200,
+		SSOPending:             10_000,
+		LinkCheckLinks:         500,
+		AttachmentBytes:        25 << 20,
+		AvatarBytes:            256 << 10,
+		BrandingBytes:          2 << 20,
+		WordTemplateBytes:      10 << 20,
+		ExportRows:             10_000,
+		ChangesPage:            1000,
+		ChangesWait:            30,
+		ChangesWaiting:         1000,
+		EngineResponseBytes:    8 << 20,
+		EngineOpenTasks:        20_000,
+		EngineConnectsPending:  10_000,
+		MarkdownPictureBytes:   50 << 20,
+		StarmapNodes:           600,
+		ImpactNodes:            1000,
+		WhiteboardSessions:     200,
+		WhiteboardClients:      20,
+		WhiteboardElements:     20_000,
+		WhiteboardSceneBytes:   48 << 20,
+		WhiteboardRequestBytes: 8 << 20,
 	}
 }
 
