@@ -95,6 +95,9 @@ var publicAPI = map[string]bool{
 	// The client metadata document engines read this server's name,
 	// callbacks and public key from (ADR-0152); it holds no secret.
 	"/api/engines/client-metadata": true,
+	// Google's redirect back to a begun connection of a person's Google
+	// account (ADR-0172), bound by its state cookie as the engine's is.
+	"/api/calendar-accounts/google/callback": true,
 }
 
 func TestEveryAPIRouteButLoginNeedsAPrincipal(t *testing.T) {

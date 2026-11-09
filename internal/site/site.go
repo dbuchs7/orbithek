@@ -149,6 +149,8 @@ type event struct {
 	// WordTemplate is set by WordTemplateSet, with the file in Data when
 	// it adds a version; WordTemplateRemoved names it in Asset (ADR-0167).
 	WordTemplate *wordTemplateEvent `json:"wordTemplate,omitempty"`
+	// Calendars is set by CalendarsSet (ADR-0172).
+	Calendars *Calendars `json:"calendars,omitempty"`
 }
 
 const (
@@ -176,6 +178,8 @@ const (
 	engineRemoved = "EngineRemoved"
 
 	taskLinksSet = "TaskLinksSet"
+
+	calendarsSet = "CalendarsSet"
 )
 
 // Settings is safe for concurrent use.
@@ -197,6 +201,9 @@ type Settings struct {
 	// diskSpace are the thresholds of free space, nil for the defaults
 	// (ADR-0150).
 	diskSpace *diskspace.Thresholds
+	// calendars says whether people may show calendars of other services
+	// (ADR-0172).
+	calendars Calendars
 	// engines are the process engines by ID (ADR-0129).
 	engines map[string]Engine
 	// taskLinks are the task links of the engines, by engine ID
@@ -294,6 +301,11 @@ func (s *Settings) apply(e event) error {
 		s.taskLinks[e.TaskLinks.Engine] = *e.TaskLinks
 	case wordTemplateSet, wordTemplateRemoved:
 		return s.applyWordTemplate(e)
+	case calendarsSet:
+		if e.Calendars == nil {
+			return errors.New("a calendars event without its setting")
+		}
+		s.calendars = *e.Calendars
 	default:
 		return fmt.Errorf("unknown event %q", e.Kind)
 	}

@@ -413,3 +413,14 @@ func TestSpansAndColours(t *testing.T) {
 		t.Error("an unknown kind")
 	}
 }
+
+func TestRedirectsKeepToHTTPS(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodGet, "http://example.org/", nil)
+	if Redirects(req, nil) == nil {
+		t.Error("a redirect to http")
+	}
+	req, _ = http.NewRequest(http.MethodGet, "https://example.org/", nil)
+	if Redirects(req, make([]*http.Request, maxRedirects+1)) == nil || Redirects(req, nil) != nil {
+		t.Error("redirects")
+	}
+}

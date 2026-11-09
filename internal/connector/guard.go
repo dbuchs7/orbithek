@@ -64,7 +64,9 @@ func (g guard) RoundTrip(req *http.Request) (*http.Response, error) {
 // PublicOnly keeps next to public addresses as a connector's requests are
 // kept: a refusal is ErrPrivateAddress. Process engines are kept so too
 // (ADR-0129).
-func PublicOnly(next http.RoundTripper) http.RoundTripper { return PublicOnlyUnless(next, AllowPrivateVar) }
+func PublicOnly(next http.RoundTripper) http.RoundTripper {
+	return PublicOnlyUnless(next, AllowPrivateVar)
+}
 
 // PublicOnlyUnless keeps next to public addresses as PublicOnly does; a
 // refusal names variable as the one that allows the own network, as
