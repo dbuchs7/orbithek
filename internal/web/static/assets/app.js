@@ -1244,7 +1244,7 @@ function renderNav() {
   // page tree navigates within a space (ADR-0041).
   mount(nav,
     search,
-    h("button", { id: "nav-new", class: "primary", type: "button", text: t("nav.newButton"), onclick: () => { location.hash = newHref(); } }),
+    newButton(),
     bell,
     lookToggles(),
     accountMenu(),
@@ -1254,6 +1254,22 @@ function renderNav() {
     input.focus();
     input.setSelectionRange(keep.at, keep.at);
   }
+}
+
+// newButton is "New" in the header. It opens the creation view for the
+// place shown; administrators, who can also make rooms, get a menu below
+// it with both.
+function newButton() {
+  const go = () => { location.hash = newHref(); };
+  if (!me.admin) return h("button", { id: "nav-new", class: "primary", type: "button", text: t("nav.newButton"), onclick: go });
+  const button = h("button", { id: "nav-new", class: "primary", type: "button", text: t("nav.newButton"),
+    "aria-haspopup": "menu", "aria-expanded": "false", "aria-controls": "new-menu" });
+  const item = (id, text, onclick) => h("button", { type: "button", role: "menuitem", tabindex: "-1", class: "link", id, text, onclick });
+  const menu = h("div", { id: "new-menu", class: "menu new-menu", role: "menu", hidden: true, "aria-label": t("new.title") },
+    item("new-menu-item", t("new.page"), go),
+    item("new-menu-space", t("admin.newSpace"), () => newSpaceDialog()));
+  popupMenu(button, menu);
+  return h("div", { class: "new-wrap" }, button, menu);
 }
 
 // --- reading mode (ADR-0101) --------------------------------------------------
@@ -1401,27 +1417,10 @@ function showRequests(button) {
   button.setAttribute("aria-label", button.title);
 }
 
-// accountMenu is the account's button in the header: the profile picture
-// or initials, opening a menu with the account, the AI assistants, the
-// administration for administrators, and signing out.
-function accountMenu() {
-  const button = h("button", { type: "button", id: "account-button", class: "account-button", "aria-haspopup": "menu", "aria-expanded": "false",
-    "aria-controls": "account-menu", title: t("nav.accountOf", { name: me.user.username }), "aria-label": t("nav.accountOf", { name: me.user.username }) },
-  avatar(me.user.id, me.user.username, me.avatar));
-  // Account requests waiting for an administrator show as a dot
-  // (ADR-0061).
-  showRequests(button);
-  const item = (href, text) => h("a", { href, role: "menuitem", text, tabindex: "-1" });
-  const roles = [me.admin ? t("admin.roleAdmin") : null, me.erasure ? t("admin.roleErasure") : null].filter(Boolean);
-  const menu = h("div", { id: "account-menu", class: "menu", role: "menu", hidden: true, "aria-label": t("nav.account") },
-    h("div", { class: "menu-head" }, avatar(me.user.id, me.user.username, me.avatar, 40),
-      h("div", {}, h("strong", { text: me.user.username }), roles.length ? h("div", { class: "muted", text: roles.join(", ") }) : null)),
-    item("#/account", t("nav.accountPage")),
-    item("#/mcp", t("nav.mcp")),
-    me.admin ? item("#/admin", me.requests ? t("nav.adminRequests", { n: me.requests }) : t("nav.admin")) : null,
-    h("hr"),
-    h("button", { type: "button", role: "menuitem", tabindex: "-1", class: "link", id: "logout", text: t("nav.logout"),
-      onclick: () => action(async () => { await post("/api/logout"); me = null; location.hash = "#/"; }) }));
+// popupMenu makes button open and close menu below it: the first entry
+// takes the focus, the arrow keys, Home and End move through the entries,
+// and Escape, Tab, a choice or a click elsewhere close it.
+function popupMenu(button, menu) {
   const entries = () => [...menu.querySelectorAll("[role=menuitem]")];
   const close = (focus) => {
     if (menu.hidden) return;
@@ -1450,6 +1449,30 @@ function accountMenu() {
     else if (ev.key === "Tab") close(false);
   });
   onLeave(() => close(false));
+}
+
+// accountMenu is the account's button in the header: the profile picture
+// or initials, opening a menu with the account, the AI assistants, the
+// administration for administrators, and signing out.
+function accountMenu() {
+  const button = h("button", { type: "button", id: "account-button", class: "account-button", "aria-haspopup": "menu", "aria-expanded": "false",
+    "aria-controls": "account-menu", title: t("nav.accountOf", { name: me.user.username }), "aria-label": t("nav.accountOf", { name: me.user.username }) },
+  avatar(me.user.id, me.user.username, me.avatar));
+  // Account requests waiting for an administrator show as a dot
+  // (ADR-0061).
+  showRequests(button);
+  const item = (href, text) => h("a", { href, role: "menuitem", text, tabindex: "-1" });
+  const roles = [me.admin ? t("admin.roleAdmin") : null, me.erasure ? t("admin.roleErasure") : null].filter(Boolean);
+  const menu = h("div", { id: "account-menu", class: "menu", role: "menu", hidden: true, "aria-label": t("nav.account") },
+    h("div", { class: "menu-head" }, avatar(me.user.id, me.user.username, me.avatar, 40),
+      h("div", {}, h("strong", { text: me.user.username }), roles.length ? h("div", { class: "muted", text: roles.join(", ") }) : null)),
+    item("#/account", t("nav.accountPage")),
+    item("#/mcp", t("nav.mcp")),
+    me.admin ? item("#/admin", me.requests ? t("nav.adminRequests", { n: me.requests }) : t("nav.admin")) : null,
+    h("hr"),
+    h("button", { type: "button", role: "menuitem", tabindex: "-1", class: "link", id: "logout", text: t("nav.logout"),
+      onclick: () => action(async () => { await post("/api/logout"); me = null; location.hash = "#/"; }) }));
+  popupMenu(button, menu);
   return h("div", { class: "account" }, button, menu);
 }
 
@@ -1491,7 +1514,8 @@ function onLeave(fn) { leaving.push(fn); }
 // Reading and editing go on; at full the wiki only reads (ADR-0150).
 let storageNow = "ok";
 const makesNew = "#nav-new, a[href^='#/new'], #space-new-page, #album-new-folder, .column-add, " +
-  "#new-kanban button[type=submit], #create-space button[type=submit], #new-space button[type=submit]";
+  "#new-kanban button[type=submit], #create-space button[type=submit], #new-space button[type=submit], " +
+  "#new-menu-item, #new-menu-space, #spaces-new, #new-space-dialog-ok";
 
 // pauseCreating pauses or resumes every control that makes something new
 // that the page shows now.
@@ -2169,7 +2193,9 @@ async function homeView() {
         me.admin ? h("ol", {}, h("li", { text: t("home.step1") }), h("li", { text: t("home.step2") }), h("li", { text: t("home.step3") })) : null)
       : spacesOverview(spaces),
     me.admin ? setupCard(types) : null,
-    me.admin ? newSpaceForm(spaces.length === 0) : null,
+    // With rooms, a new one is made from the button beside the layout
+    // switch; the first one from the open form here.
+    me.admin && spaces.length === 0 ? newSpaceForm(true) : null,
   );
 }
 
@@ -2221,7 +2247,9 @@ function spacesOverview(spaces) {
     const ordered = [...spaces.filter((s) => s.favourite), ...spaces.filter((s) => !s.favourite)];
     const favourite = (s) => (s.favourite ? t("spaces.favouriteYes") : t("spaces.favouriteNo"));
     box.replaceChildren(
-      h("div", { class: "segmented", role: "group", "aria-label": t("home.layout") }, toggle("tiles", t("home.tiles")), toggle("list", t("home.list"))),
+      h("div", { class: "spaces-bar" },
+        h("div", { class: "segmented", role: "group", "aria-label": t("home.layout") }, toggle("tiles", t("home.tiles")), toggle("list", t("home.list"))),
+        me.admin ? h("button", { type: "button", class: "secondary", id: "spaces-new", text: "+ " + t("admin.newSpace"), onclick: () => newSpaceDialog() }) : null),
       filtered(layout === "list"
         ? h("table", { class: "spaces space-list" },
           h("tr", {}, h("th", { class: "favourite-col", "aria-label": t("spaces.favouriteCol") }), h("th", { text: t("field.name") }), h("th", { text: t("admin.key") }), h("th", { text: t("admin.role") })),
@@ -2287,6 +2315,19 @@ function newSpaceForm(open) {
     location.hash = "#/space/" + encodeURIComponent(d.get("key"));
   });
   return h("details", { class: "card", id: "new-space-card", open: open || null }, h("summary", { text: t("admin.newSpace") }), f);
+}
+
+// newSpaceDialog creates a space in a modal and opens it
+// (administrators), from "New" in the header and the start page.
+function newSpaceDialog() {
+  return formDialog(t("admin.newSpace"), "new-space-dialog", [
+    field(t("admin.key"), h("input", { name: "key", required: true, pattern: "[A-Z][A-Z0-9]*", placeholder: "DOCS", title: t("admin.keyHint") })),
+    field(t("field.name"), h("input", { name: "name", required: true })),
+  ], async (f) => {
+    const d = new FormData(f);
+    await post("/api/spaces", { key: d.get("key"), name: d.get("name") });
+    location.hash = "#/space/" + encodeURIComponent(d.get("key"));
+  }, t("admin.createSpace"));
 }
 
 // typeTemplates are ready-made types for a new installation: types are
