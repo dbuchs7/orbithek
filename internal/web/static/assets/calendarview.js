@@ -7,12 +7,18 @@
 // Entries are links to their items; colours are the look's tokens
 // (style.css), and shape and text, not colour alone, tell a finished, an
 // overdue and a misdated item.
+//
+// Where the reader may edit, an entry is moved to another day by dragging
+// it there, or by Shift and an arrow key (a day left and right, a week up
+// and down). Each move is a validated change of the item's date fields
+// through the API (D3), a span's start and end alike; the calendar is then
+// read again, so it shows what the server kept.
 import { h } from "./dom.js";
 import { t, language } from "./i18n.js";
-import { get } from "./api.js";
+import { get, put } from "./api.js";
 import { finished } from "./taskparts.js";
 import { dateFields, isoWeek, normalLabel, todayDay } from "./timeline.js";
-import { VIEWS, address, agendaDays, entries, listQuery, overdue, period, readState, shift, typeFields, weekRows, withoutOrder } from "./calendar.js";
+import { VIEWS, address, agendaDays, dayAt, entries, listQuery, moves, overdue, period, readState, shift, typeFields, weekRows, withoutOrder } from "./calendar.js";
 
 const DAY = 86400000;
 const MONDAY = Date.UTC(2024, 0, 1) / DAY; // 1 January 2024 was a Monday.
@@ -25,6 +31,13 @@ const viewName = (v) => ({ month: t("calendar.viewMonth"), week: t("calendar.vie
 const fmt = (day, opts) => new Date(day * DAY).toLocaleDateString(language() || undefined, { timeZone: "UTC", ...opts });
 const dateText = (day) => fmt(day, { day: "numeric", month: "short", year: "numeric" });
 const weekdays = (style) => [0, 1, 2, 3, 4, 5, 6].map((i) => fmt(MONDAY + i, { weekday: style }));
+// timeText writes a point in time's time of day where the reader is.
+const timeText = (ms) => new Date(ms).toLocaleTimeString(language() || undefined, { hour: "2-digit", minute: "2-digit" });
+// whenText is a day, with its time when the entry stands by one there.
+const whenText = (day, ms) => (ms === null || ms === undefined ? dateText(day) : `${dateText(day)} ${timeText(ms)}`);
+
+// The keys that move an entry with Shift held, and by how many days.
+const moveKeys = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
 
 const field = (label, input) => h("label", { class: "field" }, h("span", { text: label }), input);
 
@@ -40,7 +53,11 @@ function heading(p) {
 // the entry's accessible name.
 function entryTitle(e, done, late) {
   const it = e.item;
-  const when = e.from === e.to ? dateText(e.from) : t("calendar.fromTo", { from: dateText(e.from), to: dateText(e.to) });
+  let when;
+  if (e.from === e.to && e.at.from === e.at.to) when = whenText(e.from, e.at.from);
+  // Within one day, the times from and to: 11 Nov 2026, 14:30–16:00.
+  else if (e.from === e.to && e.at.from !== null && e.at.to !== null) when = `${dateText(e.from)}, ${timeText(e.at.from)}–${timeText(e.at.to)}`;
+  else when = t("calendar.fromTo", { from: whenText(e.from, e.at.from), to: whenText(e.to, e.at.to) });
   const parts = [`${it.key} ${it.title}`, when];
   if (it.state) parts.push(it.state);
   if (done) parts.push(t("calendar.finished"));
@@ -57,10 +74,38 @@ function entryEl(e, ctx, seg) {
   const cls = ["cal-entry", e.from !== e.to ? "cal-span" : "", done ? "cal-done" : "", late ? "cal-overdue" : "", e.inverted ? "cal-inverted" : "",
     seg?.before ? "cal-before" : "", seg?.after ? "cal-after" : ""].filter(Boolean).join(" ");
   const title = entryTitle(e, done, late);
-  const el = h("a", { class: cls, href: "#/item/" + encodeURIComponent(e.item.key), title, "aria-label": title, "data-key": e.item.key },
-    late ? h("span", { class: "cal-mark", "aria-hidden": "true", text: "!" }) : null,
-    h("span", { class: "cal-key", text: e.item.key }), " ", h("span", { class: "cal-title", text: e.item.title }));
+  const movable = ctx.canMove(e.item);
+  // The time stands where the entry begins: not on a week it goes on in.
+  const time = e.at.from !== null && !seg?.before ? h("span", { class: "cal-time", text: timeText(e.at.from) }) : null;
+  const el = h("a", { class: cls + (movable ? " cal-movable" : ""), href: "#/item/" + encodeURIComponent(e.item.key), title, "aria-label": title, "data-key": e.item.key,
+    draggable: movable ? "true" : null },
+  late ? h("span", { class: "cal-mark", "aria-hidden": "true", text: "!" }) : null,
+  time, time ? " " : null,
+  h("span", { class: "cal-key", text: e.item.key }), " ", h("span", { class: "cal-title", text: e.item.title }));
   if (seg) el.style.gridColumn = `${seg.col + 1} / span ${seg.span}`;
+  if (movable) {
+    el.addEventListener("dragstart", (ev) => {
+      // The day it is grabbed at: a span moves by as many days as the
+      // pointer does, wherever it is taken.
+      const week = el.closest(".cal-week");
+      const rect = week?.getBoundingClientRect();
+      ctx.drag = { entry: e, from: week ? dayAt(Number(week.dataset.week), ev.clientX - rect.left, rect.width) : e.from };
+      ev.dataTransfer.effectAllowed = "move";
+      ev.dataTransfer.setData("text/plain", e.item.key);
+      el.classList.add("cal-dragging");
+    });
+    el.addEventListener("dragend", () => {
+      ctx.drag = null;
+      el.classList.remove("cal-dragging");
+      ctx.clearDrop();
+    });
+    el.addEventListener("keydown", (ev) => {
+      const n = moveKeys[ev.key];
+      if (!ev.shiftKey || ev.altKey || ev.ctrlKey || ev.metaKey || !n) return;
+      ev.preventDefault();
+      ctx.move(e, n);
+    });
+  }
   return el;
 }
 
@@ -89,6 +134,32 @@ function weekEl(monday, p, list, ctx, big) {
     el.style.gridRow = String(r + 2);
     week.append(el);
   }));
+  // A dragged entry drops on the day under the pointer; that day is lit
+  // while it hovers there.
+  const grounds = [...week.querySelectorAll(".cal-day")];
+  const dayUnder = (ev) => {
+    const rect = week.getBoundingClientRect();
+    return dayAt(monday, ev.clientX - rect.left, rect.width);
+  };
+  const over = (ev) => {
+    if (!ctx.drag) return;
+    ev.preventDefault();
+    ev.dataTransfer.dropEffect = "move";
+    ctx.clearDrop();
+    grounds[dayUnder(ev) - monday]?.classList.add("cal-drop");
+  };
+  // Both are cancelled, so every browser takes the week as a place to
+  // drop on.
+  week.addEventListener("dragenter", over);
+  week.addEventListener("dragover", over);
+  week.addEventListener("drop", (ev) => {
+    if (!ctx.drag) return;
+    ev.preventDefault();
+    const { entry, from } = ctx.drag;
+    ctx.drag = null;
+    ctx.clearDrop();
+    ctx.move(entry, dayUnder(ev) - from);
+  });
   return week;
 }
 
@@ -128,7 +199,10 @@ function queryError(err, sent, state) {
 // calendarView mounts the view into container. helpers are what app.js
 // shares: readAll reads a listing up to the boards' limit, and
 // favouritesFirst orders the spaces as every choice of a space does.
-export async function calendarView(container, params, { readAll, favouritesFirst }) {
+// after, when the calendar is drawn again after a move, says what to tell
+// and which entry to put the focus on.
+export async function calendarView(container, params, helpers, after = {}) {
+  const { readAll, favouritesFirst } = helpers;
   const today = todayDay();
   const state = readState(params, today);
   const [{ types }, { spaces }] = await Promise.all([get("/api/types"), get("/api/spaces")]);
@@ -151,7 +225,28 @@ export async function calendarView(container, params, { readAll, favouritesFirst
     }
   }
   const list = entries(items, fields);
-  const ctx = { today, done: (it) => finished(typeOf.get(it.type)?.workflow, it.state) };
+  const editable = new Set(spaces.filter((sp) => sp.role === "editor" || sp.role === "space-admin").map((sp) => sp.key));
+  const ctx = {
+    today,
+    done: (it) => finished(typeOf.get(it.type)?.workflow, it.state),
+    canMove: (it) => editable.has(it.space),
+    drag: null,
+    clearDrop: () => container.querySelectorAll(".cal-drop").forEach((el) => el.classList.remove("cal-drop")),
+    // move changes the entry's dates by n days, then draws the calendar
+    // again from what the server kept, telling what happened.
+    move: async (e, n) => {
+      const changes = moves(e, n);
+      if (!changes.length) return;
+      let notice;
+      try {
+        for (const c of changes) await put(`/api/items/${e.item.id}/properties/${encodeURIComponent(c.field)}`, { value: c.value });
+        notice = { ok: true, text: t("calendar.moved", { key: e.item.key, date: dateText(e.from + n) }) };
+      } catch (err) {
+        notice = { ok: false, text: t("calendar.moveFailed", { key: e.item.key, error: err.message }) };
+      }
+      await calendarView(container, params, helpers, { notice, focus: e.item.key });
+    },
+  };
 
   const choices = dateFields(state.type ? dated.filter((ty) => ty.name === state.type) : dated);
   const select = (id, label, options, value, key) => field(label, h("select", { id, onchange: (ev) => go({ [key]: ev.target.value }) },
@@ -194,6 +289,7 @@ export async function calendarView(container, params, { readAll, favouritesFirst
   container.replaceChildren(...[
     controls,
     mistake ? h("p", { class: "notice warning", id: "calendar-error", role: "alert", text: mistake.text }) : null,
+    after.notice ? h("p", { class: after.notice.ok ? "notice" : "notice warning", id: "calendar-moved", role: after.notice.ok ? "status" : "alert", text: after.notice.text }) : null,
     truncated ? h("p", { class: "notice warning", text: t("board.truncated", { n: items.length }) }) : null,
     nav,
     content,
@@ -202,5 +298,7 @@ export async function calendarView(container, params, { readAll, favouritesFirst
   if (mistake?.at !== null && mistake?.at !== undefined) {
     q.focus();
     q.setSelectionRange(mistake.at, mistake.at);
+  } else if (after.focus) {
+    container.querySelector(`.cal-entry[data-key="${CSS.escape(after.focus)}"]`)?.focus();
   }
 }

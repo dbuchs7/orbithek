@@ -142,7 +142,7 @@ var tools = []tool{
 			{"state", str, inQuery, false, "A workflow state, e.g. open."},
 			{"parent", str, inQuery, false, "The ID of the containing item."},
 			{"label", str, inQuery, false, "A label the items carry, e.g. runbook."},
-			{"where", str, inQuery, false, "A property's value, as <field>=<value>, e.g. source-id=4f2a; a date as YYYY-MM-DD."},
+			{"where", str, inQuery, false, "A property's value, as <field>=<value>, e.g. source-id=4f2a; a date as YYYY-MM-DD, a point in time (datetime) as RFC 3339 in UTC, e.g. 2026-11-09T13:30:00Z."},
 		}, paging...)},
 	{Name: "query_items", Description: "Select readable items with the query language, in its order, paged. " + queryLanguage,
 		Method: "GET", Path: "/api/items", Params: append([]param{

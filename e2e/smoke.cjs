@@ -2460,6 +2460,43 @@ function gitSource() {
     await page.waitForSelector("#calendar-controls");
     check(!(await page.locator("#calendar-error").count()), "the tasks' query is read without a mistake");
 
+    step("calendar: an entry moves by dragging or by Shift and an arrow key; a datetime field holds a point in time, shown where the reader is (ADR-0166)");
+    await page.setViewportSize({ width: 1280, height: 1200 });
+    const propsOf = (key) => page.evaluate((k) => fetch("/api/items/" + k).then((r) => r.json()).then((d) => d.item.properties), key);
+    await page.goto(base + "/#/calendar?labels=plan-q1&view=week&at=2026-03-30");
+    await page.waitForSelector(`.cal-week-big .cal-entry.cal-movable[data-key='${planned.launch}']`);
+    // Launch day stands on Tuesday 31 March; dropped on Thursday it is due
+    // on 2 April.
+    const weekBox = await page.locator(".cal-week-big").boundingBox();
+    await page.dragAndDrop(`.cal-entry[data-key='${planned.launch}']`, ".cal-week-big", { targetPosition: { x: weekBox.width * (3.5 / 7), y: 40 } });
+    await page.waitForSelector(`#calendar-moved:has-text('${planned.launch}')`);
+    check(String((await propsOf(planned.launch)).due).startsWith("2026-04-02"), "a dropped entry is due on the day it was dropped on: " + (await propsOf(planned.launch)).due);
+    await page.focus(`.cal-entry[data-key='${planned.launch}']`);
+    await page.keyboard.press("Shift+ArrowLeft");
+    await page.waitForFunction((k) => document.activeElement?.dataset.key === k && document.querySelector("#calendar-moved")?.textContent.includes(k), planned.launch);
+    check(String((await propsOf(planned.launch)).due).startsWith("2026-04-01"), "Shift and the left arrow move it a day back");
+    const meeting = await page.evaluate(async () => {
+      const send = (method, path, body) => fetch(path, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json());
+      await send("POST", "/api/types", { name: "meeting", body: true, fields: [{ name: "starts", kind: "datetime" }] });
+      return (await send("POST", "/api/items", { space: "PLAT", type: "meeting", title: "Steering committee", properties: { starts: "2026-03-31T12:30:15+02:00" } })).item;
+    });
+    check(meeting.properties.starts === "2026-03-31T10:30:15Z", "a point in time is kept in UTC to the second: " + meeting.properties.starts);
+    await page.goto(base + "/#/calendar?view=week&at=2026-03-30&type=meeting");
+    await page.waitForSelector(`.cal-entry[data-key='${meeting.key}'] .cal-time`);
+    const shownTime = await page.evaluate(() => new Date("2026-03-31T10:30:15Z").toLocaleTimeString(document.documentElement.lang || undefined, { hour: "2-digit", minute: "2-digit" }));
+    check((await page.textContent(`.cal-entry[data-key='${meeting.key}'] .cal-time`)) === shownTime, "the time is shown where the reader is");
+    await page.focus(`.cal-entry[data-key='${meeting.key}']`);
+    await page.keyboard.press("Shift+ArrowRight");
+    await page.waitForFunction((k) => document.querySelector("#calendar-moved")?.textContent.includes(k), meeting.key);
+    const moved = await page.evaluate(() => { const d = new Date("2026-03-31T10:30:15Z"); d.setDate(d.getDate() + 1); return d.getTime(); });
+    check(Date.parse((await propsOf(meeting.key)).starts) === moved, "a moved point in time keeps its time of day");
+    // The item's page edits it in the reader's time zone.
+    await page.goto(base + "/#/item/" + meeting.key);
+    await page.waitForSelector("[name='p:starts'][type=datetime-local]");
+    const local = await page.evaluate((ms) => { const d = new Date(ms); const p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }, moved);
+    check(await page.inputValue("[name='p:starts']") === local, "the input shows the point in time where the reader is: " + await page.inputValue("[name='p:starts']"));
+    await page.setViewportSize({ width: 1280, height: 720 });
+
     step("starmap of the labels: a star per label, sized by its items, lines between labels carried together, filtered by labels (ADR-0165)");
     await page.goto(base + "/#/label/plan-q1");
     await page.click("#label-labelmap");

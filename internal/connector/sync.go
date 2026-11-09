@@ -521,6 +521,12 @@ func fieldValue(f item.FieldDef, s string) (any, error) {
 			return t, nil
 		}
 		return nil, fmt.Errorf("%q is not a date", s)
+	case item.KindDateTime:
+		// A point in time only from a value with its offset (ADR-0166).
+		if t, err := time.Parse(time.RFC3339Nano, strings.TrimSpace(s)); err == nil {
+			return t.UTC().Truncate(time.Second), nil
+		}
+		return nil, fmt.Errorf("%q is not a point in time with an offset", s)
 	case item.KindEnum:
 		if slices.Contains(f.Values, s) {
 			return s, nil

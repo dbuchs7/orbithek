@@ -108,7 +108,10 @@ import (
 //   - 39: SecretRequested may carry task, the task item made for the
 //     request in the same batch (ADR-0162). Versions 1 to 38 are still
 //     read; their requests have no task.
-const CodecVersion = 39
+//   - 40: a field may be of the kind datetime, a point in time; its values
+//     are written as dates are, in UTC (ADR-0166). Versions 1 to 39 are
+//     still read; they hold no such field.
+const CodecVersion = 40
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

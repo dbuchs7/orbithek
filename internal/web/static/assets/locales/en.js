@@ -1033,7 +1033,7 @@ export default {
   "admin.typeBody": "with body",
   "admin.typeFields": "fields: {list}",
   "admin.typeStates": "states: {list}",
-  "admin.typeHelp": "A type is defined as JSON: name, body (true or false), fields (name, kind text, number, bool, date, user or enum with values, required) and an optional workflow (initial, states, transitions with name, from, to and requires). Defining an existing name makes a new version; items keep the version they were created with. Edit copies a type into the field. Remove takes out a type that no item and no kanban uses.",
+  "admin.typeHelp": "A type is defined as JSON: name, body (true or false), fields (name, kind text, number, bool, date, datetime (a point in time), user or enum with values, required) and an optional workflow (initial, states, transitions with name, from, to and requires). Defining an existing name makes a new version; items keep the version they were created with. Edit copies a type into the field. Remove takes out a type that no item and no kanban uses.",
   "admin.users": "Users and system roles",
   "admin.usersHelp": "Administrators manage everything and act as room administrators in every room. The erasure role may redact content at once, for legal deletion requests. The last administrator keeps the role.",
   "admin.roleAdmin": "administrator",
@@ -1921,5 +1921,7 @@ export default {
   "calendar.queryErrorAt": "The query cannot be read at character {n}: {error}",
   "calendar.none": "No item shown has a date in this period.",
   "calendar.noDateFields": "No type has a date field. A type needs a date field, such as a due date, for its items to stand on the calendar.",
-  "calendar.legend": "An item stands on its date; one with a start and an end spans the days between, both included. Finished items are drawn hatched; an unfinished item whose last day has passed is marked with an exclamation mark. Only the items of the period shown are read."
+  "calendar.moved": "{key} moved to {date}.",
+  "calendar.moveFailed": "{key} was not moved: {error}",
+  "calendar.legend": "An item stands on its date; one with a start and an end spans the days between, both included. Finished items are drawn hatched; an unfinished item whose last day has passed is marked with an exclamation mark. Only the items of the period shown are read. Where you may edit, drag an entry to another day, or move it with Shift and an arrow key: a day left or right, a week up or down; a span moves with both its dates, a time stays where it is in the day."
 };

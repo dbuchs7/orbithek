@@ -1409,6 +1409,18 @@ func coerceValue(td item.TypeDef, field string, raw json.RawMessage) (any, error
 			}
 		}
 		return nil, badInput("field %q: %q is not an RFC 3339 date-time or a YYYY-MM-DD date", field, s)
+	case item.KindDateTime:
+		// A point in time needs its offset: a bare date or a time without
+		// one names no single moment (ADR-0166). It is kept to the second.
+		s, ok := v.(string)
+		if !ok {
+			return v, nil
+		}
+		t, err := time.Parse(time.RFC3339Nano, s)
+		if err != nil {
+			return nil, badInput("field %q: %q is not an RFC 3339 date-time with an offset or Z, such as 2026-11-09T14:30:00+01:00", field, s)
+		}
+		return t.UTC().Truncate(time.Second), nil
 	}
 	return v, nil
 }

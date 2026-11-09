@@ -265,6 +265,8 @@ func TestFieldValues(t *testing.T) {
 		{item.FieldDef{Kind: item.KindBool}, "false", false, false},
 		{item.FieldDef{Kind: item.KindBool}, "ja", nil, true},
 		{item.FieldDef{Kind: item.KindDate}, "01.03.2024", time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC), false},
+		{item.FieldDef{Kind: item.KindDateTime}, "2024-03-01T10:15:30.5+01:00", time.Date(2024, 3, 1, 9, 15, 30, 0, time.UTC), false},
+		{item.FieldDef{Kind: item.KindDateTime}, "2024-03-01", nil, true},
 		{item.FieldDef{Kind: item.KindEnum, Values: []string{"a"}}, "b", nil, true},
 		{item.FieldDef{Kind: item.KindURL}, "https://x.example/", "https://x.example/", false},
 		{item.FieldDef{Kind: item.KindURL}, "mailto:a@b", nil, true},

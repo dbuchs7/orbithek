@@ -683,7 +683,7 @@ function taskTools(item, editing) {
     const fieldsOf = new Map(flows.map((ty) => [ty.name, taskFields(ty)]));
     const dueOf = (it) => {
       const f = fieldsOf.get(it.type)?.due;
-      return f && it.properties[f.name] ? String(it.properties[f.name]).slice(0, 10) : "";
+      return f && it.properties[f.name] ? dayOfValue(f, it.properties[f.name]) : "";
     };
     const whoOf = (it) => {
       const f = fieldsOf.get(it.type)?.assignee;
@@ -2476,7 +2476,7 @@ async function boardView(key, typeName) {
 // show (ADR-0139): who has them, their dates and their choices, as on a
 // new kanban (ADR-0132), and their labels.
 function viewCardFields(type) {
-  return [...type.fields.filter((f) => ["user", "date", "enum"].includes(f.kind)).map((f) => f.name).slice(0, 12), "labels"];
+  return [...type.fields.filter((f) => ["user", "date", "datetime", "enum"].includes(f.kind)).map((f) => f.name).slice(0, 12), "labels"];
 }
 
 // viewSection is the board of one type on a board that keeps nothing
@@ -2597,7 +2597,7 @@ function taskFields(type) {
   const users = type.fields.filter((f) => f.kind === "user");
   return {
     assignee: users.find((f) => /^(assignee|zugewiesen|bearbeiter)/i.test(f.name)) || users[0] || null,
-    due: type.fields.find((f) => f.kind === "date" && /due|deadline|f(ä|ae)llig/i.test(f.name)) || null,
+    due: type.fields.find((f) => (f.kind === "date" || f.kind === "datetime") && /due|deadline|f(ä|ae)llig/i.test(f.name)) || null,
     priority: type.fields.find((f) => f.kind === "enum" && /^(priority|priorität|prioritaet)$/i.test(f.name)) || null,
   };
 }
@@ -2663,7 +2663,7 @@ async function tasksView(tab, params) {
   const today = new Date().toISOString().slice(0, 10);
   const dueOf = (it) => {
     const f = typeOf.get(it.type).f.due;
-    return f && it.properties[f.name] ? String(it.properties[f.name]).slice(0, 10) : "";
+    return f && it.properties[f.name] ? dayOfValue(f, it.properties[f.name]) : "";
   };
   const rankOf = (it) => {
     const f = typeOf.get(it.type).f.priority;
@@ -2944,7 +2944,7 @@ async function kanbansView() {
     const { kanban } = await post(`/api/spaces/${encodeURIComponent(d.get("space"))}/kanbans`, { name: d.get("name"), type: d.get("type"), label: (d.get("label") || "").trim() });
     // A new kanban's cards show who has them, their dates and their
     // choices, so they say something before anyone sets them (ADR-0132).
-    const shown = (flows.find((ty) => ty.name === kanban.type)?.fields || []).filter((f) => ["user", "date", "enum"].includes(f.kind)).map((f) => f.name).slice(0, 12);
+    const shown = (flows.find((ty) => ty.name === kanban.type)?.fields || []).filter((f) => ["user", "date", "datetime", "enum"].includes(f.kind)).map((f) => f.name).slice(0, 12);
     if (shown.length) await put(`/api/spaces/${encodeURIComponent(kanban.space)}/kanbans/${encodeURIComponent(kanban.id)}`, { name: kanban.name, cardFields: shown });
     location.hash = `#/kanban/${encodeURIComponent(kanban.space)}/${kanban.id}`;
   }) : null;
@@ -3144,7 +3144,8 @@ async function cardBoard(o) {
   // week, or without a date; a finished card is none of the first two.
   const dueOf = (it) => {
     const type = typeOf(it);
-    const days = namesOf(type, "date").map((n) => it.properties[n]).filter(Boolean).map((v) => daysFromToday(String(v).slice(0, 10))).filter((d) => d !== null);
+    const days = type.fields.filter((f) => (f.kind === "date" || f.kind === "datetime") && it.properties[f.name])
+      .map((f) => daysFromToday(dayOfValue(f, it.properties[f.name]))).filter((d) => d !== null);
     if (!days.length) return "none";
     if (finished(type.workflow, it.state)) return "";
     if (days.some((d) => d < 0)) return "late";
@@ -3445,7 +3446,7 @@ async function cardBoard(o) {
     o.sections.some((s) => namesOf(s.type, "user").length)
       ? { key: "who", label: t("kanban.who"), options: [...new Set(items.flatMap(peopleOf))].sort(byName).map((v) => [v, person(v)]) } : null,
     { key: "label", label: t("kanban.label") },
-    o.sections.some((s) => namesOf(s.type, "date").length)
+    o.sections.some((s) => namesOf(s.type, "date").length || namesOf(s.type, "datetime").length)
       ? { key: "due", label: t("kanban.due"), options: [["late", t("kanban.dueLate")], ["week", t("kanban.dueWeek")], ["none", t("kanban.dueNone")]] } : null,
     o.colorValues.length ? { key: "color", label: o.colorField, options: o.colorValues.map((v) => [v, v]) } : null,
     items.some((it) => it.waitingOn) ? { key: "waiting", label: t("kanban.waiting"), options: [["yes", t("kanban.waitingYes")]] } : null,
@@ -3504,6 +3505,7 @@ function moveRefused(status, err, type, it, state, move) {
 // state is finished.
 function cardChip(name, f, v, done) {
   if (f?.kind === "date") return dateChip(name, String(v).slice(0, 10), done);
+  if (f?.kind === "datetime") return dateChip(name, localDay(String(v)), done, timeText(v));
   const chip = (...content) => h("span", { class: "card-chip", title: `${name}: ${v}` }, h("span", { class: "visually-hidden", text: `${name}: ` }), ...content);
   if (f?.kind === "bool") return chip(`✓ ${name}`);
   if (!f || f.kind === "enum") return chip(String(v));
@@ -3514,8 +3516,8 @@ function cardChip(name, f, v, done) {
 // days, else the date itself. On a card not yet done, a date that has
 // passed is overdue and today or tomorrow is near; a done card's dates
 // are only dates.
-function dateChip(name, day, done) {
-  const tip = `${name}: ${day}`, said = h("span", { class: "visually-hidden", text: `${name}: ` });
+function dateChip(name, day, done, time = "") {
+  const tip = `${name}: ${day}${time ? " " + time : ""}`, said = h("span", { class: "visually-hidden", text: `${name}: ` });
   const days = daysFromToday(day);
   if (days === null) return h("span", { class: "card-chip", title: tip }, said, day);
   const [y, mo, d] = day.split("-").map(Number);
@@ -3525,6 +3527,7 @@ function dateChip(name, day, done) {
   else if (days === 0) [text, tone] = [t("card.today"), done ? "" : "near"];
   else if (days === 1) [text, tone] = [t("card.tomorrow"), done ? "" : "near"];
   else if (days > 1 && days < 7) text = t("card.inDays", { n: days });
+  if (time) text += ", " + time;
   return h("span", { class: "card-chip card-date" + (tone ? " " + tone : ""), title: tip }, lineIcon("M5 6h14v13H5zM5 10h14M9 4v4M15 4v4"), said, text);
 }
 
@@ -3535,6 +3538,33 @@ function daysFromToday(day) {
   if (!m) return null;
   const now = new Date();
   return Math.round((Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) - Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000);
+}
+
+// dayOfValue is the day a date or a point in time falls on, YYYY-MM-DD: a
+// date field's day as it is, a datetime field's day in the reader's
+// calendar (ADR-0166).
+function dayOfValue(f, v) {
+  return f?.kind === "datetime" ? localDay(String(v)) : String(v).slice(0, 10);
+}
+
+// timeText is the time of day of a moment in the reader's time zone.
+function timeText(v) {
+  return new Date(v).toLocaleTimeString(language() || undefined, { hour: "2-digit", minute: "2-digit" });
+}
+
+// zoneText is the short name of the reader's time zone at a moment, as a
+// point in time is shown in it (ADR-0166).
+function zoneText(v) {
+  return new Intl.DateTimeFormat(language() || undefined, { timeZoneName: "short" }).formatToParts(new Date(v)).find((p) => p.type === "timeZoneName")?.value || "";
+}
+
+// localInput writes a moment as the value of a datetime-local input, in
+// the reader's time zone, to the minute.
+function localInput(v) {
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return "";
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
 // localDay is the day of a moment in the reader's calendar, YYYY-MM-DD.
@@ -3954,6 +3984,10 @@ function propertyInput(f, value) {
       return h("input", { name, type: "number", step: "any", value: value ?? "" });
     case "date":
       return h("input", { name, type: "date", value: value ? String(value).slice(0, 10) : "" });
+    case "datetime":
+      // A point in time is typed and shown in the reader's time zone and
+      // sent in UTC (ADR-0166).
+      return h("input", { name, type: "datetime-local", value: value ? localInput(value) : "" });
     case "enum":
       return h("select", { name },
         h("option", { value: "", text: "—" }),
@@ -4042,6 +4076,7 @@ function readProperty(f, el) {
   const v = el.value;
   if (v === "") return null;
   if (f.kind === "number") return Number(v);
+  if (f.kind === "datetime") return new Date(v).toISOString();
   return v;
 }
 
@@ -4208,6 +4243,8 @@ async function itemView(ref, params = new URLSearchParams()) {
         f.kind === "user" && item.properties[f.name] ? h("span", { class: "muted", text: " " + person(item.properties[f.name]) }) : null,
         f.kind === "user" && canEdit && item.properties[f.name] !== me.user.id
           ? h("button", { class: "link", text: t("tasks.assignMe"), onclick: () => action(() => put(`${path}/properties/${encodeURIComponent(f.name)}`, { value: me.user.id }), status) }) : null,
+        // A point in time is shown in the reader's time zone, named.
+        f.kind === "datetime" && item.properties[f.name] ? h("span", { class: "muted", text: " " + zoneText(item.properties[f.name]) }) : null,
         // A web address opens in a new tab (ADR-0074).
         f.kind === "url" && item.properties[f.name]
           ? h("a", { href: item.properties[f.name], target: "_blank", rel: "noopener noreferrer", class: "prop-link", text: t("item.openLink") }) : null),

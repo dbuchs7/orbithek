@@ -68,11 +68,14 @@ func fileName(key, title, ext string) string {
 	return strings.TrimSpace(key+" "+strings.TrimSpace(clean)) + ext
 }
 
-// propertyText writes a property's value for a reader: user IDs as names.
+// propertyText writes a property's value for a reader: user IDs as names,
+// a point in time as RFC 3339 in UTC.
 func propertyText(v any, kind item.FieldKind, names map[auth.UserID]string) string {
 	switch {
 	case v == nil:
 		return ""
+	case kind == item.KindDateTime:
+		return item.FormatField(item.FieldDef{Kind: kind}, v)
 	case kind == item.KindUser:
 		if n, ok := names[auth.UserID(fmt.Sprint(v))]; ok {
 			return n

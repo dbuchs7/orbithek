@@ -1031,7 +1031,7 @@ export default {
   "admin.typeBody": "mit Inhalt",
   "admin.typeFields": "Felder: {list}",
   "admin.typeStates": "Zustände: {list}",
-  "admin.typeHelp": "Ein Typ wird als JSON definiert: name, body (true oder false), fields (name, kind text, number, bool, date, user oder enum mit values, required) und ein optionaler workflow (initial, states, transitions mit name, from, to und requires). Ein bestehender Name ergibt eine neue Version; Einträge behalten die Version, mit der sie erstellt wurden. Bearbeiten kopiert einen Typ in das Feld. Entfernen nimmt einen Typ heraus, den kein Eintrag und kein Kanban verwendet.",
+  "admin.typeHelp": "Ein Typ wird als JSON definiert: name, body (true oder false), fields (name, kind text, number, bool, date, datetime (ein Zeitpunkt), user oder enum mit values, required) und ein optionaler workflow (initial, states, transitions mit name, from, to und requires). Ein bestehender Name ergibt eine neue Version; Einträge behalten die Version, mit der sie erstellt wurden. Bearbeiten kopiert einen Typ in das Feld. Entfernen nimmt einen Typ heraus, den kein Eintrag und kein Kanban verwendet.",
   "admin.users": "Benutzer und Systemrollen",
   "admin.usersHelp": "Administratorinnen und Administratoren verwalten alles und sind in jedem Raum Raumadministration. Die Rolle Löschung darf Inhalte sofort schwärzen, für rechtliche Löschbegehren. Die letzte Administratorin oder der letzte Administrator behält die Rolle.",
   "admin.roleAdmin": "Administration",
@@ -1919,5 +1919,7 @@ export default {
   "calendar.queryErrorAt": "Die Abfrage kann bei Zeichen {n} nicht gelesen werden: {error}",
   "calendar.none": "Kein gezeigter Eintrag hat ein Datum in diesem Zeitraum.",
   "calendar.noDateFields": "Kein Typ hat ein Datumsfeld. Ein Typ braucht ein Datumsfeld, etwa ein Fälligkeitsdatum, damit seine Einträge im Kalender stehen.",
-  "calendar.legend": "Ein Eintrag steht an seinem Datum; einer mit Beginn und Ende reicht über die Tage dazwischen, beide eingeschlossen. Erledigte Einträge sind schraffiert; ein unerledigter Eintrag, dessen letzter Tag vorbei ist, ist mit einem Ausrufezeichen markiert. Gelesen werden nur die Einträge des gezeigten Zeitraums."
+  "calendar.moved": "{key} auf {date} verschoben.",
+  "calendar.moveFailed": "{key} wurde nicht verschoben: {error}",
+  "calendar.legend": "Ein Eintrag steht an seinem Datum; einer mit Beginn und Ende reicht über die Tage dazwischen, beide eingeschlossen. Erledigte Einträge sind schraffiert; ein unerledigter Eintrag, dessen letzter Tag vorbei ist, ist mit einem Ausrufezeichen markiert. Gelesen werden nur die Einträge des gezeigten Zeitraums. Wo Sie bearbeiten dürfen, ziehen Sie einen Eintrag auf einen anderen Tag oder verschieben ihn mit Umschalt und einer Pfeiltaste: einen Tag nach links oder rechts, eine Woche nach oben oder unten; ein Zeitraum verschiebt sich mit beiden Daten, eine Uhrzeit bleibt erhalten."
 };

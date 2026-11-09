@@ -8,7 +8,9 @@
 // Days are whole days counted from 1970-01-01 in UTC, so no time zone and
 // no daylight saving time moves a bar. The API answers a date field
 // (item.KindDate) as midnight UTC in RFC 3339; a date is read by its first
-// ten characters, YYYY-MM-DD.
+// ten characters, YYYY-MM-DD. A point in time (item.KindDateTime) is in
+// UTC too, so the roadmap places it on its UTC day (ADR-0166); the
+// calendar reads it in the reader's time zone instead.
 //
 // Plain functions over plain data, so node --test runs them
 // (internal/web/jstest/timeline.test.mjs).
@@ -62,11 +64,15 @@ export function isoWeek(day) {
   return { year, week: Math.floor((thursday - dayOf(year, 0, 1)) / 7) + 1 };
 }
 
-// dateFields lists the date fields of the types, each name once, in the
-// order of the alphabet.
+// DATE_KINDS are the kinds of fields that place an item in time: a day,
+// or a point in time (ADR-0166).
+export const DATE_KINDS = ["date", "datetime"];
+
+// dateFields lists the date and datetime fields of the types, each name
+// once, in the order of the alphabet.
 export function dateFields(types) {
   const names = new Set();
-  for (const ty of types) for (const f of ty.fields || []) if (f.kind === "date") names.add(f.name);
+  for (const ty of types) for (const f of ty.fields || []) if (DATE_KINDS.includes(f.kind)) names.add(f.name);
   return [...names].sort();
 }
 
@@ -87,14 +93,15 @@ export function guessFields(fields) {
 // both dates is a bar from the start to the end, both days included; one
 // with only one of them, or with an end before its start, is a milestone
 // on the day it has (the end, when it has both: the date that is promised).
-// An item with neither is unscheduled.
-export function schedule(items, fields) {
+// An item with neither is unscheduled. read turns a field's value into a
+// day number; by default a value's day as it is written.
+export function schedule(items, fields, read = (value) => parseDay(value)) {
   const bars = [];
   const unscheduled = [];
   for (const it of items) {
     const props = it.properties || {};
-    const from = fields.start ? parseDay(props[fields.start]) : null;
-    const to = fields.end ? parseDay(props[fields.end]) : null;
+    const from = fields.start ? read(props[fields.start], fields.start) : null;
+    const to = fields.end ? read(props[fields.end], fields.end) : null;
     if (from === null && to === null) {
       unscheduled.push(it);
     } else if (from !== null && to !== null && from <= to) {

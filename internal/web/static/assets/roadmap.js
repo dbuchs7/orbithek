@@ -11,7 +11,7 @@ import { h } from "./dom.js";
 import { t, language } from "./i18n.js";
 import { get } from "./api.js";
 import { finished } from "./taskparts.js";
-import { MODES, NO_LABEL, SCALES, address, autoScale, dateFields, frame, ganttRows, guessFields, lanes, normalLabel, place, readState,
+import { DATE_KINDS, MODES, NO_LABEL, SCALES, address, autoScale, dateFields, frame, ganttRows, guessFields, lanes, normalLabel, place, readState,
   schedule, span, suggest, todayDay } from "./timeline.js";
 
 // unitWidth is how many pixels a unit of each scale takes at least, so a
@@ -147,7 +147,7 @@ export async function roadmapView(container, params, { readAll, favouritesFirst 
   const chosen = { start: fields.includes(state.start) ? state.start : guessed.start, end: fields.includes(state.end) ? state.end : guessed.end };
   const { bars, unscheduled } = schedule(shown.filter((it) => {
     const ty = typeOf(it);
-    return (ty.fields || []).some((f) => f.kind === "date" && (f.name === chosen.start || f.name === chosen.end));
+    return (ty.fields || []).some((f) => DATE_KINDS.includes(f.kind) && (f.name === chosen.start || f.name === chosen.end));
   }), chosen);
 
   const select = (id, label, options, value, key) => field(label, h("select", { id, onchange: (ev) => go({ [key]: ev.target.value }) },

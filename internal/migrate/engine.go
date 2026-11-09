@@ -396,6 +396,15 @@ func (e *engine) convert(kind item.FieldKind, v any) (any, error) {
 		case float64:
 			return n, nil
 		}
+	case item.KindDateTime:
+		switch d := v.(type) {
+		case time.Time:
+			return d.UTC().Truncate(time.Second), nil
+		case string:
+			if t, err := time.Parse(time.RFC3339Nano, d); err == nil {
+				return t.UTC().Truncate(time.Second), nil
+			}
+		}
 	case item.KindDate:
 		switch d := v.(type) {
 		case time.Time:

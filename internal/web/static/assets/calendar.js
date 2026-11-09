@@ -10,9 +10,14 @@
 // items into bars this module shares rather than copies: a bar of the
 // roadmap is an entry of the calendar.
 //
+// A date field names a day wherever the reader is. A datetime field holds
+// a point in time, in UTC (ADR-0166); the calendar places it on its day in
+// the reader's time zone and shows its time, and moving it by days keeps
+// its time of day there.
+//
 // Plain functions over plain data, so node --test runs them
 // (internal/web/jstest/calendar.test.mjs).
-import { byStart, dateFields, dayString, guessFields, parseDay, schedule } from "./timeline.js";
+import { byStart, dateFields, dayString, guessFields, parseDay, schedule, todayDay } from "./timeline.js";
 
 const DAY = 86400000;
 
@@ -68,7 +73,8 @@ export function shift(view, at, n) {
 // from their names, as the roadmap guesses them, so a task stands on its
 // due date and a decision on the day it was decided. A chosen start or end
 // applies to every type that has it as a date field; a type with neither
-// is left out.
+// is left out. startTimed and endTimed tell a field that holds a point in
+// time.
 export function typeFields(types, state) {
   const chosen = Boolean(state.start || state.end);
   const out = [];
@@ -79,7 +85,8 @@ export function typeFields(types, state) {
     const f = chosen
       ? { start: names.includes(state.start) ? state.start : "", end: names.includes(state.end) ? state.end : "" }
       : guessFields(names);
-    if (f.start || f.end) out.push({ type: ty.name, start: f.start, end: f.end });
+    const timed = (name) => (ty.fields || []).some((x) => x.name === name && x.kind === "datetime");
+    if (f.start || f.end) out.push({ type: ty.name, start: f.start, end: f.end, startTimed: timed(f.start), endTimed: timed(f.end) });
   }
   return out;
 }
@@ -94,14 +101,17 @@ export function quote(text) {
 // periodCondition selects the items of the types that have a date in the
 // days from to to: one of their dates in the days, or a span from the
 // start to the end that covers them. A day of the query names the whole
-// day, so the last day is included.
+// day, so the last day is included. The query counts a point in time by
+// its day in UTC, the calendar by its day where the reader is; a day more
+// on either side covers every time zone, and the days drawn pick out what
+// belongs to them.
 export function periodCondition(fields, from, to) {
-  const first = dayString(from), last = dayString(to);
-  const within = (f) => `${quote(f)} >= ${first} AND ${quote(f)} <= ${last}`;
+  const first = (timed) => dayString(timed ? from - 1 : from), last = (timed) => dayString(timed ? to + 1 : to);
+  const within = (name, timed) => `${quote(name)} >= ${first(timed)} AND ${quote(name)} <= ${last(timed)}`;
   return fields.map((f) => {
     const cond = f.start && f.end
-      ? `(${quote(f.start)} <= ${last} AND ${quote(f.end)} >= ${first}) OR (${within(f.start)}) OR (${within(f.end)})`
-      : within(f.start || f.end);
+      ? `(${quote(f.start)} <= ${last(f.startTimed)} AND ${quote(f.end)} >= ${first(f.endTimed)}) OR (${within(f.start, f.startTimed)}) OR (${within(f.end, f.endTimed)})`
+      : within(f.start || f.end, f.start ? f.startTimed : f.endTimed);
     return `(type = ${quote(f.type)} AND (${cond}))`;
   }).join(" OR ");
 }
@@ -141,19 +151,78 @@ export function listQuery(state, fields, p) {
   return conds.join(" AND ");
 }
 
+// moment is a point in time as milliseconds, or null for none.
+function moment(value) {
+  const ms = typeof value === "string" ? Date.parse(value) : NaN;
+  return Number.isNaN(ms) ? null : ms;
+}
+
+// localDayOf is the day a point in time falls on where the reader is.
+export function localDayOf(value) {
+  const ms = moment(value);
+  return ms === null ? null : todayDay(new Date(ms));
+}
+
 // entries turns items into entries, each by the fields of its type: an
 // item with a start and an end is a span over both days and those
 // between; an item with one date, or with an end before its start, stands
 // on one day (the end, when it has both: the date that is promised), as a
-// milestone stands on the roadmap.
+// milestone stands on the roadmap. An entry keeps the points in time it
+// stands by, in at.from and at.to, null for a day without a time.
 export function entries(items, fields) {
   const byType = new Map(fields.map((f) => [f.type, f]));
   const out = [];
   for (const it of items) {
     const f = byType.get(it.type);
-    if (f) out.push(...schedule([it], f).bars.map((b) => ({ ...b, start: f.start, end: f.end })));
+    if (!f) continue;
+    const timed = (name) => (name === f.start ? f.startTimed : name === f.end ? f.endTimed : false);
+    const read = (value, name) => (timed(name) ? localDayOf(value) : parseDay(value));
+    for (const b of schedule([it], f, read).bars) {
+      const props = it.properties || {};
+      const ms = (name) => (name && timed(name) ? moment(props[name]) : null);
+      // A one-day entry stands by the end it has, else by its start.
+      const one = f.end && read(props[f.end], f.end) !== null ? f.end : f.start;
+      const at = b.milestone ? { from: ms(one), to: ms(one) } : { from: ms(f.start), to: ms(f.end) };
+      out.push({ ...b, start: f.start, end: f.end, startTimed: f.startTimed, endTimed: f.endTimed, at });
+    }
   }
-  return out.sort(byStart);
+  return out.sort(byDayAndTime);
+}
+
+// byDayAndTime orders entries by their first day, then those without a
+// time before those with one, by their time, then as the roadmap orders.
+export function byDayAndTime(a, b) {
+  return a.from - b.from || (a.at?.from ?? -Infinity) - (b.at?.from ?? -Infinity) || byStart(a, b);
+}
+
+// shiftValue moves a value of a field by n days: a day to the day n days
+// on, a point in time to the same time of day n days on where the reader
+// is, so a change of daylight saving time does not move it by an hour.
+export function shiftValue(value, timed, n) {
+  if (timed) {
+    const ms = moment(value);
+    if (ms === null) return null;
+    const d = new Date(ms);
+    d.setDate(d.getDate() + n);
+    return d.toISOString();
+  }
+  const day = parseDay(value);
+  return day === null ? null : dayString(day + n);
+}
+
+// moves are the property changes that move an entry by n days: each of
+// its start and end that the item holds a value in, both, so a span keeps
+// its length. Nothing moves by 0 days.
+export function moves(entry, n) {
+  if (!n) return [];
+  const props = entry.item.properties || {};
+  const out = [];
+  for (const [name, timed] of [[entry.start, entry.startTimed], [entry.end, entry.endTimed]]) {
+    if (!name || out.some((m) => m.field === name)) continue;
+    const value = shiftValue(props[name], timed, n);
+    if (value !== null) out.push({ field: name, value });
+  }
+  return out;
 }
 
 // weekRows lays the entries that touch the week beginning on monday into
@@ -167,7 +236,7 @@ export function weekRows(list, monday) {
     const a = Math.max(e.from, monday), b = Math.min(e.to, sunday);
     return { entry: e, col: a - monday, span: b - a + 1, before: e.from < monday, after: e.to > sunday };
   });
-  segs.sort((x, y) => x.col - y.col || y.span - x.span || byStart(x.entry, y.entry));
+  segs.sort((x, y) => x.col - y.col || y.span - x.span || byDayAndTime(x.entry, y.entry));
   const rows = [];
   for (const s of segs) {
     const row = rows.find((r) => r[r.length - 1].col + r[r.length - 1].span <= s.col);
@@ -180,6 +249,13 @@ export function weekRows(list, monday) {
 // onDay are the entries a day holds, in the order of their start.
 export function onDay(list, day) {
   return list.filter((e) => e.from <= day && e.to >= day);
+}
+
+// dayAt is the day of a week under a point of its row: x is how far from
+// the row's left edge, width the row's width; Monday is the first column.
+export function dayAt(monday, x, width) {
+  if (!(width > 0)) return monday;
+  return monday + Math.min(6, Math.max(0, Math.floor((x / width) * 7)));
 }
 
 // agendaDays are the days from first to last that hold entries, each with

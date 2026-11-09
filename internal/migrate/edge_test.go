@@ -20,6 +20,8 @@ func TestConvertValues(t *testing.T) {
 		{item.KindNumber, 1.5, 1.5},
 		{item.KindDate, when, when},
 		{item.KindDate, "2026-01-02T03:04:05Z", when},
+		{item.KindDateTime, when.Add(400 * time.Millisecond), when},
+		{item.KindDateTime, "2026-01-02T04:04:05+01:00", when},
 		{item.KindUser, "acc-1", "anna"},
 		{item.KindUser, "acc-2", "external:acc-2"},
 		{item.KindText, "x", "x"},
@@ -42,7 +44,7 @@ func TestConvertValues(t *testing.T) {
 	for _, c := range []struct {
 		kind item.FieldKind
 		in   any
-	}{{item.KindNumber, "3"}, {item.KindDate, "next week"}, {item.KindDate, 7}, {item.KindUser, ""}, {item.KindText, 1}} {
+	}{{item.KindNumber, "3"}, {item.KindDate, "next week"}, {item.KindDate, 7}, {item.KindDateTime, "2026-01-02"}, {item.KindUser, ""}, {item.KindText, 1}} {
 		if _, err := e.convert(c.kind, c.in); err == nil {
 			t.Errorf("%s %#v: want an error", c.kind, c.in)
 		}

@@ -117,10 +117,15 @@ func (x *Session) MarkReviewed(id ID, now time.Time) error {
 }
 
 // whereMatches reports whether an item's properties match every
-// condition, each compared as text (FormatValue).
-func whereMatches(it *Item, where map[string]string) bool {
+// condition, each compared as text (FormatField).
+func (s *Store) whereMatches(it *Item, where map[string]string) bool {
 	for k, v := range where {
-		if got := it.Properties[k]; got == nil || FormatValue(got) != v {
+		got := it.Properties[k]
+		if got == nil {
+			return false
+		}
+		f, _ := s.fieldOf(it, k)
+		if FormatField(f, got) != v {
 			return false
 		}
 	}

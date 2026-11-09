@@ -10,8 +10,12 @@
 // The view itself is in e2e/smoke.cjs.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { VIEWS, address, agendaDays, entries, listQuery, onDay, overdue, period, periodCondition, quote, readState, shift, tasksQuery,
-  typeFields, weekRows, weekStart, withoutOrder } from "../static/assets/calendar.js";
+import { VIEWS, address, agendaDays, dayAt, entries, listQuery, localDayOf, moves, onDay, overdue, period, periodCondition, quote, readState, shift,
+  shiftValue, tasksQuery, typeFields, weekRows, weekStart, withoutOrder } from "../static/assets/calendar.js";
+
+// Points in time are placed where the reader is; these tests read them in
+// Zurich, one hour ahead of UTC in winter and two in summer.
+process.env.TZ = "Europe/Zurich";
 import { dayString, parseDay } from "../static/assets/timeline.js";
 
 const d = (s) => parseDay(s);
@@ -22,7 +26,9 @@ const types = [
   { name: "epic", fields: [{ name: "start", kind: "date" }, { name: "due", kind: "date" }] },
   { name: "decision", fields: [{ name: "decided", kind: "date" }] },
   { name: "page", fields: [{ name: "owner", kind: "user" }] },
+  { name: "meeting", fields: [{ name: "starts", kind: "datetime" }, { name: "ends", kind: "datetime" }] },
 ];
+const untimed = (f) => ({ ...f, startTimed: false, endTimed: false });
 const state = (over = {}) => ({ view: "month", at: d("2026-11-09"), space: "", type: "", labels: [], q: "", start: "", end: "", ...over });
 
 test("weeks begin on Monday", () => {
@@ -53,20 +59,24 @@ test("moving by a period keeps the date where the month has it", () => {
 
 test("each type is placed by its own guessed fields, or by the fields chosen", () => {
   assert.deepEqual(typeFields(types, state()), [
-    { type: "task", start: "", end: "due" },
-    { type: "epic", start: "start", end: "due" },
-    { type: "decision", start: "", end: "decided" },
+    untimed({ type: "task", start: "", end: "due" }),
+    untimed({ type: "epic", start: "start", end: "due" }),
+    untimed({ type: "decision", start: "", end: "decided" }),
+    { type: "meeting", start: "starts", end: "ends", startTimed: true, endTimed: true },
   ]);
-  assert.deepEqual(typeFields(types, state({ type: "epic" })), [{ type: "epic", start: "start", end: "due" }]);
+  assert.deepEqual(typeFields(types, state({ type: "epic" })), [untimed({ type: "epic", start: "start", end: "due" })]);
   // A chosen field holds for every type that has it; others are left out.
-  assert.deepEqual(typeFields(types, state({ end: "due" })), [{ type: "task", start: "", end: "due" }, { type: "epic", start: "", end: "due" }]);
-  assert.deepEqual(typeFields(types, state({ start: "decided" })), [{ type: "decision", start: "decided", end: "" }]);
+  assert.deepEqual(typeFields(types, state({ end: "due" })), [untimed({ type: "task", start: "", end: "due" }), untimed({ type: "epic", start: "", end: "due" })]);
+  assert.deepEqual(typeFields(types, state({ start: "decided" })), [untimed({ type: "decision", start: "decided", end: "" })]);
 });
 
 test("the query reads the period's items only, its own order left out", () => {
   assert.equal(quote('a "b" \\c'), '"a \\"b\\" \\\\c"');
   const p = period("week", d("2026-11-09"));
-  const fields = [{ type: "task", start: "", end: "due" }, { type: "epic", start: "start", end: "due" }];
+  const fields = [untimed({ type: "task", start: "", end: "due" }), untimed({ type: "epic", start: "start", end: "due" })];
+  // A point in time is read a day wider on either side, for every zone.
+  assert.equal(periodCondition([{ type: "meeting", start: "starts", end: "", startTimed: true, endTimed: false }], p.from, p.to),
+    '(type = "meeting" AND ("starts" >= 2026-11-08 AND "starts" <= 2026-11-16))');
   assert.equal(periodCondition(fields, p.from, p.to),
     '(type = "task" AND ("due" >= 2026-11-09 AND "due" <= 2026-11-15)) OR ' +
     '(type = "epic" AND (("start" <= 2026-11-15 AND "due" >= 2026-11-09) OR ("start" >= 2026-11-09 AND "start" <= 2026-11-15) OR ("due" >= 2026-11-09 AND "due" <= 2026-11-15)))');
@@ -140,4 +150,51 @@ test("the address holds what differs from the defaults", () => {
   assert.equal(plain.view, VIEWS[0]);
   assert.equal(plain.at, today);
   assert.equal(address(plain, today), "#/calendar");
+});
+
+test("a point in time stands on its day where the reader is, with its time", () => {
+  assert.equal(ds(localDayOf("2026-11-09T23:30:00Z")), "2026-11-10", "half past midnight in Zurich");
+  assert.equal(localDayOf("soon"), null);
+  const list = entries([
+    it("M-1", "meeting", { starts: "2026-11-09T13:30:00Z" }),
+    it("M-2", "meeting", { starts: "2026-11-09T07:00:00Z", ends: "2026-11-10T16:00:00Z" }),
+    it("M-3", "meeting", { starts: "2026-11-09T23:30:00Z" }),
+    it("T-1", "task", { due: "2026-11-09" }),
+  ], typeFields(types, state()));
+  assert.deepEqual(list.map((e) => [e.item.key, ds(e.from), ds(e.to)]), [
+    ["T-1", "2026-11-09", "2026-11-09"],
+    ["M-2", "2026-11-09", "2026-11-10"],
+    ["M-1", "2026-11-09", "2026-11-09"],
+    ["M-3", "2026-11-10", "2026-11-10"],
+  ], "a day without a time first, then by time");
+  assert.equal(list[0].at.from, null);
+  assert.equal(list[2].at.from, Date.parse("2026-11-09T13:30:00Z"));
+  assert.deepEqual(list[1].at, { from: Date.parse("2026-11-09T07:00:00Z"), to: Date.parse("2026-11-10T16:00:00Z") });
+});
+
+test("moving an entry shifts its dates by days, a span both, a time kept where the reader is", () => {
+  assert.equal(shiftValue("2026-11-09", false, 3), "2026-11-12");
+  assert.equal(shiftValue("2026-11-09T00:00:00Z", false, -9), "2026-10-31");
+  assert.equal(shiftValue("nothing", false, 1), null);
+  // 09:00 in Zurich stays 09:00 across the end of summer time.
+  assert.equal(shiftValue("2026-10-24T07:00:00Z", true, 1), "2026-10-25T08:00:00.000Z");
+  assert.equal(shiftValue("soon", true, 1), null);
+  const fields = typeFields(types, state());
+  const [span] = entries([it("E-1", "epic", { start: "2026-11-08", due: "2026-11-12" })], fields);
+  assert.deepEqual(moves(span, 2), [{ field: "start", value: "2026-11-10" }, { field: "due", value: "2026-11-14" }]);
+  assert.deepEqual(moves(span, 0), []);
+  const [one] = entries([it("E-2", "epic", { due: "2026-11-12" })], fields);
+  assert.deepEqual(moves(one, -1), [{ field: "due", value: "2026-11-11" }], "only what the item holds moves");
+  const [meeting] = entries([it("M-1", "meeting", { starts: "2026-11-09T13:30:00Z" })], fields);
+  assert.deepEqual(moves(meeting, 7), [{ field: "starts", value: "2026-11-16T13:30:00.000Z" }]);
+});
+
+test("the day under a point of a week's row", () => {
+  const monday = d("2026-11-09");
+  assert.equal(ds(dayAt(monday, 0, 700)), "2026-11-09");
+  assert.equal(ds(dayAt(monday, 350, 700)), "2026-11-12");
+  assert.equal(ds(dayAt(monday, 699, 700)), "2026-11-15");
+  assert.equal(ds(dayAt(monday, 900, 700)), "2026-11-15");
+  assert.equal(ds(dayAt(monday, -5, 700)), "2026-11-09");
+  assert.equal(ds(dayAt(monday, 10, 0)), "2026-11-09");
 });
