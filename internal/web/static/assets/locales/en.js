@@ -932,6 +932,8 @@ export default {
   "home.notesNone": "Nothing new",
   "home.starmapText": "Your rooms as a map of connections",
   "home.albumText": "Images and drawings",
+  "home.whiteboardsText": "Work together on one surface, live",
+  "home.whiteboardsLive": {"one": "{n} whiteboard in use now", "other": "{n} whiteboards in use now"},
   "home.myNotesText": { "one": "1 note, only for you", "other": "{n} notes, only for you" },
   "home.myNotesNone": "None yet; only you see them",
   "home.mcpText": "Let an AI assistant read and write",

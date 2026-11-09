@@ -1037,6 +1037,12 @@ const moduleGlyphs = {
     ["circle", { cx: "5", cy: "7", r: "1.9", fill: "#fff" }], ["circle", { cx: "19", cy: "6", r: "1.9", fill: "#fff" }],
     ["circle", { cx: "12", cy: "11", r: "2.4", fill: "#fff" }], ["circle", { cx: "8", cy: "19", r: "1.9", fill: "#fff" }],
     ["circle", { cx: "18", cy: "17", r: "1.9", fill: "#fff" }]],
+  // A whiteboard on its stand, a note stuck on it and lines written (ADR-0169).
+  whiteboard: [
+    ["rect", { x: "3", y: "4", width: "18", height: "12.5", rx: "2", fill: "none", stroke: "#fff", "stroke-width": "1.8" }],
+    ["path", { d: "M9 20.5l3-4 3 4", fill: "none", stroke: "#fff", "stroke-width": "1.8", "stroke-linecap": "round", "stroke-linejoin": "round" }],
+    ["rect", { x: "6", y: "7", width: "5.5", height: "5.5", rx: "1", fill: "#fff" }],
+    ["path", { d: "M14 8.5h4M14 11.5h3", fill: "none", stroke: "#fff", "stroke-width": "1.6", "stroke-linecap": "round" }]],
   protection: [
     ["path", { d: "M12 3l7 3v5c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6z", fill: "#fff" }],
     ["path", { d: "M8.8 11.8l2.3 2.3 4.2-4.4", fill: "none", class: "module-stroke", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }]],
@@ -2070,11 +2076,12 @@ const mayEdit = (role) => role === "editor" || role === "space-admin";
 async function homeView() {
   const show = screen();
   if (me.admin) await loadTypeTemplates();
-  const [{ spaces }, { types }, notes, brand, { requests }, mine, storage] = await Promise.all([get("/api/spaces"), get("/api/types"),
+  const [{ spaces }, { types }, notes, brand, { requests }, mine, storage, boards] = await Promise.all([get("/api/spaces"), get("/api/types"),
     get("/api/notifications?limit=1").catch(() => ({ unread: 0 })), get("/branding.json").catch(() => ({})),
     me.admin ? get("/api/account-requests").catch(() => ({ requests: [] })) : { requests: [] },
     get("/api/notes").catch(() => ({ notes: [] })),
-    me.admin ? get("/api/storage").catch(() => null) : null]);
+    me.admin ? get("/api/storage").catch(() => null) : null,
+    get("/api/whiteboards").catch(() => ({ whiteboards: [] }))]);
   if (me.admin) setRequests(requests.length);
   const anyEditable = spaces.some((s) => mayEdit(s.role));
   // A greeting by the time of day, the reader's own clock.
@@ -2138,6 +2145,9 @@ async function homeView() {
       // One's personal notes, wherever they were made (ADR-0113).
       quick("#/my-notes", t("note.title"), mine.notes.length ? t("home.myNotesText", { n: mine.notes.length }) : t("home.myNotesNone"), "home-my-notes", null, "page"),
       quick("#/album", t("nav.album"), t("home.albumText"), "home-album", null, "pictures"),
+      // The whiteboards, and how many are in use now (ADR-0169).
+      quick("#/whiteboards", t("nav.whiteboards"), boards.whiteboards.length ? t("home.whiteboardsLive", { n: boards.whiteboards.length }) : t("home.whiteboardsText"),
+        "home-whiteboards", null, "whiteboard"),
       quick("#/mcp", t("nav.mcp"), t("home.mcpText"), "home-mcp", null, "protection")),
     h("h2", { text: t("spaces.title") }),
     spaces.length === 0

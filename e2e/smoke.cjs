@@ -640,8 +640,9 @@ function gitSource() {
     await page.waitForSelector("#welcome h1:has-text('admin')");
     await page.waitForSelector("#welcome img.welcome-art");
     await page.waitForSelector("#welcome #home-version:has-text('Version')");
-    check(await page.locator(".home-tiles a").count() === 6, "six quick accesses, one's notes and the starmap among them");
-    check(await page.locator(".home-tiles a .module-icon svg").count() === 6, "each quick access wears the symbol of its module on the station");
+    check(await page.locator(".home-tiles a").count() === 7, "seven quick accesses, one's notes, the starmap and the whiteboards among them");
+    check(await page.getAttribute("#home-whiteboards", "href") === "#/whiteboards", "a quick access leads to the whiteboards (ADR-0169)");
+    check(await page.locator(".home-tiles a .module-icon svg").count() === 7, "each quick access wears the symbol of its module on the station");
     check(await page.getAttribute(".home-tiles a:first-child", "id") === "home-starmap" && await page.getAttribute("#home-starmap", "href") === "#/starmap"
       && await page.locator("#home-starmap .module-icon.module-starmap").count() === 1, "the starmap is the first quick access, with its module's symbol");
     await page.click("#home-starmap");
