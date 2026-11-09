@@ -23,6 +23,9 @@ const (
 	KindEnum   FieldKind = "enum"
 	// KindURL is a web address, http or https (ADR-0074).
 	KindURL FieldKind = "url"
+	// KindDateTime is a point in time, held in UTC to the second; a
+	// KindDate names a whole day (ADR-0166).
+	KindDateTime FieldKind = "datetime"
 )
 
 // maxURL is the longest web address a url field holds.
@@ -98,7 +101,7 @@ var reservedFields = map[string]bool{
 func ReservedField(name string) bool { return reservedFields[name] }
 
 var validKinds = map[FieldKind]bool{
-	KindText: true, KindNumber: true, KindBool: true, KindDate: true, KindUser: true, KindEnum: true, KindURL: true,
+	KindText: true, KindNumber: true, KindBool: true, KindDate: true, KindUser: true, KindEnum: true, KindURL: true, KindDateTime: true,
 }
 
 func (t TypeDef) field(name string) (FieldDef, bool) {
@@ -219,7 +222,7 @@ func checkValue(f FieldDef, v any) error {
 		}
 	case KindBool:
 		_, ok = v.(bool)
-	case KindDate:
+	case KindDate, KindDateTime:
 		_, ok = v.(time.Time)
 	case KindUser:
 		s, isString := v.(string)
@@ -250,9 +253,19 @@ func validURL(s string) bool {
 	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
 }
 
+// FormatField is a property value of a field as text: a point in time
+// (KindDateTime) as RFC 3339 in UTC, every other value as FormatValue
+// writes it. The API's where filter compares with it (ADR-0074).
+func FormatField(f FieldDef, v any) string {
+	if t, ok := v.(time.Time); ok && f.Kind == KindDateTime {
+		return t.UTC().Format(time.RFC3339)
+	}
+	return FormatValue(v)
+}
+
 // FormatValue is a property value as text: as typed for text, url, enum
 // and user fields, a date as YYYY-MM-DD, a number in its shortest form.
-// The API's where filter compares with it (ADR-0074).
+// A point in time is written by FormatField, which knows its kind.
 func FormatValue(v any) string {
 	switch x := v.(type) {
 	case nil:

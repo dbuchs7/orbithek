@@ -2178,3 +2178,57 @@ dialog.note-dialog { max-height: calc(100dvh - 32px); overflow: auto; }
 .tl-legend { font-size: 12px; }
 .tl-unscheduled ul { margin: var(--space-2) 0; padding-left: var(--space-5); }
 @media (max-width: 640px) { .tl { --tl-head: 8rem; } }
+/* Calendar of the items' dates (ADR-0166): a month in whole weeks, a week,
+   or an agenda; each week a grid of seven columns, the days behind and the
+   entries in rows over them. */
+.cal-filter { align-items: flex-end; }
+.cal-filter button { margin: 10px 0; }
+.cal-nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: var(--space-4) 0 var(--space-2); }
+.cal-nav h2 { margin: 0 0 0 var(--space-2); font-size: 18px; }
+.cal-grid { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+.cal-weekdays { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); background: var(--surface-2); border-bottom: 1px solid var(--border-strong); }
+.cal-weekdays span { padding: 6px 8px; font-size: 12px; color: var(--muted); }
+.cal-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); min-height: 6.5rem; row-gap: 3px; padding-bottom: 4px; }
+.cal-week + .cal-week { border-top: 1px solid var(--border); }
+.cal-week-big { min-height: 16rem; }
+.cal-day { grid-row: 1 / -1; border-left: 1px solid var(--border); min-width: 0; }
+.cal-day:first-child { border-left: 0; }
+.cal-weekend { background: var(--surface-2); }
+.cal-head { grid-row: 1; z-index: 1; padding: 4px 6px 2px; min-width: 0; background: none; }
+.cal-out .cal-date { color: var(--muted); opacity: .6; }
+.cal-date { display: inline-block; min-width: 1.6em; padding: 0 4px; border-radius: 999px; font-size: 12px; text-align: center; }
+.cal-today .cal-date { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.cal-entry {
+  z-index: 1; margin: 0 4px; padding: 1px 6px; min-width: 0; box-sizing: border-box;
+  border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--accent-soft); color: var(--text);
+  font-size: 12px; line-height: 1.5; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-decoration: none;
+}
+.cal-entry:hover, .cal-entry:focus-visible { background: var(--accent); color: var(--accent-ink); outline: none; box-shadow: var(--focus); text-decoration: none; }
+.cal-key { font-weight: 600; }
+.cal-week-big .cal-entry { white-space: normal; }
+.cal-before { margin-left: 0; border-left-style: dashed; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.cal-after { margin-right: 0; border-right-style: dashed; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.cal-done { border-color: var(--success); background: repeating-linear-gradient(135deg, var(--success-soft) 0 6px, var(--surface) 6px 10px); color: var(--muted); }
+.cal-overdue { border-color: var(--danger); border-left-width: 3px; }
+.cal-mark { display: inline-block; margin-right: 4px; font-weight: 700; color: var(--danger); }
+.cal-entry:hover .cal-mark, .cal-entry:focus-visible .cal-mark { color: inherit; }
+.cal-inverted { border-style: dashed; border-color: var(--warning); }
+.cal-time { font-variant-numeric: tabular-nums; color: var(--muted); }
+.cal-entry:hover .cal-time, .cal-entry:focus-visible .cal-time { color: inherit; }
+.cal-movable { cursor: grab; }
+.cal-dragging { opacity: .5; cursor: grabbing; }
+.cal-drop { background: var(--accent-soft); box-shadow: inset 0 0 0 2px var(--accent); }
+.cal-agenda { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.cal-agenda > li { display: grid; grid-template-columns: minmax(9rem, 14rem) 1fr; gap: var(--space-3); padding: var(--space-3) var(--space-4); }
+.cal-agenda > li + li { border-top: 1px solid var(--border); }
+.cal-agenda h3 { margin: 0; font-size: 14px; font-weight: 600; }
+.cal-agenda > li.cal-today h3 { color: var(--accent); }
+.cal-agenda ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.cal-agenda .cal-entry { display: block; margin: 0; white-space: normal; }
+@media (max-width: 640px) {
+  .cal-week { min-height: 4.5rem; }
+  .cal-view-month .cal-entry { margin: 0 1px; padding: 0 2px; font-size: 10px; text-overflow: clip; }
+  .cal-view-month .cal-entry .cal-title, .cal-view-month .cal-mark { display: none; }
+  .cal-view-month .cal-overdue { border-left-width: 3px; }
+  .cal-agenda > li { grid-template-columns: 1fr; gap: var(--space-2); }
+}

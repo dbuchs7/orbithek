@@ -379,7 +379,7 @@ func planFor(td TypeDef) *plausibility {
 	p := &plausibility{td: td}
 	if td.Workflow != nil && len(td.Workflow.States) > 0 {
 		for _, f := range td.Fields {
-			if f.Kind == KindDate && dueField.MatchString(f.Name) {
+			if (f.Kind == KindDate || f.Kind == KindDateTime) && dueField.MatchString(f.Name) {
 				p.due = append(p.due, f.Name)
 			}
 		}

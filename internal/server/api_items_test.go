@@ -411,3 +411,29 @@ func TestRemovingAType(t *testing.T) {
 		t.Fatalf("types after the removal: %v", types)
 	}
 }
+
+// TestADateTimeFieldThroughTheAPI: a point in time is written with its
+// offset, kept in UTC to the second, found by where and by a query, and a
+// value without an offset is refused (ADR-0166).
+func TestADateTimeFieldThroughTheAPI(t *testing.T) {
+	w := newWorld(t)
+	w.admin.expect("POST", "/api/types", `{"name":"meeting","fields":[{"name":"starts","kind":"datetime"}]}`, http.StatusCreated)
+	b := w.bert
+	it := b.expect("POST", "/api/items", `{"space":"PLAT","type":"meeting","title":"Review","properties":{"starts":"2026-11-09T14:30:15.9+01:00"}}`, http.StatusCreated)
+	id := field(it, "item", "id").(string)
+	if got := field(it, "item", "properties", "starts"); got != "2026-11-09T13:30:15Z" {
+		t.Fatalf("starts = %v, want it in UTC to the second", got)
+	}
+	for _, bad := range []string{`"2026-11-09"`, `"2026-11-09T14:30:00"`, `"tomorrow"`, `5`} {
+		b.expect("PUT", "/api/items/"+id+"/properties/starts", `{"value":`+bad+`}`, http.StatusBadRequest)
+	}
+	b.expect("PUT", "/api/items/"+id+"/properties/starts", `{"value":"2026-11-10T08:00:00Z"}`, http.StatusOK)
+	found := b.expect("GET", "/api/items?type=meeting&where=starts%3D2026-11-10T08:00:00Z", "", http.StatusOK)
+	if n := len(found["items"].([]any)); n != 1 {
+		t.Fatalf("where by a point in time found %d items", n)
+	}
+	q := b.expect("GET", "/api/items?query="+strings.ReplaceAll("starts > 2026-11-10T07:59:59Z AND starts < 2026-11-10T08:00:01Z", " ", "%20"), "", http.StatusOK)
+	if n := len(q["items"].([]any)); n != 1 {
+		t.Fatalf("a query by points in time found %d items", n)
+	}
+}

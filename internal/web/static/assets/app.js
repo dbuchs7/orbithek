@@ -13,6 +13,8 @@ import { isDrawing } from "./drawing.js";
 import { albumBrowser, retentionCard } from "./album.js";
 import { starmapView } from "./starmap.js";
 import { roadmapView } from "./roadmap.js";
+import { calendarView } from "./calendarview.js";
+import { address as calendarAddress, tasksQuery } from "./calendar.js";
 import { labelmapView } from "./labelmap.js";
 import { t, setLanguage, suggestedLanguage, languages, language } from "./i18n.js";
 import { applyTheme, setTheme, isDark, chosenTheme } from "./theme.js";
@@ -459,6 +461,7 @@ async function labelView(label) {
     h("div", { class: "page-head" }, h("h1", {}, t("label.heading") + " ", labelChip(label)),
       h("p", { class: "actions" }, link(`#/labelboard/${encodeURIComponent(label)}`, t("labelboard.open"), "button secondary", "label-board"),
         link(`#/roadmap?labels=${encodeURIComponent(label)}`, t("roadmap.open"), "button secondary", "label-roadmap"),
+        link(`#/calendar?labels=${encodeURIComponent(label)}`, t("calendar.open"), "button secondary", "label-calendar"),
         link(`#/labelmap?labels=${encodeURIComponent(label)}`, t("labelmap.openFromLabel"), "button secondary", "label-labelmap"), csv)),
     filter.el,
     table, none, more,
@@ -680,7 +683,7 @@ function taskTools(item, editing) {
     const fieldsOf = new Map(flows.map((ty) => [ty.name, taskFields(ty)]));
     const dueOf = (it) => {
       const f = fieldsOf.get(it.type)?.due;
-      return f && it.properties[f.name] ? String(it.properties[f.name]).slice(0, 10) : "";
+      return f && it.properties[f.name] ? dayOfValue(f, it.properties[f.name]) : "";
     };
     const whoOf = (it) => {
       const f = fieldsOf.get(it.type)?.assignee;
@@ -896,7 +899,7 @@ function renderFooter() {
 const modules = [
   { id: "spaces", name: "nav.spaces", href: "#/", match: ["", "space", "item", "board", "links", "search", "query", "label"], icon: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" },
   { id: "new", name: "nav.new", href: "#/new", match: ["new"], icon: "M12 8v8M8 12h8M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" },
-  { id: "tasks", name: "nav.tasks", href: "#/tasks", match: ["tasks", "kanbans", "kanban", "roadmap"], icon: "M9 11l3 3 8-8M20 12v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h11" },
+  { id: "tasks", name: "nav.tasks", href: "#/tasks", match: ["tasks", "kanbans", "kanban", "roadmap", "calendar"], icon: "M9 11l3 3 8-8M20 12v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h11" },
   { id: "comments", name: "nav.comments", href: "#/comments", match: ["comments"], icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" },
   { id: "album", name: "nav.album", href: "#/album", match: ["album"], icon: "M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15 8h.01" },
   { id: "starmap", name: "nav.starmap", href: "#/starmap", match: ["starmap", "labelmap"], icon: "M5 7l7 4 7-5M12 11l-4 8M12 11l6 6M5 7h.01M19 6h.01M12 11h.01M8 19h.01M18 17h.01" },
@@ -1558,6 +1561,7 @@ async function route() {
       case "kanban": return await kanbanView(arg, arg2);
       case "labelboard": return await labelBoardView(arg, params.get("space") || "");
       case "roadmap": return await roadmapScreen(params);
+      case "calendar": return await calendarScreen(params);
       case "space": return await spaceView(arg);
       case "board": return await boardView(arg, arg2);
       case "links": return await linksView(arg);
@@ -2417,7 +2421,7 @@ async function spaceView(key) {
         create && types.length ? h("button", { class: "primary", id: "space-new-page", text: t("space.newPage"), onclick: toForm }) : null,
         csv,
         watchButton("/api/spaces/" + encodeURIComponent(key), watches.some((w) => !w.item && w.space === key), status))),
-    h("nav", { class: "subnav", "aria-label": t("space.views") }, [...boards, link(`#/roadmap?space=${encodeURIComponent(key)}`, t("roadmap.tab")), link(`#/links/${encodeURIComponent(key)}`, t("space.linkCheck")), link(`#/governance/${encodeURIComponent(key)}`, t("nav.governance")),
+    h("nav", { class: "subnav", "aria-label": t("space.views") }, [...boards, link(`#/roadmap?space=${encodeURIComponent(key)}`, t("roadmap.tab")), link(`#/calendar?space=${encodeURIComponent(key)}`, t("calendar.tab")), link(`#/links/${encodeURIComponent(key)}`, t("space.linkCheck")), link(`#/governance/${encodeURIComponent(key)}`, t("nav.governance")),
       sp.role === "space-admin" ? link(`#/members/${encodeURIComponent(key)}`, t("members.title")) : null].filter(Boolean)),
     status,
     home,
@@ -2472,7 +2476,7 @@ async function boardView(key, typeName) {
 // show (ADR-0139): who has them, their dates and their choices, as on a
 // new kanban (ADR-0132), and their labels.
 function viewCardFields(type) {
-  return [...type.fields.filter((f) => ["user", "date", "enum"].includes(f.kind)).map((f) => f.name).slice(0, 12), "labels"];
+  return [...type.fields.filter((f) => ["user", "date", "datetime", "enum"].includes(f.kind)).map((f) => f.name).slice(0, 12), "labels"];
 }
 
 // viewSection is the board of one type on a board that keeps nothing
@@ -2593,7 +2597,7 @@ function taskFields(type) {
   const users = type.fields.filter((f) => f.kind === "user");
   return {
     assignee: users.find((f) => /^(assignee|zugewiesen|bearbeiter)/i.test(f.name)) || users[0] || null,
-    due: type.fields.find((f) => f.kind === "date" && /due|deadline|f(ä|ae)llig/i.test(f.name)) || null,
+    due: type.fields.find((f) => (f.kind === "date" || f.kind === "datetime") && /due|deadline|f(ä|ae)llig/i.test(f.name)) || null,
     priority: type.fields.find((f) => f.kind === "enum" && /^(priority|priorität|prioritaet)$/i.test(f.name)) || null,
   };
 }
@@ -2659,7 +2663,7 @@ async function tasksView(tab, params) {
   const today = new Date().toISOString().slice(0, 10);
   const dueOf = (it) => {
     const f = typeOf.get(it.type).f.due;
-    return f && it.properties[f.name] ? String(it.properties[f.name]).slice(0, 10) : "";
+    return f && it.properties[f.name] ? dayOfValue(f, it.properties[f.name]) : "";
   };
   const rankOf = (it) => {
     const f = typeOf.get(it.type).f.priority;
@@ -2803,9 +2807,14 @@ async function tasksView(tab, params) {
   const tabLink = (id, label) => link(`#/tasks/${id}${query()}`, `${label} (${lists[id].length})`, id === current ? "tab active" : "tab");
   const tabs = h("nav", { class: "tabs", "aria-label": t("tasks.title") },
     tabLink("mine", t("tasks.mine")), tabLink("unassigned", t("tasks.unassigned")), tabLink("all", t("tasks.all")),
-    link("#/kanbans", t("kanban.tab"), "tab", "tab-kanbans"), link(`#/roadmap${space ? "?space=" + encodeURIComponent(space) : ""}`, t("roadmap.tab"), "tab", "tab-roadmap"));
-  // The tab links carry the filters as they change.
-  const relink = () => tabs.querySelectorAll("a").forEach((a) => { a.href = a.getAttribute("href").split("?")[0] + query(); });
+    link("#/kanbans", t("kanban.tab"), "tab", "tab-kanbans"), link(`#/roadmap${space ? "?space=" + encodeURIComponent(space) : ""}`, t("roadmap.tab"), "tab", "tab-roadmap"),
+    // The calendar shows the open tasks of the current tab, as a query of
+    // its own, so its link can be shared (ADR-0166).
+    link(calendarAddress({ space, labels: [], q: tasksQuery(current, [...typeOf.values()].map(({ ty, f }) => ({ name: ty.name, assignee: f.assignee?.name || "" }))) }),
+      t("calendar.tab"), "tab", "tab-calendar"));
+  // The tab links carry the filters as they change; the calendar's carries
+  // its query instead.
+  const relink = () => tabs.querySelectorAll("a:not(#tab-calendar)").forEach((a) => { a.href = a.getAttribute("href").split("?")[0] + query(); });
   show(
     h("div", { class: "page-head" }, h("h1", { text: t("tasks.title") }),
       h("p", { class: "actions" }, link(newHref(space || here.space, "", taskType(types)), t("tasks.new"), "button primary", "tasks-new"),
@@ -2935,7 +2944,7 @@ async function kanbansView() {
     const { kanban } = await post(`/api/spaces/${encodeURIComponent(d.get("space"))}/kanbans`, { name: d.get("name"), type: d.get("type"), label: (d.get("label") || "").trim() });
     // A new kanban's cards show who has them, their dates and their
     // choices, so they say something before anyone sets them (ADR-0132).
-    const shown = (flows.find((ty) => ty.name === kanban.type)?.fields || []).filter((f) => ["user", "date", "enum"].includes(f.kind)).map((f) => f.name).slice(0, 12);
+    const shown = (flows.find((ty) => ty.name === kanban.type)?.fields || []).filter((f) => ["user", "date", "datetime", "enum"].includes(f.kind)).map((f) => f.name).slice(0, 12);
     if (shown.length) await put(`/api/spaces/${encodeURIComponent(kanban.space)}/kanbans/${encodeURIComponent(kanban.id)}`, { name: kanban.name, cardFields: shown });
     location.hash = `#/kanban/${encodeURIComponent(kanban.space)}/${kanban.id}`;
   }) : null;
@@ -2945,7 +2954,8 @@ async function kanbansView() {
     h("div", { class: "page-head" }, h("h1", { text: t("kanban.title") })),
     h("nav", { class: "tabs", "aria-label": t("tasks.title") },
       link("#/tasks/mine", t("tasks.mine"), "tab"), link("#/tasks/unassigned", t("tasks.unassigned"), "tab"), link("#/tasks/all", t("tasks.all"), "tab"),
-      link("#/kanbans", t("kanban.tab"), "tab active", "tab-kanbans"), link("#/roadmap", t("roadmap.tab"), "tab", "tab-roadmap")),
+      link("#/kanbans", t("kanban.tab"), "tab active", "tab-kanbans"), link("#/roadmap", t("roadmap.tab"), "tab", "tab-roadmap"),
+      link("#/calendar", t("calendar.tab"), "tab", "tab-calendar")),
     // The boards by label lead on the left, the kanbans stand in the
     // middle, a new kanban is made on the right (ADR-0110).
     h("div", { class: "kanbans-layout" },
@@ -3134,7 +3144,8 @@ async function cardBoard(o) {
   // week, or without a date; a finished card is none of the first two.
   const dueOf = (it) => {
     const type = typeOf(it);
-    const days = namesOf(type, "date").map((n) => it.properties[n]).filter(Boolean).map((v) => daysFromToday(String(v).slice(0, 10))).filter((d) => d !== null);
+    const days = type.fields.filter((f) => (f.kind === "date" || f.kind === "datetime") && it.properties[f.name])
+      .map((f) => daysFromToday(dayOfValue(f, it.properties[f.name]))).filter((d) => d !== null);
     if (!days.length) return "none";
     if (finished(type.workflow, it.state)) return "";
     if (days.some((d) => d < 0)) return "late";
@@ -3435,7 +3446,7 @@ async function cardBoard(o) {
     o.sections.some((s) => namesOf(s.type, "user").length)
       ? { key: "who", label: t("kanban.who"), options: [...new Set(items.flatMap(peopleOf))].sort(byName).map((v) => [v, person(v)]) } : null,
     { key: "label", label: t("kanban.label") },
-    o.sections.some((s) => namesOf(s.type, "date").length)
+    o.sections.some((s) => namesOf(s.type, "date").length || namesOf(s.type, "datetime").length)
       ? { key: "due", label: t("kanban.due"), options: [["late", t("kanban.dueLate")], ["week", t("kanban.dueWeek")], ["none", t("kanban.dueNone")]] } : null,
     o.colorValues.length ? { key: "color", label: o.colorField, options: o.colorValues.map((v) => [v, v]) } : null,
     items.some((it) => it.waitingOn) ? { key: "waiting", label: t("kanban.waiting"), options: [["yes", t("kanban.waitingYes")]] } : null,
@@ -3494,6 +3505,7 @@ function moveRefused(status, err, type, it, state, move) {
 // state is finished.
 function cardChip(name, f, v, done) {
   if (f?.kind === "date") return dateChip(name, String(v).slice(0, 10), done);
+  if (f?.kind === "datetime") return dateChip(name, localDay(String(v)), done, timeText(v));
   const chip = (...content) => h("span", { class: "card-chip", title: `${name}: ${v}` }, h("span", { class: "visually-hidden", text: `${name}: ` }), ...content);
   if (f?.kind === "bool") return chip(`✓ ${name}`);
   if (!f || f.kind === "enum") return chip(String(v));
@@ -3504,8 +3516,8 @@ function cardChip(name, f, v, done) {
 // days, else the date itself. On a card not yet done, a date that has
 // passed is overdue and today or tomorrow is near; a done card's dates
 // are only dates.
-function dateChip(name, day, done) {
-  const tip = `${name}: ${day}`, said = h("span", { class: "visually-hidden", text: `${name}: ` });
+function dateChip(name, day, done, time = "") {
+  const tip = `${name}: ${day}${time ? " " + time : ""}`, said = h("span", { class: "visually-hidden", text: `${name}: ` });
   const days = daysFromToday(day);
   if (days === null) return h("span", { class: "card-chip", title: tip }, said, day);
   const [y, mo, d] = day.split("-").map(Number);
@@ -3515,6 +3527,7 @@ function dateChip(name, day, done) {
   else if (days === 0) [text, tone] = [t("card.today"), done ? "" : "near"];
   else if (days === 1) [text, tone] = [t("card.tomorrow"), done ? "" : "near"];
   else if (days > 1 && days < 7) text = t("card.inDays", { n: days });
+  if (time) text += ", " + time;
   return h("span", { class: "card-chip card-date" + (tone ? " " + tone : ""), title: tip }, lineIcon("M5 6h14v13H5zM5 10h14M9 4v4M15 4v4"), said, text);
 }
 
@@ -3525,6 +3538,33 @@ function daysFromToday(day) {
   if (!m) return null;
   const now = new Date();
   return Math.round((Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) - Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000);
+}
+
+// dayOfValue is the day a date or a point in time falls on, YYYY-MM-DD: a
+// date field's day as it is, a datetime field's day in the reader's
+// calendar (ADR-0166).
+function dayOfValue(f, v) {
+  return f?.kind === "datetime" ? localDay(String(v)) : String(v).slice(0, 10);
+}
+
+// timeText is the time of day of a moment in the reader's time zone.
+function timeText(v) {
+  return new Date(v).toLocaleTimeString(language() || undefined, { hour: "2-digit", minute: "2-digit" });
+}
+
+// zoneText is the short name of the reader's time zone at a moment, as a
+// point in time is shown in it (ADR-0166).
+function zoneText(v) {
+  return new Intl.DateTimeFormat(language() || undefined, { timeZoneName: "short" }).formatToParts(new Date(v)).find((p) => p.type === "timeZoneName")?.value || "";
+}
+
+// localInput writes a moment as the value of a datetime-local input, in
+// the reader's time zone, to the minute.
+function localInput(v) {
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return "";
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
 // localDay is the day of a moment in the reader's calendar, YYYY-MM-DD.
@@ -3694,6 +3734,18 @@ async function roadmapScreen(params) {
     h("p", { class: "muted", text: t("roadmap.intro") }),
     section);
   await roadmapView(section, params, { readAll, favouritesFirst });
+}
+
+// calendarScreen shows readable items with dates on the days of a month,
+// a week or an agenda (ADR-0166); its state is the address.
+async function calendarScreen(params) {
+  const section = h("section", { id: "calendar" });
+  screen()(
+    h("p", {}, link("#/tasks", t("nav.tasks")), " / " + t("calendar.tab")),
+    h("div", { class: "page-head" }, h("h1", { text: t("calendar.title") })),
+    h("p", { class: "muted", text: t("calendar.intro") }),
+    section);
+  await calendarView(section, params, { readAll, favouritesFirst });
 }
 
 // starmapScreen shows the starmap of a room (ADR-0157): its items,
@@ -3932,6 +3984,10 @@ function propertyInput(f, value) {
       return h("input", { name, type: "number", step: "any", value: value ?? "" });
     case "date":
       return h("input", { name, type: "date", value: value ? String(value).slice(0, 10) : "" });
+    case "datetime":
+      // A point in time is typed and shown in the reader's time zone and
+      // sent in UTC (ADR-0166).
+      return h("input", { name, type: "datetime-local", value: value ? localInput(value) : "" });
     case "enum":
       return h("select", { name },
         h("option", { value: "", text: "—" }),
@@ -4020,6 +4076,7 @@ function readProperty(f, el) {
   const v = el.value;
   if (v === "") return null;
   if (f.kind === "number") return Number(v);
+  if (f.kind === "datetime") return new Date(v).toISOString();
   return v;
 }
 
@@ -4186,6 +4243,8 @@ async function itemView(ref, params = new URLSearchParams()) {
         f.kind === "user" && item.properties[f.name] ? h("span", { class: "muted", text: " " + person(item.properties[f.name]) }) : null,
         f.kind === "user" && canEdit && item.properties[f.name] !== me.user.id
           ? h("button", { class: "link", text: t("tasks.assignMe"), onclick: () => action(() => put(`${path}/properties/${encodeURIComponent(f.name)}`, { value: me.user.id }), status) }) : null,
+        // A point in time is shown in the reader's time zone, named.
+        f.kind === "datetime" && item.properties[f.name] ? h("span", { class: "muted", text: " " + zoneText(item.properties[f.name]) }) : null,
         // A web address opens in a new tab (ADR-0074).
         f.kind === "url" && item.properties[f.name]
           ? h("a", { href: item.properties[f.name], target: "_blank", rel: "noopener noreferrer", class: "prop-link", text: t("item.openLink") }) : null),

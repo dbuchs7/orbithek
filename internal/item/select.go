@@ -675,7 +675,7 @@ func kindTakes(k FieldKind, op query.Op) bool {
 	case query.Has:
 		return k == KindText || k == KindURL
 	}
-	return k == KindText || k == KindURL || k == KindNumber || k == KindDate || k == KindEnum
+	return k == KindText || k == KindURL || k == KindNumber || k == KindDate || k == KindDateTime || k == KindEnum
 }
 
 // fits reports whether a value of the query can be a value of the field.
@@ -685,7 +685,7 @@ func fits(f FieldDef, l literal) bool {
 		return l.isNum
 	case KindBool:
 		return l.isBool
-	case KindDate:
+	case KindDate, KindDateTime:
 		return l.isTime
 	case KindUser:
 		return len(l.users) > 0
@@ -750,7 +750,7 @@ func (c *compiler) property(cl *query.Clause, op query.Op) (pred, error) {
 			return false
 		}
 		if op == query.Has {
-			c.buf = appendFold(c.buf[:0], FormatValue(got))
+			c.buf = appendFold(c.buf[:0], FormatField(f, got))
 			for _, w := range words {
 				if !bytes.Contains(c.buf, w) {
 					return false
@@ -789,6 +789,14 @@ func compareValue(f FieldDef, v any, l literal) (int, bool) {
 			return 0, false
 		}
 		return compareTimes(t, true, l), true
+	case KindDateTime:
+		// A point in time is compared to the second, or by its UTC day
+		// with a day of the query, as created and updated are.
+		t, isTime := v.(time.Time)
+		if !l.isTime || !isTime {
+			return 0, false
+		}
+		return compareTimes(t, false, l), true
 	case KindUser:
 		s, _ := v.(string)
 		if slices.Contains(l.users, s) {
@@ -897,8 +905,8 @@ func (c *compiler) order(sorts []query.Sort) ([]sortBy, error) {
 					}
 				case KindEnum:
 					k.num = float64(enumIndex(f, fold(FormatValue(v))))
-				case KindDate:
-					k.text = FormatValue(v)
+				case KindDate, KindDateTime:
+					k.text = FormatField(f, v)
 				default:
 					k.text = fold(FormatValue(v))
 				}
