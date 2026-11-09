@@ -24,6 +24,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/item"
 	"github.com/dbuchs7/orbithek/internal/storage"
 	"github.com/dbuchs7/orbithek/internal/wal"
+	"github.com/dbuchs7/orbithek/internal/whiteboard"
 )
 
 func runCmd(t *testing.T, ctx context.Context, args ...string) (int, string, string) {
@@ -701,4 +702,21 @@ func TestDailyAtSendsAtTheHour(t *testing.T) {
 		t.Fatal("no tick at the hour")
 	}
 	cancel()
+}
+
+// TestRunWhiteboards ticks the live whiteboards until it is stopped, and
+// shuts them down then (ADR-0167).
+func TestRunWhiteboards(t *testing.T) {
+	hub := whiteboard.NewHub(nil)
+	ctx, stop := context.WithCancel(context.Background())
+	tick := make(chan time.Time)
+	done := make(chan struct{})
+	go func() { runWhiteboards(ctx, hub, tick); close(done) }()
+	tick <- time.Now()
+	tick <- time.Now()
+	stop()
+	<-done
+	if n, _ := hub.Stats(); n != 0 {
+		t.Fatal("sessions left")
+	}
 }
