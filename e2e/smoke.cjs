@@ -2528,6 +2528,53 @@ function gitSource() {
     await page.waitForSelector("[name='p:starts'][type=datetime-local]");
     const local = await page.evaluate((ms) => { const d = new Date(ms); const p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }, at15);
     check(await page.inputValue("[name='p:starts']") === local, "the input shows the point in time where the reader is: " + await page.inputValue("[name='p:starts']"));
+
+    step("calendar: a repeating item, one occurrence moved alone and one cancelled; a saved view subscribed to as iCalendar (ADR-0167)");
+    const standup = await page.evaluate(async () => {
+      const send = (method, path, body) => fetch(path, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json());
+      await send("POST", "/api/types", { name: "standup", body: true, fields: [{ name: "starts", kind: "datetime" }, { name: "ends", kind: "datetime" }, { name: "repeats", kind: "recurrence" }] });
+      return (await send("POST", "/api/items", { space: "PLAT", type: "standup", title: "Daily standup",
+        properties: { starts: "2026-03-02T09:00:00Z", ends: "2026-03-02T09:15:00Z", repeats: "freq=weekly;byday=we,mo" } })).item;
+    });
+    check(standup.properties.repeats === "FREQ=WEEKLY;BYDAY=MO,WE", "a rule is kept in its one form: " + standup.properties.repeats);
+    await page.goto(base + "/#/calendar?at=2026-03-01&type=standup");
+    await page.waitForSelector(`#calendar-grid .cal-entry[data-key='${standup.key}'] .cal-repeat`);
+    // Mondays and Wednesdays from 2 March to the 1 April the month's last row shows.
+    check(await page.locator(`#calendar-grid .cal-entry[data-key='${standup.key}']`).count() === 10, "a repeating item stands on each of its days");
+    // Monday 9 March dropped on Tuesday: only this occurrence moves.
+    await page.dragAndDrop(`.cal-week >> nth=2 >> .cal-entry[data-key='${standup.key}'] >> nth=0`, ".cal-week >> nth=2 >> .cal-day >> nth=1", { targetPosition: { x: 20, y: 40 } });
+    await page.waitForSelector("#calendar-dialog");
+    await page.click("#calendar-dialog [data-choice=one]");
+    await page.waitForSelector(`#calendar-moved:has-text('${standup.key}')`);
+    let rule = (await propsOf(standup.key)).repeats;
+    check(rule.includes("MOVE=2026-03-09@2026-03-10"), "one occurrence moved is an exception of the rule: " + rule);
+    // Wednesday 11 March cancelled with Delete.
+    await page.focus(`.cal-week >> nth=2 >> .cal-entry[data-key='${standup.key}'] >> nth=-1`);
+    await page.keyboard.press("Delete");
+    await page.waitForSelector("#calendar-dialog");
+    await page.click("#calendar-dialog [data-choice=yes]");
+    await page.waitForFunction(() => /cancelled|abgesagt/i.test(document.querySelector("#calendar-moved")?.textContent || ""));
+    rule = (await propsOf(standup.key)).repeats;
+    check(rule.includes("EXDATE=2026-03-11"), "a cancelled occurrence is an exception of the rule: " + rule);
+    check(await page.locator(`#calendar-grid .cal-entry[data-key='${standup.key}']`).count() === 9, "a cancelled occurrence is gone from the calendar");
+    // The view is saved under a name, and subscribed to.
+    await page.click("#calendar-saved-new");
+    await page.fill("#calendar-saved-name", "Standups");
+    await page.click("#calendar-saved-save");
+    await page.waitForFunction(() => document.querySelector("#calendar-saved-select")?.selectedOptions[0]?.textContent === "Standups");
+    await page.click("#calendar-feed-new");
+    await page.waitForSelector("#calendar-feed-url");
+    const calFeedURL = await page.inputValue("#calendar-feed-url");
+    check(/\/calendar\/otcal_[0-9a-f]{64}\.ics$/.test(calFeedURL), "the feed has an address of its own: " + calFeedURL.replace(/otcal_[0-9a-f]+/, "otcal_…"));
+    const outsider = await browser.newContext();
+    const calFeed = await outsider.request.get(calFeedURL);
+    const calIcs = (await calFeed.text()).replace(/\r\n /g, "");
+    check(calFeed.status() === 200 && calIcs.startsWith("BEGIN:VCALENDAR") && calIcs.includes(`SUMMARY:${standup.key} Daily standup`) && calIcs.includes("X-WR-CALNAME:Standups"),
+      "a calendar program reads the view without signing in: " + calFeed.status());
+    await page.click("#calendar-feed-revoke");
+    await page.waitForSelector("#calendar-feed-new");
+    check((await outsider.request.get(calFeedURL)).status() === 404, "an ended feed opens nothing");
+    await outsider.close();
     await page.setViewportSize({ width: 1280, height: 720 });
 
     step("starmap of the labels: a star per label, sized by its items, lines between labels carried together, filtered by labels (ADR-0165)");

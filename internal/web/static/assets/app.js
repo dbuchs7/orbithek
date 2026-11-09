@@ -14,6 +14,7 @@ import { albumBrowser, retentionCard } from "./album.js";
 import { starmapView } from "./starmap.js";
 import { roadmapView } from "./roadmap.js";
 import { calendarView } from "./calendarview.js";
+import { WEEKDAYS, parseRule, ruleText } from "./recurrence.js";
 import { address as calendarAddress, tasksTab } from "./calendar.js";
 import { labelmapView } from "./labelmap.js";
 import { t, setLanguage, suggestedLanguage, languages, language } from "./i18n.js";
@@ -3996,6 +3997,8 @@ function propertyInput(f, value) {
       return userInput(name, value);
     case "url":
       return h("input", { name, type: "url", value: value ?? "", placeholder: "https://…" });
+    case "recurrence":
+      return recurrenceInput(name, value);
     default:
       return h("input", { name, value: value ?? "" });
   }
@@ -4066,7 +4069,83 @@ function mentionable(area) {
   return h("div", { class: "mention-box" }, area, list);
 }
 
+// recurrenceInput chooses how an item repeats (ADR-0167): how often, every
+// how many periods, on which weekdays, until when, in which time zone a
+// time of day is kept, and shows the occurrences cancelled or moved, each
+// to take back, with a day to cancel one. It writes the rule the server
+// keeps; a change of any part is one change of the field.
+function recurrenceInput(name, value) {
+  let rule = null, broken = "";
+  try { rule = value ? parseRule(value) : null; } catch (err) { broken = err.message; }
+  let exdates = [...(rule?.exdates || [])];
+  let moves = { ...(rule?.moves || {}) };
+  const fs = h("fieldset", { class: "rec-input", name });
+  const fire = () => fs.dispatchEvent(new Event("change", { bubbles: true }));
+  const freq = h("select", { class: "rec-freq", "aria-label": t("rec.every") },
+    [["", t("rec.none")], ["DAILY", t("rec.daily")], ["WEEKLY", t("rec.weekly")], ["MONTHLY", t("rec.monthly")], ["YEARLY", t("rec.yearly")]]
+      .map(([v, text]) => h("option", { value: v, text, selected: (rule?.freq || "") === v })));
+  const interval = h("input", { type: "number", class: "rec-interval", min: "1", max: "999", value: String(rule?.interval || 1), "aria-label": t("rec.every") });
+  const unit = h("span", { class: "muted" });
+  const dayBoxes = WEEKDAYS.map((d, i) => {
+    const box = h("input", { type: "checkbox", value: d, checked: (rule?.byDay || []).includes(d) });
+    const label = new Date(Date.UTC(2024, 0, 1 + i)).toLocaleDateString(language() || undefined, { weekday: "short", timeZone: "UTC" });
+    return [box, h("label", { class: "check rec-day" }, box, " ", label)];
+  });
+  const ends = h("select", { class: "rec-ends", "aria-label": t("rec.ends") },
+    [["never", t("rec.never")], ["until", t("rec.until")], ["count", t("rec.count")]]
+      .map(([v, text]) => h("option", { value: v, text, selected: v === (rule?.until ? "until" : rule?.count ? "count" : "never") })));
+  const until = h("input", { type: "date", class: "rec-until", value: rule?.until || "", "aria-label": t("rec.until") });
+  const count = h("input", { type: "number", class: "rec-count", min: "1", max: "1000", value: String(rule?.count || 10), "aria-label": t("rec.count") });
+  const zone = h("input", { type: "text", class: "rec-zone", value: rule?.tzid || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC", "aria-label": t("rec.zone") });
+  const exceptions = h("ul", { class: "rec-exceptions" });
+  const drawExceptions = () => exceptions.replaceChildren(
+    ...exdates.map((d) => h("li", {}, t("rec.cancelled") + ": " + d + " ",
+      h("button", { type: "button", class: "link", text: t("rec.remove"), onclick: () => { exdates = exdates.filter((x) => x !== d); drawExceptions(); fire(); } }))),
+    ...Object.entries(moves).map(([from, to]) => h("li", {}, t("rec.moved") + ": " + from + " → " + to.replace("T", " ") + " ",
+      h("button", { type: "button", class: "link", text: t("rec.remove"), onclick: () => { delete moves[from]; drawExceptions(); fire(); } }))));
+  drawExceptions();
+  const cancelDay = h("input", { type: "date", class: "rec-cancel-day", "aria-label": t("rec.addCancel") });
+  const weekly = h("p", { class: "rec-days" }, t("rec.on") + " ", dayBoxes.map(([, l]) => l));
+  const detail = h("div", { class: "rec-detail" },
+    h("p", {}, t("rec.every") + " ", interval, " ", unit),
+    weekly,
+    h("p", {}, t("rec.ends") + " ", ends, " ", until, count, " ", h("span", { class: "muted rec-times", text: t("rec.times") })),
+    h("p", {}, t("rec.zone") + " ", zone),
+    exceptions,
+    h("p", {}, t("rec.addCancel") + " ", cancelDay, " ", h("button", { type: "button", class: "secondary", text: t("rec.add"), onclick: () => {
+      if (cancelDay.value && !exdates.includes(cancelDay.value)) {
+        exdates = [...exdates, cancelDay.value].sort();
+        delete moves[cancelDay.value];
+        drawExceptions();
+        fire();
+      }
+    } })));
+  const sync = () => {
+    detail.hidden = !freq.value;
+    weekly.hidden = freq.value !== "WEEKLY";
+    unit.textContent = { DAILY: t("rec.unitDaily"), WEEKLY: t("rec.unitWeekly"), MONTHLY: t("rec.unitMonthly"), YEARLY: t("rec.unitYearly") }[freq.value] || "";
+    until.hidden = ends.value !== "until";
+    count.hidden = ends.value !== "count";
+    fs.querySelector(".rec-times").hidden = ends.value !== "count";
+  };
+  fs.append(...[freq, detail, broken ? h("p", { class: "error", text: t("rec.invalid", { error: broken }) }) : null].filter(Boolean));
+  fs.addEventListener("change", sync);
+  sync();
+  // ruleValue is the rule the choices make, or null for no repetition.
+  fs.ruleValue = () => {
+    if (!freq.value) return null;
+    return ruleText({
+      freq: freq.value, interval: Math.max(1, Number(interval.value) || 1),
+      byDay: freq.value === "WEEKLY" ? dayBoxes.filter(([b]) => b.checked).map(([b]) => b.value) : [],
+      until: ends.value === "until" ? until.value : "", count: ends.value === "count" ? Math.max(1, Number(count.value) || 1) : 0,
+      tzid: zone.value.trim(), exdates, moves,
+    });
+  };
+  return fs;
+}
+
 function readProperty(f, el) {
+  if (f.kind === "recurrence") return el.ruleValue ? el.ruleValue() : el.value || null;
   if (f.kind === "bool") return el.checked;
   if (f.kind === "user") {
     if (!el.value.trim()) return null;

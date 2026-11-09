@@ -240,6 +240,7 @@ func Routes(d Deps) []Route {
 	routes = append(routes, regulationRoutes(d)...)
 	routes = append(routes, oidcRoutes(d)...)
 	routes = append(routes, itemRoutes(d)...)
+	routes = append(routes, calendarRoutes(d)...)
 	routes = append(routes, diskRoutes(d)...)
 	routes = append(routes, mcpRoutes()...)
 	routes = append(routes, oauthRoutes(d)...)

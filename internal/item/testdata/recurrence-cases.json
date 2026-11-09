@@ -1,0 +1,110 @@
+{
+  "comment": "Cases of repeating items (ADR-0167), read by internal/item/recurrence_test.go and internal/web/jstest/recurrence.test.mjs, so the server's feed and the browser's calendar expand a rule alike. Times are UTC; a window runs from 'from' (included) to 'to' (excluded).",
+  "parse": [
+    {"in": "FREQ=WEEKLY;BYDAY=WE,MO", "norm": "FREQ=WEEKLY;BYDAY=MO,WE"},
+    {"in": "freq=daily; interval=2 ;count=5", "norm": "FREQ=DAILY;INTERVAL=2;COUNT=5"},
+    {"in": "FREQ=MONTHLY;INTERVAL=1;UNTIL=2027-01-31;TZID=Europe/Zurich", "norm": "FREQ=MONTHLY;UNTIL=2027-01-31;TZID=Europe/Zurich"},
+    {"in": "FREQ=WEEKLY;EXDATE=2026-11-18,2026-11-11;MOVE=2026-11-16@2026-11-17T10:00", "norm": "FREQ=WEEKLY;EXDATE=2026-11-11,2026-11-18;MOVE=2026-11-16@2026-11-17T10:00"},
+    {"in": "FREQ=YEARLY;MOVE=2027-02-28@2027-03-01", "norm": "FREQ=YEARLY;MOVE=2027-02-28@2027-03-01"},
+    {"in": "", "error": true},
+    {"in": "INTERVAL=2", "error": true},
+    {"in": "FREQ=HOURLY", "error": true},
+    {"in": "FREQ=DAILY;BYDAY=MO", "error": true},
+    {"in": "FREQ=DAILY;UNTIL=2026-12-01;COUNT=3", "error": true},
+    {"in": "FREQ=DAILY;COUNT=0", "error": true},
+    {"in": "FREQ=DAILY;INTERVAL=1000", "error": true},
+    {"in": "FREQ=DAILY;UNTIL=2026-02-30", "error": true},
+    {"in": "FREQ=DAILY;TZID=Mars/Olympus", "error": true},
+    {"in": "FREQ=DAILY;FREQ=WEEKLY", "error": true},
+    {"in": "FREQ=DAILY;COLOUR=red", "error": true},
+    {"in": "FREQ=WEEKLY;BYDAY=XX", "error": true},
+    {"in": "FREQ=DAILY;EXDATE=2026-11-11;MOVE=2026-11-11@2026-11-12", "error": true},
+    {"in": "FREQ=DAILY;MOVE=2026-11-11", "error": true}
+  ],
+  "expand": [
+    {
+      "name": "weekly on Monday and Wednesday in Zurich, one cancelled, one moved",
+      "rule": "FREQ=WEEKLY;BYDAY=MO,WE;TZID=Europe/Zurich;EXDATE=2026-11-11;MOVE=2026-11-16@2026-11-17T10:00",
+      "start": "2026-11-09T08:00:00Z", "end": "2026-11-09T08:30:00Z", "timed": true,
+      "from": "2026-11-09T00:00:00Z", "to": "2026-11-24T00:00:00Z",
+      "want": [
+        {"original": "2026-11-09", "start": "2026-11-09T08:00:00Z", "end": "2026-11-09T08:30:00Z", "moved": false},
+        {"original": "2026-11-16", "start": "2026-11-17T09:00:00Z", "end": "2026-11-17T09:30:00Z", "moved": true},
+        {"original": "2026-11-18", "start": "2026-11-18T08:00:00Z", "end": "2026-11-18T08:30:00Z", "moved": false},
+        {"original": "2026-11-23", "start": "2026-11-23T08:00:00Z", "end": "2026-11-23T08:30:00Z", "moved": false}
+      ]
+    },
+    {
+      "name": "09:00 in Zurich stays 09:00 across the end of summer time",
+      "rule": "FREQ=WEEKLY;COUNT=3;TZID=Europe/Zurich",
+      "start": "2026-10-19T07:00:00Z", "end": "", "timed": true,
+      "from": "2026-10-01T00:00:00Z", "to": "2026-12-01T00:00:00Z",
+      "want": [
+        {"original": "2026-10-19", "start": "2026-10-19T07:00:00Z", "end": "2026-10-19T07:00:00Z", "moved": false},
+        {"original": "2026-10-26", "start": "2026-10-26T08:00:00Z", "end": "2026-10-26T08:00:00Z", "moved": false},
+        {"original": "2026-11-02", "start": "2026-11-02T08:00:00Z", "end": "2026-11-02T08:00:00Z", "moved": false}
+      ]
+    },
+    {
+      "name": "monthly on the 31st skips the months without it",
+      "rule": "FREQ=MONTHLY;UNTIL=2026-06-30",
+      "start": "2026-01-31T00:00:00Z", "end": "", "timed": false,
+      "from": "2026-01-01T00:00:00Z", "to": "2026-07-01T00:00:00Z",
+      "want": [
+        {"original": "2026-01-31", "start": "2026-01-31T00:00:00Z", "end": "2026-01-31T00:00:00Z", "moved": false},
+        {"original": "2026-03-31", "start": "2026-03-31T00:00:00Z", "end": "2026-03-31T00:00:00Z", "moved": false},
+        {"original": "2026-05-31", "start": "2026-05-31T00:00:00Z", "end": "2026-05-31T00:00:00Z", "moved": false}
+      ]
+    },
+    {
+      "name": "every second day, two days long, the ones touching the window",
+      "rule": "FREQ=DAILY;INTERVAL=2;COUNT=4",
+      "start": "2026-11-01T00:00:00Z", "end": "2026-11-02T00:00:00Z", "timed": false,
+      "from": "2026-11-04T00:00:00Z", "to": "2026-11-06T00:00:00Z",
+      "want": [
+        {"original": "2026-11-03", "start": "2026-11-03T00:00:00Z", "end": "2026-11-04T00:00:00Z", "moved": false},
+        {"original": "2026-11-05", "start": "2026-11-05T00:00:00Z", "end": "2026-11-06T00:00:00Z", "moved": false}
+      ]
+    },
+    {
+      "name": "yearly on 29 February only in leap years",
+      "rule": "FREQ=YEARLY",
+      "start": "2028-02-29T00:00:00Z", "end": "", "timed": false,
+      "from": "2028-01-01T00:00:00Z", "to": "2033-01-01T00:00:00Z",
+      "want": [
+        {"original": "2028-02-29", "start": "2028-02-29T00:00:00Z", "end": "2028-02-29T00:00:00Z", "moved": false},
+        {"original": "2032-02-29", "start": "2032-02-29T00:00:00Z", "end": "2032-02-29T00:00:00Z", "moved": false}
+      ]
+    },
+    {
+      "name": "without a zone a time is kept in UTC",
+      "rule": "FREQ=DAILY;COUNT=2",
+      "start": "2026-11-09T23:30:00Z", "end": "2026-11-10T00:15:00Z", "timed": true,
+      "from": "2026-11-09T00:00:00Z", "to": "2026-11-12T00:00:00Z",
+      "want": [
+        {"original": "2026-11-09", "start": "2026-11-09T23:30:00Z", "end": "2026-11-10T00:15:00Z", "moved": false},
+        {"original": "2026-11-10", "start": "2026-11-10T23:30:00Z", "end": "2026-11-11T00:15:00Z", "moved": false}
+      ]
+    },
+    {
+      "name": "a cancelled occurrence still counts",
+      "rule": "FREQ=DAILY;COUNT=3;EXDATE=2026-11-10",
+      "start": "2026-11-09T00:00:00Z", "end": "", "timed": false,
+      "from": "2026-11-01T00:00:00Z", "to": "2026-12-01T00:00:00Z",
+      "want": [
+        {"original": "2026-11-09", "start": "2026-11-09T00:00:00Z", "end": "2026-11-09T00:00:00Z", "moved": false},
+        {"original": "2026-11-11", "start": "2026-11-11T00:00:00Z", "end": "2026-11-11T00:00:00Z", "moved": false}
+      ]
+    },
+    {
+      "name": "every second week on Friday, a day moved into the window from outside",
+      "rule": "FREQ=WEEKLY;INTERVAL=2;BYDAY=FR;MOVE=2026-11-20@2026-12-02",
+      "start": "2026-11-06T00:00:00Z", "end": "", "timed": false,
+      "from": "2026-12-01T00:00:00Z", "to": "2026-12-08T00:00:00Z",
+      "want": [
+        {"original": "2026-11-20", "start": "2026-12-02T00:00:00Z", "end": "2026-12-02T00:00:00Z", "moved": true},
+        {"original": "2026-12-04", "start": "2026-12-04T00:00:00Z", "end": "2026-12-04T00:00:00Z", "moved": false}
+      ]
+    }
+  ]
+}

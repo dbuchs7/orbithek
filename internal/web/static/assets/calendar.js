@@ -18,6 +18,7 @@
 // Plain functions over plain data, so node --test runs them
 // (internal/web/jstest/calendar.test.mjs).
 import { byStart, dateFields, dayString, guessFields, parseDay, schedule, todayDay } from "./timeline.js";
+import { expand, localIn, parseRule, shifted, withException, zoneTime, zoned } from "./recurrence.js";
 
 const DAY = 86400000;
 
@@ -87,7 +88,9 @@ export function typeFields(types, state) {
       ? { start: names.includes(state.start) ? state.start : "", end: names.includes(state.end) ? state.end : "" }
       : guessFields(names);
     const timed = (name) => (ty.fields || []).some((x) => x.name === name && x.kind === "datetime");
-    if (f.start || f.end) out.push({ type: ty.name, start: f.start, end: f.end, startTimed: timed(f.start), endTimed: timed(f.end), assignee: assigneeOf(ty) });
+    // A type repeats by its first field of the kind recurrence (ADR-0167).
+    const recurrence = (ty.fields || []).find((x) => x.kind === "recurrence")?.name || "";
+    if (f.start || f.end) out.push({ type: ty.name, start: f.start, end: f.end, startTimed: timed(f.start), endTimed: timed(f.end), assignee: assigneeOf(ty), recurrence });
   }
   return out;
 }
@@ -127,9 +130,15 @@ export function periodCondition(fields, from, to, who = "") {
   const within = (name, timed) => `${quote(name)} >= ${first(timed)} AND ${quote(name)} <= ${last(timed)}`;
   const whom = who === "me" ? "= currentUser()" : who === "none" ? "IS EMPTY" : "";
   return fields.filter((f) => !whom || f.assignee).map((f) => {
-    const cond = f.start && f.end
+    let cond = f.start && f.end
       ? `(${quote(f.start)} <= ${last(f.startTimed)} AND ${quote(f.end)} >= ${first(f.endTimed)}) OR (${within(f.start, f.startTimed)}) OR (${within(f.end, f.endTimed)})`
       : within(f.start || f.end, f.start ? f.startTimed : f.endTimed);
+    // A repeating item is read whenever it began by the last day; its
+    // occurrences are worked out in the browser (ADR-0167).
+    if (f.recurrence) {
+      const [anchor, timed] = f.start ? [f.start, f.startTimed] : [f.end, f.endTimed];
+      cond = `(${cond}) OR (${quote(f.recurrence)} IS NOT EMPTY AND ${quote(anchor)} <= ${last(timed)})`;
+    }
     return `(type = ${quote(f.type)}${whom ? ` AND ${quote(f.assignee)} ${whom}` : ""} AND (${cond}))`;
   }).join(" OR ");
 }
@@ -195,7 +204,12 @@ export function localDayOf(value) {
 // on one day (the end, when it has both: the date that is promised), as a
 // milestone stands on the roadmap. An entry keeps the points in time it
 // stands by, in at.from and at.to, null for a day without a time.
-export function entries(items, fields) {
+//
+// A repeating item (ADR-0167) gives an entry per occurrence in the days
+// from range.from to range.to, when a range is given; each knows the day
+// it falls on by its rule (occurrence), whether it was moved, its rule and
+// the field that holds it. A rule that cannot be read places the item once.
+export function entries(items, fields, range) {
   const byType = new Map(fields.map((f) => [f.type, f]));
   const out = [];
   for (const it of items) {
@@ -209,7 +223,26 @@ export function entries(items, fields) {
       // A one-day entry stands by the end it has, else by its start.
       const one = f.end && read(props[f.end], f.end) !== null ? f.end : f.start;
       const at = b.milestone ? { from: ms(one), to: ms(one) } : { from: ms(f.start), to: ms(f.end) };
-      out.push({ ...b, start: f.start, end: f.end, startTimed: f.startTimed, endTimed: f.endTimed, at });
+      const base = { ...b, start: f.start, end: f.end, startTimed: f.startTimed, endTimed: f.endTimed, at };
+      const rule = f.recurrence ? props[f.recurrence] : "";
+      let parsed = null;
+      try { parsed = rule && range ? parseRule(rule) : null; } catch { parsed = null; }
+      if (!parsed) {
+        out.push(base);
+        continue;
+      }
+      const [first, last] = b.milestone ? [one, ""] : [f.start, f.end];
+      const isTimed = timed(first) || Boolean(last && timed(last));
+      // A day wider on either side covers every zone; the days drawn pick
+      // out what belongs to them.
+      const occ = expand(parsed, props[first], last ? props[last] : "", isTimed, (range.from - 1) * DAY, (range.to + 2) * DAY);
+      for (const o of occ) {
+        const fromDay = isTimed ? localDayOf(new Date(o.start).toISOString()) : o.start / DAY;
+        const toDay = isTimed ? localDayOf(new Date(o.end).toISOString()) : o.end / DAY;
+        if (toDay < range.from || fromDay > range.to) continue;
+        out.push({ ...base, from: fromDay, to: toDay, at: isTimed ? { from: o.start, to: o.end } : { from: null, to: null },
+          occurrence: o.original, moved: o.moved, rule, recurrence: f.recurrence, tzid: parsed.tzid || "UTC", timedSeries: isTimed });
+      }
     }
   }
   return out.sort(byDayAndTime);
@@ -427,4 +460,46 @@ export function retime(entry, n, minutes) {
     }
   }
   return out;
+}
+
+// occurrenceChanges are the property changes that move one occurrence of a
+// repeating entry by n days, and, for one with a time, to a time of day in
+// minutes where the reader is: an exception in its rule (ADR-0167). The
+// series stays as it is.
+export function occurrenceChanges(entry, n, minutes) {
+  let target;
+  if (!entry.timedSeries) {
+    target = dayString(entry.from + n);
+  } else if (minutes === undefined) {
+    // The same time of day in the rule's zone, n days on.
+    const p = localIn(entry.at.from, entry.tzid);
+    target = zoneTime(zoned(p.year, p.month, p.day + n, p.hour, p.minute, 0, entry.tzid), entry.tzid);
+  } else {
+    const d = new Date((entry.from + n) * DAY);
+    const local = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), Math.floor(minutes / 60), minutes % 60).getTime();
+    target = zoneTime(local, entry.tzid);
+  }
+  // Back at the time its rule gives it, an occurrence is no exception.
+  if (entry.timedSeries) {
+    const props = entry.item.properties || {};
+    const anchor = Date.parse(props[entry.start] || props[entry.end]);
+    if (!Number.isNaN(anchor) && target === entry.occurrence + zoneTime(anchor, entry.tzid).slice(10)) target = entry.occurrence;
+  }
+  const value = withException(entry.rule, entry.occurrence, target);
+  return value === entry.rule ? [] : [{ field: entry.recurrence, value }];
+}
+
+// seriesChanges are the property changes that move a whole series by n
+// days, and, with minutes, to that time of day where the reader is: its
+// dates as any entry's move them, and its exceptions with it, so they keep
+// naming the same occurrences.
+export function seriesChanges(entry, n, minutes) {
+  const dates = minutes === undefined ? moves(entry, n) : retime(entry, n, minutes);
+  if (!dates.length) return [];
+  return n ? [...dates, { field: entry.recurrence, value: shifted(entry.rule, n) }] : dates;
+}
+
+// cancelChanges are the property changes that cancel one occurrence.
+export function cancelChanges(entry) {
+  return [{ field: entry.recurrence, value: withException(entry.rule, entry.occurrence, null) }];
 }

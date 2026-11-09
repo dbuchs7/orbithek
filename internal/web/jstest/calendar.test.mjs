@@ -11,7 +11,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { VIEWS, address, agendaDays, dayAt, entries, listQuery, localDayOf, moves, onDay, overdue, period, periodCondition, quote, readState, shift,
-  shiftValue, tasksTab, typeFields, weekRows, weekStart, withoutOrder, assigneeOf, timedSpan, dayColumns, minutesAt, retime } from "../static/assets/calendar.js";
+  shiftValue, tasksTab, typeFields, weekRows, weekStart, withoutOrder, assigneeOf, timedSpan, dayColumns, minutesAt, retime,
+  occurrenceChanges, seriesChanges, cancelChanges } from "../static/assets/calendar.js";
 
 // Points in time are placed where the reader is; these tests read them in
 // Zurich, one hour ahead of UTC in winter and two in summer.
@@ -28,7 +29,7 @@ const types = [
   { name: "page", fields: [{ name: "owner", kind: "user" }] },
   { name: "meeting", fields: [{ name: "starts", kind: "datetime" }, { name: "ends", kind: "datetime" }] },
 ];
-const untimed = (f) => ({ startTimed: false, endTimed: false, assignee: "", ...f });
+const untimed = (f) => ({ startTimed: false, endTimed: false, assignee: "", recurrence: "", ...f });
 const state = (over = {}) => ({ view: "month", at: d("2026-11-09"), space: "", type: "", labels: [], who: "", status: "", text: "", q: "", start: "", end: "", ...over });
 
 test("weeks begin on Monday", () => {
@@ -62,7 +63,7 @@ test("each type is placed by its own guessed fields, or by the fields chosen", (
     untimed({ type: "task", start: "", end: "due", assignee: "assignee" }),
     untimed({ type: "epic", start: "start", end: "due" }),
     untimed({ type: "decision", start: "", end: "decided" }),
-    { type: "meeting", start: "starts", end: "ends", startTimed: true, endTimed: true, assignee: "" },
+    { type: "meeting", start: "starts", end: "ends", startTimed: true, endTimed: true, assignee: "", recurrence: "" },
   ]);
   assert.deepEqual(typeFields(types, state({ type: "epic" })), [untimed({ type: "epic", start: "start", end: "due" })]);
   // A chosen field holds for every type that has it; others are left out.
@@ -252,4 +253,49 @@ test("retiming moves a meeting to another day and hour, keeping its length", () 
   assert.deepEqual(retime(m, 0, 9 * 60), [], "the same place is no change");
   const [task] = entries([it("T-1", "task", { due: "2026-11-09" })], fields);
   assert.deepEqual(retime(task, 1, 600), [{ field: "due", value: "2026-11-10" }], "a day without a time moves by days");
+});
+
+const series = [{ name: "standup", fields: [{ name: "starts", kind: "datetime" }, { name: "repeats", kind: "recurrence" }] },
+  { name: "review", fields: [{ name: "due", kind: "date" }, { name: "every", kind: "recurrence" }] }];
+
+test("a repeating type is read whenever it began, and gives an entry per occurrence", () => {
+  const fields = typeFields(series, state());
+  assert.deepEqual(fields.map((f) => [f.type, f.recurrence]), [["standup", "repeats"], ["review", "every"]]);
+  const p = period("week", d("2026-11-09"));
+  assert.equal(periodCondition(fields.slice(1), p.from, p.to),
+    '(type = "review" AND (("due" >= 2026-11-09 AND "due" <= 2026-11-15) OR ("every" IS NOT EMPTY AND "due" <= 2026-11-15)))');
+  const items = [
+    it("S-1", "standup", { starts: "2026-11-02T08:00:00Z", repeats: "FREQ=WEEKLY;BYDAY=MO,WE;TZID=Europe/Zurich;EXDATE=2026-11-11;MOVE=2026-11-16@2026-11-17T10:00" }),
+    it("R-1", "review", { due: "2026-10-01T00:00:00Z", every: "FREQ=MONTHLY" }),
+    it("B-1", "review", { due: "2026-11-10T00:00:00Z", every: "FREQ=NEVER" }),
+  ];
+  const list = entries(items, fields, { from: d("2026-11-09"), to: d("2026-11-22") });
+  assert.deepEqual(list.map((e) => [e.item.key, ds(e.from), e.occurrence || "", e.moved || false]), [
+    ["S-1", "2026-11-09", "2026-11-09", false],
+    ["B-1", "2026-11-10", "", false],
+    ["S-1", "2026-11-17", "2026-11-16", true],
+    ["S-1", "2026-11-18", "2026-11-18", false],
+  ], "a cancelled one is gone, a moved one on its new day, a monthly one outside the days left out, a broken rule placed once");
+  const plain = entries(items.slice(0, 1), fields);
+  assert.equal(plain.length, 1, "without a range a series stands once, on its first day");
+});
+
+test("an occurrence moves alone, or the whole series with its exceptions", () => {
+  const fields = typeFields(series, state());
+  const [mon] = entries([it("S-1", "standup", { starts: "2026-11-09T08:00:00Z", repeats: "FREQ=WEEKLY;BYDAY=MO;TZID=Europe/Zurich;EXDATE=2026-11-23" })], fields,
+    { from: d("2026-11-09"), to: d("2026-11-15") });
+  // One day on, at the same time in Zurich.
+  assert.deepEqual(occurrenceChanges(mon, 1), [{ field: "repeats", value: "FREQ=WEEKLY;BYDAY=MO;TZID=Europe/Zurich;EXDATE=2026-11-23;MOVE=2026-11-09@2026-11-10T09:00" }]);
+  // To Wednesday at 14:15 where the reader is (Zurich in these tests).
+  assert.deepEqual(occurrenceChanges(mon, 2, 14 * 60 + 15), [{ field: "repeats", value: "FREQ=WEEKLY;BYDAY=MO;TZID=Europe/Zurich;EXDATE=2026-11-23;MOVE=2026-11-09@2026-11-11T14:15" }]);
+  assert.deepEqual(occurrenceChanges(mon, 0, 9 * 60), [], "the same place is no change");
+  assert.deepEqual(cancelChanges(mon), [{ field: "repeats", value: "FREQ=WEEKLY;BYDAY=MO;TZID=Europe/Zurich;EXDATE=2026-11-09,2026-11-23" }]);
+  assert.deepEqual(seriesChanges(mon, 7), [
+    { field: "starts", value: "2026-11-16T08:00:00.000Z" },
+    { field: "repeats", value: "FREQ=WEEKLY;BYDAY=MO;TZID=Europe/Zurich;EXDATE=2026-11-30" },
+  ]);
+  assert.deepEqual(seriesChanges(mon, 0, 10 * 60), [{ field: "starts", value: "2026-11-09T09:00:00.000Z" }], "a new time keeps the exceptions' days");
+  assert.deepEqual(seriesChanges(mon, 0), []);
+  const [day] = entries([it("R-1", "review", { due: "2026-11-10T00:00:00Z", every: "FREQ=WEEKLY" })], fields, { from: d("2026-11-09"), to: d("2026-11-15") });
+  assert.deepEqual(occurrenceChanges(day, -1), [{ field: "every", value: "FREQ=WEEKLY;MOVE=2026-11-10@2026-11-09" }]);
 });

@@ -122,6 +122,7 @@ type Accounts struct {
 	tokenIDs map[string]*token
 	sessions map[string]*session // by secret hash
 	external map[string]UserID   // issuer + "\x00" + subject -> user (ADR-0030)
+	feeds    map[string]feedRef  // calendar feeds by secret hash (ADR-0167)
 	throttle throttle
 	dummy    string // hash checked for unknown usernames, at the same cost
 }
@@ -146,6 +147,9 @@ type user struct {
 	// favourites are the keys of the spaces the user marked as favourites,
 	// in the order they were marked (ADR-0145).
 	favourites []string
+	// views are the calendar views the user saved, with their feeds
+	// (ADR-0167).
+	views []viewRecord
 }
 
 type token struct {
@@ -178,6 +182,7 @@ func New(records [][]byte, j Journal, opts ...Option) (*Accounts, error) {
 		users: map[UserID]*user{}, byName: map[string]UserID{},
 		tokens: map[string]*token{}, tokenIDs: map[string]*token{}, sessions: map[string]*session{},
 		external: map[string]UserID{}, requests: map[string]*request{}, resets: map[UserID]*reset{},
+		feeds: map[string]feedRef{},
 	}
 	for _, o := range opts {
 		o(a)
@@ -225,6 +230,9 @@ type event struct {
 	OAuth *oauthRecord `json:"oauth,omitempty"`
 	// Spaces are the keys of a FavouritesSet, the whole list (ADR-0145).
 	Spaces []string `json:"spaces,omitempty"`
+	// Views are a user's saved calendar views of a CalendarViewsSet, the
+	// whole list with their feeds' hashes (ADR-0167).
+	Views []viewRecord `json:"views,omitempty"`
 }
 
 const (
@@ -258,6 +266,9 @@ const (
 	// favouritesSet records the spaces a user marked as favourites, the
 	// whole list (ADR-0145).
 	favouritesSet = "FavouritesSet"
+	// calendarViewsSet records the calendar views a user saved, the whole
+	// list (ADR-0167).
+	calendarViewsSet = "CalendarViewsSet"
 )
 
 // apply is the only code that changes accounts; it runs live and on load.
@@ -317,6 +328,8 @@ func (a *Accounts) apply(e event) error {
 			return fmt.Errorf("favourites of unknown user %s", e.User)
 		}
 		u.favourites = slices.Clone(e.Spaces)
+	case calendarViewsSet:
+		return a.applyViews(e)
 	case digestSent:
 		u, ok := a.users[e.User]
 		if !ok {

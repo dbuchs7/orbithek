@@ -111,7 +111,10 @@ import (
 //   - 40: a field may be of the kind datetime, a point in time; its values
 //     are written as dates are, in UTC (ADR-0166). Versions 1 to 39 are
 //     still read; they hold no such field.
-const CodecVersion = 40
+//   - 41: a field may be of the kind recurrence, the rule by which an
+//     item repeats, with its exceptions, written as text (ADR-0167).
+//     Versions 1 to 40 are still read.
+const CodecVersion = 41
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,
