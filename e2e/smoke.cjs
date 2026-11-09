@@ -1567,6 +1567,10 @@ function gitSource() {
     await page.goto(base + "/#/album");
     await page.waitForSelector("#album .album-card img");
     check(await page.locator("#album .album-card").count() === 2, "the album shows the image and the drawing, not the text file");
+    // Cards have their parts in the same places: the actions of a row of
+    // cards line up, whatever else a card shows (ADR-0173).
+    const actionTops = await page.$$eval("#album .album-grid > .album-card > .album-actions", (els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
+    check(actionTops.length === 2 && new Set(actionTops).size === 1, "the actions of a row of cards line up: " + actionTops);
     await page.selectOption("#album select[aria-label=Kind]", "drawing");
     await page.waitForFunction(() => document.querySelectorAll("#album .album-card").length === 1);
 
@@ -1583,7 +1587,7 @@ function gitSource() {
       await page.click(card + " .album-export summary");
       check((await page.locator(card + " .album-export button").allTextContents()).join("|") === "PNG (lossless)|JPEG (no transparency)|SVG (vector, drawn from the drawing)", "a drawing offers PNG, JPEG and SVG");
       await page.click(card + " .album-export summary");
-      const src = await page.evaluate(() => (document.querySelector("#album .album-card .album-front") || document.querySelector("#album .album-card figure > img")).getAttribute("src"));
+      const src = await page.evaluate(() => (document.querySelector("#album .album-card .album-front") || document.querySelector("#album .album-card .album-thumb > img")).getAttribute("src"));
       const stored = await (await page.request.get(base + src)).body();
       const svg = await saved("svg");
       const svgText = svg.bytes.toString("utf8");
@@ -1637,8 +1641,9 @@ function gitSource() {
     await page.waitForSelector("#album-upload");
     await page.setInputFiles("#album-files", { name: "brand.png", mimeType: "image/png", buffer: png });
     const brandCard = "#album .album-card:has(.album-name:text-is('brand'))";
-    await page.waitForSelector(brandCard + " .album-labels-input");
+    await page.waitForSelector(brandCard + " .album-labels-edit");
     check(await page.locator("#album .album-card").count() === 1, "the folder shows its own picture only");
+    await page.click(brandCard + " .album-labels-edit"); // the field opens on demand
     await page.fill(brandCard + " .album-labels-input", "Logo, print");
     await page.press(brandCard + " .album-labels-input", "Enter");
     await page.waitForSelector(brandCard + " .album-label:text-is('logo')");
@@ -1649,6 +1654,7 @@ function gitSource() {
     const itemLabels = await page.evaluate(async () => (await (await fetch("/api/labels")).json()).labels.map((l) => l.label));
     check(!itemLabels.includes("logo"), "a picture's label is no label of an item, so no kanban shows it");
     answer = true;
+    await page.click(brandCard + " .album-more summary"); // deleting is under More
     await page.click(brandCard + " .album-delete");
     await page.waitForSelector(brandCard, { state: "detached" });
 
@@ -1710,7 +1716,7 @@ function gitSource() {
     await page.waitForSelector("#album .album-card img");
     await page.fill("#album input[type=search]", drawingKey);
     await page.selectOption("#album select[aria-label=Kind]", "drawing");
-    await page.waitForSelector(stackCard + " .album-retention");
+    await page.click(stackCard + " .album-more summary"); // cleaning up is under More
     await page.click(stackCard + " .album-retention");
     await page.waitForSelector("dialog#retention-dialog[open] #retention-list li");
     check(await page.inputValue("#retention-keep") === "1", "the picture starts from the album's default");

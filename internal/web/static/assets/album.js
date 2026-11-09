@@ -105,22 +105,54 @@ export function albumBrowser({ pick } = {}) {
     options.replaceChildren(...all.map((l) => h("option", { value: l })));
   };
 
+  // labelsOf shows a picture's labels; each narrows the album to it. One
+  // who may edit the picture opens a field for them with one button, so
+  // the field does not stand open on every card.
   const labelsOf = (p) => {
-    const chips = (p.attachment.labels || []).map((l) => h("button", { type: "button", class: "chip album-label", text: l,
+    const name = captionOf(p.attachment.name);
+    const labels = p.attachment.labels || [];
+    const chips = () => labels.map((l) => h("button", { type: "button", class: "chip album-label", text: l,
       onclick: () => { label.value = l; load(false); } }));
-    if (pick || !p.editable) return chips.length ? h("p", { class: "album-labels" }, ...chips) : null;
-    const input = h("input", { class: "album-labels-input", list: "album-label-options", value: (p.attachment.labels || []).join(", "),
-      placeholder: t("album.labelsPlaceholder"), "aria-label": t("album.labels") });
-    input.addEventListener("change", async () => {
-      const labels = input.value.split(",").map((l) => l.trim()).filter(Boolean);
-      try {
-        await put(`/api/items/${p.item.id}/attachments/${p.attachment.id}/labels`, { labels });
-        status.replaceChildren();
-        await loadLabels();
-        load(false);
-      } catch (err) { fail(err); }
+    if (pick || !p.editable) return labels.length ? h("p", { class: "album-labels" }, ...chips()) : null;
+    const row = h("div", { class: "album-labels" });
+    const show = () => row.replaceChildren(...chips(), h("button", { type: "button", class: "link album-labels-edit",
+      text: labels.length ? t("album.labelsEdit") : t("album.labelsAdd"), "aria-label": t("album.labelsOf", { name }),
+      onclick: edit }));
+    const edit = () => {
+      const input = h("input", { class: "album-labels-input", list: "album-label-options", value: labels.join(", "),
+        placeholder: t("album.labelsPlaceholder"), "aria-label": t("album.labelsOf", { name }) });
+      let saving = false;
+      input.addEventListener("change", async () => {
+        saving = true;
+        try {
+          await put(`/api/items/${p.item.id}/attachments/${p.attachment.id}/labels`, { labels: input.value.split(",").map((l) => l.trim()).filter(Boolean) });
+          status.replaceChildren();
+          await loadLabels();
+          load(false);
+        } catch (err) { saving = false; fail(err); }
+      });
+      // Leaving the field unchanged, or Escape, closes it again.
+      input.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.preventDefault(); show(); } });
+      input.addEventListener("blur", () => setTimeout(() => { if (!saving && row.contains(input)) show(); }, 150));
+      row.replaceChildren(input);
+      input.focus();
+    };
+    show();
+    return row;
+  };
+
+  // A card's menus: the export menu and the menu of further actions
+  // (ADR-0173). One open menu at a time; a click elsewhere or Escape
+  // closes it.
+  const menu = (cls, summary, items) => {
+    const d = h("details", { class: `export-menu album-menu ${cls}` }, summary, h("div", { class: "export-list" }, items));
+    const outside = (e) => { if (!d.contains(e.target)) d.open = false; };
+    d.addEventListener("toggle", () => {
+      if (!d.open) return document.removeEventListener("click", outside, true);
+      for (const other of root.querySelectorAll("details.album-menu[open]")) if (other !== d) other.open = false;
+      document.addEventListener("click", outside, true);
     });
-    return h("div", { class: "album-labels" }, ...chips, input);
+    return d;
   };
 
   // exportMenu offers a picture as a file in each of its formats
@@ -128,11 +160,10 @@ export function albumBrowser({ pick } = {}) {
   // export it; the menu closes when a format is chosen.
   const formatText = { png: t("album.exportPng"), jpeg: t("album.exportJpeg"), svg: t("album.exportSvg") };
   const exportMenu = (p) => {
-    const menu = h("details", { class: "export-menu album-export" },
-      h("summary", { class: "button secondary", text: t("album.export"), title: t("album.exportTitle") }),
-      h("div", { class: "export-list" }, exportFormats(p).map((f) => h("button", { type: "button", class: "link", "data-format": f, text: formatText[f],
+    const m = menu("album-export", h("summary", { class: "button secondary", text: t("album.export"), title: t("album.exportTitle") }),
+      exportFormats(p).map((f) => h("button", { type: "button", class: "link", "data-format": f, text: formatText[f],
         onclick: async () => {
-          menu.open = false;
+          m.open = false;
           const name = captionOf(p.attachment.name);
           status.replaceChildren(h("p", { class: "muted", role: "status", text: t("album.exporting", { name }) }));
           try {
@@ -141,40 +172,72 @@ export function albumBrowser({ pick } = {}) {
           } catch (err) {
             fail(new Error(t("album.exportFailed", { name, reason: err.message === "empty" ? t("draw.empty") : err.message })));
           }
-        } }))));
-    return menu;
+        } })));
+    return m;
   };
 
-  // card shows one picture; version numbers it within its stack.
-  const card = (p, version, picture) => h("li", { class: "album-card", "data-attachment": p.attachment.id },
-    h("figure", {},
-      picture || h("img", { src: fileURL(p), alt: captionOf(p.attachment.name), loading: "lazy" }),
-      h("figcaption", {},
-        h("span", { class: "album-name", text: captionOf(p.attachment.name) }),
-        h("span", { class: "album-chips" },
-          p.drawing ? h("span", { class: "chip", text: t("album.drawing") }) : null,
-          version ? h("span", { class: "chip album-version", text: t("album.version", { n: version }) }) : null),
-        version ? h("span", { class: "muted album-when", text: when(p.attachment.created) }) : null,
-        h("a", { href: "#/item/" + encodeURIComponent(p.item.key), class: "muted album-item", text: `${p.item.key} ${p.item.title}`,
-          target: pick ? "_blank" : null, rel: pick ? "noopener" : null }))),
-    labelsOf(p),
-    pick ? h("button", { type: "button", class: "primary album-pick", text: t("album.insert"), onclick: () => pick(p) })
-      : h("button", { type: "button", class: "secondary album-copy", text: t("album.copy"), title: t("album.copyTitle"), onclick: async () => {
+  // moreMenu holds what one who may edit a picture does less often: clean
+  // up its older versions (ADR-0104) and delete it (ADR-0090). A picture
+  // its item's text shows is deleted there, not here; the menu says so.
+  const moreMenu = (p, stacked) => {
+    const name = captionOf(p.attachment.name);
+    const m = menu("album-more", h("summary", { class: "album-more-button", "aria-label": t("album.moreOf", { name }), title: t("album.moreTitle") }), [
+      stacked ? h("button", { type: "button", class: "link album-retention", text: t("retention.open"),
+        onclick: () => { m.open = false; cleanUp(p); } }) : null,
+      h("button", { type: "button", class: "link danger album-delete", text: t("album.delete"), disabled: p.used,
+        onclick: async () => {
+          m.open = false;
+          if (!confirm(t("album.deleteConfirm", { name: p.attachment.name }))) return;
+          try {
+            await del(`/api/items/${p.item.id}/attachments/${p.attachment.id}`);
+            await loadLabels();
+            load(false);
+          } catch (err) { fail(err); }
+        } }),
+      p.used ? h("p", { class: "muted album-used", text: t("album.used") }) : null,
+    ]);
+    return m;
+  };
+
+  // actions is the row at a card's foot: Insert while choosing a picture,
+  // otherwise Copy and Export, of one width.
+  const actions = (p) => {
+    if (pick) return h("div", { class: "album-actions album-actions-pick" },
+      h("button", { type: "button", class: "primary album-pick", text: t("album.insert"), onclick: () => pick(p) }));
+    return h("div", { class: "album-actions" },
+      h("button", { type: "button", class: "secondary album-copy", text: t("album.copy"), title: t("album.copyTitle"), onclick: async () => {
         const system = await copyPicture(p);
         status.replaceChildren(h("p", { class: "notice", role: "status", text: t(system ? "album.copied" : "album.copiedHere", { name: captionOf(p.attachment.name) }) }));
       } }),
-    pick ? null : exportMenu(p),
-    // A picture its item's text shows is deleted there, not here.
-    !pick && p.editable && !p.used ? h("button", { type: "button", class: "danger album-delete", text: t("album.delete"),
-      onclick: async () => {
-        if (!confirm(t("album.deleteConfirm", { name: p.attachment.name }))) return;
-        try {
-          await del(`/api/items/${p.item.id}/attachments/${p.attachment.id}`);
-          await loadLabels();
-          load(false);
-        } catch (err) { fail(err); }
-      } }) : null,
-    !pick && p.editable && p.used ? h("p", { class: "muted album-used", text: t("album.used") }) : null);
+      exportMenu(p));
+  };
+
+  // card shows one picture, with the same parts in the same places on every
+  // card: the picture in a box of one height, the name in at most two lines
+  // with the menu of further actions beside it for one who may edit, one
+  // line of facts (kind, version, own rule, date), the item it belongs to,
+  // its labels, and its actions at the card's foot, so the buttons of a row
+  // of cards line up. version numbers it within its stack; stacked says it
+  // is the top of a stack with older versions.
+  const card = (p, version, picture, stacked = false) => {
+    const name = captionOf(p.attachment.name);
+    return h("li", { class: "album-card", "data-attachment": p.attachment.id },
+      h("figure", {},
+        h("div", { class: "album-thumb" }, picture || h("img", { src: fileURL(p), alt: name, loading: "lazy" })),
+        h("figcaption", {},
+          h("div", { class: "album-head" },
+            h("span", { class: "album-name", text: name, title: name }),
+            !pick && p.editable ? moreMenu(p, stacked) : null),
+          h("span", { class: "album-chips" },
+            p.drawing ? h("span", { class: "chip", text: t("album.drawing") }) : null,
+            version ? h("span", { class: "chip album-version", text: t("album.version", { n: version }) }) : null,
+            stacked && p.retention ? h("span", { class: "chip album-own-rule", text: t("retention.chip") }) : null,
+            h("span", { class: "muted album-when", text: when(p.attachment.created) })),
+          h("a", { href: "#/item/" + encodeURIComponent(p.item.key), class: "muted album-item", text: `${p.item.key} ${p.item.title}`,
+            title: `${p.item.key} ${p.item.title}`, target: pick ? "_blank" : null, rel: pick ? "noopener" : null }))),
+      labelsOf(p),
+      actions(p));
+  };
 
   // cleanUp lets whoever may edit a picture remove its older versions and
   // give them a rule of their own (ADR-0104). The values start from the
@@ -282,10 +345,8 @@ export function albumBrowser({ pick } = {}) {
       versions.slice(0, 2).map((v, i) => h("img", { class: `album-behind album-behind-${i + 1}`, src: fileURL(v), alt: "", loading: "lazy", "aria-hidden": "true" })).reverse(),
       h("img", { class: "album-front", src: fileURL(p), alt: captionOf(p.attachment.name), loading: "lazy" }),
       h("span", { class: "album-stack-count", "aria-hidden": "true", text: String(n) }));
-    const li = card(p, n, top);
+    const li = card(p, n, top, true);
     li.classList.add("album-stack");
-    if (p.retention) li.querySelector(".album-chips").append(h("span", { class: "chip album-own-rule", text: t("retention.chip") }));
-    if (!pick && p.editable) li.append(h("button", { type: "button", class: "secondary album-retention", text: t("retention.open"), onclick: () => cleanUp(p) }));
     top.addEventListener("click", () => {
       const open = !fan;
       top.setAttribute("aria-expanded", String(open));
@@ -418,10 +479,16 @@ export function albumBrowser({ pick } = {}) {
     rooms = [...spaces.filter((s) => s.favourite), ...spaces.filter((s) => !s.favourite)];
     space.append(...roomOptions());
   }).catch(() => {});
+  const root = h("div", { class: "album" }, h("div", { class: "album-filters filter-bar", role: "search", "aria-label": t("album.title") }, search, kind, space, label, reset), options,
+    trail, tools, status, folders, count, grid, more);
+  // Escape closes the open menu of a card and returns to its button.
+  root.addEventListener("keydown", (e) => {
+    const d = e.target instanceof Element ? e.target.closest("details.album-menu[open]") : null;
+    if (e.key === "Escape" && d) { e.preventDefault(); d.open = false; d.querySelector("summary").focus(); }
+  });
   loadLabels().catch(() => {});
   open();
-  return h("div", { class: "album" }, h("div", { class: "album-filters filter-bar", role: "search", "aria-label": t("album.title") }, search, kind, space, label, reset), options,
-    trail, tools, status, folders, count, grid, more);
+  return root;
 }
 
 // pickFromAlbum shows the album in a dialog and resolves to the chosen
