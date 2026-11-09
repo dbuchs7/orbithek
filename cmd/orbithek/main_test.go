@@ -310,12 +310,19 @@ func TestCalendarFeedsConfiguration(t *testing.T) {
 	if code != 1 || !strings.Contains(errOut, "OT_CALENDAR_FEEDS is unusable") {
 		t.Errorf("unknown value: exit %d, stderr %q", code, errOut)
 	}
-	t.Setenv("OT_CALENDAR_FEEDS", "off")
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
+	for _, v := range []string{"", "off"} {
+		t.Setenv("OT_CALENDAR_FEEDS", v)
+		code, _, errOut = runCmd(t, ctx, "serve", "-addr", freeAddr(t), "-data-dir", t.TempDir())
+		if code != 0 || strings.Contains(errOut, "calendar feeds are on") {
+			t.Errorf("%q: exit %d, stderr %q", v, code, errOut)
+		}
+	}
+	t.Setenv("OT_CALENDAR_FEEDS", "on")
 	code, _, errOut = runCmd(t, ctx, "serve", "-addr", freeAddr(t), "-data-dir", t.TempDir())
-	if code != 0 || !strings.Contains(errOut, "calendar feeds are off") {
-		t.Errorf("off: exit %d, stderr %q", code, errOut)
+	if code != 0 || !strings.Contains(errOut, "calendar feeds are on") {
+		t.Errorf("on: exit %d, stderr %q", code, errOut)
 	}
 }
 

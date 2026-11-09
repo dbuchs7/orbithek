@@ -14,7 +14,7 @@ import (
 // occurrence, a cancelled one left out; a new or ended feed closes the old
 // address (ADR-0168).
 func TestSavedCalendarViewsAndTheirFeed(t *testing.T) {
-	w := newWorld(t)
+	w := newWorld(t, feedsOn)
 	w.admin.expect("POST", "/api/types", `{"name":"meeting","fields":[{"name":"assignee","kind":"user"},{"name":"starts","kind":"datetime"},{"name":"ends","kind":"datetime"},{"name":"repeats","kind":"recurrence"}]}`, http.StatusCreated)
 	b := w.bert
 	today := time.Now().UTC()
@@ -144,22 +144,32 @@ func TestSavedCalendarViewsAndTheirFeed(t *testing.T) {
 	}
 }
 
-// TestCalendarFeedsTurnedOff: with OT_CALENDAR_FEEDS=off no feed is made
-// and a feed made before opens nothing; views stay, and an old feed can
-// still be ended (ADR-0168).
+// feedsOn serves calendar feeds (OT_CALENDAR_FEEDS=on).
+func feedsOn(d *Deps) { d.CalendarFeeds = true }
+
+// TestCalendarFeedsTurnedOff: feeds are off unless OT_CALENDAR_FEEDS=on;
+// then no feed is made and a feed made before opens nothing; views stay,
+// and an old feed can still be ended (ADR-0168).
 func TestCalendarFeedsTurnedOff(t *testing.T) {
-	on := newWorld(t)
+	plain := newWorld(t)
+	pv := plain.bert.expect("POST", "/api/me/calendar-views", `{"name":"Mine","params":""}`, http.StatusCreated)
+	plain.bert.expect("POST", "/api/me/calendar-views/"+field(pv, "view", "id").(string)+"/feed", "{}", http.StatusForbidden)
+	if list := plain.bert.expect("GET", "/api/me/calendar-views", "", http.StatusOK); list["feeds"] != false {
+		t.Fatalf("feeds are off by default: %v", list)
+	}
+
+	on := newWorld(t, feedsOn)
 	v := on.bert.expect("POST", "/api/me/calendar-views", `{"name":"Mine","params":""}`, http.StatusCreated)
 	vid := field(v, "view", "id").(string)
 	f := on.bert.expect("POST", "/api/me/calendar-views/"+vid+"/feed", "{}", http.StatusCreated)
 	feedURL, _ := url.Parse(f["url"].(string))
 	if list := on.bert.expect("GET", "/api/me/calendar-views", "", http.StatusOK); list["feeds"] != true {
-		t.Fatalf("feeds are on by default: %v", list)
+		t.Fatalf("feeds are on when turned on: %v", list)
 	}
 
 	// The same data directory, served with feeds turned off.
 	off := on.deps
-	off.CalendarFeedsOff = true
+	off.CalendarFeeds = false
 	h := Handler(Routes(off), off.DB.Accounts)
 	bert := &client{t: t, h: h, cookie: on.bert.cookie}
 	anon := &client{t: t, h: h}
