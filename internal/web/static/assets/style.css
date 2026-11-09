@@ -890,43 +890,62 @@ dialog.drawing::backdrop { background: rgba(20, 22, 26, .45); }
 /* The album (ADR-0054): a grid of pictures with their items. */
 .album-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 .album-filters input[type=search] { flex: 1 1 240px; }
-.album-grid { list-style: none; margin: 12px 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.album-grid { list-style: none; margin: 12px 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
 .album-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
 .album-card figure { margin: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.album-card img { width: 100%; height: 140px; object-fit: contain; background: #fff; border-radius: 4px; }
+/* Every card has the same parts in the same places (ADR-0173): the picture
+   in a box of one height, the name in at most two lines, one line of
+   facts, the item, the labels, and the actions in one row at the foot,
+   so the buttons of a row of cards line up. */
+.album-thumb { height: 156px; }
+.album-thumb > img { display: block; width: 100%; height: 100%; object-fit: contain; background: #fff; border-radius: 4px; }
 .album-card figcaption { display: flex; flex-direction: column; gap: 2px; font-size: 13px; min-width: 0; }
-.album-name { font-weight: 600; overflow-wrap: anywhere; }
+.album-name { font-weight: 600; overflow-wrap: anywhere; line-height: 1.35; min-height: 2.7em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .album-item { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Folders, tools and picture labels (ADR-0090). */
 /* A file's versions as a stack (ADR-0103): the newest in front, up to two
    older ones offset behind it, half hidden. The front fans them out into
    a row of their own below the stack. */
-.album-stack-top { position: relative; display: block; width: 100%; height: 164px; padding: 0; margin: 0; border: 0; background: none; cursor: pointer; }
-.album-stack-top img { position: absolute; top: 0; left: 0; width: calc(100% - 24px); height: 140px; object-fit: contain; background: #fff; border: 1px solid var(--border); border-radius: 4px; transition: transform .18s ease; }
-.album-stack-top .album-behind-1 { transform: translate(12px, 12px); }
-.album-stack-top .album-behind-2 { transform: translate(24px, 24px); }
+.album-stack-top { position: relative; display: block; width: 100%; height: 156px; padding: 0; margin: 0; border: 0; background: none; cursor: pointer; }
+.album-stack-top img { position: absolute; top: 0; left: 0; width: calc(100% - 16px); height: 140px; object-fit: contain; background: #fff; border: 1px solid var(--border); border-radius: 4px; transition: transform .18s ease; }
+.album-stack-top .album-behind-1 { transform: translate(8px, 8px); }
+.album-stack-top .album-behind-2 { transform: translate(16px, 16px); }
 .album-stack-top .album-behind { opacity: .85; box-shadow: 0 1px 2px rgba(0, 0, 0, .08); }
 @media (prefers-reduced-motion: reduce) { .album-stack-top img { transition: none; } }
 .album-stack-top .album-front { box-shadow: 0 2px 6px rgba(0, 0, 0, .12); }
-.album-stack-top:hover .album-behind-1, .album-stack-top:focus-visible .album-behind-1 { transform: translate(16px, 12px) rotate(2deg); }
-.album-stack-top:hover .album-behind-2, .album-stack-top:focus-visible .album-behind-2 { transform: translate(30px, 22px) rotate(4deg); }
+.album-stack-top:hover .album-behind-1, .album-stack-top:focus-visible .album-behind-1 { transform: translate(11px, 8px) rotate(2deg); }
+.album-stack-top:hover .album-behind-2, .album-stack-top:focus-visible .album-behind-2 { transform: translate(20px, 14px) rotate(4deg); }
 .album-stack-top:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
-.album-stack-count { position: absolute; top: 6px; right: 30px; min-width: 22px; padding: 1px 7px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 12px; font-weight: 600; text-align: center; }
+.album-stack-count { position: absolute; top: 6px; right: 22px; min-width: 22px; padding: 1px 7px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 12px; font-weight: 600; text-align: center; }
 .album-stack.fanned { border-color: var(--accent); }
 .album-fan { grid-column: 1 / -1; background: var(--accent-soft); border-radius: 8px; padding: 4px 12px; }
 .album-fan > .album-grid { margin: 8px 0; }
-.album-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.album-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; min-height: 20px; }
 .album-when { font-size: 12px; }
 /* Cleaning up a picture's older versions (ADR-0104): the limits, then
    every version with what becomes of it. */
-.album-stack > .album-retention { align-self: flex-start; font-size: 13px; padding: 4px 10px; }
-.album-card > .album-copy { align-self: flex-start; font-size: 13px; padding: 4px 10px; }
-/* Exporting a picture (ADR-0173): the page's export menu, opening from the
-   card's left edge, as the card is narrow; on a phone it sits at the
-   bottom as every export menu does. */
-.album-card > .album-export { align-self: flex-start; }
-.album-export > summary { font-size: 13px; padding: 4px 10px; }
-@media (min-width: 641px) { .album-export > .export-list { left: 0; right: auto; min-width: 14rem; } }
+/* A card's actions (ADR-0173): Copy and Export of one width in one row at
+   the card's foot; the menu of further actions (⋯) beside the name. The
+   menus are the page's export menu; Export opens from its left edge, More
+   from its right, and on a phone both sit at the bottom as every export
+   menu does. */
+.album-actions { margin-top: auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
+.album-actions.album-actions-pick { grid-template-columns: minmax(0, 1fr); }
+.album-actions > details { min-width: 0; }
+.album-actions > button, .album-actions > details > summary { display: block; width: 100%; box-sizing: border-box; min-height: 32px; margin: 0; padding: 5px 8px;
+  font-size: 13px; line-height: 20px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.album-head { display: flex; align-items: flex-start; gap: 4px; }
+.album-head > .album-name { flex: 1 1 auto; min-width: 0; }
+.album-head > .album-more { flex: none; }
+.album-more-button { display: block; min-width: 28px; height: 24px; padding: 0 4px; border: 1px solid transparent; border-radius: 6px; color: var(--muted); text-align: center; cursor: pointer; }
+.album-more-button:hover, .album-more[open] > .album-more-button { background: var(--row-hover); color: var(--text); }
+.album-more-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.album-more-button::before { content: "⋯"; font-size: 18px; line-height: 22px; }
+.album-more .album-used { font-size: 12px; margin: 2px 10px 4px; max-width: 14rem; }
+@media (min-width: 641px) {
+  .album-export > .export-list { left: 0; right: auto; min-width: 14rem; }
+  .album-more > .export-list { left: auto; right: 0; min-width: 12rem; }
+}
 .album-own-rule { background: #fff5e6 !important; color: #8a4b00 !important; }
 dialog.retention-dialog { width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 64px); padding: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: inherit; }
 dialog.retention-dialog::backdrop { background: rgba(20, 22, 26, .45); }
@@ -950,10 +969,14 @@ dialog.retention-dialog .drawing-bar button { margin-left: auto; }
 .album-folder { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; text-align: left; overflow-wrap: anywhere; }
 .album-folder-icon { flex: none; position: relative; width: 26px; height: 18px; margin-top: 4px; background: var(--accent); border-radius: 2px 3px 3px 3px; opacity: .8; }
 .album-folder-icon::before { content: ""; position: absolute; top: -4px; left: 0; width: 11px; height: 5px; background: inherit; border-radius: 2px 2px 0 0; }
-.album-labels { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; }
+.album-labels { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0; min-height: 24px; }
 .album-labels-input { flex: 1 1 100%; font-size: 13px; }
+button.link.album-labels-edit { font-size: 12px; color: var(--muted); }
+button.link.album-labels-edit:hover { color: var(--accent); }
+/* A picture's labels are small chips like the card's facts, not buttons
+   of a control's height. */
+.album-labels > .chip.album-label { min-height: 0; height: auto; margin: 0; line-height: 18px; border: 0; }
 .album-label { cursor: pointer; }
-.album-used { font-size: 12px; margin: 0; }
 .album-card .chip { align-self: flex-start; font-size: 11px; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
 dialog.album-dialog { width: min(960px, calc(100vw - 32px)); max-height: calc(100vh - 64px); padding: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: inherit; }
 dialog.album-dialog::backdrop { background: rgba(20, 22, 26, .45); }
