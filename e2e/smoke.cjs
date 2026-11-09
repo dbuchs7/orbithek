@@ -1569,6 +1569,40 @@ function gitSource() {
     check(await page.locator("#album .album-card").count() === 2, "the album shows the image and the drawing, not the text file");
     await page.selectOption("#album select[aria-label=Kind]", "drawing");
     await page.waitForFunction(() => document.querySelectorAll("#album .album-card").length === 1);
+
+    step("album export: a picture leaves as PNG or JPEG, a drawing also as SVG drawn from its scene (ADR-0173)");
+    {
+      const fs = require("fs");
+      const card = "#album .album-card";
+      const saved = async (format) => {
+        await page.click(card + " .album-export summary");
+        const [file] = await Promise.all([page.waitForEvent("download"), page.click(`${card} .album-export button[data-format=${format}]`)]);
+        await page.waitForSelector("#album .status .notice");
+        return { name: file.suggestedFilename(), bytes: fs.readFileSync(await file.path()) };
+      };
+      await page.click(card + " .album-export summary");
+      check((await page.locator(card + " .album-export button").allTextContents()).join("|") === "PNG (lossless)|JPEG (no transparency)|SVG (vector, drawn from the drawing)", "a drawing offers PNG, JPEG and SVG");
+      await page.click(card + " .album-export summary");
+      const src = await page.evaluate(() => (document.querySelector("#album .album-card .album-front") || document.querySelector("#album .album-card figure > img")).getAttribute("src"));
+      const stored = await (await page.request.get(base + src)).body();
+      const svg = await saved("svg");
+      const svgText = svg.bytes.toString("utf8");
+      check(svg.name.endsWith(".svg") && !svg.name.includes(".drawing"), "the SVG is named after the drawing: " + svg.name);
+      check(svgText.startsWith("<svg") && svgText.trimEnd().endsWith("</svg>") && svgText.includes("<path"), "the SVG draws the drawing's shapes: " + svgText.slice(0, 120));
+      check(!/<script|\son[a-z]+\s*=/i.test(svgText), "the SVG holds no script");
+      check(await page.locator("iframe.export-frame").count() === 0, "the frame that drew the SVG is gone");
+      const pngFile = await saved("png");
+      check(pngFile.name.endsWith(".png") && !pngFile.name.includes(".drawing") && pngFile.bytes.equals(stored), "a drawing's PNG is its stored picture, scene included");
+      const jpg = await saved("jpeg");
+      check(jpg.name.endsWith(".jpg") && jpg.bytes[0] === 0xff && jpg.bytes[1] === 0xd8 && jpg.bytes[2] === 0xff, "the drawing as JPEG: " + jpg.name);
+      await page.selectOption("#album select[aria-label=Kind]", "image");
+      // An image offers PNG and JPEG, no SVG.
+      await page.waitForFunction(() => { const c = document.querySelectorAll("#album .album-card"); return c.length === 1 && c[0].querySelectorAll(".album-export button").length === 2; });
+      const pixel = await saved("jpeg");
+      check(pixel.name === "pixel.jpg" && pixel.bytes[0] === 0xff && pixel.bytes[1] === 0xd8, "the image converted to JPEG: " + pixel.name);
+      check((await page.textContent("#album .status")).includes("pixel.jpg saved."), "the album says what it saved");
+    }
+
     await page.goto(base + "/#/item/PLAT-2?edit");
     await page.waitForSelector("#body.editing .ProseMirror");
     await page.locator("#body .ProseMirror").click();

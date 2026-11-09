@@ -41,20 +41,34 @@ for f in node_modules/@excalidraw/excalidraw/dist/prod/locales/*.js; do
 done
 # Excalidraw lists a CDN after the path the page sets for its fonts. The
 # content security policy blocks it, but browsers still try it; the bundle
-# names the installation's own path only. The build fails if the code it
-# replaces is not found exactly once, as after an update that changed it.
+# names the installation's own path only.
+# A drawing exported as SVG (ADR-0173) carries the fonts its text needs.
+# Excalidraw first cuts them down to the glyphs used, with a decoder that
+# compiles code from strings; the drawing page's policy forbids that, so the
+# attempt fails, reports a policy violation and then embeds the whole font
+# file anyway. The bundle embeds the font files at once, without trying.
+# The build fails if the code either change replaces is not found exactly
+# once, as after an update that changed it.
 node -e '
   const fs = require("fs");
   const dir = process.argv[1];
-  const re = /return ([A-Za-z_$][\w$]*)\.push\(new URL\([A-Za-z_$][\w$]*,[A-Za-z_$][\w$]*\.ASSETS_FALLBACK_URL\)\),\1\}/g;
-  let n = 0;
-  for (const f of fs.readdirSync(dir)) {
-    const p = dir + "/" + f;
-    const src = fs.readFileSync(p, "utf8");
-    const out = src.replace(re, (_, list) => { n++; return `return ${list}}`; });
-    if (out !== src) fs.writeFileSync(p, out);
+  const id = "[A-Za-z_$][\\w$]*";
+  const patches = [
+    ["the CDN fallback for fonts", new RegExp(`return (${id})\\.push\\(new URL\\(${id},${id}\\.ASSETS_FALLBACK_URL\\)\\),\\1\\}`, "g"),
+      (_, list) => `return ${list}}`],
+    ["the cutting down of fonts", new RegExp(`=async\\((${id}),${id}\\)=>\\{let\\{Commands:${id},subsetToBase64:${id},toBase64:(${id})\\}=await ${id}\\(\\);return `, "g"),
+      (m, font, toBase64) => `${m}${toBase64}(${font});return `],
+  ];
+  for (const [name, re, to] of patches) {
+    let n = 0;
+    for (const f of fs.readdirSync(dir)) {
+      const p = dir + "/" + f;
+      const src = fs.readFileSync(p, "utf8");
+      const out = src.replace(re, (...m) => { n++; return to(...m); });
+      if (out !== src) fs.writeFileSync(p, out);
+    }
+    if (n !== 1) { console.error(`${name} was found ${n} times, not once`); process.exit(1); }
   }
-  if (n !== 1) { console.error(`the CDN fallback for fonts was found ${n} times, not once`); process.exit(1); }
 ' "$out/excalidraw-assets"
 # Its fonts come from this server, not from a CDN: the page sets
 # EXCALIDRAW_ASSET_PATH, and the stylesheet names them relative to itself.
