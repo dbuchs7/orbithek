@@ -930,6 +930,8 @@ export default {
   "home.notesNone": "Nichts Neues",
   "home.starmapText": "Ihre Räume als Karte der Zusammenhänge",
   "home.albumText": "Bilder und Zeichnungen",
+  "home.whiteboardsText": "Gemeinsam und live auf einer Fläche arbeiten",
+  "home.whiteboardsLive": {"one": "{n} Whiteboard gerade in Verwendung", "other": "{n} Whiteboards gerade in Verwendung"},
   "home.myNotesText": { "one": "1 Notiz, nur für Sie", "other": "{n} Notizen, nur für Sie" },
   "home.myNotesNone": "Noch keine; nur Sie sehen sie",
   "home.mcpText": "Einen KI-Assistenten lesen und schreiben lassen",
