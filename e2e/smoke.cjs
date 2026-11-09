@@ -1201,7 +1201,10 @@ function gitSource() {
     // makes no pages (ADR-0112).
     check(await page.$eval(".page-head .actions", (p) => p.lastElementChild.id) === "watch" && await page.locator(".tree-box a.tree-new").count() === 0,
       "the bell is the last of the page's buttons");
+    // For an administrator New opens a menu: a page or item, or a room.
     await page.click("#nav-new");
+    await page.waitForSelector("#new-menu:not([hidden]) #new-menu-space");
+    await page.click("#new-menu-item");
     await page.waitForSelector("#new-item [name=under]:checked");
     await page.fill("#new-item [name=title]", "Created from New");
     await page.selectOption("#new-item [name=type]", "task");
@@ -2880,9 +2883,21 @@ function gitSource() {
     step("start page: a star marks a space as a favourite; favourites come first, as tiles, in the list and in every choice of a space (ADR-0145)");
     // A second space, last in the order, to bring to the front; removed for
     // good at the end of the step.
-    check((await page.request.post(base + "/api/spaces", { data: { key: "ZFAV", name: "Favourite" } })).status() === 201, "a second space");
-    await page.reload();
+    // It is made from the button beside the layout switch, which opens
+    // the same dialog as "New room" under New in the header.
+    await page.click("#spaces-new");
+    await page.waitForSelector("dialog#new-space-dialog[open]");
+    await page.click("#new-space-dialog-cancel");
+    await page.waitForSelector("dialog#new-space-dialog", { state: "detached" });
+    await page.click("#nav-new");
+    await page.click("#new-menu-space");
+    await page.fill("#new-space-dialog [name=key]", "ZFAV");
+    await page.fill("#new-space-dialog [name=name]", "Favourite");
+    await page.click("#new-space-dialog-ok");
+    await page.waitForFunction(() => location.hash === "#/space/ZFAV");
+    await page.click("a.brand");
     await page.waitForSelector("#spaces-overview .space-tile:has-text('Favourite')");
+    check(await page.locator("#new-space-card").count() === 0, "with rooms, the start page has no form for a new room below them");
     const tileKeys = () => page.$$eval("#spaces-overview .space-tiles > li .space-key", (els) => els.map((e) => e.textContent));
     const before = await tileKeys();
     check(before.length >= 2, "more than one space to order");
