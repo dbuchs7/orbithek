@@ -1,9 +1,9 @@
 # ADR-0173: Pictures of the album export as PNG and JPEG, drawings also as SVG
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-09
-- **Deciders:** Project initiators (request of 2026-11-09: an export of pictures from the album for the people entitled to it, at least as PNG and JPEG and perhaps as SVG; asked who is entitled, the requester chose everyone who may read a picture, and SVG for drawings only)
+- **Deciders:** Project initiators (request of 2026-11-09: an export of pictures from the album for the people entitled to it, at least as PNG and JPEG and perhaps as SVG; asked who is entitled, the requester chose everyone who may read a picture, and SVG for drawings only; accepted 2026-11-09)
 - **Open question:** whether an organisation needs exports limited to a role and recorded, although every reader receives a picture's bytes to see it; and whether drawings should also export as PNG and JPEG drawn larger from their scene
 - **Question checked:** 2026-11
 
