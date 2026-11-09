@@ -122,6 +122,13 @@ var (
 // Nor are a person's connections to engines and the work on a linked
 // task (ADR-0151): completing a task is deciding, and an agent works tasks
 // at the engine with a grant of its own.
+//
+// The Word templates of types (ADR-0167) are not offered: keeping them is
+// the administration of the corporate design, and a page's frame as its
+// template's document is drawn for people. An agent creating a page of
+// such a type gets its start text as any caller does, and reads the page
+// as Markdown. Moving a page to a newer template version is not offered
+// either: it changes how a document others answer for looks.
 var tools = []tool{
 	{Name: "list_spaces", Description: "List the spaces the caller holds a role in.", Method: "GET", Path: "/api/spaces"},
 	{Name: "get_own_roles", Description: "The caller's own roles: the system roles held, and every space role granted to the caller, directly or through a group (via), one entry per grant.",

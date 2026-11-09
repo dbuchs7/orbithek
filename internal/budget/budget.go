@@ -69,6 +69,9 @@ type Budgets struct {
 	// BrandingBytes is the largest logo, background image or font file of
 	// the corporate design (ADR-0052).
 	BrandingBytes int64
+	// WordTemplateBytes is the largest Word template an administrator
+	// uploads (ADR-0167); its parts may unpack to eight times as much.
+	WordTemplateBytes int64
 	// ExportRows is the largest list one CSV export writes (ADR-0071).
 	ExportRows int
 	// ChangesPage is the largest page of the change feed (ADR-0121).
@@ -124,6 +127,7 @@ func Default() Budgets {
 		AttachmentBytes:       25 << 20,
 		AvatarBytes:           256 << 10,
 		BrandingBytes:         2 << 20,
+		WordTemplateBytes:     10 << 20,
 		ExportRows:            10_000,
 		ChangesPage:           1000,
 		ChangesWait:           30,

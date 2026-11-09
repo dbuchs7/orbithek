@@ -325,6 +325,10 @@ type Item struct {
 	// ErasedSecrets are the passages erased for good, whose keys are
 	// destroyed (ADR-0089); the text of earlier versions shows them veiled.
 	ErasedSecrets []ID
+	// Template is the version of its type's Word template the item was
+	// made with or last moved to (ADR-0167); nil for items of types without
+	// one and for items made before the type had one.
+	Template *TemplateRef
 
 	created int // sequence number of the creating event; orders items
 	// erasedBefore withholds the versions of the body before it: they may
@@ -461,7 +465,24 @@ const (
 	SecretGranted   EventKind = "SecretGranted"
 	SecretDeclined  EventKind = "SecretDeclined"
 	SecretErased    EventKind = "SecretErased"
+	// TemplateSet moves an item to another version of its type's Word
+	// template (ADR-0167).
+	TemplateSet EventKind = "TemplateSet"
 )
+
+// TemplateRef names a version of a Word template (ADR-0167).
+type TemplateRef struct {
+	ID      string `json:"id"`
+	Version int    `json:"version"`
+}
+
+func (r *TemplateRef) clone() *TemplateRef {
+	if r == nil {
+		return nil
+	}
+	c := *r
+	return &c
+}
 
 // Event is one immutable change. Values that are not deterministic (time,
 // generated IDs) are frozen into the event, so replaying the log yields the
@@ -519,6 +540,7 @@ type Event struct {
 	Kanban       *Kanban      // KanbanSet; KanbanRemoved and KanbanCardPlaced: only its ID
 	Secret       *Secret      // SecretSet; the other secret kinds: only its ID
 	Task         ID           // SecretRequested: the task item made for the request, if any (ADR-0162)
+	Template     *TemplateRef // ItemCreated, TemplateSet: the Word template's version (ADR-0167)
 
 	// Erased is set on an event whose content (title, properties, body, raw
 	// source) was removed because its item was purged or redacted. The
@@ -585,6 +607,7 @@ func (it *Item) clone() Item {
 		o := *it.Origin
 		c.Origin = &o
 	}
+	c.Template = it.Template.clone()
 	return c
 }
 

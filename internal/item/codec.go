@@ -111,7 +111,12 @@ import (
 //   - 40: a field may be of the kind datetime, a point in time; its values
 //     are written as dates are, in UTC (ADR-0166). Versions 1 to 39 are
 //     still read; they hold no such field.
-const CodecVersion = 40
+//   - 41: a type may name a Word template (Template) and a start text
+//     (Start); ItemCreated may carry template, the version of that
+//     template the item is made with, and TemplateSet moves an item to
+//     another (ADR-0167). Versions 1 to 40 are still read; their items
+//     have no template.
+const CodecVersion = 41
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,
@@ -254,6 +259,7 @@ type wireEvent struct {
 	Kanban       *Kanban               `json:"kanban,omitempty"`
 	Secret       *Secret               `json:"secret,omitempty"`
 	Task         ID                    `json:"task,omitempty"`
+	Template     *TemplateRef          `json:"template,omitempty"`
 	Erased       bool                  `json:"erased,omitempty"`
 	// Sealed holds the encrypted content (wireContent) when a Sealer was
 	// used; the plaintext content fields are then empty.
@@ -461,6 +467,7 @@ func toWire(e Event) (wireEvent, error) {
 		Restriction: e.Restriction, Reason: e.Reason, Origin: e.Origin, Key: e.Key, Managed: e.Managed, Linked: e.Linked, LinkedFields: e.LinkedFields,
 		Comment: e.Comment, Text: e.Text, Labels: e.Labels, Attachment: e.Attachment, Erased: e.Erased,
 		Anchor: e.Anchor, Reply: e.Reply, Hold: e.Hold, Outcome: e.Outcome, Kanban: e.Kanban, Secret: e.Secret, Task: e.Task,
+		Template: e.Template,
 	}
 	if e.Role != 0 {
 		name, ok := roleNames[e.Role]
@@ -500,6 +507,7 @@ func fromWire(w wireEvent) (Event, error) {
 		Restriction: w.Restriction, Reason: w.Reason, Origin: w.Origin, Key: w.Key, Managed: w.Managed, Linked: w.Linked, LinkedFields: w.LinkedFields,
 		Comment: w.Comment, Text: w.Text, Labels: w.Labels, Attachment: w.Attachment, Erased: w.Erased,
 		Anchor: w.Anchor, Reply: w.Reply, Hold: w.Hold, Outcome: w.Outcome, Kanban: w.Kanban, Secret: w.Secret, Task: w.Task,
+		Template: w.Template,
 	}
 	if w.Role != "" {
 		for r, name := range roleNames {

@@ -27,6 +27,9 @@ type Store struct {
 	// assess finds the indicators of data protection regulations in
 	// content, for live commands only (ADR-0058); nil turns it off.
 	assess Assessor
+	// templateVersions tells the newest version of each Word template
+	// (ADR-0167); nil makes items without one.
+	templateVersions TemplateVersions
 
 	log   []Event
 	types map[string][]TypeDef // all versions, oldest first
@@ -284,6 +287,10 @@ type NewItem struct {
 	// batch: an item is never left empty because its body was refused.
 	// It cannot show images yet, for the item has no files.
 	Body *Doc
+	// Template, if given, is the version of the type's Word template the
+	// item is made with, as a copy keeps its original's (ADR-0167); else
+	// the newest version, if the type has a template.
+	Template *TemplateRef
 }
 
 // firstBody validates the body given with a new item and returns its
@@ -378,8 +385,72 @@ func (s *Store) prepareCreate(n NewItem) (Event, error) {
 	}
 	return Event{
 		Kind: ItemCreated, Item: s.newID(), Space: n.Space, TypeName: td.Name, TypeVersion: td.Version,
-		Parent: n.Parent, Title: n.Title, Props: maps.Clone(n.Properties),
+		Parent: n.Parent, Title: n.Title, Props: maps.Clone(n.Properties), Template: s.templateOf(td, n.Template),
 	}, nil
+}
+
+// TemplateVersions tells the newest version of a Word template, 0 when
+// there is none (ADR-0167). The templates are kept with the site's
+// settings; the store only records which version an item was made with.
+type TemplateVersions func(id string) int
+
+// SetTemplateVersions gives the store the newest versions of the Word
+// templates. Without it, items are made without a template's version and
+// export with the newest.
+func (s *Store) SetTemplateVersions(f TemplateVersions) { s.templateVersions = f }
+
+// templateOf is the template version a new item of the type is made with:
+// the one asked for when it is a version of the type's template, else the
+// newest one. It is decided when the command runs and recorded in the
+// event, so replaying gives the same item.
+func (s *Store) templateOf(td TypeDef, asked *TemplateRef) *TemplateRef {
+	if td.Template == "" {
+		return nil
+	}
+	if asked != nil && asked.ID == td.Template && asked.Version > 0 {
+		return asked.clone()
+	}
+	if s.templateVersions == nil {
+		return nil
+	}
+	if v := s.templateVersions(td.Template); v > 0 {
+		return &TemplateRef{ID: td.Template, Version: v}
+	}
+	return nil
+}
+
+// TemplateUses names the types that name a Word template and counts the
+// items, live or in the trash, made with one of its versions (ADR-0167):
+// a template is removed only when nothing uses it.
+func (s *Store) TemplateUses(id string) (types []string, items int) {
+	for _, td := range s.Types() {
+		if td.Template == id {
+			types = append(types, td.Name)
+		}
+	}
+	for _, it := range s.items {
+		if it.Presence != Purged && it.Template != nil && it.Template.ID == id {
+			items++
+		}
+	}
+	return types, items
+}
+
+// SetTemplate moves an item to a version of its type's Word template
+// (ADR-0167).
+func (s *Store) SetTemplate(actor string, id ID, ref TemplateRef) error {
+	it, err := s.live(id)
+	if err != nil {
+		return err
+	}
+	td, _ := s.latest(it.Type)
+	if td.Template == "" || ref.ID != td.Template || ref.Version < 1 {
+		return invalid("the type %s has no Word template %q to move the item to", it.Type, ref.ID)
+	}
+	if it.Template != nil && *it.Template == ref {
+		return nil
+	}
+	return s.record(actor, Event{Kind: TemplateSet, Item: id, Template: &ref})
 }
 
 // CreateEmbedded creates an item inside a host and appends an embed of it to
@@ -840,7 +911,7 @@ func (s *Store) apply(e Event) {
 		it := &Item{
 			ID: e.Item, Type: e.TypeName, TypeVersion: e.TypeVersion, Space: e.Space,
 			Parent: e.Parent, Title: e.Title, Properties: maps.Clone(e.Props), Version: 1,
-			Presence: Live, created: e.Seq,
+			Presence: Live, created: e.Seq, Template: e.Template.clone(),
 		}
 		if it.Properties == nil {
 			it.Properties = Props{}
@@ -854,6 +925,11 @@ func (s *Store) apply(e Event) {
 	case TitleSet:
 		it := s.items[e.Item]
 		it.Title = e.Title
+		it.Version++
+		touch(it.ID)
+	case TemplateSet:
+		it := s.items[e.Item]
+		it.Template = e.Template.clone()
 		it.Version++
 		touch(it.ID)
 	case LabelsSet:

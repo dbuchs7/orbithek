@@ -238,6 +238,17 @@ func (h itemHandlers) exportDocument(r *http.Request, children, withData bool) (
 		if children {
 			doc.Contents = words["contents"]
 		}
+		// A page of a type with a Word template fills its controls with
+		// the root's fields (ADR-0167).
+		if td := s.Type(root.Type); td.Template != "" {
+			spaceName := root.Space
+			for _, sp := range x.Spaces() {
+				if sp.Key == root.Space {
+					spaceName = sp.Name
+				}
+			}
+			doc.Controls = controls(root, td, spaceName, names)
+		}
 	})
 	if err != nil || !withData {
 		return doc, root, err
@@ -285,6 +296,19 @@ func (h itemHandlers) exportDOCX(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.exportFailed(w, err)
 		return
+	}
+	// A page of a type with a Word template is written into the version
+	// of it the page was made with (ADR-0167).
+	if doc.Controls != nil {
+		var td item.TypeDef
+		h.d.DB.Read(func(s *item.Store) { td = s.Type(it.Type) })
+		if ref := h.templateRef(it, td); ref != nil {
+			tp, _, err := h.loadTemplate(ref.ID, ref.Version)
+			if err != nil {
+				h.log.Error("Word template unreadable; exporting without it", "item", it.ID, "template", ref.ID, "version", ref.Version, "err", err)
+			}
+			doc.Template = tp
+		}
 	}
 	attach(w, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", fileName(it.Key, it.Title, ".docx"))
 	if err := export.DOCX(w, doc); err != nil {

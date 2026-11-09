@@ -56,6 +56,42 @@ async function mailTo(sink, address) {
   throw new Error("no mail to " + address);
 }
 
+// wordTemplate builds a Word template without a library: a ZIP archive of
+// stored parts with a title control, the place of the text, a heading
+// style and a header with a page number (ADR-0167). label tells versions
+// apart.
+function wordTemplate(label) {
+  const W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+  const R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+  const parts = [
+    ["[Content_Types].xml", `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml"/></Types>`],
+    ["_rels/.rels", `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${R}/officeDocument" Target="word/document.xml"/></Relationships>`],
+    ["word/_rels/document.xml.rels", `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${R}/styles" Target="styles.xml"/><Relationship Id="rId2" Type="${R}/header" Target="header1.xml"/></Relationships>`],
+    ["word/styles.xml", `<w:styles xmlns:w="${W}"><w:style w:type="paragraph" w:default="1" w:styleId="Standard"><w:name w:val="Normal"/></w:style><w:style w:type="paragraph" w:styleId="berschrift1"><w:name w:val="heading 1"/><w:rPr><w:b/><w:color w:val="DC0018"/></w:rPr></w:style></w:styles>`],
+    ["word/header1.xml", `<w:hdr xmlns:w="${W}"><w:p><w:r><w:t xml:space="preserve">${label} </w:t></w:r><w:fldSimple w:instr="PAGE"><w:r><w:t>1</w:t></w:r></w:fldSimple></w:p></w:hdr>`],
+    ["word/document.xml", `<w:document xmlns:w="${W}" xmlns:r="${R}"><w:body><w:sdt><w:sdtPr><w:tag w:val="orbithek:title"/></w:sdtPr><w:sdtContent><w:p><w:r><w:t>[Title]</w:t></w:r></w:p></w:sdtContent></w:sdt>` +
+      `<w:sdt><w:sdtPr><w:tag w:val="orbithek:body"/></w:sdtPr><w:sdtContent><w:p/></w:sdtContent></w:sdt><w:sectPr><w:headerReference w:type="default" r:id="rId2"/></w:sectPr></w:body></w:document>`],
+  ];
+  const table = new Int32Array(256).map((_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c; });
+  const crc = (b) => { let c = -1; for (const x of b) c = table[(c ^ x) & 0xff] ^ (c >>> 8); return (c ^ -1) >>> 0; };
+  const local = [], central = [];
+  let offset = 0;
+  for (const [name, text] of parts) {
+    const n = Buffer.from(name), d = Buffer.from(text), sum = crc(d);
+    const head = Buffer.alloc(30);
+    head.writeUInt32LE(0x04034b50, 0); head.writeUInt16LE(20, 4); head.writeUInt32LE(sum, 14); head.writeUInt32LE(d.length, 18); head.writeUInt32LE(d.length, 22); head.writeUInt16LE(n.length, 26);
+    const dir = Buffer.alloc(46);
+    dir.writeUInt32LE(0x02014b50, 0); dir.writeUInt16LE(20, 4); dir.writeUInt16LE(20, 6); dir.writeUInt32LE(sum, 16); dir.writeUInt32LE(d.length, 20); dir.writeUInt32LE(d.length, 24); dir.writeUInt16LE(n.length, 28); dir.writeUInt32LE(offset, 42);
+    local.push(head, n, d);
+    central.push(dir, n);
+    offset += 30 + n.length + d.length;
+  }
+  const dirBytes = Buffer.concat(central);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(parts.length, 8); end.writeUInt16LE(parts.length, 10); end.writeUInt32LE(dirBytes.length, 12); end.writeUInt32LE(offset, 16);
+  return Buffer.concat([...local, dirBytes, end]);
+}
+
 // ckanSource answers package_search like the CKAN API of opendata.swiss,
 // with one data set that publishes an API and a CSV file (ADR-0075).
 function ckanSource() {
@@ -2983,6 +3019,39 @@ function gitSource() {
     await page.click("#relocate-form button[type=submit]");
     await page.waitForSelector("p:has(a[href='#/']) >> text=PLAT"); // the page shown again after moving
     await page.waitForFunction(() => document.querySelector(".tree a.current")?.closest("ul")?.closest("li")?.querySelector(".tree-row a")?.textContent === "Tidy the wiki");
+
+    step("Word templates: a type's pages begin with its start text, read as the template's document, export into it and stay on their version (ADR-0167)");
+    const putTemplate = (label) => page.evaluate(async (bytes) => {
+      const res = await fetch("/api/word-templates/report?name=Report&file=report.dotx", { method: "POST", headers: { "Content-Type": "application/octet-stream" }, body: new Uint8Array(bytes) });
+      return res.status;
+    }, [...wordTemplate(label)]);
+    check(await putTemplate("First office") === 201, "an administrator uploads a Word template");
+    await page.goto(base + "/#/admin");
+    await page.waitForSelector("#word-templates .wt-entry[data-template=report]");
+    const reportKey = await page.evaluate(async () => {
+      await fetch("/api/types", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+        name: "report", body: true, template: "report", startMarkdown: "# Background\n\nDescribe it here." }) });
+      const res = await fetch("/api/items", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ space: "PLAT", type: "report", title: "Quarterly report" }) });
+      return (await res.json()).item.key;
+    });
+    await page.goto(base + "/#/item/" + reportKey);
+    await page.waitForSelector("#word-document .wt-sheet .wt-head:has-text('First office 1')");
+    check(await page.isVisible("#word-document .wt-body .ProseMirror h2:text-is('Background')"), "the page begins with its type's start text, inside the template's sheet");
+    check(await page.isVisible("#word-document .wt-main p:text-is('Quarterly report')"), "the template's title control shows the page's title");
+    const reportDocx = await (await page.request.get(base + "/api/items/" + reportKey + "/export/docx")).body();
+    check(reportDocx.subarray(0, 2).toString("latin1") === "PK" && reportDocx.includes(Buffer.from("First office")), "the Word export is written into the template");
+    check(await putTemplate("Second office") === 201, "a new version of the template is kept");
+    await page.reload();
+    await page.waitForSelector("#word-template-upgrade");
+    check(await page.isVisible("#word-document .wt-head:has-text('First office')"), "the page stays on the version it was made with");
+    await page.click("#word-template-upgrade");
+    await page.waitForSelector("#word-document .wt-head:has-text('Second office')");
+    check(!(await page.isVisible("#word-template-upgrade")), "after moving to the newest version nothing newer is offered");
+    await page.goto(base + "/#/item/" + reportKey + "?edit");
+    await page.waitForSelector("#body.editing");
+    check(!(await page.isVisible("#word-document")), "the page is edited in the editor as every page is");
+    await page.click("#edit-done");
+    await page.waitForSelector("#word-document");
 
     step("export: a page as Word and its table as CSV; printing hides the surroundings; lists as CSV");
     const exported = await page.evaluate(async () => {

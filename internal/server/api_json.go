@@ -2,6 +2,7 @@ package server
 
 import (
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/dbuchs7/orbithek/internal/connector"
@@ -49,10 +50,23 @@ type typeJSON struct {
 	Workflow *workflowJSON `json:"workflow,omitempty"`
 	Body     bool          `json:"body"`
 	Review   *reviewJSON   `json:"review,omitempty"`
+	// Template names the type's Word template; Start is the text its new
+	// pages begin with, also given and shown as StartMarkdown, which a
+	// request may send in its place (ADR-0167).
+	Template      string      `json:"template,omitempty"`
+	Start         []blockJSON `json:"start,omitempty"`
+	StartMarkdown string      `json:"startMarkdown,omitempty"`
 }
 
 func toTypeJSON(td item.TypeDef) typeJSON {
-	t := typeJSON{Name: td.Name, Version: td.Version, Body: td.Body, Fields: []fieldJSON{}}
+	t := typeJSON{Name: td.Name, Version: td.Version, Body: td.Body, Fields: []fieldJSON{}, Template: td.Template}
+	if td.Start != nil {
+		t.Start = []blockJSON{}
+		for _, b := range td.Start.Blocks {
+			t.Start = append(t.Start, toBlockJSON(b))
+		}
+		t.StartMarkdown = startMarkdown(td.Start.Blocks)
+	}
 	for _, f := range td.Fields {
 		t.Fields = append(t.Fields, fieldJSON{Name: f.Name, Kind: f.Kind, Required: f.Required, Values: f.Values, Unique: f.Unique, Recommended: f.Recommended})
 	}
@@ -68,8 +82,18 @@ func toTypeJSON(td item.TypeDef) typeJSON {
 	return t
 }
 
-func (t typeJSON) toTypeDef() item.TypeDef {
-	td := item.TypeDef{Name: t.Name, Body: t.Body}
+func (t typeJSON) toTypeDef() (item.TypeDef, error) {
+	td := item.TypeDef{Name: t.Name, Body: t.Body, Template: t.Template}
+	switch {
+	case t.Start != nil:
+		d, err := toDoc(t.Start, nil)
+		if err != nil {
+			return td, err
+		}
+		td.Start = &d
+	case strings.TrimSpace(t.StartMarkdown) != "":
+		td.Start = &item.Doc{Blocks: startFromMarkdown(t.StartMarkdown)}
+	}
 	for _, f := range t.Fields {
 		td.Fields = append(td.Fields, item.FieldDef{Name: f.Name, Kind: f.Kind, Required: f.Required, Values: f.Values, Unique: f.Unique, Recommended: f.Recommended})
 	}
@@ -82,7 +106,7 @@ func (t typeJSON) toTypeDef() item.TypeDef {
 			td.Workflow.Transitions = append(td.Workflow.Transitions, item.Transition{Name: tr.Name, From: tr.From, To: tr.To, Requires: tr.Requires})
 		}
 	}
-	return td
+	return td, nil
 }
 
 type spaceJSON struct {
@@ -259,6 +283,9 @@ type itemJSON struct {
 	// is blocked by; set in listings (ADR-0137).
 	RelationCount int `json:"relationCount,omitempty"`
 	WaitingOn     int `json:"waitingOn,omitempty"`
+	// Template is the version of its type's Word template the item is
+	// made with (ADR-0167).
+	Template *item.TemplateRef `json:"template,omitempty"`
 }
 
 type secretJSON struct {
@@ -363,7 +390,7 @@ func toDPFindings(fs []item.DPFinding) []dpFindingJSON {
 func toItemJSON(it item.Item) itemJSON {
 	j := itemJSON{ID: it.ID, Key: it.Key, Type: it.Type, TypeVersion: it.TypeVersion, Space: it.Space,
 		Parent: it.Parent, Title: it.Title, Properties: map[string]any(it.Properties), State: it.State,
-		Body: []blockJSON{}, Version: it.Version, Presence: it.Presence, Managed: it.Managed, Linked: it.Linked, LinkedFields: it.LinkedFields, Detached: it.DetachedFrom(), Labels: it.Labels}
+		Body: []blockJSON{}, Version: it.Version, Presence: it.Presence, Managed: it.Managed, Linked: it.Linked, LinkedFields: it.LinkedFields, Detached: it.DetachedFrom(), Labels: it.Labels, Template: it.Template}
 	if j.Labels == nil {
 		j.Labels = []string{}
 	}

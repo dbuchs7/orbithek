@@ -51,9 +51,14 @@ var classified = map[string]string{
 		"it guards against a host that names a next page for ever",
 	"internal/connector.maxPages": "how many pages of a JSON source's list a connector reads (ADR-0127, ADR-0135), not a caller's input to this server; " +
 		"it guards the connector against a source that names a next page for ever",
-	"internal/connector.maxCell":    "the shape of a generated catalog page (ADR-0080): how long one value of the source may be on it, like the length of a title",
-	"internal/site.maxConnectors":   "the shape of the site's settings (ADR-0077): how many connectors an administrator keeps, like the number of regulations",
-	"internal/site.maxEngines":      "the shape of the site's settings (ADR-0129): how many process engines an administrator keeps, like the number of connectors",
+	"internal/connector.maxCell":     "the shape of a generated catalog page (ADR-0080): how long one value of the source may be on it, like the length of a title",
+	"internal/site.maxConnectors":    "the shape of the site's settings (ADR-0077): how many connectors an administrator keeps, like the number of regulations",
+	"internal/site.maxEngines":       "the shape of the site's settings (ADR-0129): how many process engines an administrator keeps, like the number of connectors",
+	"internal/site.maxWordTemplates": "the shape of the site's settings (ADR-0167): how many Word templates an administrator keeps, like the number of engines",
+	"internal/wordtemplate.maxParts": "the shape of a Word template (ADR-0167): how many parts its package holds, like the part names it may use; " +
+		"what the parts hold is bounded by WordTemplateBytes",
+	"internal/wordtemplate.maxFrameNodes": "the shape of a Word template's page as the reading view draws it (ADR-0167), " +
+		"from a file an administrator uploaded and bounded by WordTemplateBytes",
 	"internal/tasklink.maxProblems": "the shape of a round's report (ADR-0151): how many problems it names before it counts the rest, held for one engine at a time",
 	"internal/site.maxTaskRules":    "the shape of the site's settings (ADR-0151): how many task link rules an administrator keeps per engine, like the number of engines",
 	"internal/tasklink.maxEndReads": "how many tasks that left the list one round asks the engine about (ADR-0152), so many at once are settled over several rounds; " +
