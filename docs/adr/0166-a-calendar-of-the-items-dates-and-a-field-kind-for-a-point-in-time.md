@@ -1,9 +1,9 @@
 # ADR-0166: A calendar of the items' dates, and a field kind for a point in time
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-06
-- **Deciders:** Project initiators (request of 2026-11-06 for a calendar on which the tasks appear)
+- **Deciders:** Project initiators (request of 2026-11-06 for a calendar on which the tasks appear; accepted 2026-11-09)
 - **Open question:** whether repeating dates (a weekly meeting) and a calendar that other programs subscribe to (iCalendar, RFC 5545) are needed; this record decides neither, and both would need a record of their own
 - **Question checked:** 2026-11
 
@@ -52,14 +52,14 @@ Chosen option: **1**, because it needs no new route and no new stored object, ke
 - **Moving:** where the reader may edit the item's room, an entry is dragged to another day, or moved with Shift and an arrow key (a day left and right, a week up and down), so the keyboard alone suffices. A move is a validated property change through the API for each of the entry's start and end that holds a value (D3): a span keeps its length, a `date` moves by whole days, a `datetime` keeps its time of day in the reader's time zone, so a change of daylight saving time does not shift it by an hour. The calendar is read again afterwards and says what was moved, or why the server refused it; the focus stays on the moved entry. The two changes of a span are two requests: when the second is refused, the first stays, and the calendar shows it so. On the week's axis of hours, an entry with a time dropped at another hour goes to that day and time, rounded to a quarter of an hour, and every other date of the item moves by as much, so a meeting keeps its length.
 - **Code:** the layout as plain functions in `assets/calendar.js`, tested by `internal/web/jstest/calendar.test.mjs`; the drawing in its own module beside it; `e2e/smoke.cjs` walks the view. No widget library is added.
 
-**Implementation so far** (`assets/calendar.js`, `assets/calendarview.js`, `#/calendar`):
+**Implementation** (`assets/calendar.js`, `assets/calendarview.js`, `#/calendar`):
 
 - The calendar view as decided above: month, week and agenda; every entry point; the period read alone; finished, overdue and misdated entries marked by shape and words; moving entries by dragging and by the keyboard; tested by `internal/web/jstest/calendar.test.mjs` and two steps of `e2e/smoke.cjs`, which also check that the month and the week fit a phone's screen.
 - On narrow screens the month and the week show the keys of their entries only; the agenda shows them whole.
 - The week's axis of hours: a row *All day* for entries without a time and for spans over several days, then the hours of the day, an entry of one day with a time from its start to its end (an hour when it has no end), side by side where entries overlap, a line at the time now on today; it opens at the first time of the week, or at seven. A point in time is read a day wider on either side of the period, because the query counts it by its UTC day; the days drawn pick out what belongs to them.
 - Choosing in words, with the sentence that says what is shown, and the advanced part with the query sent.
 - The field kind `datetime` as decided below (codec version 40; `item.KindDateTime`, `item.FormatField`; the API, queries, sorting, `where`, the CSV export, the governance check, the JSON connectors and the import engine). The calendar places a point in time on its day where the reader is and shows its time; the roadmap places it on its UTC day; the item's page edits it with a `datetime-local` input and names the reader's time zone; kanban cards and the task list read its day in the reader's calendar.
-- Everything this record decides is built. The implementation stays *Partial* only because a record is *Landed* once it is *Accepted* (ADR-0006).
+- Everything this record decides is built. Repeating dates and a calendar feed for other programs stay outside it, as its open question says.
 
 ### The field kind `datetime`
 
