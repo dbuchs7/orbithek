@@ -23,3 +23,56 @@ body[data-theme="dark"] .phone-tools select { color: #e3e3e8; background: #23232
    the installation, and a library added there would not come back to the
    frame it was opened from. */
 .library-menu-browse-button { display: none !important; }
+
+/* A live whiteboard (ADR-0168, ADR-0169): the workshop's bar, panels,
+   badges and messages over the canvas, in Excalidraw's own look. */
+body[data-live="on"] { --wb-bg: var(--island-bg-color, #fff); --wb-fg: var(--text-primary-color, #1b1b1f); --wb-line: var(--default-border-color, #ebebeb); }
+body[data-theme="dark"][data-live="on"] { --wb-bg: #232329; --wb-fg: #e3e3e8; --wb-line: #2e2d39; }
+.wb-bar, .wb-panel, .wb-banner, .wb-message {
+  position: fixed; z-index: 4; font: 14px/1.4 system-ui, sans-serif; color: var(--wb-fg); background: var(--wb-bg);
+  border: 1px solid var(--wb-line); border-radius: .5rem;
+  box-shadow: 0 0 .9px rgb(0 0 0 / 17%), 0 0 3px rgb(0 0 0 / 8%), 0 7px 14px rgb(0 0 0 / 5%);
+}
+.wb-bar { left: 50%; bottom: 1rem; transform: translateX(-50%); width: max-content; display: flex; flex-wrap: wrap; gap: .375rem; align-items: center; padding: .375rem .5rem; max-width: calc(100vw - 2rem); }
+.wb-bar button, .wb-bar select, .wb-panel button, .wb-panel input, .wb-panel textarea {
+  font: inherit; color: inherit; background: transparent; border: 1px solid var(--wb-line); border-radius: .375rem; padding: .25rem .5rem;
+}
+.wb-bar button.on { background: #e5dbff; color: #1b1b1f; }
+.wb-bar button:disabled { opacity: .5; }
+.wb-group { display: inline-flex; gap: .25rem; align-items: center; }
+.wb-state { font-size: 12px; opacity: .75; padding: 0 .25rem; }
+.wb-panel { right: 1rem; top: 4.5rem; width: min(22rem, calc(100vw - 2rem)); max-height: calc(100vh - 10rem); overflow: auto; padding: .5rem .75rem; }
+.wb-panel header { display: flex; justify-content: space-between; align-items: center; margin-bottom: .25rem; }
+.wb-panel label { display: block; margin: .25rem 0; }
+.wb-panel label input { display: block; width: 100%; box-sizing: border-box; margin-top: .125rem; }
+.wb-panel textarea { width: 100%; box-sizing: border-box; }
+.wb-panel blockquote { margin: .25rem 0; padding-left: .5rem; border-left: 3px solid var(--wb-line); }
+.wb-panel .muted { opacity: .7; }
+.wb-panel button.link, .wb-banner button.link { border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
+.wb-threads { list-style: none; padding: 0; margin: 0; }
+.wb-thread { border-top: 1px solid var(--wb-line); padding: .375rem 0; }
+.wb-thread.focus { background: rgb(255 236 153 / 35%); }
+.wb-reply { margin-left: 1rem; }
+.wb-big { font-size: 2rem; text-align: center; }
+.wb-people { display: inline-flex; gap: .125rem; margin: 0 .5rem; align-items: center; }
+.wb-face {
+  display: inline-grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: 50%; color: #fff;
+  font: 600 11px/1 system-ui, sans-serif; border: 2px solid var(--wb-bg, #fff);
+}
+.wb-face.agent { border-style: dashed; }
+.wb-clock { font: 600 14px/2.25rem system-ui, sans-serif; padding: 0 .5rem; color: var(--wb-fg); }
+.wb-clock.paused { opacity: .6; }
+.wb-clock.up { color: #e03131; animation: wb-blink 1s steps(2) infinite; }
+@keyframes wb-blink { 50% { opacity: .2; } }
+@media (prefers-reduced-motion: reduce) { .wb-clock.up { animation: none; } }
+.wb-badges { position: fixed; inset: 0; pointer-events: none; z-index: 3; }
+.wb-badge { position: absolute; transform: translate(-60%, -60%); display: flex; gap: .125rem; pointer-events: auto; }
+.wb-vote-badge, .wb-comment-badge {
+  display: inline-flex; align-items: center; gap: .125rem; font: 600 12px/1 system-ui, sans-serif; border-radius: 1rem;
+  padding: .125rem .375rem; background: #5f3dc4; color: #fff; border: 0;
+}
+.wb-vote-badge button { font: inherit; color: inherit; background: rgb(255 255 255 / 20%); border: 0; border-radius: 50%; width: 1.25rem; height: 1.25rem; cursor: pointer; }
+.wb-vote-badge.result { background: #2f9e44; font-size: 14px; }
+.wb-comment-badge { background: #f08c00; cursor: pointer; }
+.wb-banner { top: 4.5rem; left: 50%; transform: translateX(-50%); padding: .375rem .75rem; }
+.wb-message { left: 50%; bottom: 4.5rem; transform: translateX(-50%); padding: .375rem .75rem; max-width: calc(100vw - 2rem); }

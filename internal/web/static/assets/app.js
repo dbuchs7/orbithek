@@ -801,8 +801,15 @@ function attachmentsSection(path, files, live) {
       ? [t("att.copyOf"), " ", link("#/item/" + encodeURIComponent(a.origin.item.key), a.origin.item.key)]
       : t("att.copyOfUnknown"),
     a.origin.newer ? [" ", h("span", { class: "chip", text: t("att.originChanged") })] : null) : null,
+    isDrawing(a.name) ? [" · ", link(whiteboardHref(path, a.id), t("wb.open"), "wb-open")] : null,
     live ? h("button", { class: "link danger", text: t("common.delete"), onclick: () => confirm(t("att.deleteConfirm", { name: a.name }))
       && action(() => del(`${path}/attachments/${a.id}`), status) }) : null);
+  // A new whiteboard is an empty drawing at the end of the body (ADR-0168).
+  const board = live ? h("button", { type: "button", id: "new-whiteboard", class: "secondary", text: t("wb.new"), onclick: () => action(async () => {
+    const title = document.querySelector("h1.item-title")?.textContent?.trim() || "";
+    const { file } = await post(`${path}/whiteboards`, { title });
+    location.hash = whiteboardHref(path, file);
+  }, status) }) : null;
   const picker = live ? h("input", { type: "file", multiple: true, id: "upload", "aria-label": t("att.upload") }) : null;
   if (picker) {
     picker.addEventListener("change", () => action(async () => {
@@ -814,8 +821,13 @@ function attachmentsSection(path, files, live) {
     files.length ? filtered(h("ul", { class: "attachments" }, files.map(row)), { id: "files", label: t("att.title", { n: files.length }),
       choices: [{ key: "kind", label: t("filter.kind") }] }) : empty(t("att.none")),
     picker ? h("label", { class: "upload" }, h("span", { text: t("att.upload") }), picker) : null,
+    board ? h("p", {}, board) : null,
     status);
 }
+
+// whiteboardHref leads to the whiteboard of a drawing of the item an API
+// path names (ADR-0168).
+const whiteboardHref = (path, file) => `#/whiteboard/${encodeURIComponent(decodeURIComponent(path.split("/").pop()))}/${file}`;
 
 async function action(fn, status) {
   try {
@@ -903,6 +915,7 @@ const modules = [
   { id: "tasks", name: "nav.tasks", href: "#/tasks", match: ["tasks", "kanbans", "kanban", "roadmap", "calendar"], icon: "M9 11l3 3 8-8M20 12v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h11" },
   { id: "comments", name: "nav.comments", href: "#/comments", match: ["comments"], icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" },
   { id: "album", name: "nav.album", href: "#/album", match: ["album"], icon: "M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15 8h.01" },
+  { id: "whiteboards", name: "nav.whiteboards", href: "#/whiteboards", match: ["whiteboards", "whiteboard"], icon: "M3 4h18v12H3zM8 20l4-4 4 4M7 8h6M7 12h10" },
   { id: "starmap", name: "nav.starmap", href: "#/starmap", match: ["starmap", "labelmap"], icon: "M5 7l7 4 7-5M12 11l-4 8M12 11l6 6M5 7h.01M19 6h.01M12 11h.01M8 19h.01M18 17h.01" },
   { id: "mcp", name: "nav.mcp", href: "#/mcp", match: ["mcp"], icon: "M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8zM19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z" },
   { id: "governance", name: "nav.governance", href: "#/governance", match: ["governance"], icon: "M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6zM9 12l2 2 4-4" },
@@ -1573,6 +1586,8 @@ async function route() {
       case "my-notes": return await myNotesView();
       case "comments": return await commentsView(arg);
       case "album": return albumView();
+      case "whiteboards": return await whiteboardsView();
+      case "whiteboard": return await whiteboardView(arg, arg2);
       case "labelmap": return await labelmapScreen(params);
       case "starmap": return await starmapScreen(arg || "", hash.split("?")[0].split("/").slice(3).map(decodeURIComponent), params);
       case "search": return await searchView(arg || "");
@@ -3796,6 +3811,75 @@ async function labelmapScreen(params) {
 
 // albumView shows the images and drawings of every item one may read
 // (ADR-0054); each leads to its item.
+// --- whiteboards (ADR-0168) ---------------------------------------------------
+
+// whiteboardView shows a drawing as a live whiteboard: the drawing page in
+// a frame that fills the screen below a bar. The page joins the session
+// and talks to the server itself; leaving the view ends its stream.
+async function whiteboardView(ref, file) {
+  const show = screen();
+  const { item } = await get("/api/items/" + encodeURIComponent(ref));
+  here.space = item.space;
+  const frame = h("iframe", { src: "/draw", title: t("wb.frame", { title: item.title || item.key }), class: "whiteboard-frame", id: "whiteboard-frame" });
+  const onMessage = (e) => {
+    if (e.origin !== location.origin || e.source !== frame.contentWindow || e.data?.type !== "ready") return;
+    frame.contentWindow.postMessage({ type: "live", lang: language(), item: item.id, file }, location.origin);
+  };
+  window.addEventListener("message", onMessage);
+  document.body.classList.add("whiteboard-open");
+  onLeave(() => {
+    window.removeEventListener("message", onMessage);
+    document.body.classList.remove("whiteboard-open");
+    frame.remove();
+  });
+  show(h("div", { class: "whiteboard-view" },
+    h("div", { class: "whiteboard-head" },
+      link("#/item/" + encodeURIComponent(item.key), "← " + (item.title || item.key), "", "whiteboard-back"),
+      h("span", { class: "muted", text: t("wb.heading") })),
+    frame));
+}
+
+// whiteboardsView lists the whiteboards with a live session and the
+// drawings one may open as one, and makes new ones in a new page.
+async function whiteboardsView() {
+  const show = screen();
+  const [{ whiteboards }, album, { spaces }, { types }] = await Promise.all([
+    get("/api/whiteboards"), get("/api/album?kind=drawing&limit=100"), get("/api/spaces"), get("/api/types")]);
+  const href = (key, file) => `#/whiteboard/${encodeURIComponent(key)}/${file}`;
+  const live = whiteboards.length
+    ? h("ul", { class: "whiteboards", id: "live-whiteboards" }, whiteboards.map((w) => h("li", {},
+      link(href(w.key, w.file), w.title || w.key), h("span", { class: "muted", text: ` · ${w.key} · ${t("wb.participants", { n: w.participants })}` }))))
+    : empty(t("wb.noneLive"));
+  const pictures = album.pictures || [];
+  const drawings = pictures.length
+    ? h("ul", { class: "whiteboards", id: "drawings" }, pictures.map((p) => h("li", {},
+      link(href(p.item.key, p.attachment.id), p.attachment.name.replace(/\.drawing\.png$/, "")),
+      h("span", { class: "muted", text: ` · ${p.item.key} ${p.item.title}` }))))
+    : empty(t("wb.noDrawings"));
+  const editable = favouritesFirst(spaces.filter((sp) => mayEdit(sp.role)));
+  const fit = types.filter((ty) => ty.body && !ty.fields.some((f) => f.required));
+  const status = h("div", { class: "status" });
+  const create = editable.length && fit.length
+    ? form({ id: "new-whiteboard-form", class: "card" }, [
+      h("h2", { text: t("wb.new") }),
+      field(t("col.title"), h("input", { name: "title", required: true, maxlength: 200 })),
+      field(t("col.space"), h("select", { name: "space" }, editable.map((sp) => h("option", { value: sp.key, text: sp.name || sp.key })))),
+      fit.length > 1 ? field(t("col.type"), h("select", { name: "type" }, fit.map((ty) => h("option", { value: ty.name, text: ty.name, selected: ty.name === "page" })))) : null,
+      h("p", {}, h("button", { type: "submit", class: "primary", text: t("wb.create") })),
+    ], async (data) => {
+      const { item } = await post("/api/items", { space: data.get("space"), type: data.get("type") || fit[0].name, title: data.get("title") });
+      const { file } = await post(`/api/items/${encodeURIComponent(item.key)}/whiteboards`, { title: data.get("title") });
+      location.hash = href(item.key, file);
+    })
+    : h("p", { class: "muted", text: t("wb.cannotCreate") });
+  show(
+    h("h1", { text: t("nav.whiteboards") }),
+    h("p", { class: "muted", text: t("wb.intro") }),
+    h("section", { class: "card" }, h("h2", { text: t("wb.live") }), live),
+    create, status,
+    h("section", { class: "card" }, h("h2", { text: t("wb.drawings") }), drawings));
+}
+
 function albumView() {
   screen()(h("h1", { text: t("album.title") }), h("p", { class: "muted", text: t("album.intro") }), h("section", { id: "album" }, albumBrowser()));
 }
@@ -4879,7 +4963,9 @@ function commentThreads(path, page, live) {
   const roots = page.comments.filter((c) => !c.reply);
   const replies = new Map();
   for (const c of page.comments.filter((c) => c.reply)) replies.set(c.reply, [...(replies.get(c.reply) || []), c]);
-  const anchored = roots.filter((c) => c.anchor && !c.deleted && !c.resolved);
+  // A comment on an element of a whiteboard is on no passage of the body
+  // (ADR-0170).
+  const anchored = roots.filter((c) => c.anchor && !c.anchor.element && !c.deleted && !c.resolved);
   const threadEls = new Map(); // root id -> its element
 
   const row = (c) => {
@@ -4914,10 +5000,13 @@ function commentThreads(path, page, live) {
 
   const thread = (c) => {
     const status = h("div", { class: "status" });
-    const quote = c.anchor && !c.deleted
-      ? h("blockquote", { class: "comment-quote" },
-        h("button", { type: "button", class: "link", text: c.anchor.quote, title: t("comment.showPassage"), onclick: () => reveal(c.id) }))
-      : null;
+    const quote = c.anchor?.element && !c.deleted
+      ? h("blockquote", { class: "comment-quote comment-element" }, t("wb.onElement"), " ",
+        link(whiteboardHref(path, c.anchor.drawing), c.anchor.quote || t("wb.openWhiteboard")))
+      : c.anchor && !c.deleted
+        ? h("blockquote", { class: "comment-quote" },
+          h("button", { type: "button", class: "link", text: c.anchor.quote, title: t("comment.showPassage"), onclick: () => reveal(c.id) }))
+        : null;
     const gone = h("p", { class: "muted comment-gone", hidden: true, text: t("comment.passageGone") });
     const answers = h("ul", { class: "comments replies" }, (replies.get(c.id) || []).map(row));
     const replyForm = h("div");

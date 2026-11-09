@@ -1047,7 +1047,7 @@ function gitSource() {
     await page.click("#app-switcher");
     await page.waitForSelector("#drawer:not([hidden])");
     const modules = (await page.locator("#drawer-apps a").allTextContents()).join(",");
-    check(modules === "Rooms,Create,Tasks,Comments,Album,Starmap,AI access,Governance,Account,Administration", "the modules of an administrator: " + modules);
+    check(modules === "Rooms,Create,Tasks,Comments,Album,Whiteboards,Starmap,AI access,Governance,Account,Administration", "the modules of an administrator: " + modules);
     await page.keyboard.press("Escape");
     await page.waitForSelector("#drawer", { state: "hidden" });
     await page.click("#app-switcher");
@@ -4454,6 +4454,117 @@ function gitSource() {
     await quickPage.click("#edit-done");
     await quickPage.waitForSelector("#body.reading .ProseMirror p:has-text('Stored.')");
     await quickCtx.close();
+
+    step("whiteboard: bert and admin work on one drawing at once: a note, an agent's notes, a vote with its result as a comment, the timer, a comment on an element, a presentation, and a checkpoint the drawing editor opens again (ADR-0168, ADR-0169, ADR-0170)");
+    const retro = await page.evaluate(async () => (await (await fetch("/api/items", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ space: "PLAT", type: "task", title: "Retro", properties: { priority: "low" } }) })).json()).item.key);
+    await page.goto(base + "/#/item/" + retro);
+    await page.click("#new-whiteboard");
+    await page.waitForSelector("#whiteboard-frame");
+    const boardURL = page.url();
+    const boardFile = boardURL.split("/").pop();
+    const board = page.frameLocator("#whiteboard-frame");
+    await board.locator("body[data-live=on][data-state=open][data-keeper=true] .excalidraw canvas").first().waitFor();
+    // A note opens for writing at once.
+    await board.locator("#wb-note").click();
+    await board.locator("textarea.excalidraw-wysiwyg").waitFor();
+    await page.keyboard.type("Keep the daily");
+    await page.keyboard.press("Escape");
+    const boardView = async () => (await (await page.request.get(base + `/api/items/${retro}/whiteboards/${boardFile}`)).json());
+    let noteSeen = null;
+    for (let i = 0; i < 50 && !noteSeen; i++) {
+      noteSeen = (await boardView()).elements.find((e) => e.kind === "note" && e.text === "Keep the daily");
+      if (!noteSeen) await page.waitForTimeout(100);
+    }
+    check(noteSeen, "the note and its text reach the server");
+    // admin joins; an agent writes a frame and a note through the API.
+    const boardCtx = await browser.newContext();
+    check((await boardCtx.request.post(base + "/api/login", { data: { username: "admin", password: adminPassword } })).ok(), "admin signs in beside bert");
+    const boardAdmin = await boardCtx.newPage();
+    boardAdmin.on("pageerror", (e) => problems.push("admin's whiteboard error: " + e.message));
+    boardAdmin.on("dialog", async (d) => { problems.push("admin's dialog: " + d.message()); await d.dismiss(); });
+    await boardAdmin.goto(boardURL);
+    const boardOther = boardAdmin.frameLocator("#whiteboard-frame");
+    await boardOther.locator("body[data-live=on][data-state=open][data-elements='2']").waitFor();
+    await board.locator("#wb-people .wb-face:nth-child(2)").waitFor();
+    check((await page.request.post(base + `/api/items/${retro}/whiteboards/${boardFile}/changes`, { data: { changes: [
+      { op: "frame", text: "Ideas", x: -600, y: -400, width: 1600, height: 1000 }, { op: "note", text: "From the assistant", colour: "blue", x: 400, y: 200 }] } })).ok(), "an agent changes the whiteboard");
+    await boardOther.locator("body[data-elements='5']").waitFor();
+    await board.locator("#wb-people .wb-face.agent").waitFor();
+    // A vote: admin casts twice, bert ends it; the result is a comment.
+    await board.locator("#wb-vote").click();
+    await board.locator("#wb-vote-form input[name=title]").fill("What first?");
+    await board.locator("#wb-vote-form button[type=submit]").click();
+    await boardOther.locator("#wb-vote.on").waitFor();
+    await boardOther.locator(".wb-cast").first().click();
+    await boardOther.locator(".wb-badge b:has-text('1')").first().waitFor();
+    await boardOther.locator(".wb-cast").first().click();
+    await board.locator("#wb-panel-vote:has-text('1 person has voted')").waitFor();
+    await board.locator("#wb-vote-end").click();
+    await board.locator("#wb-results li").first().waitFor();
+    await boardOther.locator(".wb-vote-badge.result").first().waitFor();
+    let voteComment = null;
+    for (let i = 0; i < 50 && !voteComment; i++) {
+      voteComment = (await (await page.request.get(base + `/api/items/${retro}/comments`)).json()).comments.find((c) => c.text.startsWith("Result of the vote"));
+      if (!voteComment) await page.waitForTimeout(100);
+    }
+    check(voteComment && /What first\?/.test(voteComment.text), "the vote's result is a comment: " + (voteComment && voteComment.text));
+    // The timer runs for everyone.
+    await board.locator("#wb-timer").click();
+    await board.locator("#wb-timer-form button[type=submit]").click();
+    await boardOther.locator(".wb-clock").first().waitFor();
+    check(/^[45]:\d\d$/.test(await boardOther.locator(".wb-clock").first().textContent()), "admin sees the time left");
+    // A comment on the note bert selects.
+    const boardBox = await page.locator("#whiteboard-frame").boundingBox();
+    await board.locator("#wb-comments").click();
+    await page.mouse.click(boardBox.x + boardBox.width / 2, boardBox.y + boardBox.height / 2);
+    await board.locator("#wb-comment-form textarea").fill("Why daily?");
+    await board.locator("#wb-comment-form button[type=submit]").click();
+    await boardOther.locator(".wb-comment-badge").first().waitFor();
+    // A presentation: admin follows bert through the frames.
+    await board.locator("#wb-present").click();
+    await boardOther.locator("#wb-banner").waitFor();
+    check((await board.locator("#wb-slide").textContent()) === "Frame 1 of 1", "bert presents the frame");
+    await board.locator("#wb-stop").click();
+    await boardOther.locator("#wb-banner").waitFor({ state: "detached" });
+    // A checkpoint: the keeper draws, the server writes its scene; the
+    // drawing editor opens the new version with every element.
+    await board.locator("#wb-save").click();
+    // The version the text shows carries the scene the server held.
+    const shownScene = async () => {
+      const body = (await (await page.request.get(base + "/api/items/" + retro)).json()).item.body;
+      const ref = body.filter((b) => b.kind === "image").pop().ref;
+      const png = await (await page.request.get(base + `/api/items/${retro}/attachments/${ref}`)).body();
+      for (let at = 8; at + 12 <= png.length;) {
+        const len = png.readUInt32BE(at), kind = png.toString("latin1", at + 4, at + 8), data = png.subarray(at + 8, at + 8 + len);
+        const key = "application/vnd.excalidraw+json\0";
+        if (kind === "tEXt" && data.toString("latin1", 0, key.length) === key) {
+          const env = JSON.parse(data.toString("latin1", key.length));
+          const raw = Buffer.from(env.encoded, "latin1");
+          return { ref, elements: JSON.parse((env.compressed ? require("zlib").inflateSync(raw) : raw).toString("utf8")).elements };
+        }
+        at += 12 + len;
+      }
+      return { ref, elements: [] };
+    };
+    let checkpoint = null;
+    for (let i = 0; i < 100 && !(checkpoint && checkpoint.ref !== boardFile && checkpoint.elements.length === 5); i++) {
+      checkpoint = await shownScene();
+      if (checkpoint.elements.length !== 5) await page.waitForTimeout(200);
+    }
+    check(checkpoint.ref !== boardFile && checkpoint.elements.length === 5, "the text shows a checkpoint with every element: " + checkpoint.elements.length);
+    check(checkpoint.elements.some((e) => e.type === "text" && (e.originalText || e.text) === "Keep the daily"), "the note's text is in the checkpoint");
+    await boardCtx.close();
+    await page.goto(base + "/#/item/" + retro);
+    await page.waitForSelector("#comments .comment-element a");
+    check(await page.locator("#attachments li:has-text('.drawing.png')").count() === 2, "the checkpoint is a new version of the drawing");
+    await page.click("#edit");
+    await page.waitForSelector("#body.editing .pm-redraw");
+    await page.click("#body .pm-redraw");
+    await page.frameLocator("dialog.drawing iframe").locator("body[data-state=open][data-elements='5']").waitFor();
+    await page.click("dialog.drawing button:has-text('Cancel')");
+    await page.click("#edit-done");
+    await page.waitForSelector("#body.reading");
 
     check(problems.length === 0, problems.join("; "));
     console.log("ok");
