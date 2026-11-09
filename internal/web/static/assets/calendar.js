@@ -74,7 +74,8 @@ export function shift(view, at, n) {
 // due date and a decision on the day it was decided. A chosen start or end
 // applies to every type that has it as a date field; a type with neither
 // is left out. startTimed and endTimed tell a field that holds a point in
-// time.
+// time; assignee names the user field the type is assigned by, as the task
+// list finds it (ADR-0049), empty for none.
 export function typeFields(types, state) {
   const chosen = Boolean(state.start || state.end);
   const out = [];
@@ -86,10 +87,24 @@ export function typeFields(types, state) {
       ? { start: names.includes(state.start) ? state.start : "", end: names.includes(state.end) ? state.end : "" }
       : guessFields(names);
     const timed = (name) => (ty.fields || []).some((x) => x.name === name && x.kind === "datetime");
-    if (f.start || f.end) out.push({ type: ty.name, start: f.start, end: f.end, startTimed: timed(f.start), endTimed: timed(f.end) });
+    if (f.start || f.end) out.push({ type: ty.name, start: f.start, end: f.end, startTimed: timed(f.start), endTimed: timed(f.end), assignee: assigneeOf(ty) });
   }
   return out;
 }
+
+// assigneeOf is the user field a type is assigned by: one named assignee
+// (or zugewiesen, bearbeiter), else its first user field, as the task list
+// reads it (ADR-0049); empty when the type has no user field.
+export function assigneeOf(ty) {
+  const users = (ty.fields || []).filter((f) => f.kind === "user");
+  return (users.find((f) => /^(assignee|zugewiesen|bearbeiter)/i.test(f.name)) || users[0])?.name || "";
+}
+
+// WHO are the choices of whom the items are assigned to: anyone, the
+// reader, or nobody. STATUS are the choices of their state: any, not
+// finished, or finished (ADR-0082). The first of each is the default.
+export const WHO = ["", "me", "none"];
+export const STATUS = ["", "open", "done"];
 
 // quote writes a name or a value as a quoted text of the query language
 // (ADR-0136): a quoted name always names a property, never a field every
@@ -104,15 +119,18 @@ export function quote(text) {
 // day, so the last day is included. The query counts a point in time by
 // its day in UTC, the calendar by its day where the reader is; a day more
 // on either side covers every time zone, and the days drawn pick out what
-// belongs to them.
-export function periodCondition(fields, from, to) {
+// belongs to them. With who, each type is narrowed by its assignee field
+// to the reader ("me") or to nobody ("none"); a type without one is left
+// out then, as the task list leaves it out of those tabs.
+export function periodCondition(fields, from, to, who = "") {
   const first = (timed) => dayString(timed ? from - 1 : from), last = (timed) => dayString(timed ? to + 1 : to);
   const within = (name, timed) => `${quote(name)} >= ${first(timed)} AND ${quote(name)} <= ${last(timed)}`;
-  return fields.map((f) => {
+  const whom = who === "me" ? "= currentUser()" : who === "none" ? "IS EMPTY" : "";
+  return fields.filter((f) => !whom || f.assignee).map((f) => {
     const cond = f.start && f.end
       ? `(${quote(f.start)} <= ${last(f.startTimed)} AND ${quote(f.end)} >= ${first(f.endTimed)}) OR (${within(f.start, f.startTimed)}) OR (${within(f.end, f.endTimed)})`
       : within(f.start || f.end, f.start ? f.startTimed : f.endTimed);
-    return `(type = ${quote(f.type)} AND (${cond}))`;
+    return `(type = ${quote(f.type)}${whom ? ` AND ${quote(f.assignee)} ${whom}` : ""} AND (${cond}))`;
   }).join(" OR ");
 }
 
@@ -137,13 +155,21 @@ export function withoutOrder(q) {
   return text.trim();
 }
 
-// listQuery is the query the view reads its items with: the chosen labels,
-// the query typed, and the period of the view. It is empty when no type
-// has a date field to place items by, and nothing is read then.
+// listQuery is the query the view reads its items with, written from what
+// was chosen in words: the state, the words of the text, the labels, whom
+// the items are assigned to, the query typed in the advanced field, and
+// the period of the view. It is empty when no type has a date field to
+// place items by (or none is assigned by a field, when that is asked
+// for), and nothing is read then. "Not finished" holds for items without
+// a workflow too: they are never done.
 export function listQuery(state, fields, p) {
-  const pc = periodCondition(fields, p.from, p.to);
+  const pc = periodCondition(fields, p.from, p.to, state.who);
   if (!pc) return "";
   const conds = [];
+  if (state.status === "open") conds.push("finished != true");
+  if (state.status === "done") conds.push("finished = true");
+  const words = String(state.text || "").trim();
+  if (words) conds.push(`text ~ ${quote(words)}`);
   if (state.labels.length) conds.push(`label IN (${state.labels.map(quote).join(", ")})`);
   const own = withoutOrder(state.q);
   if (own) conds.push(`(${own})`);
@@ -275,18 +301,11 @@ export function overdue(entry, today, done) {
   return !done && entry.to < today;
 }
 
-// tasksQuery is the query the tasks page hands to the calendar for one of
-// its tabs (ADR-0049): the open tasks assigned to the reader, those
-// assigned to nobody, or all of them. taskTypes name the task types and
-// the field each is assigned by, empty for a type without one. When no
-// type is assigned by a field, every tab shows all open tasks.
-export function tasksQuery(tab, taskTypes) {
-  if (!taskTypes.length) return "";
-  const all = `type IN (${taskTypes.map((ty) => quote(ty.name)).join(", ")})`;
-  const assigned = taskTypes.filter((ty) => ty.assignee);
-  if (tab === "all" || !assigned.length || (tab !== "mine" && tab !== "unassigned")) return `finished = false AND ${all}`;
-  const test = tab === "mine" ? "= currentUser()" : "IS EMPTY";
-  return `finished = false AND (${assigned.map((ty) => `(type = ${quote(ty.name)} AND ${quote(ty.assignee)} ${test})`).join(" OR ")})`;
+// tasksTab is what the tasks page hands to the calendar for one of its
+// tabs (ADR-0049), as choices a person reads, not as a query: what is not
+// finished, assigned to the reader, to nobody, or to anyone.
+export function tasksTab(tab) {
+  return { status: "open", who: tab === "mine" ? "me" : tab === "unassigned" ? "none" : "" };
 }
 
 // readState reads the view's state from the address's parameters; what
@@ -301,6 +320,9 @@ export function readState(params, today) {
     space: get("space"),
     type: get("type"),
     labels: [...new Set(get("labels").split(",").map((s) => s.trim()).filter(Boolean))],
+    who: WHO.includes(get("who")) ? get("who") : "",
+    status: STATUS.includes(get("status")) ? get("status") : "",
+    text: get("text"),
     q: get("q"),
     start: get("start"),
     end: get("end"),
@@ -314,8 +336,95 @@ export function address(state, today) {
   const p = new URLSearchParams();
   if (state.view && state.view !== VIEWS[0]) p.set("view", state.view);
   if (state.at !== undefined && state.at !== today) p.set("at", dayString(state.at));
-  for (const k of ["space", "type", "start", "end", "q"]) if (state[k]) p.set(k, state[k]);
+  for (const k of ["space", "type", "start", "end", "who", "status", "text", "q"]) if (state[k]) p.set(k, state[k]);
   if (state.labels?.length) p.set("labels", state.labels.join(","));
   const q = p.toString();
   return "#/calendar" + (q ? "?" + q : "");
+}
+
+// DAY_MINUTES is a day's length on the week's axis of hours.
+export const DAY_MINUTES = 24 * 60;
+
+// minutesOf is how far into its day, where the reader is, a point in time
+// lies, in minutes.
+function minutesOf(ms) {
+  const d = new Date(ms);
+  return d.getHours() * 60 + d.getMinutes();
+}
+
+// timedSpan is where an entry stands on the week's axis of hours: from and
+// to in minutes of its day. Only an entry of one day with a time stands
+// there; it reaches to its end's time on that day, or an hour on when it
+// has none, never past midnight. Others stand above the hours, with the
+// days without a time. null means it has no place on the axis.
+export function timedSpan(entry) {
+  if (entry.from !== entry.to || entry.at?.from === null || entry.at?.from === undefined) return null;
+  const from = minutesOf(entry.at.from);
+  let to = entry.at.to !== null && entry.at.to > entry.at.from ? minutesOf(entry.at.to) : from + 60;
+  if (to <= from) to = from + 60;
+  return { from, to: Math.min(to, DAY_MINUTES) };
+}
+
+// dayColumns lays the timed entries of one day side by side where they
+// overlap: each gets a column and the number of columns of the entries it
+// overlaps with, so their widths share the day. Entries are taken in the
+// order of their start, then the longer first.
+export function dayColumns(list) {
+  const items = list.map((entry) => ({ entry, span: timedSpan(entry) })).filter((x) => x.span)
+    .sort((a, b) => a.span.from - b.span.from || b.span.to - a.span.to || byStart(a.entry, b.entry));
+  const out = [];
+  let group = [], ends = [], groupEnd = -1;
+  const close = () => {
+    for (const x of group) x.cols = ends.length;
+    out.push(...group);
+    group = [];
+    ends = [];
+  };
+  for (const x of items) {
+    if (x.span.from >= groupEnd) close();
+    let col = ends.findIndex((end) => end <= x.span.from);
+    if (col < 0) col = ends.length;
+    ends[col] = x.span.to;
+    x.col = col;
+    group.push(x);
+    groupEnd = Math.max(groupEnd, x.span.to);
+  }
+  close();
+  return out;
+}
+
+// minutesAt is the time of day at a height of the axis of hours, rounded
+// to a quarter of an hour and kept within the day.
+export function minutesAt(y, height, step = 15) {
+  if (!(height > 0)) return 0;
+  const m = Math.round(((y / height) * DAY_MINUTES) / step) * step;
+  return Math.min(DAY_MINUTES - step, Math.max(0, m));
+}
+
+// retime are the property changes that move a timed entry to the day n
+// days on at a time of day, in minutes, where the reader is. The point in
+// time it stands by goes there; every other date of the item moves by as
+// much, so a meeting keeps its length.
+export function retime(entry, n, minutes) {
+  const anchor = entry.at?.from;
+  if (anchor === null || anchor === undefined) return moves(entry, n);
+  const target = new Date(anchor);
+  target.setDate(target.getDate() + n);
+  target.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
+  const delta = target.getTime() - anchor;
+  if (!delta) return [];
+  const props = entry.item.properties || {};
+  const out = [];
+  for (const [name, timed] of [[entry.start, entry.startTimed], [entry.end, entry.endTimed]]) {
+    if (!name || out.some((m) => m.field === name)) continue;
+    const value = props[name];
+    if (timed) {
+      const ms = typeof value === "string" ? Date.parse(value) : NaN;
+      if (!Number.isNaN(ms)) out.push({ field: name, value: new Date(ms + delta).toISOString() });
+    } else {
+      const moved = shiftValue(value, false, n);
+      if (moved !== null) out.push({ field: name, value: moved });
+    }
+  }
+  return out;
 }

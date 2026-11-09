@@ -2428,6 +2428,9 @@ function gitSource() {
     await page.click("#label-calendar");
     await page.waitForFunction(() => location.hash === "#/calendar?labels=plan-q1");
     await page.waitForSelector("#calendar-controls");
+    // The choices are folded away until asked for; a sentence says what is shown.
+    check(!(await page.locator("#calendar-filters[open]").count()) && !(await page.locator("#calendar-text").isVisible()), "the filters are folded by default");
+    check((await page.textContent("#calendar-summary")).includes("plan-q1"), "the sentence names the label");
     await page.goto(base + "/#/calendar?labels=plan-q1&at=2026-03-01");
     // A span from Monday 2 to Friday 20 March stands in each of its three
     // weeks; one date is an entry on its day; no date, no entry.
@@ -2445,7 +2448,11 @@ function gitSource() {
     await page.waitForSelector("p#calendar-grid.empty");
     await page.click("#calendar-view-week");
     await page.waitForSelector("#calendar-grid.cal-view-week .cal-week-big");
-    // A mistake in the query typed is told at its place in it.
+    // A mistake in the query typed is told at its place in it. The query
+    // is offered under Advanced only.
+    check(!(await page.locator("#calendar-q").isVisible()), "the query language is not in the way");
+    if (!(await page.locator("#calendar-filters[open]").count())) await page.click("#calendar-filters summary");
+    await page.click("#calendar-advanced summary");
     await page.fill("#calendar-q", "state = (");
     expectedConsole = /status of 400/; // the mistake is refused
     await page.click("#calendar-apply");
@@ -2453,12 +2460,29 @@ function gitSource() {
     expectedConsole = null;
     check((await page.textContent("#calendar-error")).includes("9"), "a query's mistake is told at its character: " + await page.textContent("#calendar-error"));
     check(await page.evaluate(() => document.getElementById("calendar-q").selectionStart) === 8, "the cursor stands at the mistake");
-    // The tasks page hands its tab to the calendar as a query.
-    await page.goto(base + "/#/tasks/all");
+    // The tasks page hands its tab to the calendar as choices in words, and
+    // a sentence says what they show.
+    await page.goto(base + "/#/tasks/mine");
     await page.click("#tab-calendar");
-    await page.waitForFunction(() => decodeURIComponent(location.hash).includes("finished = false") || location.hash.includes("finished+%3D+false"));
-    await page.waitForSelector("#calendar-controls");
-    check(!(await page.locator("#calendar-error").count()), "the tasks' query is read without a mistake");
+    await page.waitForFunction(() => location.hash.includes("who=me") && location.hash.includes("status=open"));
+    await page.waitForSelector("#calendar-summary");
+    check(await page.inputValue("#calendar-who") === "me" && await page.inputValue("#calendar-status") === "open", "the tab's choices stand in the filters");
+    check(!(await page.locator("#calendar-error").count()), "the tasks' choices are read without a mistake");
+    await page.goto(base + "/#/calendar?labels=plan-q1&at=2026-03-01");
+    // The calendar of the tasks' tab is still on the page until this one is
+    // drawn; its sentence names the label.
+    await page.waitForFunction(() => document.querySelector("#calendar-summary")?.textContent.includes("plan-q1"));
+    // Opened once, the choices stay open while one chooses.
+    if (!(await page.locator("#calendar-filters[open]").count())) await page.click("#calendar-filters summary");
+    await page.fill("#calendar-text", "launch");
+    await page.click("#calendar-apply");
+    await page.waitForFunction(() => location.hash.includes("text=launch") && document.querySelector("#calendar-summary")?.textContent.includes("launch"));
+    await page.waitForSelector(`#calendar-grid .cal-entry[data-key='${planned.launch}']`);
+    check(await page.locator(`#calendar-grid .cal-entry[data-key='${planned.design}']`).count() === 0, "the words of the text narrow the calendar");
+    check(await page.waitForSelector("#calendar-text", { state: "visible", timeout: 3000 }).then(() => true, () => false),
+      "opened filters stay open while one chooses: " + await page.evaluate(() => `${document.querySelector("#calendar-filters")?.open} ${sessionStorage.getItem("ot-calendar-filters-open")}`));
+    check((await page.textContent("#calendar-summary")).includes("launch"), "the sentence names the words: " + await page.textContent("#calendar-summary"));
+    check((await page.textContent("#calendar-sent", { timeout: 1000 }).catch(() => "")).includes('text ~ "launch"'), "the advanced part shows the query sent");
 
     step("calendar: an entry moves by dragging or by Shift and an arrow key; a datetime field holds a point in time, shown where the reader is (ADR-0166)");
     await page.setViewportSize({ width: 1280, height: 1200 });
@@ -2467,8 +2491,7 @@ function gitSource() {
     await page.waitForSelector(`.cal-week-big .cal-entry.cal-movable[data-key='${planned.launch}']`);
     // Launch day stands on Tuesday 31 March; dropped on Thursday it is due
     // on 2 April.
-    const weekBox = await page.locator(".cal-week-big").boundingBox();
-    await page.dragAndDrop(`.cal-entry[data-key='${planned.launch}']`, ".cal-week-big", { targetPosition: { x: weekBox.width * (3.5 / 7), y: 40 } });
+    await page.dragAndDrop(`.cal-entry[data-key='${planned.launch}']`, ".cal-week-big .cal-day >> nth=3", { targetPosition: { x: 20, y: 30 } });
     await page.waitForSelector(`#calendar-moved:has-text('${planned.launch}')`);
     check(String((await propsOf(planned.launch)).due).startsWith("2026-04-02"), "a dropped entry is due on the day it was dropped on: " + (await propsOf(planned.launch)).due);
     await page.focus(`.cal-entry[data-key='${planned.launch}']`);
@@ -2482,7 +2505,7 @@ function gitSource() {
     });
     check(meeting.properties.starts === "2026-03-31T10:30:15Z", "a point in time is kept in UTC to the second: " + meeting.properties.starts);
     await page.goto(base + "/#/calendar?view=week&at=2026-03-30&type=meeting");
-    await page.waitForSelector(`.cal-entry[data-key='${meeting.key}'] .cal-time`);
+    await page.waitForSelector(`#calendar-hours .cal-timed[data-key='${meeting.key}'] .cal-time`);
     const shownTime = await page.evaluate(() => new Date("2026-03-31T10:30:15Z").toLocaleTimeString(document.documentElement.lang || undefined, { hour: "2-digit", minute: "2-digit" }));
     check((await page.textContent(`.cal-entry[data-key='${meeting.key}'] .cal-time`)) === shownTime, "the time is shown where the reader is");
     await page.focus(`.cal-entry[data-key='${meeting.key}']`);
@@ -2490,10 +2513,20 @@ function gitSource() {
     await page.waitForFunction((k) => document.querySelector("#calendar-moved")?.textContent.includes(k), meeting.key);
     const moved = await page.evaluate(() => { const d = new Date("2026-03-31T10:30:15Z"); d.setDate(d.getDate() + 1); return d.getTime(); });
     check(Date.parse((await propsOf(meeting.key)).starts) === moved, "a moved point in time keeps its time of day");
+    // On the axis of hours, a meeting dropped on Friday at 15:00 goes there.
+    await page.waitForSelector(`#calendar-hours .cal-timed[data-key='${meeting.key}']`);
+    const movedBefore = await page.textContent("#calendar-moved");
+    const friday = page.locator("#calendar-hours .cal-hour-day").nth(4);
+    const fridayBox = await friday.boundingBox();
+    await page.dragAndDrop(`#calendar-hours .cal-timed[data-key='${meeting.key}']`, "#calendar-hours .cal-hour-day >> nth=4",
+      { sourcePosition: { x: 4, y: 2 }, targetPosition: { x: 20, y: (15 * 60 / 1440) * fridayBox.height + 2 } });
+    await page.waitForFunction((was) => { const m = document.querySelector("#calendar-moved")?.textContent; return m && m !== was; }, movedBefore);
+    const at15 = await page.evaluate(() => new Date(2026, 3, 3, 15, 0).getTime());
+    check(Date.parse((await propsOf(meeting.key)).starts) === at15, "a meeting dropped on the axis of hours goes to that day and time: " + (await propsOf(meeting.key)).starts);
     // The item's page edits it in the reader's time zone.
     await page.goto(base + "/#/item/" + meeting.key);
     await page.waitForSelector("[name='p:starts'][type=datetime-local]");
-    const local = await page.evaluate((ms) => { const d = new Date(ms); const p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }, moved);
+    const local = await page.evaluate((ms) => { const d = new Date(ms); const p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }, at15);
     check(await page.inputValue("[name='p:starts']") === local, "the input shows the point in time where the reader is: " + await page.inputValue("[name='p:starts']"));
     await page.setViewportSize({ width: 1280, height: 720 });
 
