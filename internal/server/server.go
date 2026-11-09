@@ -99,10 +99,10 @@ type Deps struct {
 	Messages *Messenger
 	// OAuthRegistration opens dynamic client registration (ADR-0068).
 	OAuthRegistration bool
-	// CalendarFeedsOff turns calendar feeds off (OT_CALENDAR_FEEDS=off,
-	// ADR-0168): no feed address opens anything and none is made; saved
-	// views stay, and a feed can still be ended.
-	CalendarFeedsOff bool
+	// CalendarFeeds turns calendar feeds on (OT_CALENDAR_FEEDS=on,
+	// ADR-0168). Without it no feed address opens anything and none is
+	// made; saved views stay, and a feed can still be ended.
+	CalendarFeeds bool
 	// Backups takes automatic backups (ADR-0073); Routes creates one that
 	// reads the process environment when it is nil.
 	Backups *autobackup.Runner
