@@ -1951,5 +1951,7 @@ export default {
   "calendar.allDay": "Ganztägig",
   "calendar.hours": "Stunden der Woche",
   "calendar.now": "Jetzt",
+  "calendar.filters": "Filter",
+  "calendar.filtersActive": {"one": "({n} gewählt)", "other": "({n} gewählt)"},
   "calendar.legend": "Ein Eintrag steht an seinem Datum; einer mit Beginn und Ende reicht über die Tage dazwischen, beide eingeschlossen. Erledigte Einträge sind schraffiert; ein unerledigter Eintrag, dessen letzter Tag vorbei ist, ist mit einem Ausrufezeichen markiert. Gelesen werden nur die Einträge des gezeigten Zeitraums. Wo Sie bearbeiten dürfen, ziehen Sie einen Eintrag auf einen anderen Tag oder verschieben ihn mit Umschalt und einer Pfeiltaste: einen Tag nach links oder rechts, eine Woche nach oben oder unten; ein Zeitraum verschiebt sich mit beiden Daten, eine Uhrzeit bleibt erhalten. In der Woche steht ein Eintrag mit Uhrzeit auf der Stundenachse; auf eine andere Stunde gezogen, geht er dorthin und behält seine Dauer."
 };

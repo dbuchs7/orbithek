@@ -59,6 +59,10 @@ const timeText = (ms) => new Date(ms).toLocaleTimeString(language() || undefined
 // whenText is a day, with its time when the entry stands by one there.
 const whenText = (day, ms) => (ms === null || ms === undefined ? dateText(day) : `${dateText(day)} ${timeText(ms)}`);
 
+// FILTERS_OPEN keeps, for a tab of the browser, whether the choices are
+// unfolded.
+const FILTERS_OPEN = "ot-calendar-filters-open";
+
 // The keys that move an entry with Shift held, and by how many days.
 const moveKeys = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
 
@@ -375,10 +379,22 @@ export async function calendarView(container, params, helpers, after = {}) {
       h("button", { type: "submit", class: "secondary", id: "calendar-apply", text: t("calendar.apply") })),
     advanced);
 
+  // The choices are folded away until asked for; the sentence under the
+  // period says what they show. Once opened, they stay open while one
+  // chooses, for this tab of the browser.
+  const active = ["space", "type", "who", "status", "text", "q", "start", "end"].filter((k) => state[k]).length + (state.labels.length ? 1 : 0);
+  let open = false;
+  try { open = sessionStorage.getItem(FILTERS_OPEN) === "1"; } catch { /* not kept */ }
+  const filters = h("details", { class: "cal-filters", id: "calendar-filters", open },
+    h("summary", {}, t("calendar.filters"), active ? h("span", { class: "muted", text: " " + t("calendar.filtersActive", { n: active }) }) : null),
+    form);
+  filters.addEventListener("toggle", () => {
+    try { sessionStorage.setItem(FILTERS_OPEN, filters.open ? "1" : "0"); } catch { /* not kept */ }
+  });
   const controls = h("div", { class: "card tl-controls cal-controls", id: "calendar-controls" },
     h("nav", { class: "tabs", "aria-label": t("calendar.view") }, VIEWS.map((v) =>
       h("a", { href: address({ ...state, view: v }, today), class: v === state.view ? "tab active" : "tab", id: "calendar-view-" + v, text: viewName(v) }))),
-    form);
+    filters);
 
   const nav = h("div", { class: "cal-nav" },
     h("a", { class: "button secondary", id: "calendar-prev", href: address({ ...state, at: shift(state.view, state.at, -1) }, today), text: t("calendar.previous") }),

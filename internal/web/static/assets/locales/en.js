@@ -1953,5 +1953,7 @@ export default {
   "calendar.allDay": "All day",
   "calendar.hours": "Hours of the week",
   "calendar.now": "Now",
+  "calendar.filters": "Filter",
+  "calendar.filtersActive": {"one": "({n} chosen)", "other": "({n} chosen)"},
   "calendar.legend": "An item stands on its date; one with a start and an end spans the days between, both included. Finished items are drawn hatched; an unfinished item whose last day has passed is marked with an exclamation mark. Only the items of the period shown are read. Where you may edit, drag an entry to another day, or move it with Shift and an arrow key: a day left or right, a week up or down; a span moves with both its dates, a time stays where it is in the day. In the week, an entry with a time stands on the axis of hours; dropped at another hour, it goes there and keeps its length."
 };

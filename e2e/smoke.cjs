@@ -2428,6 +2428,9 @@ function gitSource() {
     await page.click("#label-calendar");
     await page.waitForFunction(() => location.hash === "#/calendar?labels=plan-q1");
     await page.waitForSelector("#calendar-controls");
+    // The choices are folded away until asked for; a sentence says what is shown.
+    check(!(await page.locator("#calendar-filters[open]").count()) && !(await page.locator("#calendar-text").isVisible()), "the filters are folded by default");
+    check((await page.textContent("#calendar-summary")).includes("plan-q1"), "the sentence names the label");
     await page.goto(base + "/#/calendar?labels=plan-q1&at=2026-03-01");
     // A span from Monday 2 to Friday 20 March stands in each of its three
     // weeks; one date is an entry on its day; no date, no entry.
@@ -2448,6 +2451,7 @@ function gitSource() {
     // A mistake in the query typed is told at its place in it. The query
     // is offered under Advanced only.
     check(!(await page.locator("#calendar-q").isVisible()), "the query language is not in the way");
+    if (!(await page.locator("#calendar-filters[open]").count())) await page.click("#calendar-filters summary");
     await page.click("#calendar-advanced summary");
     await page.fill("#calendar-q", "state = (");
     expectedConsole = /status of 400/; // the mistake is refused
@@ -2466,11 +2470,15 @@ function gitSource() {
     check(!(await page.locator("#calendar-error").count()), "the tasks' choices are read without a mistake");
     await page.goto(base + "/#/calendar?labels=plan-q1&at=2026-03-01");
     await page.waitForSelector("#calendar-summary");
+    // Opened once, the choices stay open while one chooses.
+    if (!(await page.locator("#calendar-filters[open]").count())) await page.click("#calendar-filters summary");
     await page.fill("#calendar-text", "launch");
     await page.click("#calendar-apply");
     await page.waitForFunction(() => location.hash.includes("text=launch"));
     await page.waitForSelector(`#calendar-grid .cal-entry[data-key='${planned.launch}']`);
     check(await page.locator(`#calendar-grid .cal-entry[data-key='${planned.design}']`).count() === 0, "the words of the text narrow the calendar");
+    check(await page.waitForSelector("#calendar-text", { state: "visible", timeout: 3000 }).then(() => true, () => false),
+      "opened filters stay open while one chooses: " + await page.evaluate(() => `${document.querySelector("#calendar-filters")?.open} ${sessionStorage.getItem("ot-calendar-filters-open")}`));
     check((await page.textContent("#calendar-summary")).includes("launch"), "the sentence names the words: " + await page.textContent("#calendar-summary"));
     check((await page.textContent("#calendar-sent", { timeout: 1000 }).catch(() => "")).includes('text ~ "launch"'), "the advanced part shows the query sent");
 

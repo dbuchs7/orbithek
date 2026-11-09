@@ -2207,6 +2207,9 @@ dialog.note-dialog { max-height: calc(100dvh - 32px); overflow: auto; }
   white-space: normal; overflow: hidden; line-height: 1.3; }
 .cal-now { position: absolute; left: 0; right: 0; z-index: 2; border-top: 2px solid var(--danger); pointer-events: none; }
 .cal-summary { flex-basis: 100%; margin: 0; }
+.cal-filters { margin-top: var(--space-3); }
+.cal-filters > summary { cursor: pointer; color: var(--accent); font-weight: 500; }
+.cal-filters[open] > summary { margin-bottom: var(--space-2); }
 .cal-advanced { margin-top: var(--space-2); }
 .cal-advanced summary { cursor: pointer; color: var(--accent); font-weight: 500; }
 .cal-advanced[open] summary { margin-bottom: var(--space-2); }
