@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -41,10 +42,15 @@ type commentJSON struct {
 	ResolvedAt *time.Time  `json:"resolvedAt,omitempty"`
 }
 
+// An anchor names a passage of the body by its quote, or an element of a
+// drawing (ADR-0171): the drawing by any of its versions, answered as its
+// first, and the element's ID.
 type anchorJSON struct {
-	Quote  string `json:"quote"`
-	Prefix string `json:"prefix,omitempty"`
-	Suffix string `json:"suffix,omitempty"`
+	Quote   string  `json:"quote"`
+	Prefix  string  `json:"prefix,omitempty"`
+	Suffix  string  `json:"suffix,omitempty"`
+	Drawing item.ID `json:"drawing,omitempty"`
+	Element string  `json:"element,omitempty"`
 }
 
 func toCommentJSON(c item.Comment) commentJSON {
@@ -54,7 +60,7 @@ func toCommentJSON(c item.Comment) commentJSON {
 		j.Edited = &c.Edited
 	}
 	if c.Anchor != nil {
-		j.Anchor = &anchorJSON{Quote: c.Anchor.Quote, Prefix: c.Anchor.Prefix, Suffix: c.Anchor.Suffix}
+		j.Anchor = &anchorJSON{Quote: c.Anchor.Quote, Prefix: c.Anchor.Prefix, Suffix: c.Anchor.Suffix, Drawing: c.Anchor.Drawing, Element: c.Anchor.Element}
 	}
 	if !c.ResolvedAt.IsZero() {
 		j.ResolvedAt = &c.ResolvedAt
@@ -107,12 +113,21 @@ func (h itemHandlers) addComment(w http.ResponseWriter, r *http.Request) {
 	}
 	n := item.NewComment{Text: req.Text, Reply: req.Reply}
 	if req.Anchor != nil {
-		n.Anchor = &item.Anchor{Quote: req.Anchor.Quote, Prefix: req.Anchor.Prefix, Suffix: req.Anchor.Suffix}
+		n.Anchor = &item.Anchor{Quote: req.Anchor.Quote, Prefix: req.Anchor.Prefix, Suffix: req.Anchor.Suffix, Drawing: req.Anchor.Drawing, Element: req.Anchor.Element}
 	}
 	h.write(w, r, http.StatusCreated, func(x *item.Session, _ *item.Store) (any, error) {
 		it, err := resolveItem(x, r.PathValue("ref"))
 		if err != nil {
 			return nil, err
+		}
+		if n.Anchor != nil && n.Anchor.Drawing != "" {
+			// A drawing is named by its first version, which outlives every
+			// new version (ADR-0171).
+			d, err := x.Drawing(it.ID, n.Anchor.Drawing)
+			if err != nil {
+				return nil, fmt.Errorf("%w: no drawing %s on %s", item.ErrValidation, n.Anchor.Drawing, it.Key)
+			}
+			n.Anchor.Drawing = d.First
 		}
 		c, err := x.Comment(it.ID, n)
 		if err != nil {

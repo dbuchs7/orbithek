@@ -412,3 +412,62 @@ func (x *Session) Pictures(space string, keep func(Attachment) bool) []Picture {
 	})
 	return out
 }
+
+// Drawing is a file of an item with all its versions (ADR-0169): the first
+// version names it, Newest is the version that is not deleted and was
+// added last, Versions are the IDs of every version, deleted ones too.
+type Drawing struct {
+	First    ID
+	Newest   Attachment
+	Versions []ID
+}
+
+// drawing follows file to its stack of versions within its item. A
+// deleted version still leads to its stack; a stack whose versions are
+// all deleted is not found.
+func drawing(it *Item, file ID) (Drawing, bool) {
+	a, ok := it.attachment(file)
+	if !ok {
+		return Drawing{}, false
+	}
+	d := Drawing{First: firstVersion(it, *a)}
+	for _, b := range it.Attachments {
+		if firstVersion(it, b) == d.First {
+			d.Versions = append(d.Versions, b.ID)
+		}
+	}
+	newest := latestVersion(it, d.First)
+	if newest == nil {
+		return Drawing{}, false
+	}
+	d.Newest = *newest
+	return d, true
+}
+
+// Drawing returns the stack of versions of a file of a live item, as the
+// store holds it.
+func (s *Store) Drawing(id, file ID) (Drawing, error) {
+	it, err := s.live(id)
+	if err != nil {
+		return Drawing{}, err
+	}
+	d, ok := drawing(it, file)
+	if !ok {
+		return Drawing{}, notFound("attachment %s of item %s", file, id)
+	}
+	return d, nil
+}
+
+// Drawing returns the stack of versions of a file of a live item the
+// principal may read, whose newest version they may read too.
+func (x *Session) Drawing(id, file ID) (Drawing, error) {
+	it, err := x.readable(id)
+	if err != nil || it.Presence != Live {
+		return Drawing{}, notFound("item %s", id)
+	}
+	d, ok := drawing(it, file)
+	if !ok || !x.s.readsFile(x.who, it, d.Newest.ID) {
+		return Drawing{}, notFound("attachment %s of item %s", file, id)
+	}
+	return d, nil
+}

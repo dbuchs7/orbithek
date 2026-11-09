@@ -94,11 +94,18 @@ var errUnsupportedMedia = errors.New("the request body must be application/json"
 // a cross-site form cannot send it without a CORS preflight, which this
 // server never grants (ADR-0027).
 func readJSON(w http.ResponseWriter, r *http.Request, v any) error {
+	return readJSONUpTo(w, r, v, budget.Get().RequestBody)
+}
+
+// readJSONUpTo is readJSON for a route whose body may be larger than
+// RequestBody, up to limit bytes, such as operations on a whiteboard that
+// carry an image (ADR-0169).
+func readJSONUpTo(w http.ResponseWriter, r *http.Request, v any, limit int64) error {
 	mt, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil || mt != "application/json" {
 		return errUnsupportedMedia
 	}
-	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, budget.Get().RequestBody))
+	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, limit))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(v); err != nil {
 		return err

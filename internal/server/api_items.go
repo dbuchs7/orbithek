@@ -99,6 +99,7 @@ func itemRoutes(d Deps) []Route {
 	routes = append(routes, noteRoutes(h)...)
 	routes = append(routes, watchRoutes(h)...)
 	routes = append(routes, changeRoutes(h)...)
+	routes = append(routes, whiteboardRoutes(h)...)
 	return append(routes, liveRoutes(h)...)
 }
 
@@ -189,6 +190,9 @@ func (h itemHandlers) write(w http.ResponseWriter, r *http.Request, status int, 
 		// live sessions follow at once (ADR-0010, ADR-0026). This runs
 		// outside the store's lock: the hub calls the store under its own.
 		h.d.Collab.Revalidate()
+	}
+	if err == nil && h.d.Whiteboards != nil {
+		h.d.Whiteboards.Revalidate()
 	}
 	switch {
 	case err != nil:
