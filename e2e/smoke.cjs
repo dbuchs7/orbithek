@@ -92,6 +92,26 @@ function wordTemplate(label) {
   return Buffer.concat([...local, dirBytes, end]);
 }
 
+// zipEntry reads one part of a ZIP archive, stored or deflated, by its
+// central directory, whose sizes are right even where a writer put them
+// after the data.
+function zipEntry(buf, name) {
+  const end = buf.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+  let at = buf.readUInt32LE(end + 16);
+  for (let i = 0; i < buf.readUInt16LE(end + 10); i++) {
+    const method = buf.readUInt16LE(at + 10), size = buf.readUInt32LE(at + 20);
+    const nameLen = buf.readUInt16LE(at + 28), extra = buf.readUInt16LE(at + 30), comment = buf.readUInt16LE(at + 32);
+    const local = buf.readUInt32LE(at + 42);
+    if (buf.toString("utf8", at + 46, at + 46 + nameLen) === name) {
+      const start = local + 30 + buf.readUInt16LE(local + 26) + buf.readUInt16LE(local + 28);
+      const data = buf.subarray(start, start + size);
+      return (method === 8 ? require("zlib").inflateRawSync(data) : data).toString("utf8");
+    }
+    at += 46 + nameLen + extra + comment;
+  }
+  return null;
+}
+
 // ckanSource answers package_search like the CKAN API of opendata.swiss,
 // with one data set that publishes an API and a CSV file (ADR-0075).
 function ckanSource() {
@@ -3039,7 +3059,8 @@ function gitSource() {
     check(await page.isVisible("#word-document .wt-body .ProseMirror h2:text-is('Background')"), "the page begins with its type's start text, inside the template's sheet");
     check(await page.isVisible("#word-document .wt-main p:text-is('Quarterly report')"), "the template's title control shows the page's title");
     const reportDocx = await (await page.request.get(base + "/api/items/" + reportKey + "/export/docx")).body();
-    check(reportDocx.subarray(0, 2).toString("latin1") === "PK" && reportDocx.includes(Buffer.from("First office")), "the Word export is written into the template");
+    check((zipEntry(reportDocx, "word/header1.xml") || "").includes("First office") && (zipEntry(reportDocx, "word/document.xml") || "").includes(">Quarterly report</w:t>"),
+      "the Word export is written into the template, its title control filled");
     check(await putTemplate("Second office") === 201, "a new version of the template is kept");
     await page.reload();
     await page.waitForSelector("#word-template-upgrade");
