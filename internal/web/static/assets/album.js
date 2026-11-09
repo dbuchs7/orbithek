@@ -3,11 +3,13 @@
 // body's item, where it takes on the item's key and access; the original
 // stays where it is, unchanged. Folders (ADR-0090) are items of their own
 // that hold the pictures uploaded into them; pictures carry labels of
-// their own, which only narrow the album.
+// their own, which only narrow the album. Every picture one sees here is
+// exported as PNG or JPEG, a drawing also as SVG (ADR-0173).
 import { h, when } from "./dom.js";
 import { t } from "./i18n.js";
 import { get, post, put, del, upload } from "./api.js";
 import { DRAWING } from "./drawing.js";
+import { exportFormats, exportPicture } from "./picexport.js";
 
 const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
 
@@ -121,6 +123,28 @@ export function albumBrowser({ pick } = {}) {
     return h("div", { class: "album-labels" }, ...chips, input);
   };
 
+  // exportMenu offers a picture as a file in each of its formats
+  // (ADR-0173). Whoever sees it in the album may read it, and so may
+  // export it; the menu closes when a format is chosen.
+  const formatText = { png: t("album.exportPng"), jpeg: t("album.exportJpeg"), svg: t("album.exportSvg") };
+  const exportMenu = (p) => {
+    const menu = h("details", { class: "export-menu album-export" },
+      h("summary", { class: "button secondary", text: t("album.export"), title: t("album.exportTitle") }),
+      h("div", { class: "export-list" }, exportFormats(p).map((f) => h("button", { type: "button", class: "link", "data-format": f, text: formatText[f],
+        onclick: async () => {
+          menu.open = false;
+          const name = captionOf(p.attachment.name);
+          status.replaceChildren(h("p", { class: "muted", role: "status", text: t("album.exporting", { name }) }));
+          try {
+            const file = await exportPicture(p, f, h);
+            status.replaceChildren(h("p", { class: "notice", role: "status", text: t("album.exported", { name: file }) }));
+          } catch (err) {
+            fail(new Error(t("album.exportFailed", { name, reason: err.message === "empty" ? t("draw.empty") : err.message })));
+          }
+        } }))));
+    return menu;
+  };
+
   // card shows one picture; version numbers it within its stack.
   const card = (p, version, picture) => h("li", { class: "album-card", "data-attachment": p.attachment.id },
     h("figure", {},
@@ -139,6 +163,7 @@ export function albumBrowser({ pick } = {}) {
         const system = await copyPicture(p);
         status.replaceChildren(h("p", { class: "notice", role: "status", text: t(system ? "album.copied" : "album.copiedHere", { name: captionOf(p.attachment.name) }) }));
       } }),
+    pick ? null : exportMenu(p),
     // A picture its item's text shows is deleted there, not here.
     !pick && p.editable && !p.used ? h("button", { type: "button", class: "danger album-delete", text: t("album.delete"),
       onclick: async () => {
