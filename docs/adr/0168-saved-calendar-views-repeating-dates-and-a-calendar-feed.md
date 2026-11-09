@@ -1,9 +1,9 @@
-# ADR-0167: Saved calendar views, repeating dates with exceptions, and a calendar feed
+# ADR-0168: Saved calendar views, repeating dates with exceptions, and a calendar feed
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-09
-- **Deciders:** Project initiators (request of 2026-11-09 for saved views, repeating dates and a subscribable feed; the three choices below were answered the same day)
+- **Deciders:** Project initiators (request of 2026-11-09 for saved views, repeating dates and a subscribable feed; the three choices below were answered the same day; accepted 2026-11-09)
 - **Open question:** whether saved views should be shared with a room, and whether one occurrence of a series should carry its own title or fields; both are left out here
 - **Question checked:** 2026-11
 
@@ -50,7 +50,7 @@ Chosen option: **1**. The three choices were made by the requester on 2026-11-09
 
 ### Repeating dates
 
-- **Field kind:** a field of the kind `recurrence` holds a rule as text (codec version 41). Its parts follow iCalendar where it has them:
+- **Field kind:** a field of the kind `recurrence` holds a rule as text (codec version 42). Its parts follow iCalendar where it has them:
   - `FREQ` (`DAILY`, `WEEKLY`, `MONTHLY`, `YEARLY`) and `INTERVAL` (1 to 999);
   - `BYDAY` (weekly only);
   - `UNTIL` (a day) or `COUNT` (1 to 1 000);

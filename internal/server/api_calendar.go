@@ -14,7 +14,7 @@ import (
 )
 
 // Feed window: what a subscribed calendar holds, around the day it reads
-// the feed (ADR-0167).
+// the feed (ADR-0168).
 const (
 	feedDaysBack  = 90
 	feedDaysAhead = 400
@@ -28,7 +28,7 @@ type calendarHandlers struct {
 }
 
 // calendarRoutes are a person's saved calendar views and the feed that
-// subscribes to one (ADR-0167).
+// subscribes to one (ADR-0168).
 func calendarRoutes(d Deps) []Route {
 	h := calendarHandlers{itemHandlers{d: d, log: d.Log}}
 	if h.log == nil {
@@ -150,7 +150,7 @@ func (h calendarHandlers) revokeFeed(w http.ResponseWriter, r *http.Request) {
 
 // feed answers a saved view as iCalendar to whoever holds its secret, as
 // its owner reads the items: nothing the owner may not read is in it, and
-// a feed whose owner is gone opens nothing (D10, ADR-0167).
+// a feed whose owner is gone opens nothing (D10, ADR-0168).
 func (h calendarHandlers) feed(w http.ResponseWriter, r *http.Request) {
 	secret := strings.TrimSuffix(r.PathValue("feed"), ".ics")
 	owner, view, ok := h.d.DB.Accounts.CalendarFeed(secret)

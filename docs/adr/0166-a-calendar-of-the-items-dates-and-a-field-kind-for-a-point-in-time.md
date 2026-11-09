@@ -57,7 +57,7 @@ Chosen option: **1**, because it needs no new route and no new stored object, ke
 - The week's axis of hours: a row *All day* for entries without a time and for spans over several days, then the hours of the day, an entry of one day with a time from its start to its end (an hour when it has no end), side by side where entries overlap, a line at the time now on today; it opens at the first time of the week, or at seven. A point in time is read a day wider on either side of the period, because the query counts it by its UTC day; the days drawn pick out what belongs to them.
 - Choosing in words, with the sentence that says what is shown, and the advanced part with the query sent.
 - The field kind `datetime` as decided below (codec version 40; `item.KindDateTime`, `item.FormatField`; the API, queries, sorting, `where`, the CSV export, the governance check, the JSON connectors and the import engine). The calendar places a point in time on its day where the reader is and shows its time; the roadmap places it on its UTC day; the item's page edits it with a `datetime-local` input and names the reader's time zone; kanban cards and the task list read its day in the reader's calendar.
-- Everything this record decides is built. Repeating dates and a calendar feed for other programs, its open question, are decided by ADR-0167.
+- Everything this record decides is built. Repeating dates and a calendar feed for other programs, its open question, are decided by ADR-0168.
 
 ### The field kind `datetime`
 
@@ -108,6 +108,6 @@ Strongest form: established open-source calendar widgets under permissive licenc
 
 ## Links
 
-- its open question, repeating dates and a calendar feed, is answered by ADR-0167
+- its open question, repeating dates and a calendar feed, is answered by ADR-0168
 - relates to ADR-0164 (roadmap and Gantt chart, whose field guesses and axis rules this record shares)
 - relates to ADR-0136 (query language), ADR-0074 (`where`, value formats and reviews), ADR-0040 (governance checks), ADR-0082 (finished states), ADR-0017 (message catalogue), ADR-0009 (single binary), ADR-0032 (a vendored bundle), ADR-0120 (themes), ADR-0127 (connectors), ADR-0064 (a message is a pointer, not a copy)

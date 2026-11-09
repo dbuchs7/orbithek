@@ -12,7 +12,7 @@ import (
 // for one and an anonymous calendar program reads it: the key, title, time
 // and link of each entry its owner may read, a repeating item once per
 // occurrence, a cancelled one left out; a new or ended feed closes the old
-// address (ADR-0167).
+// address (ADR-0168).
 func TestSavedCalendarViewsAndTheirFeed(t *testing.T) {
 	w := newWorld(t)
 	w.admin.expect("POST", "/api/types", `{"name":"meeting","fields":[{"name":"assignee","kind":"user"},{"name":"starts","kind":"datetime"},{"name":"ends","kind":"datetime"},{"name":"repeats","kind":"recurrence"}]}`, http.StatusCreated)

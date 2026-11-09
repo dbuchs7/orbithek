@@ -130,7 +130,7 @@ func (h itemHandlers) copyOne(r *http.Request, space string, t copyTask) (item.I
 	err = h.d.DB.Write(func(s *item.Store) error {
 		x := s.As(who(r))
 		var err error
-		made, err = x.Create(item.NewItem{Space: space, Type: src.Type, Parent: t.parent, Title: title, Properties: src.Properties})
+		made, err = x.Create(item.NewItem{Space: space, Type: src.Type, Parent: t.parent, Title: title, Properties: src.Properties, Template: src.Template})
 		if err != nil {
 			return err
 		}

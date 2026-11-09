@@ -1,5 +1,5 @@
 {
-  "comment": "Cases of repeating items (ADR-0167), read by internal/item/recurrence_test.go and internal/web/jstest/recurrence.test.mjs, so the server's feed and the browser's calendar expand a rule alike. Times are UTC; a window runs from 'from' (included) to 'to' (excluded).",
+  "comment": "Cases of repeating items (ADR-0168), read by internal/item/recurrence_test.go and internal/web/jstest/recurrence.test.mjs, so the server's feed and the browser's calendar expand a rule alike. Times are UTC; a window runs from 'from' (included) to 'to' (excluded).",
   "parse": [
     {"in": "FREQ=WEEKLY;BYDAY=WE,MO", "norm": "FREQ=WEEKLY;BYDAY=MO,WE"},
     {"in": "freq=daily; interval=2 ;count=5", "norm": "FREQ=DAILY;INTERVAL=2;COUNT=5"},

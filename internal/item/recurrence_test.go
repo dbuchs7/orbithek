@@ -10,7 +10,7 @@ import (
 )
 
 // recurrenceCases are the cases the server and the browser share
-// (testdata/recurrence-cases.json, ADR-0167).
+// (testdata/recurrence-cases.json, ADR-0168).
 type recurrenceCases struct {
 	Parse []struct {
 		In    string `json:"in"`

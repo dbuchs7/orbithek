@@ -10,13 +10,13 @@ import (
 	"time"
 
 	// A repeating point in time keeps its time of day in a named time zone
-	// (ADR-0167); the zones travel with the binary, which runs on images
+	// (ADR-0168); the zones travel with the binary, which runs on images
 	// without a zone database.
 	_ "time/tzdata"
 )
 
 // KindRecurrence is the rule by which an item repeats, with its exceptions
-// (ADR-0167). Its value is a text of parts separated by semicolons:
+// (ADR-0168). Its value is a text of parts separated by semicolons:
 //
 //	FREQ=DAILY|WEEKLY|MONTHLY|YEARLY   required
 //	INTERVAL=n                         every n periods, 1 to 999

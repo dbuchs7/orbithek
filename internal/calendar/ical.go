@@ -9,7 +9,7 @@ import (
 
 // Feed is a calendar as iCalendar (RFC 5545): one VEVENT per entry, each
 // with its key and title, its time and a link back, and nothing of its
-// text or comments (ADR-0167). base is the address the server names
+// text or comments (ADR-0168). base is the address the server names
 // itself by; host names it in the entries' identifiers.
 func Feed(name, base string, events []Event, now time.Time) []byte {
 	host := strings.TrimPrefix(strings.TrimPrefix(base, "https://"), "http://")

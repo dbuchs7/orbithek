@@ -1,5 +1,5 @@
 // Package calendar turns a saved calendar view into the entries of a
-// calendar feed (ADR-0167): which date fields each type stands on, the
+// calendar feed (ADR-0168): which date fields each type stands on, the
 // query that reads the items of a stretch of time, the occurrences of
 // repeating items, and the feed in iCalendar (RFC 5545).
 //

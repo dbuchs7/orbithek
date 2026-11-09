@@ -122,7 +122,7 @@ type Accounts struct {
 	tokenIDs map[string]*token
 	sessions map[string]*session // by secret hash
 	external map[string]UserID   // issuer + "\x00" + subject -> user (ADR-0030)
-	feeds    map[string]feedRef  // calendar feeds by secret hash (ADR-0167)
+	feeds    map[string]feedRef  // calendar feeds by secret hash (ADR-0168)
 	throttle throttle
 	dummy    string // hash checked for unknown usernames, at the same cost
 }
@@ -148,7 +148,7 @@ type user struct {
 	// in the order they were marked (ADR-0145).
 	favourites []string
 	// views are the calendar views the user saved, with their feeds
-	// (ADR-0167).
+	// (ADR-0168).
 	views []viewRecord
 }
 
@@ -231,7 +231,7 @@ type event struct {
 	// Spaces are the keys of a FavouritesSet, the whole list (ADR-0145).
 	Spaces []string `json:"spaces,omitempty"`
 	// Views are a user's saved calendar views of a CalendarViewsSet, the
-	// whole list with their feeds' hashes (ADR-0167).
+	// whole list with their feeds' hashes (ADR-0168).
 	Views []viewRecord `json:"views,omitempty"`
 }
 
@@ -267,7 +267,7 @@ const (
 	// whole list (ADR-0145).
 	favouritesSet = "FavouritesSet"
 	// calendarViewsSet records the calendar views a user saved, the whole
-	// list (ADR-0167).
+	// list (ADR-0168).
 	calendarViewsSet = "CalendarViewsSet"
 )
 

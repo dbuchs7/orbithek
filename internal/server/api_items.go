@@ -254,7 +254,15 @@ func (h itemHandlers) defineType(w http.ResponseWriter, r *http.Request) {
 		if err := h.isAdmin(s, r); err != nil {
 			return nil, err
 		}
-		if err := s.DefineType(who(r), req.toTypeDef()); err != nil {
+		td, err := req.toTypeDef()
+		if err != nil {
+			return nil, err
+		}
+		// A type names a template that is there (ADR-0167).
+		if td.Template != "" && h.d.DB.Site.NewestWordTemplate(td.Template) == 0 {
+			return nil, fmt.Errorf("%w: there is no Word template %q", item.ErrValidation, td.Template)
+		}
+		if err := s.DefineType(who(r), td); err != nil {
 			return nil, err
 		}
 		return map[string]typeJSON{"type": toTypeJSON(s.Type(req.Name))}, nil
@@ -767,6 +775,12 @@ func (n newItemJSON) toNewItem(s *item.Store) (item.NewItem, error) {
 		return item.NewItem{}, err
 	}
 	out := item.NewItem{Space: n.Space, Type: n.Type, Parent: n.Parent, Title: n.Title, Properties: props}
+	// A page made without a text begins with its type's (ADR-0167).
+	if td := s.Type(n.Type); n.Body == nil && td.Start != nil && len(td.Start.Blocks) > 0 {
+		for _, b := range td.Start.Blocks {
+			n.Body = append(n.Body, toBlockJSON(b))
+		}
+	}
 	if n.Body != nil {
 		doc, err := toDoc(n.Body, nil)
 		if err != nil {
@@ -1422,7 +1436,7 @@ func coerceValue(td item.TypeDef, field string, raw json.RawMessage) (any, error
 		}
 		return t.UTC().Truncate(time.Second), nil
 	case item.KindRecurrence:
-		// A rule is kept in its one canonical form (ADR-0167).
+		// A rule is kept in its one canonical form (ADR-0168).
 		s, ok := v.(string)
 		if !ok {
 			return v, nil

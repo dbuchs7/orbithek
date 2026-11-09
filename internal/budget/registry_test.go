@@ -51,9 +51,14 @@ var classified = map[string]string{
 		"it guards against a host that names a next page for ever",
 	"internal/connector.maxPages": "how many pages of a JSON source's list a connector reads (ADR-0127, ADR-0135), not a caller's input to this server; " +
 		"it guards the connector against a source that names a next page for ever",
-	"internal/connector.maxCell":    "the shape of a generated catalog page (ADR-0080): how long one value of the source may be on it, like the length of a title",
-	"internal/site.maxConnectors":   "the shape of the site's settings (ADR-0077): how many connectors an administrator keeps, like the number of regulations",
-	"internal/site.maxEngines":      "the shape of the site's settings (ADR-0129): how many process engines an administrator keeps, like the number of connectors",
+	"internal/connector.maxCell":     "the shape of a generated catalog page (ADR-0080): how long one value of the source may be on it, like the length of a title",
+	"internal/site.maxConnectors":    "the shape of the site's settings (ADR-0077): how many connectors an administrator keeps, like the number of regulations",
+	"internal/site.maxEngines":       "the shape of the site's settings (ADR-0129): how many process engines an administrator keeps, like the number of connectors",
+	"internal/site.maxWordTemplates": "the shape of the site's settings (ADR-0167): how many Word templates an administrator keeps, like the number of engines",
+	"internal/wordtemplate.maxParts": "the shape of a Word template (ADR-0167): how many parts its package holds, like the part names it may use; " +
+		"what the parts hold is bounded by WordTemplateBytes",
+	"internal/wordtemplate.maxFrameNodes": "the shape of a Word template's page as the reading view draws it (ADR-0167), " +
+		"from a file an administrator uploaded and bounded by WordTemplateBytes",
 	"internal/tasklink.maxProblems": "the shape of a round's report (ADR-0151): how many problems it names before it counts the rest, held for one engine at a time",
 	"internal/site.maxTaskRules":    "the shape of the site's settings (ADR-0151): how many task link rules an administrator keeps per engine, like the number of engines",
 	"internal/tasklink.maxEndReads": "how many tasks that left the list one round asks the engine about (ADR-0152), so many at once are settled over several rounds; " +
@@ -81,13 +86,13 @@ var classified = map[string]string{
 	"internal/auth.MaxFailures":      "a security policy (ADR-0013): failed logins before the throttle, not a memory setting",
 	"internal/auth.MaxTokenLifetime": "a security policy (ADR-0027): how long an API token may live",
 	"internal/auth.MaxReasonLength":  "the shape of an account request (ADR-0061), like the length of a username; the waiting requests are bounded by AccountRequests",
-	"internal/auth.maxCalendarViews": "the shape of one's preferences (ADR-0167), like the number of favourites: views are kept whole in each journal record, and what a request carries is bounded by RequestBody",
-	"internal/auth.maxViewName":      "the shape of a saved view (ADR-0167), like the length of a username",
-	"internal/auth.maxViewParams":    "the shape of a saved view (ADR-0167): the parameters of a calendar's address, which hold a few choices and a query",
-	"internal/item.maxInterval":      "the shape of a rule (ADR-0167), like the values of an enumeration: every 999 periods is longer than any calendar shows",
-	"internal/item.maxCount":         "the shape of a rule (ADR-0167): how many times it repeats, which bounds the occurrences it gives",
-	"internal/item.maxExceptions":    "the shape of a rule (ADR-0167): its cancelled and moved occurrences are kept in the field's text, which every listing carries",
-	"internal/item.maxSteps":         "a guard of the walk through a rule's days (ADR-0167), not a choice: the walk ends a year after the stretch asked for, far below it",
+	"internal/auth.maxCalendarViews": "the shape of one's preferences (ADR-0168), like the number of favourites: views are kept whole in each journal record, and what a request carries is bounded by RequestBody",
+	"internal/auth.maxViewName":      "the shape of a saved view (ADR-0168), like the length of a username",
+	"internal/auth.maxViewParams":    "the shape of a saved view (ADR-0168): the parameters of a calendar's address, which hold a few choices and a query",
+	"internal/item.maxInterval":      "the shape of a rule (ADR-0168), like the values of an enumeration: every 999 periods is longer than any calendar shows",
+	"internal/item.maxCount":         "the shape of a rule (ADR-0168): how many times it repeats, which bounds the occurrences it gives",
+	"internal/item.maxExceptions":    "the shape of a rule (ADR-0168): its cancelled and moved occurrences are kept in the field's text, which every listing carries",
+	"internal/item.maxSteps":         "a guard of the walk through a rule's days (ADR-0168), not a choice: the walk ends a year after the stretch asked for, far below it",
 	"internal/auth.maxFavourites": "the shape of one's preferences (ADR-0145), like the length of a username: favourites are space keys, " +
 		"which only an administrator creates, so the list cannot outgrow the spaces",
 	"internal/wal.MaxRecord": "part of the event log format: a server must read every record a server wrote, " +

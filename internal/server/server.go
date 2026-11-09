@@ -218,6 +218,9 @@ func Routes(d Deps) []Route {
 		// languages (ADR-0162).
 		_ = d.DB.Write(func(s *item.Store) error {
 			s.SetAccessTexts(accessTexts{d.DB.Accounts})
+			// A new page records the version of its type's Word template
+			// it is made with (ADR-0167).
+			s.SetTemplateVersions(d.DB.Site.NewestWordTemplate)
 			return nil
 		})
 	}
@@ -237,6 +240,7 @@ func Routes(d Deps) []Route {
 	routes = append(routes, kanbanIconRoutes(d)...)
 	routes = append(routes, avatarRoutes(d)...)
 	routes = append(routes, brandingRoutes(d)...)
+	routes = append(routes, wordTemplateRoutes(d)...)
 	routes = append(routes, regulationRoutes(d)...)
 	routes = append(routes, oidcRoutes(d)...)
 	routes = append(routes, itemRoutes(d)...)

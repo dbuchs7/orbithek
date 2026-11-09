@@ -15,6 +15,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/dbuchs7/orbithek/internal/item"
+	"github.com/dbuchs7/orbithek/internal/wordtemplate"
 )
 
 // Document is what an export writes: one page, or a page with the pages
@@ -31,6 +32,12 @@ type Document struct {
 	// Figure and Table name an entry of a list of figures or of tables,
 	// "Figure 1: caption" (ADR-0119); English when empty.
 	Figure, Table string
+	// Template, when set, is the Word template the document is written
+	// into (ADR-0167): its styles, page, header, footer and cover, the
+	// text where it marks it. Controls are the texts of its content
+	// controls by tag; the facts of the root take their place.
+	Template *wordtemplate.Template
+	Controls map[string]string
 }
 
 // diagramName names what a bpmn, process, form, decision, architecture or
@@ -165,7 +172,10 @@ var panelShades = map[string]string{"info": "E8F0FE", "note": "F3EEFC", "warning
 
 // DOCX writes the document as an Office Open XML word-processing file.
 func DOCX(w io.Writer, d Document) error {
-	b := &docxBuilder{d: d}
+	if d.Template != nil {
+		return docxFromTemplate(w, d)
+	}
+	b := newBuilder(d)
 	body := b.body()
 	z := zip.NewWriter(w)
 	files := []struct{ name, data string }{
@@ -205,10 +215,62 @@ type media struct {
 
 type docxBuilder struct {
 	d       Document
-	links   []string // targets of hyperlinks; rId is "rL" plus the index
+	links   []string // targets of hyperlinks; rId is rel, "L" and the index
 	media   []media
 	ordered int // ordered lists so far; each gets its own numbering
 	shapes  int
+	// rel starts the IDs of relationships, mediaPrefix the names of
+	// pictures; numBase is the bullet list's numbering, the ordered lists'
+	// follow it, and absBase the first abstract numbering; width is the
+	// text column in EMU. A template sets them so nothing collides with
+	// its own (ADR-0167).
+	rel, mediaPrefix string
+	numBase, absBase int
+	width            int64
+	// tpl is the template written into; style maps the export's style IDs
+	// to its, adding what it lacks to added.
+	tpl    *wordtemplate.Template
+	styleN map[string]string
+	added  []string
+	lists  bool
+}
+
+func newBuilder(d Document) *docxBuilder {
+	return &docxBuilder{d: d, rel: "r", numBase: 1, width: textWidth}
+}
+
+// s is the ID of one of the export's styles in the document written.
+func (b *docxBuilder) s(id string) string {
+	if b.tpl == nil {
+		return id
+	}
+	if got, ok := b.styleN[id]; ok {
+		return got
+	}
+	def := styleDefs[id]
+	got := b.tpl.StyleID(def.typ, def.name)
+	if got == "" {
+		got = id
+		for b.tpl.StyleIDTaken(got) {
+			got = "Orbithek" + got
+		}
+		x := strings.Replace(def.xml, `w:styleId="`+id+`"`, `w:styleId="`+got+`"`, 1)
+		normal := b.tpl.DefaultParagraphStyle()
+		x = strings.ReplaceAll(x, `<w:basedOn w:val="Normal"/>`, `<w:basedOn w:val="`+normal+`"/>`)
+		x = strings.ReplaceAll(x, `<w:next w:val="Normal"/>`, `<w:next w:val="`+normal+`"/>`)
+		b.added = append(b.added, x)
+	}
+	b.styleN[id] = got
+	return got
+}
+
+// pStyle is a paragraph's style property.
+func (b *docxBuilder) pStyle(id string) string { return `<w:pStyle w:val="` + b.s(id) + `"/>` }
+
+// bulletNum is the bullet list's numbering; an ordered list's is listNum.
+func (b *docxBuilder) bulletNum() string {
+	b.lists = true
+	return fmt.Sprintf(`<w:numPr><w:ilvl w:val="0"/><w:numId w:val="%d"/></w:numPr>`, b.numBase)
 }
 
 func (b *docxBuilder) body() string {
@@ -217,9 +279,12 @@ func (b *docxBuilder) body() string {
 		return ""
 	}
 	root := b.d.Pages[0]
-	out.WriteString(para("Title", "", runs(b, root.Title, nil)))
+	// A template with a control for the title shows it there.
+	if b.tpl == nil || !b.tpl.HasControl("title") {
+		out.WriteString(para(b.s("Title"), "", runs(b, root.Title, nil)))
+	}
 	if b.d.Contents != "" && len(b.d.Pages) > 1 {
-		out.WriteString(para("TOCHeading", "", run(b.d.Contents, "")))
+		out.WriteString(para(b.s("TOCHeading"), "", run(b.d.Contents, "")))
 		for _, p := range b.d.Pages[1:] {
 			out.WriteString(paraPr(fmt.Sprintf(`<w:ind w:left="%d"/>`, (p.Depth-1)*360), run(p.Title, "")))
 		}
@@ -227,7 +292,7 @@ func (b *docxBuilder) body() string {
 	for i, p := range b.d.Pages {
 		if i > 0 {
 			// A chapter starts on a new page; a section below it does not.
-			pPr := fmt.Sprintf(`<w:pStyle w:val="Heading%d"/>`, min(p.Depth, 6))
+			pPr := b.pStyle(fmt.Sprintf("Heading%d", min(p.Depth, 6)))
 			if p.Depth == 1 {
 				pPr += `<w:pageBreakBefore/>`
 			}
@@ -241,19 +306,20 @@ func (b *docxBuilder) body() string {
 // page writes an item's facts and body; base is the heading level of its
 // title, so its own headings come below it.
 func (b *docxBuilder) page(out *strings.Builder, p Page, base int, path map[item.ID]bool, embedDepth int) {
-	if len(p.Facts) > 0 {
+	// Under a template its controls show the facts (ADR-0167).
+	if len(p.Facts) > 0 && b.tpl == nil {
 		var rows [][]string
 		for _, f := range p.Facts {
 			rows = append(rows, []string{f[0], f[1]})
 		}
-		out.WriteString(table(rows, false))
+		out.WriteString(b.table(rows, false))
 		out.WriteString(para("", "", ""))
 	}
 	listNum := 0
 	for i, bl := range p.Body {
 		if bl.Kind == item.OrderedItem && (i == 0 || p.Body[i-1].Kind != item.OrderedItem) {
 			b.ordered++
-			listNum = 1 + b.ordered
+			listNum = b.numBase + b.ordered
 		}
 		if bl.Kind == item.Embed {
 			b.embed(out, bl.Ref, base, path, embedDepth)
@@ -268,10 +334,10 @@ func (b *docxBuilder) page(out *strings.Builder, p Page, base int, path map[item
 func (b *docxBuilder) embed(out *strings.Builder, id item.ID, base int, path map[item.ID]bool, embedDepth int) {
 	e, ok := b.d.Embeds[id]
 	if !ok {
-		out.WriteString(para("EmbedTitle", "", run("↳ "+b.d.Restricted, "")))
+		out.WriteString(para(b.s("EmbedTitle"), "", run("↳ "+b.d.Restricted, "")))
 		return
 	}
-	out.WriteString(para("EmbedTitle", "", run("↳ "+e.name(), "")))
+	out.WriteString(para(b.s("EmbedTitle"), "", run("↳ "+e.name(), "")))
 	if path[id] || embedDepth >= maxEmbedDepth {
 		return
 	}
@@ -293,29 +359,30 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int) string {
 	switch bl.Kind {
 	case item.Heading:
 		level := min(base+min(max(bl.Level, 1), 3), 6)
-		return paraPr(fmt.Sprintf(`<w:pStyle w:val="Heading%d"/>`, level)+align(jc), text)
+		return paraPr(b.pStyle(fmt.Sprintf("Heading%d", level))+align(jc), text)
 	case item.BulletItem:
-		return paraPr(`<w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr>`, text)
+		return paraPr(b.pStyle("ListParagraph")+b.bulletNum(), text)
 	case item.OrderedItem:
-		return paraPr(fmt.Sprintf(`<w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="%d"/></w:numPr>`, listNum), text)
+		b.lists = true
+		return paraPr(b.pStyle("ListParagraph")+fmt.Sprintf(`<w:numPr><w:ilvl w:val="0"/><w:numId w:val="%d"/></w:numPr>`, listNum), text)
 	case item.TaskItem:
 		box := "☐ "
 		if bl.Checked {
 			box = "☑ "
 		}
-		return para("ListParagraph", "", run(box, "")+text)
+		return para(b.s("ListParagraph"), "", run(box, "")+text)
 	case item.Quote:
-		return paraPr(`<w:pStyle w:val="Quote"/>`+align(jc), text)
+		return paraPr(b.pStyle("Quote")+align(jc), text)
 	case item.CodeBlock:
-		return para("Code", "", run(bl.Text, ""))
+		return para(b.s("Code"), "", run(bl.Text, ""))
 	case item.Panel:
 		shade := panelShades[bl.Tone]
 		if shade == "" {
 			shade = panelShades["info"]
 		}
-		return paraPr(`<w:pStyle w:val="Panel"/><w:shd w:val="clear" w:color="auto" w:fill="`+shade+`"/>`+align(jc), text)
+		return paraPr(b.pStyle("Panel")+`<w:shd w:val="clear" w:color="auto" w:fill="`+shade+`"/>`+align(jc), text)
 	case item.Table:
-		return table(TableRows(bl.Text), true)
+		return b.table(TableRows(bl.Text), true)
 	case item.Divider:
 		return paraPr(`<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="BFBFBF"/></w:pBdr>`, "")
 	case item.Image:
@@ -324,7 +391,7 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int) string {
 		// A document does not play a video; it names it (ADR-0097).
 		out := para("", "", run("[Video: "+p.Images[bl.Ref].Name+"]", ""))
 		if strings.TrimSpace(bl.Text) != "" {
-			out += para("Caption", "", run(bl.Text, ""))
+			out += para(b.s("Caption"), "", run(bl.Text, ""))
 		}
 		return out
 	case item.BPMN, item.Process, item.Form, item.Decision, item.Architecture, item.StartForm:
@@ -334,7 +401,7 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int) string {
 		// ADR-0148).
 		out := para("", "", run("["+diagramName(bl, p.Images)+"]", ""))
 		if strings.TrimSpace(bl.Text) != "" && !namedByCaption(bl) {
-			out += para("Caption", "", run(bl.Text, ""))
+			out += para(b.s("Caption"), "", run(bl.Text, ""))
 		}
 		return out
 	case item.Figures, item.Tables:
@@ -344,6 +411,9 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int) string {
 		}
 		return out.String()
 	case item.TOC:
+		if b.tpl != nil {
+			return b.tocField(p.Body)
+		}
 		var out strings.Builder
 		for _, h := range p.Body {
 			if h.Kind == item.Heading && strings.TrimSpace(h.Text) != "" {
@@ -355,13 +425,13 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int) string {
 		out := strings.Builder{}
 		out.WriteString(para("", "", run(TaskListTitle(bl), "")))
 		for _, c := range p.Tasks[TaskListKey(bl)] {
-			out.WriteString(paraPr(`<w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr>`, run(c, "")))
+			out.WriteString(paraPr(b.pStyle("ListParagraph")+b.bulletNum(), run(c, "")))
 		}
 		return out.String()
 	case item.Children:
 		var out strings.Builder
 		for _, c := range p.Children {
-			out.WriteString(paraPr(`<w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr>`, run(c, "")))
+			out.WriteString(paraPr(b.pStyle("ListParagraph")+b.bulletNum(), run(c, "")))
 		}
 		return out.String()
 	default: // paragraph, and content an import could not convert
@@ -373,7 +443,7 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int) string {
 func (b *docxBuilder) picture(bl item.Block, images map[item.ID]Image) string {
 	caption := ""
 	if strings.TrimSpace(bl.Text) != "" {
-		caption = para("Caption", "", run(bl.Text, ""))
+		caption = para(b.s("Caption"), "", run(bl.Text, ""))
 	}
 	img, ok := images[bl.Ref]
 	if !ok {
@@ -386,13 +456,13 @@ func (b *docxBuilder) picture(bl item.Block, images map[item.ID]Image) string {
 	ext := map[string]string{"png": "png", "jpeg": "jpeg", "gif": "gif"}[format]
 	cx := int64(cfg.Width) * emuPerPixel
 	if bl.Width > 0 {
-		cx = int64(textWidth) * int64(bl.Width) / 100
+		cx = b.width * int64(bl.Width) / 100
 	}
-	cx = min(cx, textWidth)
+	cx = min(cx, b.width)
 	cy := cx * int64(cfg.Height) / int64(cfg.Width)
 	b.shapes++
-	id := fmt.Sprintf("rI%d", b.shapes)
-	b.media = append(b.media, media{id: id, file: fmt.Sprintf("image%d.%s", b.shapes, ext), data: img.Data})
+	id := fmt.Sprintf("%sI%d", b.rel, b.shapes)
+	b.media = append(b.media, media{id: id, file: fmt.Sprintf("%simage%d.%s", b.mediaPrefix, b.shapes, ext), data: img.Data})
 	jc := `<w:jc w:val="center"/>`
 	switch bl.Align {
 	case "left", "right":
@@ -467,9 +537,9 @@ func runs(b *docxBuilder, text string, marks []item.Mark) string {
 		var props string
 		// The order of the run properties is the schema's.
 		if sg.link {
-			props += `<w:rStyle w:val="Hyperlink"/>`
+			props += `<w:rStyle w:val="` + b.s("Hyperlink") + `"/>`
 		} else if sg.code {
-			props += `<w:rStyle w:val="CodeChar"/>`
+			props += `<w:rStyle w:val="` + b.s("CodeChar") + `"/>`
 		}
 		if sg.bold {
 			props += "<w:b/>"
@@ -489,7 +559,7 @@ func runs(b *docxBuilder, text string, marks []item.Mark) string {
 		r := run(sg.text, props)
 		if sg.link {
 			b.links = append(b.links, sg.href)
-			r = fmt.Sprintf(`<w:hyperlink r:id="rL%d">%s</w:hyperlink>`, len(b.links), r)
+			r = fmt.Sprintf(`<w:hyperlink r:id="%sL%d">%s</w:hyperlink>`, b.rel, len(b.links), r)
 		}
 		out.WriteString(r)
 	}
@@ -542,7 +612,7 @@ func align(jc string) string {
 
 // table writes rows as a table with borders; the first row is a header
 // when header is set.
-func table(rows [][]string, header bool) string {
+func (b *docxBuilder) table(rows [][]string, header bool) string {
 	if len(rows) == 0 {
 		return ""
 	}
@@ -551,9 +621,9 @@ func table(rows [][]string, header bool) string {
 		cols = max(cols, len(r))
 	}
 	var out strings.Builder
-	out.WriteString(`<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/><w:tblW w:w="5000" w:type="pct"/></w:tblPr><w:tblGrid>`)
+	out.WriteString(`<w:tbl><w:tblPr><w:tblStyle w:val="` + b.s("TableGrid") + `"/><w:tblW w:w="5000" w:type="pct"/></w:tblPr><w:tblGrid>`)
 	for range cols {
-		fmt.Fprintf(&out, `<w:gridCol w:w="%d"/>`, 9070/cols)
+		fmt.Fprintf(&out, `<w:gridCol w:w="%d"/>`, int(b.width/635)/cols)
 	}
 	out.WriteString("</w:tblGrid>")
 	for i, r := range rows {
@@ -604,20 +674,27 @@ func (b *docxBuilder) rels() string {
 	return out.String()
 }
 
-// numbering defines the bullet list (1) and one decimal list per ordered
-// list of the page (2 and on), each starting at 1.
+// numbering defines the bullet list (numBase) and one decimal list per
+// ordered list of the page (numBase+1 and on), each starting at 1.
 func (b *docxBuilder) numbering() string {
-	var out strings.Builder
-	out.WriteString(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+	abs, nums := b.numberingDefs()
+	return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
 		`<w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">` +
-		`<w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="singleLevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum>` +
-		`<w:abstractNum w:abstractNumId="1"><w:multiLevelType w:val="singleLevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%1."/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum>` +
-		`<w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>`)
-	for i := 1; i <= b.ordered; i++ {
-		fmt.Fprintf(&out, `<w:num w:numId="%d"><w:abstractNumId w:val="1"/><w:lvlOverride w:ilvl="0"><w:startOverride w:val="1"/></w:lvlOverride></w:num>`, i+1)
+		strings.Join(abs, "") + strings.Join(nums, "") + "</w:numbering>"
+}
+
+// numberingDefs are the abstract numberings and the numberings of the
+// document's lists.
+func (b *docxBuilder) numberingDefs() (abs, nums []string) {
+	abs = []string{
+		fmt.Sprintf(`<w:abstractNum w:abstractNumId="%d"><w:multiLevelType w:val="singleLevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum>`, b.absBase),
+		fmt.Sprintf(`<w:abstractNum w:abstractNumId="%d"><w:multiLevelType w:val="singleLevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%%1."/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum>`, b.absBase+1),
 	}
-	out.WriteString("</w:numbering>")
-	return out.String()
+	nums = []string{fmt.Sprintf(`<w:num w:numId="%d"><w:abstractNumId w:val="%d"/></w:num>`, b.numBase, b.absBase)}
+	for i := 1; i <= b.ordered; i++ {
+		nums = append(nums, fmt.Sprintf(`<w:num w:numId="%d"><w:abstractNumId w:val="%d"/><w:lvlOverride w:ilvl="0"><w:startOverride w:val="1"/></w:lvlOverride></w:num>`, b.numBase+i, b.absBase+1))
+	}
+	return abs, nums
 }
 
 // esc escapes text for XML and drops the characters XML cannot hold.

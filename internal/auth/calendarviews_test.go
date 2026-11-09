@@ -9,7 +9,7 @@ import (
 // TestCalendarViewsAndTheirFeeds: a user saves, renames and removes views;
 // a feed secret opens its view until it is replaced or revoked; nothing
 // survives a reload but what was recorded, and the secret itself never is
-// (ADR-0167).
+// (ADR-0168).
 func TestCalendarViewsAndTheirFeeds(t *testing.T) {
 	a, j, _ := newAccounts(t)
 	u, err := a.CreateUser("anna", "anna's password")

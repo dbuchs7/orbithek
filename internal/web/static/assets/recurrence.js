@@ -1,4 +1,4 @@
-// Repeating items in the browser (ADR-0167): reading and writing the rule
+// Repeating items in the browser (ADR-0168): reading and writing the rule
 // of a field of the kind recurrence, and the occurrences it gives in a
 // stretch of time. The server reads the same rule (internal/item/
 // recurrence.go) for the calendar feed; both are tested with the same

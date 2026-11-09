@@ -9,7 +9,7 @@ import (
 	"unicode/utf8"
 )
 
-// Bounds of a user's saved calendar views (ADR-0167).
+// Bounds of a user's saved calendar views (ADR-0168).
 const (
 	maxCalendarViews = 50
 	maxViewName      = 80
@@ -17,10 +17,10 @@ const (
 )
 
 // FeedPrefix starts every calendar feed secret, so secret scanners can find
-// a leaked feed address (ADR-0167).
+// a leaked feed address (ADR-0168).
 const FeedPrefix = "otcal_"
 
-// CalendarView is a calendar a user saved under a name (ADR-0167): the
+// CalendarView is a calendar a user saved under a name (ADR-0168): the
 // parameters of its address, as the calendar writes them, and whether it
 // may be subscribed to as a feed. The feed's secret is shown once, when it
 // is made, and kept only as its hash.
@@ -132,7 +132,7 @@ func (a *Accounts) RemoveCalendarView(id UserID, view string) error {
 }
 
 // NewCalendarFeed makes a feed secret for a user's view and returns it,
-// once; a feed the view had stops working (ADR-0167).
+// once; a feed the view had stops working (ADR-0168).
 func (a *Accounts) NewCalendarFeed(id UserID, view string) (string, error) {
 	raw, err := a.newID(32)
 	if err != nil {

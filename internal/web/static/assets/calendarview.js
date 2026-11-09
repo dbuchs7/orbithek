@@ -322,7 +322,7 @@ function queryError(err, sent, state) {
 // chosen but the day shown, so a saved view always opens on today.
 const savedParams = (state, today) => address({ ...state, at: today }, today).replace(/^#\/calendar\??/, "");
 
-// savedBar offers the views one saved (ADR-0167): open one, save the view
+// savedBar offers the views one saved (ADR-0168): open one, save the view
 // as it is under a name, remove the one shown, and subscribe to it from a
 // calendar program with a feed address of its own.
 function savedBar(container, params, helpers, state, today, views, after) {
@@ -442,7 +442,7 @@ export async function calendarView(container, params, helpers, after = {}) {
     // move changes the entry's dates by n days, place to a time of day as
     // well, then the calendar is drawn again from what the server kept,
     // telling what happened. An occurrence of a series asks whether only
-    // it moves or the whole series (ADR-0167).
+    // it moves or the whole series (ADR-0168).
     move: (e, n) => ctx.place(e, n),
     place: async (e, n, minutes) => {
       if (!e.occurrence) return ctx.change(e, n, minutes === undefined ? moves(e, n) : retime(e, n, minutes));

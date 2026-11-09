@@ -88,7 +88,7 @@ export function typeFields(types, state) {
       ? { start: names.includes(state.start) ? state.start : "", end: names.includes(state.end) ? state.end : "" }
       : guessFields(names);
     const timed = (name) => (ty.fields || []).some((x) => x.name === name && x.kind === "datetime");
-    // A type repeats by its first field of the kind recurrence (ADR-0167).
+    // A type repeats by its first field of the kind recurrence (ADR-0168).
     const recurrence = (ty.fields || []).find((x) => x.kind === "recurrence")?.name || "";
     if (f.start || f.end) out.push({ type: ty.name, start: f.start, end: f.end, startTimed: timed(f.start), endTimed: timed(f.end), assignee: assigneeOf(ty), recurrence });
   }
@@ -134,7 +134,7 @@ export function periodCondition(fields, from, to, who = "") {
       ? `(${quote(f.start)} <= ${last(f.startTimed)} AND ${quote(f.end)} >= ${first(f.endTimed)}) OR (${within(f.start, f.startTimed)}) OR (${within(f.end, f.endTimed)})`
       : within(f.start || f.end, f.start ? f.startTimed : f.endTimed);
     // A repeating item is read whenever it began by the last day; its
-    // occurrences are worked out in the browser (ADR-0167).
+    // occurrences are worked out in the browser (ADR-0168).
     if (f.recurrence) {
       const [anchor, timed] = f.start ? [f.start, f.startTimed] : [f.end, f.endTimed];
       cond = `(${cond}) OR (${quote(f.recurrence)} IS NOT EMPTY AND ${quote(anchor)} <= ${last(timed)})`;
@@ -205,7 +205,7 @@ export function localDayOf(value) {
 // milestone stands on the roadmap. An entry keeps the points in time it
 // stands by, in at.from and at.to, null for a day without a time.
 //
-// A repeating item (ADR-0167) gives an entry per occurrence in the days
+// A repeating item (ADR-0168) gives an entry per occurrence in the days
 // from range.from to range.to, when a range is given; each knows the day
 // it falls on by its rule (occurrence), whether it was moved, its rule and
 // the field that holds it. A rule that cannot be read places the item once.
@@ -464,7 +464,7 @@ export function retime(entry, n, minutes) {
 
 // occurrenceChanges are the property changes that move one occurrence of a
 // repeating entry by n days, and, for one with a time, to a time of day in
-// minutes where the reader is: an exception in its rule (ADR-0167). The
+// minutes where the reader is: an exception in its rule (ADR-0168). The
 // series stays as it is.
 export function occurrenceChanges(entry, n, minutes) {
   let target;

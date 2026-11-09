@@ -46,7 +46,7 @@ const (
 	TokenCreated    = "token.create"
 	TokenRevoked    = "token.revoke"
 	// CalendarFeedCreated and CalendarFeedRevoked record a calendar feed's
-	// secret made or ended for a saved view (ADR-0167).
+	// secret made or ended for a saved view (ADR-0168).
 	CalendarFeedCreated = "calendar-feed.create"
 	CalendarFeedRevoked = "calendar-feed.revoke"
 	UserCreated         = "user.create"

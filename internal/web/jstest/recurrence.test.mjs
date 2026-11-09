@@ -1,4 +1,4 @@
-// Unit tests of repeating items in the browser (recurrence.js, ADR-0167).
+// Unit tests of repeating items in the browser (recurrence.js, ADR-0168).
 // The cases are shared with the server's tests (internal/item/testdata/
 // recurrence-cases.json), so both expand a rule alike. They run in Node.js
 // without a browser and without dependencies:
