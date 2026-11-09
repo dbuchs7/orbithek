@@ -1266,7 +1266,7 @@ function newButton() {
     "aria-haspopup": "menu", "aria-expanded": "false", "aria-controls": "new-menu" });
   const item = (id, text, onclick) => h("button", { type: "button", role: "menuitem", tabindex: "-1", class: "link", id, text, onclick });
   const menu = h("div", { id: "new-menu", class: "menu new-menu", role: "menu", hidden: true, "aria-label": t("new.title") },
-    item("new-menu-item", t("new.page"), go),
+    item("new-menu-item", t("nav.newItem"), go),
     item("new-menu-space", t("admin.newSpace"), () => newSpaceDialog()));
   popupMenu(button, menu);
   return h("div", { class: "new-wrap" }, button, menu);
