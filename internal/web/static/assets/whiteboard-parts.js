@@ -45,6 +45,27 @@ export function shown(el, heldBy, me) {
   return holder && holder !== me && !el.locked ? { ...el, locked: true } : el;
 }
 
+// relocked are the elements to show anew when the locks of ids change:
+// those whose lock is shown otherwise than it should be now, as they are
+// on the server. The others stay as the scene has them; that matters for
+// what one holds oneself: it may be newer than the server's while its
+// change is on the way, and Excalidraw may still be working on the very
+// object, as on a picture being added, whose file is set only once it is
+// read. Replaced, the work would go to an object no longer shown and
+// never be sent. scene maps element IDs to what the scene shows.
+export function relocked(ids, scene, truth, heldBy, me) {
+  const out = [];
+  for (const id of ids) {
+    const el = truth.get(id);
+    if (!el) continue;
+    const want = shown(el, heldBy, me);
+    const now = scene.get(id);
+    if (now && !!now.locked === !!want.locked) continue;
+    out.push(want);
+  }
+  return out;
+}
+
 // sendable is an element as it is sent: the lock shown for another's hold
 // is not the element's own, and an image this browser could not load is
 // not broken for the others.

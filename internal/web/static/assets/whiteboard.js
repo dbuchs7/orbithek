@@ -119,17 +119,14 @@ export function startWhiteboard({ root, dark, lang, item, file, palette, bind, o
     paint();
   }
 
-  // relock shows elements again as their holders hold them.
+  // relock shows elements again as their holders hold them; only those
+  // whose lock shows otherwise are replaced (P.relocked).
   function relock(ids) {
     if (!S.api) return;
     const map = new Map(sceneOf().map((e) => [e.id, e]));
-    const shownAnew = [];
-    for (const id of ids) {
-      const el = S.truth.get(id);
-      if (!el) continue;
-      map.set(id, copy(P.shown(el, S.heldBy, S.client)));
-      shownAnew.push(el);
-    }
+    const shownAnew = P.relocked(ids, map, S.truth, S.heldBy, S.client);
+    if (!shownAnew.length) return;
+    for (const el of shownAnew) map.set(el.id, copy(el));
     S.api.updateScene({ elements: P.byIndex([...map.values()]), captureUpdate: NEVER });
     redraw(P.pictures(shownAnew));
   }
