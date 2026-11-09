@@ -1,9 +1,9 @@
 # ADR-0172: A drawing opens as a whiteboard or alone, and is not saved alone while it is live
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-09
-- **Deciders:** Project initiators (request of 2026-11-09: choose, when a whiteboard is opened again, whether it opens as a whiteboard or as a drawing, so a group can work on it more than once)
+- **Deciders:** Project initiators (request of 2026-11-09: choose, when a whiteboard is opened again, whether it opens as a whiteboard or as a drawing, so a group can work on it more than once; accepted 2026-11-09)
 
 ## Context and problem statement
 
@@ -45,7 +45,7 @@ Chosen option: **1**.
 
 ## Implementation (2026-11-09)
 
-Built: both ways below every drawing in reading mode and *Open as whiteboard* beside *Redraw* (`assets/editor.js`), the live whiteboards with the versions of their drawings and their people (`GET /api/whiteboards`), the address that opens one drawing's editor (`assets/app.js`), *as a drawing* in the module *Whiteboards*, and the server's refusal (`whiteboard.Hub.Yield`, `internal/server/api_attachments.go`). Status *Partial* only until this record is accepted; nothing decided here is left to build.
+Built: both ways below every drawing in reading mode and *Open as whiteboard* beside *Redraw* (`assets/editor.js`), the live whiteboards with the versions of their drawings and their people (`GET /api/whiteboards`), the address that opens one drawing's editor (`assets/app.js`), *as a drawing* in the module *Whiteboards*, and the server's refusal (`whiteboard.Hub.Yield`, `internal/server/api_attachments.go`).
 
 ## Pros and cons of the options
 
