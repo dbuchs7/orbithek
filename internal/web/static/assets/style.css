@@ -2181,8 +2181,8 @@ dialog.note-dialog { max-height: calc(100dvh - 32px); overflow: auto; }
 /* Calendar of the items' dates (ADR-0166): a month in whole weeks, a week,
    or an agenda; each week a grid of seven columns, the days behind and the
    entries in rows over them. */
-.cal-filter { align-items: flex-end; }
-.cal-filter button { margin: 10px 0; }
+.cal-filter .form-row { align-items: flex-end; }
+.cal-filter .form-row > button { margin: 10px 0; }
 .cal-nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: var(--space-4) 0 var(--space-2); }
 .cal-nav h2 { margin: 0 0 0 var(--space-2); font-size: 18px; }
 .cal-grid { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
@@ -2190,10 +2190,33 @@ dialog.note-dialog { max-height: calc(100dvh - 32px); overflow: auto; }
 .cal-weekdays span { padding: 6px 8px; font-size: 12px; color: var(--muted); }
 .cal-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); min-height: 6.5rem; row-gap: 3px; padding-bottom: 4px; }
 .cal-week + .cal-week { border-top: 1px solid var(--border); }
-.cal-week-big { min-height: 16rem; }
+.cal-view-week { --cal-gutter: 3.5rem; --cal-hour: 44px; }
+.cal-week-big { min-height: 0; grid-template-columns: var(--cal-gutter) repeat(7, minmax(0, 1fr)); }
+.cal-gutter { grid-row: 1 / -1; grid-column: 1; display: flex; align-items: flex-end; padding: 4px 6px; font-size: 11px; color: var(--muted); }
+.cal-hours-scroll { max-height: 34rem; overflow-y: auto; border-top: 1px solid var(--border-strong); }
+.cal-hours-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.cal-hours { display: grid; grid-template-columns: var(--cal-gutter) repeat(7, minmax(0, 1fr)); height: calc(24 * var(--cal-hour)); }
+.cal-hour-labels { display: grid; grid-template-rows: repeat(24, 1fr); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cal-hour-labels span { padding: 0 6px; text-align: right; transform: translateY(-0.6em); }
+.cal-hour-labels span:first-child { visibility: hidden; }
+.cal-hour-day { position: relative; min-width: 0; border-left: 1px solid var(--border);
+  background-image: repeating-linear-gradient(to bottom, var(--border) 0 1px, transparent 1px var(--cal-hour)); }
+.cal-hour-day.cal-weekend { background-color: var(--surface-2); }
+.cal-hour-day.cal-today { background-color: color-mix(in srgb, var(--accent-soft) 45%, transparent); }
+.cal-entry.cal-timed { position: absolute; margin: 0; padding: 1px 4px; min-height: 1.5em; box-sizing: border-box; border-left-width: 3px;
+  white-space: normal; overflow: hidden; line-height: 1.3; }
+.cal-now { position: absolute; left: 0; right: 0; z-index: 2; border-top: 2px solid var(--danger); pointer-events: none; }
+.cal-summary { flex-basis: 100%; margin: 0; }
+.cal-filters { margin-top: var(--space-3); }
+.cal-filters > summary { cursor: pointer; color: var(--accent); font-weight: 500; }
+.cal-filters[open] > summary { margin-bottom: var(--space-2); }
+.cal-advanced { margin-top: var(--space-2); }
+.cal-advanced summary { cursor: pointer; color: var(--accent); font-weight: 500; }
+.cal-advanced[open] summary { margin-bottom: var(--space-2); }
+.cal-sent code { font-size: 12px; overflow-wrap: anywhere; }
 .cal-day { grid-row: 1 / -1; border-left: 1px solid var(--border); min-width: 0; }
 .cal-day:first-child { border-left: 0; }
-.cal-weekend { background: var(--surface-2); }
+.cal-weekend { background-color: var(--surface-2); }
 .cal-head { grid-row: 1; z-index: 1; padding: 4px 6px 2px; min-width: 0; background: none; }
 .cal-out .cal-date { color: var(--muted); opacity: .6; }
 .cal-date { display: inline-block; min-width: 1.6em; padding: 0 4px; border-radius: 999px; font-size: 12px; text-align: center; }
@@ -2231,6 +2254,10 @@ dialog.note-dialog { max-height: calc(100dvh - 32px); overflow: auto; }
   .cal-view-month .cal-entry .cal-title, .cal-view-month .cal-mark { display: none; }
   .cal-view-month .cal-overdue { border-left-width: 3px; }
   .cal-agenda > li { grid-template-columns: 1fr; gap: var(--space-2); }
+  .cal-view-week { --cal-gutter: 2.5rem; --cal-hour: 36px; }
+  .cal-entry.cal-timed { padding: 0 2px; font-size: 10px; }
+  .cal-entry.cal-timed .cal-title, .cal-week-big .cal-entry .cal-title { display: none; }
+  .cal-week-big .cal-entry { padding: 0 2px; font-size: 10px; white-space: nowrap; text-overflow: clip; }
 }
 
 /* A page of a type with a Word template, read as its template's document

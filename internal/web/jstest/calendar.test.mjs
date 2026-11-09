@@ -11,7 +11,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { VIEWS, address, agendaDays, dayAt, entries, listQuery, localDayOf, moves, onDay, overdue, period, periodCondition, quote, readState, shift,
-  shiftValue, tasksQuery, typeFields, weekRows, weekStart, withoutOrder } from "../static/assets/calendar.js";
+  shiftValue, tasksTab, typeFields, weekRows, weekStart, withoutOrder, assigneeOf, timedSpan, dayColumns, minutesAt, retime } from "../static/assets/calendar.js";
 
 // Points in time are placed where the reader is; these tests read them in
 // Zurich, one hour ahead of UTC in winter and two in summer.
@@ -28,8 +28,8 @@ const types = [
   { name: "page", fields: [{ name: "owner", kind: "user" }] },
   { name: "meeting", fields: [{ name: "starts", kind: "datetime" }, { name: "ends", kind: "datetime" }] },
 ];
-const untimed = (f) => ({ ...f, startTimed: false, endTimed: false });
-const state = (over = {}) => ({ view: "month", at: d("2026-11-09"), space: "", type: "", labels: [], q: "", start: "", end: "", ...over });
+const untimed = (f) => ({ startTimed: false, endTimed: false, assignee: "", ...f });
+const state = (over = {}) => ({ view: "month", at: d("2026-11-09"), space: "", type: "", labels: [], who: "", status: "", text: "", q: "", start: "", end: "", ...over });
 
 test("weeks begin on Monday", () => {
   assert.equal(ds(weekStart(d("2026-11-09"))), "2026-11-09");
@@ -59,14 +59,14 @@ test("moving by a period keeps the date where the month has it", () => {
 
 test("each type is placed by its own guessed fields, or by the fields chosen", () => {
   assert.deepEqual(typeFields(types, state()), [
-    untimed({ type: "task", start: "", end: "due" }),
+    untimed({ type: "task", start: "", end: "due", assignee: "assignee" }),
     untimed({ type: "epic", start: "start", end: "due" }),
     untimed({ type: "decision", start: "", end: "decided" }),
-    { type: "meeting", start: "starts", end: "ends", startTimed: true, endTimed: true },
+    { type: "meeting", start: "starts", end: "ends", startTimed: true, endTimed: true, assignee: "" },
   ]);
   assert.deepEqual(typeFields(types, state({ type: "epic" })), [untimed({ type: "epic", start: "start", end: "due" })]);
   // A chosen field holds for every type that has it; others are left out.
-  assert.deepEqual(typeFields(types, state({ end: "due" })), [untimed({ type: "task", start: "", end: "due" }), untimed({ type: "epic", start: "", end: "due" })]);
+  assert.deepEqual(typeFields(types, state({ end: "due" })), [untimed({ type: "task", start: "", end: "due", assignee: "assignee" }), untimed({ type: "epic", start: "", end: "due" })]);
   assert.deepEqual(typeFields(types, state({ start: "decided" })), [untimed({ type: "decision", start: "decided", end: "" })]);
 });
 
@@ -132,21 +132,34 @@ test("an unfinished entry before today is overdue", () => {
   assert.equal(overdue(e, d("2026-11-05"), false), false);
 });
 
-test("the tasks page's tabs become queries of open tasks", () => {
-  const tt = [{ name: "task", assignee: "assignee" }, { name: "bug", assignee: "" }];
-  assert.equal(tasksQuery("mine", tt), 'finished = false AND ((type = "task" AND "assignee" = currentUser()))');
-  assert.equal(tasksQuery("unassigned", tt), 'finished = false AND ((type = "task" AND "assignee" IS EMPTY))');
-  assert.equal(tasksQuery("all", tt), 'finished = false AND type IN ("task", "bug")');
-  assert.equal(tasksQuery("mine", [{ name: "bug", assignee: "" }]), 'finished = false AND type IN ("bug")');
-  assert.equal(tasksQuery("mine", []), "");
+test("the tasks page's tabs become choices a person reads", () => {
+  assert.deepEqual(tasksTab("mine"), { status: "open", who: "me" });
+  assert.deepEqual(tasksTab("unassigned"), { status: "open", who: "none" });
+  assert.deepEqual(tasksTab("all"), { status: "open", who: "" });
+});
+
+test("the choices in words become the query", () => {
+  assert.equal(assigneeOf({ fields: [{ name: "owner", kind: "user" }, { name: "Bearbeiter", kind: "user" }] }), "Bearbeiter");
+  assert.equal(assigneeOf({ fields: [{ name: "owner", kind: "user" }] }), "owner");
+  assert.equal(assigneeOf({ fields: [] }), "");
+  const p = period("week", d("2026-11-09"));
+  const fields = typeFields(types, state({ type: "" })).filter((f) => f.type === "task" || f.type === "decision");
+  // Assigned to me: only the types assigned by a field are read.
+  assert.equal(listQuery(state({ who: "me", status: "open", text: 'say "hi"' }), fields, p),
+    'finished != true AND text ~ "say \\"hi\\"" AND ((type = "task" AND "assignee" = currentUser() AND ("due" >= 2026-11-09 AND "due" <= 2026-11-15)))');
+  assert.equal(listQuery(state({ who: "none", status: "done" }), fields, p),
+    'finished = true AND ((type = "task" AND "assignee" IS EMPTY AND ("due" >= 2026-11-09 AND "due" <= 2026-11-15)))');
+  assert.equal(listQuery(state({ who: "me" }), fields.filter((f) => f.type === "decision"), p), "", "no type assigned by a field: nothing to read");
 });
 
 test("the address holds what differs from the defaults", () => {
   const today = d("2026-11-09");
-  const s = readState(new URLSearchParams("view=week&at=2026-12-01&labels=a,b,a&q=x%20%3D%201&space=PLAT"), today);
-  assert.deepEqual({ ...s, at: ds(s.at) }, { view: "week", at: "2026-12-01", space: "PLAT", type: "", labels: ["a", "b"], q: "x = 1", start: "", end: "" });
-  assert.equal(address(s, today), "#/calendar?view=week&at=2026-12-01&space=PLAT&q=x+%3D+1&labels=a%2Cb");
-  const plain = readState(new URLSearchParams("view=year&at=2026-02-30"), today);
+  const s = readState(new URLSearchParams("view=week&at=2026-12-01&labels=a,b,a&q=x%20%3D%201&space=PLAT&who=me&status=open&text=offer"), today);
+  assert.deepEqual({ ...s, at: ds(s.at) }, { view: "week", at: "2026-12-01", space: "PLAT", type: "", labels: ["a", "b"], who: "me", status: "open", text: "offer", q: "x = 1", start: "", end: "" });
+  assert.equal(address(s, today), "#/calendar?view=week&at=2026-12-01&space=PLAT&who=me&status=open&text=offer&q=x+%3D+1&labels=a%2Cb");
+  const plain = readState(new URLSearchParams("view=year&at=2026-02-30&who=boss&status=maybe"), today);
+  assert.equal(plain.who, "");
+  assert.equal(plain.status, "");
   assert.equal(plain.view, VIEWS[0]);
   assert.equal(plain.at, today);
   assert.equal(address(plain, today), "#/calendar");
@@ -197,4 +210,46 @@ test("the day under a point of a week's row", () => {
   assert.equal(ds(dayAt(monday, 900, 700)), "2026-11-15");
   assert.equal(ds(dayAt(monday, -5, 700)), "2026-11-09");
   assert.equal(ds(dayAt(monday, 10, 0)), "2026-11-09");
+});
+
+test("a timed entry of one day stands on the axis of hours, overlapping ones side by side", () => {
+  const fields = typeFields(types, state());
+  const list = entries([
+    it("M-1", "meeting", { starts: "2026-11-09T08:00:00Z", ends: "2026-11-09T09:30:00Z" }),
+    it("M-2", "meeting", { starts: "2026-11-09T09:00:00Z" }),
+    it("M-3", "meeting", { starts: "2026-11-09T12:00:00Z", ends: "2026-11-09T13:00:00Z" }),
+    it("M-4", "meeting", { starts: "2026-11-09T08:00:00Z", ends: "2026-11-10T08:00:00Z" }),
+    it("M-5", "meeting", { starts: "2026-11-09T22:30:00Z", ends: "2026-11-09T22:00:00Z" }),
+    it("T-1", "task", { due: "2026-11-09" }),
+  ], fields);
+  const span = (k) => timedSpan(list.find((e) => e.item.key === k));
+  assert.deepEqual(span("M-1"), { from: 9 * 60, to: 10 * 60 + 30 }, "in Zurich, an hour ahead");
+  assert.deepEqual(span("M-2"), { from: 10 * 60, to: 11 * 60 }, "a point in time alone takes an hour");
+  assert.equal(span("M-4"), null, "over two days it stands above the hours");
+  assert.equal(span("T-1"), null, "a day without a time stands above the hours");
+  assert.deepEqual(span("M-5"), { from: 23 * 60 + 30, to: 24 * 60 }, "a misdated end gives an hour, never past midnight");
+  const cols = dayColumns(list.filter((e) => e.from === d("2026-11-09")));
+  assert.deepEqual(cols.map((x) => [x.entry.item.key, x.col, x.cols]), [["M-1", 0, 2], ["M-2", 1, 2], ["M-3", 0, 1], ["M-5", 0, 1]]);
+});
+
+test("a drop on the axis of hours is a time of day, rounded to a quarter of an hour", () => {
+  assert.equal(minutesAt(0, 960), 0);
+  assert.equal(minutesAt(480, 960), 12 * 60);
+  assert.equal(minutesAt(487, 960), 12 * 60 + 15);
+  assert.equal(minutesAt(-30, 960), 0);
+  assert.equal(minutesAt(2000, 960), 24 * 60 - 15);
+  assert.equal(minutesAt(10, 0), 0);
+});
+
+test("retiming moves a meeting to another day and hour, keeping its length", () => {
+  const fields = typeFields(types, state());
+  const [m] = entries([it("M-1", "meeting", { starts: "2026-11-09T08:00:00Z", ends: "2026-11-09T09:30:00Z" })], fields);
+  // From 09:00 on Monday to 14:15 on Wednesday, in Zurich.
+  assert.deepEqual(retime(m, 2, 14 * 60 + 15), [
+    { field: "starts", value: "2026-11-11T13:15:00.000Z" },
+    { field: "ends", value: "2026-11-11T14:45:00.000Z" },
+  ]);
+  assert.deepEqual(retime(m, 0, 9 * 60), [], "the same place is no change");
+  const [task] = entries([it("T-1", "task", { due: "2026-11-09" })], fields);
+  assert.deepEqual(retime(task, 1, 600), [{ field: "due", value: "2026-11-10" }], "a day without a time moves by days");
 });

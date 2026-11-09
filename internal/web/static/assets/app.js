@@ -14,7 +14,7 @@ import { albumBrowser, retentionCard } from "./album.js";
 import { starmapView } from "./starmap.js";
 import { roadmapView } from "./roadmap.js";
 import { calendarView } from "./calendarview.js";
-import { address as calendarAddress, tasksQuery } from "./calendar.js";
+import { address as calendarAddress, tasksTab } from "./calendar.js";
 import { labelmapView } from "./labelmap.js";
 import { t, setLanguage, suggestedLanguage, languages, language } from "./i18n.js";
 import { applyTheme, setTheme, isDark, chosenTheme } from "./theme.js";
@@ -2809,12 +2809,12 @@ async function tasksView(tab, params) {
   const tabs = h("nav", { class: "tabs", "aria-label": t("tasks.title") },
     tabLink("mine", t("tasks.mine")), tabLink("unassigned", t("tasks.unassigned")), tabLink("all", t("tasks.all")),
     link("#/kanbans", t("kanban.tab"), "tab", "tab-kanbans"), link(`#/roadmap${space ? "?space=" + encodeURIComponent(space) : ""}`, t("roadmap.tab"), "tab", "tab-roadmap"),
-    // The calendar shows the open tasks of the current tab, as a query of
-    // its own, so its link can be shared (ADR-0166).
-    link(calendarAddress({ space, labels: [], q: tasksQuery(current, [...typeOf.values()].map(({ ty, f }) => ({ name: ty.name, assignee: f.assignee?.name || "" }))) }),
-      t("calendar.tab"), "tab", "tab-calendar"));
+    // The calendar shows what is open and whom it is assigned to, as the
+    // current tab does, chosen in words, so its link can be shared and read
+    // (ADR-0166).
+    link(calendarAddress({ space, labels: [], ...tasksTab(current) }), t("calendar.tab"), "tab", "tab-calendar"));
   // The tab links carry the filters as they change; the calendar's carries
-  // its query instead.
+  // its own choices instead.
   const relink = () => tabs.querySelectorAll("a:not(#tab-calendar)").forEach((a) => { a.href = a.getAttribute("href").split("?")[0] + query(); });
   show(
     h("div", { class: "page-head" }, h("h1", { text: t("tasks.title") }),
