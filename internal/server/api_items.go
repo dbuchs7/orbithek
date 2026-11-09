@@ -1435,6 +1435,17 @@ func coerceValue(td item.TypeDef, field string, raw json.RawMessage) (any, error
 			return nil, badInput("field %q: %q is not an RFC 3339 date-time with an offset or Z, such as 2026-11-09T14:30:00+01:00", field, s)
 		}
 		return t.UTC().Truncate(time.Second), nil
+	case item.KindRecurrence:
+		// A rule is kept in its one canonical form (ADR-0168).
+		s, ok := v.(string)
+		if !ok {
+			return v, nil
+		}
+		norm, err := item.NormalRecurrence(s)
+		if err != nil {
+			return nil, badInput("field %q: %v", field, err)
+		}
+		return norm, nil
 	}
 	return v, nil
 }

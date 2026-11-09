@@ -94,6 +94,10 @@ type Deps struct {
 	Messages *Messenger
 	// OAuthRegistration opens dynamic client registration (ADR-0068).
 	OAuthRegistration bool
+	// CalendarFeedsOff turns calendar feeds off (OT_CALENDAR_FEEDS=off,
+	// ADR-0168): no feed address opens anything and none is made; saved
+	// views stay, and a feed can still be ended.
+	CalendarFeedsOff bool
 	// Backups takes automatic backups (ADR-0073); Routes creates one that
 	// reads the process environment when it is nil.
 	Backups *autobackup.Runner
@@ -244,6 +248,7 @@ func Routes(d Deps) []Route {
 	routes = append(routes, regulationRoutes(d)...)
 	routes = append(routes, oidcRoutes(d)...)
 	routes = append(routes, itemRoutes(d)...)
+	routes = append(routes, calendarRoutes(d)...)
 	routes = append(routes, diskRoutes(d)...)
 	routes = append(routes, mcpRoutes()...)
 	routes = append(routes, oauthRoutes(d)...)

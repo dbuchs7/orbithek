@@ -116,7 +116,10 @@ import (
 //     template the item is made with, and TemplateSet moves an item to
 //     another (ADR-0167). Versions 1 to 40 are still read; their items
 //     have no template.
-const CodecVersion = 41
+//   - 42: a field may be of the kind recurrence, the rule by which an
+//     item repeats, with its exceptions, written as text (ADR-0168).
+//     Versions 1 to 41 are still read.
+const CodecVersion = 42
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

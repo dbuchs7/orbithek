@@ -86,6 +86,13 @@ var classified = map[string]string{
 	"internal/auth.MaxFailures":      "a security policy (ADR-0013): failed logins before the throttle, not a memory setting",
 	"internal/auth.MaxTokenLifetime": "a security policy (ADR-0027): how long an API token may live",
 	"internal/auth.MaxReasonLength":  "the shape of an account request (ADR-0061), like the length of a username; the waiting requests are bounded by AccountRequests",
+	"internal/auth.maxCalendarViews": "the shape of one's preferences (ADR-0168), like the number of favourites: views are kept whole in each journal record, and what a request carries is bounded by RequestBody",
+	"internal/auth.maxViewName":      "the shape of a saved view (ADR-0168), like the length of a username",
+	"internal/auth.maxViewParams":    "the shape of a saved view (ADR-0168): the parameters of a calendar's address, which hold a few choices and a query",
+	"internal/item.maxInterval":      "the shape of a rule (ADR-0168), like the values of an enumeration: every 999 periods is longer than any calendar shows",
+	"internal/item.maxCount":         "the shape of a rule (ADR-0168): how many times it repeats, which bounds the occurrences it gives",
+	"internal/item.maxExceptions":    "the shape of a rule (ADR-0168): its cancelled and moved occurrences are kept in the field's text, which every listing carries",
+	"internal/item.maxSteps":         "a guard of the walk through a rule's days (ADR-0168), not a choice: the walk ends a year after the stretch asked for, far below it",
 	"internal/auth.maxFavourites": "the shape of one's preferences (ADR-0145), like the length of a username: favourites are space keys, " +
 		"which only an administrator creates, so the list cannot outgrow the spaces",
 	"internal/wal.MaxRecord": "part of the event log format: a server must read every record a server wrote, " +
