@@ -909,6 +909,7 @@ export default {
   "nav.notificationsUnread": "Benachrichtigungen ({n})",
   "nav.new": "Erstellen",
   "nav.newButton": "+ Neu",
+  "nav.newItem": "Neuer Eintrag",
   "nav.account": "Konto",
   "watch.start": "Beobachten",
   "watch.stop": "Nicht mehr beobachten",
