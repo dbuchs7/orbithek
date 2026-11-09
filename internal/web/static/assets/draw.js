@@ -7,6 +7,7 @@
 //   page → UI  {type: "png", blob} | {type: "error", message}
 //   page → UI  {type: "process", want, current}    asks for a process (ADR-0142)
 //   UI → page  {type: "process", picture}          {svg, width, height, data}, or null
+//   UI → page  {type: "live", lang, item, file}    open the drawing as a live whiteboard (ADR-0167)
 //
 // A drawing is a PNG that carries its scene (Excalidraw's exportEmbedScene),
 // so the picture shown in a page is also the source it is edited from.
@@ -181,6 +182,14 @@ window.addEventListener("message", async (e) => {
   if (e.origin !== origin || e.source !== parent || !e.data) return;
   try {
     if (e.data.type === "open") await open(e.data);
+    else if (e.data.type === "live") {
+      // A live whiteboard talks to the server itself; the UI only shows it.
+      const { startWhiteboard } = await import("./whiteboard.js");
+      startWhiteboard({
+        root, dark, lang: e.data.lang, item: e.data.item, file: e.data.file,
+        palette: paletteChooser, bind: (a) => { api = a; }, onLibrary: (items) => { library = items; },
+      });
+    }
     else if (e.data.type === "export") parent.postMessage({ type: "png", blob: await picture() }, origin);
     else if (e.data.type === "process") {
       if (e.data.picture) place(e.data.picture);

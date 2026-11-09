@@ -2232,3 +2232,12 @@ dialog.note-dialog { max-height: calc(100dvh - 32px); overflow: auto; }
   .cal-view-month .cal-overdue { border-left-width: 3px; }
   .cal-agenda > li { grid-template-columns: 1fr; gap: var(--space-2); }
 }
+
+/* A live whiteboard (ADR-0167) fills the screen below the top bar: a slim
+   bar with the way back, and the drawing page in a frame. */
+.whiteboard-view { display: flex; flex-direction: column; height: calc(100dvh - 7rem); min-height: 24rem; }
+.whiteboard-head { display: flex; gap: 1rem; align-items: baseline; padding: .25rem 0 .5rem; }
+.whiteboard-frame { flex: 1; width: 100%; border: 1px solid var(--border, #ddd); border-radius: .5rem; background: #fff; }
+.whiteboards { list-style: none; padding: 0; margin: 0; }
+.whiteboards li { padding: .25rem 0; }
+.comment-element { font-style: normal; }
