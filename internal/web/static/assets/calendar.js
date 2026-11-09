@@ -248,6 +248,41 @@ export function entries(items, fields, range) {
   return out.sort(byDayAndTime);
 }
 
+// externalEntries turns the entries of a person's calendars of other
+// services (ADR-0174), as /api/me/calendars/events answers them, into
+// entries of the calendar: an all-day one over its days, its end being
+// the day after its last, one with a time on the days it touches where
+// the reader is. They stand beside the items but are none: their item has
+// no key, they cannot be moved, and external names their calendar.
+export function externalEntries(events, sources) {
+  const byId = new Map((sources || []).map((s) => [s.id, s]));
+  const out = [];
+  for (const ev of events || []) {
+    const src = byId.get(ev.source);
+    if (!src) continue;
+    let from, to, at;
+    if (ev.allDay) {
+      from = parseDay(ev.start);
+      const end = parseDay(ev.end);
+      if (from === null) continue;
+      to = end !== null && end > from ? end - 1 : from;
+      at = { from: null, to: null };
+    } else {
+      const start = moment(ev.start);
+      if (start === null) continue;
+      const stop = moment(ev.end);
+      const end = stop !== null && stop > start ? stop : start;
+      from = todayDay(new Date(start));
+      // An end at midnight closes the day before, not the next one.
+      to = end > start ? todayDay(new Date(end - 1)) : from;
+      at = { from: start, to: end };
+    }
+    out.push({ item: { id: "", key: "", title: ev.title || "" }, from, to, at,
+      external: { source: src.id, name: src.name, colour: src.colour, location: ev.location || "" } });
+  }
+  return out.sort(byDayAndTime);
+}
+
 // byDayAndTime orders entries by their first day, then those without a
 // time before those with one, by their time, then as the roadmap orders.
 export function byDayAndTime(a, b) {

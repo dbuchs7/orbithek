@@ -49,14 +49,24 @@ const (
 	// secret made or ended for a saved view (ADR-0168).
 	CalendarFeedCreated = "calendar-feed.create"
 	CalendarFeedRevoked = "calendar-feed.revoke"
-	UserCreated         = "user.create"
-	RoleGranted         = "role.grant"
-	SystemRole          = "system-role.grant"
-	GroupMember         = "group.add"
-	RoleRevoked         = "role.revoke"
-	SystemRoleTaken     = "system-role.revoke"
-	GroupLeft           = "group.remove"
-	DesignChanged       = "design.change"
+	// CalendarsChanged records an administrator turning calendars of
+	// other services on or off; CalendarSourceAdded and
+	// CalendarSourceRemoved a person's calendar of another service kept
+	// or removed, CalendarAccountConnected and CalendarAccountDisconnected
+	// an account at Google or a CalDAV server (ADR-0174).
+	CalendarsChanged            = "calendars.change"
+	CalendarSourceAdded         = "calendar-source.add"
+	CalendarSourceRemoved       = "calendar-source.remove"
+	CalendarAccountConnected    = "calendar-account.connect"
+	CalendarAccountDisconnected = "calendar-account.disconnect"
+	UserCreated                 = "user.create"
+	RoleGranted                 = "role.grant"
+	SystemRole                  = "system-role.grant"
+	GroupMember                 = "group.add"
+	RoleRevoked                 = "role.revoke"
+	SystemRoleTaken             = "system-role.revoke"
+	GroupLeft                   = "group.remove"
+	DesignChanged               = "design.change"
 	// RegulationChanged records a change of a data protection regulation
 	// (ADR-0058).
 	RegulationChanged = "regulation.change"

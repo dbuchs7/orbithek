@@ -125,17 +125,23 @@ jobs:
           # test's own (ADR-0129), its open tasks listed and its feed followed
           # too, and people connecting to it by OAuth (ADR-0151); editors may
           # have the server read Markdown files of repositories (ADR-0138);
-          # saved calendar views may be subscribed to (ADR-0168).
-          mkdir -p "$RUNNER_TEMP/autobackup"
+          # saved calendar views may be subscribed to (ADR-0168); people's
+          # calendars of other services are read from the smoke test's own
+          # https server on the loopback address, with a certificate made
+          # here that the server trusts (ADR-0174).
+          mkdir -p "$RUNNER_TEMP/autobackup" "$RUNNER_TEMP/calendar-ca"
+          openssl req -x509 -newkey rsa:2048 -nodes -days 2 -subj "/CN=127.0.0.1" -addext "subjectAltName=IP:127.0.0.1" \
+            -keyout "$RUNNER_TEMP/calendar-key.pem" -out "$RUNNER_TEMP/calendar-ca/calendar-cert.pem" 2>/dev/null
           OT_ADMIN_PASSWORD=e2e-admin-password OT_PUBLIC_URL=http://127.0.0.1:8080 \
             OT_SMTP_HOST=127.0.0.1 OT_SMTP_PORT=2525 OT_SMTP_SECURITY=none OT_SMTP_FROM=wiki@example.org \
             OT_BACKUP_PASSPHRASE="a long backup passphrase" OT_CONNECTOR_ALLOW_PRIVATE=on \
             OT_CONNECTOR_ACME_EMAIL=e2e@acme.example OT_CONNECTOR_ACME_TOKEN=e2e-atlassian-token \
             OT_ENGINE_ATLAS_TOKEN=e2e-engine-token OT_ENGINE_ATLAS_TASKLIST_TOKEN=e2e-engine-token OT_ENGINE_ATLAS_EVENTS_TOKEN=e2e-engine-token \
             OT_ENGINE_ATLAS_CLIENT_ID=e2e-client OT_ENGINE_ATLAS_CLIENT_SECRET=e2e-client-secret OT_ENGINE_ALLOW_PRIVATE=on OT_GIT_FILES=on OT_CALENDAR_FEEDS=on \
+            OT_CALENDAR_ALLOW_PRIVATE=on SSL_CERT_DIR="$RUNNER_TEMP/calendar-ca" \
             "$RUNNER_TEMP/orbithek" serve -addr 127.0.0.1:8080 -data-dir "$RUNNER_TEMP/data" > "$RUNNER_TEMP/server.log" 2>&1 &
           for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/healthz && break; sleep 1; done
-          cd e2e && SMTP_SINK_PORT=2525 ENGINE_TOKEN=e2e-engine-token BACKUP_OUT="$RUNNER_TEMP/backup.orbithek" AUTOBACKUP_DIR="$RUNNER_TEMP/autobackup" BASE_URL=http://127.0.0.1:8080 ADMIN_PASSWORD=e2e-admin-password node smoke.cjs
+          cd e2e && CALENDAR_CERT="$RUNNER_TEMP/calendar-ca/calendar-cert.pem" CALENDAR_KEY="$RUNNER_TEMP/calendar-key.pem" SMTP_SINK_PORT=2525 ENGINE_TOKEN=e2e-engine-token BACKUP_OUT="$RUNNER_TEMP/backup.orbithek" AUTOBACKUP_DIR="$RUNNER_TEMP/autobackup" BASE_URL=http://127.0.0.1:8080 ADMIN_PASSWORD=e2e-admin-password node smoke.cjs
 
       # ADR-0016, ADR-0073: the backups the browser downloaded and started
       # restore and open.

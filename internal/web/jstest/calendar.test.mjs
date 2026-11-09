@@ -12,7 +12,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { VIEWS, address, agendaDays, dayAt, entries, listQuery, localDayOf, moves, onDay, overdue, period, periodCondition, quote, readState, shift,
   shiftValue, tasksTab, typeFields, weekRows, weekStart, withoutOrder, assigneeOf, timedSpan, dayColumns, minutesAt, retime,
-  occurrenceChanges, seriesChanges, cancelChanges } from "../static/assets/calendar.js";
+  occurrenceChanges, seriesChanges, cancelChanges, externalEntries } from "../static/assets/calendar.js";
 
 // Points in time are placed where the reader is; these tests read them in
 // Zurich, one hour ahead of UTC in winter and two in summer.
@@ -298,4 +298,34 @@ test("an occurrence moves alone, or the whole series with its exceptions", () =>
   assert.deepEqual(seriesChanges(mon, 0), []);
   const [day] = entries([it("R-1", "review", { due: "2026-11-10T00:00:00Z", every: "FREQ=WEEKLY" })], fields, { from: d("2026-11-09"), to: d("2026-11-15") });
   assert.deepEqual(occurrenceChanges(day, -1), [{ field: "every", value: "FREQ=WEEKLY;MOVE=2026-11-10@2026-11-09" }]);
+});
+
+test("entries of calendars of other services stand on their days where the reader is (ADR-0174)", () => {
+  const sources = [{ id: "s1", name: "Holidays", colour: "#336699" }, { id: "s2", name: "Work", colour: "#aa0000" }];
+  const got = externalEntries([
+    { source: "s1", title: "Christmas", start: "2026-12-24", end: "2026-12-27", allDay: true },
+    { source: "s2", title: "Late call", location: "Phone", start: "2026-12-01T22:30:00Z", end: "2026-12-01T23:30:00Z", allDay: false },
+    { source: "s2", title: "Till midnight", start: "2026-12-02T20:00:00Z", end: "2026-12-02T23:00:00Z", allDay: false },
+    { source: "s2", title: "", start: "2026-12-03T08:00:00Z", end: "2026-12-03T08:00:00Z", allDay: false },
+    { source: "s1", title: "One day", start: "2026-12-05", end: "2026-12-05", allDay: true },
+    { source: "gone", title: "Removed calendar", start: "2026-12-01", end: "2026-12-02", allDay: true },
+    { source: "s1", title: "Broken", start: "soon", end: "", allDay: true },
+    { source: "s2", title: "Broken time", start: "soon", end: "", allDay: false },
+  ], sources);
+  const day = (s) => parseDay(s);
+  assert.deepEqual(got.map((e) => [e.item.title, dayString(e.from), dayString(e.to), e.external.name]), [
+    ["Late call", "2026-12-01", "2026-12-02", "Work"],
+    ["Till midnight", "2026-12-02", "2026-12-02", "Work"],
+    ["", "2026-12-03", "2026-12-03", "Work"],
+    ["One day", "2026-12-05", "2026-12-05", "Holidays"],
+    ["Christmas", "2026-12-24", "2026-12-26", "Holidays"],
+  ]);
+  assert.equal(got[0].external.location, "Phone");
+  assert.equal(got[0].item.key, "");
+  assert.deepEqual(got[3].at, { from: null, to: null });
+  assert.equal(got[1].at.to - got[1].at.from, 3 * 3600 * 1000);
+  assert.equal(day("2026-12-24"), got[4].from);
+  // On the axis of hours, a moment without length takes an hour.
+  assert.deepEqual(timedSpan(got[2]), { from: 9 * 60, to: 10 * 60 });
+  assert.deepEqual(externalEntries(undefined, undefined), []);
 });

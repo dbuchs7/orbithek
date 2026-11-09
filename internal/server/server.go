@@ -33,6 +33,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/connector"
 	"github.com/dbuchs7/orbithek/internal/engine"
 	"github.com/dbuchs7/orbithek/internal/engineauth"
+	"github.com/dbuchs7/orbithek/internal/extcal"
 	"github.com/dbuchs7/orbithek/internal/item"
 	"github.com/dbuchs7/orbithek/internal/metrics"
 	"github.com/dbuchs7/orbithek/internal/sso"
@@ -103,6 +104,12 @@ type Deps struct {
 	// ADR-0168). Without it no feed address opens anything and none is
 	// made; saved views stay, and a feed can still be ended.
 	CalendarFeeds bool
+	// Calendars reads people's calendars of other services (ADR-0174);
+	// Routes makes one without Google from the environment when it is
+	// nil. CalendarAllowPrivate says that OT_CALENDAR_ALLOW_PRIVATE lets
+	// it read in the server's own network.
+	Calendars            *extcal.Reader
+	CalendarAllowPrivate bool
 	// Backups takes automatic backups (ADR-0073); Routes creates one that
 	// reads the process environment when it is nil.
 	Backups *autobackup.Runner
@@ -210,6 +217,9 @@ func Routes(d Deps) []Route {
 	if d.Engines == nil {
 		d.Engines = engine.NewReader(nil, nil)
 	}
+	if d.Calendars == nil && d.DB != nil {
+		d.Calendars = extcal.NewReader(d.DB.Calendars, CalendarClient(os.Getenv), nil)
+	}
 	if d.Connect == nil && d.DB != nil {
 		d.Connect = engineauth.NewBroker(d.DB.Connections, d.Engines, engine.NewClient(os.Getenv), os.Getenv, os.Getenv("OT_PUBLIC_URL"))
 		d.Connect.OnEnded(RecordEnded(d.DB))
@@ -257,6 +267,7 @@ func Routes(d Deps) []Route {
 	routes = append(routes, oidcRoutes(d)...)
 	routes = append(routes, itemRoutes(d)...)
 	routes = append(routes, calendarRoutes(d)...)
+	routes = append(routes, extcalRoutes(d)...)
 	routes = append(routes, diskRoutes(d)...)
 	routes = append(routes, mcpRoutes()...)
 	routes = append(routes, oauthRoutes(d)...)

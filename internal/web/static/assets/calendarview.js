@@ -23,9 +23,9 @@ import { h } from "./dom.js";
 import { t, language } from "./i18n.js";
 import { del, get, post, put } from "./api.js";
 import { finished } from "./taskparts.js";
-import { dateFields, isoWeek, normalLabel, todayDay } from "./timeline.js";
-import { DAY_MINUTES, STATUS, VIEWS, WHO, address, agendaDays, cancelChanges, dayAt, dayColumns, entries, listQuery, localDayOf, minutesAt, moves, occurrenceChanges,
-  overdue, period, readState, retime, seriesChanges, shift, timedSpan, typeFields, weekRows, withoutOrder } from "./calendar.js";
+import { dateFields, dayString, isoWeek, normalLabel, todayDay } from "./timeline.js";
+import { DAY_MINUTES, STATUS, VIEWS, WHO, address, agendaDays, byDayAndTime, cancelChanges, dayAt, dayColumns, entries, externalEntries, listQuery, localDayOf, minutesAt,
+  moves, occurrenceChanges, overdue, period, readState, retime, seriesChanges, shift, timedSpan, typeFields, weekRows, withoutOrder } from "./calendar.js";
 
 const DAY = 86400000;
 const MONDAY = Date.UTC(2024, 0, 1) / DAY; // 1 January 2024 was a Monday.
@@ -115,6 +115,7 @@ function entryTitle(e, done, late) {
 // entryEl draws an entry as a link to its item. A segment that goes on
 // before or after its week says so by its open ends.
 function entryEl(e, ctx, seg) {
+  if (e.external) return externalEl(e, seg);
   const done = ctx.done(e.item);
   // Only work can be late: an item of a type with a workflow, not finished.
   const late = ctx.hasWorkflow(e.item) && overdue(e, ctx.today, done);
@@ -160,6 +161,37 @@ function entryEl(e, ctx, seg) {
       ctx.move(e, n);
     });
   }
+  return el;
+}
+
+// whenOf says when an entry is, in words.
+function whenOf(e) {
+  if (e.from === e.to && e.at.from === e.at.to) return whenText(e.from, e.at.from);
+  if (e.from === e.to && e.at.from !== null && e.at.to !== null) return `${dateText(e.from)}, ${timeText(e.at.from)}–${timeText(e.at.to)}`;
+  return t("calendar.fromTo", { from: whenText(e.from, e.at.from), to: whenText(e.to, e.at.to) });
+}
+
+// swatch is a calendar's colour as a small mark beside its name.
+function swatch(colour) {
+  const el = h("span", { class: "cal-swatch", "aria-hidden": "true" });
+  el.style.setProperty("--cal-colour", colour || "var(--accent)");
+  return el;
+}
+
+// externalEl draws an entry of a calendar of another service (ADR-0174):
+// in its calendar's colour, with its time and title, read only; a click
+// tells what is known of it, as it is no item to open.
+function externalEl(e, seg) {
+  const x = e.external;
+  const name = e.item.title || t("extcal.untitled");
+  const title = [name, whenOf(e), x.location, t("extcal.of", { name: x.name })].filter(Boolean).join(" · ");
+  const cls = ["cal-entry", "cal-external", e.from !== e.to ? "cal-span" : "", seg?.before ? "cal-before" : "", seg?.after ? "cal-after" : ""].filter(Boolean).join(" ");
+  const time = e.at.from !== null && !seg?.before ? h("span", { class: "cal-time", text: timeText(e.at.from) }) : null;
+  const el = h("button", { type: "button", class: cls, title, "aria-label": title, "data-source": x.source },
+    swatch(x.colour), time, time ? " " : null, h("span", { class: "cal-title", text: name }));
+  el.style.setProperty("--cal-colour", x.colour || "var(--accent)");
+  el.addEventListener("click", () => ask(name, [whenOf(e), x.location, t("extcal.of", { name: x.name })].filter(Boolean).join(" · "),
+    [["", t("common.close"), "primary"]]));
   return el;
 }
 
@@ -388,6 +420,134 @@ function savedBar(container, params, helpers, state, today, views, feeds, after)
     field(t("calendar.savedView"), choose), saveButton, saveForm, remove, subscribe);
 }
 
+// COLOURS are offered in turn to a calendar of another service.
+const COLOURS = ["#3a7bd5", "#2e9d5b", "#d9822b", "#8e5bd9", "#d64553", "#1f9aa8", "#7a7f2a", "#c2569e"];
+
+// othersBar shows one's calendars of other services (ADR-0174), which
+// stand beside the wiki's: each in its colour, shown or hidden, removed;
+// the accounts they come from, whose calendars one chooses and which one
+// disconnects; and the ways to add one: an iCalendar address, a Google
+// account, or an Apple iCloud or other CalDAV account. While the server
+// has them turned off, it says so and only offers to remove them.
+function othersBar(container, params, helpers, cals, after) {
+  const { enabled, google } = cals;
+  const sources = cals.sources || [], accounts = cals.accounts || [];
+  if (!enabled && !sources.length && !accounts.length) return null;
+  const redraw = (next) => calendarView(container, params, helpers, { others: true, ...next });
+  const run = async (fn, okText) => {
+    try {
+      const next = await fn();
+      await redraw({ notice: okText ? { ok: true, text: okText } : null, ...next });
+    } catch (err) {
+      await redraw({ notice: { ok: false, text: err.message } });
+    }
+  };
+  const next = COLOURS[sources.length % COLOURS.length];
+  const accountOf = (id) => accounts.find((a) => a.id === id);
+  const confirmThen = async (title, text, label, fn, okText) => {
+    if (await ask(title, text, [["yes", label, "danger"], ["", t("calendar.cancel"), "link"]]) === "yes") run(fn, okText);
+  };
+
+  const list = sources.length ? h("ul", { class: "cal-others-list", id: "calendar-others-list" }, sources.map((s) =>
+    h("li", { "data-source": s.id },
+      h("label", { class: "check" },
+        h("input", { type: "checkbox", checked: !s.hidden, disabled: !enabled, "data-show-source": s.id, "aria-label": t("extcal.show", { name: s.name }),
+          onchange: (ev) => run(async () => { await put("/api/me/calendars/" + s.id, { name: s.name, colour: s.colour, hidden: !ev.target.checked }); return {}; }) }),
+        swatch(s.colour), h("span", { text: s.name })),
+      h("span", { class: "muted", text: s.host || accountOf(s.account)?.name || "" }),
+      h("button", { type: "button", class: "link danger", "data-remove-source": s.id, text: t("extcal.remove"),
+        onclick: () => confirmThen(t("extcal.remove"), t("extcal.removeConfirm", { name: s.name }), t("extcal.remove"),
+          async () => { await del("/api/me/calendars/" + s.id); return {}; }, t("extcal.removed", { name: s.name })) }))))
+    : h("p", { class: "muted", id: "calendar-others-none", text: t("extcal.none") });
+
+  // The calendars of an account, to choose which are shown.
+  const pick = h("div", { class: "cal-others-pick", id: "calendar-others-pick" });
+  const showPicker = (account, remote) => {
+    const shown = new Set(sources.filter((s) => s.account === account.id).map((s) => s.calendar));
+    pick.replaceChildren(
+      h("h3", { text: t("extcal.pickTitle", { name: account.name }) }),
+      remote.length ? h("ul", { class: "cal-others-list" }, remote.map((c, i) => h("li", {},
+        swatch(c.colour || COLOURS[(sources.length + i) % COLOURS.length]), h("span", { text: c.name }),
+        shown.has(c.id)
+          ? h("span", { class: "muted", text: t("extcal.shown") })
+          : h("button", { type: "button", class: "secondary", "data-add-calendar": c.id, text: t("extcal.showThis"),
+            onclick: () => run(async () => {
+              await post("/api/me/calendars", { kind: account.kind, account: account.id, calendar: c.id, name: c.name, colour: c.colour || COLOURS[(sources.length + i) % COLOURS.length] });
+              // The list stays open, to show more of the account's calendars.
+              return { picked: { account, calendars: remote } };
+            }, t("extcal.added", { name: c.name })) }))))
+        : h("p", { class: "muted", text: t("extcal.pickNone") }));
+  };
+  const choose = (account) => async () => {
+    pick.replaceChildren(h("p", { class: "muted", text: t("extcal.reading") }));
+    try {
+      const { calendars } = await get(`/api/me/calendar-accounts/${account.id}/calendars`);
+      showPicker(account, calendars);
+    } catch (err) {
+      pick.replaceChildren(h("p", { class: "notice warning", role: "alert", text: err.message }));
+    }
+  };
+  const accountList = accounts.length ? h("ul", { class: "cal-others-accounts", id: "calendar-others-accounts" }, accounts.map((a) =>
+    h("li", { "data-account": a.id },
+      h("span", { text: (a.kind === "google" ? "Google" : t("extcal.caldav")) + ": " + a.name }),
+      enabled ? h("button", { type: "button", class: "link", "data-choose-account": a.id, text: t("extcal.choose"), onclick: choose(a) }) : null,
+      h("button", { type: "button", class: "link danger", "data-disconnect": a.id, text: t("extcal.disconnect"),
+        onclick: () => confirmThen(t("extcal.disconnect"), t("extcal.disconnectConfirm", { name: a.name }), t("extcal.disconnect"),
+          async () => { await del("/api/me/calendar-accounts/" + a.id); return {}; }, t("extcal.disconnected", { name: a.name })) })))) : null;
+
+  // Adding: an address, Google, or a CalDAV account such as iCloud.
+  const forms = h("div", { class: "cal-others-forms", id: "calendar-others-forms" });
+  const colour = () => h("input", { type: "color", name: "colour", value: next, "aria-label": t("extcal.colour") });
+  const icsForm = () => {
+    const f = h("form", { class: "cal-others-form", id: "calendar-ics-form", onsubmit: (ev) => {
+      ev.preventDefault();
+      const d = new FormData(f);
+      run(async () => {
+        const { source } = await post("/api/me/calendars", { kind: "ics", url: String(d.get("url")).trim(), name: String(d.get("name")).trim(), colour: d.get("colour") });
+        return { notice: { ok: true, text: t("extcal.added", { name: source.name }) } };
+      });
+    } },
+    h("p", { class: "muted", text: t("extcal.icsHelp") }),
+    field(t("extcal.url"), h("input", { type: "url", name: "url", id: "calendar-ics-url", required: true, placeholder: "https://calendar.google.com/calendar/ical/…/basic.ics" })),
+    h("div", { class: "form-row" },
+      field(t("extcal.name"), h("input", { type: "text", name: "name", id: "calendar-ics-name", maxlength: "80", placeholder: t("extcal.nameHint") })),
+      field(t("extcal.colour"), colour())),
+    h("button", { type: "submit", class: "primary", id: "calendar-ics-add", text: t("extcal.add") }));
+    return f;
+  };
+  const davForm = () => {
+    const server = h("input", { type: "url", name: "server", id: "calendar-dav-server", required: true, value: "https://caldav.icloud.com" });
+    const f = h("form", { class: "cal-others-form", id: "calendar-dav-form", onsubmit: (ev) => {
+      ev.preventDefault();
+      const d = new FormData(f);
+      run(async () => {
+        const { account, calendars } = await post("/api/me/calendar-accounts", { kind: "caldav", server: String(d.get("server")).trim(), username: String(d.get("username")).trim(), password: d.get("password") });
+        return { picked: { account, calendars }, notice: { ok: true, text: t("extcal.connected", { name: account.name }) } };
+      });
+    } },
+    h("p", { class: "muted", text: t("extcal.davHelp") }),
+    field(t("extcal.server"), server),
+    h("div", { class: "form-row" },
+      field(t("extcal.username"), h("input", { type: "text", name: "username", id: "calendar-dav-username", required: true, autocomplete: "username" })),
+      field(t("extcal.password"), h("input", { type: "password", name: "password", id: "calendar-dav-password", required: true, autocomplete: "off" }))),
+    h("button", { type: "submit", class: "primary", id: "calendar-dav-connect", text: t("extcal.connect") }));
+    return f;
+  };
+  const way = (id, label, make) => h("button", { type: "button", class: "secondary", id, text: label, disabled: !enabled, onclick: () => forms.replaceChildren(make()) });
+  const ways = enabled ? h("p", { class: "cal-others-ways" },
+    way("calendar-add-ics", t("extcal.addIcs"), icsForm),
+    google ? h("a", { class: "button secondary", id: "calendar-add-google", href: "/api/me/calendar-accounts/google/connect", text: t("extcal.addGoogle") })
+      : h("span", { class: "muted", id: "calendar-google-off", text: t("extcal.googleOff") }),
+    way("calendar-add-dav", t("extcal.addDav"), davForm)) : h("p", { class: "muted", id: "calendar-others-off", text: t("extcal.off") });
+
+  if (after.picked) showPicker(after.picked.account, after.picked.calendars);
+  else if (after.pick && accountOf(after.pick)) queueMicrotask(choose(accountOf(after.pick)));
+  const shownCount = sources.filter((s) => !s.hidden).length;
+  return h("details", { class: "cal-others", id: "calendar-others", open: Boolean(after.others || after.pick) },
+    h("summary", {}, t("extcal.title"), shownCount ? h("span", { class: "muted", text: " " + t("extcal.count", { n: shownCount }) }) : null),
+    list, accountList, pick, ways, forms);
+}
+
 // feedBox shows a feed's address once, as it was made, to copy into a
 // calendar program, with what holding it means.
 function feedBox(feed) {
@@ -416,8 +576,21 @@ export async function calendarView(container, params, helpers, after = {}) {
   const { readAll, favouritesFirst } = helpers;
   const today = todayDay();
   const state = readState(params, today);
-  const [{ types }, { spaces }, { views, feeds }] = await Promise.all([get("/api/types"), get("/api/spaces"),
-    get("/api/me/calendar-views").catch(() => ({ views: [], feeds: false }))]);
+  // Google sends one back to /?calendar_account=… (or calendar_error=…);
+  // the calendar then offers that account's calendars, and the address
+  // keeps only its route.
+  const back = new URLSearchParams(location.search);
+  if (back.has("calendar_account") || back.has("calendar_error")) {
+    const error = back.get("calendar_error");
+    const told = { off: t("extcal.error.off"), config: t("extcal.error.config"), state: t("extcal.error.state"), denied: t("extcal.error.denied"),
+      unavailable: t("extcal.error.unavailable") };
+    if (error) after = { ...after, others: true, notice: { ok: false, text: told[error] || told.unavailable } };
+    else after = { ...after, pick: back.get("calendar_account") };
+    history.replaceState(null, "", location.pathname + location.hash);
+  }
+  const [{ types }, { spaces }, { views, feeds }, cals] = await Promise.all([get("/api/types"), get("/api/spaces"),
+    get("/api/me/calendar-views").catch(() => ({ views: [], feeds: false })),
+    get("/api/me/calendars").catch(() => ({ enabled: false, sources: [], accounts: [] }))]);
   const dated = types.filter((ty) => dateFields([ty]).length);
   const typeOf = new Map(types.map((ty) => [ty.name, ty]));
   const go = (change) => { location.hash = address({ ...state, ...change }, today); };
@@ -436,7 +609,21 @@ export async function calendarView(container, params, helpers, after = {}) {
       failed = err;
     }
   }
-  const list = entries(items, fields, { from: p.from, to: p.to });
+  // One's calendars of other services stand beside the items (ADR-0174).
+  let others = [], unreadable = [];
+  if (cals.enabled && (cals.sources || []).some((src) => !src.hidden)) {
+    let zone = "";
+    try { zone = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch { /* the server takes UTC */ }
+    try {
+      const got = await get(`/api/me/calendars/events?from=${dayString(p.from - 1)}&to=${dayString(p.to + 2)}&zone=${encodeURIComponent(zone)}`);
+      others = externalEntries(got.events, cals.sources).filter((e) => e.to >= p.from && e.from <= p.to);
+      const named = new Map(cals.sources.map((src) => [src.id, src.name]));
+      unreadable = (got.problems || []).map((x) => t("extcal.unreadable", { name: named.get(x.source) || x.source, message: x.message }));
+    } catch (err) {
+      unreadable = [err.message];
+    }
+  }
+  const list = [...entries(items, fields, { from: p.from, to: p.to }), ...others].sort(byDayAndTime);
   const editable = new Set(spaces.filter((sp) => sp.role === "editor" || sp.role === "space-admin").map((sp) => sp.key));
   const ctx = {
     today,
@@ -527,6 +714,7 @@ export async function calendarView(container, params, helpers, after = {}) {
     h("nav", { class: "tabs", "aria-label": t("calendar.view") }, VIEWS.map((v) =>
       h("a", { href: address({ ...state, view: v }, today), class: v === state.view ? "tab active" : "tab", id: "calendar-view-" + v, text: viewName(v) }))),
     savedBar(container, params, helpers, state, today, views, feeds, after),
+    othersBar(container, params, helpers, cals, after),
     filters);
 
   const nav = h("div", { class: "cal-nav" },
@@ -541,7 +729,7 @@ export async function calendarView(container, params, helpers, after = {}) {
   if (mistake) q.setAttribute("aria-invalid", "true");
 
   let content;
-  if (!dated.length) content = h("p", { class: "empty", id: "calendar-grid", text: t("calendar.noDateFields") });
+  if (!dated.length && !others.length) content = h("p", { class: "empty", id: "calendar-grid", text: t("calendar.noDateFields") });
   else if (state.view === "agenda") content = agendaEl(p, list, ctx);
   else content = gridEl(p, list, ctx);
 
@@ -550,6 +738,7 @@ export async function calendarView(container, params, helpers, after = {}) {
     mistake ? h("p", { class: "notice warning", id: "calendar-error", role: "alert", text: mistake.text }) : null,
     after.notice ? h("p", { class: after.notice.ok ? "notice" : "notice warning", id: "calendar-moved", role: after.notice.ok ? "status" : "alert", text: after.notice.text }) : null,
     after.feed ? feedBox(after.feed) : null,
+    unreadable.length ? h("div", { class: "notice warning", id: "calendar-unreadable", role: "status" }, unreadable.map((text) => h("p", { text }))) : null,
     truncated ? h("p", { class: "notice warning", text: t("board.truncated", { n: items.length }) }) : null,
     nav,
     content,

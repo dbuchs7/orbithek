@@ -5876,6 +5876,7 @@ async function adminView() {
     autoBackupCard());
 
   const storageSection = section("storage", t("storage.title"), await storageCard());
+  const calendarsSection = section("calendars", t("extcal.adminTitle"), await calendarsCard());
   const albumSection = section("album", t("retention.title"), await retentionCard());
   const catalogSection = section("connectors", t("connector.title"), connectorsCard(spaces, users));
   const enginesSection = section("engines", t("engine.title"), enginesCard());
@@ -5963,8 +5964,33 @@ async function adminView() {
     h("div", { class: "admin-layout" },
       h("nav", { class: "admin-toc", "aria-label": t("admin.contents") }, ...tocLinks),
       h("div", { class: "admin-sections" },
-        spacesSection, typesSection, usersSection, requestsSection, groupsSection, grantSection, storageSection, backupSection, albumSection, catalogSection, enginesSection, designSection, wordTemplatesSection, regulationsSection, importSection, auditSection)),
+        spacesSection, typesSection, usersSection, requestsSection, groupsSection, grantSection, storageSection, calendarsSection, backupSection, albumSection, catalogSection, enginesSection, designSection, wordTemplatesSection, regulationsSection, importSection, auditSection)),
   );
+}
+
+// calendarsCard turns people's calendars of other services on or off
+// (ADR-0174) and says what the server needs for them: Google's client with
+// its redirect address, and OT_CALENDAR_ALLOW_PRIVATE for calendars in the
+// own network.
+async function calendarsCard() {
+  const box = h("div", { id: "calendars-settings" });
+  const done = h("div", { class: "status", role: "status" });
+  const draw = (s) => box.replaceChildren(
+    form({ id: "calendars-form" }, [
+      h("label", { class: "check" }, h("input", { type: "checkbox", name: "external", id: "calendars-external", checked: s.external }), t("extcal.adminAllow")),
+      h("p", { class: "muted", text: t("extcal.adminHelp") }),
+      s.google
+        ? h("p", { class: "muted", id: "calendars-google" }, t("extcal.adminGoogle") + " ", h("code", { text: s.googleRedirect }))
+        : h("p", { class: "muted", id: "calendars-google", text: t("extcal.adminNoGoogle") }),
+      h("p", { class: "muted", id: "calendars-private", text: s.allowPrivate ? t("extcal.adminPrivate") : t("extcal.adminPublicOnly") }),
+      h("button", { type: "submit", text: t("common.save") }),
+    ], async (d) => {
+      draw(await put("/api/settings/calendars", { external: d.get("external") === "on" }));
+      done.replaceChildren(h("p", { class: "notice", text: t("extcal.adminSaved") }));
+    }),
+    done);
+  draw(await get("/api/settings/calendars"));
+  return box;
 }
 
 // storageLevel says a level of the storage in words.

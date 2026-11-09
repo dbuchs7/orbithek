@@ -23,6 +23,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/audit"
 	"github.com/dbuchs7/orbithek/internal/auth"
 	"github.com/dbuchs7/orbithek/internal/engineconn"
+	"github.com/dbuchs7/orbithek/internal/extcal"
 	"github.com/dbuchs7/orbithek/internal/item"
 	"github.com/dbuchs7/orbithek/internal/notes"
 	"github.com/dbuchs7/orbithek/internal/site"
@@ -51,6 +52,15 @@ const ConnectionsFile = "connections.wal"
 // connectionKey begins the ID of a connection's key in the keys file.
 const connectionKey = "engineconn:"
 
+// CalendarsFile holds people's calendars of other services (ADR-0174):
+// iCalendar addresses and accounts at Google or CalDAV servers, their
+// credentials sealed with a key of each calendar's or account's own, kept
+// in the keys file.
+const CalendarsFile = "calendars.wal"
+
+// calendarKey begins the ID of such a key in the keys file.
+const calendarKey = "extcal:"
+
 // DB is an open data directory.
 type DB struct {
 	// Store is the item store. It is not safe for concurrent use: callers
@@ -66,6 +76,9 @@ type DB struct {
 	// (ADR-0151). They take the writer's lock to seal, which guards the
 	// keys, so they are never changed within Write.
 	Connections *engineconn.Connections
+	// Calendars are people's calendars of other services (ADR-0174). They
+	// take the writer's lock to seal, as Connections do.
+	Calendars *extcal.Store
 
 	// mu lets reads run side by side and a command alone (ADR-0081).
 	mu       sync.RWMutex
@@ -77,6 +90,7 @@ type DB struct {
 	site     *wal.Log
 	notes    *wal.Log
 	conns    *wal.Log
+	cals     *wal.Log
 	dir      string
 
 	// changed is closed, and replaced, after every command, so that
@@ -260,6 +274,14 @@ func OpenWith(dir string, o Options) (_ *DB, _ Recovery, err error) {
 	if err := db.openConnections(); err != nil {
 		return nil, Recovery{}, err
 	}
+	cal, calsc, err := wal.OpenFile(dir, CalendarsFile)
+	if err != nil {
+		return nil, Recovery{}, err
+	}
+	db.cals = cal
+	if db.Calendars, err = extcal.New(calsc.Records, cal.Append, keySealer{db, calendarKey}, newNoteID); err != nil {
+		return nil, Recovery{}, fmt.Errorf("storage: reading %s: %w", CalendarsFile, err)
+	}
 	// Content is assessed against the installation's data protection
 	// regulations on save (ADR-0058); replay reads the outcome from the log.
 	// Nothing new is made while the storage is almost full (ADR-0163).
@@ -292,7 +314,18 @@ func (db *DB) heal() (int, error) {
 	for _, k := range db.Connections.Keys() {
 		live[k] = true
 	}
+	liveCal := map[string]bool{}
+	for _, k := range db.Calendars.Keys() {
+		liveCal[k] = true
+	}
 	for id := range db.keys.keys {
+		// A calendar's or account's key belongs to it (ADR-0174).
+		if k, ok := strings.CutPrefix(string(id), calendarKey); ok {
+			if !liveCal[k] {
+				ids = append(ids, id)
+			}
+			continue
+		}
 		// A connection's key belongs to the connection (ADR-0151).
 		if k, ok := strings.CutPrefix(string(id), connectionKey); ok {
 			if !live[k] {
@@ -372,6 +405,9 @@ func (db *DB) close() error {
 	}
 	if db.conns != nil {
 		errs = append(errs, db.conns.Close())
+	}
+	if db.cals != nil {
+		errs = append(errs, db.cals.Close())
 	}
 	if db.audit != nil {
 		errs = append(errs, db.audit.Close())
@@ -525,6 +561,40 @@ func (db *DB) openConnections() error {
 	}
 	db.Connections.Rewritten(len(records))
 	return nil
+}
+
+// keySealer seals with a key of each holder's own in the keys file, its ID
+// begun with prefix, as connSealer does: the credentials of people's
+// calendars (ADR-0174).
+type keySealer struct {
+	db     *DB
+	prefix string
+}
+
+func (k keySealer) Seal(key string, pt, aad []byte) ([]byte, error) {
+	k.db.mu.Lock()
+	defer k.db.mu.Unlock()
+	ct, err := k.db.keys.Seal(item.ID(k.prefix+key), pt, aad)
+	if err != nil {
+		return nil, err
+	}
+	return ct, k.db.keys.persistPending()
+}
+
+func (k keySealer) Open(key string, ct, aad []byte) ([]byte, error) {
+	k.db.mu.RLock()
+	defer k.db.mu.RUnlock()
+	return k.db.keys.Open(item.ID(k.prefix+key), ct, aad)
+}
+
+func (k keySealer) Shred(keys ...string) error {
+	ids := make([]item.ID, len(keys))
+	for i, key := range keys {
+		ids[i] = item.ID(k.prefix + key)
+	}
+	k.db.mu.Lock()
+	defer k.db.mu.Unlock()
+	return k.db.keys.shred(ids...)
 }
 
 // connSealer seals the refresh tokens of connections to engines with a

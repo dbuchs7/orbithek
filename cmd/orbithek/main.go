@@ -37,6 +37,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/connector"
 	"github.com/dbuchs7/orbithek/internal/engine"
 	"github.com/dbuchs7/orbithek/internal/engineauth"
+	"github.com/dbuchs7/orbithek/internal/extcal"
 	"github.com/dbuchs7/orbithek/internal/item"
 	"github.com/dbuchs7/orbithek/internal/linkcheck"
 	"github.com/dbuchs7/orbithek/internal/mcp"
@@ -305,7 +306,19 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 	diskDone := make(chan struct{})
 	go func() { disk.Loop(diskCtx); close(diskDone) }()
 	defer func() { stopDisk(); <-diskDone }()
-	routes := server.Routes(server.Deps{UI: web.FS(), DB: db, Log: log, SSO: providers, Collab: live, Whiteboards: boards, LinkCheck: links, Messages: messages, OAuthRegistration: registration, CalendarFeeds: feeds, Backups: backups, Connectors: catalog, Engines: engines, TaskLinks: taskLinks, Connect: connect, Disk: disk})
+	// People's calendars of other services (ADR-0174): read with the
+	// guarded client; Google through the client of single sign-on, when
+	// it and the public address are set.
+	var google *extcal.Google
+	if public := notifier.PublicURL(); public != "" {
+		google = extcal.NewGoogle(os.Getenv("OT_GOOGLE_CLIENT_ID"), os.Getenv("OT_GOOGLE_CLIENT_SECRET"), strings.TrimSuffix(public, "/")+server.GoogleCalendarCallback)
+	}
+	calendars := extcal.NewReader(db.Calendars, server.CalendarClient(os.Getenv), google)
+	calendarsPrivate := os.Getenv(extcal.AllowPrivateVar) == "on"
+	if calendarsPrivate {
+		log.Info("people's calendars may be read in the server's own network", "variable", extcal.AllowPrivateVar)
+	}
+	routes := server.Routes(server.Deps{UI: web.FS(), DB: db, Log: log, SSO: providers, Collab: live, Whiteboards: boards, LinkCheck: links, Messages: messages, OAuthRegistration: registration, CalendarFeeds: feeds, Calendars: calendars, CalendarAllowPrivate: calendarsPrivate, Backups: backups, Connectors: catalog, Engines: engines, TaskLinks: taskLinks, Connect: connect, Disk: disk})
 	if err := server.Serve(ctx, ln, server.BehindProxies(proxies, server.WithPublicURL(notifier.PublicURL(), server.Handler(routes, db.Accounts))), log); err != nil {
 		log.Error("server failed", "err", err)
 		return 1
