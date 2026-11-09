@@ -1,7 +1,7 @@
 # ADR-0166: A calendar of the items' dates, and a field kind for a point in time
 
 - **Status:** Proposed
-- **Implementation:** Not started
+- **Implementation:** Partial
 - **Date:** 2026-11-06
 - **Deciders:** Project initiators (request of 2026-11-06 for a calendar on which the tasks appear)
 - **Open question:** whether repeating dates (a weekly meeting) and a calendar that other programs subscribe to (iCalendar, RFC 5545) are needed; this record decides neither, and both would need a record of their own
@@ -41,15 +41,21 @@ Chosen option: **1**, because it needs no new route and no new stored object, ke
 ### The calendar view
 
 - **Route:** `#/calendar`, with the parameters `view` (`month`, `week` or `agenda`), `at` (a day `YYYY-MM-DD` in the period shown; today when absent), `space`, `type`, `labels` (comma-separated), `q` (a query, ADR-0136), and `start` and `end` (field names). Defaults are left out of the address, so a link shares a view.
-- **Fields:** the date and datetime fields of the types shown are offered for start and end. When the address names none, they are guessed as the roadmap guesses them (`dateFields`, `guessFields` in `assets/timeline.js`, shared, not copied). An item with both is a span; an item with one is an entry on that day; an end before its start is shown on the end and marked, as on the roadmap.
-- **Reading:** one listing, `GET /api/items?query=…`. The browser writes space, type and labels into the query as conditions (`space = …`, `type = …`, `label IN (…)`), joins the reader's `q` with `AND`, and adds a condition that the start or the end falls in the period shown, or that the span covers it. Only items of the period are read. At most the boards' limit of 2 000 items are read, and the view says when there are more. Permissions and veiling are those of the listing; the view adds none.
+- **Fields:** the date and datetime fields of the types shown are offered for start and end. When the address names none, each type's are guessed from its own fields as the roadmap guesses them (`dateFields`, `guessFields` in `assets/timeline.js`, shared, not copied), so a task stands on its due date and a decision on the day it was decided in one calendar. A chosen start or end holds for every type that has it as a date field; a type with neither is left out. An item with both is a span; an item with one is an entry on that day; an end before its start is shown on the end and marked, as on the roadmap.
+- **Reading:** one listing, `GET /api/items?query=…`, narrowed to the room by the listing's `space`. The browser writes the labels into the query (`label IN (…)`), joins the reader's `q` with `AND` (without its `ORDER BY`), and adds, for each type shown, a condition that one of its fields falls in the period drawn, or that its span covers it (`type = … AND (…)`). A mistake in the `q` typed is told at its place there, with the cursor on it. Only items of the period are read. At most the boards' limit of 2 000 items are read, and the view says when there are more. Permissions and veiling are those of the listing; the view adds none.
 - **Placing:** a `date` value is a day and stands on that day wherever the reader is; days are counted in UTC, as on the roadmap. A `datetime` value is a point in time, shown in the reader's time zone (the browser's) with its time. In the week view it stands on an axis of hours; in the month view as a line with its time; a span longer than a day is a bar across the days.
 - **Views:** *month* is a grid of whole weeks; *week* has seven days with a row for dates without a time and an axis of hours; *agenda* lists the period day by day. The agenda is the form for narrow screens and screen readers. Weeks begin on Monday (ISO 8601, as the roadmap's weeks); the names of months and days come from the browser's `Intl` in the language of the UI (ADR-0017).
 - **Look:** finished items (ADR-0082) are hatched; an item whose end lies before today and is not finished is marked overdue in words and shape, not colour alone, as in the task list. Every entry is a link to its item and names it, its dates and its state.
 - **Navigation:** *Previous*, *Today* and *Next*, the period as the heading, and the keyboard alone suffices.
-- **Entry points:** a tab *Calendar* on the tasks pages beside *Kanbans* and *Roadmap*, which shows the tasks of the current tab with its filters, placed by their due field as the task list finds it; *As a calendar* on a label's page; *Calendar* among a room's views.
+- **Entry points:** a tab *Calendar* on the tasks pages beside *Kanbans* and *Roadmap*, which shows the open tasks of the current tab (assigned to me, unassigned, all) in the room chosen there, handed over as a query (`finished = false AND …`, the assignee field as the task list finds it), so the link can be shared; the column filters of the list are not handed over; *As a calendar* on a label's page; *Calendar* among a room's views.
 - **Read-only:** dates are changed on the item. Moving an entry to change its date is a follow-up; it would be a validated property change (D3).
 - **Code:** the layout as plain functions in `assets/calendar.js`, tested by `internal/web/jstest/calendar.test.mjs`; the drawing in its own module beside it; `e2e/smoke.cjs` walks the view. No widget library is added.
+
+**Implementation so far** (`assets/calendar.js`, `assets/calendarview.js`, `#/calendar`):
+
+- The calendar view over `date` fields as decided above: month, week and agenda; every entry point; the period read alone; finished, overdue and misdated entries marked by shape and words; tested by `internal/web/jstest/calendar.test.mjs` and a step of `e2e/smoke.cjs`, which also checks that the month and the week fit a phone's screen.
+- On narrow screens the month shows the keys of its entries only; the agenda shows them whole.
+- Not yet: the field kind `datetime` below, and with it the week's axis of hours and times in the month. Until it lands, the week has one row of entries per day.
 
 ### The field kind `datetime`
 

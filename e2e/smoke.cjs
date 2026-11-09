@@ -2423,6 +2423,43 @@ function gitSource() {
     await page.click("#tab-roadmap");
     await page.waitForSelector("#roadmap-controls");
 
+    step("calendar: items with dates on the days of a month, a week or an agenda, read for the period only; the view is its address (ADR-0166)");
+    await page.goto(base + "/#/label/plan-q1");
+    await page.click("#label-calendar");
+    await page.waitForFunction(() => location.hash === "#/calendar?labels=plan-q1");
+    await page.waitForSelector("#calendar-controls");
+    await page.goto(base + "/#/calendar?labels=plan-q1&at=2026-03-01");
+    // A span from Monday 2 to Friday 20 March stands in each of its three
+    // weeks; one date is an entry on its day; no date, no entry.
+    await page.waitForSelector(`#calendar-grid .cal-entry.cal-span[data-key='${planned.design}']`);
+    check(await page.locator(`#calendar-grid .cal-entry[data-key='${planned.design}']`).count() === 3, "a span is drawn in each week it touches");
+    await page.waitForSelector(`#calendar-grid .cal-entry[data-key='${planned.launch}']:not(.cal-span)`);
+    check(await page.locator("#calendar-grid .cal-entry:has-text('Someday idea')").count() === 0, "an item without a date has no entry");
+    check((await page.getAttribute(`.cal-entry[data-key='${planned.launch}']`, "aria-label")).includes("Launch day"), "an entry says what it is in words");
+    check((await page.textContent("#calendar-period")).includes("2026"), "the period is named");
+    await page.click("#calendar-view-agenda");
+    await page.waitForFunction(() => location.hash.includes("view=agenda") && location.hash.includes("at=2026-03-01"));
+    await page.waitForSelector(`.cal-agenda li[data-day] .cal-entry[data-key='${planned.launch}']`);
+    await page.click("#calendar-next");
+    await page.waitForFunction(() => location.hash.includes("at=2026-04-01"));
+    await page.waitForSelector("p#calendar-grid.empty");
+    await page.click("#calendar-view-week");
+    await page.waitForSelector("#calendar-grid.cal-view-week .cal-week-big");
+    // A mistake in the query typed is told at its place in it.
+    await page.fill("#calendar-q", "state = (");
+    expectedConsole = /status of 400/; // the mistake is refused
+    await page.click("#calendar-apply");
+    await page.waitForSelector("#calendar-error");
+    expectedConsole = null;
+    check((await page.textContent("#calendar-error")).includes("9"), "a query's mistake is told at its character: " + await page.textContent("#calendar-error"));
+    check(await page.evaluate(() => document.getElementById("calendar-q").selectionStart) === 8, "the cursor stands at the mistake");
+    // The tasks page hands its tab to the calendar as a query.
+    await page.goto(base + "/#/tasks/all");
+    await page.click("#tab-calendar");
+    await page.waitForFunction(() => decodeURIComponent(location.hash).includes("finished = false") || location.hash.includes("finished+%3D+false"));
+    await page.waitForSelector("#calendar-controls");
+    check(!(await page.locator("#calendar-error").count()), "the tasks' query is read without a mistake");
+
     step("starmap of the labels: a star per label, sized by its items, lines between labels carried together, filtered by labels (ADR-0165)");
     await page.goto(base + "/#/label/plan-q1");
     await page.click("#label-labelmap");
@@ -3870,7 +3907,7 @@ function gitSource() {
     await phone.fill("#login [name=password]", adminPassword);
     await phone.press("#login [name=password]", "Enter");
     await phone.waitForSelector("#account-button");
-    for (const view of ["#/", "#/space/PLAT", "#/item/PLAT-2", "#/item/" + plan.key, "#/item/" + plan.key + "?edit", "#/tasks/all", "#/kanbans", "#/board/PLAT/task?lanes=priority", "#/labelboard/website-relaunch", "#/governance", "#/governance/PLAT", "#/mcp", "#/admin", "#/search/runbook"]) {
+    for (const view of ["#/", "#/space/PLAT", "#/item/PLAT-2", "#/item/" + plan.key, "#/item/" + plan.key + "?edit", "#/tasks/all", "#/kanbans", "#/board/PLAT/task?lanes=priority", "#/labelboard/website-relaunch", "#/calendar", "#/calendar?view=week", "#/governance", "#/governance/PLAT", "#/mcp", "#/admin", "#/search/runbook"]) {
       await phone.goto(base + "/" + view);
       await phone.waitForSelector("main h1, main .welcome, #body");
       await phone.waitForTimeout(400);
