@@ -1,4 +1,4 @@
-// A live whiteboard (ADR-0168, ADR-0169, ADR-0170): the drawing page in a
+// A live whiteboard (ADR-0169, ADR-0170, ADR-0171): the drawing page in a
 // live session. The page follows the session's server-sent events and
 // sends operations; it shows the others' cursors and what they hold, and
 // adds the tools of a workshop: notes, voting, a timer, comments on
@@ -185,7 +185,7 @@ export function startWhiteboard({ root, dark, lang, item, file, palette, bind, o
   }
 
   // measure has the keeper measure text an agent wrote by estimate
-  // (ADR-0168), with Excalidraw's own measures.
+  // (ADR-0169), with Excalidraw's own measures.
   function measure(els) {
     if (!S.keeper || !S.editable) return;
     const fixed = [];

@@ -362,7 +362,7 @@ func runCollab(ctx context.Context, hub *collab.Hub, tick <-chan time.Time) {
 // lapse and scenes to save.
 const whiteboardTick = 2 * time.Second
 
-// runWhiteboards keeps the live whiteboards (ADR-0168) on every tick: idle
+// runWhiteboards keeps the live whiteboards (ADR-0169) on every tick: idle
 // locks lapse, keepers are asked for checkpoints, scenes nobody can draw
 // are saved. When ctx ends it shuts them down, writing what is unsaved.
 func runWhiteboards(ctx context.Context, hub *whiteboard.Hub, tick <-chan time.Time) {

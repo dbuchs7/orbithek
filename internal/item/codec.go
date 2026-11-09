@@ -116,10 +116,10 @@ import (
 //     template the item is made with, and TemplateSet moves an item to
 //     another (ADR-0167). Versions 1 to 40 are still read; their items
 //     have no template.
-//   - 42: an anchor may name an element of a drawing, with Drawing and
-//     Element, sealed with the rest of it (ADR-0170). Versions 1 to 41 are
+//   - 43: an anchor may name an element of a drawing, with Drawing and
+//     Element, sealed with the rest of it (ADR-0171). Versions 1 to 42 are
 //     still read.
-const CodecVersion = 42
+const CodecVersion = 43
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

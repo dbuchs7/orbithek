@@ -21,7 +21,7 @@ const KEY = "wikiwikibangbang"
 var elementIDRE = regexp.MustCompile(`^[A-Za-z0-9_.:-]{1,128}$`)
 
 // ValidElementID reports whether s can name an element of a drawing, as a
-// comment's anchor does (ADR-0170).
+// comment's anchor does (ADR-0171).
 func ValidElementID(s string) bool { return elementIDRE.MatchString(s) }
 
 // elementTypes are the kinds of element a scene may hold.
@@ -30,7 +30,7 @@ var elementTypes = map[string]bool{
 	"text": true, "image": true, "frame": true, "magicframe": true, "embeddable": true, "iframe": true,
 }
 
-// votable are the kinds one may vote on (ADR-0169): notes and other shapes.
+// votable are the kinds one may vote on (ADR-0170): notes and other shapes.
 var votable = map[string]bool{"rectangle": true, "diamond": true, "ellipse": true, "image": true}
 
 type binding struct {
@@ -92,7 +92,7 @@ func parseElement(raw json.RawMessage) (meta, error) {
 	return m, nil
 }
 
-// isNote reports whether an element is a note (ADR-0169).
+// isNote reports whether an element is a note (ADR-0170).
 func (m meta) isNote() bool {
 	var d struct {
 		Kind string `json:"kind"`
@@ -245,7 +245,7 @@ func setIndex(raw json.RawMessage, index string) json.RawMessage {
 }
 
 // Text is measured by estimate on the server, which has no fonts; a
-// browser measures it again (customData's measure, ADR-0168).
+// browser measures it again (customData's measure, ADR-0169).
 const (
 	fontSize    = 20
 	lineHeight  = 1.25
@@ -337,7 +337,7 @@ func textElement(id, text string, container map[string]any, x, y float64, index 
 	return el
 }
 
-// noteColours are the colours of notes, by name (ADR-0169).
+// noteColours are the colours of notes, by name (ADR-0170).
 var noteColours = map[string]string{
 	"yellow": "#ffec99", "green": "#b2f2bb", "blue": "#a5d8ff", "pink": "#fcc2d7", "orange": "#ffd8a8", "violet": "#d0bfff",
 }

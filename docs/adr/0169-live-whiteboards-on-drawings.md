@@ -1,4 +1,4 @@
-# ADR-0168: Live whiteboards: a drawing edited by up to twenty people at once, with a lock per element
+# ADR-0169: Live whiteboards: a drawing edited by up to twenty people at once, with a lock per element
 
 - **Status:** Proposed
 - **Implementation:** Partial
@@ -62,7 +62,7 @@ The browser is the only renderer: the server can write a PNG's chunks, not draw 
 
 ### Agents
 
-- `GET /api/items/{ref}/whiteboards/{file}` reads a whiteboard as an agent needs it: each element's ID, kind, text, position, size, colour, frame, container and the ends of an arrow, who holds it, and the session's participants, timer, vote and presentation (ADR-0169). Without a session it reads the newest picture's scene.
+- `GET /api/items/{ref}/whiteboards/{file}` reads a whiteboard as an agent needs it: each element's ID, kind, text, position, size, colour, frame, container and the ends of an arrow, who holds it, and the session's participants, timer, vote and presentation (ADR-0170). Without a session it reads the newest picture's scene.
 - `POST …/changes` takes simple changes: a note, a text, a shape, a frame, an arrow between two elements, new text, a move, a colour, a deletion, a vote. The server makes Excalidraw's elements from them, with text measured by estimate and marked, so the keeper's browser measures them again; each change takes and releases its locks within the request, and an element someone holds is refused with their name. An agent shows among the participants for two minutes after its last change.
 - MCP offers `create_whiteboard`, `get_whiteboard` and `change_whiteboard`; nothing destructive beyond deleting elements, which editing a body already allows.
 
@@ -78,7 +78,7 @@ The browser is the only renderer: the server can write a PNG's chunks, not draw 
 
 ## Implementation (2026-11-09)
 
-Built: `internal/whiteboard` (the session, element locks, cursors, checkpoints, the scene in the PNG, the server's stale save, agents' reading and changes, the workshop tools of ADR-0169), the routes in `internal/server/api_whiteboards.go`, the MCP tools, the drawing page's live mode (`assets/whiteboard.js`, its browser-free parts in `assets/whiteboard-parts.js`), the module *Whiteboards*, *Open as whiteboard* beside every drawing among a page's files and *New whiteboard* below them, and a step of the browser smoke test with two people and an agent.
+Built: `internal/whiteboard` (the session, element locks, cursors, checkpoints, the scene in the PNG, the server's stale save, agents' reading and changes, the workshop tools of ADR-0170), the routes in `internal/server/api_whiteboards.go`, the MCP tools, the drawing page's live mode (`assets/whiteboard.js`, its browser-free parts in `assets/whiteboard-parts.js`), the module *Whiteboards*, *Open as whiteboard* beside every drawing among a page's files and *New whiteboard* below them, and a step of the browser smoke test with two people and an agent.
 
 Not built yet:
 
@@ -118,5 +118,5 @@ Strongest form: nothing in memory can be lost.
 
 - builds on [ADR-0053](0053-drawings-with-excalidraw-on-a-page-of-their-own.md) (drawings), [ADR-0010](0010-real-time-collaboration-with-block-locks.md) (live sessions, locks), [ADR-0055](0055-copied-files-carry-their-source.md) (versions), [ADR-0104](0104-rules-for-the-older-versions-of-pictures.md) (retention)
 - relates to [ADR-0012](0012-mcp-adapter-over-http-api.md) (MCP), [ADR-0015](0015-resource-budgets-and-paged-listings.md) (budgets), [ADR-0022](0022-permission-model.md) (access), [ADR-0026](0026-crypto-shredding-of-item-content.md) (encryption), [ADR-0142](0142-processes-in-a-drawing.md) (the private chunk of a drawing's PNG)
-- extended by [ADR-0169](0169-workshop-tools-on-a-whiteboard.md) (notes, voting, timer, presentation) and [ADR-0170](0170-comments-on-the-elements-of-a-drawing.md) (comments on elements)
+- extended by [ADR-0170](0170-workshop-tools-on-a-whiteboard.md) (notes, voting, timer, presentation) and [ADR-0171](0171-comments-on-the-elements-of-a-drawing.md) (comments on elements)
 - adapted from atlas [ADR-0140](https://github.com/pblumer/atlas/blob/main/docs/adr/0140-live-collaborative-modeling-sessions.md) (element locks for diagrams, agents as participants)

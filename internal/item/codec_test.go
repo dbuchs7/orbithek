@@ -1861,7 +1861,7 @@ func commentLog(t *testing.T) []Event {
 	return s.Log()
 }
 
-// drawingCommentLog comments on an element of a drawing (ADR-0170).
+// drawingCommentLog comments on an element of a drawing (ADR-0171).
 func drawingCommentLog(t *testing.T) []Event {
 	s := setup(t)
 	page := mustItem(t)(s.Create("anna", NewItem{Space: "PLAT", Type: "page", Title: "Workshop"}))

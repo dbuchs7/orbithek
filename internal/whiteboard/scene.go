@@ -20,7 +20,7 @@ import (
 // envelope around the scene, deflated and written as a string of Latin-1
 // characters, one per byte. The server reads it to open a session and
 // writes it into every checkpoint, so a saved version holds what the
-// session held, not what a browser claims (ADR-0168).
+// session held, not what a browser claims (ADR-0169).
 
 // sceneKeyword names the text chunk that holds the scene.
 const sceneKeyword = "application/vnd.excalidraw+json"

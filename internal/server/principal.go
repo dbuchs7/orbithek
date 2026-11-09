@@ -99,7 +99,7 @@ func readJSON(w http.ResponseWriter, r *http.Request, v any) error {
 
 // readJSONUpTo is readJSON for a route whose body may be larger than
 // RequestBody, up to limit bytes, such as operations on a whiteboard that
-// carry an image (ADR-0168).
+// carry an image (ADR-0169).
 func readJSONUpTo(w http.ResponseWriter, r *http.Request, v any, limit int64) error {
 	mt, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil || mt != "application/json" {

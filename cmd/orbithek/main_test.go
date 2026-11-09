@@ -705,7 +705,7 @@ func TestDailyAtSendsAtTheHour(t *testing.T) {
 }
 
 // TestRunWhiteboards ticks the live whiteboards until it is stopped, and
-// shuts them down then (ADR-0168).
+// shuts them down then (ADR-0169).
 func TestRunWhiteboards(t *testing.T) {
 	hub := whiteboard.NewHub(nil)
 	ctx, stop := context.WithCancel(context.Background())

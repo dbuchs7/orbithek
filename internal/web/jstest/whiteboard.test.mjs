@@ -1,5 +1,5 @@
 // Unit tests of the parts of a live whiteboard (whiteboard-parts.js,
-// ADR-0168, ADR-0169, ADR-0170): who holds what, what changed, what a
+// ADR-0169, ADR-0170, ADR-0171): who holds what, what changed, what a
 // selection locks, the frames in reading order, the timer, a vote's
 // result, the comments by element and where a badge goes. They run in
 // Node.js without a browser:

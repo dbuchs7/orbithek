@@ -106,7 +106,7 @@ type Budgets struct {
 	// walk keeps the nearest nodes and says it was cut.
 	ImpactNodes int
 	// WhiteboardSessions, WhiteboardClients, WhiteboardElements and
-	// WhiteboardSceneBytes bound live whiteboards (ADR-0168): sessions on
+	// WhiteboardSceneBytes bound live whiteboards (ADR-0169): sessions on
 	// the server, clients per session (browsers and agents), elements one
 	// session holds, deleted ones included, and the bytes of its elements
 	// and images together. WhiteboardRequestBytes bounds one request of

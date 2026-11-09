@@ -413,7 +413,7 @@ func (x *Session) Pictures(space string, keep func(Attachment) bool) []Picture {
 	return out
 }
 
-// Drawing is a file of an item with all its versions (ADR-0168): the first
+// Drawing is a file of an item with all its versions (ADR-0169): the first
 // version names it, Newest is the version that is not deleted and was
 // added last, Versions are the IDs of every version, deleted ones too.
 type Drawing struct {

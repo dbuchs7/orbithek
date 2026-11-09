@@ -8,7 +8,7 @@ import (
 	"unicode/utf8"
 )
 
-// The tools of a workshop (ADR-0169): a countdown, a vote and a
+// The tools of a workshop (ADR-0170): a countdown, a vote and a
 // presentation. They are state of the session, never part of the scene.
 
 // The bounds of the tools.

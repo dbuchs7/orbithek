@@ -84,7 +84,7 @@ type Deps struct {
 	// one over DB when it is nil. NewCollab makes one to share, for a
 	// caller that runs its Tick.
 	Collab *collab.Hub
-	// Whiteboards holds the live whiteboards (ADR-0168); Routes creates
+	// Whiteboards holds the live whiteboards (ADR-0169); Routes creates
 	// one over DB when it is nil. NewWhiteboards makes one to share, for a
 	// caller that runs its Tick.
 	Whiteboards *whiteboard.Hub

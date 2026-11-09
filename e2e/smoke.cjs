@@ -4455,7 +4455,7 @@ function gitSource() {
     await quickPage.waitForSelector("#body.reading .ProseMirror p:has-text('Stored.')");
     await quickCtx.close();
 
-    step("whiteboard: bert and admin work on one drawing at once: a note, an agent's notes, a vote with its result as a comment, the timer, a comment on an element, a presentation, and a checkpoint the drawing editor opens again (ADR-0168, ADR-0169, ADR-0170)");
+    step("whiteboard: bert and admin work on one drawing at once: a note, an agent's notes, a vote with its result as a comment, the timer, a comment on an element, a presentation, and a checkpoint the drawing editor opens again (ADR-0169, ADR-0170, ADR-0171)");
     const retro = await page.evaluate(async () => (await (await fetch("/api/items", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ space: "PLAT", type: "task", title: "Retro", properties: { priority: "low" } }) })).json()).item.key);
     await page.goto(base + "/#/item/" + retro);

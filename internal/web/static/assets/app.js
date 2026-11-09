@@ -804,7 +804,7 @@ function attachmentsSection(path, files, live) {
     isDrawing(a.name) ? [" · ", link(whiteboardHref(path, a.id), t("wb.open"), "wb-open")] : null,
     live ? h("button", { class: "link danger", text: t("common.delete"), onclick: () => confirm(t("att.deleteConfirm", { name: a.name }))
       && action(() => del(`${path}/attachments/${a.id}`), status) }) : null);
-  // A new whiteboard is an empty drawing at the end of the body (ADR-0168).
+  // A new whiteboard is an empty drawing at the end of the body (ADR-0169).
   const board = live ? h("button", { type: "button", id: "new-whiteboard", class: "secondary", text: t("wb.new"), onclick: () => action(async () => {
     const title = document.querySelector("h1.item-title")?.textContent?.trim() || "";
     const { file } = await post(`${path}/whiteboards`, { title });
@@ -826,7 +826,7 @@ function attachmentsSection(path, files, live) {
 }
 
 // whiteboardHref leads to the whiteboard of a drawing of the item an API
-// path names (ADR-0168).
+// path names (ADR-0169).
 const whiteboardHref = (path, file) => `#/whiteboard/${encodeURIComponent(decodeURIComponent(path.split("/").pop()))}/${file}`;
 
 async function action(fn, status) {
@@ -3811,7 +3811,7 @@ async function labelmapScreen(params) {
 
 // albumView shows the images and drawings of every item one may read
 // (ADR-0054); each leads to its item.
-// --- whiteboards (ADR-0168) ---------------------------------------------------
+// --- whiteboards (ADR-0169) ---------------------------------------------------
 
 // whiteboardView shows a drawing as a live whiteboard: the drawing page in
 // a frame that fills the screen below a bar. The page joins the session
@@ -4964,7 +4964,7 @@ function commentThreads(path, page, live) {
   const replies = new Map();
   for (const c of page.comments.filter((c) => c.reply)) replies.set(c.reply, [...(replies.get(c.reply) || []), c]);
   // A comment on an element of a whiteboard is on no passage of the body
-  // (ADR-0170).
+  // (ADR-0171).
   const anchored = roots.filter((c) => c.anchor && !c.anchor.element && !c.deleted && !c.resolved);
   const threadEls = new Map(); // root id -> its element
 

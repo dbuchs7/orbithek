@@ -130,10 +130,10 @@ var (
 // as Markdown. Moving a page to a newer template version is not offered
 // either: it changes how a document others answer for looks.
 //
-// Of the live whiteboards (ADR-0168), agents make one, read one and
+// Of the live whiteboards (ADR-0169), agents make one, read one and
 // change it with plain changes; the live stream, the raw operations and
 // the checkpoints are a browser's, and starting or ending a vote, the
-// timer and a presentation are a person's (ADR-0169).
+// timer and a presentation are a person's (ADR-0170).
 var tools = []tool{
 	{Name: "list_spaces", Description: "List the spaces the caller holds a role in.", Method: "GET", Path: "/api/spaces"},
 	{Name: "get_own_roles", Description: "The caller's own roles: the system roles held, and every space role granted to the caller, directly or through a group (via), one entry per grant.",

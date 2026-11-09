@@ -1,4 +1,4 @@
-# ADR-0169: Workshop tools on a whiteboard: notes, voting, a timer and a presentation
+# ADR-0170: Workshop tools on a whiteboard: notes, voting, a timer and a presentation
 
 - **Status:** Proposed
 - **Implementation:** Partial
@@ -9,7 +9,7 @@
 
 ## Context and problem statement
 
-A live whiteboard (ADR-0168) lets twenty people draw on one surface. A workshop needs more than drawing: people write ideas on notes, choose among them by votes, work against a time box, and follow the one who leads through the results, frame by frame. Comments on elements are recorded apart (ADR-0170).
+A live whiteboard (ADR-0169) lets twenty people draw on one surface. A workshop needs more than drawing: people write ideas on notes, choose among them by votes, work against a time box, and follow the one who leads through the results, frame by frame. Comments on elements are recorded apart (ADR-0171).
 
 Which of these are part of the drawing, which belong to the session, and what is kept when the session ends?
 
@@ -84,5 +84,5 @@ Strongest form: one place for all; results travel with copies of the drawing.
 
 ## Links
 
-- builds on [ADR-0168](0168-live-whiteboards-on-drawings.md) (live whiteboards)
-- relates to [ADR-0035](0035-comments-are-part-of-their-item.md) (comments), [ADR-0170](0170-comments-on-the-elements-of-a-drawing.md) (comments on elements), [ADR-0017](0017-internationalisation-via-message-catalogue.md) (UI strings)
+- builds on [ADR-0169](0169-live-whiteboards-on-drawings.md) (live whiteboards)
+- relates to [ADR-0035](0035-comments-are-part-of-their-item.md) (comments), [ADR-0171](0171-comments-on-the-elements-of-a-drawing.md) (comments on elements), [ADR-0017](0017-internationalisation-via-message-catalogue.md) (UI strings)

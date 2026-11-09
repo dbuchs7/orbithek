@@ -7,7 +7,7 @@
 //   page → UI  {type: "png", blob} | {type: "error", message}
 //   page → UI  {type: "process", want, current}    asks for a process (ADR-0142)
 //   UI → page  {type: "process", picture}          {svg, width, height, data}, or null
-//   UI → page  {type: "live", lang, item, file}    open the drawing as a live whiteboard (ADR-0168)
+//   UI → page  {type: "live", lang, item, file}    open the drawing as a live whiteboard (ADR-0169)
 //
 // A drawing is a PNG that carries its scene (Excalidraw's exportEmbedScene),
 // so the picture shown in a page is also the source it is edited from.

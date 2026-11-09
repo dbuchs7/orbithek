@@ -43,7 +43,7 @@ type commentJSON struct {
 }
 
 // An anchor names a passage of the body by its quote, or an element of a
-// drawing (ADR-0170): the drawing by any of its versions, answered as its
+// drawing (ADR-0171): the drawing by any of its versions, answered as its
 // first, and the element's ID.
 type anchorJSON struct {
 	Quote   string  `json:"quote"`
@@ -122,7 +122,7 @@ func (h itemHandlers) addComment(w http.ResponseWriter, r *http.Request) {
 		}
 		if n.Anchor != nil && n.Anchor.Drawing != "" {
 			// A drawing is named by its first version, which outlives every
-			// new version (ADR-0170).
+			// new version (ADR-0171).
 			d, err := x.Drawing(it.ID, n.Anchor.Drawing)
 			if err != nil {
 				return nil, fmt.Errorf("%w: no drawing %s on %s", item.ErrValidation, n.Anchor.Drawing, it.Key)

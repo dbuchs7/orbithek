@@ -1,10 +1,10 @@
-// Package whiteboard holds live whiteboards (ADR-0168): drawings
+// Package whiteboard holds live whiteboards (ADR-0169): drawings
 // (ADR-0053) edited by several people and agents at once.
 //
 // A session is ephemeral server state for one drawing: its elements, each
 // kept as Excalidraw wrote it with a lock and the version Excalidraw
 // counts, its image files, its participants and what a workshop needs
-// for the moment (ADR-0169): a vote, a timer, a presentation. Browsers
+// for the moment (ADR-0170): a vote, a timer, a presentation. Browsers
 // receive every change as a server-sent event and send operations; agents
 // read and change it with plain requests.
 //
@@ -110,7 +110,7 @@ type Pointer struct {
 	Y      float64 `json:"y"`
 }
 
-// TimerState is the session's countdown (ADR-0169). Ends is when it ends,
+// TimerState is the session's countdown (ADR-0170). Ends is when it ends,
 // in Unix milliseconds, while it runs; Left the milliseconds left while
 // it is paused.
 type TimerState struct {
@@ -122,7 +122,7 @@ type TimerState struct {
 	By      string `json:"by,omitempty"`
 }
 
-// VoteState is a vote as one participant sees it (ADR-0169): their own
+// VoteState is a vote as one participant sees it (ADR-0170): their own
 // votes while it is open, everyone's counts once it is closed.
 type VoteState struct {
 	Open    bool           `json:"open"`
@@ -136,7 +136,7 @@ type VoteState struct {
 	By      string         `json:"by,omitempty"`
 }
 
-// PresentationState is who presents and what (ADR-0169): a frame, or
+// PresentationState is who presents and what (ADR-0170): a frame, or
 // their view where the scene has no frames.
 type PresentationState struct {
 	Active bool    `json:"active"`

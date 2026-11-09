@@ -11,7 +11,7 @@ import (
 )
 
 // Agents read a whiteboard as a list of its elements in plain terms and
-// change it with simple changes (ADR-0168); the server makes Excalidraw's
+// change it with simple changes (ADR-0169); the server makes Excalidraw's
 // elements from them. An agent holds no lock across requests: each change
 // is refused when a browser holds what it touches.
 
@@ -135,7 +135,7 @@ func (h *Hub) Read(k Key, principal string) (View, error) {
 //   - connect: an arrow from one element to another, text its label;
 //   - edit: new text for id; move: id to x and y; colour: id in colour;
 //     delete: id;
-//   - vote, unvote: cast or take back a vote on id (ADR-0169).
+//   - vote, unvote: cast or take back a vote on id (ADR-0170).
 type Change struct {
 	Op     string   `json:"op"`
 	ID     string   `json:"id,omitempty"`

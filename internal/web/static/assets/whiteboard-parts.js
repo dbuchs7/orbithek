@@ -1,4 +1,4 @@
-// The parts of a live whiteboard (ADR-0168, ADR-0169) that need no
+// The parts of a live whiteboard (ADR-0169, ADR-0170) that need no
 // browser: which elements are held by whom, what changed, what a
 // selection locks, the frames in reading order, the time left, the result
 // of a vote, the comments by element and where a badge goes on the
@@ -20,7 +20,7 @@ export const PEOPLE_COLOURS = [
 
 export const colourOf = (n) => PEOPLE_COLOURS[(Number.isInteger(n) ? n : 0) % PEOPLE_COLOURS.length];
 
-// isNote tells a note (ADR-0169).
+// isNote tells a note (ADR-0170).
 export const isNote = (el) => el?.type === "rectangle" && el.customData?.[KEY]?.kind === "note";
 
 // VOTABLE are the kinds one may vote on, as the server takes them.
@@ -38,7 +38,7 @@ export function byIndex(elements) {
 }
 
 // shown is an element as one participant sees it: held by someone else, it
-// is locked, so it cannot be selected (ADR-0168). heldBy maps element IDs
+// is locked, so it cannot be selected (ADR-0169). heldBy maps element IDs
 // to the client holding them.
 export function shown(el, heldBy, me) {
   const holder = heldBy.get(el.id);
@@ -100,7 +100,7 @@ export function textOf(el, byId) {
 }
 
 // frames are the frames in reading order, as the server steps through them
-// (ADR-0169).
+// (ADR-0170).
 export function frames(elements) {
   const fs = elements.filter((el) => !el.isDeleted && (el.type === "frame" || el.type === "magicframe"));
   return fs.map((f, i) => [f, i]).sort(([a, i], [b, j]) => {
@@ -114,7 +114,7 @@ export function frames(elements) {
 // inFrame are a frame and what lies in it, for fitting the view to it.
 export const inFrame = (frame, elements) => elements.filter((el) => !el.isDeleted && (el.id === frame.id || el.frameId === frame.id));
 
-// timeLeft is the countdown's milliseconds left (ADR-0169): offset is the
+// timeLeft is the countdown's milliseconds left (ADR-0170): offset is the
 // server's clock minus this one's.
 export function timeLeft(timer, now, offset = 0) {
   if (!timer?.running) return null;
@@ -140,7 +140,7 @@ export function ranking(results, elements) {
 }
 
 // threadsByElement groups the open threads on the elements of one drawing
-// by element (ADR-0170).
+// by element (ADR-0171).
 export function threadsByElement(comments, drawing) {
   const out = new Map();
   for (const c of comments || []) {

@@ -37,7 +37,7 @@ type Comment struct {
 // shown; when the quoted text is gone, the comment is no longer on any
 // passage, and it says so.
 //
-// An anchor may name an element of a drawing instead (ADR-0170): Drawing
+// An anchor may name an element of a drawing instead (ADR-0171): Drawing
 // is the drawing's first version, Element the element's ID in its scene,
 // and Quote the element's text, which may be empty.
 type Anchor struct {

@@ -21,7 +21,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/whiteboard"
 )
 
-// Live whiteboards (ADR-0168, ADR-0169): a drawing edited by several
+// Live whiteboards (ADR-0169, ADR-0170): a drawing edited by several
 // people and agents at once. Browsers follow a session as server-sent
 // events and send operations with plain POSTs, as for text (ADR-0010);
 // agents read and change it with single requests.

@@ -1,4 +1,4 @@
-# ADR-0170: Comments on the elements of a drawing
+# ADR-0171: Comments on the elements of a drawing
 
 - **Status:** Proposed
 - **Implementation:** Partial
@@ -7,7 +7,7 @@
 
 ## Context and problem statement
 
-Comments are part of their item (ADR-0035); an inline comment names a passage of the body by the text it quotes (ADR-0047). On a whiteboard (ADR-0168) people comment on a note, a shape or an arrow: the remark belongs next to that element, is answered and resolved like any thread, and must still be found when the drawing has been saved again under a new version.
+Comments are part of their item (ADR-0035); an inline comment names a passage of the body by the text it quotes (ADR-0047). On a whiteboard (ADR-0169) people comment on a note, a shape or an arrow: the remark belongs next to that element, is answered and resolved like any thread, and must still be found when the drawing has been saved again under a new version.
 
 How is a comment anchored to an element of a drawing?
 
@@ -31,7 +31,7 @@ Chosen option: **1**, codec version 41.
 
 - `item.Anchor` gains `Drawing`, the ID of the drawing's first version (`Picture.First`), and `Element`, the element's ID within its scene (1 to 128 letters, digits, `_`, `-`, `.` and `:`). Both are content, sealed with the anchor. `Quote` holds the element's text when it has one and may be empty for such an anchor; a passage of the body still needs its quote.
 - `Drawing` must name a file of the item. The element is not checked against the scene: the scene lives in a picture the server does not read on every comment, and an element can be deleted and its deletion undone. A comment whose element is gone says so, as a comment whose passage is gone does (ADR-0047).
-- **On the whiteboard** a panel lists the comments on the drawing's elements, threads with their replies; *Comment* on a selected element starts one; an element with comments carries a badge with their number, and a click on it opens its thread. The others in the session see a new comment at once (the session passes the word, ADR-0168).
+- **On the whiteboard** a panel lists the comments on the drawing's elements, threads with their replies; *Comment* on a selected element starts one; an element with comments carries a badge with their number, and a click on it opens its thread. The others in the session see a new comment at once (the session passes the word, ADR-0169).
 - **On the item's page** a comment on an element shows as *on an element of a whiteboard*, with its quote, and leads to the whiteboard.
 - **MCP:** `add_comment` takes the anchor `{drawing, element, quote}`.
 
@@ -58,4 +58,4 @@ Strongest form: no change at all.
 ## Links
 
 - extends [ADR-0047](0047-inline-comments-anchored-by-quoted-text.md) (anchors) and [ADR-0035](0035-comments-are-part-of-their-item.md) (comments)
-- relates to [ADR-0168](0168-live-whiteboards-on-drawings.md) (live whiteboards), [ADR-0169](0169-workshop-tools-on-a-whiteboard.md) (workshop tools), [ADR-0025](0025-event-log-file-and-in-memory-state.md) (codec)
+- relates to [ADR-0169](0169-live-whiteboards-on-drawings.md) (live whiteboards), [ADR-0170](0170-workshop-tools-on-a-whiteboard.md) (workshop tools), [ADR-0025](0025-event-log-file-and-in-memory-state.md) (codec)
