@@ -2534,9 +2534,11 @@ body.presenting-show { background: #000; }
 .present-side { display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow: auto; }
 .present-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 4px 0 0; }
 .present-stage-small { aspect-ratio: 16 / 9; border-radius: var(--radius-sm); flex: none; }
-.present-notes { flex: 1; min-height: 8rem; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
-.present-notes-text { white-space: pre-wrap; font-size: 1.25rem; line-height: 1.5; }
-.present-notes textarea { width: 100%; box-sizing: border-box; font: inherit; font-size: 1.1rem; resize: vertical; }
+.present-notes { flex: 1; min-height: 8rem; display: flex; flex-direction: column; gap: 8px; overflow: hidden; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+/* Long notes scroll inside their box; the button to edit them stays below it. */
+.present-notes-text { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; white-space: pre-wrap; font-size: 1.25rem; line-height: 1.5; }
+.present-notes > button, .present-notes > .actions-row, .present-notes > .status { flex: none; }
+.present-notes textarea { flex: 1 1 auto; min-height: 6rem; width: 100%; box-sizing: border-box; font: inherit; font-size: 1.1rem; resize: none; }
 .present-keys { font-size: 0.8rem; margin: 0; }
 .present-strip { display: flex; gap: 8px; overflow-x: auto; list-style: none; margin: 0; padding: 8px 16px; border-top: 1px solid var(--border); background: var(--surface); }
 .present-thumb { position: relative; display: block; width: 7rem; height: 4rem; padding: 0; border: 2px solid transparent; border-radius: var(--radius-sm); overflow: hidden; background: #111; cursor: pointer; }
