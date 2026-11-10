@@ -79,7 +79,7 @@ func TestVideosInTheAlbum(t *testing.T) {
 
 	// The album shows it as a video, and narrows to videos.
 	page := field(w.vera.expect("GET", "/api/album?kind=video", "", http.StatusOK), "pictures").([]any)
-	if len(page) != 1 || page[0].(map[string]any)["video"] != true {
+	if len(page) != 1 || page[0].(map[string]any)["video"] != true || page[0].(map[string]any)["poster"] != nil {
 		t.Fatalf("videos in the album: %v", page)
 	}
 	if got := names(w.vera, "?kind=image"); len(got) != 0 {
@@ -114,6 +114,10 @@ func TestVideosInTheAlbum(t *testing.T) {
 	}
 	if rec := w.vera.do("GET", file+"/thumbnail", ""); rec.Code != http.StatusOK || rec.Header().Get("Content-Type") != "image/jpeg" {
 		t.Errorf("thumbnail of a video: %d %s", rec.Code, rec.Header().Get("Content-Type"))
+	}
+	// The album says it has a poster, so a browser asks for it only then.
+	if page := field(w.vera.expect("GET", "/api/album?kind=video", "", http.StatusOK), "pictures").([]any); page[0].(map[string]any)["poster"] != true {
+		t.Errorf("the album does not tell the poster: %v", page[0])
 	}
 	// A picture has no poster.
 	pic := w.put(t, "lake.jpg", exifJPEG(t, "2024:05:01 13:22:10", 0, 0, 64))

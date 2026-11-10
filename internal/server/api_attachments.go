@@ -91,8 +91,10 @@ func (h itemHandlers) album(w http.ResponseWriter, r *http.Request) {
 			Item       itemRef        `json:"item"`
 			Attachment attachmentJSON `json:"attachment"`
 			Drawing    bool           `json:"drawing"`
-			// Video: the file is a video, shown by its poster (ADR-0189).
-			Video bool `json:"video,omitempty"`
+			// Video: the file is a video, shown by its poster when it has
+			// one (Poster), else by its symbol (ADR-0189).
+			Video  bool `json:"video,omitempty"`
+			Poster bool `json:"poster,omitempty"`
 			// Used: its item's text shows it, so the album does not delete
 			// it. Editable: the caller may label or delete it (ADR-0090).
 			Used     bool `json:"used"`
@@ -115,7 +117,8 @@ func (h itemHandlers) album(w http.ResponseWriter, r *http.Request) {
 		}
 		one := func(p item.Picture) picture {
 			return picture{Item: itemRef{p.Item.ID, p.Item.Key, p.Item.Title, p.Item.Space, p.Item.Type},
-				Attachment: toAttachmentJSON(p.Attachment), Drawing: albumKind(p.Attachment) == "drawing", Video: albumVideo(p.Attachment), Used: p.Used, Editable: p.Editable, First: p.First}
+				Attachment: toAttachmentJSON(p.Attachment), Drawing: albumKind(p.Attachment) == "drawing", Video: albumVideo(p.Attachment),
+				Poster: albumVideo(p.Attachment) && h.d.DB.HasPoster(p.Item.ID, p.Attachment.ID), Used: p.Used, Editable: p.Editable, First: p.First}
 		}
 		out := []picture{}
 		for _, st := range all[min(offset, len(all)):min(offset+limit, len(all))] {

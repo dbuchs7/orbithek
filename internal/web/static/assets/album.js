@@ -341,8 +341,11 @@ export function albumBrowser({ pick, pickText } = {}) {
   // none, with how long it plays (ADR-0189).
   const videoThumb = (p, name) => {
     const symbol = () => h("span", { class: "album-video-symbol", "aria-hidden": "true" });
-    const img = h("img", { src: thumbURL(p), alt: name, loading: "lazy", draggable: "false" });
-    img.addEventListener("error", () => img.replaceWith(symbol()), { once: true });
+    let img = symbol();
+    if (p.poster) {
+      img = h("img", { src: thumbURL(p), alt: name, loading: "lazy", draggable: "false" });
+      img.addEventListener("error", () => img.replaceWith(symbol()), { once: true });
+    }
     return h("div", { class: "album-video" }, img,
       h("span", { class: "album-video-badge", "aria-label": t("album.videoOf", { duration: durationText(p.attachment.photo?.duration) || "–" }) },
         h("span", { class: "album-play", "aria-hidden": "true", text: "▶" }), " ", durationText(p.attachment.photo?.duration)));
@@ -837,7 +840,8 @@ export function albumBrowser({ pick, pickText } = {}) {
       mapBox.replaceChildren(h("p", { class: "muted", text: t("photos.mapLoading") }));
       try {
         // The viewer steps through every picture of the point chosen.
-        const asPicture = (pl) => ({ item: { id: pl.item, key: pl.key }, attachment: { id: pl.file, name: pl.name, photo: null }, taken: pl.taken });
+        const asPicture = (pl) => ({ item: { id: pl.item, key: pl.key }, attachment: { id: pl.file, name: pl.name, type: pl.type, photo: null }, taken: pl.taken,
+          video: !!pl.video, poster: !!pl.poster });
         const map = await photoMap(filters(), (list, i) => openViewer(list.map(asPicture), i));
         if (mine === generation) mapBox.replaceChildren(map);
       } catch (err) { fail(err); }

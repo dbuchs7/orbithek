@@ -83,7 +83,8 @@ export function openViewer(list, index, changed = () => {}) {
     video.pause();
     if (playing) {
       img.removeAttribute("src");
-      video.poster = thumbURL(p, 1600);
+      if (p.poster) video.poster = thumbURL(p, 1600);
+      else video.removeAttribute("poster");
       video.src = fileURL(p);
       video.setAttribute("aria-label", name);
     } else {

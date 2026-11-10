@@ -465,8 +465,13 @@ func (h itemHandlers) albumPlaces(w http.ResponseWriter, r *http.Request) {
 		out := []map[string]any{}
 		for _, st := range all[:min(len(all), limit)] {
 			p := st[0]
-			out = append(out, map[string]any{"item": p.Item.ID, "key": p.Item.Key, "file": p.Attachment.ID, "first": p.First, "name": p.Attachment.Name,
-				"lat": *p.Attachment.Photo.Lat, "lon": *p.Attachment.Photo.Lon, "taken": takenOf(p.Attachment)})
+			place := map[string]any{"item": p.Item.ID, "key": p.Item.Key, "file": p.Attachment.ID, "first": p.First, "name": p.Attachment.Name,
+				"lat": *p.Attachment.Photo.Lat, "lon": *p.Attachment.Photo.Lon, "taken": takenOf(p.Attachment)}
+			// A video is shown by its poster, when it has one (ADR-0189).
+			if albumVideo(p.Attachment) {
+				place["type"], place["video"], place["poster"] = p.Attachment.Type, true, h.d.DB.HasPoster(p.Item.ID, p.Attachment.ID)
+			}
+			out = append(out, place)
 		}
 		return map[string]any{"places": out, "total": len(all), "truncated": len(all) > limit, "tiles": h.photos().TileURL != "", "credit": h.photos().TileCredit}, nil
 	})

@@ -141,6 +141,15 @@ func (db *DB) StorePoster(id, video item.ID, content io.Reader, limit int64) (it
 	return db.sealAttachment(id, video+PosterSuffix, content, limit)
 }
 
+// HasPoster reports whether a video has a poster.
+func (db *DB) HasPoster(id, video item.ID) bool {
+	if !item.ValidAttachmentID(string(video)) {
+		return false
+	}
+	_, err := os.Stat(attachmentPath(db.dir, id, video+PosterSuffix))
+	return err == nil
+}
+
 // DiscardPoster removes a video's poster.
 func (db *DB) DiscardPoster(id, video item.ID) {
 	if item.ValidAttachmentID(string(video)) {
