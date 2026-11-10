@@ -113,6 +113,8 @@ var classified = map[string]string{
 	"internal/photosource/body.go:drainBytes":        "the start of another service's refusal (ADR-0177), read only to be dropped so the connection is reused",
 	"internal/server.maxTileBytes":                   "a tile of the tile service (ADR-0177), not a caller's input to this server; a larger answer is no tile",
 	"internal/server/api_photos.go:maxTileBytes + 1": "the same bound, where the tile is read",
+	"internal/server.maxPlaceAnswer":                 "an answer of the place search (ADR-0180), not a caller's input to this server; it lists a few places, and a larger answer is none",
+	"internal/server/api_geotag.go:maxPlaceAnswer + 1": "the same bound, where the answer is read",
 	"internal/server.maxTileZoom":                    "the shape of the album's map (ADR-0177): the deepest zoom tile services draw",
 	"internal/extcal.maxSources":                     "the shape of one's preferences (ADR-0174), like the number of saved views: the calendars one shows beside the wiki's",
 	"internal/extcal.maxAccounts":                    "the shape of one's preferences (ADR-0174): the accounts at Google or CalDAV servers one connects",

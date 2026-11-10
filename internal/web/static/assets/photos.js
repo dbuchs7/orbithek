@@ -10,6 +10,7 @@ import { t } from "./i18n.js";
 import { get, post, put, del, upload, download } from "./api.js";
 import { baseName, exposureText, hidden, placeText, sorts, typeOf } from "./photoparts.js";
 import { entries as zipEntries, read as zipRead } from "./zipread.js";
+import { pickPlace, placeInput } from "./places.js";
 
 export const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
 export const thumbURL = (p, edge = 400) => `${fileURL(p)}/thumbnail?edge=${edge}`;
@@ -96,8 +97,9 @@ export function openViewer(list, index, changed = () => {}) {
         row(t("photos.lens"), photo?.lens),
         row(t("photos.exposure"), exposureText(photo)),
         row(t("photos.size"), [photo?.width && `${photo.width} × ${photo.height}`, p.attachment.size && bytesText(p.attachment.size)].filter(Boolean).join(" · ")),
-        row(t("photos.place"), place && h("a", { href: `https://www.openstreetmap.org/?mlat=${photo.lat}&mlon=${photo.lon}#map=15/${photo.lat}/${photo.lon}`,
-          target: "_blank", rel: "noopener noreferrer", text: place, title: t("photos.placeOpen") })),
+        row(t("photos.place"), place && h("span", {}, photo.placeName ? photo.placeName + " · " : "",
+          h("a", { href: `https://www.openstreetmap.org/?mlat=${photo.lat}&mlon=${photo.lon}#map=15/${photo.lat}/${photo.lon}`,
+            target: "_blank", rel: "noopener noreferrer", text: place, title: t("photos.placeOpen") }))),
         row(t("photos.labels"), (p.attachment.labels || []).join(", ")),
         row(t("photos.item"), p.item.key ? h("a", { href: "#/item/" + encodeURIComponent(p.item.key), text: `${p.item.key} ${p.item.title || ""}`.trim(), onclick: () => dialog.close() }) : ""),
         row(t("photos.added"), p.attachment.created ? when(p.attachment.created) : ""));
@@ -122,7 +124,34 @@ export function openViewer(list, index, changed = () => {}) {
       });
       placeRow.replaceChildren(h("p", { class: "muted", text: priv ? t("photos.placeIsMine") : t("photos.placeIsEveryones") }), b);
     };
-    info.replaceChildren(facts(), placeRow, h("div", { class: "actions-row" }, fav,
+    // Who may edit the picture sets its place by hand, from suggestions or
+    // on a map, or removes it (ADR-0180).
+    const placeEdit = h("div", { class: "photo-place-edit" });
+    const placed = (r) => {
+      photo = r.attachment.photo;
+      p.attachment.photo = photo;
+      info.firstChild.replaceWith(facts());
+      showPlaceEdit();
+      showPlaceChoice();
+      changed(p);
+    };
+    const setPlace = async (pl) => {
+      try { placed(await put(`${fileURL(p)}/geotag`, { lat: pl.lat, lon: pl.lon, name: pl.name || "" })); } catch (err) { info.append(h("p", { class: "error", role: "alert", text: err.message })); }
+    };
+    const showPlaceEdit = () => {
+      if (!p.editable || list[i] !== p) return placeEdit.replaceChildren();
+      const field = placeInput({ value: photo?.placeName || "", label: t("places.label"), id: "photo-place-input", pick: setPlace });
+      placeEdit.replaceChildren(h("label", { class: "field", for: "photo-place-input" }, h("span", { text: t("places.label") })), field.element,
+        h("div", { class: "actions-row" },
+          h("button", { type: "button", class: "secondary", id: "photo-place-map", text: t("places.onMap"), onclick: async () => {
+            const pl = await pickPlace({ lat: photo?.lat, lon: photo?.lon, name: photo?.placeName });
+            if (pl) setPlace(pl);
+          } }),
+          photo?.lat != null ? h("button", { type: "button", class: "link danger", id: "photo-place-remove", text: t("places.remove"), onclick: async () => {
+            try { placed(await del(`${fileURL(p)}/geotag`)); } catch (err) { info.append(h("p", { class: "error", role: "alert", text: err.message })); }
+          } }) : null));
+    };
+    info.replaceChildren(facts(), placeRow, placeEdit, h("div", { class: "actions-row" }, fav,
       h("a", { class: "button secondary", href: fileURL(p), download: p.attachment.name, text: t("photos.original") })));
     // A picture stored before photo data was recorded is read now.
     if (!photo && p.item.id) {
@@ -135,6 +164,7 @@ export function openViewer(list, index, changed = () => {}) {
       } catch { /* the facts known so far */ }
     }
     showPlaceChoice();
+    showPlaceEdit();
   };
   prev.addEventListener("click", () => { if (i > 0) { i--; show(); } });
   next.addEventListener("click", () => { if (i < list.length - 1) { i++; show(); } });

@@ -37,6 +37,10 @@ const (
 	// MapAllowPrivateVar, set to "on", lets the tile service be in the
 	// server's own network.
 	MapAllowPrivateVar = "OT_MAP_ALLOW_PRIVATE"
+	// GeocoderVar names the place search the album suggests places from
+	// when a place is set by hand (ADR-0180): the address of a Photon
+	// service; unset, the public one on OpenStreetMap's data; "off", none.
+	GeocoderVar = "OT_GEOCODER"
 )
 
 // GooglePhotosCallback is the path Google sends a person back to after
@@ -49,6 +53,7 @@ const GooglePhotosCallback = "/api/album/google/callback"
 const (
 	DefaultMapTiles       = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
 	DefaultMapAttribution = "© OpenStreetMap contributors"
+	DefaultGeocoder       = "https://photon.komoot.io"
 )
 
 // Photos holds what the album's photo management keeps in memory
@@ -65,6 +70,11 @@ type Photos struct {
 	TileCredit string
 	tileClient *http.Client
 	tileAgent  string
+	// GeocoderURL is the place search's address, empty for none
+	// (ADR-0180); its answers are kept a while in places.
+	GeocoderURL string
+	geoClient   *http.Client
+	places      *byteCache
 	// Google and ICloud are nil while turned off.
 	Google *photosource.Google
 	ICloud *photosource.ICloud
@@ -128,6 +138,19 @@ func NewPhotos(getenv func(string) string, google *photosource.Google) *Photos {
 		p.tileAgent = "Orbithek/" + buildinfo.Get().Version + " (album map)"
 		if public := strings.TrimSpace(getenv("OT_PUBLIC_URL")); strings.HasPrefix(public, "https://") || strings.HasPrefix(public, "http://") {
 			p.tileAgent = "Orbithek/" + buildinfo.Get().Version + " (album map; +" + public + ")"
+		}
+	}
+	switch u := strings.TrimRight(strings.TrimSpace(getenv(GeocoderVar)), "/"); {
+	case u == "":
+		p.GeocoderURL = DefaultGeocoder
+	case strings.HasPrefix(u, "https://"):
+		p.GeocoderURL = u
+	}
+	if p.GeocoderURL != "" {
+		p.geoClient = PhotoClient(getenv, MapAllowPrivateVar)
+		p.places = newByteCache(b.PlaceSearchCacheBytes)
+		if p.tileAgent == "" {
+			p.tileAgent = "Orbithek/" + buildinfo.Get().Version + " (album map)"
 		}
 	}
 	if getenv(PhotosGoogleVar) == "on" {

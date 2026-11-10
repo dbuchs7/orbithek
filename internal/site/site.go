@@ -151,6 +151,8 @@ type event struct {
 	WordTemplate *wordTemplateEvent `json:"wordTemplate,omitempty"`
 	// Calendars is set by CalendarsSet (ADR-0174).
 	Calendars *Calendars `json:"calendars,omitempty"`
+	// Places is set by PlacesSet (ADR-0180).
+	Places *Places `json:"places,omitempty"`
 }
 
 const (
@@ -180,6 +182,9 @@ const (
 	taskLinksSet = "TaskLinksSet"
 
 	calendarsSet = "CalendarsSet"
+	// placesSet turns the place search of places set by hand off or on
+	// (ADR-0180).
+	placesSet = "PlacesSet"
 )
 
 // Settings is safe for concurrent use.
@@ -204,6 +209,7 @@ type Settings struct {
 	// calendars says whether people may show calendars of other services
 	// (ADR-0174).
 	calendars Calendars
+	places    Places
 	// engines are the process engines by ID (ADR-0129).
 	engines map[string]Engine
 	// taskLinks are the task links of the engines, by engine ID
@@ -306,6 +312,11 @@ func (s *Settings) apply(e event) error {
 			return errors.New("a calendars event without its setting")
 		}
 		s.calendars = *e.Calendars
+	case placesSet:
+		if e.Places == nil {
+			return errors.New("a places event without its setting")
+		}
+		s.places = *e.Places
 	default:
 		return fmt.Errorf("unknown event %q", e.Kind)
 	}

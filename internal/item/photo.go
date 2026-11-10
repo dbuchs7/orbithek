@@ -45,6 +45,12 @@ type Photo struct {
 	// (ADR-0178): everyone else reads the photo data without it and gets
 	// the file without it.
 	PlacePrivate bool `json:"placePrivate,omitempty"`
+	// PlaceName names the place, as it was chosen by hand; PlaceManual
+	// says the place was set or removed by hand (ADR-0180), so it, not the
+	// file's own, counts: everyone but the uploader gets the file without
+	// the file's place.
+	PlaceName   string `json:"placeName,omitempty"`
+	PlaceManual bool   `json:"placeManual,omitempty"`
 }
 
 const takenLayout = "2006-01-02T15:04:05"
@@ -87,6 +93,9 @@ func checkPhoto(p *Photo) error {
 	}
 	if p.PlacePrivate && p.Lat == nil {
 		return invalid("photo: only a place can be kept private")
+	}
+	if p.PlaceName != "" && (p.Lat == nil || utf8.RuneCountInString(p.PlaceName) > 200 || !utf8.ValidString(p.PlaceName) || strings.IndexFunc(p.PlaceName, unicode.IsControl) >= 0) {
+		return invalid("photo: a place's name is plain text of at most 200 characters, for a place")
 	}
 	if p.Alt != nil && (p.Lat == nil || !finite(*p.Alt) || math.Abs(*p.Alt) > 100000) {
 		return invalid("photo: the height is out of range")
@@ -148,6 +157,14 @@ func placeHidden(who string, a Attachment) bool {
 	return a.Photo.HasPlace() && a.Photo.PlacePrivate && a.Author != who
 }
 
+// fileWithoutPlace reports whether who gets a file without the place the
+// file itself tells: its uploader keeps the place to themselves
+// (ADR-0178), or the place was set or removed by hand, so the file's own
+// is not the photo's (ADR-0180). The uploader always gets the original.
+func fileWithoutPlace(who string, a Attachment) bool {
+	return placeHidden(who, a) || (a.Photo != nil && a.Photo.PlaceManual && a.Author != who)
+}
+
 // seenBy is a file as who may know it: without a place its uploader keeps
 // to themselves, and without saying that there is one.
 func seenBy(who string, a Attachment) Attachment {
@@ -155,21 +172,62 @@ func seenBy(who string, a Attachment) Attachment {
 		return a
 	}
 	p := *a.Photo
-	p.Lat, p.Lon, p.Alt, p.PlacePrivate = nil, nil, nil, false
+	p.Lat, p.Lon, p.Alt, p.PlacePrivate, p.PlaceName, p.PlaceManual = nil, nil, nil, false, "", false
 	a.Photo = &p
 	return a
 }
 
-// PlaceHidden reports whether the file of a readable item tells a place
-// its uploader keeps from the principal, so the file is given to them
-// only without it (ADR-0178).
+// PlaceHidden reports whether the file of a readable item is given to the
+// principal only without the place it tells: its uploader keeps the place
+// from them (ADR-0178), or a place set by hand replaces it (ADR-0180).
 func (x *Session) PlaceHidden(id, attachment ID) bool {
 	it, err := x.readable(id)
 	if err != nil {
 		return false
 	}
 	a, ok := it.attachment(attachment)
-	return ok && !a.Deleted && x.s.readsFile(x.who, it, attachment) && placeHidden(x.who, *a)
+	return ok && !a.Deleted && x.s.readsFile(x.who, it, attachment) && fileWithoutPlace(x.who, *a)
+}
+
+// SetPlace sets where a photo was taken by hand, with the place's name,
+// or removes its place when lat and lon are nil (ADR-0180). Who may edit
+// the picture's item may, unless its uploader keeps its place from them.
+// read is the photo data the server read from the file, for a picture
+// stored before photo data was recorded. The height the file told goes;
+// whether the place is private stays.
+func (x *Session) SetPlace(id, attachment ID, lat, lon *float64, name string, read *Photo) error {
+	it, err := x.editable(id)
+	if err != nil {
+		return err
+	}
+	if it.Presence != Live {
+		return invalid("%s is %s", it.Key, it.Presence)
+	}
+	a, ok := it.attachment(attachment)
+	if !ok || a.Deleted || !x.s.readsFile(x.who, it, attachment) {
+		return notFound("attachment %s of item %s", attachment, it.Key)
+	}
+	if placeHidden(x.who, *a) {
+		return forbidden("the one who added the picture keeps its place to themselves")
+	}
+	if (lat == nil) != (lon == nil) {
+		return invalid("a place needs latitude and longitude")
+	}
+	var next Photo
+	switch {
+	case a.Photo != nil:
+		next = *a.Photo
+	case read != nil:
+		next = *read
+	}
+	next.Lat, next.Lon, next.Alt, next.PlaceName, next.PlaceManual = lat, lon, nil, strings.TrimSpace(name), true
+	if lat == nil {
+		next.PlaceName, next.PlacePrivate = "", false
+	}
+	if err := checkPhoto(&next); err != nil {
+		return err
+	}
+	return x.s.record(x.who, Event{Kind: AttachmentPlaceSet, Item: id, Attachment: &Attachment{ID: attachment, Photo: &next}})
 }
 
 // SetPlacePrivate keeps where a photo was taken to the one who added it,
