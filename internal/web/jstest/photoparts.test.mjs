@@ -11,7 +11,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { deflateRawSync } from "node:zlib";
 import {
-  TILE, project, unproject, fit, tiles, cluster, pan, zoomAt, groups, yearsAgo, range,
+  TILE, project, unproject, fit, tiles, cluster, pan, zoomAt, radius, hit, groups, yearsAgo, range,
   sorts, typeOf, baseName, hidden, exposureText, placeText,
 } from "../static/assets/photoparts.js";
 import { entries, read } from "../static/assets/zipread.js";
@@ -51,6 +51,19 @@ test("near places cluster, far ones stay apart, places out of view are left out"
   assert.equal(at3.reduce((n, c) => n + c.count, 0), 3);
   assert.equal(at3.find((c) => c.count === 2).places.length, 2);
   assert.equal(cluster(places, { lat: 46.5, lon: 7.8 }, 12, 400, 300).length, 1, "Sydney is out of view");
+});
+
+test("a click lands on the point drawn there, the nearest of several", () => {
+  assert.equal(radius(1), 7);
+  assert.ok(radius(8) > radius(2) && radius(100000) === 26);
+  const one = { x: 100, y: 100, count: 1, places: [{}] };
+  const many = { x: 140, y: 100, count: 32, places: [{}, {}] };
+  assert.equal(hit([one, many], 104, 103), one);
+  assert.equal(hit([one, many], 160, 100), many, "within the larger point's own radius");
+  const near = { x: 120, y: 100, count: 32, places: [{}] };
+  assert.equal(hit([near, one], 108, 100), one, "where both overlap, the nearer");
+  assert.equal(hit([one, many], 100, 140), null);
+  assert.equal(hit([], 0, 0), null);
 });
 
 test("panning and zooming keep the map where it is pointed at", () => {

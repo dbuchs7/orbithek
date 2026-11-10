@@ -1002,6 +1002,7 @@ dialog.photo-viewer #photo-viewer-close { margin-left: auto; }
 .photo-place-choice:empty { display: none; }
 .photo-place-choice p { margin: 0; }
 .album-import-place { flex-direction: row; align-items: center; gap: 6px; }
+.photo-map-chosen { display: flex; align-items: baseline; gap: 8px; margin: 12px 0 0; }
 .photo-map-card .album-thumb { border: 0; padding: 0; background: none; cursor: zoom-in; width: 100%; }
 .album-own-rule { background: #fff5e6 !important; color: #8a4b00 !important; }
 dialog.retention-dialog { width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 64px); padding: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: inherit; }

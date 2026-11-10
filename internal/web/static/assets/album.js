@@ -727,7 +727,9 @@ export function albumBrowser({ pick } = {}) {
     if (view === "map") {
       mapBox.replaceChildren(h("p", { class: "muted", text: t("photos.mapLoading") }));
       try {
-        const map = await photoMap(filters(), (pl) => openViewer([{ item: { id: pl.item, key: pl.key }, attachment: { id: pl.file, name: pl.name, photo: null }, taken: pl.taken }], 0));
+        // The viewer steps through every picture of the point chosen.
+        const asPicture = (pl) => ({ item: { id: pl.item, key: pl.key }, attachment: { id: pl.file, name: pl.name, photo: null }, taken: pl.taken });
+        const map = await photoMap(filters(), (list, i) => openViewer(list.map(asPicture), i));
         if (mine === generation) mapBox.replaceChildren(map);
       } catch (err) { fail(err); }
       count.textContent = "";

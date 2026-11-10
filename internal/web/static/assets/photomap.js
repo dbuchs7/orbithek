@@ -2,25 +2,28 @@
 // were taken, as clustered points on a canvas. Tiles come through the
 // server from the tile service the operator names; without one the map
 // draws a grid of degrees. Dragging pans, the wheel and the buttons zoom,
-// and a click on a point shows its pictures below the map.
+// a click on a point shows all its pictures below the map, and a double
+// click zooms in on it.
 import { h } from "./dom.js";
 import { t } from "./i18n.js";
 import { get } from "./api.js";
-import { TILE, MAX_ZOOM, cluster, fit, pan, project, tiles, unproject, zoomAt } from "./photoparts.js";
+import { TILE, MAX_ZOOM, cluster, fit, hit, pan, project, radius, tiles, unproject, zoomAt } from "./photoparts.js";
 
 const thumb = (p) => `/api/items/${p.item}/attachments/${p.file}/thumbnail?edge=400`;
 
 // photoMap shows the places of the pictures the query keeps (the album's
-// filters as URL parameters); open shows one picture.
+// filters as URL parameters); open(list, index) shows the pictures of a
+// point, from the one chosen.
 export async function photoMap(query, open) {
   const canvas = h("canvas", { class: "photo-map-canvas", tabindex: "0", "aria-label": t("photos.mapLabel") });
-  const strip = h("ul", { class: "album-grid photo-map-pictures", "aria-live": "polite" });
+  const strip = h("ul", { class: "album-grid photo-map-pictures" });
+  const chosenHead = h("div", { class: "photo-map-chosen", id: "photo-map-chosen", "aria-live": "polite", hidden: true });
   const note = h("p", { class: "muted photo-map-note", role: "status" });
   const zoomIn = h("button", { type: "button", class: "secondary", text: "+", "aria-label": t("photos.zoomIn") });
   const zoomOut = h("button", { type: "button", class: "secondary", text: "−", "aria-label": t("photos.zoomOut") });
   const credit = h("p", { class: "photo-map-credit" });
   const box = h("div", { class: "photo-map" }, h("div", { class: "photo-map-zoom" }, zoomIn, zoomOut), canvas, credit);
-  const root = h("div", { class: "photo-map-view" }, note, box, strip);
+  const root = h("div", { class: "photo-map-view" }, note, box, chosenHead, strip);
 
   const answer = await get("/api/album/places?" + query);
   const places = answer.places;
@@ -97,7 +100,15 @@ export async function photoMap(query, open) {
     points = cluster(places, view, view.zoom, w, ht);
     const accent = style("--accent", "#2563eb");
     for (const p of points) {
-      const r = p.count === 1 ? 7 : Math.min(26, 10 + Math.log2(p.count) * 3);
+      const r = radius(p.count);
+      // The point whose pictures are shown below carries a ring.
+      if (chosen && p.places.some((q) => chosen.has(q.file))) {
+        g.beginPath();
+        g.arc(p.x, p.y, r + 5, 0, 2 * Math.PI);
+        g.lineWidth = 3;
+        g.strokeStyle = accent;
+        g.stroke();
+      }
       g.beginPath();
       g.arc(p.x, p.y, r, 0, 2 * Math.PI);
       g.fillStyle = accent;
@@ -117,12 +128,24 @@ export async function photoMap(query, open) {
     }
   };
 
-  // show lists the pictures of a point below the map.
+  // show lists every picture of a point below the map, newest first, and
+  // marks the point; the viewer steps through them all.
+  let chosen = null;
   const show = (pt) => {
-    strip.replaceChildren(...pt.places.slice(0, 200).map((p) => h("li", { class: "album-card photo-map-card" },
-      h("button", { type: "button", class: "album-thumb", "aria-label": p.name, onclick: () => open(p) },
+    const list = [...pt.places].sort((a, b) => String(b.taken?.at || "").localeCompare(String(a.taken?.at || "")));
+    chosen = new Set(list.map((p) => p.file));
+    const zoom = h("button", { type: "button", class: "link", id: "photo-map-zoom-here", text: t("photos.mapZoomHere"),
+      onclick: () => zoomTo(view.zoom + 2, pt.x, pt.y) });
+    // replaceChildren, unlike h, writes null as text.
+    chosenHead.replaceChildren(...[h("strong", { text: t("photos.mapPlacePictures", { n: list.length }) }),
+      view.zoom < MAX_ZOOM && pt.count > 1 ? zoom : null].filter(Boolean));
+    chosenHead.hidden = false;
+    strip.replaceChildren(...list.map((p, i) => h("li", { class: "album-card photo-map-card" },
+      h("button", { type: "button", class: "album-thumb", "aria-label": p.name, onclick: () => open(list, i) },
         h("img", { src: thumb(p), alt: p.name, loading: "lazy" })),
       h("span", { class: "muted", text: p.taken?.day || "" }))));
+    draw();
+    chosenHead.scrollIntoView({ block: "nearest", behavior: "smooth" });
   };
 
   const zoomTo = (next, px, py) => {
@@ -160,12 +183,17 @@ export async function photoMap(query, open) {
     const r = canvas.getBoundingClientRect();
     const x = e.clientX - r.left;
     const y = e.clientY - r.top;
-    const hit = points.find((p) => Math.hypot(p.x - x, p.y - y) <= (p.count === 1 ? 10 : 26));
-    if (!hit) return;
-    // A point of many places at a shallow zoom opens up; otherwise its
-    // pictures are shown.
-    if (hit.count > 1 && view.zoom < MAX_ZOOM - 3 && new Set(hit.places.map((p) => `${p.lat.toFixed(4)},${p.lon.toFixed(4)}`)).size > 1) zoomTo(view.zoom + 2, hit.x, hit.y);
-    else show(hit);
+    const pt = hit(points, x, y);
+    if (pt) show(pt);
+  });
+  // A double click zooms in on the point it lands on, or where it is.
+  canvas.addEventListener("dblclick", (e) => {
+    e.preventDefault();
+    const r = canvas.getBoundingClientRect();
+    const x = e.clientX - r.left;
+    const y = e.clientY - r.top;
+    const pt = hit(points, x, y);
+    zoomTo(view.zoom + 2, pt ? pt.x : x, pt ? pt.y : y);
   });
   canvas.addEventListener("keydown", (e) => {
     const step = 80;
