@@ -246,6 +246,8 @@ export function albumBrowser({ pick } = {}) {
   const moreMenu = (p, stacked) => {
     const name = captionOf(p.attachment.name);
     const m = menu("album-more", h("summary", { class: "album-more-button", "aria-label": t("album.moreOf", { name }), title: t("album.moreTitle") }), [
+      h("button", { type: "button", class: "link album-rename", text: t("album.rename"),
+        onclick: () => { m.open = false; rename(p, m.closest(".album-card")?.querySelector(".album-name")); } }),
       stacked ? h("button", { type: "button", class: "link album-retention", text: t("retention.open"),
         onclick: () => { m.open = false; cleanUp(p); } }) : null,
       h("button", { type: "button", class: "link danger album-delete", text: t("album.delete"), disabled: p.used,
@@ -261,6 +263,39 @@ export function albumBrowser({ pick } = {}) {
       p.used ? h("p", { class: "muted album-used", text: t("album.used") }) : null,
     ]);
     return m;
+  };
+
+  // rename lets one who may edit a picture give it another name, in place
+  // of its name on the card (ADR-0180). Every version of the file takes
+  // it; the extension, and a drawing's marker, stay as they are, so only
+  // the name itself is typed. Enter or leaving the field saves, Escape
+  // keeps the name.
+  const rename = (p, label) => {
+    if (!label) return;
+    const name = captionOf(p.attachment.name);
+    const input = h("input", { class: "album-rename-input", value: name, maxlength: "200",
+      "aria-label": t("album.renameOf", { name }) });
+    let done = false;
+    const close = () => { done = true; input.replaceWith(label); };
+    const save = async () => {
+      if (done) return;
+      const next = input.value.trim();
+      if (!next || next === name) return close();
+      done = true;
+      try {
+        await put(`/api/items/${p.item.id}/attachments/${p.attachment.id}/name`, { name: next });
+        status.replaceChildren(h("p", { class: "notice", role: "status", text: t("album.renamed", { name: next }) }));
+        load(false);
+      } catch (err) { done = false; fail(err); input.focus(); }
+    };
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); save(); }
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); }
+    });
+    input.addEventListener("blur", () => save());
+    label.replaceWith(input);
+    input.focus();
+    input.select();
   };
 
   // actions is the row at a card's foot: Insert while choosing a picture,

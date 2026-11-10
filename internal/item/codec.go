@@ -132,7 +132,10 @@ import (
 //   - 46: photo data may carry PlacePrivate, and the kind
 //     AttachmentPlaceSet with attachment, sealed (ADR-0178). Versions 1 to
 //     45 are still read; their places are every reader's.
-const CodecVersion = 46
+//   - 47: the kind AttachmentRenamed with attachment, sealed: the first
+//     version of a file and the name every version takes (ADR-0180).
+//     Versions 1 to 46 are still read.
+const CodecVersion = 47
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

@@ -431,11 +431,14 @@ const (
 	// AttachmentPlaceSet keeps where a photo was taken to the one who
 	// added it, or shows it to every reader again (ADR-0178).
 	AttachmentPlaceSet EventKind = "AttachmentPlaceSet"
-	Watched            EventKind = "Watched"
-	Unwatched          EventKind = "Unwatched"
-	CommentDeleted     EventKind = "CommentDeleted"
-	CommentResolved    EventKind = "CommentResolved"
-	CommentReopened    EventKind = "CommentReopened"
+	// AttachmentRenamed renames every version of a file: Attachment names
+	// the file's first version and carries the new name (ADR-0180).
+	AttachmentRenamed EventKind = "AttachmentRenamed"
+	Watched           EventKind = "Watched"
+	Unwatched         EventKind = "Unwatched"
+	CommentDeleted    EventKind = "CommentDeleted"
+	CommentResolved   EventKind = "CommentResolved"
+	CommentReopened   EventKind = "CommentReopened"
 	// Taking access back (ADR-0048).
 	RoleRevoked        EventKind = "RoleRevoked"
 	GroupMemberRemoved EventKind = "GroupMemberRemoved"
@@ -561,7 +564,7 @@ type Event struct {
 func (e Event) HasContent() bool {
 	switch e.Kind {
 	case ItemCreated, TitleSet, PropertySet, BodyCommitted, ItemImported, CommentAdded, CommentEdited, LabelsSet, AttachmentAdded,
-		AttachmentLabelled, AttachmentRetentionSet, AttachmentNotesSet, AttachmentPlaceSet, HoldSet, HoldReleased:
+		AttachmentLabelled, AttachmentRetentionSet, AttachmentNotesSet, AttachmentPlaceSet, AttachmentRenamed, HoldSet, HoldReleased:
 		return true
 	}
 	return false
@@ -578,7 +581,8 @@ func (e *Event) erase() {
 	if e.Kind == HoldSet && e.Hold != nil {
 		e.Hold = &Hold{Savers: e.Hold.Savers}
 	}
-	if e.Kind == AttachmentAdded || e.Kind == AttachmentLabelled || e.Kind == AttachmentRetentionSet || e.Kind == AttachmentNotesSet || e.Kind == AttachmentPlaceSet {
+	if e.Kind == AttachmentAdded || e.Kind == AttachmentLabelled || e.Kind == AttachmentRetentionSet || e.Kind == AttachmentNotesSet || e.Kind == AttachmentPlaceSet ||
+		e.Kind == AttachmentRenamed {
 		e.Attachment = nil
 	}
 	if e.Kind == BodyCommitted {

@@ -333,6 +333,15 @@ func TestAlbumFoldersAndLabelsThroughTheAPI(t *testing.T) {
 		t.Fatalf("the folder's pictures %v", got)
 	}
 	w.bert.expect("PUT", notes, `{"notes":""}`, http.StatusOK)
+
+	// Renaming keeps the extension (ADR-0180).
+	rename := "/api/items/" + id + "/attachments/" + up.Attachment.ID + "/name"
+	w.vera.expect("PUT", rename, `{"name":"Mark"}`, http.StatusForbidden)
+	w.bert.expect("PUT", rename, `{"name":"a/b"}`, http.StatusBadRequest)
+	w.bert.expect("PUT", rename, `{"name":"Company mark"}`, http.StatusOK)
+	if got := pictures("?folder=" + id); got[0]["attachment"].(map[string]any)["name"] != "Company mark.png" {
+		t.Fatalf("renamed %v", got[0]["attachment"])
+	}
 	if got := pictures("?folder=" + id); got[0]["notes"] != nil {
 		t.Fatalf("cleared notes %v", got[0]["notes"])
 	}
