@@ -975,6 +975,9 @@ dialog.drawing::backdrop { background: rgba(20, 22, 26, .45); }
 .album-day { margin: 8px 0 0; font-size: 14px; font-weight: 600; color: var(--muted); }
 .album-timeline > .album-grid { margin-top: 6px; }
 .album.dropping { outline: 2px dashed var(--accent); outline-offset: 6px; border-radius: 8px; }
+.album-card[draggable="true"] { cursor: grab; }
+.album.dragging-pictures .album-folder:not(.album-collection), .album.dragging-pictures .album-trail button[title] { outline: 1px dashed var(--accent); outline-offset: 2px; }
+.album .drop-target, .album.dragging-pictures .drop-target { outline: 2px solid var(--accent); outline-offset: 2px; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
 .album-icloud { flex-basis: 100%; display: flex; flex-direction: column; gap: 8px; max-width: 40rem; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
 .album-icloud p { margin: 0; }
 dialog.photo-viewer { width: min(1200px, calc(100vw - 24px)); height: min(860px, calc(100vh - 24px)); padding: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: inherit; }
