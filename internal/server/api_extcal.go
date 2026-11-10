@@ -101,6 +101,10 @@ func (h extcalHandlers) fail(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusNotFound, "no such calendar or account")
 	case errors.Is(err, extcal.ErrTooMany):
 		writeError(w, http.StatusConflict, err.Error())
+	case errors.Is(err, extcal.ErrRefused):
+		// The UI words it by its code, Apple iCloud's app-specific password
+		// included.
+		writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": err.Error(), "code": "credentials"})
 	case errors.Is(err, extcal.ErrUnreadable), errors.Is(err, extcal.ErrRevoked):
 		writeError(w, http.StatusBadGateway, err.Error())
 	default:
