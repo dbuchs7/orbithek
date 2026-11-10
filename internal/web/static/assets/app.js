@@ -5989,7 +5989,7 @@ async function adminView() {
 }
 
 // placesCard turns the place search of places set by hand off or on
-// (ADR-0180) and says which search the operator names.
+// (ADR-0181) and says which search the operator names.
 async function placesCard() {
   const box = h("div", { id: "places-settings" });
   const done = h("div", { class: "status", role: "status" });

@@ -151,3 +151,58 @@ func (x *Session) SetPictureNotes(id, attachment ID, notes string) error {
 	}
 	return x.s.record(x.who, Event{Kind: AttachmentNotesSet, Item: id, Attachment: &Attachment{ID: first, Notes: notes}})
 }
+
+// drawingSuffix ends the name of a drawing, the PNG that carries its scene
+// (ADR-0053); the UI opens such a file in the drawing editor.
+const drawingSuffix = ".drawing.png"
+
+// nameSuffix is what a renaming keeps of a file's name: a drawing's
+// marker, or else the extension.
+func nameSuffix(name string) string {
+	if strings.HasSuffix(name, drawingSuffix) {
+		return drawingSuffix
+	}
+	if i := strings.LastIndexByte(name, '.'); i > 0 {
+		return name[i:]
+	}
+	return ""
+}
+
+// RenamePicture gives every version of a file a new name (ADR-0180).
+// name is the name without its extension; the file keeps its extension,
+// and a drawing its marker, so it stays what it is. An extension typed
+// with the name is not doubled. Whoever may edit the item may; its copies
+// in other items keep their names.
+func (x *Session) RenamePicture(id, attachment ID, name string) error {
+	if _, err := x.editable(id); err != nil {
+		return err
+	}
+	it, first, err := x.stackOf(id, attachment)
+	if err != nil {
+		return err
+	}
+	if it.Presence != Live {
+		return invalid("%s is %s", it.Key, it.Presence)
+	}
+	a, _ := it.attachment(attachment)
+	suffix := nameSuffix(a.Name)
+	base := strings.TrimSpace(name)
+	if suffix != "" && len(base) >= len(suffix) && strings.EqualFold(base[len(base)-len(suffix):], suffix) {
+		base = strings.TrimSpace(base[:len(base)-len(suffix)])
+	}
+	if base == "" {
+		return invalid("a name is needed")
+	}
+	full := base + suffix
+	if err := checkAttachmentName(full); err != nil {
+		return err
+	}
+	same := true
+	for _, v := range versions(it, first) {
+		same = same && v.Name == full
+	}
+	if same {
+		return nil
+	}
+	return x.s.record(x.who, Event{Kind: AttachmentRenamed, Item: id, Attachment: &Attachment{ID: first, Name: full}})
+}

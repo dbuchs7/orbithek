@@ -46,7 +46,7 @@ type Photo struct {
 	// the file without it.
 	PlacePrivate bool `json:"placePrivate,omitempty"`
 	// PlaceName names the place, as it was chosen by hand; PlaceManual
-	// says the place was set or removed by hand (ADR-0180), so it, not the
+	// says the place was set or removed by hand (ADR-0181), so it, not the
 	// file's own, counts: everyone but the uploader gets the file without
 	// the file's place.
 	PlaceName   string `json:"placeName,omitempty"`
@@ -160,7 +160,7 @@ func placeHidden(who string, a Attachment) bool {
 // fileWithoutPlace reports whether who gets a file without the place the
 // file itself tells: its uploader keeps the place to themselves
 // (ADR-0178), or the place was set or removed by hand, so the file's own
-// is not the photo's (ADR-0180). The uploader always gets the original.
+// is not the photo's (ADR-0181). The uploader always gets the original.
 func fileWithoutPlace(who string, a Attachment) bool {
 	return placeHidden(who, a) || (a.Photo != nil && a.Photo.PlaceManual && a.Author != who)
 }
@@ -179,7 +179,7 @@ func seenBy(who string, a Attachment) Attachment {
 
 // PlaceHidden reports whether the file of a readable item is given to the
 // principal only without the place it tells: its uploader keeps the place
-// from them (ADR-0178), or a place set by hand replaces it (ADR-0180).
+// from them (ADR-0178), or a place set by hand replaces it (ADR-0181).
 func (x *Session) PlaceHidden(id, attachment ID) bool {
 	it, err := x.readable(id)
 	if err != nil {
@@ -190,7 +190,7 @@ func (x *Session) PlaceHidden(id, attachment ID) bool {
 }
 
 // SetPlace sets where a photo was taken by hand, with the place's name,
-// or removes its place when lat and lon are nil (ADR-0180). Who may edit
+// or removes its place when lat and lon are nil (ADR-0181). Who may edit
 // the picture's item may, unless its uploader keeps its place from them.
 // read is the photo data the server read from the file, for a picture
 // stored before photo data was recorded. The height the file told goes;

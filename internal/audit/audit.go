@@ -63,7 +63,7 @@ const (
 	// photos into the album; no grant is kept beyond it (ADR-0177).
 	PhotosGoogleConnected = "photos.google.connect"
 	// PlacesChanged records an administrator turning the place search of
-	// places set by hand off or on (ADR-0180).
+	// places set by hand off or on (ADR-0181).
 	PlacesChanged   = "places.change"
 	UserCreated     = "user.create"
 	RoleGranted     = "role.grant"

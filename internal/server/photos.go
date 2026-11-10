@@ -38,7 +38,7 @@ const (
 	// server's own network.
 	MapAllowPrivateVar = "OT_MAP_ALLOW_PRIVATE"
 	// GeocoderVar names the place search the album suggests places from
-	// when a place is set by hand (ADR-0180): the address of a Photon
+	// when a place is set by hand (ADR-0181): the address of a Photon
 	// service; unset, the public one on OpenStreetMap's data; "off", none.
 	GeocoderVar = "OT_GEOCODER"
 )
@@ -71,7 +71,7 @@ type Photos struct {
 	tileClient *http.Client
 	tileAgent  string
 	// GeocoderURL is the place search's address, empty for none
-	// (ADR-0180); its answers are kept a while in places.
+	// (ADR-0181); its answers are kept a while in places.
 	GeocoderURL string
 	geoClient   *http.Client
 	places      *byteCache

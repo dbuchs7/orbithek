@@ -151,7 +151,7 @@ type event struct {
 	WordTemplate *wordTemplateEvent `json:"wordTemplate,omitempty"`
 	// Calendars is set by CalendarsSet (ADR-0174).
 	Calendars *Calendars `json:"calendars,omitempty"`
-	// Places is set by PlacesSet (ADR-0180).
+	// Places is set by PlacesSet (ADR-0181).
 	Places *Places `json:"places,omitempty"`
 }
 
@@ -183,7 +183,7 @@ const (
 
 	calendarsSet = "CalendarsSet"
 	// placesSet turns the place search of places set by hand off or on
-	// (ADR-0180).
+	// (ADR-0181).
 	placesSet = "PlacesSet"
 )
 

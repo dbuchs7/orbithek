@@ -1,7 +1,7 @@
 package site
 
 // Places is the administrators' setting of the place search the album
-// suggests places from when a place is set by hand (ADR-0180). The search
+// suggests places from when a place is set by hand (ADR-0181). The search
 // itself is the operator's choice (OT_GEOCODER); administrators turn its
 // use off and on. It is on unless turned off, so the zero value is on.
 type Places struct {

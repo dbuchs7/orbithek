@@ -125,7 +125,7 @@ export function openViewer(list, index, changed = () => {}) {
       placeRow.replaceChildren(h("p", { class: "muted", text: priv ? t("photos.placeIsMine") : t("photos.placeIsEveryones") }), b);
     };
     // Who may edit the picture sets its place by hand, from suggestions or
-    // on a map, or removes it (ADR-0180).
+    // on a map, or removes it (ADR-0181).
     const placeEdit = h("div", { class: "photo-place-edit" });
     const placed = (r) => {
       photo = r.attachment.photo;

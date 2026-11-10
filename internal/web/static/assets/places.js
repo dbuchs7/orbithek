@@ -1,4 +1,4 @@
-// Places set by hand (ADR-0180): a field that suggests places for the
+// Places set by hand (ADR-0181): a field that suggests places for the
 // first letters typed, from the place search the server asks, and a map to
 // choose a point on. Both answer a place: lat, lon and a name.
 import { h } from "./dom.js";

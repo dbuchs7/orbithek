@@ -4,7 +4,7 @@ import "testing"
 
 // TestThePlaceSearchIsOnUntilTurnedOff: administrators turn the place
 // search of places set by hand off and on again; an unchanged setting is
-// not journalled, and the journal gives it back (ADR-0180).
+// not journalled, and the journal gives it back (ADR-0181).
 func TestThePlaceSearchIsOnUntilTurnedOff(t *testing.T) {
 	var records [][]byte
 	s, err := New(nil, func(r []byte) error { records = append(records, r); return nil })

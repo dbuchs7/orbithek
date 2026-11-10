@@ -10,7 +10,7 @@ import (
 // name or removes it; the height the file told goes, the place's privacy
 // stays; a place its uploader keeps from the editor is not theirs to set;
 // after a place set by hand, everyone but the uploader gets the file
-// without the file's own place (ADR-0180).
+// without the file's own place (ADR-0181).
 func TestAPlaceSetByHand(t *testing.T) {
 	s := setup(t)
 	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))
@@ -80,7 +80,7 @@ func TestAPlaceSetByHand(t *testing.T) {
 
 // TestACopyTakesAPlaceSetByHand: a copy carries the place set by hand on
 // its original, as far as the copier may know it, and is accepted without
-// the file's own place (ADR-0180).
+// the file's own place (ADR-0181).
 func TestACopyTakesAPlaceSetByHand(t *testing.T) {
 	s := setup(t)
 	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))

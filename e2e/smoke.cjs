@@ -1748,7 +1748,7 @@ function gitSource() {
     await page.click("#album .album-timeline .album-card:has(.album-name:text-is('holiday')) .album-open");
     await page.waitForSelector("dialog.photo-viewer[open] .photo-facts");
     check((await page.textContent("dialog.photo-viewer .photo-viewer-title")) === "holiday", "the viewer shows the picture chosen");
-    // A place set by hand, on the map: a click sets the point (ADR-0180).
+    // A place set by hand, on the map: a click sets the point (ADR-0181).
     await page.click("#photo-place-map");
     await page.waitForSelector("dialog.place-picker[open] canvas");
     const pickBox = await page.locator("dialog.place-picker canvas").boundingBox();
@@ -1774,7 +1774,7 @@ function gitSource() {
     // The album is left at its top, as the steps after it begin there.
     await page.click("#album .album-trail button:has-text('All pictures')");
     await page.waitForSelector("#album .album-folder:has-text('Logos')");
-    // Administrators see the place search on, and may turn it off (ADR-0180).
+    // Administrators see the place search on, and may turn it off (ADR-0181).
     await page.goto(base + "/#/admin");
     await page.waitForSelector("#places-search", { state: "attached" });
     check(await page.isChecked("#places-search"), "the place search is on until administrators turn it off");
@@ -1848,6 +1848,24 @@ function gitSource() {
     await Promise.all([show.isClosed() ? null : show.waitForEvent("close"), page.click("#present-end")]);
     check(show.isClosed(), "ending closes the presentation window");
     await page.waitForSelector("#album");
+
+    step("album rename: a picture is renamed from its card's menu, keeping its file type (ADR-0180)");
+    await page.click("#album .album-folder:has-text('Talk')");
+    const outlookCard = "#album .album-card:has(.album-name:text-is('10 Outlook'))";
+    await page.waitForSelector(outlookCard);
+    await page.click(outlookCard + " .album-more summary");
+    await page.click(outlookCard + " .album-rename");
+    await page.fill("#album .album-rename-input", "3 Outlook");
+    await page.press("#album .album-rename-input", "Enter");
+    await page.waitForSelector("#album .album-card .album-name:text-is('3 Outlook')");
+    await page.waitForSelector("#album .notice:has-text('Renamed to 3 Outlook')");
+    const renamedPictures = await page.evaluate(async () => (await (await fetch("/api/album?q=Outlook")).json()).pictures.map((p) => p.attachment.name));
+    check(renamedPictures.includes("3 Outlook.png"), "the renamed picture keeps its extension: " + renamedPictures);
+    await page.click("#album .album-card:has(.album-name:text-is('2 Plan')) .album-more summary");
+    await page.click("#album .album-card:has(.album-name:text-is('2 Plan')) .album-rename");
+    await page.fill("#album .album-rename-input", "something else");
+    await page.press("#album .album-rename-input", "Escape"); // Escape keeps the name
+    await page.waitForSelector("#album .album-card .album-name:text-is('2 Plan')");
 
     step("provenance: the original is drawn again; its copy learns of it and takes the newer version over");
     await page.goto(base + "/#/item/" + drawingKey + "?edit");

@@ -134,5 +134,5 @@ Strongest form: photos taken anywhere appear in the wiki without anyone doing an
 ## Links
 
 - relates to ADR-0054 (the album), ADR-0055 (copies carry their source), ADR-0090 (folders and labels), ADR-0103 (versions stack), ADR-0173 (export), ADR-0175 (collections, which narrow the timeline, the months and the map as they narrow the album), ADR-0176 (slides with speaker's notes, which the album presents from any of its views)
-- amended by [ADR-0178](0178-the-place-of-a-photo-for-its-uploader-alone.md) (the place kept to the uploader), [ADR-0179](0179-the-albums-map-has-a-background-by-default.md) (a map background by default) and [ADR-0180](0180-a-photos-place-set-by-hand-with-suggestions.md) (a place set by hand)
+- amended by [ADR-0178](0178-the-place-of-a-photo-for-its-uploader-alone.md) (the place kept to the uploader), [ADR-0179](0179-the-albums-map-has-a-background-by-default.md) (a map background by default) and [ADR-0181](0181-a-photos-place-set-by-hand-with-suggestions.md) (a place set by hand)
 - relates to ADR-0026 (erasure), ADR-0045 (attachments), ADR-0066 (the Google client of single sign-on), ADR-0127 and ADR-0174 (public addresses only, other services read per person)

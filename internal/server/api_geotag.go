@@ -18,7 +18,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/site"
 )
 
-// Places set by hand (ADR-0180): suggestions from a Photon place search,
+// Places set by hand (ADR-0181): suggestions from a Photon place search,
 // the name of a point chosen on a map, and setting or removing a photo's
 // place. The server asks the search, so readers' browsers reach no other
 // site, and keeps its answers a while.
@@ -174,7 +174,7 @@ func noPlaces(w http.ResponseWriter) {
 }
 
 // placeSettings answers whether places are searched, the search the
-// operator names, and the administrators' setting (ADR-0180).
+// operator names, and the administrators' setting (ADR-0181).
 func (h itemHandlers) placeSettings(w http.ResponseWriter, r *http.Request) {
 	if !h.adminOnly(w, r) {
 		return
@@ -209,7 +209,7 @@ func (h itemHandlers) setPlaceSettings(w http.ResponseWriter, r *http.Request) {
 	h.placeSettings(w, r)
 }
 
-// searchPlaces suggests places for the first letters typed (ADR-0180).
+// searchPlaces suggests places for the first letters typed (ADR-0181).
 func (h itemHandlers) searchPlaces(w http.ResponseWriter, r *http.Request) {
 	p := h.photos()
 	if !h.placeSearch() {
@@ -236,7 +236,7 @@ func coordinate(s string, limit float64) (float64, bool) {
 	return v, err == nil && !math.IsNaN(v) && !math.IsInf(v, 0) && math.Abs(v) <= limit
 }
 
-// reversePlace names the place at a point chosen on a map (ADR-0180).
+// reversePlace names the place at a point chosen on a map (ADR-0181).
 func (h itemHandlers) reversePlace(w http.ResponseWriter, r *http.Request) {
 	p := h.photos()
 	if !h.placeSearch() {
@@ -267,7 +267,7 @@ func (h itemHandlers) reversePlace(w http.ResponseWriter, r *http.Request) {
 }
 
 // setGeotag sets where a photo was taken by hand, with the place's name
-// (ADR-0180).
+// (ADR-0181).
 func (h itemHandlers) setGeotag(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Lat  *float64 `json:"lat"`
@@ -284,7 +284,7 @@ func (h itemHandlers) setGeotag(w http.ResponseWriter, r *http.Request) {
 	h.placeByHand(w, r, req.Lat, req.Lon, req.Name)
 }
 
-// removeGeotag removes a photo's place by hand (ADR-0180).
+// removeGeotag removes a photo's place by hand (ADR-0181).
 func (h itemHandlers) removeGeotag(w http.ResponseWriter, r *http.Request) {
 	h.placeByHand(w, r, nil, nil, "")
 }

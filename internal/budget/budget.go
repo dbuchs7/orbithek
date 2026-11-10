@@ -135,7 +135,7 @@ type Budgets struct {
 	// MapTileCacheBytes bounds the map tiles kept in memory (ADR-0177).
 	MapTileCacheBytes int64
 	// PlaceSearchCacheBytes bounds the answers of place searches kept in
-	// memory (ADR-0180).
+	// memory (ADR-0181).
 	PlaceSearchCacheBytes int64
 	// PhotoImports bounds the imports from Google Photos and shared iCloud
 	// albums the server holds at once, across all people (ADR-0177).

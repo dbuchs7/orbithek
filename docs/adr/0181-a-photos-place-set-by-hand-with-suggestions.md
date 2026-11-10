@@ -1,4 +1,4 @@
-# ADR-0180: A photo's place set by hand, with suggestions from a place search
+# ADR-0181: A photo's place set by hand, with suggestions from a place search
 
 - **Status:** Proposed
 - **Implementation:** Partial
@@ -53,7 +53,7 @@ Chosen option: **1**.
   - `PUT /api/items/{ref}/attachments/{id}/geotag` with `lat`, `lon` and `name` sets a picture's place.
   - `DELETE` on the same address removes it.
 - **Who may:** whoever may edit the picture's item, unless its uploader keeps its place from them.
-- **What is recorded:** photo data carry `PlaceName` and `PlaceManual` (codec version 47), with `AttachmentPlaceSet` holding the photo data as they are afterwards.
+- **What is recorded:** photo data carry `PlaceName` and `PlaceManual` (codec version 48), with `AttachmentPlaceSet` holding the photo data as they are afterwards.
   - The height the file told goes.
   - Whether the place is private stays.
   - A picture stored before photo data were recorded has its data read from the file and recorded with the place.

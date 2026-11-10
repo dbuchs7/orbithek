@@ -46,7 +46,7 @@ func fakePhoton(t *testing.T, asked *atomic.Int32) *httptest.Server {
 // TestPlacesAreSuggestedFromThePlaceSearch: the first letters typed bring
 // places named in the reader's language, each once, kept a while; a point
 // chosen on a map is named; administrators turn the search off and on;
-// without a search named none is asked (ADR-0180).
+// without a search named none is asked (ADR-0181).
 func TestPlacesAreSuggestedFromThePlaceSearch(t *testing.T) {
 	var asked atomic.Int32
 	srv := fakePhoton(t, &asked)
@@ -117,7 +117,7 @@ func TestPlacesAreSuggestedFromThePlaceSearch(t *testing.T) {
 // TestAPlaceSetByHandThroughTheAPI: an editor sets a photo's place with
 // its name and removes it; readers then download the file without the
 // file's own place, the uploader keeps the original; a reader may not set
-// one, nor is a file that is no picture given a place (ADR-0180).
+// one, nor is a file that is no picture given a place (ADR-0181).
 func TestAPlaceSetByHandThroughTheAPI(t *testing.T) {
 	w := newPhotoWorld(t)
 	lake := w.put(t, "lake.jpg", exifJPEG(t, "2024:05:01 13:22:10", 46.5584, 7.8352, 64))
