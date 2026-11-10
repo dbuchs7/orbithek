@@ -1754,7 +1754,7 @@ function gitSource() {
     await page.click("#album-view-map");
     await page.waitForSelector("#album .photo-map-note");
     await page.click("#album-view-folders");
-    await page.waitForSelector("#album .album-folder");
+    await page.waitForSelector("#album-upload"); // back in the folder, with its tools
 
     step("provenance: the original is drawn again; its copy learns of it and takes the newer version over");
     await page.goto(base + "/#/item/" + drawingKey + "?edit");
