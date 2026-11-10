@@ -56,4 +56,5 @@ Strongest form: no change to the item events.
 
 ## Links
 
+- amended by [ADR-0186](0186-a-moved-file-keeps-its-identity.md) (a copy finds its original where it was moved)
 - relates to ADR-0022 (permissions), ADR-0026 (erasure), ADR-0045 (attachments), ADR-0053 (drawings), ADR-0054 (album)

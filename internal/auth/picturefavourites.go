@@ -38,7 +38,10 @@ func (a *Accounts) PictureFavourites(id UserID) map[PictureRef]bool {
 // SetPictureFavourite marks a picture as one of a user's favourites, or
 // unmarks it. Marking a favourite again, or unmarking one that is not,
 // changes nothing. Each change is a record of its own, so a person with
-// many favourites does not write them all again.
+// many favourites does not write them all again. A file keeps its ID when
+// it is moved to another item (ADR-0186), so a favourite is the file
+// whatever item it was marked in: marking it again in its new item
+// changes nothing, and unmarking it removes it as it was marked.
 func (a *Accounts) SetPictureFavourite(id UserID, p PictureRef, on bool) error {
 	if !pictureItemRE.MatchString(p.Item) || !pictureFileRE.MatchString(p.File) {
 		return fmt.Errorf("%w: no such picture", ErrInvalid)
@@ -48,6 +51,15 @@ func (a *Accounts) SetPictureFavourite(id UserID, p PictureRef, on bool) error {
 	u, ok := a.users[id]
 	if !ok {
 		return ErrNotFound
+	}
+	for q := range u.pictures {
+		if q.File == p.File && q != p {
+			if on {
+				return nil
+			}
+			p = q
+			break
+		}
 	}
 	if u.pictures[p] == on {
 		return nil

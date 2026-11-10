@@ -770,3 +770,54 @@ func TestPlaceChoices(t *testing.T) {
 		t.Error("keepPrivate without a place")
 	}
 }
+
+// TestAMovedPictureKeepsItsIdentity: a picture moved to another folder
+// keeps its ID, its versions and the favourites marked on it; its content
+// is read from the new folder; one who may only read may not move it
+// (ADR-0186).
+func TestAMovedPictureKeepsItsIdentity(t *testing.T) {
+	w := newPhotoWorld(t)
+	a := w.put(t, "lake.jpg", exifJPEG(t, "2024:05:01 13:22:10", 0, 0, 64))
+	id := a["id"].(string)
+	second := exifJPEG(t, "2024:05:01 13:22:11", 0, 0, 70)
+	r := w.bert.upload("/api/items/"+w.folder+"/attachments?name=lake.jpg&sourceItem="+w.folder+"&sourceAttachment="+id, "application/octet-stream", second)
+	if r.Code != http.StatusCreated {
+		t.Fatalf("new version: %d %s", r.Code, r.Body)
+	}
+	var up map[string]map[string]any
+	_ = json.Unmarshal(r.Body.Bytes(), &up)
+	v2 := up["attachment"]["id"].(string)
+	w.vera.expect("PUT", "/api/album/favourites", `{"item":"`+w.folder+`","file":"`+id+`","favourite":true}`, http.StatusOK)
+	f := w.bert.expect("POST", "/api/album/folders", `{"space":"PLAT","name":"Archive"}`, http.StatusCreated)
+	archive := field(f, "item", "id").(string)
+
+	move := "/api/items/" + w.folder + "/attachments/" + v2 + "/move"
+	w.vera.expect("POST", move, `{"to":"`+archive+`"}`, http.StatusForbidden)
+	w.carla.expect("POST", move, `{"to":"`+archive+`"}`, http.StatusNotFound)
+	w.bert.expect("POST", move, `{"to":"`+w.folder+`"}`, http.StatusBadRequest)
+	got := w.bert.expect("POST", move, `{"to":"`+archive+`"}`, http.StatusOK)
+	if field(got, "attachment", "id") != v2 {
+		t.Fatalf("moved %v", got)
+	}
+	if got := names(w.bert, "?folder="+w.folder); len(got) != 0 {
+		t.Errorf("left in the former folder: %v", got)
+	}
+	page := field(w.bert.expect("GET", "/api/album?folder="+archive, "", http.StatusOK), "pictures").([]any)
+	if len(page) != 1 || page[0].(map[string]any)["first"] != id || len(page[0].(map[string]any)["versions"].([]any)) != 1 {
+		t.Fatalf("the stack in the new folder: %v", page)
+	}
+	if rec := w.bert.do("GET", "/api/items/"+archive+"/attachments/"+v2, ""); rec.Code != http.StatusOK || !bytes.Equal(rec.Body.Bytes(), second) {
+		t.Errorf("content from the new folder: %d", rec.Code)
+	}
+	w.bert.expect("GET", "/api/items/"+w.folder+"/attachments/"+v2, "", http.StatusNotFound)
+	// The favourite went with the picture, and is unmarked where it is now.
+	fav := field(w.vera.expect("GET", "/api/album?favourites=on", "", http.StatusOK), "pictures").([]any)
+	if len(fav) != 1 || fav[0].(map[string]any)["favourite"] != true {
+		t.Fatalf("favourites after the move: %v", fav)
+	}
+	w.vera.expect("PUT", "/api/album/favourites", `{"item":"`+archive+`","file":"`+v2+`","favourite":true}`, http.StatusOK)
+	w.vera.expect("PUT", "/api/album/favourites", `{"item":"`+archive+`","file":"`+v2+`","favourite":false}`, http.StatusOK)
+	if got := names(w.vera, "?favourites=on"); len(got) != 0 {
+		t.Errorf("unmarked after the move: %v", got)
+	}
+}

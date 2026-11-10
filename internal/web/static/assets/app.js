@@ -194,7 +194,8 @@ function what(n) {
     case "ItemRestored": return t("notif.restored");
     case "CommentAdded": return t("notif.commented");
     case "LabelsSet": return t("notif.labels");
-    case "AttachmentAdded": return t("notif.attached");
+    case "AttachmentAdded":
+    case "AttachmentMovedIn": return t("notif.attached");
     case "RestrictionSet": return t("notif.restrictedSensitive");
     case "HoldSet": return t("notif.held");
     case "HoldReleased": return t("notif.released");

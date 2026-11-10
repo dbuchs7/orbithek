@@ -19,7 +19,7 @@ import { t } from "./i18n.js";
 import { get, post, put, del, upload } from "./api.js";
 import { DRAWING } from "./drawing.js";
 import { exportFormats, exportPicture } from "./picexport.js";
-import { allFolders, copyTo, dayText, googleImport, icloudImport, importFiles, monthText, openViewer, rememberedAlbum, setFavourite, importPlace, PLACES, summaryText, thumbURL, zipPictures } from "./photos.js";
+import { allFolders, moveTo, dayText, googleImport, icloudImport, importFiles, monthText, openViewer, rememberedAlbum, setFavourite, importPlace, PLACES, summaryText, thumbURL, zipPictures } from "./photos.js";
 import { dragged, groups, range, yearsAgo } from "./photoparts.js";
 import { photoMap } from "./photomap.js";
 import { pickPlace, placeInput } from "./places.js";
@@ -581,9 +581,9 @@ export function albumBrowser({ pick } = {}) {
   };
 
   // dropOnto makes a folder's button take pictures dragged onto it, and
-  // moves them there as "Move" does for chosen pictures: each is copied
-  // with its source, and the original deleted where one may and no text
-  // shows it (ADR-0177, ADR-0184). A picture already in the folder stays.
+  // moves them there as "Move" does for chosen pictures, each with all its
+  // versions, keeping what it is (ADR-0184, ADR-0186). A picture already in
+  // the folder stays.
   const dropOnto = (el, folder) => {
     if (pick) return el;
     el.title = t("photos.dropOnFolder", { name: folder.name });
@@ -605,7 +605,7 @@ export function albumBrowser({ pick } = {}) {
       dragging = null;
       root.classList.remove("dragging-pictures");
       if (!list.length) return;
-      await together("photos.moved", async (p) => { await copyTo(p, folder.id, true); return true; }, list);
+      await together("photos.moved", async (p) => { await moveTo(p, folder.id); return true; }, list, "photos.notMoved");
       for (const p of list) chosen.delete(key(p));
       markChosen();
       load(false);
@@ -846,14 +846,14 @@ export function albumBrowser({ pick } = {}) {
     chooseButton.setAttribute("aria-pressed", String(on));
     markChosen();
   };
-  const together = async (what, fn, list = [...chosen.values()]) => {
+  const together = async (what, fn, list = [...chosen.values()], failedKey = "photos.failed") => {
     let done = 0;
     const failed = [];
     for (const p of list) {
       say(t("photos.working", { n: done + 1, total: list.length }));
       try { if (await fn(p)) done++; } catch (err) { failed.push(`${captionOf(p.attachment.name)}: ${err.message}`); }
     }
-    say(t(what, { n: done }) + (failed.length ? " " + t("photos.failed", { n: failed.length }) + " " + failed.slice(0, 3).join("; ") : ""), failed.length ? "error" : "notice");
+    say(t(what, { n: done }) + (failed.length ? " " + t(failedKey, { n: failed.length }) + " " + failed.slice(0, 3).join("; ") : ""), failed.length ? "error" : "notice");
     return done;
   };
   // placeAll sets one place on every chosen picture one may edit.
@@ -897,7 +897,7 @@ export function albumBrowser({ pick } = {}) {
       } })),
       h("span", { class: "album-bulk-group" }, target, h("button", { type: "button", class: "secondary", id: "album-bulk-move", disabled: !any, text: t("photos.move"), onclick: async () => {
         if (!target.value) return fail(new Error(t("photos.moveChoose")));
-        await together("photos.moved", async (p) => { await copyTo(p, target.value, true); return true; });
+        await together("photos.moved", async (p) => { if (p.item.id === target.value) return false; await moveTo(p, target.value); return true; }, undefined, "photos.notMoved");
         chosen.clear();
         load(false);
       } })),

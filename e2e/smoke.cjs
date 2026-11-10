@@ -1789,7 +1789,8 @@ function gitSource() {
     await page.click("#album-view-folders");
     await page.waitForSelector("#album-upload"); // back in the folder, with its tools
     // A picture dragged onto a folder below moves there, and back onto a
-    // folder above it in the trail (ADR-0184).
+    // folder above it in the trail (ADR-0184), keeping its identity
+    // (ADR-0186).
     await page.click("#album-new-folder");
     await page.fill("#album-folder-name", "Prints");
     await page.click("#album .album-new-folder button[type=submit]");
@@ -1798,9 +1799,11 @@ function gitSource() {
     check((await page.getAttribute(prints, "title")) === "Drop pictures here to move them into Prints.", "a folder says that it takes dropped pictures");
     await page.locator(holiday).dragTo(page.locator(prints));
     await page.waitForSelector(holiday, { state: "detached" });
-    check((await page.textContent("#album .status")).includes("1 picture moved"), "the dragged picture is moved into the folder it is dropped onto");
+    check((await page.textContent("#album .status")).includes("1 picture moved with its versions"), "the dragged picture is moved into the folder it is dropped onto");
     await page.click(prints);
     await page.waitForSelector(holiday);
+    // A moved picture is the same picture: it stays a favourite (ADR-0186).
+    check(await page.locator(holiday + " .album-favourite[aria-pressed=true]").count() === 1, "a moved picture stays a favourite");
     await page.locator(holiday).dragTo(page.locator("#album .album-trail button:has-text('Logos')"));
     await page.waitForSelector(holiday, { state: "detached" });
     await page.click("#album .album-trail button:has-text('Logos')");

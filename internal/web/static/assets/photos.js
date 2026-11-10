@@ -213,20 +213,14 @@ export async function allFolders(depth = 4) {
   return out;
 }
 
-// copyTo copies a picture into a folder with its source, as the album's
-// insert does (ADR-0054, ADR-0055), and deletes the original when move is
-// asked, one may and no text shows it. It answers whether the original
-// went.
-export async function copyTo(p, folder, move) {
-  const res = await fetch(fileURL(p), { credentials: "same-origin" });
-  if (!res.ok) throw new Error(res.statusText);
-  const file = new File([await res.blob()], p.attachment.name, { type: p.attachment.type });
-  await upload(`/api/items/${folder}`, file, { item: p.item.id, attachment: p.attachment.id });
-  if (move && p.editable && !p.used) {
-    await del(fileURL(p));
-    return true;
-  }
-  return false;
+// moveTo moves a picture with all its versions into a folder, keeping its
+// identity (ADR-0186): its versions, labels, notes, place and favourites
+// go with it. A picture one may not change, or that a text shows, stays
+// where it is; the error says why.
+export async function moveTo(p, folder) {
+  if (!p.editable) throw new Error(t("photos.moveNotEditable"));
+  if (p.used) throw new Error(t("photos.moveUsed"));
+  await post(`${fileURL(p)}/move`, { to: folder });
 }
 
 // PLACES are the choices of what an import does with where a photo was

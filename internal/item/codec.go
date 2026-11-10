@@ -138,7 +138,11 @@ import (
 //   - 48: photo data may carry PlaceName and PlaceManual, a place set or
 //     removed by hand, with AttachmentPlaceSet (ADR-0181). Versions 1 to
 //     47 are still read; their places are the files' own.
-const CodecVersion = 48
+//   - 49: the kinds AttachmentMovedIn, with the moved version and its Move
+//     (the item it came from, who added it, when, whether deleted),
+//     sealed, and AttachmentMovedOut, with the version's ID and the item it
+//     went to (ADR-0186). Versions 1 to 48 are still read.
+const CodecVersion = 49
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

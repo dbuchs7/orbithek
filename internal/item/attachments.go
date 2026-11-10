@@ -43,10 +43,26 @@ type Attachment struct {
 	// (ADR-0178), so the copy's content differs from its source's. It is
 	// never persisted.
 	WithoutPlace bool `json:"-"`
+	// Move is set on the events of a move only (ADR-0186), never kept
+	// on the file.
+	Move *Move `json:",omitempty"`
 	// Author and Created come from the event that added it.
 	Author  string `json:"-"`
 	Created int64  `json:"-"` // Unix seconds
 	Deleted bool   `json:"-"`
+}
+
+// Move is what the events of a move tell besides the file (ADR-0186).
+// AttachmentMovedIn names the item a version came from and who added it
+// there, when, and whether it is a deleted version, which still links its
+// stack; it is sealed with the rest of the file. AttachmentMovedOut names
+// the item it went to, and holds no content.
+type Move struct {
+	From    ID     `json:"from,omitempty"`
+	To      ID     `json:"to,omitempty"`
+	Author  string `json:"author,omitempty"`
+	Created int64  `json:"created,omitempty"`
+	Deleted bool   `json:"deleted,omitempty"`
 }
 
 // Source is where a file came from: a file of the same item for a new
@@ -185,6 +201,25 @@ func (s *Store) applyAttachment(e Event, touch func(...ID)) {
 			if a := &it.Attachments[i]; !a.Deleted && firstVersion(it, *a) == e.Attachment.ID {
 				a.Name = e.Attachment.Name
 			}
+		}
+	case AttachmentMovedIn:
+		// The version arrives as it was, with who added it and when, so a
+		// place kept to its uploader stays theirs (ADR-0178).
+		a := *e.Attachment
+		if m := a.Move; m != nil {
+			a.Author, a.Created, a.Deleted = m.Author, m.Created, m.Deleted
+		}
+		a.Move = nil
+		it.Attachments = append(it.Attachments, a)
+	case AttachmentMovedOut:
+		it.Attachments = slices.DeleteFunc(it.Attachments, func(a Attachment) bool { return a.ID == e.Attachment.ID })
+		// Copies of the file in other items find their original where it
+		// went (ADR-0055, ADR-0186).
+		if e.Attachment.Move != nil {
+			if s.moved == nil {
+				s.moved = map[ID]ID{}
+			}
+			s.moved[e.Attachment.ID] = e.Attachment.Move.To
 		}
 	case AttachmentPlaceSet:
 		if a, ok := it.attachment(e.Attachment.ID); ok && e.Attachment.Photo != nil {
@@ -357,7 +392,8 @@ func (x *Session) FileOrigin(id, attachment ID) (o FileOrigin, ok bool, err erro
 	if a.Source == nil || a.Source.Item == id {
 		return FileOrigin{}, false, nil
 	}
-	src, err := x.readable(a.Source.Item)
+	// An original moved since is followed to its new item (ADR-0186).
+	src, err := x.readable(x.s.sourceItem(*a.Source))
 	// An original protected now is told to its readers only (ADR-0160).
 	if err != nil || src.Presence != Live || !x.s.readsFile(x.who, src, a.Source.Attachment) {
 		return FileOrigin{}, true, nil

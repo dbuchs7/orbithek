@@ -320,7 +320,7 @@ func (x *Session) copyOrigin(it *Item, first ID) (*Item, *Attachment) {
 	if a == nil || a.Source == nil || a.Source.Item == it.ID {
 		return nil, nil // no copy
 	}
-	src := x.s.items[a.Source.Item]
+	src := x.s.items[x.s.sourceItem(*a.Source)] // where a moved original went (ADR-0186)
 	if !x.liveReadable(src) {
 		return nil, nil
 	}

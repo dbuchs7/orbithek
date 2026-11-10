@@ -47,6 +47,9 @@ type Store struct {
 	keys     map[string]ID // current and former keys (D2)
 	rels     map[ID]*Relation
 	touching map[ID][]int // item -> indexes into log, for History
+	// moved tells where a file went that was moved out of its item
+	// (ADR-0186): file -> the item it was moved to last.
+	moved map[ID]ID
 
 	groups     map[string]map[string]bool // group -> members
 	spaceRoles map[string]map[string]Role // space -> principal or "@group" -> role
@@ -1014,7 +1017,8 @@ func (s *Store) apply(e Event) {
 		s.applyImport(e, touch)
 	case CommentAdded, CommentEdited, CommentDeleted, CommentResolved, CommentReopened:
 		s.applyComment(e, touch)
-	case AttachmentAdded, AttachmentDeleted, AttachmentLabelled, AttachmentRetentionSet, AttachmentNotesSet, AttachmentPlaceSet, AttachmentRenamed:
+	case AttachmentAdded, AttachmentDeleted, AttachmentLabelled, AttachmentRetentionSet, AttachmentNotesSet, AttachmentPlaceSet, AttachmentRenamed,
+		AttachmentMovedIn, AttachmentMovedOut:
 		s.applyAttachment(e, touch)
 	case HoldSet, HoldReleased:
 		s.applyHold(e, touch)

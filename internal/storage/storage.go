@@ -495,7 +495,8 @@ func (j journal) Append(batch []item.Event) error {
 			gone = append(gone, e.Item)
 		case item.SecretErased:
 			gone = append(gone, item.SecretKey(e.Item, e.Secret.ID))
-		case item.AttachmentDeleted:
+		case item.AttachmentDeleted, item.AttachmentMovedOut:
+			// A moved file's content is in its new item already (ADR-0186).
 			deleted[e.Item] = append(deleted[e.Item], e.Attachment.ID)
 		}
 	}
