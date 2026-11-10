@@ -727,7 +727,7 @@ export default {
   "att.takeOver": "Take over the changed original from {key}",
   "album.title": "Album",
   "album.intro": "The images and drawings of every page and task you may read. To use one in a page or task, choose Insert › From the album while editing it: the picture is copied there and takes on that page's access. Folders hold pictures uploaded into them.",
-  "album.search": "Search by name, label, key or title",
+  "album.search": "Search by name, label, key, title or date",
   "album.kind": "Kind",
   "album.kindAll": "Images and drawings",
   "album.kindImages": "Images",

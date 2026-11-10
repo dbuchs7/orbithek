@@ -725,7 +725,7 @@ export default {
   "att.takeOver": "Geändertes Original aus {key} übernehmen",
   "album.title": "Album",
   "album.intro": "Die Bilder und Zeichnungen aller Seiten und Tasks, die Sie lesen dürfen. Um eines in einer Seite oder einem Task zu verwenden, wählt man beim Bearbeiten Einfügen › Aus dem Album: Das Bild wird dorthin kopiert und erhält den Zugriff dieser Seite. Ordner enthalten die Bilder, die in sie hochgeladen werden.",
-  "album.search": "Nach Name, Label, Schlüssel oder Titel suchen",
+  "album.search": "Nach Name, Label, Schlüssel, Titel oder Datum suchen",
   "album.kind": "Art",
   "album.kindAll": "Bilder und Zeichnungen",
   "album.kindImages": "Bilder",
