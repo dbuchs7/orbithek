@@ -32,8 +32,6 @@ var (
 	ErrTooMany = errors.New("photosource: too many")
 	// ErrTooLarge is an answer or a download longer than its limit.
 	ErrTooLarge = errors.New("photosource: too large")
-	// ErrVideo is a video, which is not brought into the album.
-	ErrVideo = errors.New("photosource: videos are not brought in")
 	// ErrUnreadable is a service that cannot be read now: it is away,
 	// refuses, or answers something unexpected. The message says why with
 	// the status at most.

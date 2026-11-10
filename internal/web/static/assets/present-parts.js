@@ -24,17 +24,19 @@ const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "bas
 // slidesOf makes the slides of a presentation from the album's pictures:
 // the newest version of each, ordered by name so that "2 Plan" comes
 // before "10 Outlook", and of two with the same name by the item and the
-// file, so the order is the same in every window.
+// file, so the order is the same in every window. A video is a slide too
+// (ADR-0192), played rather than zoomed into or pointed at; poster says
+// whether it has a picture to show until it plays.
 export function slidesOf(pictures) {
-  // Videos are no slides yet (ADR-0189): a slide is a picture to zoom
-  // into and point at.
-  return (pictures || []).filter((p) => !p.video).map((p) => ({
+  return (pictures || []).map((p) => ({
     item: { id: p.item.id, key: p.item.key, title: p.item.title },
     attachment: { id: p.attachment.id, name: p.attachment.name, type: p.attachment.type },
     name: captionOf(p.attachment.name),
     notes: p.notes || "",
     editable: !!p.editable,
     drawing: !!p.drawing,
+    video: !!p.video,
+    poster: !!p.poster,
   })).sort((a, b) => collator.compare(a.name, b.name) || collator.compare(a.item.key, b.item.key) ||
     (a.attachment.id < b.attachment.id ? -1 : a.attachment.id > b.attachment.id ? 1 : 0));
 }
@@ -122,8 +124,10 @@ export function panBy(view, image, zoom, center, dx, dy) {
 }
 
 // keyAction is what a key does in either window. The keys of presentation
-// remotes (page up and down, B for a black screen) are among them.
-export function keyAction(key) {
+// remotes (page up and down, B for a black screen) are among them. On a
+// video slide the space bar and K start and pause the video (ADR-0192).
+export function keyAction(key, video = false) {
+  if (video && (key === " " || key === "k" || key === "K")) return "play";
   switch (key) {
     case "ArrowRight": case "ArrowDown": case "PageDown": case " ": case "Enter": case "n": case "N":
       return "next";
@@ -179,12 +183,22 @@ export function validMessage(m) {
 }
 
 // apply works out the state after a command: moving between slides
-// starts each slide unzoomed; zooming by the keys zooms about the centre.
+// starts each slide unzoomed and stopped; zooming by the keys zooms about
+// the centre. A video slide is played and paused ("play", "ended"), not
+// zoomed or pointed at (ADR-0192).
 export function apply(state, action, view, image) {
   const n = state.slides.length;
   const s = { ...state };
-  const go = (i) => { if (i !== s.index) Object.assign(s, { index: i, zoom: 1, center: { x: 0.5, y: 0.5 } }); };
+  const video = !!state.slides[state.index]?.video;
+  const go = (i) => {
+    if (i === s.index) return;
+    Object.assign(s, { index: i, zoom: 1, center: { x: 0.5, y: 0.5 }, playing: false });
+    if (state.slides[i]?.video) s.laser = false;
+  };
+  if (video && ["zoomIn", "zoomOut", "zoomReset", "laser"].includes(action)) return state;
   switch (action) {
+    case "play": if (!video) return state; s.playing = !s.playing; break;
+    case "ended": if (!video || !s.playing) return state; s.playing = false; break;
     case "next": go(step(s.index, n, 1)); break;
     case "prev": go(step(s.index, n, -1)); break;
     case "first": go(0); break;

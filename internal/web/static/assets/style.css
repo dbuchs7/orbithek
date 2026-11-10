@@ -2512,6 +2512,10 @@ body.presenting-show { background: #000; }
 
 .present-stage { position: relative; overflow: hidden; background: #111; touch-action: none; user-select: none; }
 .present-img { position: absolute; left: 0; top: 0; transform-origin: 0 0; max-width: none; pointer-events: none; }
+.present-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
+.present-sound { position: absolute; left: 50%; bottom: 1rem; transform: translateX(-50%); margin: 0; padding: .3rem .8rem; border-radius: var(--radius-sm); background: rgba(0, 0, 0, .7); color: #fff; font-size: .9rem; pointer-events: none; }
+.present-stage-small.video-slide::after, .present-thumb-video::after { content: "\25B6"; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 1.6rem; opacity: .8; }
+.present-thumb-video { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; background: #111; }
 .present-laser { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .present-black { position: absolute; inset: 0; background: #000; }
 .present-stage.laser-on { cursor: none; }

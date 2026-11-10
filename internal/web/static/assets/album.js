@@ -702,7 +702,23 @@ export function albumBrowser({ pick, pickText } = {}) {
         if (!form.hidden) first().focus();
       } }),
       ...adding,
+      h("button", { type: "button", class: "danger", id: "album-collection-delete", text: t("album.collectionDelete"), onclick: deleteCollection }),
       form);
+  };
+
+  // deleteCollection moves the open collection to the trash, from where
+  // its page restores it (ADR-0193). It holds no pictures: they stay where
+  // they are, with their labels.
+  const deleteCollection = async () => {
+    const c = here();
+    if (!confirm(t("album.collectionDeleteConfirm", { name: c.name }))) return;
+    try {
+      await post(`/api/items/${encodeURIComponent(c.id)}/trash`, {});
+    } catch (err) { return fail(err); }
+    path = path.slice(0, -1);
+    open();
+    status.replaceChildren(h("p", { class: "notice", role: "status" }, t("album.folderTrashed", { name: c.name }), " ",
+      c.key ? h("a", { href: "#/item/" + encodeURIComponent(c.key), id: "album-collection-restore", text: t("album.folderRestore") }) : null));
   };
 
   const showTools = () => {

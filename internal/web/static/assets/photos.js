@@ -445,7 +445,7 @@ export async function setPoster(folder, att) {
 // summaryText says what an import did.
 export function summaryText(sum) {
   return [t("photos.imported", { n: sum.done }), sum.duplicates ? t("photos.duplicates", { n: sum.duplicates }) : "",
-    sum.heic ? t("photos.heicSkipped", { n: sum.heic }) : "", sum.videos ? t("photos.videosSkipped", { n: sum.videos }) : "",
+    sum.heic ? t("photos.heicSkipped", { n: sum.heic }) : "",
     sum.skipped ? t("photos.otherSkipped", { n: sum.skipped }) : "", sum.failed.length ? t("photos.failed", { n: sum.failed.length }) : ""].filter(Boolean).join(" ");
 }
 
@@ -467,7 +467,7 @@ export async function googleImport(folder, progress, cancelled = () => false, pl
   const picker = session.pickerUri.replace(/\/$/, "") + "/autoclose";
   if (win) win.location.href = picker;
   else progress(t("photos.googleOpen"), picker);
-  const sum = { done: 0, duplicates: 0, videos: 0, heic: 0, skipped: 0, failed: [] };
+  const sum = { done: 0, duplicates: 0, heic: 0, skipped: 0, failed: [] };
   try {
     const until = Date.now() + (session.timeout || 1800000);
     let state = { picked: false, pollInterval: session.pollInterval };
@@ -480,12 +480,13 @@ export async function googleImport(folder, progress, cancelled = () => false, pl
     const items = state.items || [];
     for (const [n, m] of items.entries()) {
       if (cancelled()) break;
-      if (m.video) { sum.videos++; continue; }
       progress(t("photos.uploading", { n: n + 1, total: items.length, name: m.name }));
       try {
         const r = await post(`/api/album/google/sessions/${encodeURIComponent(session.id)}/import`, { media: m.id, folder, place });
         if (r.skipped) sum.duplicates++;
         else sum.done++;
+        // A video Google keeps no picture of gets one taken here (ADR-0192).
+        if (m.video && !r.skipped && !r.poster) await setPoster(folder, r.attachment);
       } catch (err) {
         if (err.status === 415) sum.skipped++;
         else sum.failed.push(`${m.name}: ${err.message}`);
@@ -502,15 +503,16 @@ export async function googleImport(folder, progress, cancelled = () => false, pl
 export async function icloudImport(address, folder, progress, cancelled = () => false, place = "") {
   progress(t("photos.icloudReading"));
   const album = await post("/api/album/icloud/albums", { url: address });
-  const sum = { done: 0, duplicates: 0, videos: 0, heic: 0, skipped: 0, failed: [], name: album.name };
+  const sum = { done: 0, duplicates: 0, heic: 0, skipped: 0, failed: [], name: album.name };
   for (const [n, p] of album.photos.entries()) {
     if (cancelled()) break;
-    if (p.video) { sum.videos++; continue; }
     progress(t("photos.uploading", { n: n + 1, total: album.photos.length, name: p.caption || album.name }));
     try {
       const r = await post("/api/album/icloud/import", { url: address, photo: p.guid, folder, place });
       if (r.skipped) sum.duplicates++;
       else sum.done++;
+      // A video Apple keeps no poster frame of gets one taken here (ADR-0192).
+      if (p.video && !r.skipped && !r.poster) await setPoster(folder, r.attachment);
     } catch (err) {
       if (err.status === 415) sum.skipped++;
       else sum.failed.push(`${p.caption || p.guid}: ${err.message}`);

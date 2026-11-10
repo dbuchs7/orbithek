@@ -19,6 +19,8 @@ import {
 } from "./present-parts.js";
 
 const fileURL = (s) => `/api/items/${s.item.id}/attachments/${s.attachment.id}`;
+// posterURL is the picture of a video slide shown until it plays (ADR-0192).
+const posterURL = (s) => `${fileURL(s)}/thumbnail?edge=1600`;
 
 // showHref is the address of the presentation window of a presentation.
 const showHref = (id) => `${location.pathname}#/show?s=${encodeURIComponent(id)}`;
@@ -61,12 +63,22 @@ async function loadDeck(filters) {
 // with the laser pointer's trail on a canvas above it. Its box may have
 // any size: the slide's spot, the zoom and the pointer are points of the
 // picture, from 0 to 1, so every window shows the same part of it.
-function stage({ id, onPoint, onZoom, onPan, small = false }) {
+//
+// A video slide (ADR-0192) plays in a video element as the state says,
+// with sound only where sound is set; a small stage shows its poster.
+// onEnded is told when it played to its end.
+function stage({ id, onPoint, onZoom, onPan, onEnded, small = false, sound = false }) {
   const img = h("img", { class: "present-img", alt: "", draggable: "false" });
+  const vid = h("video", { class: "present-video", playsinline: true, preload: "metadata", hidden: true });
+  vid.muted = !sound;
+  vid.addEventListener("ended", () => onEnded?.());
   const canvas = h("canvas", { class: "present-laser", "aria-hidden": "true" });
   const black = h("div", { class: "present-black", hidden: true });
-  const box = h("div", { class: "present-stage" + (small ? " present-stage-small" : ""), id }, img, canvas, black);
+  const hush = h("p", { class: "present-sound", hidden: true, text: t("present.soundHint") });
+  const box = h("div", { class: "present-stage" + (small ? " present-stage-small" : ""), id }, img, vid, canvas, black, hush);
   let state = null;
+  let current = null;
+  const playingVideo = () => !small && !!current?.video;
   let trail = [];
   let frame = 0;
   const view = () => ({ w: box.clientWidth, h: box.clientHeight });
@@ -74,7 +86,7 @@ function stage({ id, onPoint, onZoom, onPan, small = false }) {
   const ready = () => img.complete && img.naturalWidth > 0;
 
   const draw = () => {
-    if (!state || !ready()) return;
+    if (!state || !ready() || playingVideo()) return;
     const p = placement(view(), image(), small ? 1 : state.zoom, state.center);
     img.style.width = image().w * p.scale + "px";
     img.style.height = image().h * p.scale + "px";
@@ -118,7 +130,7 @@ function stage({ id, onPoint, onZoom, onPan, small = false }) {
   let drag = null;
   if (!small) {
     box.addEventListener("pointermove", (e) => {
-      if (!state || !ready()) return;
+      if (!state || !ready() || playingVideo()) return;
       if (state.laser) return onPoint?.(toImage(view(), image(), state.zoom, state.center, local(e)));
       if (drag) {
         const p = local(e);
@@ -137,11 +149,11 @@ function stage({ id, onPoint, onZoom, onPan, small = false }) {
     box.addEventListener("pointerup", end);
     box.addEventListener("pointercancel", end);
     box.addEventListener("wheel", (e) => {
-      if (!state || !ready()) return;
+      if (!state || !ready() || playingVideo()) return;
       e.preventDefault();
       onZoom?.(zoomAt(view(), image(), state.zoom, state.center, local(e), e.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP));
     }, { passive: false });
-    box.addEventListener("dblclick", () => onZoom?.({ zoom: 1, center: { x: 0.5, y: 0.5 } }));
+    box.addEventListener("dblclick", () => { if (!playingVideo()) onZoom?.({ zoom: 1, center: { x: 0.5, y: 0.5 } }); });
   }
 
   return {
@@ -156,14 +168,52 @@ function stage({ id, onPoint, onZoom, onPan, small = false }) {
       box.classList.toggle("laser-on", !!s.laser);
       box.classList.toggle("zoomed", !small && s.zoom > 1);
       black.hidden = !s.black || small;
+      current = slide;
+      box.classList.toggle("video-slide", !!slide?.video);
+      if (playingVideo()) {
+        img.hidden = true;
+        vid.hidden = false;
+        const src = fileURL(slide);
+        if (vid.getAttribute("src") !== src) {
+          trail = [];
+          drawLaser();
+          if (slide.poster) vid.poster = posterURL(slide);
+          else vid.removeAttribute("poster");
+          vid.setAttribute("aria-label", slide.name);
+          vid.src = src;
+        }
+        if (s.playing && !s.black) {
+          // A browser may refuse sound before a click in this window; the
+          // video then plays without, and a click turns it on.
+          vid.play().catch(() => {
+            if (vid.muted) return;
+            vid.muted = true;
+            hush.hidden = false;
+            vid.play().catch(() => {});
+          });
+        } else vid.pause();
+        return;
+      }
+      if (vid.hasAttribute("src")) { vid.pause(); vid.removeAttribute("src"); vid.load(); }
+      vid.hidden = true;
+      img.hidden = false;
       if (!slide) { img.removeAttribute("src"); img.alt = ""; return; }
-      const src = fileURL(slide);
+      const src = slide.video ? (slide.poster ? posterURL(slide) : "") : fileURL(slide);
+      if (!src) { img.removeAttribute("src"); img.alt = slide.name; return; }
       if (img.getAttribute("src") !== src) {
         trail = [];
         img.alt = slide.name;
         img.src = src;
       }
       draw();
+    },
+    // unmute turns on the sound a browser held back until a click; it
+    // reports whether it did.
+    unmute() {
+      if (!sound || hush.hidden) return false;
+      vid.muted = false;
+      hush.hidden = true;
+      return true;
     },
     // laser shows the laser's spot, or takes it away with null.
     laser(at) {
@@ -209,6 +259,7 @@ export async function presenterView({ params, show, onLeave, done }) {
     onPoint: (at) => { main.laser(at); send({ type: "laser", at }); },
     onZoom: (v) => set({ ...state, ...v }),
     onPan: (v) => set({ ...state, ...v }),
+    onEnded: () => command("ended"),
   });
   const next = stage({ id: "present-next", small: true });
   const counter = h("span", { class: "present-counter", id: "present-counter" });
@@ -220,7 +271,8 @@ export async function presenterView({ params, show, onLeave, done }) {
   const strip = h("ol", { class: "present-strip", id: "present-strip", "aria-label": t("present.slides") },
     slides.map((s, i) => h("li", {}, h("button", { type: "button", class: "present-thumb", "data-index": String(i), title: s.name,
       "aria-label": t("present.goTo", { n: i + 1, name: s.name }), onclick: () => set({ ...state, index: i, zoom: 1, center: { x: 0.5, y: 0.5 } }) },
-    h("img", { src: fileURL(s), alt: "", loading: "lazy" }), h("span", { text: String(i + 1) })))));
+    s.video && !s.poster ? h("span", { class: "present-thumb-video", "aria-hidden": "true" }) : h("img", { src: s.video ? posterURL(s) : fileURL(s), alt: "", loading: "lazy" }),
+    h("span", { text: String(i + 1) })))));
 
   const btn = (id, text, title, onclick, cls = "secondary") => h("button", { type: "button", id, class: cls, text, title, "aria-label": title, onclick });
   const laserBtn = btn("present-laser", t("present.laser"), t("present.laserTitle"), () => command("laser"));
@@ -311,7 +363,7 @@ export async function presenterView({ params, show, onLeave, done }) {
 
   const onKey = (e) => {
     if (typing(e) || e.ctrlKey || e.metaKey || e.altKey) return;
-    const action = keyAction(e.key);
+    const action = keyAction(e.key, !!state.slides[state.index].video);
     if (!action) return;
     e.preventDefault();
     if (action === "escape") return state.laser ? command("laser") : null;
@@ -372,6 +424,8 @@ export function audienceView({ params, show, onLeave }) {
     onPoint: (at) => { main.laser(at); send({ type: "laser", at }); },
     onZoom: (v) => send({ type: "command", action: "view", ...v }),
     onPan: (v) => send({ type: "command", action: "view", ...v }),
+    onEnded: () => send({ type: "command", action: "ended" }),
+    sound: true,
   });
   const waiting = h("p", { class: "present-waiting", id: "show-waiting", text: t("present.waiting") });
   // Only a gesture in this window may take the whole screen.
@@ -391,9 +445,10 @@ export function audienceView({ params, show, onLeave }) {
     if (m.type === "laser") main.laser(m.at);
     if (m.type === "bye") window.close();
   };
+  const video = () => !!state?.slides[state.index]?.video;
   const onKey = (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    const action = keyAction(e.key);
+    const action = keyAction(e.key, video());
     if (!action) return;
     e.preventDefault();
     if (action === "fullscreen") return fullscreen(root);
@@ -401,8 +456,13 @@ export function audienceView({ params, show, onLeave }) {
     send({ type: "command", action });
   };
   // A click moves on, as a remote's button does, unless the laser is on
-  // or the slide is zoomed, when the pointer moves it.
-  main.el.addEventListener("click", (e) => { if (state && !state.laser && state.zoom <= 1 && e.detail === 1) send({ type: "command", action: "next" }); });
+  // or the slide is zoomed, when the pointer moves it. On a video it plays
+  // and pauses, or first turns on the sound a browser held back.
+  main.el.addEventListener("click", (e) => {
+    if (!state || e.detail !== 1 || main.unmute()) return;
+    if (video()) return send({ type: "command", action: "play" });
+    if (!state.laser && state.zoom <= 1) send({ type: "command", action: "next" });
+  });
   document.addEventListener("fullscreenchange", () => root.classList.toggle("full", document.fullscreenElement === root));
   document.addEventListener("keydown", onKey);
   onLeave(() => {

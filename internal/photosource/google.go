@@ -579,13 +579,59 @@ func (g *Google) Items(ctx context.Context, user, id string) ([]Media, error) {
 	return out, nil
 }
 
-// Download reads one picked photo from Google: its base address with "=d",
-// which keeps the photo's metadata but its place, with the person's access
-// token. The item must have been listed by Items; a video is ErrVideo. The
-// base address must be https on a host of googleusercontent.com, and
-// redirects are followed only on the same host, so the token goes nowhere
-// else. Reading more than limit bytes fails with ErrTooLarge.
+// Picked answers one picked item as Items listed it, without asking
+// Google, so the caller can choose how many bytes it may have: a video
+// may have more than a photo (ADR-0189, ADR-0192).
+func (g *Google) Picked(user, id, media string) (Media, error) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	s, err := g.own(user, id)
+	if err != nil {
+		return Media{}, err
+	}
+	it, ok := s.items[media]
+	if !ok {
+		return Media{}, fmt.Errorf("%w: no such picked item", ErrNotFound)
+	}
+	return it.media, nil
+}
+
+// Download reads one picked item from Google with the person's access
+// token: a photo by its base address with "=d", which keeps its metadata
+// but its place, a video with "=dv" (ADR-0192). The item must have been
+// listed by Items. The base address must be https on a host of
+// googleusercontent.com, and redirects are followed only on the same
+// host, so the token goes nowhere else. Reading more than limit bytes
+// fails with ErrTooLarge.
 func (g *Google) Download(ctx context.Context, user, id, media string, limit int64) (io.ReadCloser, Media, error) {
+	return g.fetch(ctx, user, id, media, func(m Media) string {
+		if m.Video {
+			return "=dv"
+		}
+		return "=d"
+	}, limit)
+}
+
+// Poster reads the picture Google makes of a picked video, at most 1600
+// pixels on its longer edge, as the video's poster (ADR-0192). A photo
+// has none: ErrInvalid.
+func (g *Google) Poster(ctx context.Context, user, id, media string, limit int64) (io.ReadCloser, error) {
+	rc, m, err := g.fetch(ctx, user, id, media, func(m Media) string {
+		if !m.Video {
+			return ""
+		}
+		return "=w1600-h1600"
+	}, limit)
+	if err == nil && !m.Video {
+		rc.Close()
+		return nil, fmt.Errorf("%w: a photo has no poster", ErrInvalid)
+	}
+	return rc, err
+}
+
+// fetch reads one picked item at its base address with the parameter
+// param chooses for it; an empty parameter reads nothing.
+func (g *Google) fetch(ctx context.Context, user, id, media string, param func(Media) string, limit int64) (io.ReadCloser, Media, error) {
 	if limit <= 0 {
 		return nil, Media{}, fmt.Errorf("%w: no limit", ErrInvalid)
 	}
@@ -603,8 +649,9 @@ func (g *Google) Download(ctx context.Context, user, id, media string, limit int
 	if !ok {
 		return nil, Media{}, fmt.Errorf("%w: no such picked item", ErrNotFound)
 	}
-	if it.media.Video {
-		return nil, it.media, ErrVideo
+	suffix := param(it.media)
+	if suffix == "" {
+		return nil, it.media, fmt.Errorf("%w: nothing to read of this item", ErrInvalid)
 	}
 	u, err := url.Parse(it.baseURL)
 	if err != nil || !allowed(u, googleContent...) || u.RawQuery != "" || u.Fragment != "" {
@@ -614,7 +661,7 @@ func (g *Google) Download(ctx context.Context, user, id, media string, limit int
 	if !ok {
 		return nil, it.media, ErrNotConnected
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, it.baseURL+"=d", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, it.baseURL+suffix, nil)
 	if err != nil {
 		return nil, it.media, fmt.Errorf("%w: %s", ErrUnreadable, reason(err))
 	}
