@@ -285,7 +285,7 @@ export async function importFiles(files, folder, progress, place = "") {
   return sum;
 }
 
-// importDeck brings a presentation into the album (ADR-0184): when the
+// importDeck brings a presentation into the album (ADR-0186): when the
 // files chosen or dropped hold a .pptx or .ppsx — on its own or in a ZIP
 // archive — together with the pictures its slides were exported as, a
 // folder named after the presentation is made below folder, each shown

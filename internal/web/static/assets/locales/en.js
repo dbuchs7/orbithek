@@ -834,6 +834,7 @@ export default {
   "photos.failed": {"one": "{n} did not work:", "other": "{n} did not work:"},
   "photos.uploadTitle": "Upload pictures or a ZIP archive, for instance exported from Apple Photos or an iPhone, or a PowerPoint presentation with its slides exported as PNG",
   "photos.dropHint": "Or drop pictures, ZIP archives and presentations here.",
+  "photos.dropOnFolder": "Drop pictures here to move them into {name}.",
   "photos.uploading": "Bringing in {n} of {total}: {name}",
   "photos.imported": {"one": "{n} picture brought in.", "other": "{n} pictures brought in."},
   "photos.duplicates": {"one": "{n} was in the folder already.", "other": "{n} were in the folder already."},

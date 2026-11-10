@@ -236,6 +236,8 @@ A click opens a picture with its details: when and where it was taken, camera, e
 
 **Choose several** selects many pictures at once to add labels, mark favourites, move them to a folder, download them **as ZIP** or delete them.
 
+In the folders, a picture is moved by dragging it onto a folder: onto a folder listed below the open one, or onto a folder above it in the path at the top. A chosen picture takes every chosen picture with it. As with **Move**, a picture that you may not change, or that a text shows, is copied and also stays where it was. Without a mouse, choose the pictures and use **Move to folder…**.
+
 ### Renaming pictures and files
 
 Whoever may edit a picture renames it in the album: open the card's menu **…** and choose **Rename**. The name on the card becomes a field. **Enter**, or a click elsewhere, saves; **Escape** keeps the old name. In a page's list of files, **Rename** beside **Delete** does the same for every kind of file, documents and videos included.

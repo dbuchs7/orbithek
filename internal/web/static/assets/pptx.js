@@ -1,5 +1,5 @@
 // pptx reads a presentation file (.pptx, .ppsx) in the browser for the
-// album's slide import (ADR-0184): the order of its slides, which are
+// album's slide import (ADR-0186): the order of its slides, which are
 // hidden, each slide's title and its speaker's notes. A presentation file
 // holds no pictures of its slides, so the pictures come from the slides'
 // export as PNG or JPEG and are paired with the slides here by their

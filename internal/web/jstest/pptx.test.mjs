@@ -1,5 +1,5 @@
 // Unit tests of the album's slide import that need no browser (pptx.js,
-// ADR-0184): reading a presentation's slides in their order, which are
+// ADR-0186): reading a presentation's slides in their order, which are
 // hidden, their titles and speaker's notes, and pairing the slides with
 // the pictures they were exported as. They run in Node.js without a
 // browser and without dependencies:

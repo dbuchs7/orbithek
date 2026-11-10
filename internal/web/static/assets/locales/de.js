@@ -832,6 +832,7 @@ export default {
   "photos.failed": {"one": "{n} hat nicht funktioniert:", "other": "{n} haben nicht funktioniert:"},
   "photos.uploadTitle": "Bilder oder ein ZIP-Archiv hochladen, etwa exportiert aus Apple Fotos oder von einem iPhone, oder eine PowerPoint-Präsentation mit ihren als PNG exportierten Folien",
   "photos.dropHint": "Oder Bilder, ZIP-Archive und Präsentationen hier ablegen.",
+  "photos.dropOnFolder": "Bilder hier ablegen, um sie nach {name} zu verschieben.",
   "photos.uploading": "Übernehme {n} von {total}: {name}",
   "photos.imported": {"one": "{n} Bild übernommen.", "other": "{n} Bilder übernommen."},
   "photos.duplicates": {"one": "{n} war bereits im Ordner.", "other": "{n} waren bereits im Ordner."},

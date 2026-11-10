@@ -1,4 +1,4 @@
-# ADR-0184: A presentation is imported into the album as slides with their notes
+# ADR-0186: A presentation is imported into the album as slides with their notes
 
 - **Status:** Proposed
 - **Implementation:** Partial
