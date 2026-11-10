@@ -1981,6 +1981,15 @@ function gitSource() {
     await page.waitForSelector("dialog.photo-viewer[open] video.photo-viewer-video[src]");
     await page.click("#photo-viewer-close");
     await page.selectOption("#album select[aria-label=Kind]", "");
+    // A folder is deleted from the album, into the trash with what is in
+    // it, and its page restores it (ADR-0190).
+    await page.click(prints);
+    await page.waitForSelector("#album-folder-delete");
+    answer = true;
+    await page.click("#album-folder-delete");
+    await page.waitForSelector("#album-folder-restore");
+    check((await page.textContent("#album .status")).includes('"Prints" is in the trash.'), "a deleted folder goes to the trash");
+    check(await page.locator(prints).count() === 0, "a deleted folder leaves the album");
     // The album is left at its top, as the steps after it begin there.
     await page.click("#album .album-trail button:has-text('All pictures')");
     await page.waitForSelector("#album .album-folder:has-text('Logos')");

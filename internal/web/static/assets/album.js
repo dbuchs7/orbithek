@@ -763,7 +763,36 @@ export function albumBrowser({ pick, pickText } = {}) {
       here() && imports.icloud ? h("button", { type: "button", class: "secondary", id: "album-icloud", text: t("photos.fromICloud"), onclick: fromICloud }) : null,
       h("span", { class: "muted album-drop-hint", text: here() ? t("photos.dropHint") : t("album.uploadHint") }),
       placeChoice(),
+      inFolder() && here().editable !== false ? h("button", { type: "button", class: "danger", id: "album-folder-delete", text: t("album.folderDelete"), onclick: deleteFolder }) : null,
       make, collect.form].filter(Boolean));
+  };
+
+  // deleteFolder moves the open folder with its folders and pictures to
+  // the trash, from where its page restores it (ADR-0190). It says first
+  // how much goes with it; the server refuses while anything outside the
+  // folder uses what is in it (D8).
+  const deleteFolder = async () => {
+    const f = here();
+    let folders = 0, pictures = 0;
+    try {
+      const walk = async (id, depth) => {
+        pictures += (await get("/api/album?limit=1&folder=" + encodeURIComponent(id))).total || 0;
+        if (depth > 20) return;
+        for (const sub of (await get("/api/album/folders?parent=" + encodeURIComponent(id))).folders || []) {
+          folders++;
+          await walk(sub.id, depth + 1);
+        }
+      };
+      await walk(f.id, 0);
+    } catch (err) { return fail(err); }
+    if (!confirm(t("album.folderDeleteConfirm", { name: f.name, folders, pictures }))) return;
+    try {
+      await post(`/api/items/${encodeURIComponent(f.id)}/trash`, {});
+    } catch (err) { return fail(err); }
+    path = path.slice(0, -1);
+    open();
+    status.replaceChildren(h("p", { class: "notice", role: "status" }, t("album.folderTrashed", { name: f.name }), " ",
+      f.key ? h("a", { href: "#/item/" + encodeURIComponent(f.key), id: "album-folder-restore", text: t("album.folderRestore") }) : null));
   };
 
   // loadFolders shows the folders and collections right below the open

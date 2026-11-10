@@ -230,6 +230,10 @@ Videos come into the album the same ways as pictures: uploaded, dropped, pasted 
 - A click plays the video in the viewer. Whether a MOV video plays depends on the browser: Safari plays it, other browsers often only when it was recorded as H.264 rather than HEVC. Otherwise choose **Download**.
 - The kind filter **Videos** shows only videos. Videos are not shown as slides when presenting; they are not exported as PNG or JPEG.
 
+### Deleting a folder
+
+**Delete folder** in an open folder moves it to the trash with its folders, pictures and videos, after saying how many go with it. Its page restores it with **Restore**. A folder is not deleted while something outside it, such as a page, still uses what is in it; the album names it.
+
 ### Importing a PowerPoint presentation
 
 A presentation becomes a folder of slides, ready to present with its speaker's notes:
@@ -250,7 +254,7 @@ A click opens a picture with its details: when and where it was taken, camera, e
 - **Export**: PNG, JPEG, or SVG for drawings;
 - **Insert** into the page being edited, **Delete**, and older versions.
 
-**Choose several** selects many pictures at once to add labels, mark favourites, move them to a folder, download them with **Download as ZIP** or delete them.
+**Choose several** selects many pictures at once to add labels, mark favourites, move them to a folder, download them with **Download as ZIP** or delete them all at once with **Delete**; **Choose all shown** chooses every picture shown.
 
 In the folders, a picture is moved by dragging it onto a folder: onto a folder listed below the open one, or onto a folder above it in the path at the top. A chosen picture takes every chosen picture with it. A moved picture stays the same picture: all its versions, labels, speaker's notes, place and favourite marks go with it, and copies of it in pages still find their original. A picture that you may not change, that a text shows or that is protected, and a drawing that comments are on, stay where they are; the album says which and why. Without a mouse, choose the pictures and use **Move to folder…**, which moves them the same way.
 
