@@ -1842,8 +1842,8 @@ function gitSource() {
     await page.press("#album .album-rename-input", "Enter");
     await page.waitForSelector("#album .album-card .album-name:text-is('3 Outlook')");
     await page.waitForSelector("#album .notice:has-text('Renamed to 3 Outlook')");
-    const renamed = await page.evaluate(async () => (await (await fetch("/api/album?q=Outlook")).json()).pictures.map((p) => p.attachment.name));
-    check(renamed.includes("3 Outlook.png"), "the renamed picture keeps its extension: " + renamed);
+    const renamedPictures = await page.evaluate(async () => (await (await fetch("/api/album?q=Outlook")).json()).pictures.map((p) => p.attachment.name));
+    check(renamedPictures.includes("3 Outlook.png"), "the renamed picture keeps its extension: " + renamedPictures);
     await page.click("#album .album-card:has(.album-name:text-is('2 Plan')) .album-more summary");
     await page.click("#album .album-card:has(.album-name:text-is('2 Plan')) .album-rename");
     await page.fill("#album .album-rename-input", "something else");
