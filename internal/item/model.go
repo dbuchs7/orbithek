@@ -429,7 +429,9 @@ const (
 	// on the file's first version (ADR-0176).
 	AttachmentNotesSet EventKind = "AttachmentNotesSet"
 	// AttachmentPlaceSet keeps where a photo was taken to the one who
-	// added it, or shows it to every reader again (ADR-0178).
+	// added it, or shows it to every reader again (ADR-0178), or sets or
+	// removes the place by hand (ADR-0181): it carries the photo data as
+	// they are afterwards.
 	AttachmentPlaceSet EventKind = "AttachmentPlaceSet"
 	// AttachmentRenamed renames every version of a file: Attachment names
 	// the file's first version and carries the new name (ADR-0180).

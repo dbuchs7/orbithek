@@ -129,8 +129,8 @@ jobs:
           # calendars of other services are read from the smoke test's own
           # https server on the loopback address, with a certificate made
           # here that the server trusts (ADR-0174). The album's map draws no
-          # tiles: the smoke test reaches no service outside the runner
-          # (ADR-0179).
+          # tiles and places are not searched: the smoke test reaches no
+          # service outside the runner (ADR-0179, ADR-0181).
           mkdir -p "$RUNNER_TEMP/autobackup" "$RUNNER_TEMP/calendar-ca"
           openssl req -x509 -newkey rsa:2048 -nodes -days 2 -subj "/CN=127.0.0.1" -addext "subjectAltName=IP:127.0.0.1" \
             -keyout "$RUNNER_TEMP/calendar-key.pem" -out "$RUNNER_TEMP/calendar-ca/calendar-cert.pem" 2>/dev/null
@@ -140,7 +140,7 @@ jobs:
             OT_CONNECTOR_ACME_EMAIL=e2e@acme.example OT_CONNECTOR_ACME_TOKEN=e2e-atlassian-token \
             OT_ENGINE_ATLAS_TOKEN=e2e-engine-token OT_ENGINE_ATLAS_TASKLIST_TOKEN=e2e-engine-token OT_ENGINE_ATLAS_EVENTS_TOKEN=e2e-engine-token \
             OT_ENGINE_ATLAS_CLIENT_ID=e2e-client OT_ENGINE_ATLAS_CLIENT_SECRET=e2e-client-secret OT_ENGINE_ALLOW_PRIVATE=on OT_GIT_FILES=on OT_CALENDAR_FEEDS=on \
-            OT_CALENDAR_ALLOW_PRIVATE=on SSL_CERT_DIR="$RUNNER_TEMP/calendar-ca" OT_MAP_TILES=off \
+            OT_CALENDAR_ALLOW_PRIVATE=on SSL_CERT_DIR="$RUNNER_TEMP/calendar-ca" OT_MAP_TILES=off OT_GEOCODER=off \
             "$RUNNER_TEMP/orbithek" serve -addr 127.0.0.1:8080 -data-dir "$RUNNER_TEMP/data" > "$RUNNER_TEMP/server.log" 2>&1 &
           for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/healthz && break; sleep 1; done
           cd e2e && CALENDAR_CERT="$RUNNER_TEMP/calendar-ca/calendar-cert.pem" CALENDAR_KEY="$RUNNER_TEMP/calendar-key.pem" SMTP_SINK_PORT=2525 ENGINE_TOKEN=e2e-engine-token BACKUP_OUT="$RUNNER_TEMP/backup.orbithek" AUTOBACKUP_DIR="$RUNNER_TEMP/autobackup" BASE_URL=http://127.0.0.1:8080 ADMIN_PASSWORD=e2e-admin-password node smoke.cjs
@@ -201,3 +201,42 @@ jobs:
           mode_flag=""
           if [ "$DCO_MODE" = "advisory" ]; then mode_flag="-advisory"; fi
           go run ./cmd/dcocheck $mode_flag -pr-body-file "$RUNNER_TEMP/pr-body.txt" "$BASE_SHA" "$HEAD_SHA"
+
+  # ADR-0185, Check B: a pull request that changes what people see changes
+  # every user manual, or its description says "Manual: not needed —
+  # <reason>". Check A, that the manual names only labels the UI has, is a
+  # test in internal/web and runs with the others.
+  manual:
+    name: Manual (user-visible changes)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The whole history, so the base of the pull request is present.
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      # The description is passed through the environment and a file, never
+      # interpolated into the script, so its text cannot run as shell code.
+      #
+      # MANUAL_MODE is `advisory`: the job reports a missing manual as a
+      # warning and passes. It is a required check like every job, so it
+      # blocks only when it cannot run. Switching it to `enforce` is the
+      # maintainer's decision, recorded in ADR-0185 — never an agent's own
+      # change.
+      - name: Check the user manuals
+        env:
+          MANUAL_MODE: advisory
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          printf '%s' "$PR_BODY" > "$RUNNER_TEMP/pr-body.txt"
+          mode_flag=""
+          if [ "$MANUAL_MODE" = "advisory" ]; then mode_flag="-advisory"; fi
+          go run ./cmd/manualcheck $mode_flag -pr-body-file "$RUNNER_TEMP/pr-body.txt" "$BASE_SHA" "$HEAD_SHA"

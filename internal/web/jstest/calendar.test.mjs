@@ -12,7 +12,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { VIEWS, address, agendaDays, dayAt, entries, listQuery, localDayOf, moves, onDay, overdue, period, periodCondition, quote, readState, shift,
   shiftValue, tasksTab, typeFields, weekRows, weekStart, withoutOrder, assigneeOf, timedSpan, dayColumns, minutesAt, retime,
-  occurrenceChanges, seriesChanges, cancelChanges, externalEntries, slotValues, NEW_AT } from "../static/assets/calendar.js";
+  occurrenceChanges, seriesChanges, cancelChanges, externalEntries, slotValues, NEW_AT, appleServer } from "../static/assets/calendar.js";
 
 // Points in time are placed where the reader is; these tests read them in
 // Zurich, one hour ahead of UTC in winter and two in summer.
@@ -343,4 +343,12 @@ test("a double-click places a new item on its day, and at its hour on the axis o
   assert.deepEqual(slotValues({ type: "trip", start: "from", end: "to" }, d), { from: "2026-11-12", to: "2026-11-12" });
   assert.deepEqual(slotValues({ type: "mixed", start: "day", end: "ends", endTimed: true }, d, 60), { day: "2026-11-12", ends: "2026-11-12T01:00:00.000Z" });
   assert.deepEqual(slotValues({ type: "summer", start: "starts", startTimed: true }, parseDay("2026-07-01"), 9 * 60), { starts: "2026-07-01T07:00:00.000Z" });
+});
+
+test("an Apple iCloud CalDAV address is told apart, for its own wording of a refused password", () => {
+  assert.equal(appleServer("https://caldav.icloud.com"), true);
+  assert.equal(appleServer("https://p42-caldav.icloud.com/123/"), true);
+  assert.equal(appleServer("https://dav.example.org"), false);
+  assert.equal(appleServer("https://icloud.com.example.org"), false);
+  assert.equal(appleServer("not an address"), false);
 });

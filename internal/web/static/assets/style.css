@@ -728,6 +728,11 @@ button.secondary:hover { background: var(--accent-soft); color: var(--accent); }
 .page-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
 .page-head h1, .page-head form { margin: 0; }
 .page-head .actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+
+/* The user manual (ADR-0183): its languages above the text, which reads
+   like a body. */
+.manual-languages { display: flex; gap: 12px; }
+.manual { max-width: 860px; }
 a.button { display: inline-block; }
 .badge { display: inline-block; padding: 0 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 0.8em; }
 .card.empty { text-align: left; }
@@ -970,6 +975,9 @@ dialog.drawing::backdrop { background: rgba(20, 22, 26, .45); }
 .album-day { margin: 8px 0 0; font-size: 14px; font-weight: 600; color: var(--muted); }
 .album-timeline > .album-grid { margin-top: 6px; }
 .album.dropping { outline: 2px dashed var(--accent); outline-offset: 6px; border-radius: 8px; }
+.album-card[draggable="true"] { cursor: grab; }
+.album.dragging-pictures .album-folder:not(.album-collection), .album.dragging-pictures .album-trail button[title] { outline: 1px dashed var(--accent); outline-offset: 2px; }
+.album .drop-target, .album.dragging-pictures .drop-target { outline: 2px solid var(--accent); outline-offset: 2px; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
 .album-icloud { flex-basis: 100%; display: flex; flex-direction: column; gap: 8px; max-width: 40rem; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
 .album-icloud p { margin: 0; }
 dialog.photo-viewer { width: min(1200px, calc(100vw - 24px)); height: min(860px, calc(100vh - 24px)); padding: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: inherit; }
@@ -1003,6 +1011,20 @@ dialog.photo-viewer #photo-viewer-close { margin-left: auto; }
 .photo-place-choice p { margin: 0; }
 .album-import-place { flex-direction: row; align-items: center; gap: 6px; }
 .photo-map-chosen { display: flex; align-items: baseline; gap: 8px; margin: 12px 0 0; }
+.place-input { position: relative; }
+.place-suggestions { position: absolute; z-index: 5; left: 0; right: 0; top: 100%; margin: 2px 0 0; padding: 4px 0; list-style: none; max-height: 18rem; overflow: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 4px 12px rgba(0, 0, 0, .12); }
+.place-suggestions li { padding: 6px 10px; cursor: pointer; }
+.place-suggestions li[aria-selected="true"], .place-suggestions li:hover { background: var(--row-hover); }
+.place-credit { position: absolute; z-index: 5; right: 4px; top: calc(100% + 2px); margin: 0; font-size: 10px; pointer-events: none; }
+.photo-place-edit { display: flex; flex-direction: column; gap: 6px; }
+.photo-place-edit:empty { display: none; }
+.album-bulk-place .place-input input { max-width: 16rem; }
+dialog.place-picker { width: min(860px, calc(100vw - 24px)); padding: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: inherit; }
+dialog.place-picker::backdrop { background: rgba(10, 12, 16, .6); }
+dialog.place-picker #place-picker-cancel { margin-left: auto; }
+.place-picker-body { padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 10px; }
+.place-picker-body .photo-map { height: min(460px, 60vh); }
+.place-picker-canvas { display: block; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
 .photo-map-card .album-thumb { border: 0; padding: 0; background: none; cursor: zoom-in; width: 100%; }
 .album-own-rule { background: #fff5e6 !important; color: #8a4b00 !important; }
 dialog.retention-dialog { width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 64px); padding: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: inherit; }
@@ -2513,3 +2535,5 @@ body.presenting-show { background: #000; }
 }
 /* Renaming a picture in place of its name on the card (ADR-0180). */
 .album-head .album-rename-input { flex: 1; min-width: 0; width: 100%; box-sizing: border-box; font: inherit; font-weight: 600; }
+/* Renaming a file in place of its name in an item's file list (ADR-0182). */
+.attachments .att-rename-input { font: inherit; min-width: 12rem; max-width: 100%; }

@@ -1,0 +1,48 @@
+# Bold text in the user manuals that is no label of the UI (ADR-0185).
+#
+# TestManualNamesExistingLabels checks every label a manual names in bold
+# against the catalogue of its language. What a manual sets in bold and the
+# UI does not show as text is listed here, with the reason:
+#
+#   <language> <term> — <reason>
+#
+# The language is a UI language, or "*" for every manual. Case, an ellipsis
+# and trailing punctuation do not matter. A term that no manual sets in bold
+# any more, or that has become a label of the catalogue, fails
+# TestManualTermsAreUsed until its line is removed.
+
+# Keys of the keyboard and of presentation remotes.
+* 0 — a key: shows the whole slide again
+* B — a key: makes the presentation window black
+* F — a key: full screen
+* L — a key: the laser pointer
+* Enter — a key
+* Escape — a key
+
+# The header shows these as symbols or codes, not as words of the catalogue.
+* DE — the language switch shows the code of the language
+* EN — the language switch shows the code of the language
+en bell — the notification symbol, named by its look
+de Glocke — the notification symbol, named by its look
+en Nine dots — the module switcher's symbol, named by its look
+de Neun Punkte — the module switcher's symbol, named by its look
+en light and dark mode — the switch, named by its two modes; its tooltip names the mode it switches to
+de hellen und dunklen Modus — the switch, named by its two modes; its tooltip names the mode it switches to
+
+# Concepts the manual introduces in bold where it explains them.
+en board — the concept; a room's view is labelled "Board: <type>"
+de Board — the concept; a room's view is labelled "Board: <type>"
+* kanban — the concept of a kanban of tasks
+en collection — the concept of a collection of pictures
+de Sammlung — the concept of a collection of pictures
+de Workflow — the concept of a type's workflow
+de Räumen — the concept of a room, inflected in the sentence
+en presenter's window — the album's window while presenting; the UI names it so in "Waiting for the presenter's window…"
+de Referentenfenster — the presenter's window; the UI names it so in "Warten auf das Referentenfenster …"
+de Suchfeld — the search field in the header, which has no label of its own
+
+# Parts of labels that a sentence names for several of them.
+en Limit — the column limit; each column's field is labelled "Limit of cards in <column>"
+de Höchstzahl — the column limit; each column's field is labelled "Höchstzahl Karten in <column>"
+en with subpages (handbook) — the common end of "PDF with subpages (handbook)" and "Word with subpages (handbook)"
+de mit Unterseiten (Handbuch) — the common end of "PDF mit Unterseiten (Handbuch)" and "Word mit Unterseiten (Handbuch)"

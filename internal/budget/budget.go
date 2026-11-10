@@ -134,6 +134,9 @@ type Budgets struct {
 	AlbumPlaces      int
 	// MapTileCacheBytes bounds the map tiles kept in memory (ADR-0177).
 	MapTileCacheBytes int64
+	// PlaceSearchCacheBytes bounds the answers of place searches kept in
+	// memory (ADR-0181).
+	PlaceSearchCacheBytes int64
 	// PhotoImports bounds the imports from Google Photos and shared iCloud
 	// albums the server holds at once, across all people (ADR-0177).
 	PhotoImports int
@@ -183,6 +186,7 @@ func Default() Budgets {
 		AlbumZipBytes:          2 << 30,
 		AlbumPlaces:            5000,
 		MapTileCacheBytes:      32 << 20,
+		PlaceSearchCacheBytes:  4 << 20,
 		PhotoImports:           200,
 	}
 }

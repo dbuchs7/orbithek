@@ -12,16 +12,19 @@
 // As a photo library (ADR-0177) it shows pictures by the time they were
 // taken, on a map, as one's favourites and as memories of the same day in
 // earlier years; pictures are chosen many at once, and photos come in from
-// files, ZIP archives, Google Photos and shared iCloud albums.
+// files, ZIP archives, Google Photos and shared iCloud albums. A picture,
+// or every chosen one, is moved by dragging it onto a folder (ADR-0184).
 import { h, when } from "./dom.js";
 import { t } from "./i18n.js";
 import { get, post, put, del, upload } from "./api.js";
 import { DRAWING } from "./drawing.js";
 import { exportFormats, exportPicture } from "./picexport.js";
 import { allFolders, copyTo, dayText, googleImport, icloudImport, importFiles, monthText, openViewer, rememberedAlbum, setFavourite, importPlace, PLACES, summaryText, thumbURL, zipPictures } from "./photos.js";
-import { groups, range, yearsAgo } from "./photoparts.js";
+import { dragged, groups, range, yearsAgo } from "./photoparts.js";
 import { photoMap } from "./photomap.js";
+import { pickPlace, placeInput } from "./places.js";
 import { startPresentation } from "./present.js";
+import { renameInPlace } from "./rename.js";
 
 const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
 
@@ -124,6 +127,8 @@ export function albumBrowser({ pick } = {}) {
   const chosen = new Map();
   let anchor = null;
   let shown = [];
+  // dragging holds the pictures being dragged onto a folder (ADR-0184).
+  let dragging = null;
   let imports = { google: false, icloud: false, connected: false };
   const timeline = h("div", { class: "album-timeline" });
   const mapBox = h("div", { class: "album-map" });
@@ -271,31 +276,14 @@ export function albumBrowser({ pick } = {}) {
   // the name itself is typed. Enter or leaving the field saves, Escape
   // keeps the name.
   const rename = (p, label) => {
-    if (!label) return;
     const name = captionOf(p.attachment.name);
-    const input = h("input", { class: "album-rename-input", value: name, maxlength: "200",
-      "aria-label": t("album.renameOf", { name }) });
-    let done = false;
-    const close = () => { done = true; input.replaceWith(label); };
-    const save = async () => {
-      if (done) return;
-      const next = input.value.trim();
-      if (!next || next === name) return close();
-      done = true;
+    renameInPlace(label, { value: name, ariaLabel: t("album.renameOf", { name }), className: "album-rename-input", save: async (next) => {
       try {
         await put(`/api/items/${p.item.id}/attachments/${p.attachment.id}/name`, { name: next });
-        status.replaceChildren(h("p", { class: "notice", role: "status", text: t("album.renamed", { name: next }) }));
-        load(false);
-      } catch (err) { done = false; fail(err); input.focus(); }
-    };
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") { e.preventDefault(); save(); }
-      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); }
-    });
-    input.addEventListener("blur", () => save());
-    label.replaceWith(input);
-    input.focus();
-    input.select();
+      } catch (err) { fail(err); throw err; }
+      status.replaceChildren(h("p", { class: "notice", role: "status", text: t("album.renamed", { name: next }) }));
+      load(false);
+    } });
   };
 
   // actions is the row at a card's foot: Insert while choosing a picture,
@@ -320,7 +308,7 @@ export function albumBrowser({ pick } = {}) {
   // is the top of a stack with older versions.
   const card = (p, version, picture, stacked = false) => {
     const name = captionOf(p.attachment.name);
-    const thumb = h("div", { class: "album-thumb" }, picture || h("img", { src: thumbURL(p), alt: name, loading: "lazy" }));
+    const thumb = h("div", { class: "album-thumb" }, picture || h("img", { src: thumbURL(p), alt: name, loading: "lazy", draggable: "false" }));
     const li = h("li", { class: "album-card", "data-attachment": p.attachment.id },
       h("figure", {},
         thumb,
@@ -355,6 +343,23 @@ export function albumBrowser({ pick } = {}) {
       box.addEventListener("click", (e) => { e.preventDefault(); choose(p, e.shiftKey); });
       li.prepend(box);
       li.classList.toggle("chosen", chosen.has(key(p)));
+    }
+    // In the folders, a picture is dragged onto a folder to move it, and
+    // every chosen picture with it when it is one of them (ADR-0184). An
+    // older version of a stack moves only with its stack.
+    if (!pick && !p.versionOf && view === "folders") {
+      li.draggable = true;
+      li.addEventListener("dragstart", (e) => {
+        dragging = dragged(p, chosen, key);
+        e.dataTransfer.effectAllowed = "copyMove";
+        e.dataTransfer.setData("text/plain", dragging.map((q) => q.attachment.name).join("\n"));
+        root.classList.add("dragging-pictures");
+      });
+      li.addEventListener("dragend", () => {
+        dragging = null;
+        root.classList.remove("dragging-pictures");
+        for (const el of root.querySelectorAll(".drop-target")) el.classList.remove("drop-target");
+      });
     }
     return li;
   };
@@ -514,8 +519,8 @@ export function albumBrowser({ pick } = {}) {
       title: t("album.versionsShow", { n }), "aria-label": `${captionOf(p.attachment.name)}: ${t("album.versionsShow", { n })}` },
       // The nearer an older version, the less it is hidden; the farthest
       // is drawn first, beneath.
-      versions.slice(0, 2).map((v, i) => h("img", { class: `album-behind album-behind-${i + 1}`, src: thumbURL(v), alt: "", loading: "lazy", "aria-hidden": "true" })).reverse(),
-      h("img", { class: "album-front", src: thumbURL(p), alt: captionOf(p.attachment.name), loading: "lazy" }),
+      versions.slice(0, 2).map((v, i) => h("img", { class: `album-behind album-behind-${i + 1}`, src: thumbURL(v), alt: "", loading: "lazy", draggable: "false", "aria-hidden": "true" })).reverse(),
+      h("img", { class: "album-front", src: thumbURL(p), alt: captionOf(p.attachment.name), loading: "lazy", draggable: "false" }),
       h("span", { class: "album-stack-count", "aria-hidden": "true", text: String(n) }));
     const li = card(p, n, top, true);
     li.classList.add("album-stack");
@@ -568,9 +573,44 @@ export function albumBrowser({ pick } = {}) {
     return { form, first: () => (where && !where.value ? where : name || labels) };
   };
 
+  // The trail leads back up; a folder above the open one takes pictures
+  // dropped onto it (ADR-0184). The top is no folder and takes none.
   const showTrail = () => {
     const step = (name, to) => h("button", { type: "button", class: "link", text: name, onclick: () => { path = path.slice(0, to); open(); } });
-    trail.replaceChildren(step(t("album.top"), 0), ...path.flatMap((f, i) => [" › ", i === path.length - 1 ? h("strong", { text: f.name }) : step(f.name, i + 1)]));
+    trail.replaceChildren(step(t("album.top"), 0), ...path.flatMap((f, i) => [" › ", i === path.length - 1 ? h("strong", { text: f.name }) : dropOnto(step(f.name, i + 1), f)]));
+  };
+
+  // dropOnto makes a folder's button take pictures dragged onto it, and
+  // moves them there as "Move" does for chosen pictures: each is copied
+  // with its source, and the original deleted where one may and no text
+  // shows it (ADR-0177, ADR-0184). A picture already in the folder stays.
+  const dropOnto = (el, folder) => {
+    if (pick) return el;
+    el.title = t("photos.dropOnFolder", { name: folder.name });
+    const over = (e) => {
+      if (!dragging) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      el.classList.add("drop-target");
+    };
+    el.addEventListener("dragenter", over);
+    el.addEventListener("dragover", over);
+    el.addEventListener("dragleave", (e) => { if (!el.contains(e.relatedTarget)) el.classList.remove("drop-target"); });
+    el.addEventListener("drop", async (e) => {
+      el.classList.remove("drop-target");
+      if (!dragging) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const list = dragging.filter((p) => p.item.id !== folder.id);
+      dragging = null;
+      root.classList.remove("dragging-pictures");
+      if (!list.length) return;
+      await together("photos.moved", async (p) => { await copyTo(p, folder.id, true); return true; }, list);
+      for (const p of list) chosen.delete(key(p));
+      markChosen();
+      load(false);
+    });
+    return el;
   };
 
   // showCollection is the head of an open collection: which pictures it
@@ -667,8 +707,8 @@ export function albumBrowser({ pick } = {}) {
     try {
       const { folders: list, collections = [] } = await get("/api/album/folders?" + q);
       folders.replaceChildren(...list.map((f) => h("li", {},
-        h("button", { type: "button", class: "album-folder", "data-folder": f.id, onclick: () => { path = [...path, f]; open(); } },
-          h("span", { class: "album-folder-icon", "aria-hidden": "true" }), h("span", { text: f.name })))),
+        dropOnto(h("button", { type: "button", class: "album-folder", "data-folder": f.id, onclick: () => { path = [...path, f]; open(); } },
+          h("span", { class: "album-folder-icon", "aria-hidden": "true" }), h("span", { text: f.name })), f))),
       ...collections.map((c) => h("li", {},
         h("button", { type: "button", class: "album-folder album-collection", "data-collection": c.id, title: ruleText(c.rule),
           onclick: () => { path = [...path, c]; open(); } },
@@ -806,8 +846,7 @@ export function albumBrowser({ pick } = {}) {
     chooseButton.setAttribute("aria-pressed", String(on));
     markChosen();
   };
-  const together = async (what, fn) => {
-    const list = [...chosen.values()];
+  const together = async (what, fn, list = [...chosen.values()]) => {
     let done = 0;
     const failed = [];
     for (const p of list) {
@@ -816,6 +855,16 @@ export function albumBrowser({ pick } = {}) {
     }
     say(t(what, { n: done }) + (failed.length ? " " + t("photos.failed", { n: failed.length }) + " " + failed.slice(0, 3).join("; ") : ""), failed.length ? "error" : "notice");
     return done;
+  };
+  // placeAll sets one place on every chosen picture one may edit.
+  const placeAll = async (pl) => {
+    await together("places.placedMany", async (p) => {
+      if (!p.editable) return false;
+      const r = await put(`${fileURL(p)}/geotag`, { lat: pl.lat, lon: pl.lon, name: pl.name || "" });
+      p.attachment.photo = r.attachment.photo;
+      return true;
+    });
+    if (view === "map") load(false);
   };
   const showBulk = () => {
     bulk.hidden = !choosing;
@@ -852,6 +901,13 @@ export function albumBrowser({ pick } = {}) {
         chosen.clear();
         load(false);
       } })),
+      // One place set by hand for every chosen picture (ADR-0181).
+      h("span", { class: "album-bulk-group album-bulk-place" },
+        placeInput({ label: t("places.bulkLabel"), id: "album-bulk-place", pick: (pl) => placeAll(pl) }).element,
+        h("button", { type: "button", class: "secondary", id: "album-bulk-place-map", disabled: !any, text: t("places.onMap"), onclick: async () => {
+          const pl = await pickPlace();
+          if (pl) placeAll(pl);
+        } })),
       h("button", { type: "button", class: "secondary", id: "album-bulk-zip", disabled: !any, text: t("photos.zip"), onclick: async () => {
         say(t("photos.zipping", { n: list.length }));
         try { await zipPictures(list); say(t("photos.zipped", { n: list.length }), "notice"); } catch (err) { fail(err); }
@@ -959,14 +1015,14 @@ export function albumBrowser({ pick } = {}) {
   // Files dropped onto an open folder are uploaded into it (ADR-0177).
   if (!pick) {
     root.addEventListener("dragover", (e) => {
-      if (view !== "folders" || !inFolder() || !e.dataTransfer?.types?.includes("Files")) return;
+      if (dragging || view !== "folders" || !inFolder() || !e.dataTransfer?.types?.includes("Files")) return;
       e.preventDefault();
       root.classList.add("dropping");
     });
     root.addEventListener("dragleave", (e) => { if (!root.contains(e.relatedTarget)) root.classList.remove("dropping"); });
     root.addEventListener("drop", (e) => {
       root.classList.remove("dropping");
-      if (view !== "folders" || !inFolder() || !e.dataTransfer?.files?.length) return;
+      if (dragging || view !== "folders" || !inFolder() || !e.dataTransfer?.files?.length) return;
       e.preventDefault();
       takeFiles([...e.dataTransfer.files]);
     });

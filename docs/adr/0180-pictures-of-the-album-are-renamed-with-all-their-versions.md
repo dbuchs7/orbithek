@@ -1,9 +1,9 @@
 # ADR-0180: Pictures of the album are renamed, with all their versions, keeping their file type
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-10
-- **Deciders:** Project initiators (request of 2026-11-10: rename drawings and pictures in the album; the choices below — every version renamed, the file type kept, copies left alone, the drawing editor keeping the name — are defaults proposed with the implementation and await the requester's confirmation)
+- **Deciders:** Project initiators (request of 2026-11-10: rename drawings and pictures in the album; the choices below — every version renamed, the file type kept, copies left alone, the drawing editor keeping the name — are defaults proposed with the implementation, confirmed by the requester; accepted 2026-11-10)
 - **Open question:** whether a rename should also reach the captions of the image blocks that show the picture, and the copies of it in other items (ADR-0055); whether renaming should be offered on an item's list of files as well as in the album, and to agents over MCP
 - **Question checked:** 2026-11
 
@@ -30,7 +30,7 @@ What does a rename change, which versions does it reach, what does it keep, and 
 
 ## Decision outcome
 
-Chosen option: **1** (defaults proposed with the implementation).
+Chosen option: **1** (defaults proposed with the implementation, confirmed by the requester).
 
 ### What a rename does
 
@@ -83,3 +83,4 @@ Strongest form: the most freedom; a user who knows what they do may change the t
 
 - amends [ADR-0054](0054-an-album-of-readable-pictures-inserted-by-copy.md) (the album)
 - relates to ADR-0026 (sealed content), ADR-0040 (sensitive data), ADR-0045 (attachments), ADR-0053 (drawings), ADR-0055 (copies), ADR-0103 (versions in the album), ADR-0169 (whiteboards), ADR-0173 (export), ADR-0176 (presentations)
+- amended by [ADR-0182](0182-every-file-of-an-item-is-renamed-from-its-file-list.md) (every file of an item is renamed from its file list)

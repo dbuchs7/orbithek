@@ -14,6 +14,60 @@ function check(cond, msg) {
   if (!cond) throw new Error("check failed: " + msg);
 }
 
+// recordLiveStatus keeps, in the page, every text the status line of a live
+// session shows (ADR-0010), with the time since the page loaded. A message
+// such as "reloading the body" lasts only until the next save; the record
+// keeps it for the report of a failure.
+function recordLiveStatus() {
+  const log = (window.__liveStatus = []);
+  const seen = new WeakMap();
+  const note = () => {
+    for (const el of document.querySelectorAll(".live-status")) {
+      const text = el.textContent;
+      if (seen.get(el) === text) continue;
+      seen.set(el, text);
+      if (!text) continue;
+      log.push(`${Math.round(performance.now())}ms${el.classList.contains("error") ? " error" : ""}: ${text}`);
+      if (log.length > 40) log.shift();
+    }
+  };
+  new MutationObserver(note).observe(document, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["class"] });
+}
+
+// pageState describes what a failed step left on the page, so that an
+// intermittent failure can be told apart afterwards: the address and the
+// focus; per editor whether it is editable, the block kind its toolbar
+// shows, its blocks and the block the selection is in; per live session
+// whether something is unsaved, its status line and the status lines it
+// showed before.
+function pageState() {
+  const short = (s) => (s || "").replace(/\s+/g, " ").trim().slice(0, 60);
+  const name = (el) => el ? el.tagName.toLowerCase() + (el.id ? "#" + el.id : "") +
+    (typeof el.className === "string" && el.className.trim() ? "." + el.className.trim().split(/\s+/).join(".") : "") : null;
+  const sel = window.getSelection();
+  const anchor = sel && sel.anchorNode ? (sel.anchorNode.nodeType === 3 ? sel.anchorNode.parentElement : sel.anchorNode) : null;
+  return {
+    url: location.href,
+    focus: name(document.activeElement),
+    editors: [...document.querySelectorAll(".ProseMirror")].map((pm) => {
+      const blocks = [...pm.children];
+      const at = anchor && pm.contains(anchor) ? blocks.findIndex((b) => b.contains(anchor)) : null;
+      return {
+        editable: pm.contentEditable,
+        kind: pm.closest(".pm-wrap")?.querySelector(".pm-toolbar select")?.value ?? null,
+        selectionInBlock: at,
+        blocks: blocks.map((b, i) => `${i} ${name(b)}: ${short(b.textContent)}`),
+      };
+    }),
+    live: [...document.querySelectorAll(".live")].map((l) => ({
+      pending: l.dataset.pending ?? null,
+      status: short(l.querySelector(".live-status")?.textContent),
+      presence: short(l.querySelector(".live-presence")?.textContent),
+    })),
+    liveStatusSeen: window.__liveStatus || [],
+  };
+}
+
 // mailSink is a mail server that keeps every message, for the server under
 // test to send to (OT_SMTP_HOST=127.0.0.1, OT_SMTP_PORT=SMTP_SINK_PORT,
 // OT_SMTP_SECURITY=none). Without SMTP_SINK_PORT there is none.
@@ -613,6 +667,7 @@ function gitSource() {
   const repo = gitSource();
   const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
   const page = await browser.newPage();
+  await page.addInitScript(recordLiveStatus);
   const problems = [];
   page.on("pageerror", (e) => problems.push("page error: " + e.message));
   // A step that provokes an error on purpose names it here while it runs.
@@ -636,7 +691,12 @@ function gitSource() {
     problems.push("dialog: " + d.message());
     await d.dismiss();
   });
-  const step = (name) => console.log("·", name);
+  // The step running now, named in the report of a failure.
+  let current = "";
+  const step = (name) => {
+    current = name;
+    console.log("·", name);
+  };
 
   try {
     step("login form: help for a forgotten password and an account is always offered");
@@ -700,6 +760,18 @@ function gitSource() {
     await page.waitForFunction(() => !document.documentElement.dataset.look && document.documentElement.dataset.theme === "light");
     await page.evaluate(() => localStorage.removeItem("ot.theme"));
     await page.reload();
+    await page.waitForSelector("#welcome, #app h1");
+
+    step("manual: the account menu opens the user manual, with its contents, in English and German (ADR-0183)");
+    await page.click("#account-button");
+    await page.click("#account-menu a[href='#/manual']");
+    await page.waitForSelector("#manual .pm-toc li");
+    check(await page.locator("#manual h1").first().textContent() === "Orbithek user manual", "the manual opens in the UI's language");
+    await page.click("#manual-languages a[href='#/manual?lang=de']");
+    await page.waitForSelector("#manual[lang=de] .pm-toc li");
+    check(await page.locator("#manual h1").first().textContent() === "Orbithek-Benutzerhandbuch", "the German manual is a click away");
+    check(await page.locator("#manual .ProseMirror[contenteditable=true]").count() === 0, "the manual is read, not edited");
+    await page.goto(base + "/#/");
     await page.waitForSelector("#welcome, #app h1");
 
     step("administration: space, type, user, role");
@@ -1470,6 +1542,11 @@ function gitSource() {
     const notes = await page.getAttribute("#attachments li a:has-text('notes.txt')", "href");
     const served = await page.evaluate(async (href) => { const r = await fetch(href); return [r.headers.get("content-type"), r.headers.get("content-disposition"), await r.text()]; }, notes);
     check(served[0] === "application/octet-stream" && served[1].startsWith("attachment") && served[2].includes("alert('file')"), "a text file only downloads: " + served);
+    // A file is renamed in the list, keeping its type (ADR-0182).
+    await page.click("#attachments li:has(a:text-is('notes.txt')) .att-rename");
+    await page.fill("#attachments .att-rename-input", "Meeting notes");
+    await page.press("#attachments .att-rename-input", "Enter");
+    await page.waitForSelector("#attachments li a:text-is('Meeting notes.txt')");
     await page.click("#edit");
     await page.waitForSelector("#body.editing .ProseMirror");
     await page.locator("#body .ProseMirror").click();
@@ -1748,6 +1825,17 @@ function gitSource() {
     await page.click("#album .album-timeline .album-card:has(.album-name:text-is('holiday')) .album-open");
     await page.waitForSelector("dialog.photo-viewer[open] .photo-facts");
     check((await page.textContent("dialog.photo-viewer .photo-viewer-title")) === "holiday", "the viewer shows the picture chosen");
+    // A place set by hand, on the map: a click sets the point (ADR-0182).
+    await page.click("#photo-place-map");
+    await page.waitForSelector("dialog.place-picker[open] canvas");
+    const pickBox = await page.locator("dialog.place-picker canvas").boundingBox();
+    await page.mouse.click(pickBox.x + pickBox.width / 2, pickBox.y + pickBox.height / 2);
+    await page.click("#place-picker-ok");
+    await page.waitForSelector("dialog.place-picker", { state: "detached" });
+    await page.waitForSelector("#photo-place-remove");
+    check(/-?\d+\.\d{5}, -?\d+\.\d{5}/.test(await page.textContent("dialog.photo-viewer .photo-facts")), "the place chosen on the map is the photo's");
+    await page.click("#photo-place-remove");
+    await page.waitForSelector("#photo-place-remove", { state: "detached" });
     await page.click("#photo-viewer-close");
     await page.waitForSelector("dialog.photo-viewer", { state: "detached" });
     await page.click("#album-choose");
@@ -1760,9 +1848,33 @@ function gitSource() {
     await page.waitForSelector("#album .photo-map-note");
     await page.click("#album-view-folders");
     await page.waitForSelector("#album-upload"); // back in the folder, with its tools
+    // A picture dragged onto a folder below moves there, and back onto a
+    // folder above it in the trail (ADR-0184).
+    await page.click("#album-new-folder");
+    await page.fill("#album-folder-name", "Prints");
+    await page.click("#album .album-new-folder button[type=submit]");
+    const prints = "#album .album-folder:has-text('Prints')";
+    await page.waitForSelector(prints);
+    check((await page.getAttribute(prints, "title")) === "Drop pictures here to move them into Prints.", "a folder says that it takes dropped pictures");
+    await page.locator(holiday).dragTo(page.locator(prints));
+    await page.waitForSelector(holiday, { state: "detached" });
+    check((await page.textContent("#album .status")).includes("1 picture moved"), "the dragged picture is moved into the folder it is dropped onto");
+    await page.click(prints);
+    await page.waitForSelector(holiday);
+    await page.locator(holiday).dragTo(page.locator("#album .album-trail button:has-text('Logos')"));
+    await page.waitForSelector(holiday, { state: "detached" });
+    await page.click("#album .album-trail button:has-text('Logos')");
+    await page.waitForSelector(holiday);
+    check(await page.locator(prints).count() === 1, "a picture dropped onto a folder of the trail goes back up");
     // The album is left at its top, as the steps after it begin there.
     await page.click("#album .album-trail button:has-text('All pictures')");
     await page.waitForSelector("#album .album-folder:has-text('Logos')");
+    // Administrators see the place search on, and may turn it off (ADR-0182).
+    await page.goto(base + "/#/admin");
+    await page.waitForSelector("#places-search", { state: "attached" });
+    check(await page.isChecked("#places-search"), "the place search is on until administrators turn it off");
+    await page.goto(base + "/#/album");
+    await page.waitForSelector("#album .album-folder");
 
     step("album presentation: a folder's pictures are slides by name, with speaker's notes, a presentation window, laser pointer, zoom and stepping (ADR-0176)");
     // A picture of 160 by 90 pixels, so the slides have a size to fit.
@@ -4995,6 +5107,10 @@ function gitSource() {
   } catch (err) {
     await page.screenshot({ path: "failure.png", fullPage: true }).catch(() => {});
     console.error(err.message);
+    console.error("failed in the step: " + current);
+    // What the step left on the page tells an intermittent failure apart.
+    const state = await page.evaluate(pageState).catch((e) => ({ unavailable: e.message }));
+    console.error("page state: " + JSON.stringify(state, null, 2));
     if (problems.length) console.error(problems.join("\n"));
     process.exitCode = 1;
   } finally {

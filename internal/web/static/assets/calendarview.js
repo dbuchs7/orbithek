@@ -24,7 +24,7 @@ import { t, language } from "./i18n.js";
 import { del, get, post, put } from "./api.js";
 import { finished } from "./taskparts.js";
 import { dateFields, dayString, isoWeek, normalLabel, todayDay } from "./timeline.js";
-import { DAY_MINUTES, STATUS, VIEWS, WHO, address, agendaDays, byDayAndTime, cancelChanges, dayAt, dayColumns, entries, externalEntries, listQuery, localDayOf, minutesAt,
+import { DAY_MINUTES, STATUS, VIEWS, WHO, address, agendaDays, appleServer, byDayAndTime, cancelChanges, dayAt, dayColumns, entries, externalEntries, listQuery, localDayOf, minutesAt,
   moves, occurrenceChanges, overdue, period, readState, retime, seriesChanges, shift, slotValues, timedSpan, typeFields, weekRows, withoutOrder } from "./calendar.js";
 
 const DAY = 86400000;
@@ -538,9 +538,18 @@ function othersBar(container, params, helpers, cals, after) {
     const f = h("form", { class: "cal-others-form", id: "calendar-dav-form", onsubmit: (ev) => {
       ev.preventDefault();
       const d = new FormData(f);
+      const server = String(d.get("server")).trim();
       run(async () => {
-        const { account, calendars } = await post("/api/me/calendar-accounts", { kind: "caldav", server: String(d.get("server")).trim(), username: String(d.get("username")).trim(), password: d.get("password") });
-        return { picked: { account, calendars }, notice: { ok: true, text: t("extcal.connected", { name: account.name }) } };
+        try {
+          const { account, calendars } = await post("/api/me/calendar-accounts", { kind: "caldav", server, username: String(d.get("username")).trim(), password: d.get("password") });
+          return { picked: { account, calendars }, notice: { ok: true, text: t("extcal.connected", { name: account.name }) } };
+        } catch (err) {
+          // A refused password is the most common failure; for iCloud it is
+          // nearly always the Apple ID's own password instead of an
+          // app-specific one.
+          if (err.code === "credentials") throw new Error(t(appleServer(server) ? "extcal.error.appleCredentials" : "extcal.error.credentials"));
+          throw err;
+        }
       });
     } },
     h("p", { class: "muted", text: t("extcal.davHelp") }),

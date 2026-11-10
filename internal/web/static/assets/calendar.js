@@ -557,3 +557,15 @@ export function seriesChanges(entry, n, minutes) {
 export function cancelChanges(entry) {
   return [{ field: entry.recurrence, value: withException(entry.rule, entry.occurrence, null) }];
 }
+
+// appleServer reports whether a CalDAV address is Apple iCloud's, whose
+// refusal of a password is worded with its app-specific passwords
+// (ADR-0174).
+export function appleServer(address) {
+  try {
+    const host = new URL(address).hostname.toLowerCase();
+    return host === "icloud.com" || host.endsWith(".icloud.com");
+  } catch {
+    return false;
+  }
+}

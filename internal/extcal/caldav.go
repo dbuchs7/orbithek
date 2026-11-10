@@ -3,6 +3,7 @@ package extcal
 import (
 	"context"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -13,6 +14,35 @@ import (
 // AppleServer is the CalDAV address of Apple iCloud; an iCloud account is
 // reached with the Apple ID and an app-specific password.
 const AppleServer = "https://caldav.icloud.com"
+
+// isApple reports whether a CalDAV server is Apple iCloud's.
+func isApple(server string) bool {
+	u, err := url.Parse(server)
+	if err != nil {
+		return false
+	}
+	host := strings.ToLower(u.Hostname())
+	return host == "icloud.com" || strings.HasSuffix(host, ".icloud.com")
+}
+
+// cleanPassword takes from an Apple app-specific password the spaces a
+// copy may bring along: it is letters and dashes only. Other servers'
+// passwords are kept as typed, spaces included.
+func cleanPassword(server, password string) string {
+	if !isApple(server) {
+		return password
+	}
+	return strings.Join(strings.Fields(password), "")
+}
+
+// refused turns a server's refusal of the credentials into ErrRefused.
+func refused(err error) error {
+	var se *StatusError
+	if errors.As(err, &se) && (se.Status == http.StatusUnauthorized || se.Status == http.StatusForbidden) {
+		return fmt.Errorf("%w (%d)", ErrRefused, se.Status)
+	}
+	return err
+}
 
 // maxRedirects is how many redirects a CalDAV request follows.
 const maxRedirects = 5
@@ -219,12 +249,13 @@ func (r *Reader) ConnectCalDAV(ctx context.Context, user, server, username, pass
 	if err != nil {
 		return Account{}, nil, err
 	}
-	if strings.TrimSpace(username) == "" || password == "" {
+	username, password = strings.TrimSpace(username), cleanPassword(srv, password)
+	if username == "" || password == "" {
 		return Account{}, nil, fmt.Errorf("%w: a CalDAV account needs its user name and password", ErrInvalid)
 	}
 	cals, err := r.Discover(ctx, srv, username, password)
 	if err != nil {
-		return Account{}, nil, err
+		return Account{}, nil, refused(err)
 	}
 	a, err := r.store.Connect(user, Account{Kind: KindCalDAV, Name: strings.TrimSpace(username), Server: srv}, password)
 	return a, cals, err
@@ -246,7 +277,8 @@ func (r *Reader) Calendars(ctx context.Context, user, account string) ([]Remote,
 	if err != nil {
 		return nil, err
 	}
-	return r.Discover(ctx, a.Server, a.Name, password)
+	cals, err := r.Discover(ctx, a.Server, a.Name, password)
+	return cals, refused(err)
 }
 
 // readCalDAV reads a calendar of a CalDAV account in [from, to): the

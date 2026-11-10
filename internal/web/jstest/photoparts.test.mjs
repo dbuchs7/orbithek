@@ -1,7 +1,7 @@
 // Unit tests of the album's photo management that need no browser
 // (photoparts.js, zipread.js, ADR-0177): the map's projection, tiles,
-// clusters and zoom, the timeline's groups, choosing a range, which files
-// the album takes, and reading ZIP archives exported from photo apps.
+// clusters and zoom, the timeline's groups, choosing a range, what a
+// picture dragged onto a folder takes with it, which files the album takes, and reading ZIP archives exported from photo apps.
 // They run in Node.js without a browser and without dependencies:
 //
 //   node --test "internal/web/jstest/*.test.mjs"
@@ -11,7 +11,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { deflateRawSync } from "node:zlib";
 import {
-  TILE, project, unproject, fit, tiles, cluster, pan, zoomAt, radius, hit, groups, yearsAgo, range,
+  TILE, project, unproject, fit, tiles, cluster, pan, zoomAt, radius, hit, groups, yearsAgo, range, dragged,
   sorts, typeOf, baseName, hidden, exposureText, placeText,
 } from "../static/assets/photoparts.js";
 import { entries, read } from "../static/assets/zipread.js";
@@ -85,6 +85,15 @@ test("the timeline groups by month and day in the order given", () => {
   assert.deepEqual(g.map((m) => m.month), ["2024-05", "2023-12", "2022-01"]);
   assert.deepEqual(g[0].days.map((d) => [d.day, d.pictures.length]), [["2024-05-02", 2], ["2024-05-01", 1]]);
   assert.equal(yearsAgo("2023-11-10", "2026-11-10"), 3);
+});
+
+test("a dragged picture takes the chosen ones with it only when it is chosen", () => {
+  const key = (p) => p.id;
+  const a = { id: "a" }, b = { id: "b" }, c = { id: "c" };
+  const chosen = new Map([["a", a], ["b", b]]);
+  assert.deepEqual(dragged(a, chosen, key), [a, b]);
+  assert.deepEqual(dragged(c, chosen, key), [c]);
+  assert.deepEqual(dragged(c, new Map(), key), [c]);
 });
 
 test("a range is chosen in the order shown, either way", () => {
