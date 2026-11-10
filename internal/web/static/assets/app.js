@@ -10,7 +10,8 @@ import { renderDiff } from "./diff.js";
 import { commentPlugin } from "./anchors.js";
 import { personalNotes } from "./notes.js";
 import { isDrawing } from "./drawing.js";
-import { albumBrowser, retentionCard } from "./album.js";
+import { albumBrowser, retentionCard, captionOf } from "./album.js";
+import { renameInPlace } from "./rename.js";
 import { presenterView, audienceView } from "./present.js";
 import { starmapView } from "./starmap.js";
 import { roadmapView } from "./roadmap.js";
@@ -817,6 +818,16 @@ function attachmentsSection(path, files, live) {
       : t("att.copyOfUnknown"),
     a.origin.newer ? [" ", h("span", { class: "chip", text: t("att.originChanged") })] : null) : null,
     isDrawing(a.name) ? [" · ", link(whiteboardHref(path, a.id), t("wb.open"), "wb-open")] : null,
+    // Renaming keeps the file type and renames every version (ADR-0182).
+    live ? h("button", { class: "link att-rename", text: t("att.rename"), "aria-label": t("att.renameOf", { name: a.name }),
+      onclick: (e) => renameInPlace(e.currentTarget.closest("li")?.querySelector("a"), { value: captionOf(a.name),
+        ariaLabel: t("att.renameOf", { name: a.name }), className: "att-rename-input",
+        save: async (next) => {
+          try {
+            await put(`${path}/attachments/${a.id}/name`, { name: next });
+          } catch (err) { status.replaceChildren(errorBox(err)); throw err; }
+          route();
+        } }) }) : null,
     live ? h("button", { class: "link danger", text: t("common.delete"), onclick: () => confirm(t("att.deleteConfirm", { name: a.name }))
       && action(() => del(`${path}/attachments/${a.id}`), status) }) : null);
   // A new whiteboard is an empty drawing at the end of the body (ADR-0169).

@@ -2522,3 +2522,5 @@ body.presenting-show { background: #000; }
 }
 /* Renaming a picture in place of its name on the card (ADR-0180). */
 .album-head .album-rename-input { flex: 1; min-width: 0; width: 100%; box-sizing: border-box; font: inherit; font-weight: 600; }
+/* Renaming a file in place of its name in an item's file list (ADR-0182). */
+.attachments .att-rename-input { font: inherit; min-width: 12rem; max-width: 100%; }
