@@ -189,6 +189,7 @@ Der **Kalender** zeigt Einträge mit Datumsfeldern als **Monat**, **Woche** oder
 
 - Wo man bearbeiten darf, zieht man einen Eintrag auf einen anderen Tag oder verschiebt ihn mit Shift und einer Pfeiltaste. In der Wochenansicht behält eine auf eine andere Stunde verschobene Besprechung ihre Dauer.
 - Ein wiederkehrender Eintrag fragt, ob **Nur dieses Vorkommen** oder **Die ganze Serie** verschoben wird; die Taste Entf sagt ein Vorkommen ab.
+- Wo man in einem Raum bearbeiten darf, erstellt ein Doppelklick auf einen Tag oder in der Wochenansicht auf eine Stunde dort einen neuen Eintrag; **Neuer Eintrag** tut dasselbe für heute. Der Dialog fragt nach Typ, Raum, Titel und den Feldern, die der Typ verlangt, und füllt das Datum aus der angeklickten Stelle aus. **Erstellen** bleibt im Kalender mit dem neuen Eintrag im Fokus; **Erstellen und öffnen** öffnet ihn.
 - **Ansicht speichern…** legt eine Ansicht unter einem Namen ab. Sind Kalender-Feeds eingeschaltet, liefert **Abonnieren (iCal)** eine Adresse für ein Kalenderprogramm. Wer diese Adresse kennt, sieht die Einträge ohne Anmeldung; **Neue Adresse** und **Feed beenden** ziehen sie zurück.
 - Erlaubt es die Administration, zeigt **Andere Kalender** die eigenen Kalender anderer Dienste neben denen von Orbithek: iCalendar-Adressen, Google-Konten und CalDAV-Konten wie Apple iCloud. Sie werden nur lesend und nur der eigenen Person gezeigt.
 
