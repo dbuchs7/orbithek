@@ -223,7 +223,7 @@ Ein Klick öffnet ein Bild mit seinen Angaben: Zeitpunkt und Ort der Aufnahme, K
 - **Exportieren**: PNG, JPEG oder bei Zeichnungen SVG;
 - **Einfügen** in die gerade bearbeitete Seite, **Löschen** und ältere Versionen.
 
-**Mehrere auswählen** wählt viele Bilder auf einmal aus, um Labels hinzuzufügen, Favoriten zu markieren, sie in einen Ordner zu verschieben, **Als ZIP herunterzuladen** oder zu löschen.
+**Mehrere auswählen** wählt viele Bilder auf einmal aus, um Labels hinzuzufügen, Favoriten zu markieren, sie in einen Ordner zu verschieben, sie mit **Als ZIP herunterladen** herunterzuladen oder sie zu löschen.
 
 In den Ordnern verschiebt man ein Bild, indem man es auf einen Ordner zieht: auf einen Ordner, der unter dem geöffneten aufgeführt ist, oder auf einen übergeordneten Ordner im Pfad oben. Ein ausgewähltes Bild nimmt alle ausgewählten Bilder mit. Wie bei **Verschieben** wird ein Bild, das man nicht ändern darf oder das ein Text zeigt, kopiert und bleibt zusätzlich, wo es war. Ohne Maus wählt man die Bilder aus und nutzt **In Ordner verschieben…**.
 
@@ -240,7 +240,7 @@ Wer ein Bild bearbeiten darf, benennt es im Album um: das Menü **…** der Kart
 
 Das Album präsentiert die Bilder, die es gerade zeigt, als Folien: einen Ordner oder eine Sammlung öffnen, nach Wunsch mit der Suche oder einem Label eingrenzen und **N Bilder präsentieren** wählen. Die Folien sind nach Namen geordnet, Zahlen nach ihrem Wert, also *2 Plan* vor *10 Ausblick*; wer die Reihenfolge ändern will, benennt die Bilder um.
 
-Der Klick öffnet ein zweites Fenster, das **Präsentationsfenster**, für den Projektor oder einen zweiten Bildschirm. Das Fenster des Albums wird zur **Referentenansicht**. Sie zeigt die aktuelle und die nächste Folie, die Foliennotizen, die Zeit seit dem Start und die Uhrzeit sowie eine Leiste aller Folien; ein Klick auf eine Folie in der Leiste springt dorthin. Hat der Browser das zweite Fenster blockiert, Pop-ups für diese Seite erlauben und **Präsentationsfenster** wählen. Im Präsentationsfenster füllt **Vollbild** oder **F** den Bildschirm.
+Der Klick öffnet ein zweites Fenster, das **Präsentationsfenster**, für den Projektor oder einen zweiten Bildschirm. Das Fenster des Albums wird zum **Referentenfenster**. Es zeigt die aktuelle und die nächste Folie, die Foliennotizen, die Zeit seit dem Start und die Uhrzeit sowie eine Leiste aller Folien; ein Klick auf eine Folie in der Leiste springt dorthin. Hat der Browser das zweite Fenster blockiert, Pop-ups für diese Seite erlauben und **Präsentationsfenster** wählen. Im Präsentationsfenster füllt **Vollbild** oder **F** den Bildschirm.
 
 Beide Fenster gehorchen denselben Tasten und Schaltflächen:
 
@@ -254,7 +254,7 @@ Beide Fenster gehorchen denselben Tasten und Schaltflächen:
 
 Präsentations-Fernbedienungen, die Bild auf und Bild ab senden, funktionieren ebenfalls. **Beenden** schliesst das Präsentationsfenster und kehrt ins Album zurück.
 
-**Foliennotizen** gehören zu einem Bild: auf seiner Karte im Album **Foliennotizen hinzufügen** oder in der Referentenansicht **Notizen bearbeiten**. Wer das Bild bearbeiten darf, schreibt sie; wer das Bild sieht, liest sie. Die Notizen bleiben bei allen Versionen einer Zeichnung erhalten.
+**Foliennotizen** gehören zu einem Bild: auf seiner Karte im Album **Foliennotizen hinzufügen** oder im Referentenfenster **Notizen bearbeiten**. Wer das Bild bearbeiten darf, schreibt sie; wer das Bild sieht, liest sie. Die Notizen bleiben bei allen Versionen einer Zeichnung erhalten.
 
 Beide Fenster müssen im selben Browser auf demselben Computer laufen. Personen an anderen Orten folgen über Bildschirmfreigabe.
 
@@ -266,7 +266,7 @@ Beide Fenster müssen im selben Browser auf demselben Computer laufen. Personen 
 
 ### Live-Whiteboards
 
-Jede Zeichnung lässt sich mit **Als Whiteboard öffnen** öffnen: Bis zu 20 Personen und KI-Agenten zeichnen gleichzeitig darauf, wobei jedes Element gesperrt ist, solange jemand daran arbeitet. Ein Whiteboard bietet farbige **Notizen**, eine **Abstimmung** mit einer Anzahl Stimmen pro Person (das Ergebnis wird als Kommentar festgehalten), einen **Timer** und **Präsentieren**, dem die anderen Bild für Bild folgen. Kommentare lassen sich an einzelne Elemente setzen. Das Modul **Whiteboards** listet die Whiteboards in Verwendung und die Zeichnungen auf, die man öffnen kann; **Neues Whiteboard** erstellt eines.
+Jede Zeichnung lässt sich mit **Als Whiteboard öffnen** öffnen: Bis zu 20 Personen und KI-Agenten zeichnen gleichzeitig darauf, wobei jedes Element gesperrt ist, solange jemand daran arbeitet. Ein Whiteboard bietet farbige Notizen (**Notiz**), eine **Abstimmung** mit einer Anzahl Stimmen pro Person (das Ergebnis wird als Kommentar festgehalten), einen **Timer** und **Präsentieren**, dem die anderen Bild für Bild folgen. Kommentare lassen sich an einzelne Elemente setzen. Das Modul **Whiteboards** listet die Whiteboards in Verwendung und die Zeichnungen auf, die man öffnen kann; **Neues Whiteboard** erstellt eines.
 
 Solange Personen an einem Whiteboard arbeiten, lässt sich die Zeichnung nicht allein bearbeiten; die Seite bietet stattdessen den Beitritt an.
 
