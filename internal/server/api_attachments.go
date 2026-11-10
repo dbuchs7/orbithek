@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dbuchs7/orbithek/internal/auth"
 	"github.com/dbuchs7/orbithek/internal/budget"
 	"github.com/dbuchs7/orbithek/internal/item"
 	"github.com/dbuchs7/orbithek/internal/storage"
@@ -21,7 +22,7 @@ import (
 func attachmentRoutes(h itemHandlers) []Route {
 	return []Route{
 		{Method: http.MethodGet, Pattern: "/api/items/{ref}/attachments", Summary: "List the item's files", Handler: http.HandlerFunc(h.listAttachments)},
-		{Method: http.MethodPost, Pattern: "/api/items/{ref}/attachments", Summary: "Upload a file: the body is the content (application/octet-stream), name the file name; sourceItem and sourceAttachment name the file it is a copy or a new version of", Handler: http.HandlerFunc(h.uploadAttachment)},
+		{Method: http.MethodPost, Pattern: "/api/items/{ref}/attachments", Summary: "Upload a file: the body is the content (application/octet-stream), name the file name; sourceItem and sourceAttachment name the file it is a copy or a new version of; place=strip removes where a photo was taken, from the file and its data", Handler: http.HandlerFunc(h.uploadAttachment)},
 		{Method: http.MethodGet, Pattern: "/api/items/{ref}/attachments/{id}", Summary: "Download a file; images show inline, everything else downloads", Handler: http.HandlerFunc(h.downloadAttachment)},
 		{Method: http.MethodDelete, Pattern: "/api/items/{ref}/attachments/{id}", Summary: "Delete a file; its content is destroyed", Handler: http.HandlerFunc(h.deleteAttachment)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/labels", Summary: "Set a picture's labels (labels); they narrow the album and are no labels of the item, so no kanban or label board shows them", Handler: http.HandlerFunc(h.setPictureLabels)},
@@ -46,9 +47,9 @@ const albumLimit = 200
 // own item's files, under that item's key and access.
 func (h itemHandlers) album(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	kind, text := q.Get("kind"), strings.ToLower(strings.TrimSpace(q.Get("q")))
-	if kind != "" && kind != "image" && kind != "drawing" {
-		writeError(w, http.StatusBadRequest, "kind is image or drawing")
+	f, err := h.albumFilterOf(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	offset, limit := 0, 48
@@ -68,57 +69,14 @@ func (h itemHandlers) album(w http.ResponseWriter, r *http.Request) {
 		}
 		limit = n
 	}
-	keep := func(a item.Attachment) bool {
-		drawing := strings.HasSuffix(a.Name, DrawingSuffix)
-		return inlineTypes[a.Type] && (kind == "" || (kind == "drawing") == drawing)
-	}
-	folder := item.ID(q.Get("folder"))
-	label, _ := item.NormalLabel(q.Get("label"))
 	h.read(w, r, func(x *item.Session) (any, error) {
 		// A collection gathers by its rule from every room (ADR-0175); the
 		// other filters narrow what it gathers.
-		inRule := func(item.Picture) bool { return true }
-		if ref := q.Get("collection"); ref != "" {
-			c, err := resolveItem(x, ref)
-			if err != nil {
-				return nil, err
-			}
-			_, rule, err := x.Collection(c.ID)
-			if err != nil {
-				return nil, err
-			}
-			inRule = rule.Matches
-		}
-		match := func(p item.Picture) bool {
-			return inRule(p) && (folder == "" || p.Item.ID == folder) && (label == "" || slices.Contains(p.Attachment.Labels, label)) &&
-				(text == "" || strings.Contains(strings.ToLower(p.Attachment.Name+" "+strings.Join(p.Attachment.Labels, " ")+" "+p.Item.Key+" "+p.Item.Title), text))
+		if err := withCollection(x, &f, q.Get("collection")); err != nil {
+			return nil, err
 		}
 		// The versions of one file form a stack (ADR-0103), newest on top.
-		// Pictures come newest first, so a stack's first picture is its
-		// top. A stack shows when any of its versions matches the filter.
-		type stackKey struct{ item, first item.ID }
-		var stacks [][]item.Picture
-		at := map[stackKey]int{}
-		matched := map[int]bool{}
-		for _, p := range x.Pictures(q.Get("space"), keep) {
-			k := stackKey{p.Item.ID, p.First}
-			i, ok := at[k]
-			if !ok {
-				i = len(stacks)
-				at[k] = i
-				stacks = append(stacks, nil)
-			}
-			stacks[i] = append(stacks[i], p)
-			if match(p) {
-				matched[i] = true
-			}
-		}
-		var all [][]item.Picture
-		for i, st := range stacks {
-			if matched[i] {
-				all = append(all, st)
-			}
-		}
+		all := albumStacks(x, f)
 		type itemRef struct {
 			ID    item.ID `json:"id"`
 			Key   string  `json:"key"`
@@ -134,6 +92,12 @@ func (h itemHandlers) album(w http.ResponseWriter, r *http.Request) {
 			// it. Editable: the caller may label or delete it (ADR-0090).
 			Used     bool `json:"used"`
 			Editable bool `json:"editable"`
+			// First is the first version of the file, which names its
+			// stack; Favourite whether the caller marked it; Taken when it
+			// was taken, as the album sorts it (ADR-0177).
+			First     item.ID    `json:"first"`
+			Favourite bool       `json:"favourite"`
+			Taken     *takenJSON `json:"taken,omitempty"`
 			// Versions are the older versions of the file, newest first
 			// (ADR-0103); absent for a file with one version.
 			Versions []picture `json:"versions,omitempty"`
@@ -146,12 +110,15 @@ func (h itemHandlers) album(w http.ResponseWriter, r *http.Request) {
 		}
 		one := func(p item.Picture) picture {
 			return picture{Item: itemRef{p.Item.ID, p.Item.Key, p.Item.Title, p.Item.Space, p.Item.Type},
-				Attachment: toAttachmentJSON(p.Attachment), Drawing: strings.HasSuffix(p.Attachment.Name, DrawingSuffix), Used: p.Used, Editable: p.Editable}
+				Attachment: toAttachmentJSON(p.Attachment), Drawing: strings.HasSuffix(p.Attachment.Name, DrawingSuffix), Used: p.Used, Editable: p.Editable, First: p.First}
 		}
 		out := []picture{}
 		for _, st := range all[min(offset, len(all)):min(offset+limit, len(all))] {
 			top := one(st[0])
 			top.Notes = st[0].Notes
+			taken := takenOf(st[0].Attachment)
+			top.Taken = &taken
+			top.Favourite = f.favourites[auth.PictureRef{Item: string(st[0].Item.ID), File: string(st[0].First)}]
 			if r := st[0].Retention; r != nil {
 				rule := ruleJSON(*r)
 				top.Retention = &rule
@@ -185,6 +152,9 @@ type attachmentJSON struct {
 	Origin *copyOriginJSON `json:"origin,omitempty"`
 	// Labels are the picture's own (ADR-0090).
 	Labels []string `json:"labels,omitempty"`
+	// Photo is what the picture told about itself when it was stored
+	// (ADR-0177).
+	Photo *item.Photo `json:"photo,omitempty"`
 }
 
 type copyOriginJSON struct {
@@ -224,7 +194,7 @@ func withOrigin(x *item.Session, id item.ID, a attachmentJSON) attachmentJSON {
 
 func toAttachmentJSON(a item.Attachment) attachmentJSON {
 	return attachmentJSON{ID: a.ID, Name: a.Name, Type: a.Type, Size: a.Size, SHA256: a.SHA256, Author: a.Author,
-		Created: time.Unix(a.Created, 0).UTC(), Inline: inlineTypes[a.Type], Labels: a.Labels}
+		Created: time.Unix(a.Created, 0).UTC(), Inline: inlineTypes[a.Type], Labels: a.Labels, Photo: a.Photo}
 }
 
 func (h itemHandlers) setPictureLabels(w http.ResponseWriter, r *http.Request) {
@@ -442,7 +412,16 @@ func (h itemHandlers) uploadAttachment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	limit := budget.Get().AttachmentBytes
-	a, err := h.d.DB.StoreAttachment(id, http.MaxBytesReader(w, r.Body, limit+1), limit)
+	var body io.Reader = http.MaxBytesReader(w, r.Body, limit+1)
+	// An import may leave where a photo was taken behind (ADR-0177).
+	if r.URL.Query().Get("place") == "strip" {
+		var err error
+		if body, err = withoutPlace(body, limit); err != nil {
+			h.storeFail(w, err, limit)
+			return
+		}
+	}
+	a, err := h.d.DB.StoreAttachment(id, body, limit)
 	var tooLarge *http.MaxBytesError
 	switch {
 	case errors.Is(err, storage.ErrAttachmentTooLarge) || errors.As(err, &tooLarge):
@@ -453,6 +432,8 @@ func (h itemHandlers) uploadAttachment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.Name = name
+	// What a picture tells about itself is recorded with it (ADR-0177).
+	a.Photo = h.readPhoto(id, a)
 	if q := r.URL.Query(); q.Get("sourceItem") != "" || q.Get("sourceAttachment") != "" {
 		a.Source = &item.Source{Item: item.ID(q.Get("sourceItem")), Attachment: item.ID(q.Get("sourceAttachment"))}
 	}

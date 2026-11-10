@@ -42,6 +42,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/linkcheck"
 	"github.com/dbuchs7/orbithek/internal/mcp"
 	"github.com/dbuchs7/orbithek/internal/notify"
+	"github.com/dbuchs7/orbithek/internal/photosource"
 	"github.com/dbuchs7/orbithek/internal/privdrop"
 	"github.com/dbuchs7/orbithek/internal/server"
 	"github.com/dbuchs7/orbithek/internal/sso"
@@ -318,7 +319,19 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 	if calendarsPrivate {
 		log.Info("people's calendars may be read in the server's own network", "variable", extcal.AllowPrivateVar)
 	}
-	routes := server.Routes(server.Deps{UI: web.FS(), DB: db, Log: log, SSO: providers, Collab: live, Whiteboards: boards, LinkCheck: links, Messages: messages, OAuthRegistration: registration, CalendarFeeds: feeds, Calendars: calendars, CalendarAllowPrivate: calendarsPrivate, Backups: backups, Connectors: catalog, Engines: engines, TaskLinks: taskLinks, Connect: connect, Disk: disk})
+	// The album's photo management (ADR-0177): Google Photos through its
+	// picker with the Google client of single sign-on, when it is turned
+	// on and the public address is set; shared iCloud albums and map
+	// tiles as the environment says.
+	var photosGoogle *photosource.Google
+	if public := notifier.PublicURL(); public != "" && os.Getenv(server.PhotosGoogleVar) == "on" {
+		photosGoogle = photosource.NewGoogle(os.Getenv("OT_GOOGLE_CLIENT_ID"), os.Getenv("OT_GOOGLE_CLIENT_SECRET"), strings.TrimSuffix(public, "/")+server.GooglePhotosCallback, server.PhotoClient(os.Getenv, ""))
+	}
+	photos := server.NewPhotos(os.Getenv, photosGoogle)
+	if os.Getenv(server.PhotosGoogleVar) == "on" && photos.Google == nil {
+		log.Warn("imports from Google Photos are turned on but not set up: they need OT_GOOGLE_CLIENT_ID, OT_GOOGLE_CLIENT_SECRET and OT_PUBLIC_URL", "variable", server.PhotosGoogleVar)
+	}
+	routes := server.Routes(server.Deps{UI: web.FS(), DB: db, Log: log, SSO: providers, Collab: live, Whiteboards: boards, LinkCheck: links, Messages: messages, OAuthRegistration: registration, CalendarFeeds: feeds, Calendars: calendars, CalendarAllowPrivate: calendarsPrivate, Backups: backups, Connectors: catalog, Engines: engines, TaskLinks: taskLinks, Connect: connect, Disk: disk, Photos: photos})
 	if err := server.Serve(ctx, ln, server.BehindProxies(proxies, server.WithPublicURL(notifier.PublicURL(), server.Handler(routes, db.Accounts))), log); err != nil {
 		log.Error("server failed", "err", err)
 		return 1

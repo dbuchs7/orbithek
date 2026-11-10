@@ -116,6 +116,27 @@ type Budgets struct {
 	WhiteboardElements     int
 	WhiteboardSceneBytes   int64
 	WhiteboardRequestBytes int64
+	// PictureFavourites bounds the pictures one person marks as favourites
+	// in the album (ADR-0177).
+	PictureFavourites int
+	// ThumbnailPixels bounds the pixels of a picture the server decodes to
+	// make a thumbnail (ADR-0177); a larger one is shown whole.
+	// ThumbnailWorkers bounds how many thumbnails are made at once, and
+	// ThumbnailCacheBytes the thumbnails kept in memory.
+	ThumbnailPixels     int
+	ThumbnailWorkers    int
+	ThumbnailCacheBytes int64
+	// AlbumZipPictures and AlbumZipBytes bound one ZIP archive of chosen
+	// pictures (ADR-0177); AlbumPlaces bounds the pictures one map of the
+	// album shows.
+	AlbumZipPictures int
+	AlbumZipBytes    int64
+	AlbumPlaces      int
+	// MapTileCacheBytes bounds the map tiles kept in memory (ADR-0177).
+	MapTileCacheBytes int64
+	// PhotoImports bounds the imports from Google Photos and shared iCloud
+	// albums the server holds at once, across all people (ADR-0177).
+	PhotoImports int
 }
 
 // Default returns the budgets the server uses unless configured otherwise.
@@ -154,6 +175,15 @@ func Default() Budgets {
 		WhiteboardElements:     20_000,
 		WhiteboardSceneBytes:   48 << 20,
 		WhiteboardRequestBytes: 8 << 20,
+		PictureFavourites:      10_000,
+		ThumbnailPixels:        60_000_000,
+		ThumbnailWorkers:       2,
+		ThumbnailCacheBytes:    64 << 20,
+		AlbumZipPictures:       1000,
+		AlbumZipBytes:          2 << 30,
+		AlbumPlaces:            5000,
+		MapTileCacheBytes:      32 << 20,
+		PhotoImports:           200,
 	}
 }
 

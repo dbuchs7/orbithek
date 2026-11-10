@@ -139,6 +139,12 @@ var (
 // notes of its pictures (ADR-0176): an agent that cannot list the
 // pictures would write notes for slides it never saw; whether agents
 // read and annotate the album is a decision of its own.
+//
+// The album's photo management (ADR-0177) is not offered: thumbnails, map
+// tiles and ZIP archives are for browsers, favourites are a person's own,
+// and the imports from Google Photos and shared iCloud albums act with a
+// person's sign-in at another service. An agent finds pictures, their
+// photo data included, in the files of the items it reads.
 var tools = []tool{
 	{Name: "list_spaces", Description: "List the spaces the caller holds a role in.", Method: "GET", Path: "/api/spaces"},
 	{Name: "get_own_roles", Description: "The caller's own roles: the system roles held, and every space role granted to the caller, directly or through a group (via), one entry per grant.",
