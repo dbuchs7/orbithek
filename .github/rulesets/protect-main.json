@@ -32,7 +32,8 @@
           { "context": "fmt · vet · test (race)" },
           { "context": "cross-build (release platforms)" },
           { "context": "e2e (browser)" },
-          { "context": "DCO sign-off (humans only)" }
+          { "context": "DCO sign-off (humans only)" },
+          { "context": "Manual (user-visible changes)" }
         ]
       }
     }

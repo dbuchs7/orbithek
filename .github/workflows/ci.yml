@@ -201,3 +201,42 @@ jobs:
           mode_flag=""
           if [ "$DCO_MODE" = "advisory" ]; then mode_flag="-advisory"; fi
           go run ./cmd/dcocheck $mode_flag -pr-body-file "$RUNNER_TEMP/pr-body.txt" "$BASE_SHA" "$HEAD_SHA"
+
+  # ADR-0185, Check B: a pull request that changes what people see changes
+  # every user manual, or its description says "Manual: not needed —
+  # <reason>". Check A, that the manual names only labels the UI has, is a
+  # test in internal/web and runs with the others.
+  manual:
+    name: Manual (user-visible changes)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The whole history, so the base of the pull request is present.
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      # The description is passed through the environment and a file, never
+      # interpolated into the script, so its text cannot run as shell code.
+      #
+      # MANUAL_MODE is `advisory`: the job reports a missing manual as a
+      # warning and passes. It is a required check like every job, so it
+      # blocks only when it cannot run. Switching it to `enforce` is the
+      # maintainer's decision, recorded in ADR-0185 — never an agent's own
+      # change.
+      - name: Check the user manuals
+        env:
+          MANUAL_MODE: advisory
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          printf '%s' "$PR_BODY" > "$RUNNER_TEMP/pr-body.txt"
+          mode_flag=""
+          if [ "$MANUAL_MODE" = "advisory" ]; then mode_flag="-advisory"; fi
+          go run ./cmd/manualcheck $mode_flag -pr-body-file "$RUNNER_TEMP/pr-body.txt" "$BASE_SHA" "$HEAD_SHA"

@@ -24,7 +24,7 @@ The core idea is recorded in [ADR-0001](docs/adr/0001-unified-item-data-model.md
 
 **The MCP adapter only calls the public API** (ADR-0012). A tool is one HTTP request with the caller's credential, never an internal call; the adapter holds no credential of its own. Offering a new route as a tool is a decision: destructive, permission-changing and credential routes are deliberately not offered, and `internal/mcp/tools.go` says so.
 
-**Every user-visible UI string comes from the catalogue** (ADR-0017). Write `t("area.key", { name })` and add the key to `internal/web/static/assets/locales/en.js`, the source; add the German text to `de.js` in the same change, in Swiss spelling (ss, never ß). Keys are literals so the tests can find them. Content (titles, type, field and state names) is not translated. A change to what people see or can do updates the user manual, `internal/web/static/assets/manual/en.md` and `de.md`, in the same change; both keep the same outline of headings (ADR-0183).
+**Every user-visible UI string comes from the catalogue** (ADR-0017). Write `t("area.key", { name })` and add the key to `internal/web/static/assets/locales/en.js`, the source; add the German text to `de.js` in the same change, in Swiss spelling (ss, never ß). Keys are literals so the tests can find them. Content (titles, type, field and state names) is not translated. A change to what people see or can do updates the user manual, `internal/web/static/assets/manual/en.md` and `de.md`, in the same change; both keep the same outline of headings (ADR-0183). Two checks hold changes to this (ADR-0185). A test fails when a manual names in bold a label its catalogue does not have: rename the label in the manual as the UI now calls it, or list bold text that is no label (a key, a symbol, a concept) in `internal/web/manual_terms.txt` with a reason. On pull requests, the job `Manual (user-visible changes)` warns when catalogue values, routes, views or UI modules are added or changed and not every manual is: update the manuals, or write a line of its own `Manual: not needed — <reason>` into the pull request description.
 
 **UI code never turns a string into markup or code** (ADR-0014, ADR-0031). Create elements with `h()` from `internal/web/static/assets/dom.js`; `TestNoMarkupFromStrings` forbids `innerHTML` and its relatives. A UI change that adds a flow extends `e2e/smoke.cjs`.
 
@@ -87,10 +87,11 @@ docker build -t orbithek:dev .               # container image
 
 CI builds every release platform on every push (`cross-build`); the list must equal the matrix in [`.github/workflows/release.yml`](.github/workflows/release.yml), which `internal/repoconfig` checks. A release is cut by a `v*` tag — pushed, or created on GitHub's release page, after which the workflow attaches the archives to that release — and that is the maintainer's decision, never an agent's. A release whose archives are missing is completed by running the `Release` workflow by hand with its tag.
 
-On pull requests CI also runs the DCO check over the proposed commits. Run it locally before asking for review:
+On pull requests CI also runs the DCO check over the proposed commits, and the manual check over what they change (ADR-0185). Run them locally before asking for review:
 
 ```bash
 go run ./cmd/dcocheck origin/main HEAD
+go run ./cmd/manualcheck origin/main HEAD
 ```
 
 The repository settings on GitHub are compared with `.github/repository-settings.json` and `.github/rulesets/*.json` once a day by the `Settings drift` workflow ([ADR-0003](docs/adr/0003-repository-governance-settings.md)). A change to a setting goes into those files by pull request first and is applied on GitHub after the merge. Run the comparison locally with:
@@ -117,12 +118,13 @@ THIRD_PARTY_NOTICES.md licenses of the modules in the binary; shipped with every
 README.md          what the project is and how to run it
 SECURITY.md        how to report a vulnerability privately
 go.mod             module github.com/dbuchs7/orbithek
-.github/workflows/ CI (fmt, vet, race tests, cross-build, DCO), container image, release, settings drift
+.github/workflows/ CI (fmt, vet, race tests, cross-build, DCO, manual), container image, release, settings drift
 .github/rulesets/  ruleset protecting main, source of truth for GitHub settings (ADR-0003)
 .github/repository-settings.json  general GitHub settings (merge methods, default branch), checked daily for drift (ADR-0003)
 Dockerfile         container image: distroless, nonroot, multi-arch (ADR-0024)
 cmd/orbithek/ the product's single binary: serve, check, healthcheck, version (ADR-0024)
 cmd/dcocheck/      CLI that checks DCO sign-offs over a git range
+cmd/manualcheck/   CLI that checks a git range changes the user manuals with what people see (ADR-0185)
 cmd/settingscheck/ CLI that compares the GitHub settings with the recorded files (ADR-0003)
 internal/audit/    security audit trail, persisted in audit.wal (ADR-0029)
 internal/auth/     accounts, password hashing, sessions, API tokens, login throttle (ADR-0027)
@@ -154,6 +156,7 @@ internal/web/      embedded web UI (plain HTML, CSS, ES modules; ADR-0009, ADR-0
 internal/web/jstest/  unit tests of UI modules that run without a browser, such as the Markdown conversion, the processes in a drawing, the description of a model, the forms and decisions of an engine, the architecture sketches of releases and the fields of a form and what a start form fills in, and the starmap's filters, layout, live simulation, drill path and impact view, what a selection may protect, the bars, lanes and axis of the roadmap and Gantt chart, the page tree's symbols for pages and tasks, the labels' starmap's filters, sizes and layout, what a Word template's frame admits of runs, pictures and lengths, the parts of a live whiteboard, the formats and file names of a picture's export, the album's map, timeline, choosing, what a dragged picture takes with it and ZIP archives, the order, zoom, laser pointer, keys and messages of a presentation of pictures, the file name a download names, the user manual's outline in every language, and that the UI's symbols in `docs/brand/icons` match the code (node --test; ADR-0133, ADR-0142, ADR-0143, ADR-0144, ADR-0146, ADR-0148, ADR-0157, ADR-0158, ADR-0159, ADR-0160, ADR-0164, ADR-0165, ADR-0167, ADR-0169, ADR-0173, ADR-0176, ADR-0177, ADR-0180, ADR-0183, ADR-0184)
 internal/web/vendor/  pinned npm packages and build.sh for static/vendor/prosemirror.js (ADR-0032), excalidraw.js (ADR-0053) and bpmn-viewer.js and bpmn-modeler.js (ADR-0129), form-viewer.js and dmn-viewer.js (ADR-0144), and palettes.mjs for the drawing palettes (ADR-0117); only needed to update them
 internal/dco/      DCO sign-off rules (humans only), with tests
+internal/manualcheck/ rules of the manual check: what changes what people see, and what answers it (ADR-0185)
 internal/item/     prototype of the unified item model (ADR-0001), event-sourced, versioned event codec
 internal/migrate/  prototype of the Jira/Confluence import engine (ADR-0023)
 internal/repoconfig/ tests keeping ruleset, CI workflow and release matrix consistent
