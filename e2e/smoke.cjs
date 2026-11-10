@@ -14,6 +14,60 @@ function check(cond, msg) {
   if (!cond) throw new Error("check failed: " + msg);
 }
 
+// recordLiveStatus keeps, in the page, every text the status line of a live
+// session shows (ADR-0010), with the time since the page loaded. A message
+// such as "reloading the body" lasts only until the next save; the record
+// keeps it for the report of a failure.
+function recordLiveStatus() {
+  const log = (window.__liveStatus = []);
+  const seen = new WeakMap();
+  const note = () => {
+    for (const el of document.querySelectorAll(".live-status")) {
+      const text = el.textContent;
+      if (seen.get(el) === text) continue;
+      seen.set(el, text);
+      if (!text) continue;
+      log.push(`${Math.round(performance.now())}ms${el.classList.contains("error") ? " error" : ""}: ${text}`);
+      if (log.length > 40) log.shift();
+    }
+  };
+  new MutationObserver(note).observe(document, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["class"] });
+}
+
+// pageState describes what a failed step left on the page, so that an
+// intermittent failure can be told apart afterwards: the address and the
+// focus; per editor whether it is editable, the block kind its toolbar
+// shows, its blocks and the block the selection is in; per live session
+// whether something is unsaved, its status line and the status lines it
+// showed before.
+function pageState() {
+  const short = (s) => (s || "").replace(/\s+/g, " ").trim().slice(0, 60);
+  const name = (el) => el ? el.tagName.toLowerCase() + (el.id ? "#" + el.id : "") +
+    (typeof el.className === "string" && el.className.trim() ? "." + el.className.trim().split(/\s+/).join(".") : "") : null;
+  const sel = window.getSelection();
+  const anchor = sel && sel.anchorNode ? (sel.anchorNode.nodeType === 3 ? sel.anchorNode.parentElement : sel.anchorNode) : null;
+  return {
+    url: location.href,
+    focus: name(document.activeElement),
+    editors: [...document.querySelectorAll(".ProseMirror")].map((pm) => {
+      const blocks = [...pm.children];
+      const at = anchor && pm.contains(anchor) ? blocks.findIndex((b) => b.contains(anchor)) : null;
+      return {
+        editable: pm.contentEditable,
+        kind: pm.closest(".pm-wrap")?.querySelector(".pm-toolbar select")?.value ?? null,
+        selectionInBlock: at,
+        blocks: blocks.map((b, i) => `${i} ${name(b)}: ${short(b.textContent)}`),
+      };
+    }),
+    live: [...document.querySelectorAll(".live")].map((l) => ({
+      pending: l.dataset.pending ?? null,
+      status: short(l.querySelector(".live-status")?.textContent),
+      presence: short(l.querySelector(".live-presence")?.textContent),
+    })),
+    liveStatusSeen: window.__liveStatus || [],
+  };
+}
+
 // mailSink is a mail server that keeps every message, for the server under
 // test to send to (OT_SMTP_HOST=127.0.0.1, OT_SMTP_PORT=SMTP_SINK_PORT,
 // OT_SMTP_SECURITY=none). Without SMTP_SINK_PORT there is none.
@@ -613,6 +667,7 @@ function gitSource() {
   const repo = gitSource();
   const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
   const page = await browser.newPage();
+  await page.addInitScript(recordLiveStatus);
   const problems = [];
   page.on("pageerror", (e) => problems.push("page error: " + e.message));
   // A step that provokes an error on purpose names it here while it runs.
@@ -636,7 +691,12 @@ function gitSource() {
     problems.push("dialog: " + d.message());
     await d.dismiss();
   });
-  const step = (name) => console.log("·", name);
+  // The step running now, named in the report of a failure.
+  let current = "";
+  const step = (name) => {
+    current = name;
+    console.log("·", name);
+  };
   // painted waits until the browser has drawn what the page just changed.
   // Chrome moves the caret by the layout it has drawn: an arrow key a few
   // milliseconds after the editor rebuilt a block is sometimes lost, which
@@ -5021,6 +5081,10 @@ function gitSource() {
   } catch (err) {
     await page.screenshot({ path: "failure.png", fullPage: true }).catch(() => {});
     console.error(err.message);
+    console.error("failed in the step: " + current);
+    // What the step left on the page tells an intermittent failure apart.
+    const state = await page.evaluate(pageState).catch((e) => ({ unavailable: e.message }));
+    console.error("page state: " + JSON.stringify(state, null, 2));
     if (problems.length) console.error(problems.join("\n"));
     process.exitCode = 1;
   } finally {
