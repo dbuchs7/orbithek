@@ -231,6 +231,14 @@ Videos kommen auf denselben Wegen ins Album wie Bilder: hochgeladen, abgelegt, e
 - Der Filter **Videos** zeigt nur Videos. Als PNG oder JPEG werden sie nicht exportiert.
 - Beim Präsentieren ist ein Video eine Folie: Es zeigt sein Vorschaubild, bis die Leertaste oder ein Klick es startet, im Präsentationsfenster und nur dort mit Ton. Die Leertaste hält es wieder an; die Pfeiltasten gehen weiter. Es lässt sich nicht vergrössern und nicht mit dem Laserpointer zeigen.
 
+### Gesichter und Personen
+
+Öffnet man ein Bild, das man bearbeiten darf, sucht der Browser darauf nach Gesichtern; **Gesichter finden** im Betrachter sucht erneut. Unter **Personen auf dem Bild** hat jedes Gesicht ein Feld für den Namen: einen Namen eintippen oder einen der bereits vergebenen wählen. **Entfernen** nimmt ein Gesicht weg. Wer das Bild lesen darf, sieht die Namen und einen Rahmen um jedes Gesicht.
+
+Die Ansicht **Personen** listet alle benannten Personen mit ihrem Gesicht und der Zahl der Bilder, die sie zeigen; ein Klick öffnet das Album dieser Person, das sich auch als Folien präsentieren lässt. **Gesichter in allen Bildern finden** sucht auf jedem angezeigten Bild nach Gesichtern, das man bearbeiten darf und das noch nie durchsucht wurde. Auch auf hochgeladenen Bildern wird nach dem Hochladen nach Gesichtern gesucht.
+
+Gesichter werden im eigenen Browser gefunden; nichts wird anderswohin gesendet. Hat die Administration **Gesichter wiedererkennen** eingeschaltet, berechnet der Browser zu jedem Gesicht zusätzlich Zahlenwerte, mit denen das Album für ein Gesicht, das bereits benannten Gesichtern ähnelt, einen Namen vorschlägt, etwa *Ada?*. Diese Werte sind biometrische Daten: Man schaltet das nur ein, wenn die abgebildeten Personen einverstanden sind. Beim Ausschalten werden sie alle gelöscht; die Namen bleiben.
+
 ### Einen Ordner löschen
 
 **Ordner löschen** in einem offenen Ordner verschiebt ihn mit seinen Ordnern, Bildern und Videos in den Papierkorb, nachdem gesagt wurde, wie viel mitgeht. Seine Seite stellt ihn mit **Wiederherstellen** wieder her. Ein Ordner wird nicht gelöscht, solange etwas ausserhalb, etwa eine Seite, noch verwendet, was darin ist; das Album nennt es.

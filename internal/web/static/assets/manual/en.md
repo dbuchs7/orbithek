@@ -231,6 +231,14 @@ Videos come into the album the same ways as pictures: uploaded, dropped, pasted,
 - The kind filter **Videos** shows only videos. Videos are not exported as PNG or JPEG.
 - When presenting, a video is a slide: it shows its poster until the space bar or a click starts it, in the presentation window, with sound there only. The space bar pauses it again; the arrow keys go on. It cannot be zoomed or pointed at.
 
+### Faces and people
+
+When you open a picture you may edit, the browser looks for faces on it; **Find faces** in the viewer looks again. Under **People in the picture** each face has a field for the name: type a name, or choose one of the names given before. **Remove** takes a face away. Everyone who may read the picture sees the names, and a frame on each face.
+
+The view **People** lists everyone named, with their face and how many pictures show them; a click opens that person's album, which can be presented as slides. **Find faces in all pictures** looks for faces on every picture shown that you may edit and that was never searched. Faces are looked for on uploaded pictures too, after the upload.
+
+Faces are found in your browser; nothing is sent elsewhere. If an administrator turned on **Recognise faces again**, the browser also computes numbers from each face that let the album suggest a name, such as *Ada?*, for a face that resembles faces already named. These numbers are biometric data: turn this on only if the people shown agree. Turning it off forgets them all; the names stay.
+
 ### Deleting a folder
 
 **Delete folder** in an open folder moves it to the trash with its folders, pictures and videos, after saying how many go with it. Its page restores it with **Restore**. A folder is not deleted while something outside it, such as a page, still uses what is in it; the album names it.

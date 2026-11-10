@@ -44,10 +44,31 @@ const (
 // with it.
 const PosterSuffix = ".poster"
 
-// validFile reports whether a name is an attachment's file or its
-// poster's.
+// FacesSuffix ends the name of the file that holds what the browser
+// computed of the faces on a picture to recognise them (ADR-0194), beside
+// the picture's own file: sealed like it, kept while it is, moved and
+// removed with it, but never backed up, and forgotten as a whole when
+// recognition is turned off.
+const FacesSuffix = ".faces"
+
+// companions are the files kept beside an attachment's own.
+var companions = []string{PosterSuffix, FacesSuffix}
+
+// companionOf answers the attachment a companion file belongs to, or ""
+// for a name that is none.
+func companionOf(name string) item.ID {
+	for _, suffix := range companions {
+		if base, ok := strings.CutSuffix(name, suffix); ok && item.ValidAttachmentID(base) {
+			return item.ID(base)
+		}
+	}
+	return ""
+}
+
+// validFile reports whether a name is an attachment's file or one of its
+// companions'.
 func validFile(name item.ID) bool {
-	return item.ValidAttachmentID(strings.TrimSuffix(string(name), PosterSuffix))
+	return item.ValidAttachmentID(string(name)) || companionOf(string(name)) != ""
 }
 
 func attachmentPath(dir string, id, attachment item.ID) string {
@@ -125,6 +146,14 @@ func (db *DB) MoveAttachmentContent(from, to item.ID, want item.Attachment) erro
 		p.Close()
 		if err != nil {
 			os.Remove(attachmentPath(db.dir, to, want.ID+PosterSuffix))
+		}
+	}
+	// So does what was computed of its faces (ADR-0194).
+	if f, err := db.openFile(from, want.ID+FacesSuffix); err == nil {
+		_, err := db.sealAttachment(to, want.ID+FacesSuffix, f, maxFaceVectorBytes)
+		f.Close()
+		if err != nil {
+			os.Remove(attachmentPath(db.dir, to, want.ID+FacesSuffix))
 		}
 	}
 	return nil
@@ -376,7 +405,9 @@ func (r *attachmentReader) Close() error { return r.f.Close() }
 func (db *DB) DiscardAttachment(id, attachment item.ID) {
 	if item.ValidAttachmentID(string(attachment)) {
 		os.Remove(attachmentPath(db.dir, id, attachment))
-		os.Remove(attachmentPath(db.dir, id, attachment+PosterSuffix))
+		for _, suffix := range companions {
+			os.Remove(attachmentPath(db.dir, id, attachment+item.ID(suffix)))
+		}
 	}
 }
 
@@ -390,7 +421,9 @@ func (db *DB) removeAttachments(items []item.ID, files map[item.ID][]item.ID) {
 	for id, list := range files {
 		for _, a := range list {
 			os.Remove(attachmentPath(db.dir, id, a))
-			os.Remove(attachmentPath(db.dir, id, a+PosterSuffix))
+			for _, suffix := range companions {
+				os.Remove(attachmentPath(db.dir, id, a+item.ID(suffix)))
+			}
 		}
 	}
 }
@@ -420,7 +453,7 @@ func (db *DB) healAttachments() (int, error) {
 		}
 		for _, f := range files {
 			name := item.ID(f.Name())
-			if !need[name] && !(strings.HasSuffix(f.Name(), PosterSuffix) && need[name[:len(name)-len(PosterSuffix)]]) || strings.HasSuffix(f.Name(), ".tmp") {
+			if !need[name] && !need[companionOf(f.Name())] || strings.HasSuffix(f.Name(), ".tmp") {
 				if err := os.Remove(filepath.Join(root, d.Name(), f.Name())); err != nil {
 					return removed, err
 				}

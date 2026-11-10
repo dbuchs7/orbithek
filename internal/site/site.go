@@ -153,6 +153,8 @@ type event struct {
 	Calendars *Calendars `json:"calendars,omitempty"`
 	// Places is set by PlacesSet (ADR-0181).
 	Places *Places `json:"places,omitempty"`
+	// Faces is set by FacesSet (ADR-0194).
+	Faces *Faces `json:"faces,omitempty"`
 }
 
 const (
@@ -185,6 +187,9 @@ const (
 	// placesSet turns the place search of places set by hand off or on
 	// (ADR-0181).
 	placesSet = "PlacesSet"
+	// facesSet turns the recognition of faces in the album on or off
+	// (ADR-0194).
+	facesSet = "FacesSet"
 )
 
 // Settings is safe for concurrent use.
@@ -210,6 +215,7 @@ type Settings struct {
 	// (ADR-0174).
 	calendars Calendars
 	places    Places
+	faces     Faces
 	// engines are the process engines by ID (ADR-0129).
 	engines map[string]Engine
 	// taskLinks are the task links of the engines, by engine ID
@@ -317,6 +323,11 @@ func (s *Settings) apply(e event) error {
 			return errors.New("a places event without its setting")
 		}
 		s.places = *e.Places
+	case facesSet:
+		if e.Faces == nil {
+			return errors.New("a faces event without its setting")
+		}
+		s.faces = *e.Faces
 	default:
 		return fmt.Errorf("unknown event %q", e.Kind)
 	}

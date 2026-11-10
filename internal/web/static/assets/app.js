@@ -5940,7 +5940,7 @@ async function adminView() {
 
   const storageSection = section("storage", t("storage.title"), await storageCard());
   const calendarsSection = section("calendars", t("extcal.adminTitle"), await calendarsCard());
-  const albumSection = section("album", t("retention.title"), await retentionCard(), await placesCard());
+  const albumSection = section("album", t("retention.title"), await retentionCard(), await placesCard(), await facesCard());
   const catalogSection = section("connectors", t("connector.title"), connectorsCard(spaces, users));
   const enginesSection = section("engines", t("engine.title"), enginesCard());
   const designSection = section("design", t("design.title"), await designCard());
@@ -6051,6 +6051,30 @@ async function placesCard() {
     }),
     done);
   draw(await get("/api/settings/places"));
+  return box;
+}
+
+// facesCard turns the recognition of faces in the album on or off
+// (ADR-0194). Turning it off forgets every vector computed of a face,
+// after asking; the names given to faces stay.
+async function facesCard() {
+  const box = h("div", { id: "faces-settings" });
+  const done = h("div", { class: "status", role: "status" });
+  const draw = (s) => box.replaceChildren(
+    h("h3", { text: t("faces.adminTitle") }),
+    form({ id: "faces-form" }, [
+      h("label", { class: "check" }, h("input", { type: "checkbox", name: "recognition", id: "faces-recognition", checked: s.recognition }), t("faces.adminAllow")),
+      h("p", { class: "muted", text: t("faces.adminHelp") }),
+      h("button", { type: "submit", text: t("common.save") }),
+    ], async (d) => {
+      const on = d.get("recognition") === "on";
+      if (s.recognition && !on && !confirm(t("faces.adminOffConfirm"))) return draw(s);
+      const r = await put("/api/settings/faces", { recognition: on });
+      draw(r);
+      done.replaceChildren(h("p", { class: "notice", text: on ? t("faces.adminOn") : t("faces.adminOff", { n: r.forgotten || 0 }) }));
+    }),
+    done);
+  draw(await get("/api/settings/faces"));
   return box;
 }
 

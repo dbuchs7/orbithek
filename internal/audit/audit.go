@@ -64,7 +64,10 @@ const (
 	PhotosGoogleConnected = "photos.google.connect"
 	// PlacesChanged records an administrator turning the place search of
 	// places set by hand off or on (ADR-0181).
-	PlacesChanged   = "places.change"
+	PlacesChanged = "places.change"
+	// FacesChanged records an administrator turning the recognition of
+	// faces in the album on or off (ADR-0194).
+	FacesChanged    = "faces.change"
 	UserCreated     = "user.create"
 	RoleGranted     = "role.grant"
 	SystemRole      = "system-role.grant"
