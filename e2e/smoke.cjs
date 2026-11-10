@@ -702,6 +702,18 @@ function gitSource() {
     await page.reload();
     await page.waitForSelector("#welcome, #app h1");
 
+    step("manual: the account menu opens the user manual, with its contents, in English and German (ADR-0182)");
+    await page.click("#account-button");
+    await page.click("#account-menu a[href='#/manual']");
+    await page.waitForSelector("#manual .pm-toc li");
+    check(await page.locator("#manual h1").first().textContent() === "Orbithek user manual", "the manual opens in the UI's language");
+    await page.click("#manual-languages a[href='#/manual?lang=de']");
+    await page.waitForSelector("#manual[lang=de] .pm-toc li");
+    check(await page.locator("#manual h1").first().textContent() === "Orbithek-Benutzerhandbuch", "the German manual is a click away");
+    check(await page.locator("#manual .ProseMirror[contenteditable=true]").count() === 0, "the manual is read, not edited");
+    await page.goto(base + "/#/");
+    await page.waitForSelector("#welcome, #app h1");
+
     step("administration: space, type, user, role");
     await page.click("#account-button");
     await page.click("#account-menu a[href='#/admin']");
@@ -1748,7 +1760,7 @@ function gitSource() {
     await page.click("#album .album-timeline .album-card:has(.album-name:text-is('holiday')) .album-open");
     await page.waitForSelector("dialog.photo-viewer[open] .photo-facts");
     check((await page.textContent("dialog.photo-viewer .photo-viewer-title")) === "holiday", "the viewer shows the picture chosen");
-    // A place set by hand, on the map: a click sets the point (ADR-0181).
+    // A place set by hand, on the map: a click sets the point (ADR-0182).
     await page.click("#photo-place-map");
     await page.waitForSelector("dialog.place-picker[open] canvas");
     const pickBox = await page.locator("dialog.place-picker canvas").boundingBox();
@@ -1774,7 +1786,7 @@ function gitSource() {
     // The album is left at its top, as the steps after it begin there.
     await page.click("#album .album-trail button:has-text('All pictures')");
     await page.waitForSelector("#album .album-folder:has-text('Logos')");
-    // Administrators see the place search on, and may turn it off (ADR-0181).
+    // Administrators see the place search on, and may turn it off (ADR-0182).
     await page.goto(base + "/#/admin");
     await page.waitForSelector("#places-search", { state: "attached" });
     check(await page.isChecked("#places-search"), "the place search is on until administrators turn it off");

@@ -2,7 +2,7 @@
 // data through the HTTP API. Plain ES modules, no build step.
 import { api, get, post, put, del, download, upload, ApiError } from "./api.js";
 import { h, mount, when } from "./dom.js";
-import { createEditor, setSecretClass, setVeiledContent } from "./editor.js";
+import { createEditor, isSafeLink, setSecretClass, setVeiledContent } from "./editor.js";
 import { protectChoices } from "./protect.js";
 import { liveBody, watchLive } from "./live.js";
 import { pageTree, ancestors } from "./tree.js";
@@ -26,6 +26,7 @@ import { connectionsCard, silentConnect } from "./engineconn.js";
 import { freshNotice, taskDialog, taskPanel } from "./taskdialog.js";
 import { finishing } from "./taskparts.js";
 import { documentView, upgradeTemplate, wordTemplatesCard } from "./wordtemplates.js";
+import { manualBlocks, manualLanguage, manualLanguages, manualPath } from "./manual.js";
 
 const app = document.getElementById("app");
 const nav = document.getElementById("nav");
@@ -1454,7 +1455,8 @@ function popupMenu(button, menu) {
 
 // accountMenu is the account's button in the header: the profile picture
 // or initials, opening a menu with the account, the AI assistants, the
-// administration for administrators, and signing out.
+// user manual (ADR-0182), the administration for administrators, and
+// signing out.
 function accountMenu() {
   const button = h("button", { type: "button", id: "account-button", class: "account-button", "aria-haspopup": "menu", "aria-expanded": "false",
     "aria-controls": "account-menu", title: t("nav.accountOf", { name: me.user.username }), "aria-label": t("nav.accountOf", { name: me.user.username }) },
@@ -1469,6 +1471,7 @@ function accountMenu() {
       h("div", {}, h("strong", { text: me.user.username }), roles.length ? h("div", { class: "muted", text: roles.join(", ") }) : null)),
     item("#/account", t("nav.accountPage")),
     item("#/mcp", t("nav.mcp")),
+    item("#/manual", t("nav.manual")),
     me.admin ? item("#/admin", me.requests ? t("nav.adminRequests", { n: me.requests }) : t("nav.admin")) : null,
     h("hr"),
     h("button", { type: "button", role: "menuitem", tabindex: "-1", class: "link", id: "logout", text: t("nav.logout"),
@@ -1641,6 +1644,7 @@ async function route() {
       case "query": return await queryView(params);
       case "account": return await accountView();
       case "mcp": return await mcpView();
+      case "manual": return await manualView(params);
       case "oauth": return await oauthView(params);
       case "admin": return await adminView();
       case "members": return await membersView(arg);
@@ -2096,6 +2100,29 @@ async function myNotesView() {
     h("p", { class: "muted", text: t("note.private") }),
     notes.length ? filtered(list, { id: "mynotes", label: t("note.title") }) : empty(t("note.noneAnywhere"), "my-notes-empty"),
   );
+}
+
+// --- user manual (ADR-0182) -----------------------------------------------------
+
+// manualView shows the user manual read-only, with a table of contents, in
+// the language the address asks for or else the UI's; the other languages
+// are a link away.
+async function manualView(params) {
+  const show = screen();
+  const lang = manualLanguage(params.get("lang") || "", language());
+  const res = await fetch(manualPath(lang), { credentials: "same-origin", cache: "no-cache" });
+  if (!res.ok) throw new Error(t("manual.missing"));
+  const text = await res.text();
+  const { title, blocks } = manualBlocks(text, isSafeLink);
+  const body = createEditor({ blocks, embeds: [], editable: false, resolve: async () => null, childPages: [], files: null }).element;
+  const others = languages.filter((l) => manualLanguages.includes(l.code));
+  show(h("article", { class: "manual", id: "manual", lang },
+    h("div", { class: "page-head" }, h("h1", { text: title || t("nav.manual") }),
+      h("nav", { class: "manual-languages", id: "manual-languages", "aria-label": t("manual.languages") },
+        others.map((l) => (l.code === lang
+          ? h("strong", { "aria-current": "page", text: l.name })
+          : link("#/manual?lang=" + encodeURIComponent(l.code), l.name))))),
+    body));
 }
 
 // --- spaces ------------------------------------------------------------------
