@@ -1727,6 +1727,8 @@ function gitSource() {
     };
     await page.click("#album .album-folder:has-text('Logos')");
     await page.waitForSelector("#album-upload");
+    // The place is left behind on import, a choice this browser keeps (ADR-0176).
+    await page.check("#album-strip-place");
     await page.setInputFiles("#album-files", { name: "export.zip", mimeType: "application/zip", buffer: storedZip([["Export/holiday.png", png], ["Export/IMG_2.HEIC", Buffer.from("heic")], ["__MACOSX/._holiday.png", Buffer.from("x")]]) });
     const holiday = "#album .album-card:has(.album-name:text-is('holiday'))";
     await page.waitForSelector(holiday);
@@ -1734,6 +1736,8 @@ function gitSource() {
     const imported = await page.textContent("#album .status");
     check(imported.includes("1 picture brought in.") && imported.includes("1 HEIC photo skipped"), "the archive's picture comes in and the HEIC photo is skipped with advice: " + imported);
     check((await page.getAttribute(holiday + " .album-thumb img", "src")).endsWith("/thumbnail?edge=400"), "the album shows thumbnails");
+    check(await page.isChecked("#album-strip-place"), "the choice to remove the place stays after the import");
+    await page.uncheck("#album-strip-place");
     await page.click(holiday + " .album-favourite");
     await page.waitForSelector(holiday + " .album-favourite[aria-pressed=true]");
     await page.click("#album-view-favourites");

@@ -2,6 +2,7 @@ package server
 
 import (
 	"archive/zip"
+	"bytes"
 	"cmp"
 	"context"
 	"crypto/subtle"
@@ -44,10 +45,10 @@ func photoRoutes(h itemHandlers) []Route {
 		{Method: http.MethodGet, Pattern: GooglePhotosCallback, Summary: "Google's redirect back after one allowed or refused an import; bound to the browser that began it, it goes on to the album", Access: Public, Handler: http.HandlerFunc(h.googlePhotosCallback)},
 		{Method: http.MethodPost, Pattern: "/api/album/google/sessions", Summary: "Open a picker at Google: answers its id and the address where one chooses photos", Handler: http.HandlerFunc(h.googleSession)},
 		{Method: http.MethodGet, Pattern: "/api/album/google/sessions/{id}", Summary: "Whether the photos are chosen in a picker; once they are, the chosen media (id, name, type, taken, video)", Handler: http.HandlerFunc(h.googlePoll)},
-		{Method: http.MethodPost, Pattern: "/api/album/google/sessions/{id}/import", Summary: "Bring one chosen photo (media) into a folder (folder) as one's own upload; skipped when the folder holds the same picture", Handler: http.HandlerFunc(h.googleImport)},
+		{Method: http.MethodPost, Pattern: "/api/album/google/sessions/{id}/import", Summary: "Bring one chosen photo (media) into a folder (folder) as one's own upload; skipped when the folder holds the same picture; strip removes where it was taken", Handler: http.HandlerFunc(h.googleImport)},
 		{Method: http.MethodDelete, Pattern: "/api/album/google/sessions/{id}", Summary: "Close a picker at Google", Handler: http.HandlerFunc(h.googleClose)},
 		{Method: http.MethodPost, Pattern: "/api/album/icloud/albums", Summary: "Read a shared iCloud album by its public address (url): its name and photos (guid, caption, created, video)", Handler: http.HandlerFunc(h.icloudAlbum)},
-		{Method: http.MethodPost, Pattern: "/api/album/icloud/import", Summary: "Bring one photo (photo, its guid) of a shared iCloud album read before (url) into a folder (folder) as one's own upload; skipped when the folder holds the same picture", Handler: http.HandlerFunc(h.icloudImport)},
+		{Method: http.MethodPost, Pattern: "/api/album/icloud/import", Summary: "Bring one photo (photo, its guid) of a shared iCloud album read before (url) into a folder (folder) as one's own upload; skipped when the folder holds the same picture; strip removes where it was taken", Handler: http.HandlerFunc(h.icloudImport)},
 	}
 }
 
@@ -91,6 +92,33 @@ func (h itemHandlers) readPhoto(id item.ID, a item.Attachment) *item.Photo {
 	}
 	defer c.Close()
 	return photoOf(photo.Read(c, a.Type))
+}
+
+// errPlaceStays refuses a picture whose place could not be removed.
+var errPlaceStays = errors.New("the place this picture was taken could not be removed from it, so it was not stored")
+
+// withoutPlace reads a picture whole, up to limit bytes (one more tells it
+// is too large), and answers it without where it was taken (ADR-0176): the
+// GPS data of its EXIF emptied and its XMP dropped. What is no picture is
+// answered as it is; a picture that still tells a place afterwards is
+// refused, never stored with it.
+func withoutPlace(body io.Reader, limit int64) (io.Reader, error) {
+	data, err := io.ReadAll(io.LimitReader(body, limit+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) > limit {
+		return nil, storage.ErrAttachmentTooLarge
+	}
+	kind := http.DetectContentType(data)
+	if !inlineTypes[kind] {
+		return bytes.NewReader(data), nil
+	}
+	out := photo.StripPlace(data, kind)
+	if m := photo.Read(bytes.NewReader(out), kind); m.Lat != nil || m.Lon != nil {
+		return nil, errPlaceStays
+	}
+	return bytes.NewReader(out), nil
 }
 
 func (h itemHandlers) photoData(w http.ResponseWriter, r *http.Request) {
@@ -601,7 +629,7 @@ func (h itemHandlers) photoImports(w http.ResponseWriter, r *http.Request) {
 // as the caller's upload: only a picture the album shows, not one the
 // folder holds already. fallback is what the service tells when the file
 // does not: the time it was taken.
-func (h itemHandlers) importInto(w http.ResponseWriter, r *http.Request, folder, name string, body io.Reader, taken time.Time) {
+func (h itemHandlers) importInto(w http.ResponseWriter, r *http.Request, folder, name string, body io.Reader, taken time.Time, strip bool) {
 	var id item.ID
 	var check error
 	h.d.DB.Read(func(s *item.Store) {
@@ -617,8 +645,18 @@ func (h itemHandlers) importInto(w http.ResponseWriter, r *http.Request, folder,
 		return
 	}
 	limit := budget.Get().AttachmentBytes
+	if strip {
+		var err error
+		if body, err = withoutPlace(body, limit); err != nil {
+			h.storeFail(w, err, limit)
+			return
+		}
+	}
 	a, err := h.d.DB.StoreAttachment(id, body, limit)
 	switch {
+	case errors.Is(err, errPlaceStays):
+		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		return
 	case errors.Is(err, storage.ErrAttachmentTooLarge), errors.Is(err, photosource.ErrTooLarge):
 		writeError(w, http.StatusRequestEntityTooLarge, fmt.Sprintf("a file may have at most %d bytes", limit))
 		return
@@ -659,6 +697,21 @@ func (h itemHandlers) importInto(w http.ResponseWriter, r *http.Request, folder,
 		}
 		return map[string]any{"skipped": false, "attachment": toAttachmentJSON(got)}, nil
 	})
+}
+
+// storeFail answers a picture that could not be read to remove its place.
+func (h itemHandlers) storeFail(w http.ResponseWriter, err error, limit int64) {
+	var tooLarge *http.MaxBytesError
+	switch {
+	case errors.Is(err, errPlaceStays):
+		writeError(w, http.StatusUnprocessableEntity, err.Error())
+	case errors.Is(err, storage.ErrAttachmentTooLarge), errors.Is(err, photosource.ErrTooLarge), errors.As(err, &tooLarge):
+		writeError(w, http.StatusRequestEntityTooLarge, fmt.Sprintf("a file may have at most %d bytes", limit))
+	case errors.Is(err, photosource.ErrUnreadable), errors.Is(err, photosource.ErrNotConnected):
+		writeError(w, http.StatusBadGateway, "the photo could not be read from the service")
+	default:
+		h.fail(w, err)
+	}
 }
 
 // importName is a file name the item model takes: the service's name
@@ -844,6 +897,8 @@ func (h itemHandlers) googleImport(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Media  string `json:"media"`
 		Folder string `json:"folder"`
+		// Strip removes where the photo was taken (ADR-0176).
+		Strip bool `json:"strip"`
 	}
 	if !decode(w, r, &req) {
 		return
@@ -857,7 +912,7 @@ func (h itemHandlers) googleImport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer body.Close()
-	h.importInto(w, r, req.Folder, m.Name, body, m.Taken)
+	h.importInto(w, r, req.Folder, m.Name, body, m.Taken, req.Strip)
 }
 
 // mayImportInto refuses an import into an item the caller may not add
@@ -953,6 +1008,8 @@ func (h itemHandlers) icloudImport(w http.ResponseWriter, r *http.Request) {
 		URL    string `json:"url"`
 		Photo  string `json:"photo"`
 		Folder string `json:"folder"`
+		// Strip removes where the photo was taken (ADR-0176).
+		Strip bool `json:"strip"`
 	}
 	if !decode(w, r, &req) {
 		return
@@ -981,5 +1038,5 @@ func (h itemHandlers) icloudImport(w http.ResponseWriter, r *http.Request) {
 	if p.Caption != "" {
 		name = strings.TrimSpace(p.Caption)
 	}
-	h.importInto(w, r, req.Folder, name, body, p.Created)
+	h.importInto(w, r, req.Folder, name, body, p.Created, req.Strip)
 }

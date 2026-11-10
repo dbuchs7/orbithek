@@ -22,7 +22,7 @@ import (
 func attachmentRoutes(h itemHandlers) []Route {
 	return []Route{
 		{Method: http.MethodGet, Pattern: "/api/items/{ref}/attachments", Summary: "List the item's files", Handler: http.HandlerFunc(h.listAttachments)},
-		{Method: http.MethodPost, Pattern: "/api/items/{ref}/attachments", Summary: "Upload a file: the body is the content (application/octet-stream), name the file name; sourceItem and sourceAttachment name the file it is a copy or a new version of", Handler: http.HandlerFunc(h.uploadAttachment)},
+		{Method: http.MethodPost, Pattern: "/api/items/{ref}/attachments", Summary: "Upload a file: the body is the content (application/octet-stream), name the file name; sourceItem and sourceAttachment name the file it is a copy or a new version of; place=strip removes where a photo was taken, from the file and its data", Handler: http.HandlerFunc(h.uploadAttachment)},
 		{Method: http.MethodGet, Pattern: "/api/items/{ref}/attachments/{id}", Summary: "Download a file; images show inline, everything else downloads", Handler: http.HandlerFunc(h.downloadAttachment)},
 		{Method: http.MethodDelete, Pattern: "/api/items/{ref}/attachments/{id}", Summary: "Delete a file; its content is destroyed", Handler: http.HandlerFunc(h.deleteAttachment)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/labels", Summary: "Set a picture's labels (labels); they narrow the album and are no labels of the item, so no kanban or label board shows them", Handler: http.HandlerFunc(h.setPictureLabels)},
@@ -395,7 +395,16 @@ func (h itemHandlers) uploadAttachment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	limit := budget.Get().AttachmentBytes
-	a, err := h.d.DB.StoreAttachment(id, http.MaxBytesReader(w, r.Body, limit+1), limit)
+	var body io.Reader = http.MaxBytesReader(w, r.Body, limit+1)
+	// An import may leave where a photo was taken behind (ADR-0176).
+	if r.URL.Query().Get("place") == "strip" {
+		var err error
+		if body, err = withoutPlace(body, limit); err != nil {
+			h.storeFail(w, err, limit)
+			return
+		}
+	}
+	a, err := h.d.DB.StoreAttachment(id, body, limit)
 	var tooLarge *http.MaxBytesError
 	switch {
 	case errors.Is(err, storage.ErrAttachmentTooLarge) || errors.As(err, &tooLarge):

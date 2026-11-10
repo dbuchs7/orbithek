@@ -172,10 +172,22 @@ export async function copyTo(p, folder, move) {
   return false;
 }
 
+// stripPlace is whether imports leave where a photo was taken behind
+// (ADR-0176), as this browser remembers it; with on it is set.
+export function stripPlace(on) {
+  try {
+    if (on !== undefined) localStorage.setItem("ot.stripPlace", on ? "on" : "");
+    return localStorage.getItem("ot.stripPlace") === "on";
+  } catch {
+    return !!on;
+  }
+}
+
 // importFiles uploads chosen or dropped files into a folder: pictures as
 // they are, ZIP archives unpacked here first. HEIC photos and other files
-// are skipped and counted. progress is told each step.
-export async function importFiles(files, folder, progress) {
+// are skipped and counted. progress is told each step; with strip, the
+// server removes where each photo was taken, from the file and its data.
+export async function importFiles(files, folder, progress, strip = false) {
   const sum = { done: 0, heic: 0, skipped: 0, failed: [] };
   const queue = [];
   for (const f of files) {
@@ -201,7 +213,7 @@ export async function importFiles(files, folder, progress) {
     progress(t("photos.uploading", { n: n + 1, total: queue.length, name: q.name }));
     try {
       const blob = await q.read();
-      await upload(`/api/items/${folder}`, blob instanceof File ? blob : new File([blob], q.name, { type: blob.type }));
+      await upload(`/api/items/${folder}`, blob instanceof File ? blob : new File([blob], q.name, { type: blob.type }), null, strip ? { place: "strip" } : {});
       sum.done++;
     } catch (err) { sum.failed.push(`${q.name}: ${err.message}`); }
   }
@@ -221,7 +233,7 @@ const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 // into a folder. The picker opens in a window opened at once, while the
 // click still counts, and given its address once Google answers; the
 // album then waits until the photos are chosen.
-export async function googleImport(folder, progress, cancelled = () => false) {
+export async function googleImport(folder, progress, cancelled = () => false, strip = false) {
   const win = window.open("", "_blank");
   let session;
   try {
@@ -249,7 +261,7 @@ export async function googleImport(folder, progress, cancelled = () => false) {
       if (m.video) { sum.videos++; continue; }
       progress(t("photos.uploading", { n: n + 1, total: items.length, name: m.name }));
       try {
-        const r = await post(`/api/album/google/sessions/${encodeURIComponent(session.id)}/import`, { media: m.id, folder });
+        const r = await post(`/api/album/google/sessions/${encodeURIComponent(session.id)}/import`, { media: m.id, folder, strip });
         if (r.skipped) sum.duplicates++;
         else sum.done++;
       } catch (err) {
@@ -265,7 +277,7 @@ export async function googleImport(folder, progress, cancelled = () => false) {
 
 // icloudImport reads a shared iCloud album by its address and brings its
 // photos into a folder; giving the address again brings only new ones.
-export async function icloudImport(address, folder, progress, cancelled = () => false) {
+export async function icloudImport(address, folder, progress, cancelled = () => false, strip = false) {
   progress(t("photos.icloudReading"));
   const album = await post("/api/album/icloud/albums", { url: address });
   const sum = { done: 0, duplicates: 0, videos: 0, heic: 0, skipped: 0, failed: [], name: album.name };
@@ -274,7 +286,7 @@ export async function icloudImport(address, folder, progress, cancelled = () => 
     if (p.video) { sum.videos++; continue; }
     progress(t("photos.uploading", { n: n + 1, total: album.photos.length, name: p.caption || album.name }));
     try {
-      const r = await post("/api/album/icloud/import", { url: address, photo: p.guid, folder });
+      const r = await post("/api/album/icloud/import", { url: address, photo: p.guid, folder, strip });
       if (r.skipped) sum.duplicates++;
       else sum.done++;
     } catch (err) {

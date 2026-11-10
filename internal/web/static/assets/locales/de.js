@@ -870,6 +870,8 @@ export default {
   "photos.mapNoTiles": "Es ist kein Kartenhintergrund eingerichtet; die Administration nennt einen Kacheldienst.",
   "photos.zoomIn": "Vergrössern",
   "photos.zoomOut": "Verkleinern",
+  "photos.stripPlace": "Ort beim Import entfernen",
+  "photos.stripPlaceTitle": "Importierte Fotos behalten nicht, wo sie aufgenommen wurden: Der Ort wird aus der Datei und ihren Daten entfernt. Zeit und Kamera bleiben.",
   "editor.copiedPicture": "Kopiertes Bild",
   "editor.noClip": "Zuerst im Album ein Bild kopieren.",
   "editor.clipGone": "Das kopierte Bild gibt es nicht mehr, oder Sie dürfen es nicht lesen.",

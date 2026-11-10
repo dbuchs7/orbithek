@@ -10,6 +10,7 @@ import (
 	"image/color"
 	"image/jpeg"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -18,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/dbuchs7/orbithek/internal/budget"
+	"github.com/dbuchs7/orbithek/internal/photo"
 	"github.com/dbuchs7/orbithek/internal/photosource"
 )
 
@@ -543,7 +545,10 @@ func TestPhotosChosenInGooglePhotosComeIntoAFolder(t *testing.T) {
 		t.Fatalf("picked %v", p)
 	}
 	w.vera.expect("GET", "/api/album/google/sessions/S1", "", http.StatusNotFound) // another's picker is no picker
-	got := w.bert.expect("POST", "/api/album/google/sessions/S1/import", `{"media":"M1","folder":"`+w.folder+`"}`, http.StatusCreated)
+	got := w.bert.expect("POST", "/api/album/google/sessions/S1/import", `{"media":"M1","folder":"`+w.folder+`","strip":true}`, http.StatusCreated)
+	if got["attachment"].(map[string]any)["photo"].(map[string]any)["lat"] != nil {
+		t.Errorf("the place stayed: %v", got)
+	}
 	if a := got["attachment"].(map[string]any); a["name"] != "IMG_1.jpg" || a["photo"].(map[string]any)["taken"] != "2024-05-01T13:22:10" {
 		t.Errorf("imported %v", got)
 	}
@@ -587,5 +592,57 @@ func TestByteCacheKeepsTheNewest(t *testing.T) {
 	}
 	if _, _, ok := c.get("f"); !ok {
 		t.Error("the newest was dropped")
+	}
+}
+
+// TestThePlaceIsLeftBehindOnRequest: with place=strip an upload keeps
+// neither the place in its photo data nor in the stored file, and keeps
+// what is no place; without it the place stays; what is no picture is
+// stored as it is (ADR-0176).
+func TestThePlaceIsLeftBehindOnRequest(t *testing.T) {
+	w := newPhotoWorld(t)
+	lake := exifJPEG(t, "2024:05:01 13:22:10", 46.5584, 7.8352, 64)
+	r := w.bert.upload("/api/items/"+w.folder+"/attachments?name=lake.jpg&place=strip", "application/octet-stream", lake)
+	if r.Code != http.StatusCreated {
+		t.Fatalf("upload: %d %s", r.Code, r.Body)
+	}
+	var out map[string]any
+	_ = json.Unmarshal(r.Body.Bytes(), &out)
+	a := out["attachment"].(map[string]any)
+	p := a["photo"].(map[string]any)
+	if p["lat"] != nil || p["lon"] != nil || p["taken"] != "2024-05-01T13:22:10" {
+		t.Errorf("photo data %v", p)
+	}
+	stored := w.bert.do("GET", "/api/items/"+w.folder+"/attachments/"+a["id"].(string), "")
+	if m := photo.Read(bytes.NewReader(stored.Body.Bytes()), "image/jpeg"); m.Lat != nil || m.Taken == "" {
+		t.Errorf("the stored file still tells %+v", m)
+	}
+	if _, err := jpeg.Decode(bytes.NewReader(stored.Body.Bytes())); err != nil {
+		t.Errorf("the stored picture no longer decodes: %v", err)
+	}
+	if got := w.put(t, "kept.jpg", exifJPEG(t, "2024:05:01 13:22:10", 46.5584, 7.8352, 66)); got["photo"].(map[string]any)["lat"] == nil {
+		t.Error("without the option the place went")
+	}
+	if r := w.bert.upload("/api/items/"+w.folder+"/attachments?name=notes.txt&place=strip", "application/octet-stream", []byte("plain text")); r.Code != http.StatusCreated {
+		t.Errorf("a text file: %d", r.Code)
+	}
+	bud := budget.Get()
+	bud.AttachmentBytes = 50
+	budget.Set(bud)
+	t.Cleanup(func() { budget.Set(budget.Default()) })
+	if r := w.bert.upload("/api/items/"+w.folder+"/attachments?name=big.jpg&place=strip", "application/octet-stream", lake); r.Code != http.StatusRequestEntityTooLarge {
+		t.Errorf("too large: %d", r.Code)
+	}
+}
+
+func TestStoreFailures(t *testing.T) {
+	w := newPhotoWorld(t)
+	h := itemHandlers{d: w.deps, log: slog.New(slog.DiscardHandler)}
+	for err, status := range map[error]int{errPlaceStays: 422, photosource.ErrTooLarge: 413, photosource.ErrUnreadable: 502, io.ErrUnexpectedEOF: 500} {
+		rec := httptest.NewRecorder()
+		h.storeFail(rec, err, 10)
+		if rec.Code != status {
+			t.Errorf("%v: %d, want %d", err, rec.Code, status)
+		}
 	}
 }

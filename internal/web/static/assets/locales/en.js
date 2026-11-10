@@ -872,6 +872,8 @@ export default {
   "photos.mapNoTiles": "No map background is set up; the administrator names a tile service.",
   "photos.zoomIn": "Zoom in",
   "photos.zoomOut": "Zoom out",
+  "photos.stripPlace": "Remove the place on import",
+  "photos.stripPlaceTitle": "Photos brought into this album keep no record of where they were taken: the place is removed from the file and its data. Time and camera stay.",
   "editor.copiedPicture": "Copied picture",
   "editor.noClip": "Copy a picture in the album first.",
   "editor.clipGone": "The copied picture is no longer there, or you may not read it.",

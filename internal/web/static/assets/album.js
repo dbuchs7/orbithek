@@ -16,7 +16,7 @@ import { t } from "./i18n.js";
 import { get, post, put, del, upload } from "./api.js";
 import { DRAWING } from "./drawing.js";
 import { exportFormats, exportPicture } from "./picexport.js";
-import { allFolders, copyTo, dayText, googleImport, icloudImport, importFiles, monthText, openViewer, rememberedAlbum, setFavourite, summaryText, thumbURL, zipPictures } from "./photos.js";
+import { allFolders, copyTo, dayText, googleImport, icloudImport, importFiles, monthText, openViewer, rememberedAlbum, setFavourite, stripPlace, summaryText, thumbURL, zipPictures } from "./photos.js";
 import { groups, range, yearsAgo } from "./photoparts.js";
 import { photoMap } from "./photomap.js";
 
@@ -580,6 +580,7 @@ export function albumBrowser({ pick } = {}) {
       here() && imports.google ? h("button", { type: "button", class: "secondary", id: "album-google", text: t("photos.fromGoogle"), onclick: fromGoogle }) : null,
       here() && imports.icloud ? h("button", { type: "button", class: "secondary", id: "album-icloud", text: t("photos.fromICloud"), onclick: fromICloud }) : null,
       here() ? h("span", { class: "muted album-drop-hint", text: t("photos.dropHint") }) : h("span", { class: "muted", text: t("album.uploadHint") }),
+      here() ? placeChoice() : null,
       files, make, collect.form].filter(Boolean));
   };
 
@@ -786,12 +787,20 @@ export function albumBrowser({ pick } = {}) {
       } }));
   };
 
+  // placeChoice lets imports leave where photos were taken behind
+  // (ADR-0176); this browser remembers the choice.
+  const placeChoice = () => {
+    const box = h("input", { type: "checkbox", id: "album-strip-place", checked: stripPlace() });
+    box.addEventListener("change", () => stripPlace(box.checked));
+    return h("label", { class: "check album-strip-place", title: t("photos.stripPlaceTitle") }, box, t("photos.stripPlace"));
+  };
+
   // takeFiles uploads files chosen or dropped onto an open folder; ZIP
   // archives are unpacked here (ADR-0176).
   const takeFiles = async (list) => {
     if (!inFolder() || !list.length) return;
     try {
-      const sum = await importFiles(list, here().id, (text) => say(text));
+      const sum = await importFiles(list, here().id, (text) => say(text), stripPlace());
       say(summaryText(sum) + (sum.failed.length ? " " + sum.failed.slice(0, 3).join("; ") : ""), sum.failed.length ? "error" : "notice");
     } catch (err) { fail(err); }
     load(false);
@@ -807,7 +816,7 @@ export function albumBrowser({ pick } = {}) {
     }
     stop = false;
     try {
-      const sum = await googleImport(here().id, progressOf, () => stop);
+      const sum = await googleImport(here().id, progressOf, () => stop, stripPlace());
       say(summaryText(sum), sum.failed.length ? "error" : "notice");
     } catch (err) {
       if (err.status === 401) {
@@ -832,7 +841,7 @@ export function albumBrowser({ pick } = {}) {
       form.remove();
       stop = false;
       try {
-        const sum = await icloudImport(address.value.trim(), folder.id, (text) => progressOf(text), () => stop);
+        const sum = await icloudImport(address.value.trim(), folder.id, (text) => progressOf(text), () => stop, stripPlace());
         say(`${sum.name ? sum.name + ": " : ""}${summaryText(sum)}`, sum.failed.length ? "error" : "notice");
       } catch (err) { fail(err); }
       load(false);
