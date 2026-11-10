@@ -139,7 +139,22 @@ Under *Administration → Connectors*, start *New connector (Git)*, give it a sp
 - Do links between the files lead to their pages, and are the pictures there?
 - Does a page follow its branch after a change at the host (within an hour, or at once with *Update now*), and does a pinned one stay?
 
-### 12. Everything else
+### 12. Presenting pictures of the album (ADR-0176)
+
+Open **Album**, make a folder and upload three or four pictures or drawings whose names start with a number, e.g. `1 Start.png`, `2 Plan.png`, `10 Outlook.png`. On a card, *Add speaker's notes* and write a few lines. Then press *Present N pictures*.
+
+The click opens a second window, the **presentation window**, for the projector; the album's window becomes the **presenter's window** with the next slide, the notes, the time and every slide. Move the presentation window to a second screen or a projector if you have one, and press *Full screen* (or `F`) in it.
+
+- Are the slides in the order of their names, `2` before `10`?
+- Does stepping work from both windows: arrow keys, page up and down, space, and a click in the presentation window? If you have a **presentation remote**, does it step too?
+- Zoom with `+` and `−`, the buttons or the mouse wheel, and drag a zoomed slide. Does the presentation window show the same part of the slide?
+- Press `L` and point at the slide in the presenter's window. Does the red dot appear on the same spot in the presentation window? `B` makes it black, and back.
+- Edit the notes in the presenter's window. Then present the album's drawings (filter *Drawings*), give one of them notes, draw it again in its page and present them once more. Does the new version of the drawing show the same notes?
+- Did your browser **block the presentation window**? Say which browser, and whether *Presentation window* in the presenter's window opened it after you allowed pop-ups.
+- Try another browser than the one you use most, especially **Firefox** or **Safari**: these were not tested automatically. Full screen, the second window and the laser pointer are the parts most likely to differ.
+- **The open questions:** is ordering by name enough, or do you need to arrange the slides by hand? Do you need people elsewhere to follow the presentation in their own browsers, rather than sharing your screen?
+
+### 13. Everything else
 
 Search, item history, relations, mentions (toolbar: *Mention*), formatting, the API at `/api/openapi.json`. Anything that surprises you is worth a report.
 
