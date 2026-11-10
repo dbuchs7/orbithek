@@ -59,14 +59,17 @@ const (
 	CalendarSourceRemoved       = "calendar-source.remove"
 	CalendarAccountConnected    = "calendar-account.connect"
 	CalendarAccountDisconnected = "calendar-account.disconnect"
-	UserCreated                 = "user.create"
-	RoleGranted                 = "role.grant"
-	SystemRole                  = "system-role.grant"
-	GroupMember                 = "group.add"
-	RoleRevoked                 = "role.revoke"
-	SystemRoleTaken             = "system-role.revoke"
-	GroupLeft                   = "group.remove"
-	DesignChanged               = "design.change"
+	// PhotosGoogleConnected is a person's sign-in at Google to bring
+	// photos into the album; no grant is kept beyond it (ADR-0177).
+	PhotosGoogleConnected = "photos.google.connect"
+	UserCreated           = "user.create"
+	RoleGranted           = "role.grant"
+	SystemRole            = "system-role.grant"
+	GroupMember           = "group.add"
+	RoleRevoked           = "role.revoke"
+	SystemRoleTaken       = "system-role.revoke"
+	GroupLeft             = "group.remove"
+	DesignChanged         = "design.change"
 	// RegulationChanged records a change of a data protection regulation
 	// (ADR-0058).
 	RegulationChanged = "regulation.change"

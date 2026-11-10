@@ -253,10 +253,18 @@ func (h itemHandlers) exportDocument(r *http.Request, children, withData bool) (
 	if err != nil || !withData {
 		return doc, root, err
 	}
-	// The pictures are read after the store's lock.
+	// The pictures are read after the store's lock, each without the place
+	// its uploader keeps from the caller (ADR-0178).
+	hidden := map[[2]item.ID]bool{}
+	h.d.DB.Read(func(s *item.Store) {
+		x := s.As(who(r))
+		for _, f := range files {
+			hidden[[2]item.ID{f.owner, f.a.ID}] = x.PlaceHidden(f.owner, f.a.ID)
+		}
+	})
 	data := map[[2]item.ID][]byte{}
 	for _, f := range files {
-		rc, err := h.d.DB.OpenAttachment(f.owner, f.a.ID)
+		rc, err := h.openFor(hidden[[2]item.ID{f.owner, f.a.ID}], f.owner, f.a)
 		if err != nil {
 			continue // shown by its caption alone
 		}

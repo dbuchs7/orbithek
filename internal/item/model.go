@@ -428,6 +428,9 @@ const (
 	// AttachmentNotesSet sets or clears the speaker's notes of a picture,
 	// on the file's first version (ADR-0176).
 	AttachmentNotesSet EventKind = "AttachmentNotesSet"
+	// AttachmentPlaceSet keeps where a photo was taken to the one who
+	// added it, or shows it to every reader again (ADR-0178).
+	AttachmentPlaceSet EventKind = "AttachmentPlaceSet"
 	Watched            EventKind = "Watched"
 	Unwatched          EventKind = "Unwatched"
 	CommentDeleted     EventKind = "CommentDeleted"
@@ -558,7 +561,7 @@ type Event struct {
 func (e Event) HasContent() bool {
 	switch e.Kind {
 	case ItemCreated, TitleSet, PropertySet, BodyCommitted, ItemImported, CommentAdded, CommentEdited, LabelsSet, AttachmentAdded,
-		AttachmentLabelled, AttachmentRetentionSet, AttachmentNotesSet, HoldSet, HoldReleased:
+		AttachmentLabelled, AttachmentRetentionSet, AttachmentNotesSet, AttachmentPlaceSet, HoldSet, HoldReleased:
 		return true
 	}
 	return false
@@ -575,7 +578,7 @@ func (e *Event) erase() {
 	if e.Kind == HoldSet && e.Hold != nil {
 		e.Hold = &Hold{Savers: e.Hold.Savers}
 	}
-	if e.Kind == AttachmentAdded || e.Kind == AttachmentLabelled || e.Kind == AttachmentRetentionSet || e.Kind == AttachmentNotesSet {
+	if e.Kind == AttachmentAdded || e.Kind == AttachmentLabelled || e.Kind == AttachmentRetentionSet || e.Kind == AttachmentNotesSet || e.Kind == AttachmentPlaceSet {
 		e.Attachment = nil
 	}
 	if e.Kind == BodyCommitted {

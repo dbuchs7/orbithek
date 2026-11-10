@@ -158,7 +158,10 @@ func (h itemHandlers) copyOne(r *http.Request, space string, t copyTask) (item.I
 		if f.Deleted {
 			continue
 		}
-		content, err := h.d.DB.OpenAttachment(src.ID, f.ID)
+		// A place its uploader keeps from the copier stays behind (ADR-0178).
+		var hidden bool
+		h.d.DB.Read(func(s *item.Store) { hidden = s.As(who(r)).PlaceHidden(src.ID, f.ID) })
+		content, err := h.openFor(hidden, src.ID, f)
 		if err != nil {
 			return made, fmt.Errorf("the file %s cannot be read: %w", f.Name, err)
 		}
@@ -167,7 +170,7 @@ func (h itemHandlers) copyOne(r *http.Request, space string, t copyTask) (item.I
 		if err != nil {
 			return made, err
 		}
-		a.Name, a.Source = f.Name, &item.Source{Item: src.ID, Attachment: f.ID}
+		a.Name, a.Source, a.WithoutPlace = f.Name, &item.Source{Item: src.ID, Attachment: f.ID}, hidden
 		err = h.d.DB.Write(func(s *item.Store) error {
 			got, err := s.As(who(r)).AddAttachment(made.ID, a)
 			renamed[f.ID] = got.ID
