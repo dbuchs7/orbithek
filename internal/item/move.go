@@ -101,7 +101,7 @@ func (x *Session) MoveFile(from, file, to ID, stored []ID) error {
 	out := make([]Event, 0, len(records))
 	for _, a := range records {
 		rec := a
-		rec.Labels, rec.Photo = slices.Clone(a.Labels), clonePhoto(a.Photo)
+		rec.Labels, rec.Photo, rec.Faces = slices.Clone(a.Labels), clonePhoto(a.Photo), slices.Clone(a.Faces)
 		if a.Retention != nil {
 			r := *a.Retention
 			rec.Retention = &r

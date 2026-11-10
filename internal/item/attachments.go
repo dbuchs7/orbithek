@@ -38,6 +38,12 @@ type Attachment struct {
 	// Photo is what a picture tells about itself (ADR-0177): capture
 	// time, place and camera. It is content, sealed with the rest.
 	Photo *Photo `json:",omitempty"`
+	// Faces are the faces found on this version of a picture and the
+	// persons named on them (ADR-0194); FacesSeen says it was searched
+	// for faces, also when none were found. They are content, sealed with
+	// the rest.
+	Faces     []Face `json:",omitempty"`
+	FacesSeen bool   `json:",omitempty"`
 	// WithoutPlace tells AddAttachment that the server stored a copy of a
 	// photo without the place its uploader keeps from the copier
 	// (ADR-0178), so the copy's content differs from its source's. It is
@@ -193,6 +199,10 @@ func (s *Store) applyAttachment(e Event, touch func(...ID)) {
 	case AttachmentNotesSet:
 		if a, ok := it.attachment(e.Attachment.ID); ok {
 			a.Notes = e.Attachment.Notes
+		}
+	case AttachmentFacesSet:
+		if a, ok := it.attachment(e.Attachment.ID); ok {
+			a.Faces, a.FacesSeen = slices.Clone(e.Attachment.Faces), e.Attachment.FacesSeen
 		}
 	case AttachmentRenamed:
 		// Every version of the file takes the name, deleted ones aside,

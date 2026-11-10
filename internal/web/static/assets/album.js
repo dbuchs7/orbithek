@@ -29,12 +29,13 @@ import { dragged, durationText, groups, isVideo, range, yearsAgo } from "./photo
 import { photoMap } from "./photomap.js";
 import { pickPlace, placeInput } from "./places.js";
 import { startPresentation } from "./present.js";
+import { personCover, scanAll } from "./faces.js";
 import { renameInPlace } from "./rename.js";
 
 const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
 
 // VIEWS are the album's ways of showing pictures (ADR-0177).
-const VIEWS = ["folders", "timeline", "favourites", "memories", "map"];
+const VIEWS = ["folders", "timeline", "favourites", "memories", "map", "people"];
 
 // The album's clipboard (ADR-0108): a picture copied in the album is pasted
 // into a text as a copy of its original file, with its source, as "Insert…
@@ -146,6 +147,10 @@ export function albumBrowser({ pick, pickText } = {}) {
   let imports = { google: false, icloud: false, connected: false };
   const timeline = h("div", { class: "album-timeline" });
   const mapBox = h("div", { class: "album-map" });
+  // The persons named on pictures, and the album of the one chosen
+  // (ADR-0194).
+  const peopleBox = h("div", { class: "album-people", id: "album-people" });
+  let person = "";
 
   // Labels are suggested from those of pictures and of items alike.
   const loadLabels = async () => {
@@ -844,6 +849,7 @@ export function albumBrowser({ pick, pickText } = {}) {
     if (label.value) q.set("label", label.value);
     if (view !== "folders") q.set("order", "taken");
     if (view === "favourites") q.set("favourites", "on");
+    if (view === "people" && person) q.set("person", person);
     if (view === "memories") {
       const today = new Date();
       const pad = (n) => String(n).padStart(2, "0");
@@ -881,6 +887,14 @@ export function albumBrowser({ pick, pickText } = {}) {
   // does not fold the album back to its first page.
   const load = async (append, keep = 0) => {
     const mine = ++generation;
+    if (view === "people") showPeople(mine);
+    if (view === "people" && !person) {
+      count.textContent = "";
+      more.hidden = true;
+      present.hidden = true;
+      reset.hidden = !filteredNow();
+      return;
+    }
     if (view === "map") {
       mapBox.replaceChildren(h("p", { class: "muted", text: t("photos.mapLoading") }));
       try {
@@ -919,7 +933,7 @@ export function albumBrowser({ pick, pickText } = {}) {
       more.hidden = !page.next;
       // The album's filters work as every list's do (ADR-0098).
       const on = filteredNow();
-      const none = { favourites: t("photos.noFavourites"), memories: t("photos.noMemories") }[view] || t("album.none");
+      const none = { favourites: t("photos.noFavourites"), memories: t("photos.noMemories"), people: t("faces.noPictures") }[view] || t("album.none");
       // An empty folder or collection invites pictures (ADR-0187).
       const invite = !pick && view === "folders" && Boolean(here()) && !page.total && !on;
       dropZone.hidden = !invite;
@@ -929,6 +943,61 @@ export function albumBrowser({ pick, pickText } = {}) {
       present.hidden = !!pick || !page.total;
       present.textContent = t("album.present", { n: page.total });
     } catch (err) { fail(err); }
+  };
+
+  // showPeople lists the persons named on the pictures one may read, each
+  // with their face, or the head of the chosen person's album; anyone who
+  // may edit pictures looks for faces on those never searched.
+  let scanning = false;
+  const showPeople = async (mine) => {
+    const find = h("button", { type: "button", class: "secondary", id: "album-faces-scan", disabled: scanning, text: t("faces.scanAll"), title: t("faces.scanAllTitle"),
+      onclick: () => scanShown() });
+    if (person) {
+      peopleBox.replaceChildren(h("div", { class: "album-person-head" },
+        h("button", { type: "button", class: "link", id: "album-people-back", text: t("faces.allPeople"), onclick: () => { person = ""; open(); } }),
+        h("h2", { class: "album-person-name", id: "album-person-name", text: person })));
+      return;
+    }
+    peopleBox.replaceChildren(h("p", { class: "muted", text: t("faces.loading") }));
+    try {
+      const q = new URLSearchParams();
+      if (space.value) q.set("space", space.value);
+      const { people } = await get("/api/album/people?" + q);
+      if (mine !== generation) return;
+      const wanted = search.value.trim().toLowerCase();
+      const list = people.filter((x) => !wanted || x.name.toLowerCase().includes(wanted));
+      peopleBox.replaceChildren(h("div", { class: "actions-row" }, find, h("span", { class: "muted", text: t("faces.privacy") })),
+        list.length ? h("ul", { class: "album-person-grid" }, ...list.map((x) => h("li", {},
+          h("button", { type: "button", class: "album-person", "data-person": x.name, onclick: () => { person = x.name; open(); } },
+            personCover(x), h("span", { class: "album-person-label", text: x.name }), h("span", { class: "muted", text: t("faces.pictures", { n: x.pictures }) })))))
+          : h("p", { class: "muted", id: "album-people-none", text: t("faces.noPeople") }));
+    } catch (err) { fail(err); }
+  };
+  // scanShown looks for faces on every picture of the album, as far as
+  // the filters show it, that one may edit and was never searched.
+  const scanShown = async () => {
+    if (scanning) return;
+    scanning = true;
+    let stop = false;
+    const cancel = h("button", { type: "button", class: "link", id: "album-faces-stop", text: t("common.cancel"), onclick: () => { stop = true; } });
+    const progress = (text) => status.replaceChildren(h("p", { class: "notice", role: "status" }, text, " ", cancel));
+    try {
+      const q = filters();
+      q.delete("person");
+      const all = [];
+      for (let offset = 0; ; ) {
+        q.set("offset", String(offset));
+        q.set("limit", "200");
+        const page = await get("/api/album?" + q);
+        all.push(...page.pictures);
+        if (!page.next || stop) break;
+        offset = page.next;
+      }
+      const r = await scanAll(all, progress, () => stop);
+      say(t("faces.scanned", { n: r.done, faces: r.faces }));
+    } catch (err) { fail(err); }
+    scanning = false;
+    if (view === "people") load(false);
   };
 
   // refresh shows the album again after a change, as far as it was shown.
@@ -941,8 +1010,10 @@ export function albumBrowser({ pick, pickText } = {}) {
     space.disabled = folders_ && inFolder();
     trail.hidden = folders.hidden = tools.hidden = !folders_;
     grid.hidden = !folders_;
-    timeline.hidden = folders_ || view === "map";
+    timeline.hidden = folders_ || view === "map" || (view === "people" && !person);
     mapBox.hidden = view !== "map";
+    peopleBox.hidden = view !== "people";
+    if (peopleBox.hidden) peopleBox.replaceChildren();
     // A view not shown keeps no cards, so nothing counts or answers twice.
     if (timeline.hidden) timeline.replaceChildren();
     if (mapBox.hidden) mapBox.replaceChildren();
@@ -958,10 +1029,11 @@ export function albumBrowser({ pick, pickText } = {}) {
 
   // The views (ADR-0177): folders, timeline, favourites, memories, map.
   const viewText = { folders: t("photos.viewFolders"), timeline: t("photos.viewTimeline"), favourites: t("photos.viewFavourites"),
-    memories: t("photos.viewMemories"), map: t("photos.viewMap") };
+    memories: t("photos.viewMemories"), map: t("photos.viewMap"), people: t("faces.viewPeople") };
   const viewBar = h("div", { class: "album-views segmented", role: "group", "aria-label": t("photos.views") },
     VIEWS.map((v) => h("button", { type: "button", class: "segment", "data-view": v, id: "album-view-" + v, text: viewText[v], onclick: () => {
       view = v;
+      person = "";
       chosen.clear();
       setChoosing(false);
       open();
@@ -1328,7 +1400,7 @@ export function albumBrowser({ pick, pickText } = {}) {
   const root = h("div", { class: "album" },
     pick ? null : h("div", { class: "album-bar" }, viewBar, chooseButton),
     h("div", { class: "album-filters filter-bar", role: "search", "aria-label": t("album.title") }, search, kind, space, label, reset), options,
-    bulk, trail, tools, status, folders, h("div", { class: "album-count-row" }, count, present), dropZone, grid, timeline, mapBox, more, files);
+    bulk, trail, tools, status, folders, h("div", { class: "album-count-row" }, count, present), dropZone, grid, peopleBox, timeline, mapBox, more, files);
   // Files dropped onto the album are added where one is (ADR-0177,
   // ADR-0187); a picture pasted is too.
   if (!pick) {

@@ -5,6 +5,7 @@
 // albums. Files are unpacked and uploaded here, one by one, through the
 // files of the folder's item; Google and iCloud photos are fetched by the
 // server, which asks Google or Apple for them.
+import { facesPanel, scanFile } from "./faces.js";
 import { h, when } from "./dom.js";
 import { t } from "./i18n.js";
 import { get, post, put, del, upload, download } from "./api.js";
@@ -64,6 +65,9 @@ export function openViewer(list, index, changed = () => {}) {
   // (ADR-0189).
   const video = h("video", { class: "photo-viewer-img photo-viewer-video", controls: true, preload: "metadata", playsinline: true, hidden: true });
   const info = h("div", { class: "photo-viewer-info", "aria-live": "polite" });
+  // The faces found on a picture lie over it (ADR-0194).
+  const layer = h("div", { class: "photo-faces-layer", "aria-hidden": "true" });
+  let faces = null;
   const prev = h("button", { type: "button", class: "photo-viewer-nav prev", "aria-label": t("photos.previous"), text: "‹" });
   const next = h("button", { type: "button", class: "photo-viewer-nav next", "aria-label": t("photos.next"), text: "›" });
   const dialog = h("dialog", { class: "photo-viewer", id: "photo-viewer", "aria-label": t("photos.viewer") },
@@ -71,8 +75,8 @@ export function openViewer(list, index, changed = () => {}) {
       h("strong", { class: "photo-viewer-title" }),
       h("span", { class: "muted photo-viewer-pos" }),
       h("button", { type: "button", id: "photo-viewer-close", text: t("common.close"), onclick: () => dialog.close() })),
-    h("div", { class: "photo-viewer-body" }, h("div", { class: "photo-viewer-stage" }, prev, img, video, next), info));
-  dialog.addEventListener("close", () => { video.pause(); video.removeAttribute("src"); video.load(); });
+    h("div", { class: "photo-viewer-body" }, h("div", { class: "photo-viewer-stage" }, prev, img, layer, video, next), info));
+  dialog.addEventListener("close", () => { video.pause(); video.removeAttribute("src"); video.load(); faces?.stop(); });
   const row = (label, value) => (value ? h("div", { class: "photo-fact" }, h("dt", { text: label }), h("dd", {}, value)) : null);
   const show = async () => {
     const p = list[i];
@@ -170,7 +174,9 @@ export function openViewer(list, index, changed = () => {}) {
             try { placed(await del(`${fileURL(p)}/geotag`)); } catch (err) { info.append(h("p", { class: "error", role: "alert", text: err.message })); }
           } }) : null));
     };
-    info.replaceChildren(facts(), placeRow, placeEdit, h("div", { class: "actions-row" }, fav,
+    faces?.stop();
+    faces = playing ? null : facesPanel({ p, image: img, layer, still: () => list[i] === p && dialog.open, changed });
+    info.replaceChildren(facts(), faces ? faces.element : "", placeRow, placeEdit, h("div", { class: "actions-row" }, fav,
       h("a", { class: "button secondary", href: fileURL(p), download: p.attachment.name, text: t("photos.original") })));
     // A picture stored before photo data was recorded is read now.
     if (!photo && p.item.id) {
@@ -311,6 +317,12 @@ export async function importFiles(files, folder, progress, place = "", labels = 
       // a video it cannot play keeps its symbol.
       if (q.video) await setPoster(folder, att);
       await labelUpload(folder, att, labels);
+      // Faces are looked for on the file uploaded, here and now; a picture
+      // this browser cannot search stays unsearched (ADR-0194).
+      if (!q.video && /^image\//.test(att.type || "")) {
+        progress(t("faces.scanningUpload", { n: n + 1, total: queue.length, name: q.name }));
+        await scanFile({ item: { id: folder }, attachment: att, editable: true }, blob).catch(() => {});
+      }
       sum.done++;
     } catch (err) { sum.failed.push(`${q.name}: ${err.message}`); }
   }

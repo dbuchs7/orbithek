@@ -677,7 +677,7 @@ function gitSource() {
   // reports each drop, naming the value by its hash. These two values, and
   // no other inline style, are expected.
   const watermarkStyles = /'sha256-(r3vOsuepBDg6tz\/cOusiNJ9Y4Lp9hGQTT7pzDks1Xxc=|CA\/eh4\+2R0J7cEQ14gBMtx834RIOjzMUqCM\+evtrkp4=)'/;
-  page.on("console", (m) => { if (m.type() === "error" && !/status of 401/.test(m.text()) && !watermarkStyles.test(m.text()) && !(expectedConsole && expectedConsole.test(m.text()))) problems.push("console: " + m.text()); });
+  page.on("console", (m) => { if (m.type() === "error" && !/status of 401/.test(m.text()) && !watermarkStyles.test(m.text()) && !(expectedConsole && expectedConsole.test(m.text()))) problems.push("console: " + m.text() + (m.location()?.url ? " (" + m.location().url + ")" : "")); });
   // A step that expects a confirmation or prompt sets its answer first:
   // true accepts, a string is typed in; any other dialog is a problem.
   let answer = null;
@@ -2116,6 +2116,38 @@ function gitSource() {
     await page.fill("#album .album-rename-input", "something else");
     await page.press("#album .album-rename-input", "Escape"); // Escape keeps the name
     await page.waitForSelector("#album .album-card .album-name:text-is('2 Plan')");
+
+    step("faces: a picture opened is searched for faces in the browser; a face named shows in the viewer, under People and in the person's album (ADR-0194)");
+    {
+      const planCard = "#album .album-card:has(.album-name:text-is('2 Plan'))";
+      await page.click(planCard + " .album-open");
+      // The picture was never searched, so the viewer looks for faces with
+      // the vendored library; a plain green picture shows none.
+      await page.waitForSelector("#photo-faces p.muted:text-is('No faces found.')", { timeout: 60000 });
+      await page.click("#photo-viewer-close");
+      // A face named on the picture, as the viewer stores it.
+      const plan = await page.evaluate(async () => (await (await fetch("/api/album?q=Plan")).json()).pictures.find((p) => p.attachment.name === "2 Plan.png"));
+      check(plan.attachment.facesSeen === true, "the searched picture is marked searched");
+      const stored = await page.evaluate(async (p) => (await fetch(`/api/items/${p.item.id}/attachments/${p.attachment.id}/faces`, { method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ faces: [{ x: 0.3, y: 0.2, w: 0.25, h: 0.4, person: "Ada Lovelace" }] }) })).status, plan);
+      check(stored === 200, "faces stored: " + stored);
+      await page.click("#album-view-people");
+      const ada = "#album-people .album-person[data-person='Ada Lovelace']";
+      await page.waitForSelector(ada);
+      check((await page.textContent(ada)).includes("1 picture"), "a person counts their pictures");
+      await page.click(ada);
+      await page.waitForSelector("#album-person-name:text-is('Ada Lovelace')");
+      await page.waitForFunction(() => [...document.querySelectorAll("#album .album-card .album-name")].map((n) => n.textContent).join() === "2 Plan");
+      await page.click("#album .album-card .album-open");
+      await page.waitForSelector("#photo-faces #photo-face-0");
+      check(await page.inputValue("#photo-face-0") === "Ada Lovelace", "the viewer names the face");
+      check(await page.locator(".photo-faces-layer .photo-face.named").count() === 1, "the face is marked on the picture");
+      await page.click("#photo-viewer-close");
+      await page.click("#album-people-back");
+      await page.waitForSelector(ada);
+      await page.click("#album-view-folders");
+      await page.waitForSelector("#album .album-card .album-name:text-is('2 Plan')"); // back in the folder Talk
+    }
 
     step("slide import: a presentation with its slides exported as pictures becomes a folder of slides with their notes, hidden slides left out (ADR-0186)");
     {

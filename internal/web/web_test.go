@@ -22,7 +22,11 @@ func TestEmbeddedUIHasEntryPointAndAssets(t *testing.T) {
 		"vendor/bpmn/bpmn-font/css/bpmn.css", "vendor/bpmn/bpmn-font/font/bpmn.woff2",
 		"vendor/form-viewer.js", "vendor/form.LICENSE.txt", "vendor/form/form-js.css",
 		"vendor/dmn-viewer.js", "vendor/dmn.LICENSE.txt", "vendor/dmn/dmn-js-shared.css", "vendor/dmn/dmn-js-decision-table.css",
-		"vendor/dmn/dmn-font/css/dmn.css", "vendor/dmn/dmn-font/font/dmn.woff2"} {
+		"vendor/dmn/dmn-font/css/dmn.css", "vendor/dmn/dmn-font/font/dmn.woff2",
+		"vendor/face-api.js", "vendor/face-api.LICENSE.txt", "vendor/face-models/tiny_face_detector_model-weights_manifest.json",
+		"vendor/face-models/tiny_face_detector_model.bin", "vendor/face-models/face_landmark_68_tiny_model-weights_manifest.json",
+		"vendor/face-models/face_landmark_68_tiny_model.bin", "vendor/face-models/face_recognition_model-weights_manifest.json",
+		"vendor/face-models/face_recognition_model.bin"} {
 		if _, err := fs.Stat(FS(), name); err != nil {
 			t.Errorf("%s: %v", name, err)
 		}

@@ -206,3 +206,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0191](0191-a-starmap-of-all-rooms.md) | A starmap of all rooms, in bubbles per room and type when it is too large | Accepted | Landed |
 | [0192](0192-videos-as-slides-and-from-google-photos-and-icloud.md) | Videos as slides, and from Google Photos and shared iCloud albums | Proposed | Partial |
 | [0193](0193-a-collection-is-deleted-from-the-album.md) | A collection is deleted from the album, its pictures staying where they are | Proposed | Partial |
+| [0194](0194-faces-and-person-albums.md) | Faces found in the browser, named by people, and recognised only where administrators allow it | Proposed | Partial |

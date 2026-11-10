@@ -43,7 +43,7 @@ export function slidesOf(pictures) {
 
 // DECK_FILTERS are the album's filters a presentation is chosen by, a
 // collection (ADR-0175) among them.
-export const DECK_FILTERS = ["folder", "collection", "space", "q", "kind", "label"];
+export const DECK_FILTERS = ["folder", "collection", "space", "q", "kind", "label", "person"];
 
 // deckParams keeps only the album's filters of a set of parameters, the
 // empty ones left out.

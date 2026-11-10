@@ -278,6 +278,8 @@ type albumFilter struct {
 	onDay func(day string) bool
 	// inRule is a collection's rule (ADR-0175), nil for none.
 	inRule func(item.Picture) bool
+	// person is a person the pictures show (ADR-0194), "" for any.
+	person string
 }
 
 // withCollection narrows the filter to what a collection gathers, when
@@ -309,6 +311,7 @@ func (h itemHandlers) albumFilterOf(r *http.Request) (albumFilter, error) {
 	f := albumFilter{space: q.Get("space"), kind: q.Get("kind"), text: strings.ToLower(strings.TrimSpace(q.Get("q"))), folder: item.ID(q.Get("folder")),
 		day: q.Get("day"), from: q.Get("from"), to: q.Get("to"), taken: q.Get("order") == "taken", place: q.Get("place") == "on", only: q.Get("favourites") == "on"}
 	f.label, _ = item.NormalLabel(q.Get("label"))
+	f.person, _ = item.NormalPerson(q.Get("person"))
 	switch {
 	case f.kind != "" && f.kind != "image" && f.kind != "drawing" && f.kind != "video":
 		return f, errors.New("kind is image or drawing")
@@ -350,7 +353,7 @@ func albumStacks(x *item.Session, f albumFilter) [][]item.Picture {
 	}
 	match := func(p item.Picture) bool {
 		return (f.inRule == nil || f.inRule(p)) && (f.folder == "" || p.Item.ID == f.folder) && (f.label == "" || slices.Contains(p.Attachment.Labels, f.label)) &&
-			(f.text == "" || strings.Contains(strings.ToLower(p.Attachment.Name+" "+strings.Join(p.Attachment.Labels, " ")+" "+p.Item.Key+" "+p.Item.Title+" "+cameraText(p.Attachment.Photo)), f.text) ||
+			(f.text == "" || strings.Contains(strings.ToLower(p.Attachment.Name+" "+strings.Join(p.Attachment.Labels, " ")+" "+p.Item.Key+" "+p.Item.Title+" "+cameraText(p.Attachment.Photo)+personText(p.Attachment.Faces)), f.text) ||
 				(f.onDay != nil && f.onDay(p.Attachment.Photo.Day(p.Attachment.Created))))
 	}
 	type stackKey struct{ item, first item.ID }
@@ -377,6 +380,7 @@ func albumStacks(x *item.Session, f albumFilter) [][]item.Picture {
 		switch {
 		case !matched[i],
 			f.only && !f.favourites[top.First],
+			f.person != "" && !top.Attachment.Shows(f.person),
 			f.place && !top.Attachment.Photo.HasPlace(),
 			f.day != "" && day[5:] != f.day,
 			f.from != "" && day < f.from,
@@ -681,6 +685,7 @@ func (h itemHandlers) photoImports(w http.ResponseWriter, r *http.Request) {
 		"icloud":    p.ICloud != nil,
 		"tiles":     p.TileURL != "",
 		"places":    h.placeSearch(),
+		"faces":     h.recognition(),
 		"credit":    p.TileCredit,
 	})
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/budget"
 	"github.com/dbuchs7/orbithek/internal/buildinfo"
 	"github.com/dbuchs7/orbithek/internal/connector"
+	"github.com/dbuchs7/orbithek/internal/item"
 	"github.com/dbuchs7/orbithek/internal/photosource"
 )
 
@@ -82,6 +83,9 @@ type Photos struct {
 	now    func() time.Time
 	mu     sync.Mutex
 	albums map[string]sharedAlbum
+	// vectors keeps what was computed of the faces of pictures, by the
+	// picture's ID, as read from storage for suggestions (ADR-0194).
+	vectors map[item.ID][][]float32
 }
 
 // sharedAlbum is a shared iCloud album one person read, kept while they
@@ -123,7 +127,8 @@ func PhotoClient(getenv func(string) string, allow string) *http.Client {
 func NewPhotos(getenv func(string) string, google *photosource.Google) *Photos {
 	b := budget.Get()
 	p := &Photos{thumbs: newByteCache(b.ThumbnailCacheBytes), tiles: newByteCache(b.MapTileCacheBytes),
-		working: make(chan struct{}, max(1, b.ThumbnailWorkers)), now: time.Now, albums: map[string]sharedAlbum{}}
+		working: make(chan struct{}, max(1, b.ThumbnailWorkers)), now: time.Now, albums: map[string]sharedAlbum{},
+		vectors: map[item.ID][][]float32{}}
 	switch u := strings.TrimSpace(getenv(MapTilesVar)); {
 	case u == "":
 		p.TileURL, p.TileCredit = DefaultMapTiles, DefaultMapAttribution

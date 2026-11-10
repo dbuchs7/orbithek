@@ -438,6 +438,9 @@ const (
 	// AttachmentRenamed renames every version of a file: Attachment names
 	// the file's first version and carries the new name (ADR-0180).
 	AttachmentRenamed EventKind = "AttachmentRenamed"
+	// AttachmentFacesSet sets the faces found on one version of a picture
+	// and the persons named on them (ADR-0194).
+	AttachmentFacesSet EventKind = "AttachmentFacesSet"
 	// AttachmentMovedIn and AttachmentMovedOut move a file with all its
 	// versions to another item, keeping its identity (ADR-0188): each
 	// version arrives in its new item with what it holds and leaves its
@@ -574,7 +577,7 @@ type Event struct {
 func (e Event) HasContent() bool {
 	switch e.Kind {
 	case ItemCreated, TitleSet, PropertySet, BodyCommitted, ItemImported, CommentAdded, CommentEdited, LabelsSet, AttachmentAdded,
-		AttachmentLabelled, AttachmentRetentionSet, AttachmentNotesSet, AttachmentPlaceSet, AttachmentRenamed, AttachmentMovedIn, HoldSet, HoldReleased:
+		AttachmentLabelled, AttachmentRetentionSet, AttachmentNotesSet, AttachmentPlaceSet, AttachmentRenamed, AttachmentMovedIn, AttachmentFacesSet, HoldSet, HoldReleased:
 		return true
 	}
 	return false
@@ -592,7 +595,7 @@ func (e *Event) erase() {
 		e.Hold = &Hold{Savers: e.Hold.Savers}
 	}
 	if e.Kind == AttachmentAdded || e.Kind == AttachmentLabelled || e.Kind == AttachmentRetentionSet || e.Kind == AttachmentNotesSet || e.Kind == AttachmentPlaceSet ||
-		e.Kind == AttachmentRenamed || e.Kind == AttachmentMovedIn {
+		e.Kind == AttachmentRenamed || e.Kind == AttachmentMovedIn || e.Kind == AttachmentFacesSet {
 		e.Attachment = nil
 	}
 	if e.Kind == BodyCommitted {
