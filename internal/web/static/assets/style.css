@@ -2431,6 +2431,11 @@ button.cal-entry { display: block; width: auto; font: inherit; font-size: 12px; 
 .cal-dialog { max-width: 32rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); padding: var(--space-5); }
 .cal-dialog::backdrop { background: color-mix(in srgb, #000 35%, transparent); }
 .cal-dialog h2 { margin-top: 0; font-size: 18px; }
+/* A new entry made by a double-click on a day or an hour (calendar). */
+.cal-new { width: min(32rem, calc(100vw - 2rem)); box-sizing: border-box; }
+.cal-new .form-row { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.cal-new .form-row .field { flex: 1 1 10rem; }
+.cal-new .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .cal-dialog .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); justify-content: flex-end; }
 .rec-input { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); margin: 0; min-width: 0; }
 .rec-input p { margin: var(--space-2) 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }

@@ -248,6 +248,25 @@ export function entries(items, fields, range) {
   return out.sort(byDayAndTime);
 }
 
+// NEW_AT is the time of day, in minutes, a new item with a time takes
+// when the place double-clicked has none, as a day of the month has not.
+export const NEW_AT = 9 * 60;
+
+// slotValues are the values a new item takes from the place of the
+// calendar double-clicked: the date fields of its type on that day, and a
+// field that holds a point in time at the time of the axis of hours
+// clicked, where the reader is, or at NEW_AT; an end with a time an hour
+// after the start. f is the type's fields as typeFields answers them.
+export function slotValues(f, day, minutes) {
+  const at = minutes ?? NEW_AT;
+  const u = new Date(day * DAY);
+  const local = (m) => new Date(u.getUTCFullYear(), u.getUTCMonth(), u.getUTCDate(), 0, m).toISOString();
+  const out = {};
+  if (f.start) out[f.start] = f.startTimed ? local(at) : dayString(day);
+  if (f.end && f.end !== f.start) out[f.end] = f.endTimed ? local(at + 60) : dayString(day);
+  return out;
+}
+
 // externalEntries turns the entries of a person's calendars of other
 // services (ADR-0174), as /api/me/calendars/events answers them, into
 // entries of the calendar: an all-day one over its days, its end being

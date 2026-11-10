@@ -2132,7 +2132,6 @@ export default {
   "calendar.now": "Now",
   "calendar.filters": "Filter",
   "calendar.filtersActive": {"one": "({n} chosen)", "other": "({n} chosen)"},
-  "calendar.legend": "An item stands on its date; one with a start and an end spans the days between, both included. Finished items are drawn hatched; an unfinished item whose last day has passed is marked with an exclamation mark. Only the items of the period shown are read. Where you may edit, drag an entry to another day, or move it with Shift and an arrow key: a day left or right, a week up or down; a span moves with both its dates, a time stays where it is in the day. In the week, an entry with a time stands on the axis of hours; dropped at another hour, it goes there and keeps its length.",
   "admin.typeTemplate": "Word template: {id}",
   "wt.title": "Word templates",
   "wt.help": "A Word template (.dotx or .docx) gives the pages of a type their document: styles, page, header, footer and cover. Content controls whose tag starts with {prefix} show the page's fields: title, key, type, state, space, labels or the name of a field, such as owner; the control tagged body marks where the text goes. Macros, controls, embedded objects and references to other files are refused; a reference to the template a document was made from is removed.",
@@ -2167,7 +2166,7 @@ export default {
   "wt.basedOn": "Laid out after the Word template {name}, version {version}.",
   "wt.newer": "Version {version} is newer.",
   "wt.upgrade": "Use version {version}",
-  "calendar.legend": "An item stands on its date; one with a start and an end spans the days between, both included. Finished items are drawn hatched; an unfinished item whose last day has passed is marked with an exclamation mark. Only the items of the period shown are read. Where you may edit, drag an entry to another day, or move it with Shift and an arrow key: a day left or right, a week up or down; a span moves with both its dates, a time stays where it is in the day. In the week, an entry with a time stands on the axis of hours; dropped at another hour, it goes there and keeps its length. An entry marked ↻ repeats: moving it asks whether only that occurrence or the whole series moves, and Delete cancels one occurrence.",
+  "calendar.legend": "An item stands on its date; one with a start and an end spans the days between, both included. Finished items are drawn hatched; an unfinished item whose last day has passed is marked with an exclamation mark. Only the items of the period shown are read. Where you may edit, drag an entry to another day, or move it with Shift and an arrow key: a day left or right, a week up or down; a span moves with both its dates, a time stays where it is in the day. In the week, an entry with a time stands on the axis of hours; dropped at another hour, it goes there and keeps its length. An entry marked ↻ repeats: moving it asks whether only that occurrence or the whole series moves, and Delete cancels one occurrence. Where you may edit a room, a double-click on a day, or on an hour of the week, makes a new entry there; “New entry” does the same for today.",
   "calendar.savedView": "Saved view",
   "calendar.savedNone": "— Not saved —",
   "calendar.savedEmpty": "— No saved view yet —",
@@ -2356,5 +2355,10 @@ export default {
   "extcal.error.config": "Google is not set up on this server.",
   "extcal.error.state": "Connecting to Google did not come back to the browser that began it; please try again.",
   "extcal.error.denied": "The Google account was not connected: access was refused.",
-  "extcal.error.unavailable": "The Google account could not be connected; please try again later."
+  "extcal.error.unavailable": "The Google account could not be connected; please try again later.",
+  "calendar.newEntry": "New entry",
+  "calendar.newTitle": "New entry on {when}",
+  "calendar.create": "Create",
+  "calendar.createOpen": "Create and open",
+  "calendar.created": "{key} {title} created."
 };

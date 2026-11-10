@@ -2130,7 +2130,6 @@ export default {
   "calendar.now": "Jetzt",
   "calendar.filters": "Filter",
   "calendar.filtersActive": {"one": "({n} gewählt)", "other": "({n} gewählt)"},
-  "calendar.legend": "Ein Eintrag steht an seinem Datum; einer mit Beginn und Ende reicht über die Tage dazwischen, beide eingeschlossen. Erledigte Einträge sind schraffiert; ein unerledigter Eintrag, dessen letzter Tag vorbei ist, ist mit einem Ausrufezeichen markiert. Gelesen werden nur die Einträge des gezeigten Zeitraums. Wo Sie bearbeiten dürfen, ziehen Sie einen Eintrag auf einen anderen Tag oder verschieben ihn mit Umschalt und einer Pfeiltaste: einen Tag nach links oder rechts, eine Woche nach oben oder unten; ein Zeitraum verschiebt sich mit beiden Daten, eine Uhrzeit bleibt erhalten. In der Woche steht ein Eintrag mit Uhrzeit auf der Stundenachse; auf eine andere Stunde gezogen, geht er dorthin und behält seine Dauer.",
   "admin.typeTemplate": "Word-Vorlage: {id}",
   "wt.title": "Word-Vorlagen",
   "wt.help": "Eine Word-Vorlage (.dotx oder .docx) gibt den Seiten eines Typs ihr Dokument: Formatvorlagen, Seite, Kopf- und Fusszeile sowie Deckblatt. Inhaltssteuerelemente, deren Tag mit {prefix} beginnt, zeigen die Felder der Seite: title, key, type, state, space, labels oder den Namen eines Feldes, etwa owner; das Steuerelement mit dem Tag body markiert, wo der Text steht. Makros, Steuerelemente, eingebettete Objekte und Verweise auf andere Dateien werden abgelehnt; ein Verweis auf die Vorlage, aus der ein Dokument erstellt wurde, wird entfernt.",
@@ -2165,7 +2164,7 @@ export default {
   "wt.basedOn": "Gestaltet nach der Word-Vorlage {name}, Version {version}.",
   "wt.newer": "Version {version} ist neuer.",
   "wt.upgrade": "Version {version} verwenden",
-  "calendar.legend": "Ein Eintrag steht an seinem Datum; einer mit Beginn und Ende reicht über die Tage dazwischen, beide eingeschlossen. Erledigte Einträge sind schraffiert; ein unerledigter Eintrag, dessen letzter Tag vorbei ist, ist mit einem Ausrufezeichen markiert. Gelesen werden nur die Einträge des gezeigten Zeitraums. Wo Sie bearbeiten dürfen, ziehen Sie einen Eintrag auf einen anderen Tag oder verschieben ihn mit Umschalt und einer Pfeiltaste: einen Tag nach links oder rechts, eine Woche nach oben oder unten; ein Zeitraum verschiebt sich mit beiden Daten, eine Uhrzeit bleibt erhalten. In der Woche steht ein Eintrag mit Uhrzeit auf der Stundenachse; auf eine andere Stunde gezogen, geht er dorthin und behält seine Dauer. Ein mit ↻ markierter Eintrag wiederholt sich: Beim Verschieben wird gefragt, ob nur dieses Vorkommen oder die ganze Serie verschoben wird, und die Entf-Taste sagt ein Vorkommen ab.",
+  "calendar.legend": "Ein Eintrag steht an seinem Datum; einer mit Beginn und Ende reicht über die Tage dazwischen, beide eingeschlossen. Erledigte Einträge sind schraffiert; ein unerledigter Eintrag, dessen letzter Tag vorbei ist, ist mit einem Ausrufezeichen markiert. Gelesen werden nur die Einträge des gezeigten Zeitraums. Wo Sie bearbeiten dürfen, ziehen Sie einen Eintrag auf einen anderen Tag oder verschieben ihn mit Umschalt und einer Pfeiltaste: einen Tag nach links oder rechts, eine Woche nach oben oder unten; ein Zeitraum verschiebt sich mit beiden Daten, eine Uhrzeit bleibt erhalten. In der Woche steht ein Eintrag mit Uhrzeit auf der Stundenachse; auf eine andere Stunde gezogen, geht er dorthin und behält seine Dauer. Ein mit ↻ markierter Eintrag wiederholt sich: Beim Verschieben wird gefragt, ob nur dieses Vorkommen oder die ganze Serie verschoben wird, und die Entf-Taste sagt ein Vorkommen ab. Wo Sie in einem Raum bearbeiten dürfen, erstellt ein Doppelklick auf einen Tag oder auf eine Stunde der Woche dort einen neuen Eintrag; «Neuer Eintrag» tut dasselbe für heute.",
   "calendar.savedView": "Gespeicherte Ansicht",
   "calendar.savedNone": "— Nicht gespeichert —",
   "calendar.savedEmpty": "— Noch keine gespeicherte Ansicht —",
@@ -2354,5 +2353,10 @@ export default {
   "extcal.error.config": "Google ist auf diesem Server nicht eingerichtet.",
   "extcal.error.state": "Die Verbindung mit Google kam nicht zum Browser zurück, der sie begonnen hat; bitte erneut versuchen.",
   "extcal.error.denied": "Das Google-Konto wurde nicht verbunden: Der Zugriff wurde verweigert.",
-  "extcal.error.unavailable": "Das Google-Konto konnte nicht verbunden werden; bitte später erneut versuchen."
+  "extcal.error.unavailable": "Das Google-Konto konnte nicht verbunden werden; bitte später erneut versuchen.",
+  "calendar.newEntry": "Neuer Eintrag",
+  "calendar.newTitle": "Neuer Eintrag am {when}",
+  "calendar.create": "Erstellen",
+  "calendar.createOpen": "Erstellen und öffnen",
+  "calendar.created": "{key} {title} erstellt."
 };
