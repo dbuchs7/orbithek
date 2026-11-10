@@ -1,9 +1,9 @@
 # ADR-0184: Pictures of the album are moved by dragging them onto a folder
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-10
-- **Deciders:** Project initiators (request of 2026-11-10: moving photos of the album into folders by drag and drop; which folders take a drop, that chosen pictures move together and that the move is the existing one are defaults proposed with the implementation and await the requester's confirmation)
+- **Deciders:** Project initiators (request of 2026-11-10: moving photos of the album into folders by drag and drop; which folders take a drop, that chosen pictures move together and that the move is the existing one are defaults proposed with the implementation, confirmed by the requester; accepted 2026-11-10)
 - **Open question:** whether a move should keep the picture's identity instead of copying it and deleting the original, and whether pictures should be dropped onto folders in the timeline, favourites and memories too
 - **Question checked:** 2026-11
 
@@ -28,7 +28,7 @@ How is a picture moved into a folder in one gesture, without a second way of mov
 
 ## Decision outcome
 
-Chosen option: **1** (defaults proposed with the implementation).
+Chosen option: **1** (defaults proposed with the implementation, confirmed by the requester).
 
 - **What is dragged:** in the folders view every picture card can be dragged. A chosen picture takes every chosen picture with it; one not chosen goes alone. An older version in an opened stack is not dragged on its own: its stack moves with its top, as with *Move*.
 - **Where it is dropped:** onto a folder listed below the open one, or onto a folder above it in the trail. The trail's top (*All pictures*) is no folder, and a collection (ADR-0175) holds nothing, so neither takes a drop. While pictures are dragged, the folders that take them are outlined; the one under the pointer is marked.
