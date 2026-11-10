@@ -122,7 +122,11 @@ import (
 //   - 43: an anchor may name an element of a drawing, with Drawing and
 //     Element, sealed with the rest of it (ADR-0171). Versions 1 to 42 are
 //     still read.
-const CodecVersion = 43
+//   - 44: an attachment may carry Photo, what a picture tells about itself
+//     (capture time, place, camera), sealed with the rest of it
+//     (ADR-0175). Versions 1 to 43 are still read; their pictures have no
+//     photo data.
+const CodecVersion = 44
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

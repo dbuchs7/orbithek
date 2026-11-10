@@ -133,6 +133,10 @@ type Deps struct {
 	// creates one that measures on demand when it is nil, and the caller
 	// runs its Loop.
 	Disk *DiskWatch
+	// Photos holds the album's thumbnails, map tiles and imports
+	// (ADR-0175); Routes creates one from the process environment, without
+	// Google, when it is nil.
+	Photos *Photos
 }
 
 // MetricsPath serves the operational metrics. It is the only path a token
@@ -216,6 +220,9 @@ func Routes(d Deps) []Route {
 	}
 	if d.Engines == nil {
 		d.Engines = engine.NewReader(nil, nil)
+	}
+	if d.Photos == nil {
+		d.Photos = NewPhotos(os.Getenv, nil)
 	}
 	if d.Calendars == nil && d.DB != nil {
 		d.Calendars = extcal.NewReader(d.DB.Calendars, CalendarClient(os.Getenv), nil)

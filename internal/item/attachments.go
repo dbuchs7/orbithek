@@ -31,6 +31,9 @@ type Attachment struct {
 	// first version; nil follows the album's default. It is content,
 	// sealed with the rest.
 	Retention *Retention `json:",omitempty"`
+	// Photo is what a picture tells about itself (ADR-0175): capture
+	// time, place and camera. It is content, sealed with the rest.
+	Photo *Photo `json:",omitempty"`
 	// Author and Created come from the event that added it.
 	Author  string `json:"-"`
 	Created int64  `json:"-"` // Unix seconds
@@ -99,7 +102,10 @@ func (s *Store) AddAttachment(actor string, id ID, a Attachment) (Attachment, er
 	if a.Source != nil && (!ValidItemID(string(a.Source.Item)) || !ValidAttachmentID(string(a.Source.Attachment))) {
 		return Attachment{}, invalid("attachment %s: source %v", a.ID, *a.Source)
 	}
-	rec := Attachment{ID: a.ID, Name: a.Name, Type: a.Type, Size: a.Size, SHA256: a.SHA256, Source: a.Source}
+	if err := checkPhoto(a.Photo); err != nil {
+		return Attachment{}, err
+	}
+	rec := Attachment{ID: a.ID, Name: a.Name, Type: a.Type, Size: a.Size, SHA256: a.SHA256, Source: a.Source, Photo: a.Photo}
 	if err := s.record(actor, Event{Kind: AttachmentAdded, Item: id, Attachment: &rec}); err != nil {
 		return Attachment{}, err
 	}

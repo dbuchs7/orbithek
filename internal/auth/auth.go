@@ -150,6 +150,9 @@ type user struct {
 	// views are the calendar views the user saved, with their feeds
 	// (ADR-0168).
 	views []viewRecord
+	// pictures are the pictures of the album the user marked as
+	// favourites (ADR-0175).
+	pictures map[PictureRef]bool
 }
 
 type token struct {
@@ -233,6 +236,10 @@ type event struct {
 	// Views are a user's saved calendar views of a CalendarViewsSet, the
 	// whole list with their feeds' hashes (ADR-0168).
 	Views []viewRecord `json:"views,omitempty"`
+	// Picture and On are a picture of a PictureFavouriteSet and whether it
+	// is now a favourite (ADR-0175).
+	Picture *PictureRef `json:"picture,omitempty"`
+	On      bool        `json:"on,omitempty"`
 }
 
 const (
@@ -269,6 +276,9 @@ const (
 	// calendarViewsSet records the calendar views a user saved, the whole
 	// list (ADR-0168).
 	calendarViewsSet = "CalendarViewsSet"
+	// pictureFavouriteSet marks one picture of the album as a favourite of
+	// a user, or unmarks it (ADR-0175).
+	pictureFavouriteSet = "PictureFavouriteSet"
 )
 
 // apply is the only code that changes accounts; it runs live and on load.
@@ -330,6 +340,8 @@ func (a *Accounts) apply(e event) error {
 		u.favourites = slices.Clone(e.Spaces)
 	case calendarViewsSet:
 		return a.applyViews(e)
+	case pictureFavouriteSet:
+		return a.applyPictureFavourite(e)
 	case digestSent:
 		u, ok := a.users[e.User]
 		if !ok {
