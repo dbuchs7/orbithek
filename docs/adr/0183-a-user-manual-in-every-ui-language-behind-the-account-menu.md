@@ -1,9 +1,9 @@
 # ADR-0183: A user manual in every UI language, behind the account menu
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-10
-- **Deciders:** Project initiators (request of 2026-11-10 for a user manual in English and German, linked as "Manual" under the profile picture in the header)
+- **Deciders:** Project initiators (request of 2026-11-10 for a user manual in English and German, linked as "Manual" under the profile picture in the header; accepted 2026-11-10)
 - **Open question:** whether the manual should be written as items of a room of its own, so administrators can adapt it to their installation; whether chapters should open at the place of the UI they describe (a help link per view)
 - **Question checked:** 2026-11
 
