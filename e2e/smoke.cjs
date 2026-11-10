@@ -1679,7 +1679,7 @@ function gitSource() {
     const itemLabels = await page.evaluate(async () => (await (await fetch("/api/labels")).json()).labels.map((l) => l.label));
     check(!itemLabels.includes("logo"), "a picture's label is no label of an item, so no kanban shows it");
 
-    step("album collections: a collection gathers the labelled pictures of every room, and its rule is changed (ADR-0176)");
+    step("album collections: a collection gathers the labelled pictures of every room, and its rule is changed (ADR-0175)");
     await page.selectOption("#album-label", "");
     await page.click("#album-new-collection");
     await page.selectOption("#album-collection-space", "PLAT");
