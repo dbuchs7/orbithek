@@ -1677,6 +1677,27 @@ function gitSource() {
     await page.waitForFunction(() => { const cards = document.querySelectorAll("#album .album-card"); return cards.length === 1 && cards[0].textContent.includes("brand"); });
     const itemLabels = await page.evaluate(async () => (await (await fetch("/api/labels")).json()).labels.map((l) => l.label));
     check(!itemLabels.includes("logo"), "a picture's label is no label of an item, so no kanban shows it");
+
+    step("album collections: a collection gathers the labelled pictures of every room, and its rule is changed (ADR-0175)");
+    await page.selectOption("#album-label", "");
+    await page.click("#album-new-collection");
+    await page.selectOption("#album-collection-space", "PLAT");
+    await page.fill("#album-collection-name", "Print");
+    await page.fill("#album-new-collection-form-labels", "Print");
+    await page.click("#album-new-collection-form button[type=submit]");
+    await page.click("#album .album-collection:has-text('Print')");
+    await page.waitForSelector("#album-rule-text");
+    // The collection's answer replaces the whole album's, which may still be on its way.
+    await page.waitForFunction(() => { const c = document.querySelectorAll("#album .album-card"); return c.length === 1 && c[0].textContent.includes("brand"); });
+    check((await page.textContent("#album-rule-text")).includes("print"), "the collection says which labels it gathers");
+    check(await page.locator("#album-upload").count() === 0, "nothing is uploaded into a collection");
+    await page.click("#album-rule-edit");
+    await page.fill("#album-rule-form-labels", "nothing-here");
+    await page.click("#album-rule-form button[type=submit]");
+    await page.waitForFunction(() => document.querySelectorAll("#album .album-card").length === 0 && document.querySelector("#album-rule-text").textContent.includes("nothing-here"));
+    await page.click("#album .album-trail button:has-text('All pictures')");
+    await page.selectOption("#album-label", "logo");
+    await page.waitForSelector(brandCard);
     answer = true;
     await page.click(brandCard + " .album-more summary"); // deleting is under More
     await page.click(brandCard + " .album-delete");

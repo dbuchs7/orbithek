@@ -972,6 +972,13 @@ dialog.retention-dialog .drawing-bar button { margin-left: auto; }
 .album-folder { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; text-align: left; overflow-wrap: anywhere; }
 .album-folder-icon { flex: none; position: relative; width: 26px; height: 18px; margin-top: 4px; background: var(--accent); border-radius: 2px 3px 3px 3px; opacity: .8; }
 .album-folder-icon::before { content: ""; position: absolute; top: -4px; left: 0; width: 11px; height: 5px; background: inherit; border-radius: 2px 2px 0 0; }
+/* A collection (ADR-0175): two cards fanned, as it gathers rather than holds. */
+.album-collection-icon { flex: none; position: relative; width: 22px; height: 18px; margin: 2px 4px 0 0; border: 2px solid var(--accent); border-radius: 3px; opacity: .8; }
+.album-collection-icon::before { content: ""; position: absolute; top: 3px; left: 5px; width: 22px; height: 18px; border: 2px solid var(--accent); border-radius: 3px; background: var(--surface); }
+.album-collection-what { display: flex; flex-direction: column; min-width: 0; }
+.album-collection-labels { font-size: .85em; }
+.album-rule { flex-wrap: wrap; }
+.album-rule .check { display: inline-flex; align-items: center; gap: 6px; }
 .album-labels { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0; min-height: 24px; }
 .album-labels-input { flex: 1 1 100%; font-size: 13px; }
 button.link.album-labels-edit { font-size: 12px; color: var(--muted); }

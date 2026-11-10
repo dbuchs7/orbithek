@@ -348,6 +348,86 @@ func TestAlbumFoldersAndLabelsThroughTheAPI(t *testing.T) {
 	}
 }
 
+// A collection gathers the labelled pictures of every room, as far as each
+// reader may read them, and its rule is changed by whoever may edit it
+// (ADR-0175).
+func TestAlbumCollectionsThroughTheAPI(t *testing.T) {
+	w := newWorld(t)
+	png := append([]byte("\x89PNG\r\n\x1a\n"), bytes.Repeat([]byte{7}, 100)...)
+	w.admin.expect("POST", "/api/spaces", `{"key":"OPS","name":"Operations"}`, http.StatusCreated)
+	w.admin.expect("PUT", "/api/spaces/OPS/roles/"+w.ids["bert"], `{"role":"editor"}`, http.StatusNoContent)
+	picture := func(space, title, name string, labels string) string {
+		t.Helper()
+		key := field(w.bert.expect("POST", "/api/items", `{"space":"`+space+`","type":"task","title":"`+title+`","properties":{"priority":"low"}}`, http.StatusCreated), "item", "key").(string)
+		rec := w.bert.upload("/api/items/"+key+"/attachments?name="+name, "application/octet-stream", png)
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("upload %s: %d %s", name, rec.Code, rec.Body)
+		}
+		var up struct {
+			Attachment struct {
+				ID string `json:"id"`
+			} `json:"attachment"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &up); err != nil {
+			t.Fatal(err)
+		}
+		if labels != "" {
+			w.bert.expect("PUT", "/api/items/"+key+"/attachments/"+up.Attachment.ID+"/labels", `{"labels":[`+labels+`]}`, http.StatusOK)
+		}
+		return key
+	}
+	picture("PLAT", "Brand", "plat.png", `"logo","print"`)
+	picture("OPS", "Ops", "ops.png", `"logo"`)
+	page := picture("PLAT", "Style", "style.png", "")
+	w.bert.expect("PUT", "/api/items/"+page+"/labels", `{"labels":["logo"]}`, http.StatusOK)
+
+	w.vera.expect("POST", "/api/album/collections", `{"space":"PLAT","name":"Logos","labels":["logo"]}`, http.StatusForbidden)
+	w.bert.expect("POST", "/api/album/collections", `{"space":"PLAT","name":"Logos","labels":[]}`, http.StatusBadRequest)
+	w.bert.expect("POST", "/api/album/collections", `{"space":"PLAT","name":"Logos","labels":["logo"],"match":"some"}`, http.StatusBadRequest)
+	made := field(w.bert.expect("POST", "/api/album/collections", `{"space":"PLAT","name":"Logos","labels":["Logo"]}`, http.StatusCreated), "item").(map[string]any)
+	id := made["id"].(string)
+
+	listed := field(w.vera.expect("GET", "/api/album/folders?space=PLAT", "", http.StatusOK), "collections").([]any)
+	if len(listed) != 1 || listed[0].(map[string]any)["name"] != "Logos" || listed[0].(map[string]any)["editable"] != false ||
+		fmt.Sprint(listed[0].(map[string]any)["rule"]) != "map[items:false labels:[logo] match:any]" {
+		t.Fatalf("collections %v", listed)
+	}
+	names := func(c *client, query string) []string {
+		t.Helper()
+		var out []string
+		for _, p := range field(c.expect("GET", "/api/album"+query, "", http.StatusOK), "pictures").([]any) {
+			out = append(out, p.(map[string]any)["attachment"].(map[string]any)["name"].(string))
+		}
+		slices.Sort(out)
+		return out
+	}
+	if got := names(w.bert, "?collection="+id); !slices.Equal(got, []string{"ops.png", "plat.png"}) {
+		t.Errorf("bert's collection %v", got)
+	}
+	if got := names(w.vera, "?collection="+id); !slices.Equal(got, []string{"plat.png"}) {
+		t.Errorf("vera's collection %v", got)
+	}
+	if got := names(w.bert, "?collection="+id+"&space=OPS"); !slices.Equal(got, []string{"ops.png"}) {
+		t.Errorf("the collection narrowed to a room %v", got)
+	}
+	w.carla.expect("GET", "/api/album?collection="+id, "", http.StatusNotFound)
+	w.bert.expect("GET", "/api/album?collection="+page, "", http.StatusNotFound)
+
+	w.vera.expect("PUT", "/api/album/collections/"+id, `{"labels":["logo"],"items":true}`, http.StatusForbidden)
+	w.bert.expect("PUT", "/api/album/collections/"+id, `{"labels":["logo"],"items":true}`, http.StatusOK)
+	if got := names(w.bert, "?collection="+id); !slices.Equal(got, []string{"ops.png", "plat.png", "style.png"}) {
+		t.Errorf("with item labels %v", got)
+	}
+	kept := w.bert.expect("PUT", "/api/album/collections/"+id, `{"labels":["Print","logo"],"match":"all"}`, http.StatusOK)
+	if got := fmt.Sprint(kept["rule"]); got != "map[items:false labels:[logo print] match:all]" {
+		t.Errorf("the rule kept %s", got)
+	}
+	if got := names(w.bert, "?collection="+id); !slices.Equal(got, []string{"plat.png"}) {
+		t.Errorf("with every label %v", got)
+	}
+	w.bert.expect("PUT", "/api/album/collections/"+page, `{"labels":["logo"]}`, http.StatusNotFound)
+}
+
 // A video plays in the text: it is sent inline and in the parts a player
 // asks for, and only a video a browser plays makes a video block
 // (ADR-0097).

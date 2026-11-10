@@ -187,3 +187,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0172](0172-a-drawing-opens-as-a-whiteboard-or-alone.md) | A drawing opens as a whiteboard or alone, and is not saved alone while it is live | Accepted | Landed |
 | [0173](0173-pictures-of-the-album-export-as-png-and-jpeg-drawings-also-as-svg.md) | Pictures of the album export as PNG and JPEG, drawings also as SVG | Accepted | Landed |
 | [0174](0174-calendars-of-other-services-in-the-calendar.md) | Calendars of other services in the calendar | Proposed | Partial |
+| [0175](0175-a-collection-in-the-album-gathers-labelled-pictures-of-every-room.md) | A collection in the album gathers the labelled pictures of every room | Proposed | Partial |

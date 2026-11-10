@@ -351,6 +351,7 @@ func (x *Session) DeleteAttachment(id, attachment ID) error {
 
 // Picture is a file of a readable item, as the album lists it (ADR-0054).
 type Picture struct {
+	// Item is the picture's item: its identity, place and labels.
 	Item       Item
 	Attachment Attachment
 	// Used: the item's body shows it. Editable: the principal may edit the
@@ -396,7 +397,7 @@ func (x *Session) Pictures(space string, keep func(Attachment) bool) []Picture {
 		for i, a := range it.Attachments {
 			if !a.Deleted && keep(a) && x.s.readsFile(x.who, it, a.ID) {
 				first := firstVersion(it, a)
-				out = append(out, Picture{Item: Item{ID: it.ID, Key: it.Key, Title: it.Title, Space: it.Space, Type: it.Type, Parent: it.Parent}, Attachment: a,
+				out = append(out, Picture{Item: Item{ID: it.ID, Key: it.Key, Title: it.Title, Space: it.Space, Type: it.Type, Parent: it.Parent, Labels: it.Labels}, Attachment: a,
 					Used: inBody(it.Body, a.ID), Editable: editable, First: first, Retention: ruleOf(it, first), order: i})
 			}
 		}
