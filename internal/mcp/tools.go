@@ -138,7 +138,8 @@ var (
 // The album (ADR-0054) is not offered, and with it neither the speaker's
 // notes of its pictures (ADR-0176): an agent that cannot list the
 // pictures would write notes for slides it never saw; whether agents
-// read and annotate the album is a decision of its own.
+// read and annotate the album is a decision of its own. Renaming its pictures
+// (ADR-0180) is not offered for the same reason.
 //
 // The album's photo management (ADR-0177) is not offered: thumbnails, map
 // tiles and ZIP archives are for browsers, favourites are a person's own,

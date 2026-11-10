@@ -73,6 +73,7 @@ func TestContentIsNeverWrittenInPlaintext(t *testing.T) {
 	noErr(t, err)
 	noErr(t, db.Store.As("anna").SetPictureLabels(it.ID, pic, []string{secret}))
 	noErr(t, db.Store.As("anna").SetPictureNotes(it.ID, pic, "Say: "+secret))
+	noErr(t, db.Store.As("anna").RenamePicture(it.ID, pic, "Plan "+secret))
 	noErr(t, db.Close())
 	log := readFile(t, dir, wal.FileName)
 	if bytes.Contains(log, []byte(secret)) || bytes.Contains(log, []byte(strings.ToLower(secret))) {

@@ -12,7 +12,8 @@ import {
 import { h, safeHref } from "./dom.js";
 import { t } from "./i18n.js";
 import { anchorOf } from "./anchors.js";
-import { openDrawing, drawingName } from "./drawing.js";
+import { openDrawing, drawingName, isDrawing } from "./drawing.js";
+import { filenameOf } from "./filename.js";
 import { diagramView, openModeler, pickProcess, bpmnName, drawingProcesses, processRegion } from "./bpmn.js";
 import { regionsIn } from "./drawprocesses.js";
 import { formView, decisionView, pickFromEngine, startFormView, pickStartLink, editPrefill } from "./engineviews.js";
@@ -757,11 +758,16 @@ function imageView(node, view, getPos, files) {
       }
       const res = await fetch(files.url(node.attrs.ref), { credentials: "same-origin" });
       if (!res.ok) throw new Error(res.statusText);
+      // The new version keeps the drawing's name, which may have been
+      // renamed in the album (ADR-0180); only a file that names none is
+      // named after the caption.
+      const kept = filenameOf(res.headers.get("Content-Disposition"));
+      const fileName = isDrawing(kept) ? kept : drawingName(node.attrs.text);
       // The new picture is a version of the one edited (ADR-0055), so its
       // copies elsewhere learn of it. The dialog stays open until it is
       // stored, so the block cannot be left before it points at it.
       const a = await openDrawing(await res.blob(), (png) =>
-        files.upload(new File([png], drawingName(node.attrs.text), { type: "image/png" }), { item: files.item, attachment: node.attrs.ref }), drawingProcesses(files));
+        files.upload(new File([png], fileName, { type: "image/png" }), { item: files.item, attachment: node.attrs.ref }), drawingProcesses(files));
       if (!a) return;
       const pos = getPos();
       if (pos === undefined || dom.classList.contains("pm-locked")) throw new Error(t("draw.locked"));

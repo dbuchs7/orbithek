@@ -178,6 +178,14 @@ func (s *Store) applyAttachment(e Event, touch func(...ID)) {
 		if a, ok := it.attachment(e.Attachment.ID); ok {
 			a.Notes = e.Attachment.Notes
 		}
+	case AttachmentRenamed:
+		// Every version of the file takes the name, deleted ones aside,
+		// whose names are gone (ADR-0180).
+		for i := range it.Attachments {
+			if a := &it.Attachments[i]; !a.Deleted && firstVersion(it, *a) == e.Attachment.ID {
+				a.Name = e.Attachment.Name
+			}
+		}
 	case AttachmentPlaceSet:
 		if a, ok := it.attachment(e.Attachment.ID); ok && e.Attachment.Photo != nil {
 			p := *e.Attachment.Photo
