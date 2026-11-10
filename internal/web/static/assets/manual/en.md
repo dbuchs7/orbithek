@@ -99,7 +99,7 @@ Pictures can be placed left or right with text beside them, centred, and resized
 
 **Relations** link an item to another with a named type, for example *blocks* or *depends on*: enter the relation and the other item's key and choose **Relate**. Links and mentions in the text are shown as relations too.
 
-**Files** are attached with **Upload files**. Pictures and drawings of every item also appear in the album.
+**Files** are attached with **Upload files**. Whoever may edit the item renames a file in the list with **Rename**: every version takes the new name, and the file type stays. Pictures and drawings of every item also appear in the album.
 
 ### Moving, copying and deleting
 

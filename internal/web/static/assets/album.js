@@ -23,6 +23,7 @@ import { groups, range, yearsAgo } from "./photoparts.js";
 import { photoMap } from "./photomap.js";
 import { pickPlace, placeInput } from "./places.js";
 import { startPresentation } from "./present.js";
+import { renameInPlace } from "./rename.js";
 
 const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
 
@@ -272,31 +273,14 @@ export function albumBrowser({ pick } = {}) {
   // the name itself is typed. Enter or leaving the field saves, Escape
   // keeps the name.
   const rename = (p, label) => {
-    if (!label) return;
     const name = captionOf(p.attachment.name);
-    const input = h("input", { class: "album-rename-input", value: name, maxlength: "200",
-      "aria-label": t("album.renameOf", { name }) });
-    let done = false;
-    const close = () => { done = true; input.replaceWith(label); };
-    const save = async () => {
-      if (done) return;
-      const next = input.value.trim();
-      if (!next || next === name) return close();
-      done = true;
+    renameInPlace(label, { value: name, ariaLabel: t("album.renameOf", { name }), className: "album-rename-input", save: async (next) => {
       try {
         await put(`/api/items/${p.item.id}/attachments/${p.attachment.id}/name`, { name: next });
-        status.replaceChildren(h("p", { class: "notice", role: "status", text: t("album.renamed", { name: next }) }));
-        load(false);
-      } catch (err) { done = false; fail(err); input.focus(); }
-    };
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") { e.preventDefault(); save(); }
-      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); }
-    });
-    input.addEventListener("blur", () => save());
-    label.replaceWith(input);
-    input.focus();
-    input.select();
+      } catch (err) { fail(err); throw err; }
+      status.replaceChildren(h("p", { class: "notice", role: "status", text: t("album.renamed", { name: next }) }));
+      load(false);
+    } });
   };
 
   // actions is the row at a card's foot: Insert while choosing a picture,

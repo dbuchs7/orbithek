@@ -495,6 +495,8 @@ export default {
   "att.none": "Noch keine Dateien.",
   "att.upload": "Dateien hochladen",
   "att.deleteConfirm": "{name} löschen? Der Inhalt wird vernichtet und lässt sich nicht wiederherstellen.",
+  "att.rename": "Umbenennen",
+  "att.renameOf": "Neuer Name für {name}; der Dateityp bleibt",
   "editor.image": "Bild",
   "editor.toolbar": "Formatierung",
   "editor.underline": "Unterstreichen (Ctrl+U)",

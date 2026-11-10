@@ -115,7 +115,7 @@ func TestPalettesAreCredited(t *testing.T) {
 }
 
 // TestManualPerLanguage: every UI language has its user manual, embedded
-// with the UI, and the manual module names the same languages (ADR-0182).
+// with the UI, and the manual module names the same languages (ADR-0183).
 func TestManualPerLanguage(t *testing.T) {
 	module, err := fs.ReadFile(FS(), "assets/manual.js")
 	if err != nil {

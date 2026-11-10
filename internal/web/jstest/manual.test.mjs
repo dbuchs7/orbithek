@@ -1,4 +1,4 @@
-// Unit tests of the user manual (manual.js, assets/manual/*.md; ADR-0182).
+// Unit tests of the user manual (manual.js, assets/manual/*.md; ADR-0183).
 // They run in Node.js without a browser and without dependencies:
 //
 //   node --test "internal/web/jstest/*.test.mjs"

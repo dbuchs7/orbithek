@@ -497,6 +497,8 @@ export default {
   "att.none": "No files yet.",
   "att.upload": "Upload files",
   "att.deleteConfirm": "Delete {name}? Its content is destroyed and cannot be restored.",
+  "att.rename": "Rename",
+  "att.renameOf": "New name for {name}; the file type stays",
   "editor.image": "Image",
   "editor.toolbar": "Formatting",
   "editor.underline": "Underline (Ctrl+U)",

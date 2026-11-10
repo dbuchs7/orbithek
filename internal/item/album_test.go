@@ -226,28 +226,28 @@ func TestRenamingAPictureRenamesItsVersions(t *testing.T) {
 		}
 		return out
 	}
-	noErr(t, anna.RenamePicture(folder.ID, v1, "  01 Floor plan  "))
+	noErr(t, anna.RenameFile(folder.ID, v1, "  01 Floor plan  "))
 	if got := names(ben, folder.ID); got[v1] != "01 Floor plan.drawing.png" || got[v2] != "01 Floor plan.drawing.png" {
 		t.Fatalf("names after renaming %v", got)
 	}
 	if got := names(ben, page.ID); got[copied] != "Sketch.drawing.png" {
 		t.Errorf("the copy was renamed: %v", got)
 	}
-	noErr(t, anna.RenamePicture(folder.ID, photo, "Lake at dawn.jpg")) // the extension typed is not doubled
+	noErr(t, anna.RenameFile(folder.ID, photo, "Lake at dawn.jpg")) // the extension typed is not doubled
 	if got := names(ben, folder.ID)[photo]; got != "Lake at dawn.JPG" {
 		t.Errorf("photo renamed to %q", got)
 	}
 	n := len(s.Log())
-	noErr(t, anna.RenamePicture(folder.ID, v2, "01 Floor plan")) // no change
+	noErr(t, anna.RenameFile(folder.ID, v2, "01 Floor plan")) // no change
 	if len(s.Log()) != n {
 		t.Error("an unchanged name was recorded")
 	}
 	for name, err := range map[string]error{
-		"a viewer":      ben.RenamePicture(folder.ID, v1, "x"),
-		"an empty name": anna.RenamePicture(folder.ID, v1, " .drawing.png "),
-		"a slash":       anna.RenamePicture(folder.ID, v1, "a/b"),
-		"too long":      anna.RenamePicture(folder.ID, v1, strings.Repeat("x", 250)),
-		"an unknown":    anna.RenamePicture(folder.ID, "fedcba9876543210fedcba9876543210", "x"),
+		"a viewer":      ben.RenameFile(folder.ID, v1, "x"),
+		"an empty name": anna.RenameFile(folder.ID, v1, " .drawing.png "),
+		"a slash":       anna.RenameFile(folder.ID, v1, "a/b"),
+		"too long":      anna.RenameFile(folder.ID, v1, strings.Repeat("x", 250)),
+		"an unknown":    anna.RenameFile(folder.ID, "fedcba9876543210fedcba9876543210", "x"),
 	} {
 		want := ErrValidation
 		switch name {
@@ -268,7 +268,7 @@ func TestRenamingAPictureRenamesItsVersions(t *testing.T) {
 	// A later version of the renamed drawing is found under the new name
 	// as a stack: the album groups by first version, not by name.
 	noErr(t, anna.DeleteAttachment(folder.ID, v1))
-	noErr(t, anna.RenamePicture(folder.ID, v2, "Floor plan"))
+	noErr(t, anna.RenameFile(folder.ID, v2, "Floor plan"))
 	if got := names(ben, folder.ID)[v2]; got != "Floor plan.drawing.png" {
 		t.Errorf("renamed after deleting the first version: %q", got)
 	}
@@ -281,7 +281,7 @@ func TestAPictureNameIsContent(t *testing.T) {
 	anna, ben := s.As("anna"), s.As("ben")
 	folder := mustItem(t)(anna.CreateFolder("PLAT", "", "Plans"))
 	addPicture(t, anna, folder.ID, albumPic, "plan.png")
-	noErr(t, anna.RenamePicture(folder.ID, albumPic, "password: Sommer2026!"))
+	noErr(t, anna.RenameFile(folder.ID, albumPic, "password: Sommer2026!"))
 	if _, err := ben.Get(folder.ID); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("a sensitive name left the folder readable: %v", err)
 	}
@@ -292,5 +292,32 @@ func TestAPictureNameIsContent(t *testing.T) {
 	e.erase()
 	if e.Attachment != nil || !e.Erased {
 		t.Errorf("erased %+v", e)
+	}
+}
+
+// Any file of an item is renamed as a picture is, from its file list:
+// its extension stays, and a name without one stays without (ADR-0182).
+func TestAnyFileIsRenamed(t *testing.T) {
+	s := permFixture(t)
+	anna, ben := s.As("anna"), s.As("ben")
+	page := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Report"}))
+	const pdf, plain = "0123456789abcdef0123456789abcf11", "0123456789abcdef0123456789abcf12"
+	for id, name := range map[ID]string{pdf: "scan_0001.pdf", plain: "README"} {
+		_, err := anna.AddAttachment(page.ID, Attachment{ID: id, Name: name, Type: "application/octet-stream", Size: 3, SHA256: strings.Repeat("ef", 32)})
+		noErr(t, err)
+	}
+	noErr(t, anna.RenameFile(page.ID, pdf, "Annual report 2026"))
+	noErr(t, anna.RenameFile(page.ID, plain, "Read me first"))
+	atts, err := ben.Attachments(page.ID)
+	noErr(t, err)
+	got := map[ID]string{}
+	for _, a := range atts {
+		got[a.ID] = a.Name
+	}
+	if got[pdf] != "Annual report 2026.pdf" || got[plain] != "Read me first" {
+		t.Fatalf("names %v", got)
+	}
+	if err := ben.RenameFile(page.ID, pdf, "x"); !errors.Is(err, ErrForbidden) {
+		t.Errorf("a viewer renamed a file: %v", err)
 	}
 }

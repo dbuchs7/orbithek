@@ -99,7 +99,7 @@ Bilder lassen sich links oder rechts mit Text daneben oder zentriert platzieren 
 
 **Beziehungen** verknüpfen einen Eintrag mit einem anderen unter einem benannten Typ, zum Beispiel *blocks* oder *depends on*: Beziehung und Schlüssel des anderen Eintrags eingeben und **Verknüpfen** wählen. Links und Erwähnungen im Text erscheinen ebenfalls als Beziehungen.
 
-**Dateien** werden mit **Dateien hochladen** angehängt. Bilder und Zeichnungen aller Einträge erscheinen zudem im Album.
+**Dateien** werden mit **Dateien hochladen** angehängt. Wer den Eintrag bearbeiten darf, benennt eine Datei in der Liste mit **Umbenennen** um: Alle Versionen erhalten den neuen Namen, der Dateityp bleibt. Bilder und Zeichnungen aller Einträge erscheinen zudem im Album.
 
 ### Verschieben, kopieren und löschen
 

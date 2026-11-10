@@ -1,4 +1,4 @@
-// The user manual (ADR-0182): one Markdown file per UI language in
+// The user manual (ADR-0183): one Markdown file per UI language in
 // assets/manual, embedded with the rest of the UI, shown read-only at
 // #/manual through the same blocks a body is made of (ADR-0133). The module
 // does not touch the DOM, so it is tested in Node.js (internal/web/jstest).
