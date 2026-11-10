@@ -1474,7 +1474,7 @@ func albumLog(t *testing.T) []Event {
 }
 
 // photoLog uploads a photo with what it tells about itself, so the golden
-// files pin the attachment's photo data (ADR-0175).
+// files pin the attachment's photo data (ADR-0176).
 func photoLog(t *testing.T) []Event {
 	s := setup(t)
 	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))

@@ -1,5 +1,5 @@
 // The parts of the album's photo management that need no browser
-// (ADR-0175): the map's projection, tiles and clusters, the grouping of
+// (ADR-0176): the map's projection, tiles and clusters, the grouping of
 // the timeline, choosing a range of pictures, and which files the album
 // takes. They are tested with node --test.
 

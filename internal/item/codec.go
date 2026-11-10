@@ -124,7 +124,7 @@ import (
 //     still read.
 //   - 44: an attachment may carry Photo, what a picture tells about itself
 //     (capture time, place, camera), sealed with the rest of it
-//     (ADR-0175). Versions 1 to 43 are still read; their pictures have no
+//     (ADR-0176). Versions 1 to 43 are still read; their pictures have no
 //     photo data.
 const CodecVersion = 44
 

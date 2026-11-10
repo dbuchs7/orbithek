@@ -22,7 +22,7 @@ import { photoMap } from "./photomap.js";
 
 const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
 
-// VIEWS are the album's ways of showing pictures (ADR-0175).
+// VIEWS are the album's ways of showing pictures (ADR-0176).
 const VIEWS = ["folders", "timeline", "favourites", "memories", "map"];
 
 // The album's clipboard (ADR-0108): a picture copied in the album is pasted
@@ -111,7 +111,7 @@ export function albumBrowser({ pick } = {}) {
   const say = (text, cls = "muted") => status.replaceChildren(h("p", { class: cls, role: "status", text }));
   const params = new URLSearchParams(location.hash.split("?")[1] || "");
   // view is how the album shows its pictures; choosing picks many at once
-  // (ADR-0175). shown are the pictures on screen, in their order.
+  // (ADR-0176). shown are the pictures on screen, in their order.
   let view = pick ? "folders" : VIEWS.includes(params.get("view")) ? params.get("view") : "folders";
   let choosing = false;
   const chosen = new Map();
@@ -289,7 +289,7 @@ export function albumBrowser({ pick } = {}) {
   // key names a picture on screen.
   const key = (p) => `${p.item.id}/${p.attachment.id}`;
 
-  // favouriteButton marks a picture as one's own favourite (ADR-0175).
+  // favouriteButton marks a picture as one's own favourite (ADR-0176).
   const favouriteButton = (p) => {
     const b = h("button", { type: "button", class: "album-favourite", "aria-pressed": String(!!p.favourite),
       "aria-label": t(p.favourite ? "photos.unfavouriteOf" : "photos.favouriteOf", { name: captionOf(p.attachment.name) }),
@@ -704,7 +704,7 @@ export function albumBrowser({ pick } = {}) {
     load(false);
   };
 
-  // The views (ADR-0175): folders, timeline, favourites, memories, map.
+  // The views (ADR-0176): folders, timeline, favourites, memories, map.
   const viewText = { folders: t("photos.viewFolders"), timeline: t("photos.viewTimeline"), favourites: t("photos.viewFavourites"),
     memories: t("photos.viewMemories"), map: t("photos.viewMap") };
   const viewBar = h("div", { class: "album-views segmented", role: "group", "aria-label": t("photos.views") },
@@ -715,7 +715,7 @@ export function albumBrowser({ pick } = {}) {
       open();
     } })));
 
-  // The chosen pictures and what is done with them together (ADR-0175).
+  // The chosen pictures and what is done with them together (ADR-0176).
   const bulk = h("div", { class: "album-bulk", id: "album-bulk", hidden: true, role: "region", "aria-label": t("photos.chosenTitle") });
   const chooseButton = h("button", { type: "button", class: "secondary", id: "album-choose", text: t("photos.choose"), onclick: () => setChoosing(!choosing) });
   const setChoosing = (on) => {
@@ -787,7 +787,7 @@ export function albumBrowser({ pick } = {}) {
   };
 
   // takeFiles uploads files chosen or dropped onto an open folder; ZIP
-  // archives are unpacked here (ADR-0175).
+  // archives are unpacked here (ADR-0176).
   const takeFiles = async (list) => {
     if (!inFolder() || !list.length) return;
     try {
@@ -864,7 +864,7 @@ export function albumBrowser({ pick } = {}) {
     pick ? null : h("div", { class: "album-bar" }, viewBar, chooseButton),
     h("div", { class: "album-filters filter-bar", role: "search", "aria-label": t("album.title") }, search, kind, space, label, reset), options,
     bulk, trail, tools, status, folders, count, grid, timeline, mapBox, more);
-  // Files dropped onto an open folder are uploaded into it (ADR-0175).
+  // Files dropped onto an open folder are uploaded into it (ADR-0176).
   if (!pick) {
     root.addEventListener("dragover", (e) => {
       if (view !== "folders" || !inFolder() || !e.dataTransfer?.types?.includes("Files")) return;

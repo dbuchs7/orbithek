@@ -31,7 +31,7 @@ type Attachment struct {
 	// first version; nil follows the album's default. It is content,
 	// sealed with the rest.
 	Retention *Retention `json:",omitempty"`
-	// Photo is what a picture tells about itself (ADR-0175): capture
+	// Photo is what a picture tells about itself (ADR-0176): capture
 	// time, place and camera. It is content, sealed with the rest.
 	Photo *Photo `json:",omitempty"`
 	// Author and Created come from the event that added it.

@@ -1,5 +1,5 @@
 // Package photosource brings photos from other services into the album of
-// the wiki (ADR-0175): from Google Photos, through the Picker API, in
+// the wiki (ADR-0176): from Google Photos, through the Picker API, in
 // which a person chooses the photos themselves, and from public iCloud
 // shared albums. It only talks to the services; the server stores what
 // it downloads.

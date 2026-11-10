@@ -1,4 +1,4 @@
-// The album's map (ADR-0175): the readable pictures that tell where they
+// The album's map (ADR-0176): the readable pictures that tell where they
 // were taken, as clustered points on a canvas. Tiles come through the
 // server from the tile service the operator names; without one the map
 // draws a grid of degrees. Dragging pans, the wheel and the buttons zoom,

@@ -9,7 +9,7 @@ import (
 
 // TestPictureFavouritesAreKeptPerUserAndSurviveReload: a picture is marked
 // and unmarked with one record each, only for its user, and a reload of
-// the journal gives the marks back (ADR-0175).
+// the journal gives the marks back (ADR-0176).
 func TestPictureFavouritesAreKeptPerUserAndSurviveReload(t *testing.T) {
 	a, j, _ := newAccounts(t)
 	anna, err := a.CreateUser("anna", "anna's password")

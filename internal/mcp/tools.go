@@ -135,7 +135,7 @@ var (
 // the checkpoints are a browser's, and starting or ending a vote, the
 // timer and a presentation are a person's (ADR-0170).
 //
-// The album's photo management (ADR-0175) is not offered: thumbnails, map
+// The album's photo management (ADR-0176) is not offered: thumbnails, map
 // tiles and ZIP archives are for browsers, favourites are a person's own,
 // and the imports from Google Photos and shared iCloud albums act with a
 // person's sign-in at another service. An agent finds pictures, their

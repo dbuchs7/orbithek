@@ -128,7 +128,7 @@ func names(c *client, query string) []string {
 // TestAPhotoTellsWhenAndWhereItWasTaken: an upload records the photo's
 // capture time and place; the album sorts by them and narrows to a day, a
 // span of days, a day in every year and pictures with a place; months
-// and places are counted and listed for readers only (ADR-0175).
+// and places are counted and listed for readers only (ADR-0176).
 func TestAPhotoTellsWhenAndWhereItWasTaken(t *testing.T) {
 	w := newPhotoWorld(t)
 	lake := w.put(t, "lake.jpg", exifJPEG(t, "2024:05:01 13:22:10", 46.5584, 7.8352, 64))
@@ -191,7 +191,7 @@ func TestAPhotoTellsWhenAndWhereItWasTaken(t *testing.T) {
 // TestThumbnailsAreMadeWithTheFilesAccess: a thumbnail is a JPEG no
 // larger than its edge, for readers of the file only, answered again from
 // memory and by its tag; a format that cannot be scaled leads to the file
-// itself (ADR-0175).
+// itself (ADR-0176).
 func TestThumbnailsAreMadeWithTheFilesAccess(t *testing.T) {
 	w := newPhotoWorld(t)
 	a := w.put(t, "wide.jpg", exifJPEG(t, "2024:05:01 13:22:10", 0, 0, 900))
@@ -232,7 +232,7 @@ func TestThumbnailsAreMadeWithTheFilesAccess(t *testing.T) {
 
 // TestFavouritesArePersonal: a favourite is one person's, stays through
 // a new version of its file, narrows the album to it, and is set only on
-// a picture one may read (ADR-0175).
+// a picture one may read (ADR-0176).
 func TestFavouritesArePersonal(t *testing.T) {
 	w := newPhotoWorld(t)
 	a := w.put(t, "lake.jpg", exifJPEG(t, "2024:05:01 13:22:10", 0, 0, 64))
@@ -267,7 +267,7 @@ func TestFavouritesArePersonal(t *testing.T) {
 
 // TestChosenPicturesDownloadAsOneArchive: the archive holds each chosen
 // picture under a name of its own, read with the caller's rights, within
-// the budgets (ADR-0175).
+// the budgets (ADR-0176).
 func TestChosenPicturesDownloadAsOneArchive(t *testing.T) {
 	w := newPhotoWorld(t)
 	one := exifJPEG(t, "2024:05:01 13:22:10", 0, 0, 64)
@@ -307,7 +307,7 @@ func TestUniqueNamesInAnArchive(t *testing.T) {
 
 // TestMapTilesComeThroughTheServer: a tile is fetched from the named tile
 // service once and kept; without one, or for a tile that does not exist,
-// nothing is fetched (ADR-0175).
+// nothing is fetched (ADR-0176).
 func TestMapTilesComeThroughTheServer(t *testing.T) {
 	fetched := 0
 	tilesrv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -416,7 +416,7 @@ func fakeICloud(t *testing.T, photo []byte) http.Handler {
 
 // TestASharedICloudAlbumComesIntoAFolder: the album is read by its
 // address; each photo comes in as the caller's upload with the time Apple
-// tells, again only once, and what is no picture is refused (ADR-0175).
+// tells, again only once, and what is no picture is refused (ADR-0176).
 func TestASharedICloudAlbumComesIntoAFolder(t *testing.T) {
 	// The photo without EXIF: its time comes from Apple.
 	var raw bytes.Buffer
@@ -488,7 +488,7 @@ func fakeGoogle(t *testing.T, photo []byte) http.Handler {
 // TestPhotosChosenInGooglePhotosComeIntoAFolder: one signs in at Google,
 // bound to the browser that began it, opens a picker, waits until the
 // photos are chosen and brings each into the folder; videos are refused
-// and the picker is closed (ADR-0175).
+// and the picker is closed (ADR-0176).
 func TestPhotosChosenInGooglePhotosComeIntoAFolder(t *testing.T) {
 	photo := exifJPEG(t, "2024:05:01 13:22:10", 46.5, 7.8, 64)
 	client := anyHost(t, fakeGoogle(t, photo))

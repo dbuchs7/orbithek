@@ -60,7 +60,7 @@ const (
 	CalendarAccountConnected    = "calendar-account.connect"
 	CalendarAccountDisconnected = "calendar-account.disconnect"
 	// PhotosGoogleConnected is a person's sign-in at Google to bring
-	// photos into the album; no grant is kept beyond it (ADR-0175).
+	// photos into the album; no grant is kept beyond it (ADR-0176).
 	PhotosGoogleConnected = "photos.google.connect"
 	UserCreated           = "user.create"
 	RoleGranted           = "role.grant"

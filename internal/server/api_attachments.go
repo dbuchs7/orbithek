@@ -93,7 +93,7 @@ func (h itemHandlers) album(w http.ResponseWriter, r *http.Request) {
 			Editable bool `json:"editable"`
 			// First is the first version of the file, which names its
 			// stack; Favourite whether the caller marked it; Taken when it
-			// was taken, as the album sorts it (ADR-0175).
+			// was taken, as the album sorts it (ADR-0176).
 			First     item.ID    `json:"first"`
 			Favourite bool       `json:"favourite"`
 			Taken     *takenJSON `json:"taken,omitempty"`
@@ -148,7 +148,7 @@ type attachmentJSON struct {
 	// Labels are the picture's own (ADR-0090).
 	Labels []string `json:"labels,omitempty"`
 	// Photo is what the picture told about itself when it was stored
-	// (ADR-0175).
+	// (ADR-0176).
 	Photo *item.Photo `json:"photo,omitempty"`
 }
 
@@ -406,7 +406,7 @@ func (h itemHandlers) uploadAttachment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.Name = name
-	// What a picture tells about itself is recorded with it (ADR-0175).
+	// What a picture tells about itself is recorded with it (ADR-0176).
 	a.Photo = h.readPhoto(id, a)
 	if q := r.URL.Query(); q.Get("sourceItem") != "" || q.Get("sourceAttachment") != "" {
 		a.Source = &item.Source{Item: item.ID(q.Get("sourceItem")), Attachment: item.ID(q.Get("sourceAttachment"))}

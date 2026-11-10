@@ -1,4 +1,4 @@
-// The album's photo management in the browser (ADR-0175): the viewer with
+// The album's photo management in the browser (ADR-0176): the viewer with
 // a picture's photo data, favourites, the archive of chosen pictures, and
 // the imports — files and ZIP archives exported from Apple Photos, an
 // iPhone or any camera, photos chosen in Google Photos, and shared iCloud

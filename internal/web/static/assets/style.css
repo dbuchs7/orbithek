@@ -949,7 +949,7 @@ dialog.drawing::backdrop { background: rgba(20, 22, 26, .45); }
   .album-export > .export-list { left: 0; right: auto; min-width: 14rem; }
   .album-more > .export-list { left: auto; right: 0; min-width: 12rem; }
 }
-/* The album as a photo library (ADR-0175). */
+/* The album as a photo library (ADR-0176). */
 .album-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 8px; }
 .album-bar .segmented { margin: 0; }
 .album-bar #album-choose { margin-left: auto; }
@@ -1021,7 +1021,7 @@ dialog.retention-dialog .drawing-bar button { margin-left: auto; }
 .album-folder { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; text-align: left; overflow-wrap: anywhere; }
 .album-folder-icon { flex: none; position: relative; width: 26px; height: 18px; margin-top: 4px; background: var(--accent); border-radius: 2px 3px 3px 3px; opacity: .8; }
 .album-folder-icon::before { content: ""; position: absolute; top: -4px; left: 0; width: 11px; height: 5px; background: inherit; border-radius: 2px 2px 0 0; }
-/* A collection (ADR-0175): two cards fanned, as it gathers rather than holds. */
+/* A collection (ADR-0176): two cards fanned, as it gathers rather than holds. */
 .album-collection-icon { flex: none; position: relative; width: 22px; height: 18px; margin: 2px 4px 0 0; border: 2px solid var(--accent); border-radius: 3px; opacity: .8; }
 .album-collection-icon::before { content: ""; position: absolute; top: 3px; left: 5px; width: 22px; height: 18px; border: 2px solid var(--accent); border-radius: 3px; background: var(--surface); }
 .album-collection-what { display: flex; flex-direction: column; min-width: 0; }

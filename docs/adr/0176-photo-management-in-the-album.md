@@ -132,5 +132,5 @@ Strongest form: photos taken anywhere appear in the wiki without anyone doing an
 
 ## Links
 
-- relates to ADR-0054 (the album), ADR-0055 (copies carry their source), ADR-0090 (folders and labels), ADR-0103 (versions stack), ADR-0173 (export)
+- relates to ADR-0054 (the album), ADR-0055 (copies carry their source), ADR-0090 (folders and labels), ADR-0103 (versions stack), ADR-0173 (export), ADR-0175 (collections, which narrow the timeline, the months and the map as they narrow the album)
 - relates to ADR-0026 (erasure), ADR-0045 (attachments), ADR-0066 (the Google client of single sign-on), ADR-0127 and ADR-0174 (public addresses only, other services read per person)

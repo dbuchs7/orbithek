@@ -1,5 +1,5 @@
 // Unit tests of the album's photo management that need no browser
-// (photoparts.js, zipread.js, ADR-0175): the map's projection, tiles,
+// (photoparts.js, zipread.js, ADR-0176): the map's projection, tiles,
 // clusters and zoom, the timeline's groups, choosing a range, which files
 // the album takes, and reading ZIP archives exported from photo apps.
 // They run in Node.js without a browser and without dependencies:

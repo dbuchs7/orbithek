@@ -151,7 +151,7 @@ type user struct {
 	// (ADR-0168).
 	views []viewRecord
 	// pictures are the pictures of the album the user marked as
-	// favourites (ADR-0175).
+	// favourites (ADR-0176).
 	pictures map[PictureRef]bool
 }
 
@@ -237,7 +237,7 @@ type event struct {
 	// whole list with their feeds' hashes (ADR-0168).
 	Views []viewRecord `json:"views,omitempty"`
 	// Picture and On are a picture of a PictureFavouriteSet and whether it
-	// is now a favourite (ADR-0175).
+	// is now a favourite (ADR-0176).
 	Picture *PictureRef `json:"picture,omitempty"`
 	On      bool        `json:"on,omitempty"`
 }
@@ -277,7 +277,7 @@ const (
 	// list (ADR-0168).
 	calendarViewsSet = "CalendarViewsSet"
 	// pictureFavouriteSet marks one picture of the album as a favourite of
-	// a user, or unmarks it (ADR-0175).
+	// a user, or unmarks it (ADR-0176).
 	pictureFavouriteSet = "PictureFavouriteSet"
 )
 

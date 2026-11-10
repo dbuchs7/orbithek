@@ -1611,7 +1611,7 @@ function gitSource() {
       await page.click(card + " .album-export summary");
       check((await page.locator(card + " .album-export button").allTextContents()).join("|") === "PNG (lossless)|JPEG (no transparency)|SVG (vector, drawn from the drawing)", "a drawing offers PNG, JPEG and SVG");
       await page.click(card + " .album-export summary");
-      // The card shows a thumbnail (ADR-0175); the stored file is its picture's address without it.
+      // The card shows a thumbnail (ADR-0176); the stored file is its picture's address without it.
       const src = (await page.evaluate(() => (document.querySelector("#album .album-card .album-front") || document.querySelector("#album .album-card .album-thumb > img")).getAttribute("src"))).replace(/\/thumbnail\?edge=\d+$/, "");
       const stored = await (await page.request.get(base + src)).body();
       const svg = await saved("svg");
@@ -1679,7 +1679,7 @@ function gitSource() {
     const itemLabels = await page.evaluate(async () => (await (await fetch("/api/labels")).json()).labels.map((l) => l.label));
     check(!itemLabels.includes("logo"), "a picture's label is no label of an item, so no kanban shows it");
 
-    step("album collections: a collection gathers the labelled pictures of every room, and its rule is changed (ADR-0175)");
+    step("album collections: a collection gathers the labelled pictures of every room, and its rule is changed (ADR-0176)");
     await page.selectOption("#album-label", "");
     await page.click("#album-new-collection");
     await page.selectOption("#album-collection-space", "PLAT");
@@ -1704,7 +1704,7 @@ function gitSource() {
     await page.click(brandCard + " .album-delete");
     await page.waitForSelector(brandCard, { state: "detached" });
 
-    step("photos: a ZIP archive comes into a folder, a picture is marked as a favourite, shown on the timeline and in the viewer, chosen with all others and downloaded as one archive (ADR-0175)");
+    step("photos: a ZIP archive comes into a folder, a picture is marked as a favourite, shown on the timeline and in the viewer, chosen with all others and downloaded as one archive (ADR-0176)");
     // A stored ZIP archive as a photo app exports one, with an iPhone photo
     // the album does not take; the browser unpacks it.
     const storedZip = (files) => {
