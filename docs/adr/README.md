@@ -188,5 +188,5 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0173](0173-pictures-of-the-album-export-as-png-and-jpeg-drawings-also-as-svg.md) | Pictures of the album export as PNG and JPEG, drawings also as SVG | Accepted | Landed |
 | [0174](0174-calendars-of-other-services-in-the-calendar.md) | Calendars of other services in the calendar | Proposed | Partial |
 | [0175](0175-a-collection-in-the-album-gathers-labelled-pictures-of-every-room.md) | A collection in the album gathers the labelled pictures of every room | Accepted | Landed |
-| [0176](0176-pictures-of-the-album-are-presented-as-slides-with-speakers-notes.md) | Pictures of the album are presented as slides, with speaker's notes, in two windows | Proposed | Partial |
+| [0176](0176-pictures-of-the-album-are-presented-as-slides-with-speakers-notes.md) | Pictures of the album are presented as slides, with speaker's notes, in two windows | Accepted | Landed |
 | [0177](0177-photo-management-in-the-album.md) | Photo management in the album, with imports from Google Photos and Apple | Proposed | Partial |
