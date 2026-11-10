@@ -113,3 +113,25 @@ func TestPalettesAreCredited(t *testing.T) {
 		}
 	}
 }
+
+// TestManualPerLanguage: every UI language has its user manual, embedded
+// with the UI, and the manual module names the same languages (ADR-0183).
+func TestManualPerLanguage(t *testing.T) {
+	module, err := fs.ReadFile(FS(), "assets/manual.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, lang := range Languages {
+		data, err := fs.ReadFile(FS(), "assets/manual/"+lang+".md")
+		if err != nil {
+			t.Errorf("no manual in %s: %v", lang, err)
+			continue
+		}
+		if !strings.HasPrefix(string(data), "# ") {
+			t.Errorf("manual %s.md does not begin with its title", lang)
+		}
+		if !strings.Contains(string(module), `"`+lang+`"`) {
+			t.Errorf("assets/manual.js does not offer the manual in %s", lang)
+		}
+	}
+}
