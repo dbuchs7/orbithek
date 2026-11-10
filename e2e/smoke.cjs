@@ -1746,7 +1746,7 @@ function gitSource() {
     await page.fill("#album-folder-name", "Logos");
     await page.click("#album .album-new-folder button[type=submit]");
     await page.click("#album .album-folder:has-text('Logos')");
-    await page.waitForSelector("#album-upload");
+    await page.waitForSelector("#album-add-existing"); // inside the folder: the top offers uploading too (ADR-0187)
     await page.setInputFiles("#album-files", { name: "brand.png", mimeType: "image/png", buffer: png });
     const brandCard = "#album .album-card:has(.album-name:text-is('brand'))";
     await page.waitForSelector(brandCard + " .album-labels-edit");
@@ -1774,11 +1774,81 @@ function gitSource() {
     // The collection's answer replaces the whole album's, which may still be on its way.
     await page.waitForFunction(() => { const c = document.querySelectorAll("#album .album-card"); return c.length === 1 && c[0].textContent.includes("brand"); });
     check((await page.textContent("#album-rule-text")).includes("print"), "the collection says which labels it gathers");
-    check(await page.locator("#album-upload").count() === 0, "nothing is uploaded into a collection");
     await page.click("#album-rule-edit");
     await page.fill("#album-rule-form-labels", "nothing-here");
     await page.click("#album-rule-form button[type=submit]");
     await page.waitForFunction(() => document.querySelectorAll("#album .album-card").length === 0 && document.querySelector("#album-rule-text").textContent.includes("nothing-here"));
+
+    step("album adding: pictures go into a collection by its labels, uploaded into a folder chosen each time or added from the album; labels set after Show more keep the album shown (ADR-0187)");
+    // An empty collection invites pictures instead of saying there are none.
+    await page.waitForSelector("#album-drop-zone:not([hidden]) #album-drop-choose");
+    check(!(await page.textContent("#album .album-count-row")).includes("No pictures found"), "an empty collection invites pictures");
+    // A file uploaded into a collection asks for its folder and gets the collection's labels.
+    await page.setInputFiles("#album-files", { name: "collected.png", mimeType: "image/png", buffer: png });
+    await page.waitForSelector("dialog#album-target[open] #album-target-folder option:has-text('Logos')", { state: "attached" });
+    check((await page.textContent("dialog#album-target")).includes("nothing-here"), "the folder's question names the labels the pictures get");
+    await page.selectOption("#album-target-folder", { label: "PLAT › Logos" });
+    await page.click("#album-target-ok");
+    const collected = "#album .album-card:has(.album-name:text-is('collected'))";
+    await page.waitForSelector(collected + " .album-label:text-is('nothing-here')");
+    check((await page.textContent("#album .status")).includes("Kept in the folder Logos."), "the album says which folder keeps the pictures");
+    // A picture already in the album is added by giving it the collection's labels.
+    await page.click("#album-add-existing");
+    await page.waitForSelector("dialog#album-add[open] .album-card:has(.album-name:text-is('brand')) .album-pick");
+    await page.click("dialog#album-add .album-card:has(.album-name:text-is('brand')) .album-pick");
+    await page.waitForSelector("dialog#album-add .album-card:has(.album-name:text-is('brand')) .album-pick:text-is('Added')");
+    await page.click("#album-add-done");
+    await page.waitForFunction(() => document.querySelectorAll("#album .album-card").length === 2);
+    await page.waitForSelector(brandCard + " .album-label:text-is('nothing-here')");
+    answer = true;
+    await page.click(collected + " .album-more summary");
+    await page.click(collected + " .album-delete");
+    await page.waitForSelector(collected, { state: "detached" });
+    // Labelling a picture after Show more keeps every picture shown; the
+    // album pages by 48, so a folder of 50 is made, then put in the trash.
+    const many = await page.evaluate(async (b64) => {
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      const { item } = await (await fetch("/api/album/folders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ space: "PLAT", name: "Many" }) })).json();
+      for (let i = 1; i <= 50; i++) {
+        await fetch(`/api/items/${item.id}/attachments?name=many-${String(i).padStart(2, "0")}.png`, { method: "POST", headers: { "Content-Type": "application/octet-stream" }, body: bytes });
+      }
+      return item;
+    }, png.toString("base64"));
+    await page.click("#album .album-trail button:has-text('All pictures')");
+    await page.click("#album .album-folder:has-text('Many')");
+    await page.waitForSelector("#album .album > button:not([hidden]):text-is('Show more')");
+    await page.click("#album .album > button:text-is('Show more')");
+    await page.waitForFunction(() => document.querySelectorAll("#album .album-grid > li.album-card").length === 50);
+    const lastCard = page.locator("#album .album-grid > li.album-card").last();
+    await lastCard.locator(".album-labels-edit").click();
+    await lastCard.locator(".album-labels-input").fill("Late");
+    await lastCard.locator(".album-labels-input").press("Enter");
+    await lastCard.locator(".album-label:text-is('late')").waitFor();
+    check(await page.locator("#album .album-grid > li.album-card").count() === 50, "labelling after Show more keeps every picture shown");
+    await page.evaluate(async (id) => fetch(`/api/items/${id}/trash`, { method: "POST" }), many.id);
+    await page.click("#album .album-trail button:has-text('All pictures')");
+    await page.waitForSelector("#album .album-folder:has-text('Logos')");
+    // A screenshot pasted at the top asks for its folder, is named by when
+    // it was pasted, and the folder opens.
+    await page.evaluate((b64) => {
+      const dt = new DataTransfer();
+      dt.items.add(new File([Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))], "image.png", { type: "image/png" }));
+      document.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+    }, png.toString("base64"));
+    await page.waitForSelector("dialog#album-target[open] #album-target-folder option:has-text('Logos')", { state: "attached" });
+    await page.selectOption("#album-target-folder", { label: "PLAT › Logos" });
+    await page.click("#album-target-ok");
+    const pasted = "#album .album-card:has(.album-name:text-matches('^Pasted [0-9]{4}-'))";
+    await page.waitForSelector(pasted);
+    check((await page.textContent("#album .album-trail")).includes("Logos"), "the folder chosen at the top opens");
+    answer = true;
+    await page.click(pasted + " .album-more summary");
+    await page.click(pasted + " .album-delete");
+    await page.waitForSelector(pasted, { state: "detached" });
+    await page.click("#album .album-trail button:has-text('All pictures')");
+    await page.waitForSelector("#album .album-folder:has-text('Logos')");
+    await page.click("#album .album-collection:has-text('Print')");
+    await page.waitForSelector("#album-rule-text");
     await page.click("#album .album-trail button:has-text('All pictures')");
     await page.selectOption("#album-label", "logo");
     await page.waitForSelector(brandCard);
@@ -1809,7 +1879,7 @@ function gitSource() {
       return Buffer.concat([...parts, dir, end]);
     };
     await page.click("#album .album-folder:has-text('Logos')");
-    await page.waitForSelector("#album-upload");
+    await page.waitForSelector("#album-add-existing");
     // The place is left behind on import, a choice this browser keeps (ADR-0177, ADR-0178).
     await page.selectOption("#album-import-place", "strip");
     await page.setInputFiles("#album-files", { name: "export.zip", mimeType: "application/zip", buffer: storedZip([["Export/holiday.png", png], ["Export/IMG_2.HEIC", Buffer.from("heic")], ["__MACOSX/._holiday.png", Buffer.from("x")]]) });
@@ -1853,7 +1923,7 @@ function gitSource() {
     await page.click("#album-view-map");
     await page.waitForSelector("#album .photo-map-note");
     await page.click("#album-view-folders");
-    await page.waitForSelector("#album-upload"); // back in the folder, with its tools
+    await page.waitForSelector("#album-add-existing"); // back in the folder, with its tools
     // A picture dragged onto a folder below moves there, and back onto a
     // folder above it in the trail (ADR-0184).
     await page.click("#album-new-folder");
@@ -1899,7 +1969,7 @@ function gitSource() {
     await page.fill("#album-folder-name", "Talk");
     await page.click("#album .album-new-folder button[type=submit]");
     await page.click("#album .album-folder:has-text('Talk')");
-    await page.waitForSelector("#album-upload");
+    await page.waitForSelector("#album-add-existing");
     await page.setInputFiles("#album-files", [
       { name: "10 Outlook.png", mimeType: "image/png", buffer: Buffer.from(slidePng) },
       { name: "2 Plan.png", mimeType: "image/png", buffer: Buffer.from(slidePng) },

@@ -209,7 +209,13 @@ Man sucht nach Name, Label, Schlüssel oder Titel und schränkt nach Art, Raum u
 
 ### Hochladen und importieren
 
-Man öffnet oder erstellt einen Ordner und wählt **Hochladen** oder legt Bilder und ZIP-Archive darauf ab; eine PowerPoint-Präsentation kommt mit den Bildern ihrer Folien (siehe *Eine PowerPoint-Präsentation importieren*). Aus Foto-Apps exportierte Bilder werden im Browser entpackt. Sofern eingeschaltet, kommen Fotos auch **Aus Google Fotos** oder **Aus geteiltem iCloud-Album**. HEIC-Fotos werden nicht übernommen; sie sind vorher als JPEG zu exportieren.
+Bilder werden dort hinzugefügt, wo man gerade ist, in der Ansicht **Ordner**:
+
+- *In einem Ordner* wählt man **Bilder hochladen**, legt Bilder und ZIP-Archive auf dem Album ab oder fügt ein Bild mit Strg+V ein, etwa ein Bildschirmfoto. Ein leerer Ordner zeigt dafür eine grosse Fläche. **Aus dem Album hinzufügen…** kopiert Bilder, die schon im Album sind, in den Ordner; das Original bleibt, wo es ist.
+- *In einer Sammlung* gelten dieselben Wege. Eine Sammlung hält keine eigenen Dateien; das Album fragt deshalb, in welchem Ordner die neuen Bilder abgelegt werden, wobei der zuletzt gewählte Ordner vorne steht, oder legt einen **Neuer Ordner…** an. Jedes Bild erhält die Labels der Sammlung und erscheint so in ihr. **Aus dem Album hinzufügen…** gibt Bildern, die schon im Album sind, die Labels der Sammlung, ohne sie zu kopieren.
+- *Ganz oben* im Album fragt das Hochladen, Ablegen oder Einfügen ebenfalls nach dem Ordner, der sich danach öffnet.
+
+Eine PowerPoint-Präsentation kommt mit den Bildern ihrer Folien (siehe *Eine PowerPoint-Präsentation importieren*). Aus Foto-Apps exportierte Bilder werden im Browser entpackt. Sofern eingeschaltet, kommen Fotos auch **Aus Google Fotos** oder **Aus geteiltem iCloud-Album**. HEIC-Fotos werden nicht übernommen; sie sind vorher als JPEG zu exportieren.
 
 Der **Ort beim Import** eines Ordners bestimmt, was mit dem Aufnahmeort eines Fotos geschieht: **Für alle behalten**, **Nur für mich** oder **Aus der Datei entfernen**. Pro Bild lässt sich der Ort später nur für sich behalten oder allen zeigen.
 
@@ -220,7 +226,7 @@ Nennt ein Bild keinen oder einen falschen Ort, setzt ihn, wer das Bild bearbeite
 Eine Präsentation wird zu einem Ordner von Folien, bereit zum Präsentieren mit ihren Foliennotizen:
 
 1. In PowerPoint **Datei › Exportieren › Dateityp ändern › PNG** (oder JPEG) wählen und **Alle Folien** exportieren. PowerPoint schreibt ein Bild pro Folie, etwa *Folie1.PNG* oder *Slide1.PNG*.
-2. Im Album den Ordner öffnen, in den die Präsentation gehört, und **Hochladen** wählen. Die *.pptx*-Datei zusammen mit all diesen Bildern wählen oder zusammen mit einem ZIP-Archiv davon; Ablegen auf dem Ordner funktioniert ebenfalls.
+2. Im Album den Ordner öffnen, in den die Präsentation gehört, und **Bilder hochladen** wählen. Die *.pptx*-Datei zusammen mit all diesen Bildern wählen oder zusammen mit einem ZIP-Archiv davon; Ablegen auf dem Ordner funktioniert ebenfalls.
 
 Im offenen Ordner entsteht ein Ordner mit dem Namen der Präsentation und öffnet sich. Jede Folie wird zu einem Bild, benannt nach ihrer Stelle und ihrem Titel, etwa *03 Unsere Ziele.png*, sodass das Album die Reihenfolge der Folien behält; die Notizen der Folie werden zu den Foliennotizen des Bildes. Ausgeblendete Folien werden weggelassen, wie eine Bildschirmpräsentation sie weglässt.
 

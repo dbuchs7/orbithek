@@ -209,7 +209,13 @@ Search by name, label, key or title, and narrow by kind, room and label.
 
 ### Uploading and importing
 
-Open or create a folder and choose **Upload**, or drop pictures and ZIP archives onto it; a PowerPoint presentation comes in with the pictures of its slides (see *Importing a PowerPoint presentation*). Pictures exported from photo apps are unpacked in the browser. If enabled, photos also come **From Google Photos** or **From a shared iCloud album**. HEIC photos are not accepted; export them as JPEG first.
+Pictures are added where you are, in the **Folders** view:
+
+- *In a folder*, choose **Upload pictures**, drop pictures and ZIP archives onto the album, or paste a picture with Ctrl+V, such as a screenshot. An empty folder shows a large area for this. **Add from the album…** copies pictures that are already in the album into the folder; the original stays where it is.
+- *In a collection*, the same ways work. A collection holds no files of its own, so the album asks which folder the new pictures are kept in, the folder chosen last coming first, or makes a **New folder…**; each picture gets the collection's labels and so shows in the collection. **Add from the album…** gives pictures already in the album the collection's labels, without copying them.
+- *At the top* of the album, uploading, dropping or pasting asks for the folder as well, and that folder then opens.
+
+A PowerPoint presentation comes in with the pictures of its slides (see *Importing a PowerPoint presentation*). Pictures exported from photo apps are unpacked in the browser. If enabled, photos also come **From Google Photos** or **From a shared iCloud album**. HEIC photos are not accepted; export them as JPEG first.
 
 A folder's **Place on import** decides what happens to the place where a photo was taken: **Keep for every reader**, **Keep to me only** or **Remove from the file**. Per picture, the place can later be kept to you or shown to every reader.
 
@@ -220,7 +226,7 @@ Where a picture tells no place, or a wrong one, whoever may edit it sets the **P
 A presentation becomes a folder of slides, ready to present with its speaker's notes:
 
 1. In PowerPoint, choose **File › Export › Change File Type › PNG** (or JPEG) and export **All Slides**. PowerPoint writes one picture per slide, such as *Slide1.PNG* or *Folie1.PNG*.
-2. In the album, open the folder the presentation belongs in and choose **Upload**. Choose the *.pptx* file together with all these pictures, or together with a ZIP archive of them; dropping them onto the folder works too.
+2. In the album, open the folder the presentation belongs in and choose **Upload pictures**. Choose the *.pptx* file together with all these pictures, or together with a ZIP archive of them; dropping them onto the folder works too.
 
 A folder named after the presentation is made in the open folder and opens. Each slide becomes a picture named by its place and title, such as *03 Our goals.png*, so the album keeps the order of the slides, and the slide's notes become the picture's speaker's notes. Hidden slides are left out, as a slide show leaves them out.
 
