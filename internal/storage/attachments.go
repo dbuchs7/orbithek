@@ -86,7 +86,7 @@ func (db *DB) StoreAttachment(id item.ID, content io.Reader, limit int64) (item.
 
 // MoveAttachmentContent stores the content of a file of one item for
 // another item under the same attachment ID, sealed with the other item's
-// key, for a move that keeps the file's identity (ADR-0186). The content
+// key, for a move that keeps the file's identity (ADR-0188). The content
 // read must be the file as recorded (want); the file of the first item
 // stays until the move is recorded, which removes it. Recording the move
 // is the caller's next step; a file never recorded is removed on the next

@@ -256,7 +256,7 @@ func TestAttachmentsAreReadFromAnyPosition(t *testing.T) {
 // A file moved to another item keeps its ID: its content is sealed again
 // with the new item's key, and the former content goes once the move is
 // recorded; content stored for a move never recorded goes on the next
-// start (ADR-0186).
+// start (ADR-0188).
 func TestAMovedFileIsSealedForItsNewItem(t *testing.T) {
 	dir := t.TempDir()
 	db, from := pageIn(t, dir)

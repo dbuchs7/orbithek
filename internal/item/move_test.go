@@ -9,7 +9,7 @@ import (
 
 // A file moved to another item keeps its identity with all its versions,
 // labels, notes, rule, place and who added it; its copies find it there,
-// and it leaves its former item (ADR-0186).
+// and it leaves its former item (ADR-0188).
 func TestAMovedFileKeepsItsIdentity(t *testing.T) {
 	s := permFixture(t)
 	anna, ben := s.As("anna"), s.As("ben")
@@ -108,7 +108,7 @@ func TestAMovedFileKeepsItsIdentity(t *testing.T) {
 
 // What a move may not do: leave a text, a protection or comments behind,
 // act without the right to edit both items, or record versions whose
-// content was not stored (ADR-0186).
+// content was not stored (ADR-0188).
 func TestAMoveIsRefused(t *testing.T) {
 	s := permFixture(t)
 	anna, ben := s.As("anna"), s.As("ben")
@@ -153,7 +153,7 @@ func TestAMoveIsRefused(t *testing.T) {
 func planErr(_ ID, _ []Attachment, err error) error { return err }
 
 // A moved version's names and labels are content of its new item: sealed
-// there, scanned there, and erased with it (ADR-0026, ADR-0040, ADR-0186).
+// there, scanned there, and erased with it (ADR-0026, ADR-0040, ADR-0188).
 func TestAMovedFileIsContentOfItsNewItem(t *testing.T) {
 	s := permFixture(t)
 	anna, ben := s.As("anna"), s.As("ben")
@@ -180,7 +180,7 @@ func TestAMovedFileIsContentOfItsNewItem(t *testing.T) {
 }
 
 // A place its uploader keeps to themselves stays theirs after a move by
-// someone else: the version keeps who added it (ADR-0178, ADR-0186).
+// someone else: the version keeps who added it (ADR-0178, ADR-0188).
 func TestAMovedPhotoKeepsItsPrivatePlace(t *testing.T) {
 	s := permFixture(t)
 	noErr(t, s.GrantRole("root", "PLAT", "dora", Editor))

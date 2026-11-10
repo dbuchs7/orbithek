@@ -27,10 +27,10 @@ func attachmentRoutes(h itemHandlers) []Route {
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/place", Summary: "Keep where a photo was taken to oneself, the one who added it (private), or show it to every reader again; others then read the photo data and get the file without it", Handler: http.HandlerFunc(h.setPlacePrivate)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/labels", Summary: "Set a picture's labels (labels); they narrow the album and are no labels of the item, so no kanban or label board shows them", Handler: http.HandlerFunc(h.setPictureLabels)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/name", Summary: "Rename a file of an item, a picture or any other (name, without its extension): every version of the file takes the name, keeping its extension and a drawing its marker; copies in other items keep theirs (ADR-0180, ADR-0182)", Handler: http.HandlerFunc(h.renamePicture)},
-		{Method: http.MethodPost, Pattern: "/api/items/{ref}/attachments/{id}/move", Summary: "Move a file with all its versions to another item (to), keeping its identity: its versions, labels, notes, place and favourites go with it, and copies find it there; who may edit both items may. A file the item's text shows, a protected file and a drawing that comments are on stay (ADR-0186)", Handler: http.HandlerFunc(h.moveFile)},
+		{Method: http.MethodPost, Pattern: "/api/items/{ref}/attachments/{id}/move", Summary: "Move a file with all its versions to another item (to), keeping its identity: its versions, labels, notes, place and favourites go with it, and copies find it there; who may edit both items may. A file the item's text shows, a protected file and a drawing that comments are on stay (ADR-0188)", Handler: http.HandlerFunc(h.moveFile)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/notes", Summary: "Set a picture's speaker's notes (notes, plain text; empty clears them), kept on the file's first version so every version shows them (ADR-0176)", Handler: http.HandlerFunc(h.setPictureNotes)},
 		{Method: http.MethodGet, Pattern: "/api/album", Summary: "The album: images and drawings of every item one may read, newest first, the versions of one file stacked under the newest (versions); space, folder (only its pictures), collection (the pictures of every room its rule gathers), q (name, label, key or title), label, kind (image or drawing), offset and limit narrow it", Handler: http.HandlerFunc(h.album)},
-		{Method: http.MethodGet, Pattern: "/api/album/folders", Summary: "The album's folders one may read, by name, then its collections (collections, each with its rule): in space (every space when empty), right below parent (the top when empty)", Handler: http.HandlerFunc(h.albumFolders)},
+		{Method: http.MethodGet, Pattern: "/api/album/folders", Summary: "The album's folders one may read, by name, each saying whether one may add pictures to it (editable), then its collections (collections, each with its rule): in space (every space when empty), right below parent (the top when empty)", Handler: http.HandlerFunc(h.albumFolders)},
 		{Method: http.MethodPost, Pattern: "/api/album/folders", Summary: "Make a folder of the album: name, and space or parent (a folder); who may create there may", Handler: http.HandlerFunc(h.createAlbumFolder)},
 		{Method: http.MethodPost, Pattern: "/api/album/collections", Summary: "Make a collection of the album, which gathers the labelled pictures of every room: name, space or parent (a folder), labels, match (any or all) and items (the labels of a picture's item count too); who may create there may", Handler: http.HandlerFunc(h.createAlbumCollection)},
 		{Method: http.MethodPut, Pattern: "/api/album/collections/{ref}", Summary: "Change a collection's rule: labels, match (any or all) and items; who may edit the collection may", Handler: http.HandlerFunc(h.setAlbumCollection)},
@@ -224,7 +224,7 @@ func (h itemHandlers) renamePicture(w http.ResponseWriter, r *http.Request) {
 }
 
 // moveFile moves a file with all its versions to another item, keeping
-// its identity (ADR-0186): the content of each version is sealed again
+// its identity (ADR-0188): the content of each version is sealed again
 // for the new item first, then the move is recorded, which removes the
 // former content. A drawing open as a live whiteboard stays where it is
 // while people work on it (ADR-0172).
@@ -309,7 +309,8 @@ func (h itemHandlers) albumFolders(w http.ResponseWriter, r *http.Request) {
 		space, parent := q.Get("space"), item.ID(q.Get("parent"))
 		out := []map[string]any{}
 		for _, f := range x.Folders(space, parent) {
-			out = append(out, map[string]any{"id": f.ID, "key": f.Key, "name": f.Title, "space": f.Space, "parent": f.Parent})
+			// editable says whether one may upload into it (ADR-0187).
+			out = append(out, map[string]any{"id": f.ID, "key": f.Key, "name": f.Title, "space": f.Space, "parent": f.Parent, "editable": x.CanEdit(f.ID)})
 		}
 		collections := []map[string]any{}
 		for _, c := range x.Collections(space, parent) {

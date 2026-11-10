@@ -189,6 +189,7 @@ Der **Kalender** zeigt Einträge mit Datumsfeldern als **Monat**, **Woche** oder
 
 - Wo man bearbeiten darf, zieht man einen Eintrag auf einen anderen Tag oder verschiebt ihn mit Shift und einer Pfeiltaste. In der Wochenansicht behält eine auf eine andere Stunde verschobene Besprechung ihre Dauer.
 - Ein wiederkehrender Eintrag fragt, ob **Nur dieses Vorkommen** oder **Die ganze Serie** verschoben wird; die Taste Entf sagt ein Vorkommen ab.
+- Wo man in einem Raum bearbeiten darf, erstellt ein Doppelklick auf einen Tag oder in der Wochenansicht auf eine Stunde dort einen neuen Eintrag; **Neuer Eintrag** tut dasselbe für heute. Der Dialog fragt nach Typ, Raum, Titel und den Feldern, die der Typ verlangt, und füllt das Datum aus der angeklickten Stelle aus. **Erstellen** bleibt im Kalender mit dem neuen Eintrag im Fokus; **Erstellen und öffnen** öffnet ihn.
 - **Ansicht speichern…** legt eine Ansicht unter einem Namen ab. Sind Kalender-Feeds eingeschaltet, liefert **Abonnieren (iCal)** eine Adresse für ein Kalenderprogramm. Wer diese Adresse kennt, sieht die Einträge ohne Anmeldung; **Neue Adresse** und **Feed beenden** ziehen sie zurück.
 - Erlaubt es die Administration, zeigt **Andere Kalender** die eigenen Kalender anderer Dienste neben denen von Orbithek: iCalendar-Adressen, Google-Konten und CalDAV-Konten wie Apple iCloud. Sie werden nur lesend und nur der eigenen Person gezeigt.
 
@@ -208,11 +209,28 @@ Man sucht nach Name, Label, Schlüssel oder Titel und schränkt nach Art, Raum u
 
 ### Hochladen und importieren
 
-Man öffnet oder erstellt einen Ordner und wählt **Hochladen** oder legt Bilder und ZIP-Archive darauf ab. Aus Foto-Apps exportierte Bilder werden im Browser entpackt. Sofern eingeschaltet, kommen Fotos auch **Aus Google Fotos** oder **Aus geteiltem iCloud-Album**. HEIC-Fotos werden nicht übernommen; sie sind vorher als JPEG zu exportieren.
+Bilder werden dort hinzugefügt, wo man gerade ist, in der Ansicht **Ordner**:
+
+- *In einem Ordner* wählt man **Bilder hochladen**, legt Bilder und ZIP-Archive auf dem Album ab oder fügt ein Bild mit Strg+V ein, etwa ein Bildschirmfoto. Ein leerer Ordner zeigt dafür eine grosse Fläche. **Aus dem Album hinzufügen…** kopiert Bilder, die schon im Album sind, in den Ordner; das Original bleibt, wo es ist.
+- *In einer Sammlung* gelten dieselben Wege. Eine Sammlung hält keine eigenen Dateien; das Album fragt deshalb, in welchem Ordner die neuen Bilder abgelegt werden, wobei der zuletzt gewählte Ordner vorne steht, oder legt einen **Neuer Ordner…** an. Jedes Bild erhält die Labels der Sammlung und erscheint so in ihr. **Aus dem Album hinzufügen…** gibt Bildern, die schon im Album sind, die Labels der Sammlung, ohne sie zu kopieren.
+- *Ganz oben* im Album fragt das Hochladen, Ablegen oder Einfügen ebenfalls nach dem Ordner, der sich danach öffnet.
+
+Eine PowerPoint-Präsentation kommt mit den Bildern ihrer Folien (siehe *Eine PowerPoint-Präsentation importieren*). Aus Foto-Apps exportierte Bilder werden im Browser entpackt. Sofern eingeschaltet, kommen Fotos auch **Aus Google Fotos** oder **Aus geteiltem iCloud-Album**. HEIC-Fotos werden nicht übernommen; sie sind vorher als JPEG zu exportieren.
 
 Der **Ort beim Import** eines Ordners bestimmt, was mit dem Aufnahmeort eines Fotos geschieht: **Für alle behalten**, **Nur für mich** oder **Aus der Datei entfernen**. Pro Bild lässt sich der Ort später nur für sich behalten oder allen zeigen.
 
 Nennt ein Bild keinen oder einen falschen Ort, setzt ihn, wer das Bild bearbeiten darf, von Hand als **Ort**: im Betrachter oder für mehrere ausgewählte Bilder auf einmal. Die Eingabe eines Namens wie *Zermatt* schlägt Orte vor, sofern die Administration die Vorschläge nicht ausgeschaltet hat; **Auf der Karte wählen** setzt den Ort mit einem Klick auf die Karte. **Ort entfernen** löscht ihn.
+
+### Eine PowerPoint-Präsentation importieren
+
+Eine Präsentation wird zu einem Ordner von Folien, bereit zum Präsentieren mit ihren Foliennotizen:
+
+1. In PowerPoint **Datei › Exportieren › Dateityp ändern › PNG** (oder JPEG) wählen und **Alle Folien** exportieren. PowerPoint schreibt ein Bild pro Folie, etwa *Folie1.PNG* oder *Slide1.PNG*.
+2. Im Album den Ordner öffnen, in den die Präsentation gehört, und **Bilder hochladen** wählen. Die *.pptx*-Datei zusammen mit all diesen Bildern wählen oder zusammen mit einem ZIP-Archiv davon; Ablegen auf dem Ordner funktioniert ebenfalls.
+
+Im offenen Ordner entsteht ein Ordner mit dem Namen der Präsentation und öffnet sich. Jede Folie wird zu einem Bild, benannt nach ihrer Stelle und ihrem Titel, etwa *03 Unsere Ziele.png*, sodass das Album die Reihenfolge der Folien behält; die Notizen der Folie werden zu den Foliennotizen des Bildes. Ausgeblendete Folien werden weggelassen, wie eine Bildschirmpräsentation sie weglässt.
+
+Eine Präsentationsdatei enthält keine Bilder ihrer Folien; deshalb sind die exportierten Bilder nötig. Die Bilder werden den Folien über die Zahlen in ihren Namen zugeordnet. Passen sie nicht, wird nichts übernommen und das Album nennt, wie viele Folien und Bilder es gefunden hat. Nur die Bilder und die Notizen gelangen auf den Server, nicht die Präsentationsdatei. Animationen, Übergänge, Videos und die Kommentare der Präsentation werden nicht übernommen; *.ppt*-Dateien älterer Versionen sind zuerst als *.pptx* zu speichern.
 
 ### Mit Bildern arbeiten
 

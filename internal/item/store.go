@@ -48,7 +48,7 @@ type Store struct {
 	rels     map[ID]*Relation
 	touching map[ID][]int // item -> indexes into log, for History
 	// moved tells where a file went that was moved out of its item
-	// (ADR-0186): file -> the item it was moved to last.
+	// (ADR-0188): file -> the item it was moved to last.
 	moved map[ID]ID
 
 	groups     map[string]map[string]bool // group -> members

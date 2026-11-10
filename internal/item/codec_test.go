@@ -1554,7 +1554,7 @@ func renameLog(t *testing.T) []Event {
 
 // moveLog moves a drawing with its versions, a deleted one among them,
 // labels and notes to another folder, so the golden files pin the kinds
-// AttachmentMovedIn and AttachmentMovedOut (ADR-0186).
+// AttachmentMovedIn and AttachmentMovedOut (ADR-0188).
 func moveLog(t *testing.T) []Event {
 	s := setup(t)
 	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))

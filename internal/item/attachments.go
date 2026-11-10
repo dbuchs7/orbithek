@@ -43,7 +43,7 @@ type Attachment struct {
 	// (ADR-0178), so the copy's content differs from its source's. It is
 	// never persisted.
 	WithoutPlace bool `json:"-"`
-	// Move is set on the events of a move only (ADR-0186), never kept
+	// Move is set on the events of a move only (ADR-0188), never kept
 	// on the file.
 	Move *Move `json:",omitempty"`
 	// Author and Created come from the event that added it.
@@ -52,7 +52,7 @@ type Attachment struct {
 	Deleted bool   `json:"-"`
 }
 
-// Move is what the events of a move tell besides the file (ADR-0186).
+// Move is what the events of a move tell besides the file (ADR-0188).
 // AttachmentMovedIn names the item a version came from and who added it
 // there, when, and whether it is a deleted version, which still links its
 // stack; it is sealed with the rest of the file. AttachmentMovedOut names
@@ -214,7 +214,7 @@ func (s *Store) applyAttachment(e Event, touch func(...ID)) {
 	case AttachmentMovedOut:
 		it.Attachments = slices.DeleteFunc(it.Attachments, func(a Attachment) bool { return a.ID == e.Attachment.ID })
 		// Copies of the file in other items find their original where it
-		// went (ADR-0055, ADR-0186).
+		// went (ADR-0055, ADR-0188).
 		if e.Attachment.Move != nil {
 			if s.moved == nil {
 				s.moved = map[ID]ID{}
@@ -392,7 +392,7 @@ func (x *Session) FileOrigin(id, attachment ID) (o FileOrigin, ok bool, err erro
 	if a.Source == nil || a.Source.Item == id {
 		return FileOrigin{}, false, nil
 	}
-	// An original moved since is followed to its new item (ADR-0186).
+	// An original moved since is followed to its new item (ADR-0188).
 	src, err := x.readable(x.s.sourceItem(*a.Source))
 	// An original protected now is told to its readers only (ADR-0160).
 	if err != nil || src.Presence != Live || !x.s.readsFile(x.who, src, a.Source.Attachment) {

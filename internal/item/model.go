@@ -437,7 +437,7 @@ const (
 	// the file's first version and carries the new name (ADR-0180).
 	AttachmentRenamed EventKind = "AttachmentRenamed"
 	// AttachmentMovedIn and AttachmentMovedOut move a file with all its
-	// versions to another item, keeping its identity (ADR-0186): each
+	// versions to another item, keeping its identity (ADR-0188): each
 	// version arrives in its new item with what it holds and leaves its
 	// former one, in one batch.
 	AttachmentMovedIn  EventKind = "AttachmentMovedIn"

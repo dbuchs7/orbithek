@@ -1069,6 +1069,21 @@ dialog.album-dialog { width: min(960px, calc(100vw - 32px)); max-height: calc(10
 dialog.album-dialog::backdrop { background: rgba(20, 22, 26, .45); }
 .album-dialog-body { padding: 12px; overflow: auto; max-height: calc(100vh - 130px); }
 .album-dialog .drawing-bar button { margin-left: auto; }
+/* Adding pictures where one is (ADR-0187): the invitation of an empty
+   folder or collection, the choice of a folder, the album to add from. */
+.album-drop-zone { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 12px 0; padding: 40px 16px; border: 2px dashed var(--border); border-radius: 12px; text-align: center; background: var(--surface); }
+.album-drop-zone[hidden] { display: none; }
+.album.dropping .album-drop-zone { border-color: var(--accent); }
+.album-drop-title { font-size: 1.15rem; }
+.album-drop-zone p { margin: 0; max-width: 46ch; }
+dialog.album-target { width: min(520px, calc(100vw - 32px)); border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: inherit; padding: 16px 20px; }
+dialog.album-target::backdrop { background: rgba(20, 22, 26, .45); }
+dialog.album-target h2 { margin: 0 0 8px; font-size: 1.1rem; }
+.album-target-form { display: flex; flex-direction: column; gap: 10px; }
+.album-target-form select, .album-target-form input { width: 100%; }
+.album-target-new { display: flex; gap: 8px; }
+.album-target-new[hidden] { display: none; }
+.album-add-hint { margin: 8px 12px 0; }
 
 /* Contrast warnings of the corporate design (ADR-0052). */
 .notice.warning { background: var(--danger-soft); border-color: var(--danger); }
@@ -2453,6 +2468,11 @@ button.cal-entry { display: block; width: auto; font: inherit; font-size: 12px; 
 .cal-dialog { max-width: 32rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); padding: var(--space-5); }
 .cal-dialog::backdrop { background: color-mix(in srgb, #000 35%, transparent); }
 .cal-dialog h2 { margin-top: 0; font-size: 18px; }
+/* A new entry made by a double-click on a day or an hour (calendar). */
+.cal-new { width: min(32rem, calc(100vw - 2rem)); box-sizing: border-box; }
+.cal-new .form-row { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.cal-new .form-row .field { flex: 1 1 10rem; }
+.cal-new .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .cal-dialog .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); justify-content: flex-end; }
 .rec-input { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); margin: 0; min-width: 0; }
 .rec-input p { margin: var(--space-2) 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }

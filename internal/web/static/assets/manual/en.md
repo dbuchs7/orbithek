@@ -189,6 +189,7 @@ The **Calendar** shows items with date fields as a **Month**, **Week** or **Agen
 
 - Where you may edit, drag an entry to another day, or move it with Shift and an arrow key. In the week view, a meeting dropped at another hour keeps its length.
 - A repeating entry asks whether to move **Only this occurrence** or **The whole series**; Delete cancels one occurrence.
+- Where you may edit a room, double-click a day, or an hour in the week view, to make a new entry there; **New entry** does the same for today. The dialog asks for the type, the room, a title and the fields the type requires, and fills in the date from the place clicked. **Create** keeps you in the calendar with the new entry in focus; **Create and open** opens it.
 - **Save view…** keeps a view under a name. If calendar feeds are enabled, **Subscribe (iCal)** gives an address for a calendar program. Whoever knows this address sees the entries without signing in; **New address** and **End feed** withdraw it.
 - If your administrator allows it, **Other calendars** shows your calendars of other services beside Orbithek's: iCalendar addresses, Google accounts and CalDAV accounts such as Apple iCloud. They are shown read-only and only to you.
 
@@ -208,11 +209,28 @@ Search by name, label, key or title, and narrow by kind, room and label.
 
 ### Uploading and importing
 
-Open or create a folder and choose **Upload**, or drop pictures and ZIP archives onto it. Pictures exported from photo apps are unpacked in the browser. If enabled, photos also come **From Google Photos** or **From a shared iCloud album**. HEIC photos are not accepted; export them as JPEG first.
+Pictures are added where you are, in the **Folders** view:
+
+- *In a folder*, choose **Upload pictures**, drop pictures and ZIP archives onto the album, or paste a picture with Ctrl+V, such as a screenshot. An empty folder shows a large area for this. **Add from the album…** copies pictures that are already in the album into the folder; the original stays where it is.
+- *In a collection*, the same ways work. A collection holds no files of its own, so the album asks which folder the new pictures are kept in, the folder chosen last coming first, or makes a **New folder…**; each picture gets the collection's labels and so shows in the collection. **Add from the album…** gives pictures already in the album the collection's labels, without copying them.
+- *At the top* of the album, uploading, dropping or pasting asks for the folder as well, and that folder then opens.
+
+A PowerPoint presentation comes in with the pictures of its slides (see *Importing a PowerPoint presentation*). Pictures exported from photo apps are unpacked in the browser. If enabled, photos also come **From Google Photos** or **From a shared iCloud album**. HEIC photos are not accepted; export them as JPEG first.
 
 A folder's **Place on import** decides what happens to the place where a photo was taken: **Keep for every reader**, **Keep to me only** or **Remove from the file**. Per picture, the place can later be kept to you or shown to every reader.
 
 Where a picture tells no place, or a wrong one, whoever may edit it sets the **Place** by hand: in the viewer, or for several chosen pictures at once. Typing a name such as *Zermatt* suggests places, unless an administrator has turned the suggestions off; **Choose on the map** sets the place with a click on the map. **Remove the place** clears it.
+
+### Importing a PowerPoint presentation
+
+A presentation becomes a folder of slides, ready to present with its speaker's notes:
+
+1. In PowerPoint, choose **File › Export › Change File Type › PNG** (or JPEG) and export **All Slides**. PowerPoint writes one picture per slide, such as *Slide1.PNG* or *Folie1.PNG*.
+2. In the album, open the folder the presentation belongs in and choose **Upload pictures**. Choose the *.pptx* file together with all these pictures, or together with a ZIP archive of them; dropping them onto the folder works too.
+
+A folder named after the presentation is made in the open folder and opens. Each slide becomes a picture named by its place and title, such as *03 Our goals.png*, so the album keeps the order of the slides, and the slide's notes become the picture's speaker's notes. Hidden slides are left out, as a slide show leaves them out.
+
+A presentation file holds no pictures of its slides; this is why the exported pictures are needed. The pictures are matched to the slides by the numbers in their names. If they do not match, nothing is brought in and the album says how many slides and pictures it found. Only the pictures and the notes reach the server, not the presentation file. Animations, transitions, videos and the presentation's own comments are not taken over; *.ppt* files of older versions must first be saved as *.pptx*.
 
 ### Working with pictures
 

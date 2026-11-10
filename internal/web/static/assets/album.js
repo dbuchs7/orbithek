@@ -14,12 +14,17 @@
 // earlier years; pictures are chosen many at once, and photos come in from
 // files, ZIP archives, Google Photos and shared iCloud albums. A picture,
 // or every chosen one, is moved by dragging it onto a folder (ADR-0184).
+// Pictures are added where one is (ADR-0187): files dropped, pasted or
+// chosen go into the open folder, or, in a collection or at the top, into
+// a folder chosen each time, where a collection's labels are given to
+// them; pictures already in the album are copied into a folder or given a
+// collection's labels.
 import { h, when } from "./dom.js";
 import { t } from "./i18n.js";
 import { get, post, put, del, upload } from "./api.js";
 import { DRAWING } from "./drawing.js";
 import { exportFormats, exportPicture } from "./picexport.js";
-import { allFolders, moveTo, dayText, googleImport, icloudImport, importFiles, monthText, openViewer, rememberedAlbum, setFavourite, importPlace, PLACES, summaryText, thumbURL, zipPictures } from "./photos.js";
+import { allFolders, copyTo, moveTo, dayText, deckText, googleImport, icloudImport, importDeck, importFiles, monthText, openViewer, rememberedAlbum, setFavourite, importPlace, PLACES, summaryText, thumbURL, zipPictures } from "./photos.js";
 import { dragged, groups, range, yearsAgo } from "./photoparts.js";
 import { photoMap } from "./photomap.js";
 import { pickPlace, placeInput } from "./places.js";
@@ -88,7 +93,7 @@ export const captionOf = (name) => (name.endsWith(DRAWING) ? name.slice(0, -DRAW
 // albumBrowser shows the album with its filters and folders. With pick,
 // each picture has a button that hands it to pick; without, a picture
 // leads to its item, and one who may edit it labels or deletes it there.
-export function albumBrowser({ pick } = {}) {
+export function albumBrowser({ pick, pickText } = {}) {
   const search = h("input", { type: "search", placeholder: t("album.search"), "aria-label": t("album.search") });
   const kind = h("select", { "aria-label": t("album.kind") },
     [["", t("album.kindAll")], ["image", t("album.kindImages")], ["drawing", t("album.kindDrawings")]].map(([v, label]) => h("option", { value: v, text: label })));
@@ -109,6 +114,15 @@ export function albumBrowser({ pick } = {}) {
   const present = h("button", { type: "button", class: "secondary", id: "album-present", text: t("album.present", { n: 0 }),
     title: t("album.presentTitle"), hidden: true, onclick: () => startPresentation(filters()) });
   const status = h("div", { class: "status" });
+  // files takes the pictures chosen to add where one is (ADR-0187).
+  const files = h("input", { type: "file", accept: "image/png,image/jpeg,image/gif,image/webp,.heic,.heif,.zip,application/zip,.pptx,.ppsx", multiple: true, hidden: true, id: "album-files" });
+  files.addEventListener("change", async () => {
+    const list = [...files.files];
+    files.value = "";
+    await takeFiles(list);
+  });
+  // dropZone stands in an empty folder or collection.
+  const dropZone = h("div", { class: "album-drop-zone", id: "album-drop-zone", hidden: true });
   let next = 0;
   let generation = 0;
   // path is the open folder and those above it; empty at the top. Its last
@@ -144,30 +158,40 @@ export function albumBrowser({ pick } = {}) {
     options.replaceChildren(...all.map((l) => h("option", { value: l })));
   };
 
+  // labelsNow reads a picture's labels as the server keeps them, written
+  // as labels are (ADR-0044).
+  const labelsNow = async (p) => {
+    const { attachments } = await get(`/api/items/${p.item.id}/attachments`);
+    return attachments.find((a) => a.id === p.attachment.id)?.labels || [];
+  };
+
   // labelsOf shows a picture's labels; each narrows the album to it. One
   // who may edit the picture opens a field for them with one button, so
   // the field does not stand open on every card.
   const labelsOf = (p) => {
     const name = captionOf(p.attachment.name);
-    const labels = p.attachment.labels || [];
-    const chips = () => labels.map((l) => h("button", { type: "button", class: "chip album-label", text: l,
+    const labels = () => p.attachment.labels || [];
+    const chips = () => labels().map((l) => h("button", { type: "button", class: "chip album-label", text: l,
       onclick: () => { label.value = l; load(false); } }));
-    if (pick || !p.editable) return labels.length ? h("p", { class: "album-labels" }, ...chips()) : null;
+    if (pick || !p.editable) return labels().length ? h("p", { class: "album-labels" }, ...chips()) : null;
     const row = h("div", { class: "album-labels" });
     const show = () => row.replaceChildren(...chips(), h("button", { type: "button", class: "link album-labels-edit",
-      text: labels.length ? t("album.labelsEdit") : t("album.labelsAdd"), "aria-label": t("album.labelsOf", { name }),
+      text: labels().length ? t("album.labelsEdit") : t("album.labelsAdd"), "aria-label": t("album.labelsOf", { name }),
       onclick: edit }));
     const edit = () => {
-      const input = h("input", { class: "album-labels-input", list: "album-label-options", value: labels.join(", "),
+      const input = h("input", { class: "album-labels-input", list: "album-label-options", value: labels().join(", "),
         placeholder: t("album.labelsPlaceholder"), "aria-label": t("album.labelsOf", { name }) });
       let saving = false;
       input.addEventListener("change", async () => {
         saving = true;
         try {
           await put(`/api/items/${p.item.id}/attachments/${p.attachment.id}/labels`, { labels: input.value.split(",").map((l) => l.trim()).filter(Boolean) });
+          // The card changes in place: reloading the album would show only
+          // its first page again, after "Show more".
+          p.attachment.labels = await labelsNow(p);
           status.replaceChildren();
+          show();
           await loadLabels();
-          load(false);
         } catch (err) { saving = false; fail(err); }
       });
       // Leaving the field unchanged, or Escape, closes it again.
@@ -262,7 +286,7 @@ export function albumBrowser({ pick } = {}) {
           try {
             await del(`/api/items/${p.item.id}/attachments/${p.attachment.id}`);
             await loadLabels();
-            load(false);
+            refresh();
           } catch (err) { fail(err); }
         } }),
       p.used ? h("p", { class: "muted album-used", text: t("album.used") }) : null,
@@ -282,15 +306,27 @@ export function albumBrowser({ pick } = {}) {
         await put(`/api/items/${p.item.id}/attachments/${p.attachment.id}/name`, { name: next });
       } catch (err) { fail(err); throw err; }
       status.replaceChildren(h("p", { class: "notice", role: "status", text: t("album.renamed", { name: next }) }));
-      load(false);
+      refresh();
     } });
   };
 
   // actions is the row at a card's foot: Insert while choosing a picture,
   // otherwise Copy and Export, of one width.
   const actions = (p) => {
+    // pick may answer what it did, which the button then says; the album
+    // stays open for the next picture (ADR-0187).
     if (pick) return h("div", { class: "album-actions album-actions-pick" },
-      h("button", { type: "button", class: "primary album-pick", text: t("album.insert"), onclick: () => pick(p) }));
+      h("button", { type: "button", class: "primary album-pick", text: pickText || t("album.insert"), onclick: async (e) => {
+        const b = e.currentTarget;
+        b.disabled = true;
+        try {
+          const done = await pick(p);
+          if (typeof done === "string") {
+            b.textContent = done;
+            b.classList.replace("primary", "secondary");
+          } else b.disabled = false;
+        } catch (err) { b.disabled = false; fail(err); }
+      } }));
     return h("div", { class: "album-actions" },
       h("button", { type: "button", class: "secondary album-copy", text: t("album.copy"), title: t("album.copyTitle"), onclick: async () => {
         const system = await copyPicture(p);
@@ -367,6 +403,17 @@ export function albumBrowser({ pick } = {}) {
   // key names a picture on screen.
   const key = (p) => `${p.item.id}/${p.attachment.id}`;
 
+  // relabel shows a picture's labels anew on its card, in place.
+  const relabel = (p) => {
+    for (const li of root.querySelectorAll(`li.album-card[data-attachment="${p.attachment.id}"]`)) {
+      const row = li.querySelector(":scope > .album-labels");
+      const next = labelsOf(p);
+      if (row && next) row.replaceWith(next);
+      else if (row) row.remove();
+      else if (next) li.querySelector(":scope > figure").after(next);
+    }
+  };
+
   // favouriteButton marks a picture as one's own favourite (ADR-0177).
   const favouriteButton = (p) => {
     const b = h("button", { type: "button", class: "album-favourite", "aria-pressed": String(!!p.favourite),
@@ -376,7 +423,7 @@ export function albumBrowser({ pick } = {}) {
       try {
         await setFavourite(p, !p.favourite);
         refreshFavourite(p);
-        if (view === "favourites" && !p.favourite) load(false);
+        if (view === "favourites" && !p.favourite) refresh();
       } catch (err) { fail(err); }
     });
     return b;
@@ -469,7 +516,7 @@ export function albumBrowser({ pick } = {}) {
     const act = (fn) => async () => {
       try {
         await fn();
-        load(false);
+        refresh();
       } catch (err) { dstatus.replaceChildren(h("p", { class: "error", role: "alert", text: err.message })); }
     };
     const save = h("button", { type: "button", class: "secondary", id: "retention-save", text: t("retention.save"), onclick: act(async () => {
@@ -582,7 +629,7 @@ export function albumBrowser({ pick } = {}) {
 
   // dropOnto makes a folder's button take pictures dragged onto it, and
   // moves them there as "Move" does for chosen pictures, each with all its
-  // versions, keeping what it is (ADR-0184, ADR-0186). A picture already in
+  // versions, keeping what it is (ADR-0184, ADR-0188). A picture already in
   // the folder stays.
   const dropOnto = (el, folder) => {
     if (pick) return el;
@@ -608,7 +655,7 @@ export function albumBrowser({ pick } = {}) {
       await together("photos.moved", async (p) => { await moveTo(p, folder.id); return true; }, list, "photos.notMoved");
       for (const p of list) chosen.delete(key(p));
       markChosen();
-      load(false);
+      refresh();
     });
     return el;
   };
@@ -618,7 +665,15 @@ export function albumBrowser({ pick } = {}) {
   const showCollection = () => {
     const c = here();
     const about = h("p", { class: "muted album-rule-text", id: "album-rule-text", text: ruleText(c.rule) });
-    if (pick || !c.editable) return tools.replaceChildren(about);
+    if (pick) return tools.replaceChildren(about);
+    // Pictures are added to a collection by giving them its labels: new
+    // files go into a folder chosen each time (ADR-0187).
+    const adding = [
+      h("button", { type: "button", class: "primary", id: "album-upload", text: t("album.upload"), title: t("album.uploadCollectionTitle", { labels: c.rule.labels.join(", ") }), onclick: () => files.click() }),
+      h("button", { type: "button", class: "secondary", id: "album-add-existing", text: t("album.addExisting"), title: t("album.addExistingCollectionTitle", { labels: c.rule.labels.join(", ") }), onclick: addFromAlbum }),
+      h("span", { class: "muted album-drop-hint", text: t("album.collectionDropHint") }),
+      placeChoice()];
+    if (!c.editable) return tools.replaceChildren(about, ...adding);
     const { form, first } = ruleForm({ id: "album-rule-form", rule: c.rule, submit: t("album.ruleSave"), done: async (rule) => {
       c.rule = (await put(`/api/album/collections/${c.id}`, rule)).rule;
       showCollection();
@@ -629,6 +684,7 @@ export function albumBrowser({ pick } = {}) {
         form.hidden = !form.hidden;
         if (!form.hidden) first().focus();
       } }),
+      ...adding,
       form);
   };
 
@@ -654,12 +710,6 @@ export function albumBrowser({ pick } = {}) {
         make.hidden = true;
         loadFolders();
       } catch (err) { fail(err); }
-    });
-    const files = h("input", { type: "file", accept: "image/png,image/jpeg,image/gif,image/webp,.heic,.heif,.zip,application/zip", multiple: true, hidden: true, id: "album-files" });
-    files.addEventListener("change", async () => {
-      const list = [...files.files];
-      files.value = "";
-      await takeFiles(list);
     });
     // A collection is made where a folder is: at the top in a room chosen
     // here, below a folder in its room.
@@ -689,12 +739,14 @@ export function albumBrowser({ pick } = {}) {
         }
         collect.first().focus();
       } }),
-      here() ? h("button", { type: "button", class: "primary", id: "album-upload", text: t("album.upload"), title: t("photos.uploadTitle"), onclick: () => files.click() }) : null,
+      // At the top, the folder is asked for once the pictures are chosen.
+      h("button", { type: "button", class: "primary", id: "album-upload", text: t("album.upload"), title: here() ? t("photos.uploadTitle") : t("album.uploadTopTitle"), onclick: () => files.click() }),
+      here() ? h("button", { type: "button", class: "secondary", id: "album-add-existing", text: t("album.addExisting"), title: t("album.addExistingFolderTitle"), onclick: addFromAlbum }) : null,
       here() && imports.google ? h("button", { type: "button", class: "secondary", id: "album-google", text: t("photos.fromGoogle"), onclick: fromGoogle }) : null,
       here() && imports.icloud ? h("button", { type: "button", class: "secondary", id: "album-icloud", text: t("photos.fromICloud"), onclick: fromICloud }) : null,
-      here() ? h("span", { class: "muted album-drop-hint", text: t("photos.dropHint") }) : h("span", { class: "muted", text: t("album.uploadHint") }),
-      here() ? placeChoice() : null,
-      files, make, collect.form].filter(Boolean));
+      h("span", { class: "muted album-drop-hint", text: here() ? t("photos.dropHint") : t("album.uploadHint") }),
+      placeChoice(),
+      make, collect.form].filter(Boolean));
   };
 
   // loadFolders shows the folders and collections right below the open
@@ -762,7 +814,10 @@ export function albumBrowser({ pick } = {}) {
     }
   };
 
-  const load = async (append) => {
+  // load shows the pictures of the filters, or with append the next page;
+  // keep asks for at least that many, so a change made after "Show more"
+  // does not fold the album back to its first page.
+  const load = async (append, keep = 0) => {
     const mine = ++generation;
     if (view === "map") {
       mapBox.replaceChildren(h("p", { class: "muted", text: t("photos.mapLoading") }));
@@ -781,26 +836,40 @@ export function albumBrowser({ pick } = {}) {
     const q = filters();
     q.set("offset", String(append ? next : 0));
     try {
-      const page = await get("/api/album?" + q);
+      let page = await get("/api/album?" + q);
       if (mine !== generation) return;
+      const pictures = [...page.pictures];
+      while (!append && keep > pictures.length && page.next) {
+        q.set("offset", String(page.next));
+        page = await get("/api/album?" + q);
+        if (mine !== generation) return;
+        pictures.push(...page.pictures);
+      }
       if (!append) {
         grid.replaceChildren();
         shown = [];
       }
-      shown.push(...page.pictures);
-      if (view === "folders") grid.append(...page.pictures.map((p) => stack(p)));
-      else showTimeline(page.pictures, append);
+      shown.push(...pictures);
+      if (view === "folders") grid.append(...pictures.map((p) => stack(p)));
+      else showTimeline(pictures, append);
       next = page.next;
       more.hidden = !page.next;
       // The album's filters work as every list's do (ADR-0098).
       const on = filteredNow();
       const none = { favourites: t("photos.noFavourites"), memories: t("photos.noMemories") }[view] || t("album.none");
-      count.textContent = page.total ? t("album.count", { n: page.total }) : on ? t("filter.none") : none;
+      // An empty folder or collection invites pictures (ADR-0187).
+      const invite = !pick && view === "folders" && Boolean(here()) && !page.total && !on;
+      dropZone.hidden = !invite;
+      if (invite) showDropZone();
+      count.textContent = invite ? "" : page.total ? t("album.count", { n: page.total }) : on ? t("filter.none") : none;
       reset.hidden = !on;
       present.hidden = !!pick || !page.total;
       present.textContent = t("album.present", { n: page.total });
     } catch (err) { fail(err); }
   };
+
+  // refresh shows the album again after a change, as far as it was shown.
+  const refresh = () => load(false, shown.length);
 
   // open shows the folder path ends in, or the top.
   const open = () => {
@@ -889,17 +958,19 @@ export function albumBrowser({ pick } = {}) {
         if (!add.length) return;
         await together("photos.labelled", async (p) => {
           if (!p.editable) return false;
-          await put(`/api/items/${p.item.id}/attachments/${p.attachment.id}/labels`, { labels: [...new Set([...(p.attachment.labels || []), ...add])] });
+          const labels = [...new Set([...(p.attachment.labels || []), ...add])];
+          await put(`/api/items/${p.item.id}/attachments/${p.attachment.id}/labels`, { labels });
+          p.attachment.labels = await labelsNow(p);
+          relabel(p);
           return true;
         });
         await loadLabels();
-        load(false);
       } })),
       h("span", { class: "album-bulk-group" }, target, h("button", { type: "button", class: "secondary", id: "album-bulk-move", disabled: !any, text: t("photos.move"), onclick: async () => {
         if (!target.value) return fail(new Error(t("photos.moveChoose")));
         await together("photos.moved", async (p) => { if (p.item.id === target.value) return false; await moveTo(p, target.value); return true; }, undefined, "photos.notMoved");
         chosen.clear();
-        load(false);
+        refresh();
       } })),
       // One place set by hand for every chosen picture (ADR-0181).
       h("span", { class: "album-bulk-group album-bulk-place" },
@@ -918,7 +989,7 @@ export function albumBrowser({ pick } = {}) {
         await together("photos.deleted", async (p) => { if (!p.editable || p.used) return false; await del(fileURL(p)); return true; });
         chosen.clear();
         await loadLabels();
-        load(false);
+        refresh();
       } }));
   };
 
@@ -934,15 +1005,198 @@ export function albumBrowser({ pick } = {}) {
     return h("label", { class: "field album-import-place" }, h("span", { text: t("photos.placeOnImport") }), choice);
   };
 
-  // takeFiles uploads files chosen or dropped onto an open folder; ZIP
-  // archives are unpacked here (ADR-0177).
+  // takeFiles adds files chosen, dropped or pasted where one is
+  // (ADR-0187): into the open folder; in a collection, into a folder
+  // chosen now, each picture with the collection's labels; at the top,
+  // into a folder chosen now, which then opens. ZIP archives are unpacked
+  // here (ADR-0177). A presentation with the pictures of its slides
+  // becomes a folder of its own (ADR-0186).
   const takeFiles = async (list) => {
-    if (!inFolder() || !list.length) return;
+    if (pick || view !== "folders" || !list.length) return;
+    const collection = inCollection() ? here() : null;
+    const labels = collection ? collection.rule.labels : [];
+    let folder = inFolder() ? here() : null;
+    if (!folder) {
+      folder = await chooseFolder(collection
+        ? { title: t("album.targetTitleCollection", { name: collection.name, n: list.length }), hint: t("album.targetHintCollection", { labels: labels.join(", ") }) }
+        : { title: t("album.targetTitle", { n: list.length }), hint: t("album.targetHint") });
+      if (!folder) return;
+    }
+    const top = !here();
+    // Where the pictures went, said once the album shows them; a folder
+    // made for a presentation, or the folder chosen at the top, opens.
+    let outcome;
+    let opens = false;
     try {
-      const sum = await importFiles(list, here().id, (text) => say(text), importPlace());
-      say(summaryText(sum) + (sum.failed.length ? " " + sum.failed.slice(0, 3).join("; ") : ""), sum.failed.length ? "error" : "notice");
-    } catch (err) { fail(err); }
-    load(false);
+      const deck = await importDeck(list, folder.id, (text) => say(text), importPlace(), labels);
+      if (deck) {
+        const f = deck.folder;
+        const made = { id: f.id, key: f.key, name: f.title, space: f.space };
+        if (!collection) {
+          path = top ? [folder, made] : [...path, made];
+          opens = true;
+        }
+        outcome = [deckText(deck) + (deck.failed.length ? " " + deck.failed.slice(0, 3).join("; ") : ""), deck.failed.length ? "error" : "notice"];
+      } else {
+        const sum = await importFiles(list, folder.id, (text) => say(text), importPlace(), labels);
+        if (top) {
+          path = [folder];
+          opens = true;
+        }
+        const where = collection || top ? " " + t("album.uploadedTo", { folder: folder.name }) : "";
+        outcome = [summaryText(sum) + where + (sum.failed.length ? " " + sum.failed.slice(0, 3).join("; ") : ""), sum.failed.length ? "error" : "notice"];
+      }
+    } catch (err) { fail(err); return; }
+    if (opens) open();
+    else await refresh();
+    say(...outcome);
+    if (labels.length) loadLabels().catch(() => {});
+  };
+
+  // chooseFolder asks which folder pictures go into: one of the folders
+  // one may add to, the one chosen last first, or a new folder in a room
+  // (ADR-0187). It resolves to the folder, or to null.
+  const LAST_FOLDER = "ot.albumUploadFolder";
+  const chooseFolder = ({ title, hint }) => new Promise((resolve) => {
+    const NEW = "new";
+    let list = [];
+    const select = h("select", { id: "album-target-folder", "aria-label": t("album.targetFolder") }, h("option", { value: NEW, text: t("album.targetNew") }));
+    const room = h("select", { id: "album-target-space", "aria-label": t("album.folderSpace") },
+      h("option", { value: "", text: t("album.folderSpacePick") }), ...roomOptions());
+    room.value = space.value || here()?.space || "";
+    const name = h("input", { id: "album-target-name", placeholder: t("album.folderName"), "aria-label": t("album.folderName") });
+    const fresh = h("div", { class: "album-target-new" }, room, name);
+    const sync = () => { fresh.hidden = select.value !== NEW; };
+    select.addEventListener("change", sync);
+    const error = h("p", { class: "error", role: "alert", hidden: true });
+    let done = false;
+    const finish = (v) => {
+      if (done) return;
+      done = true;
+      dialog.close();
+      dialog.remove();
+      resolve(v);
+    };
+    const form = h("form", { class: "album-target-form" },
+      h("p", { class: "muted", text: hint }),
+      h("label", { class: "field" }, h("span", { text: t("album.targetFolder") }), select),
+      fresh, error,
+      h("div", { class: "actions-row" },
+        h("button", { type: "submit", class: "primary", id: "album-target-ok", text: t("album.targetOk") }),
+        h("button", { type: "button", class: "link", id: "album-target-cancel", text: t("common.cancel"), onclick: () => finish(null) })));
+    const dialog = h("dialog", { class: "album-target", id: "album-target", "aria-label": title }, h("h2", { text: title }), form);
+    dialog.addEventListener("cancel", (e) => { e.preventDefault(); finish(null); });
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      error.hidden = true;
+      try {
+        let f;
+        if (select.value === NEW) {
+          if (!room.value) throw new Error(t("album.chooseSpace"));
+          if (!name.value.trim()) throw new Error(t("album.targetNameMissing"));
+          const { item } = await post("/api/album/folders", { space: room.value, name: name.value.trim() });
+          f = { id: item.id, key: item.key, name: item.title, space: item.space };
+          loadFolders();
+        } else {
+          const c = list.find((x) => x.id === select.value);
+          f = { id: c.id, key: c.key, name: c.name, space: c.space };
+        }
+        try { localStorage.setItem(LAST_FOLDER, f.id); } catch { /* chosen afresh next time */ }
+        finish(f);
+      } catch (err) {
+        error.textContent = err.message;
+        error.hidden = false;
+      }
+    });
+    document.body.append(dialog);
+    dialog.showModal();
+    sync();
+    select.focus();
+    // The folders come while the dialog already stands.
+    allFolders().then((all) => {
+      list = all.filter((f) => f.editable);
+      let last = "";
+      try { last = localStorage.getItem(LAST_FOLDER) || ""; } catch { /* none */ }
+      select.prepend(...list.map((f) => h("option", { value: f.id, text: f.path })));
+      select.value = list.some((f) => f.id === last) ? last : list.length ? list[0].id : NEW;
+      sync();
+    }).catch((err) => { error.textContent = err.message; error.hidden = false; });
+  });
+
+  // addFromAlbum adds pictures already in the album where one is
+  // (ADR-0187): into a folder as copies with their source, as inserting
+  // does (ADR-0054); to a collection by giving them its labels, without
+  // a copy. The album stays open for one picture after another.
+  const addFromAlbum = () => {
+    const target = here();
+    if (!target) return;
+    const collection = Boolean(target.rule);
+    const labels = collection ? target.rule.labels : [];
+    const holds = (p) => {
+      const own = p.attachment.labels || [];
+      return target.rule.match === "all" ? labels.every((l) => own.includes(l)) : labels.some((l) => own.includes(l));
+    };
+    const add = async (p) => {
+      if (collection) {
+        if (holds(p)) return t("album.addedAlready");
+        if (!p.editable) throw new Error(t("album.addNotEditable", { name: captionOf(p.attachment.name) }));
+        await put(`${fileURL(p)}/labels`, { labels: [...new Set([...(p.attachment.labels || []), ...labels])] });
+        p.attachment.labels = [...new Set([...(p.attachment.labels || []), ...labels])];
+        return t("album.added");
+      }
+      if (p.item.id === target.id) return t("album.addedAlready");
+      await copyTo(p, target.id);
+      return t("album.added");
+    };
+    let closed = false;
+    const close = () => {
+      if (closed) return;
+      closed = true;
+      dialog.close();
+      dialog.remove();
+      refresh();
+      loadLabels().catch(() => {});
+    };
+    const title = t(collection ? "album.addTitleCollection" : "album.addTitleFolder", { name: target.name });
+    const dialog = h("dialog", { class: "album-dialog album-add", id: "album-add", "aria-label": title },
+      h("div", { class: "drawing-bar" }, h("strong", { text: title }),
+        h("button", { type: "button", class: "primary", id: "album-add-done", text: t("album.addDone"), onclick: close })),
+      h("p", { class: "muted album-add-hint", text: collection ? t("album.addHintCollection", { labels: labels.join(", ") }) : t("album.addHintFolder") }),
+      h("div", { class: "album-dialog-body" }, albumBrowser({ pick: add, pickText: t("album.addOne") })));
+    dialog.addEventListener("cancel", (e) => { e.preventDefault(); close(); });
+    document.body.append(dialog);
+    dialog.showModal();
+  };
+
+  // showDropZone fills the invitation of an empty folder or collection.
+  const showDropZone = () => {
+    const collection = inCollection();
+    dropZone.replaceChildren(
+      h("strong", { class: "album-drop-title", text: t("album.dropTitle") }),
+      h("p", { class: "muted", text: collection ? t("album.dropTextCollection", { labels: here().rule.labels.join(", ") }) : t("album.dropText") }),
+      h("div", { class: "actions-row" },
+        h("button", { type: "button", class: "primary", id: "album-drop-choose", text: t("album.dropChoose"), onclick: () => files.click() }),
+        h("button", { type: "button", class: "secondary", id: "album-drop-existing", text: t("album.addExisting"), onclick: addFromAlbum })));
+  };
+
+  // A picture pasted into the album with Ctrl+V is added where one is, as
+  // a dropped file is (ADR-0187); in a text field, pasting stays text.
+  const pastedName = (f, i) => {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    const stamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}.${pad(d.getMinutes())}.${pad(d.getSeconds())}`;
+    const ext = (f.type.split("/")[1] || "png").replace("jpeg", "jpg");
+    return `${t("album.pasted")} ${stamp}${i ? "-" + (i + 1) : ""}.${ext}`;
+  };
+  const onPaste = (e) => {
+    if (!root.isConnected) return document.removeEventListener("paste", onPaste);
+    if (view !== "folders" || document.querySelector("dialog[open]")) return;
+    if (e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable]")) return;
+    const list = [...(e.clipboardData?.files || [])].filter((f) => f.type.startsWith("image/"));
+    if (!list.length) return;
+    e.preventDefault();
+    // A screenshot comes as "image.png"; it is named by when it was pasted.
+    takeFiles(list.map((f, i) => (f.name && !/^image\.\w+$/.test(f.name) ? f : new File([f], pastedName(f, i), { type: f.type }))));
   };
   let stop = false;
   const cancelButton = () => h("button", { type: "button", class: "link", id: "album-import-cancel", text: t("common.cancel"), onclick: () => { stop = true; } });
@@ -963,7 +1217,7 @@ export function albumBrowser({ pick } = {}) {
         say(t("photos.googleAgain"), "error");
       } else fail(err);
     }
-    load(false);
+    refresh();
   };
   const fromICloud = () => {
     const folder = here();
@@ -983,7 +1237,7 @@ export function albumBrowser({ pick } = {}) {
         const sum = await icloudImport(address.value.trim(), folder.id, (text) => progressOf(text), () => stop, importPlace());
         say(`${sum.name ? sum.name + ": " : ""}${summaryText(sum)}`, sum.failed.length ? "error" : "notice");
       } catch (err) { fail(err); }
-      load(false);
+      refresh();
     });
     tools.append(form);
     address.focus();
@@ -1011,18 +1265,20 @@ export function albumBrowser({ pick } = {}) {
   const root = h("div", { class: "album" },
     pick ? null : h("div", { class: "album-bar" }, viewBar, chooseButton),
     h("div", { class: "album-filters filter-bar", role: "search", "aria-label": t("album.title") }, search, kind, space, label, reset), options,
-    bulk, trail, tools, status, folders, h("div", { class: "album-count-row" }, count, present), grid, timeline, mapBox, more);
-  // Files dropped onto an open folder are uploaded into it (ADR-0177).
+    bulk, trail, tools, status, folders, h("div", { class: "album-count-row" }, count, present), dropZone, grid, timeline, mapBox, more, files);
+  // Files dropped onto the album are added where one is (ADR-0177,
+  // ADR-0187); a picture pasted is too.
   if (!pick) {
+    document.addEventListener("paste", onPaste);
     root.addEventListener("dragover", (e) => {
-      if (dragging || view !== "folders" || !inFolder() || !e.dataTransfer?.types?.includes("Files")) return;
+      if (dragging || view !== "folders" || !e.dataTransfer?.types?.includes("Files")) return;
       e.preventDefault();
       root.classList.add("dropping");
     });
     root.addEventListener("dragleave", (e) => { if (!root.contains(e.relatedTarget)) root.classList.remove("dropping"); });
     root.addEventListener("drop", (e) => {
       root.classList.remove("dropping");
-      if (dragging || view !== "folders" || !inFolder() || !e.dataTransfer?.files?.length) return;
+      if (dragging || view !== "folders" || !e.dataTransfer?.files?.length) return;
       e.preventDefault();
       takeFiles([...e.dataTransfer.files]);
     });

@@ -197,5 +197,7 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0182](0182-every-file-of-an-item-is-renamed-from-its-file-list.md) | Every file of an item is renamed from its file list | Accepted | Landed |
 | [0183](0183-a-user-manual-in-every-ui-language-behind-the-account-menu.md) | A user manual in every UI language, behind the account menu | Accepted | Landed |
 | [0184](0184-pictures-are-moved-by-dragging-them-onto-a-folder.md) | Pictures of the album are moved by dragging them onto a folder | Accepted | Landed |
-| [0185](0185-the-user-manual-is-kept-current-by-checks.md) | The user manual is kept current by checks, not by memory alone | Proposed | Partial |
-| [0186](0186-a-moved-file-keeps-its-identity.md) | A file moved to another item keeps its identity | Proposed | Partial |
+| [0185](0185-the-user-manual-is-kept-current-by-checks.md) | The user manual is kept current by checks, not by memory alone | Accepted | Landed |
+| [0186](0186-a-presentation-is-imported-into-the-album-as-slides-with-their-notes.md) | A presentation is imported into the album as slides with their notes | Proposed | Partial |
+| [0187](0187-pictures-are-added-where-one-is-in-the-album.md) | Pictures are added where one is in the album, a collection's by its labels | Proposed | Partial |
+| [0188](0188-a-moved-file-keeps-its-identity.md) | A file moved to another item keeps its identity | Proposed | Partial |

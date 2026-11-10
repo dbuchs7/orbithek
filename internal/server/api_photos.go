@@ -244,7 +244,7 @@ type albumFilter struct {
 	place                                   bool
 	// favourites are the caller's, by the first version of the file: a
 	// file moved to another item keeps its ID and stays a favourite
-	// (ADR-0186). only is whether the album shows them alone.
+	// (ADR-0188). only is whether the album shows them alone.
 	favourites map[item.ID]bool
 	only       bool
 	// inRule is a collection's rule (ADR-0175), nil for none.

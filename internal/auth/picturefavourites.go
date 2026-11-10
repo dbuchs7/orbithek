@@ -39,7 +39,7 @@ func (a *Accounts) PictureFavourites(id UserID) map[PictureRef]bool {
 // unmarks it. Marking a favourite again, or unmarking one that is not,
 // changes nothing. Each change is a record of its own, so a person with
 // many favourites does not write them all again. A file keeps its ID when
-// it is moved to another item (ADR-0186), so a favourite is the file
+// it is moved to another item (ADR-0188), so a favourite is the file
 // whatever item it was marked in: marking it again in its new item
 // changes nothing, and unmarking it removes it as it was marked.
 func (a *Accounts) SetPictureFavourite(id UserID, p PictureRef, on bool) error {

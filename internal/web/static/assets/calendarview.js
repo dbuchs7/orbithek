@@ -25,7 +25,7 @@ import { del, get, post, put } from "./api.js";
 import { finished } from "./taskparts.js";
 import { dateFields, dayString, isoWeek, normalLabel, todayDay } from "./timeline.js";
 import { DAY_MINUTES, STATUS, VIEWS, WHO, address, agendaDays, appleServer, byDayAndTime, cancelChanges, dayAt, dayColumns, entries, externalEntries, listQuery, localDayOf, minutesAt,
-  moves, occurrenceChanges, overdue, period, readState, retime, seriesChanges, shift, timedSpan, typeFields, weekRows, withoutOrder } from "./calendar.js";
+  moves, occurrenceChanges, overdue, period, readState, retime, seriesChanges, shift, slotValues, timedSpan, typeFields, weekRows, withoutOrder } from "./calendar.js";
 
 const DAY = 86400000;
 const MONDAY = Date.UTC(2024, 0, 1) / DAY; // 1 January 2024 was a Monday.
@@ -256,6 +256,14 @@ function weekEl(monday, p, list, ctx, big) {
     ctx.clearDrop();
     ctx.move(entry, dayUnder(ev) - from);
   });
+  // A double-click on a day, not on an entry, makes a new item there.
+  if (ctx.canCreate) {
+    week.addEventListener("dblclick", (ev) => {
+      if (ev.target.closest(".cal-entry")) return;
+      window.getSelection()?.removeAllRanges();
+      ctx.create(dayUnder(ev));
+    });
+  }
   return week;
 }
 
@@ -310,6 +318,16 @@ function hoursEl(monday, list, ctx) {
       if (timedSpan(entry) || entry.at.from !== null) ctx.place(entry, day - entry.from, target(ev));
       else ctx.move(entry, day - from);
     });
+    // A double-click on an hour makes a new item at that day and time,
+    // rounded to a quarter of an hour.
+    if (ctx.canCreate) {
+      col.addEventListener("dblclick", (ev) => {
+        if (ev.target.closest(".cal-entry")) return;
+        window.getSelection()?.removeAllRanges();
+        const rect = col.getBoundingClientRect();
+        ctx.create(day, minutesAt(ev.clientY - rect.top, rect.height));
+      });
+    }
     days.push(col);
   }
   const grid = h("div", { class: "cal-hours" }, labels, days);
@@ -576,6 +594,86 @@ function feedBox(feed) {
     h("p", { class: "muted", text: t("calendar.feedWarning") }));
 }
 
+// NEW_TYPE keeps, for this tab of the browser, the type the last new
+// entry was made of.
+const NEW_TYPE = "ot-calendar-new-type";
+
+// createDialog asks for what a new item needs when a day, or an hour of
+// the week, is double-clicked, or "New entry" is chosen: its type among
+// those the calendar places by date fields, its room among those one may
+// edit, its title, its date fields filled in from the place, and the other
+// fields its type requires. It resolves to the item made and whether to
+// open it, or to null when it is closed without making one. The server
+// validates the item as every other new item (D3).
+function createDialog({ day, minutes, fields, typeOf, rooms, state, helpers }) {
+  return new Promise((resolve) => {
+    let kept = "";
+    try { kept = sessionStorage.getItem(NEW_TYPE) || ""; } catch { /* not kept */ }
+    const names = fields.map((f) => f.type);
+    // The type the view shows, else the last one used; an hour of the week
+    // prefers a type with a time.
+    const timed = minutes === undefined ? "" : fields.find((f) => f.startTimed || f.endTimed)?.type;
+    const first = [state.type, kept, timed, names[0]].find((n) => n && names.includes(n));
+    const typeSelect = h("select", { id: "calendar-new-type" }, names.map((n) => h("option", { value: n, text: n, selected: n === first })));
+    const ordered = helpers.favouritesFirst(rooms);
+    const room = ordered.some((sp) => sp.key === state.space) ? state.space : ordered[0].key;
+    const roomSelect = h("select", { id: "calendar-new-space" }, ordered.map((sp) => h("option", { value: sp.key, text: `${sp.key} ${sp.name}`, selected: sp.key === room })));
+    const title = h("input", { id: "calendar-new-title", name: "title", required: true, autocomplete: "off" });
+    const box = h("div", { id: "calendar-new-fields" });
+    const error = h("p", { class: "error", id: "calendar-new-error", role: "alert", hidden: true });
+    let shown = [];
+    const draw = () => {
+      const f = fields.find((x) => x.type === typeSelect.value);
+      const values = slotValues(f, day, minutes);
+      shown = (typeOf.get(f.type)?.fields || []).filter((fd) => fd.name in values || fd.required);
+      box.replaceChildren(...shown.map((fd) => field(fd.name + (fd.required ? " *" : ""), helpers.propertyInput(fd, values[fd.name]))));
+    };
+    typeSelect.addEventListener("change", draw);
+    draw();
+    const u = new Date(day * DAY);
+    const when = minutes === undefined ? dateText(day) : `${dateText(day)} ${timeText(new Date(u.getUTCFullYear(), u.getUTCMonth(), u.getUTCDate(), 0, minutes).getTime())}`;
+    let made = null;
+    const form = h("form", { class: "cal-new-form", onsubmit: async (ev) => {
+      ev.preventDefault();
+      const open = ev.submitter?.value === "open";
+      const properties = {};
+      for (const fd of shown) {
+        const v = helpers.readProperty(fd, form.querySelector(`[name="p:${CSS.escape(fd.name)}"]`));
+        if (v !== null) properties[fd.name] = v;
+      }
+      error.hidden = true;
+      form.querySelectorAll("button").forEach((b) => { b.disabled = true; });
+      try {
+        const { item } = await post("/api/items", { space: roomSelect.value, type: typeSelect.value, title: title.value.trim(), properties });
+        try { sessionStorage.setItem(NEW_TYPE, typeSelect.value); } catch { /* not kept */ }
+        made = { item, open };
+        dialog.close();
+      } catch (err) {
+        error.textContent = err.message;
+        error.hidden = false;
+        form.querySelectorAll("button").forEach((b) => { b.disabled = false; });
+      }
+    } },
+    h("div", { class: "form-row" }, field(t("col.type"), typeSelect), field(t("col.space"), roomSelect)),
+    field(t("col.title"), title),
+    box,
+    error,
+    h("p", { class: "actions" },
+      h("button", { type: "submit", class: "primary", id: "calendar-new-create", value: "stay", text: t("calendar.create") }),
+      h("button", { type: "submit", class: "secondary", id: "calendar-new-open", value: "open", text: t("calendar.createOpen") }),
+      h("button", { type: "button", class: "link", text: t("calendar.cancel"), onclick: () => dialog.close() })));
+    const dialog = h("dialog", { class: "cal-dialog cal-new", id: "calendar-new", "aria-labelledby": "calendar-new-heading" },
+      h("h2", { id: "calendar-new-heading", text: t("calendar.newTitle", { when }) }), form);
+    dialog.addEventListener("close", () => {
+      dialog.remove();
+      resolve(made);
+    });
+    document.body.append(dialog);
+    dialog.showModal();
+    title.focus();
+  });
+}
+
 // calendarView mounts the view into container. helpers are what app.js
 // shares: readAll reads a listing up to the boards' limit, and
 // favouritesFirst orders the spaces as every choice of a space does.
@@ -634,7 +732,20 @@ export async function calendarView(container, params, helpers, after = {}) {
   }
   const list = [...entries(items, fields, { from: p.from, to: p.to }), ...others].sort(byDayAndTime);
   const editable = new Set(spaces.filter((sp) => sp.role === "editor" || sp.role === "space-admin").map((sp) => sp.key));
+  const rooms = spaces.filter((sp) => editable.has(sp.key));
   const ctx = {
+    // A new item is made where one may edit a room and the calendar
+    // places a type (ADR-0166): by a double-click on a day or an hour.
+    canCreate: Boolean(rooms.length && fields.length && helpers.propertyInput && helpers.readProperty),
+    create: async (day, minutes) => {
+      const made = await createDialog({ day, minutes, fields, typeOf, rooms, state, helpers });
+      if (!made) return;
+      if (made.open) {
+        location.hash = "#/item/" + encodeURIComponent(made.item.key) + (typeOf.get(made.item.type)?.body ? "?edit" : "");
+        return;
+      }
+      await calendarView(container, params, helpers, { notice: { ok: true, text: t("calendar.created", { key: made.item.key, title: made.item.title }) }, focus: made.item.key });
+    },
     today,
     done: (it) => finished(typeOf.get(it.type)?.workflow, it.state),
     hasWorkflow: (it) => Boolean(typeOf.get(it.type)?.workflow?.states?.length),
@@ -730,6 +841,10 @@ export async function calendarView(container, params, helpers, after = {}) {
     h("a", { class: "button secondary", id: "calendar-prev", href: address({ ...state, at: shift(state.view, state.at, -1) }, today), text: t("calendar.previous") }),
     h("a", { class: "button secondary", id: "calendar-today", href: address({ ...state, at: today }, today), text: t("calendar.today") }),
     h("a", { class: "button secondary", id: "calendar-next", href: address({ ...state, at: shift(state.view, state.at, 1) }, today), text: t("calendar.next") }),
+    // The same as a double-click, by keyboard or touch: today, when the
+    // period shows it, else its first day.
+    ctx.canCreate ? h("button", { type: "button", class: "secondary", id: "calendar-new-entry", text: t("calendar.newEntry"),
+      onclick: () => ctx.create(today >= p.first && today <= p.last ? today : p.first) }) : null,
     h("h2", { id: "calendar-period", "aria-live": "polite", text: heading(p) }),
     h("p", { class: "muted cal-summary", id: "calendar-summary", text: summary(state, spaces) }));
 

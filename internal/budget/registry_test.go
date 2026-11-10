@@ -141,6 +141,8 @@ var classified = map[string]string{
 		"read by the restore command from its own format",
 	"internal/backup/backup.go:maxManifest": "the same bound, where the manifest is read",
 	"cmd/settingscheck/main.go:4 << 20":     "a command-line client reading GitHub's answer, not this server's input",
+	"cmd/adrnumbers/main.go:8 << 20":        "a command-line client reading GitHub's answer, not this server's input",
+	"cmd/adrnumbers.maxPages":               "how many pages of a GitHub listing a command-line client follows, not this server's input; it guards CI against an API that names a next page for ever",
 	"internal/mcp.maxAnswer": "the MCP adapter reading an answer of the API it calls; the API's own budgets bound " +
 		"what it sends, this only guards the adapter against a server that misbehaves",
 	"internal/mcp/client.go:maxAnswer": "the same bound, where the adapter reads",

@@ -774,7 +774,7 @@ func TestPlaceChoices(t *testing.T) {
 // TestAMovedPictureKeepsItsIdentity: a picture moved to another folder
 // keeps its ID, its versions and the favourites marked on it; its content
 // is read from the new folder; one who may only read may not move it
-// (ADR-0186).
+// (ADR-0188).
 func TestAMovedPictureKeepsItsIdentity(t *testing.T) {
 	w := newPhotoWorld(t)
 	a := w.put(t, "lake.jpg", exifJPEG(t, "2024:05:01 13:22:10", 0, 0, 64))

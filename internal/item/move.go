@@ -3,7 +3,7 @@ package item
 import "slices"
 
 // A file is moved to another item with all its versions, keeping its
-// identity (ADR-0186): its ID, every version, its labels, notes, place,
+// identity (ADR-0188): its ID, every version, its labels, notes, place,
 // rule of versions and who added it stay, so favourites and copies of it
 // follow it. Its content is sealed again with the new item's key by the
 // storage layer, which asks PlanMove first and records the move with
@@ -77,7 +77,7 @@ func (x *Session) planMove(from, file, to ID) (*Item, *Item, []Attachment, error
 }
 
 // MoveFile moves a file with all its versions from one item to another
-// (ADR-0186), once the content of the versions PlanMove named is stored
+// (ADR-0188), once the content of the versions PlanMove named is stored
 // for the new item. stored names those versions; if the file has changed
 // since, the move is refused and nothing happens, so no version is moved
 // without its content. Versions made in the item point to each other in
@@ -149,7 +149,7 @@ func sameIDs(a, b []ID) bool {
 }
 
 // sourceItem is the item that holds the file a source names now: where
-// it went when it was moved out of the item named (ADR-0186).
+// it went when it was moved out of the item named (ADR-0188).
 func (s *Store) sourceItem(src Source) ID {
 	if to, ok := s.moved[src.Attachment]; ok {
 		if it := s.items[src.Item]; it == nil || !hasFile(it, src.Attachment) {

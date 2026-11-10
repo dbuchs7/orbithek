@@ -140,7 +140,7 @@ var (
 // pictures would write notes for slides it never saw; whether agents
 // read and annotate the album is a decision of its own. Renaming its pictures
 // (ADR-0180) is not offered for the same reason, nor moving files to
-// another item (ADR-0186): a move takes a file out of an item and changes
+// another item (ADR-0188): a move takes a file out of an item and changes
 // who may read it.
 //
 // The album's photo management (ADR-0177) is not offered: thumbnails, map

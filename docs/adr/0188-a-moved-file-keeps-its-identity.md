@@ -1,4 +1,4 @@
-# ADR-0186: A file moved to another item keeps its identity
+# ADR-0188: A file moved to another item keeps its identity
 
 - **Status:** Proposed
 - **Implementation:** Partial

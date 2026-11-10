@@ -240,3 +240,30 @@ jobs:
           mode_flag=""
           if [ "$MANUAL_MODE" = "advisory" ]; then mode_flag="-advisory"; fi
           go run ./cmd/manualcheck $mode_flag -pr-body-file "$RUNNER_TEMP/pr-body.txt" "$BASE_SHA" "$HEAD_SHA"
+
+  adr-numbers:
+    name: ADR numbers (open pull requests)
+    # Records are numbered without gaps, so two pull requests that each add
+    # one while both are open take the same number; docs/adr finds the clash
+    # only once one is merged. This job finds it while both are open. It is
+    # advisory: a clash becomes a warning on the record and the job passes,
+    # so it never blocks a merge; the gap-free tests stay the gate.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Compare ADR numbers with main and the open pull requests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: go run ./cmd/adrnumbers -advisory -repo "$GITHUB_REPOSITORY" -pr "$PR_NUMBER" -base "$BASE_REF"

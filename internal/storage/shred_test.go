@@ -75,7 +75,7 @@ func TestContentIsNeverWrittenInPlaintext(t *testing.T) {
 	noErr(t, db.Store.As("anna").SetPictureNotes(it.ID, pic, "Say: "+secret))
 	noErr(t, db.Store.As("anna").RenameFile(it.ID, pic, "Plan "+secret))
 	// A moved file carries its name and labels into its new item, sealed
-	// there (ADR-0186).
+	// there (ADR-0188).
 	other, err := db.Store.Create("anna", item.NewItem{Space: "PLAT", Type: it.Type, Title: "Archive"})
 	noErr(t, err)
 	noErr(t, db.Store.As("anna").MoveFile(it.ID, pic, other.ID, []item.ID{pic}))
