@@ -225,6 +225,8 @@ Ein Klick öffnet ein Bild mit seinen Angaben: Zeitpunkt und Ort der Aufnahme, K
 
 **Mehrere auswählen** wählt viele Bilder auf einmal aus, um Labels hinzuzufügen, Favoriten zu markieren, sie in einen Ordner zu verschieben, **Als ZIP herunterzuladen** oder zu löschen.
 
+In den Ordnern verschiebt man ein Bild, indem man es auf einen Ordner zieht: auf einen Ordner, der unter dem geöffneten aufgeführt ist, oder auf einen übergeordneten Ordner im Pfad oben. Ein ausgewähltes Bild nimmt alle ausgewählten Bilder mit. Wie bei **Verschieben** wird ein Bild, das man nicht ändern darf oder das ein Text zeigt, kopiert und bleibt zusätzlich, wo es war. Ohne Maus wählt man die Bilder aus und nutzt **In Ordner verschieben…**.
+
 ### Bilder und Dateien umbenennen
 
 Wer ein Bild bearbeiten darf, benennt es im Album um: das Menü **…** der Karte öffnen und **Umbenennen** wählen. Der Name auf der Karte wird zum Eingabefeld. **Enter** oder ein Klick daneben speichert; **Escape** behält den bisherigen Namen. In der Dateiliste einer Seite tut **Umbenennen** neben **Löschen** dasselbe für jede Art von Datei, auch für Dokumente und Videos.

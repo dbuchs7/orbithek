@@ -1794,6 +1794,24 @@ function gitSource() {
     await page.waitForSelector("#album .photo-map-note");
     await page.click("#album-view-folders");
     await page.waitForSelector("#album-upload"); // back in the folder, with its tools
+    // A picture dragged onto a folder below moves there, and back onto a
+    // folder above it in the trail (ADR-0184).
+    await page.click("#album-new-folder");
+    await page.fill("#album-folder-name", "Prints");
+    await page.click("#album .album-new-folder button[type=submit]");
+    const prints = "#album .album-folder:has-text('Prints')";
+    await page.waitForSelector(prints);
+    check((await page.getAttribute(prints, "title")) === "Drop pictures here to move them into Prints.", "a folder says that it takes dropped pictures");
+    await page.locator(holiday).dragTo(page.locator(prints));
+    await page.waitForSelector(holiday, { state: "detached" });
+    check((await page.textContent("#album .status")).includes("1 picture moved"), "the dragged picture is moved into the folder it is dropped onto");
+    await page.click(prints);
+    await page.waitForSelector(holiday);
+    await page.locator(holiday).dragTo(page.locator("#album .album-trail button:has-text('Logos')"));
+    await page.waitForSelector(holiday, { state: "detached" });
+    await page.click("#album .album-trail button:has-text('Logos')");
+    await page.waitForSelector(holiday);
+    check(await page.locator(prints).count() === 1, "a picture dropped onto a folder of the trail goes back up");
     // The album is left at its top, as the steps after it begin there.
     await page.click("#album .album-trail button:has-text('All pictures')");
     await page.waitForSelector("#album .album-folder:has-text('Logos')");
