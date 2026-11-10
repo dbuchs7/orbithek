@@ -242,9 +242,10 @@ type albumFilter struct {
 	folder                                  item.ID
 	taken                                   bool
 	place                                   bool
-	// favourites are the caller's; only is whether the album shows them
-	// alone.
-	favourites map[auth.PictureRef]bool
+	// favourites are the caller's, by the first version of the file: a
+	// file moved to another item keeps its ID and stays a favourite
+	// (ADR-0188). only is whether the album shows them alone.
+	favourites map[item.ID]bool
 	only       bool
 	// inRule is a collection's rule (ADR-0175), nil for none.
 	inRule func(item.Picture) bool
@@ -289,7 +290,10 @@ func (h itemHandlers) albumFilterOf(r *http.Request) (albumFilter, error) {
 	case f.from != "" && !dateRE.MatchString(f.from), f.to != "" && !dateRE.MatchString(f.to):
 		return f, errors.New("from and to are days, YYYY-MM-DD")
 	}
-	f.favourites = h.d.DB.Accounts.PictureFavourites(auth.UserID(who(r)))
+	f.favourites = map[item.ID]bool{}
+	for p := range h.d.DB.Accounts.PictureFavourites(auth.UserID(who(r))) {
+		f.favourites[item.ID(p.File)] = true
+	}
 	return f, nil
 }
 
@@ -330,7 +334,7 @@ func albumStacks(x *item.Session, f albumFilter) [][]item.Picture {
 		day := top.Attachment.Photo.Day(top.Attachment.Created)
 		switch {
 		case !matched[i],
-			f.only && !f.favourites[auth.PictureRef{Item: string(top.Item.ID), File: string(top.First)}],
+			f.only && !f.favourites[top.First],
 			f.place && !top.Attachment.Photo.HasPlace(),
 			f.day != "" && day[5:] != f.day,
 			f.from != "" && day < f.from,

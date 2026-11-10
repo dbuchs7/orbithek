@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/dbuchs7/orbithek/internal/diskspace"
@@ -249,5 +250,85 @@ func TestAttachmentsAreReadFromAnyPosition(t *testing.T) {
 	}
 	if _, err := io.ReadAll(r2); err == nil {
 		t.Fatal("a changed part was read")
+	}
+}
+
+// A file moved to another item keeps its ID: its content is sealed again
+// with the new item's key, and the former content goes once the move is
+// recorded; content stored for a move never recorded goes on the next
+// start (ADR-0188).
+func TestAMovedFileIsSealedForItsNewItem(t *testing.T) {
+	dir := t.TempDir()
+	db, from := pageIn(t, dir)
+	var to item.ID
+	if err := db.Write(func(s *item.Store) error {
+		if err := s.GrantRole("admin", "PLAT", "admin", item.Editor); err != nil {
+			return err
+		}
+		it, err := s.Create("admin", item.NewItem{Space: "PLAT", Type: "page", Title: "Archive"})
+		to = it.ID
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	content := bytes.Repeat([]byte("moved "), chunkSize/3) // more than one chunk
+	a := attach(t, db, from, content, "moved.bin")
+	if err := db.MoveAttachmentContent(from, to, a); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := readAttachment(db, to, a.ID); err != nil || !bytes.Equal(got, content) {
+		t.Fatalf("content for the new item: %d bytes, %v", len(got), err)
+	}
+	if got, err := readAttachment(db, from, a.ID); err != nil || !bytes.Equal(got, content) {
+		t.Fatalf("the former content went before the move was recorded: %v", err)
+	}
+	// The new file is sealed for its new item: read as the old item's, it
+	// does not authenticate.
+	os.Rename(attachmentPath(dir, from, a.ID), attachmentPath(dir, from, a.ID)+".keep")
+	data, err := os.ReadFile(attachmentPath(dir, to, a.ID))
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.WriteFile(attachmentPath(dir, from, a.ID), data, 0o640)
+	if _, err := readAttachment(db, from, a.ID); err == nil {
+		t.Error("the moved content opens as the old item's")
+	}
+	os.Rename(attachmentPath(dir, from, a.ID)+".keep", attachmentPath(dir, from, a.ID))
+	if err := db.Write(func(s *item.Store) error {
+		return s.As("admin").MoveFile(from, a.ID, to, []item.ID{a.ID})
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(attachmentPath(dir, from, a.ID)); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("the former content stays: %v", err)
+	}
+	// A move stored but never recorded leaves nothing behind.
+	b := attach(t, db, from, []byte("stays"), "stays.txt")
+	// Content that is not the file recorded is refused, and not kept.
+	wrong := b
+	wrong.SHA256 = strings.Repeat("0", 64)
+	if err := db.MoveAttachmentContent(from, to, wrong); err == nil {
+		t.Error("moved content that is not the file recorded")
+	}
+	if _, err := os.Stat(attachmentPath(dir, to, b.ID)); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("refused content stays: %v", err)
+	}
+	if err := db.MoveAttachmentContent(from, to, b); err != nil {
+		t.Fatal(err)
+	}
+	db.Close()
+	db, rec, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if rec.Orphans != 1 {
+		t.Errorf("removed %d orphans, want 1", rec.Orphans)
+	}
+	if got, err := readAttachment(db, to, a.ID); err != nil || !bytes.Equal(got, content) {
+		t.Fatalf("moved content after a restart: %v", err)
+	}
+	if got, err := readAttachment(db, from, b.ID); err != nil || string(got) != "stays" {
+		t.Fatalf("the file not moved: %q %v", got, err)
 	}
 }

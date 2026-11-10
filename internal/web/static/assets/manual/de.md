@@ -243,7 +243,7 @@ Ein Klick öffnet ein Bild mit seinen Angaben: Zeitpunkt und Ort der Aufnahme, K
 
 **Mehrere auswählen** wählt viele Bilder auf einmal aus, um Labels hinzuzufügen, Favoriten zu markieren, sie in einen Ordner zu verschieben, sie mit **Als ZIP herunterladen** herunterzuladen oder sie zu löschen.
 
-In den Ordnern verschiebt man ein Bild, indem man es auf einen Ordner zieht: auf einen Ordner, der unter dem geöffneten aufgeführt ist, oder auf einen übergeordneten Ordner im Pfad oben. Ein ausgewähltes Bild nimmt alle ausgewählten Bilder mit. Wie bei **Verschieben** wird ein Bild, das man nicht ändern darf oder das ein Text zeigt, kopiert und bleibt zusätzlich, wo es war. Ohne Maus wählt man die Bilder aus und nutzt **In Ordner verschieben…**.
+In den Ordnern verschiebt man ein Bild, indem man es auf einen Ordner zieht: auf einen Ordner, der unter dem geöffneten aufgeführt ist, oder auf einen übergeordneten Ordner im Pfad oben. Ein ausgewähltes Bild nimmt alle ausgewählten Bilder mit. Ein verschobenes Bild bleibt dasselbe Bild: Alle Versionen, Labels, Foliennotizen, der Ort und die Favoriten-Markierungen gehen mit, und Kopien in Seiten finden ihr Original weiterhin. Ein Bild, das man nicht ändern darf, das ein Text zeigt oder das geschützt ist, und eine Zeichnung mit Kommentaren bleiben, wo sie sind; das Album nennt sie mit dem Grund. Ohne Maus wählt man die Bilder aus und nutzt **In Ordner verschieben…**, das sie auf dieselbe Weise verschiebt.
 
 ### Bilder und Dateien umbenennen
 

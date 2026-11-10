@@ -81,6 +81,7 @@ func (s *Store) applyWatch(e Event) {
 var notifyKinds = map[EventKind]bool{
 	ItemCreated: true, TitleSet: true, PropertySet: true, Transitioned: true, ItemMoved: true, BodyCommitted: true,
 	ItemTrashed: true, ItemRestored: true, CommentAdded: true, LabelsSet: true, AttachmentAdded: true, ItemImported: true,
+	AttachmentMovedIn: true,
 }
 
 // Notification is one change a watcher is told of. Key and Title are the

@@ -77,18 +77,51 @@ func (db *DB) itemKey(id item.ID) ([]byte, error) {
 // caller's next step, and a file never recorded is removed on the next
 // start.
 func (db *DB) StoreAttachment(id item.ID, content io.Reader, limit int64) (item.Attachment, error) {
+	var raw [16]byte
+	if _, err := rand.Read(raw[:]); err != nil {
+		return item.Attachment{}, err
+	}
+	return db.sealAttachment(id, item.ID(hex.EncodeToString(raw[:])), content, limit)
+}
+
+// MoveAttachmentContent stores the content of a file of one item for
+// another item under the same attachment ID, sealed with the other item's
+// key, for a move that keeps the file's identity (ADR-0188). The content
+// read must be the file as recorded (want); the file of the first item
+// stays until the move is recorded, which removes it. Recording the move
+// is the caller's next step; a file never recorded is removed on the next
+// start, or now with DiscardAttachment.
+func (db *DB) MoveAttachmentContent(from, to item.ID, want item.Attachment) error {
+	r, err := db.OpenAttachment(from, want.ID)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	got, err := db.sealAttachment(to, want.ID, r, want.Size)
+	if err != nil {
+		return err
+	}
+	if got.Size != want.Size || got.SHA256 != want.SHA256 {
+		db.DiscardAttachment(to, want.ID)
+		return fmt.Errorf("storage: the content of %s is not the file recorded", want.ID)
+	}
+	return nil
+}
+
+// sealAttachment encrypts content of at most limit bytes for an item and
+// stores it under the attachment ID given.
+func (db *DB) sealAttachment(id, attachment item.ID, content io.Reader, limit int64) (item.Attachment, error) {
 	if db.Space() >= diskspace.Critical {
 		return item.Attachment{}, ErrNoSpace
+	}
+	if !item.ValidAttachmentID(string(attachment)) {
+		return item.Attachment{}, fmt.Errorf("storage: attachment ID %q", attachment)
 	}
 	key, err := db.itemKey(id)
 	if err != nil {
 		return item.Attachment{}, err
 	}
-	var raw [16]byte
-	if _, err := rand.Read(raw[:]); err != nil {
-		return item.Attachment{}, err
-	}
-	a := item.Attachment{ID: item.ID(hex.EncodeToString(raw[:]))}
+	a := item.Attachment{ID: attachment}
 	path := attachmentPath(db.dir, id, a.ID)
 	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
 		return item.Attachment{}, err

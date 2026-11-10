@@ -140,6 +140,7 @@ func (s *Store) workflowOf(it *Item) *Workflow {
 var changesItem = map[EventKind]bool{
 	ItemCreated: true, ItemImported: true, TitleSet: true, PropertySet: true, Transitioned: true, BodyCommitted: true,
 	LabelsSet: true, ItemMoved: true, CommentAdded: true, CommentEdited: true, AttachmentAdded: true, AttachmentDeleted: true,
+	AttachmentMovedIn: true, AttachmentMovedOut: true,
 }
 
 // lastChange is the newest event that changed the item itself.

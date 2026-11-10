@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dbuchs7/orbithek/internal/auth"
 	"github.com/dbuchs7/orbithek/internal/budget"
 	"github.com/dbuchs7/orbithek/internal/item"
 	"github.com/dbuchs7/orbithek/internal/storage"
@@ -28,6 +27,7 @@ func attachmentRoutes(h itemHandlers) []Route {
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/place", Summary: "Keep where a photo was taken to oneself, the one who added it (private), or show it to every reader again; others then read the photo data and get the file without it", Handler: http.HandlerFunc(h.setPlacePrivate)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/labels", Summary: "Set a picture's labels (labels); they narrow the album and are no labels of the item, so no kanban or label board shows them", Handler: http.HandlerFunc(h.setPictureLabels)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/name", Summary: "Rename a file of an item, a picture or any other (name, without its extension): every version of the file takes the name, keeping its extension and a drawing its marker; copies in other items keep theirs (ADR-0180, ADR-0182)", Handler: http.HandlerFunc(h.renamePicture)},
+		{Method: http.MethodPost, Pattern: "/api/items/{ref}/attachments/{id}/move", Summary: "Move a file with all its versions to another item (to), keeping its identity: its versions, labels, notes, place and favourites go with it, and copies find it there; who may edit both items may. A file the item's text shows, a protected file and a drawing that comments are on stay (ADR-0188)", Handler: http.HandlerFunc(h.moveFile)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/notes", Summary: "Set a picture's speaker's notes (notes, plain text; empty clears them), kept on the file's first version so every version shows them (ADR-0176)", Handler: http.HandlerFunc(h.setPictureNotes)},
 		{Method: http.MethodGet, Pattern: "/api/album", Summary: "The album: images and drawings of every item one may read, newest first, the versions of one file stacked under the newest (versions); space, folder (only its pictures), collection (the pictures of every room its rule gathers), q (name, label, key or title), label, kind (image or drawing), offset and limit narrow it", Handler: http.HandlerFunc(h.album)},
 		{Method: http.MethodGet, Pattern: "/api/album/folders", Summary: "The album's folders one may read, by name, each saying whether one may add pictures to it (editable), then its collections (collections, each with its rule): in space (every space when empty), right below parent (the top when empty)", Handler: http.HandlerFunc(h.albumFolders)},
@@ -120,7 +120,7 @@ func (h itemHandlers) album(w http.ResponseWriter, r *http.Request) {
 			top.Notes = st[0].Notes
 			taken := takenOf(st[0].Attachment)
 			top.Taken = &taken
-			top.Favourite = f.favourites[auth.PictureRef{Item: string(st[0].Item.ID), File: string(st[0].First)}]
+			top.Favourite = f.favourites[st[0].First]
 			if r := st[0].Retention; r != nil {
 				rule := ruleJSON(*r)
 				top.Retention = &rule
@@ -221,6 +221,72 @@ func (h itemHandlers) renamePicture(w http.ResponseWriter, r *http.Request) {
 			return x.RenameFile(it.ID, item.ID(r.PathValue("id")), req.Name)
 		})
 	}
+}
+
+// moveFile moves a file with all its versions to another item, keeping
+// its identity (ADR-0188): the content of each version is sealed again
+// for the new item first, then the move is recorded, which removes the
+// former content. A drawing open as a live whiteboard stays where it is
+// while people work on it (ADR-0172).
+func (h itemHandlers) moveFile(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		To string `json:"to"`
+	}
+	if !decode(w, r, &req) {
+		return
+	}
+	file := item.ID(r.PathValue("id"))
+	var from, to, first item.ID
+	var live []item.Attachment
+	var check error
+	h.d.DB.Read(func(s *item.Store) {
+		x := s.As(who(r))
+		it, err := resolveItem(x, r.PathValue("ref"))
+		if err != nil {
+			check = err
+			return
+		}
+		dst, err := resolveItem(x, req.To)
+		if err != nil {
+			check = err
+			return
+		}
+		from, to = it.ID, dst.ID
+		first, live, check = x.PlanMove(from, file, to)
+	})
+	if check != nil {
+		h.fail(w, check)
+		return
+	}
+	if h.d.Whiteboards != nil && !h.d.Whiteboards.Yield(whiteboard.Key{Item: from, First: first}) {
+		writeError(w, http.StatusConflict, "this drawing is open as a live whiteboard; move it once the whiteboard is closed")
+		return
+	}
+	var stored []item.ID
+	discard := func() {
+		for _, id := range stored {
+			h.d.DB.DiscardAttachment(to, id)
+		}
+	}
+	for _, a := range live {
+		if err := h.d.DB.MoveAttachmentContent(from, to, a); err != nil {
+			discard()
+			h.fail(w, err)
+			return
+		}
+		stored = append(stored, a.ID)
+	}
+	h.write(w, r, http.StatusOK, func(x *item.Session, _ *item.Store) (any, error) {
+		if err := x.MoveFile(from, file, to, stored); err != nil {
+			discard()
+			return nil, err
+		}
+		a, err := x.Attachment(to, file)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]attachmentJSON{"attachment": withOrigin(x, to, toAttachmentJSON(a))}, nil
+	})
 }
 
 // setPictureNotes sets the speaker's notes of a picture (ADR-0176).

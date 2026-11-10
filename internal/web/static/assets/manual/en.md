@@ -243,7 +243,7 @@ A click opens a picture with its details: when and where it was taken, camera, e
 
 **Choose several** selects many pictures at once to add labels, mark favourites, move them to a folder, download them with **Download as ZIP** or delete them.
 
-In the folders, a picture is moved by dragging it onto a folder: onto a folder listed below the open one, or onto a folder above it in the path at the top. A chosen picture takes every chosen picture with it. As with **Move**, a picture that you may not change, or that a text shows, is copied and also stays where it was. Without a mouse, choose the pictures and use **Move to folder…**.
+In the folders, a picture is moved by dragging it onto a folder: onto a folder listed below the open one, or onto a folder above it in the path at the top. A chosen picture takes every chosen picture with it. A moved picture stays the same picture: all its versions, labels, speaker's notes, place and favourite marks go with it, and copies of it in pages still find their original. A picture that you may not change, that a text shows or that is protected, and a drawing that comments are on, stay where they are; the album says which and why. Without a mouse, choose the pictures and use **Move to folder…**, which moves them the same way.
 
 ### Renaming pictures and files
 
