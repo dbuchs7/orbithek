@@ -15,8 +15,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dbuchs7/orbithek/internal/budget"
 	"github.com/dbuchs7/orbithek/internal/item"
@@ -819,5 +821,40 @@ func TestAMovedPictureKeepsItsIdentity(t *testing.T) {
 	w.vera.expect("PUT", "/api/album/favourites", `{"item":"`+archive+`","file":"`+v2+`","favourite":false}`, http.StatusOK)
 	if got := names(w.vera, "?favourites=on"); len(got) != 0 {
 		t.Errorf("unmarked after the move: %v", got)
+	}
+}
+
+// TestTheAlbumIsSearchedByDate: a search that is a date finds the
+// pictures taken on it, or added on it when they tell no time, besides
+// those whose words hold it.
+func TestTheAlbumIsSearchedByDate(t *testing.T) {
+	w := newPhotoWorld(t)
+	w.put(t, "lake.jpg", exifJPEG(t, "2024:05:01 13:22:10", 0, 0, 64))
+	w.put(t, "old.jpg", exifJPEG(t, "2019:05:01 08:00:00", 0, 0, 66))
+	w.put(t, "town.jpg", exifJPEG(t, "2023:12:24 18:00:00", 0, 0, 68))
+	drawn := w.put(t, "drawn.png", append([]byte("\x89PNG\r\n\x1a\n"), bytes.Repeat([]byte{7}, 100)...))
+	added, err := time.Parse(time.RFC3339, drawn["created"].(string))
+	if err != nil {
+		t.Fatal(err)
+	}
+	added = added.UTC()
+	sorted := func(q string) []string {
+		got := names(w.vera, "?q="+url.QueryEscape(q))
+		slices.Sort(got)
+		return got
+	}
+	for q, want := range map[string][]string{
+		"1.5.2024":                 {"lake.jpg"},
+		"2024-05-01":               {"lake.jpg"},
+		"Mai":                      {"lake.jpg", "old.jpg"},
+		"01.05.":                   {"lake.jpg", "old.jpg"},
+		"Dezember 2023":            {"town.jpg"},
+		"2019":                     {"old.jpg"},
+		added.Format("02.01.2006"): {"drawn.png"},
+		"lake":                     {"lake.jpg"},
+	} {
+		if got := sorted(q); !slices.Equal(got, want) {
+			t.Errorf("%q finds %v, want %v", q, got, want)
+		}
 	}
 }

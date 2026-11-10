@@ -205,7 +205,7 @@ Das **Album** zeigt die Bilder und Zeichnungen aller Seiten und Aufgaben, die ma
 - **An diesem Tag**: Bilder, die an diesem Tag in früheren Jahren aufgenommen wurden;
 - **Karte**: die Aufnahmeorte.
 
-Man sucht nach Name, Label, Schlüssel oder Titel und schränkt nach Art, Raum und Label ein.
+Man sucht nach Name, Label, Schlüssel oder Titel und schränkt nach Art, Raum und Label ein. Die Suche nimmt auch ein Datum und findet die Bilder, die dann aufgenommen wurden, oder, wenn ein Bild keine Zeit nennt, dann hinzugefügt wurden: ein Jahr (*2026*), einen Monat (*11.2026*, *2026-11*, *November 2026*), einen Tag (*10.11.2026*, *2026-11-10*, *10. November 2026*) oder einen Tag oder Monat ohne Jahr (*10.11.*, *November*), der in jedem Jahr gefunden wird.
 
 ### Hochladen und importieren
 

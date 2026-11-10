@@ -205,7 +205,7 @@ The **Album** shows the pictures and drawings of every page and task you may rea
 - **On this day**: pictures taken on this day in earlier years;
 - **Map**: the places where pictures were taken.
 
-Search by name, label, key or title, and narrow by kind, room and label.
+Search by name, label, key or title, and narrow by kind, room and label. The search also takes a date and finds the pictures taken then, or added then when a picture tells no time: a year (*2026*), a month (*11.2026*, *2026-11*, *November 2026*), a day (*10.11.2026*, *2026-11-10*, *10 November 2026*), or a day or month without a year (*10.11.*, *November*), which finds it in every year.
 
 ### Uploading and importing
 

@@ -247,6 +247,9 @@ type albumFilter struct {
 	// (ADR-0188). only is whether the album shows them alone.
 	favourites map[item.ID]bool
 	only       bool
+	// onDay tests the day a picture was taken, when the search is a date;
+	// nil when it is not.
+	onDay func(day string) bool
 	// inRule is a collection's rule (ADR-0175), nil for none.
 	inRule func(item.Picture) bool
 }
@@ -290,6 +293,7 @@ func (h itemHandlers) albumFilterOf(r *http.Request) (albumFilter, error) {
 	case f.from != "" && !dateRE.MatchString(f.from), f.to != "" && !dateRE.MatchString(f.to):
 		return f, errors.New("from and to are days, YYYY-MM-DD")
 	}
+	f.onDay = dateQuery(f.text)
 	f.favourites = map[item.ID]bool{}
 	for p := range h.d.DB.Accounts.PictureFavourites(auth.UserID(who(r))) {
 		f.favourites[item.ID(p.File)] = true
@@ -309,7 +313,8 @@ func albumStacks(x *item.Session, f albumFilter) [][]item.Picture {
 	}
 	match := func(p item.Picture) bool {
 		return (f.inRule == nil || f.inRule(p)) && (f.folder == "" || p.Item.ID == f.folder) && (f.label == "" || slices.Contains(p.Attachment.Labels, f.label)) &&
-			(f.text == "" || strings.Contains(strings.ToLower(p.Attachment.Name+" "+strings.Join(p.Attachment.Labels, " ")+" "+p.Item.Key+" "+p.Item.Title+" "+cameraText(p.Attachment.Photo)), f.text))
+			(f.text == "" || strings.Contains(strings.ToLower(p.Attachment.Name+" "+strings.Join(p.Attachment.Labels, " ")+" "+p.Item.Key+" "+p.Item.Title+" "+cameraText(p.Attachment.Photo)), f.text) ||
+				(f.onDay != nil && f.onDay(p.Attachment.Photo.Day(p.Attachment.Created))))
 	}
 	type stackKey struct{ item, first item.ID }
 	var stacks [][]item.Picture
