@@ -209,11 +209,22 @@ Man sucht nach Name, Label, Schlüssel oder Titel und schränkt nach Art, Raum u
 
 ### Hochladen und importieren
 
-Man öffnet oder erstellt einen Ordner und wählt **Hochladen** oder legt Bilder und ZIP-Archive darauf ab. Aus Foto-Apps exportierte Bilder werden im Browser entpackt. Sofern eingeschaltet, kommen Fotos auch **Aus Google Fotos** oder **Aus geteiltem iCloud-Album**. HEIC-Fotos werden nicht übernommen; sie sind vorher als JPEG zu exportieren.
+Man öffnet oder erstellt einen Ordner und wählt **Hochladen** oder legt Bilder und ZIP-Archive darauf ab; eine PowerPoint-Präsentation kommt mit den Bildern ihrer Folien (siehe *Eine PowerPoint-Präsentation importieren*). Aus Foto-Apps exportierte Bilder werden im Browser entpackt. Sofern eingeschaltet, kommen Fotos auch **Aus Google Fotos** oder **Aus geteiltem iCloud-Album**. HEIC-Fotos werden nicht übernommen; sie sind vorher als JPEG zu exportieren.
 
 Der **Ort beim Import** eines Ordners bestimmt, was mit dem Aufnahmeort eines Fotos geschieht: **Für alle behalten**, **Nur für mich** oder **Aus der Datei entfernen**. Pro Bild lässt sich der Ort später nur für sich behalten oder allen zeigen.
 
 Nennt ein Bild keinen oder einen falschen Ort, setzt ihn, wer das Bild bearbeiten darf, von Hand als **Ort**: im Betrachter oder für mehrere ausgewählte Bilder auf einmal. Die Eingabe eines Namens wie *Zermatt* schlägt Orte vor, sofern die Administration die Vorschläge nicht ausgeschaltet hat; **Auf der Karte wählen** setzt den Ort mit einem Klick auf die Karte. **Ort entfernen** löscht ihn.
+
+### Eine PowerPoint-Präsentation importieren
+
+Eine Präsentation wird zu einem Ordner von Folien, bereit zum Präsentieren mit ihren Foliennotizen:
+
+1. In PowerPoint **Datei › Exportieren › Dateityp ändern › PNG** (oder JPEG) wählen und **Alle Folien** exportieren. PowerPoint schreibt ein Bild pro Folie, etwa *Folie1.PNG* oder *Slide1.PNG*.
+2. Im Album den Ordner öffnen, in den die Präsentation gehört, und **Hochladen** wählen. Die *.pptx*-Datei zusammen mit all diesen Bildern wählen oder zusammen mit einem ZIP-Archiv davon; Ablegen auf dem Ordner funktioniert ebenfalls.
+
+Im offenen Ordner entsteht ein Ordner mit dem Namen der Präsentation und öffnet sich. Jede Folie wird zu einem Bild, benannt nach ihrer Stelle und ihrem Titel, etwa *03 Unsere Ziele.png*, sodass das Album die Reihenfolge der Folien behält; die Notizen der Folie werden zu den Foliennotizen des Bildes. Ausgeblendete Folien werden weggelassen, wie eine Bildschirmpräsentation sie weglässt.
+
+Eine Präsentationsdatei enthält keine Bilder ihrer Folien; deshalb sind die exportierten Bilder nötig. Die Bilder werden den Folien über die Zahlen in ihren Namen zugeordnet. Passen sie nicht, wird nichts übernommen und das Album nennt, wie viele Folien und Bilder es gefunden hat. Nur die Bilder und die Notizen gelangen auf den Server, nicht die Präsentationsdatei. Animationen, Übergänge, Videos und die Kommentare der Präsentation werden nicht übernommen; *.ppt*-Dateien älterer Versionen sind zuerst als *.pptx* zu speichern.
 
 ### Mit Bildern arbeiten
 

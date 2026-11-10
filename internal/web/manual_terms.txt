@@ -46,3 +46,8 @@ en Limit — the column limit; each column's field is labelled "Limit of cards i
 de Höchstzahl — the column limit; each column's field is labelled "Höchstzahl Karten in <column>"
 en with subpages (handbook) — the common end of "PDF with subpages (handbook)" and "Word with subpages (handbook)"
 de mit Unterseiten (Handbuch) — the common end of "PDF mit Unterseiten (Handbuch)" and "Word mit Unterseiten (Handbuch)"
+
+# Labels of PowerPoint, where the slides are exported before they are
+# imported into the album (ADR-0186).
+en File › Export › Change File Type › PNG — PowerPoint's menu that exports the slides as pictures
+de Datei › Exportieren › Dateityp ändern › PNG — PowerPoint's menu that exports the slides as pictures, in German

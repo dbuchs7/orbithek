@@ -209,11 +209,22 @@ Search by name, label, key or title, and narrow by kind, room and label.
 
 ### Uploading and importing
 
-Open or create a folder and choose **Upload**, or drop pictures and ZIP archives onto it. Pictures exported from photo apps are unpacked in the browser. If enabled, photos also come **From Google Photos** or **From a shared iCloud album**. HEIC photos are not accepted; export them as JPEG first.
+Open or create a folder and choose **Upload**, or drop pictures and ZIP archives onto it; a PowerPoint presentation comes in with the pictures of its slides (see *Importing a PowerPoint presentation*). Pictures exported from photo apps are unpacked in the browser. If enabled, photos also come **From Google Photos** or **From a shared iCloud album**. HEIC photos are not accepted; export them as JPEG first.
 
 A folder's **Place on import** decides what happens to the place where a photo was taken: **Keep for every reader**, **Keep to me only** or **Remove from the file**. Per picture, the place can later be kept to you or shown to every reader.
 
 Where a picture tells no place, or a wrong one, whoever may edit it sets the **Place** by hand: in the viewer, or for several chosen pictures at once. Typing a name such as *Zermatt* suggests places, unless an administrator has turned the suggestions off; **Choose on the map** sets the place with a click on the map. **Remove the place** clears it.
+
+### Importing a PowerPoint presentation
+
+A presentation becomes a folder of slides, ready to present with its speaker's notes:
+
+1. In PowerPoint, choose **File › Export › Change File Type › PNG** (or JPEG) and export **All Slides**. PowerPoint writes one picture per slide, such as *Slide1.PNG* or *Folie1.PNG*.
+2. In the album, open the folder the presentation belongs in and choose **Upload**. Choose the *.pptx* file together with all these pictures, or together with a ZIP archive of them; dropping them onto the folder works too.
+
+A folder named after the presentation is made in the open folder and opens. Each slide becomes a picture named by its place and title, such as *03 Our goals.png*, so the album keeps the order of the slides, and the slide's notes become the picture's speaker's notes. Hidden slides are left out, as a slide show leaves them out.
+
+A presentation file holds no pictures of its slides; this is why the exported pictures are needed. The pictures are matched to the slides by the numbers in their names. If they do not match, nothing is brought in and the album says how many slides and pictures it found. Only the pictures and the notes reach the server, not the presentation file. Animations, transitions, videos and the presentation's own comments are not taken over; *.ppt* files of older versions must first be saved as *.pptx*.
 
 ### Working with pictures
 
