@@ -4,7 +4,9 @@
 // stays where it is, unchanged. Folders (ADR-0090) are items of their own
 // that hold the pictures uploaded into them; pictures carry labels of
 // their own, which only narrow the album. Every picture one sees here is
-// exported as PNG or JPEG, a drawing also as SVG (ADR-0173).
+// exported as PNG or JPEG, a drawing also as SVG (ADR-0173). Collections
+// (ADR-0175) sit beside folders but hold nothing: their rule names labels,
+// and they gather the matching pictures of every room one may read.
 import { h, when } from "./dom.js";
 import { t } from "./i18n.js";
 import { get, post, put, del, upload } from "./api.js";
@@ -89,9 +91,12 @@ export function albumBrowser({ pick } = {}) {
   const status = h("div", { class: "status" });
   let next = 0;
   let generation = 0;
-  // path is the open folder and those above it; empty at the top.
+  // path is the open folder and those above it; empty at the top. Its last
+  // step may be a collection, which has no folders below it.
   let path = [];
   const here = () => path[path.length - 1];
+  const inCollection = () => Boolean(here()?.rule);
+  const inFolder = () => Boolean(here()) && !inCollection();
   const fail = (err) => status.replaceChildren(h("p", { class: "error", role: "alert", text: err.message }));
 
   // Labels are suggested from those of pictures and of items alike.
@@ -365,12 +370,63 @@ export function albumBrowser({ pick } = {}) {
     return li;
   };
 
+  // ruleText says in a sentence which pictures a collection gathers.
+  const ruleText = (rule) => [
+    t(rule.match === "all" ? "album.ruleAll" : "album.ruleAny", { labels: rule.labels.join(", ") }),
+    rule.items ? t("album.ruleItems") : "",
+  ].filter(Boolean).join(" ");
+
+  // ruleForm is the form of a collection's rule: its name and room when it
+  // is made, its labels, whether a picture carries any or all of them, and
+  // whether the labels of a picture's item count too. done receives the
+  // rule; the form says what went wrong.
+  const ruleForm = ({ id, rule, name, where, submit, done }) => {
+    const labels = h("input", { id: id + "-labels", list: "album-label-options", required: true, value: rule ? rule.labels.join(", ") : "",
+      placeholder: t("album.labelsPlaceholder"), "aria-label": t("album.ruleLabels") });
+    const match = h("select", { id: id + "-match", "aria-label": t("album.ruleMatch") },
+      h("option", { value: "any", text: t("album.ruleMatchAny") }), h("option", { value: "all", text: t("album.ruleMatchAll") }));
+    match.value = rule?.match === "all" ? "all" : "any";
+    const items = h("input", { type: "checkbox", id: id + "-items", checked: Boolean(rule?.items) });
+    const form = h("form", { class: "album-new-folder album-rule", id, hidden: true }, ...[where, name, labels, match,
+      h("label", { class: "check" }, items, t("album.ruleItemsCheck")),
+      h("button", { type: "submit", class: "primary", text: submit })].filter(Boolean));
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (where && !where.value) return fail(new Error(t("album.chooseSpaceCollection")));
+      try {
+        await done({ labels: labels.value.split(",").map((l) => l.trim()).filter(Boolean), match: match.value, items: items.checked });
+        status.replaceChildren();
+      } catch (err) { fail(err); }
+    });
+    return { form, first: () => (where && !where.value ? where : name || labels) };
+  };
+
   const showTrail = () => {
     const step = (name, to) => h("button", { type: "button", class: "link", text: name, onclick: () => { path = path.slice(0, to); open(); } });
     trail.replaceChildren(step(t("album.top"), 0), ...path.flatMap((f, i) => [" › ", i === path.length - 1 ? h("strong", { text: f.name }) : step(f.name, i + 1)]));
   };
 
+  // showCollection is the head of an open collection: which pictures it
+  // gathers, and for one who may edit it a form to change that.
+  const showCollection = () => {
+    const c = here();
+    const about = h("p", { class: "muted album-rule-text", id: "album-rule-text", text: ruleText(c.rule) });
+    if (pick || !c.editable) return tools.replaceChildren(about);
+    const { form, first } = ruleForm({ id: "album-rule-form", rule: c.rule, submit: t("album.ruleSave"), done: async (rule) => {
+      c.rule = (await put(`/api/album/collections/${c.id}`, rule)).rule;
+      showCollection();
+      load(false);
+    } });
+    tools.replaceChildren(about,
+      h("button", { type: "button", class: "secondary", id: "album-rule-edit", text: t("album.ruleEdit"), onclick: () => {
+        form.hidden = !form.hidden;
+        if (!form.hidden) first().focus();
+      } }),
+      form);
+  };
+
   const showTools = () => {
+    if (inCollection()) return showCollection();
     if (pick) return tools.replaceChildren();
     const name = h("input", { id: "album-folder-name", placeholder: t("album.folderName"), "aria-label": t("album.folderName"), required: true });
     // A folder at the top names its room here; below a folder it is made in
@@ -401,28 +457,57 @@ export function albumBrowser({ pick } = {}) {
       files.value = "";
       load(false);
     });
+    // A collection is made where a folder is: at the top in a room chosen
+    // here, below a folder in its room.
+    const cwhere = here() ? null : h("select", { id: "album-collection-space", "aria-label": t("album.collectionSpace"), required: true });
+    const cname = h("input", { id: "album-collection-name", placeholder: t("album.collectionName"), "aria-label": t("album.collectionName"), required: true });
+    const collect = ruleForm({ id: "album-new-collection-form", name: cname, where: cwhere, submit: t("album.create"), done: async (rule) => {
+      await post("/api/album/collections", { ...(here() ? { parent: here().id } : { space: cwhere.value }), name: cname.value, ...rule });
+      collect.form.hidden = true;
+      loadFolders();
+    } });
     // replaceChildren, unlike h, writes null as text.
     tools.replaceChildren(...[
       h("button", { type: "button", class: "secondary", id: "album-new-folder", text: t("album.newFolder"), onclick: () => {
         make.hidden = !make.hidden;
+        collect.form.hidden = true;
         if (make.hidden) return;
         if (where) fillWhere();
         (where && !where.value ? where : name).focus();
       } }),
+      h("button", { type: "button", class: "secondary", id: "album-new-collection", text: t("album.newCollection"), title: t("album.newCollectionTitle"), onclick: () => {
+        collect.form.hidden = !collect.form.hidden;
+        make.hidden = true;
+        if (collect.form.hidden) return;
+        if (cwhere) {
+          cwhere.replaceChildren(h("option", { value: "", text: t("album.collectionSpacePick") }), ...roomOptions());
+          cwhere.value = space.value;
+        }
+        collect.first().focus();
+      } }),
       here() ? h("button", { type: "button", class: "primary", id: "album-upload", text: t("album.upload"), onclick: () => files.click() }) : null,
       here() ? null : h("span", { class: "muted", text: t("album.uploadHint") }),
-      files, make].filter(Boolean));
+      files, make, collect.form].filter(Boolean));
   };
 
+  // loadFolders shows the folders and collections right below the open
+  // folder; a collection has none.
   const loadFolders = async () => {
+    if (inCollection()) return folders.replaceChildren();
     const q = new URLSearchParams();
     if (here()) q.set("parent", here().id);
     else if (space.value) q.set("space", space.value);
     try {
-      const { folders: list } = await get("/api/album/folders?" + q);
+      const { folders: list, collections = [] } = await get("/api/album/folders?" + q);
       folders.replaceChildren(...list.map((f) => h("li", {},
         h("button", { type: "button", class: "album-folder", "data-folder": f.id, onclick: () => { path = [...path, f]; open(); } },
-          h("span", { class: "album-folder-icon", "aria-hidden": "true" }), h("span", { text: f.name })))));
+          h("span", { class: "album-folder-icon", "aria-hidden": "true" }), h("span", { text: f.name })))),
+      ...collections.map((c) => h("li", {},
+        h("button", { type: "button", class: "album-folder album-collection", "data-collection": c.id, title: ruleText(c.rule),
+          onclick: () => { path = [...path, c]; open(); } },
+          h("span", { class: "album-collection-icon", "aria-hidden": "true" }),
+          h("span", { class: "album-collection-what" }, h("span", { text: c.name }),
+            h("span", { class: "muted album-collection-labels", text: c.rule.labels.join(", ") }))))));
     } catch (err) { fail(err); }
   };
 
@@ -433,8 +518,10 @@ export function albumBrowser({ pick } = {}) {
     const q = new URLSearchParams({ offset: String(append ? next : 0) });
     if (search.value.trim()) q.set("q", search.value.trim());
     if (kind.value) q.set("kind", kind.value);
-    if (here()) q.set("folder", here().id);
+    // A collection gathers from every room; the room filter narrows it.
+    if (inFolder()) q.set("folder", here().id);
     else if (space.value) q.set("space", space.value);
+    if (inCollection()) q.set("collection", here().id);
     if (label.value) q.set("label", label.value);
     try {
       const page = await get("/api/album?" + q);
@@ -453,16 +540,16 @@ export function albumBrowser({ pick } = {}) {
   // open shows the folder path ends in, or the top.
   const open = () => {
     status.replaceChildren();
-    space.disabled = !!here();
+    space.disabled = inFolder();
     showTrail();
     showTools();
     loadFolders();
     load(false);
   };
-  const filteredNow = () => Boolean(search.value.trim() || kind.value || label.value || (!here() && space.value));
+  const filteredNow = () => Boolean(search.value.trim() || kind.value || label.value || (!inFolder() && space.value));
   const reset = h("button", { type: "button", class: "link filter-reset", id: "album-filter-reset", text: t("filter.reset"), hidden: true, onclick: () => {
     search.value = kind.value = label.value = "";
-    if (!here()) space.value = "";
+    if (!inFolder()) space.value = "";
     loadFolders();
     load(false);
   } });

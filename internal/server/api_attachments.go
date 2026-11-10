@@ -25,9 +25,11 @@ func attachmentRoutes(h itemHandlers) []Route {
 		{Method: http.MethodGet, Pattern: "/api/items/{ref}/attachments/{id}", Summary: "Download a file; images show inline, everything else downloads", Handler: http.HandlerFunc(h.downloadAttachment)},
 		{Method: http.MethodDelete, Pattern: "/api/items/{ref}/attachments/{id}", Summary: "Delete a file; its content is destroyed", Handler: http.HandlerFunc(h.deleteAttachment)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/labels", Summary: "Set a picture's labels (labels); they narrow the album and are no labels of the item, so no kanban or label board shows them", Handler: http.HandlerFunc(h.setPictureLabels)},
-		{Method: http.MethodGet, Pattern: "/api/album", Summary: "The album: images and drawings of every item one may read, newest first, the versions of one file stacked under the newest (versions); space, folder (only its pictures), q (name, label, key or title), label, kind (image or drawing), offset and limit narrow it", Handler: http.HandlerFunc(h.album)},
-		{Method: http.MethodGet, Pattern: "/api/album/folders", Summary: "The album's folders one may read, by name: in space (every space when empty), right below parent (the top when empty)", Handler: http.HandlerFunc(h.albumFolders)},
+		{Method: http.MethodGet, Pattern: "/api/album", Summary: "The album: images and drawings of every item one may read, newest first, the versions of one file stacked under the newest (versions); space, folder (only its pictures), collection (the pictures of every room its rule gathers), q (name, label, key or title), label, kind (image or drawing), offset and limit narrow it", Handler: http.HandlerFunc(h.album)},
+		{Method: http.MethodGet, Pattern: "/api/album/folders", Summary: "The album's folders one may read, by name, then its collections (collections, each with its rule): in space (every space when empty), right below parent (the top when empty)", Handler: http.HandlerFunc(h.albumFolders)},
 		{Method: http.MethodPost, Pattern: "/api/album/folders", Summary: "Make a folder of the album: name, and space or parent (a folder); who may create there may", Handler: http.HandlerFunc(h.createAlbumFolder)},
+		{Method: http.MethodPost, Pattern: "/api/album/collections", Summary: "Make a collection of the album, which gathers the labelled pictures of every room: name, space or parent (a folder), labels, match (any or all) and items (the labels of a picture's item count too); who may create there may", Handler: http.HandlerFunc(h.createAlbumCollection)},
+		{Method: http.MethodPut, Pattern: "/api/album/collections/{ref}", Summary: "Change a collection's rule: labels, match (any or all) and items; who may edit the collection may", Handler: http.HandlerFunc(h.setAlbumCollection)},
 		{Method: http.MethodGet, Pattern: "/api/album/labels", Summary: "The labels of the pictures one may read, most used first (space; q: holding it)", Handler: http.HandlerFunc(h.albumLabels)},
 	}
 }
@@ -72,8 +74,22 @@ func (h itemHandlers) album(w http.ResponseWriter, r *http.Request) {
 	folder := item.ID(q.Get("folder"))
 	label, _ := item.NormalLabel(q.Get("label"))
 	h.read(w, r, func(x *item.Session) (any, error) {
+		// A collection gathers by its rule from every room (ADR-0175); the
+		// other filters narrow what it gathers.
+		inRule := func(item.Picture) bool { return true }
+		if ref := q.Get("collection"); ref != "" {
+			c, err := resolveItem(x, ref)
+			if err != nil {
+				return nil, err
+			}
+			_, rule, err := x.Collection(c.ID)
+			if err != nil {
+				return nil, err
+			}
+			inRule = rule.Matches
+		}
 		match := func(p item.Picture) bool {
-			return (folder == "" || p.Item.ID == folder) && (label == "" || slices.Contains(p.Attachment.Labels, label)) &&
+			return inRule(p) && (folder == "" || p.Item.ID == folder) && (label == "" || slices.Contains(p.Attachment.Labels, label)) &&
 				(text == "" || strings.Contains(strings.ToLower(p.Attachment.Name+" "+strings.Join(p.Attachment.Labels, " ")+" "+p.Item.Key+" "+p.Item.Title), text))
 		}
 		// The versions of one file form a stack (ADR-0103), newest on top.
@@ -217,15 +233,96 @@ func (h itemHandlers) setPictureLabels(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// albumFolders lists the album's folders (ADR-0090).
+// albumFolders lists the album's folders (ADR-0090) and, beside them,
+// its collections (ADR-0175).
 func (h itemHandlers) albumFolders(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	h.read(w, r, func(x *item.Session) (any, error) {
+		space, parent := q.Get("space"), item.ID(q.Get("parent"))
 		out := []map[string]any{}
-		for _, f := range x.Folders(q.Get("space"), item.ID(q.Get("parent"))) {
+		for _, f := range x.Folders(space, parent) {
 			out = append(out, map[string]any{"id": f.ID, "key": f.Key, "name": f.Title, "space": f.Space, "parent": f.Parent})
 		}
-		return map[string]any{"folders": out}, nil
+		collections := []map[string]any{}
+		for _, c := range x.Collections(space, parent) {
+			collections = append(collections, map[string]any{"id": c.Item.ID, "key": c.Item.Key, "name": c.Item.Title, "space": c.Item.Space,
+				"parent": c.Item.Parent, "rule": toRuleJSON(c.Rule), "editable": c.Editable})
+		}
+		return map[string]any{"folders": out, "collections": collections}, nil
+	})
+}
+
+// collectionRuleJSON is a collection's rule as the API takes and gives it.
+type collectionRuleJSON struct {
+	Labels []string `json:"labels"`
+	// Match is any (a picture carries one of the labels) or all.
+	Match string `json:"match"`
+	// Items: the labels of a picture's item count as its own.
+	Items bool `json:"items"`
+}
+
+func toRuleJSON(r item.CollectionRule) collectionRuleJSON {
+	match := "any"
+	if r.All {
+		match = "all"
+	}
+	return collectionRuleJSON{Labels: append([]string{}, r.Labels...), Match: match, Items: r.Items}
+}
+
+// rule reads a rule given to the API; match is any when left out.
+func (j collectionRuleJSON) rule() (item.CollectionRule, error) {
+	if j.Match != "" && j.Match != "any" && j.Match != "all" {
+		return item.CollectionRule{}, fmt.Errorf("%w: match is any or all", item.ErrValidation)
+	}
+	return item.CollectionRule{Labels: j.Labels, All: j.Match == "all", Items: j.Items}, nil
+}
+
+func (h itemHandlers) createAlbumCollection(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Space  string  `json:"space"`
+		Parent item.ID `json:"parent"`
+		Name   string  `json:"name"`
+		collectionRuleJSON
+	}
+	if !decode(w, r, &req) {
+		return
+	}
+	h.write(w, r, http.StatusCreated, func(x *item.Session, _ *item.Store) (any, error) {
+		rule, err := req.rule()
+		if err != nil {
+			return nil, err
+		}
+		c, err := x.CreateCollection(req.Space, req.Parent, req.Name, rule)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]itemJSON{"item": toItemJSON(c)}, nil
+	})
+}
+
+func (h itemHandlers) setAlbumCollection(w http.ResponseWriter, r *http.Request) {
+	var req collectionRuleJSON
+	if !decode(w, r, &req) {
+		return
+	}
+	// The answer is the rule as kept: its labels normalised.
+	h.write(w, r, http.StatusOK, func(x *item.Session, _ *item.Store) (any, error) {
+		it, err := resolveItem(x, r.PathValue("ref"))
+		if err != nil {
+			return nil, err
+		}
+		rule, err := req.rule()
+		if err != nil {
+			return nil, err
+		}
+		if err := x.SetCollectionRule(it.ID, rule); err != nil {
+			return nil, err
+		}
+		_, kept, err := x.Collection(it.ID)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]collectionRuleJSON{"rule": toRuleJSON(kept)}, nil
 	})
 }
 
