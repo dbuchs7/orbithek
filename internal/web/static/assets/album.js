@@ -21,6 +21,7 @@ import { exportFormats, exportPicture } from "./picexport.js";
 import { allFolders, copyTo, dayText, googleImport, icloudImport, importFiles, monthText, openViewer, rememberedAlbum, setFavourite, importPlace, PLACES, summaryText, thumbURL, zipPictures } from "./photos.js";
 import { groups, range, yearsAgo } from "./photoparts.js";
 import { photoMap } from "./photomap.js";
+import { pickPlace, placeInput } from "./places.js";
 import { startPresentation } from "./present.js";
 
 const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
@@ -817,6 +818,16 @@ export function albumBrowser({ pick } = {}) {
     say(t(what, { n: done }) + (failed.length ? " " + t("photos.failed", { n: failed.length }) + " " + failed.slice(0, 3).join("; ") : ""), failed.length ? "error" : "notice");
     return done;
   };
+  // placeAll sets one place on every chosen picture one may edit.
+  const placeAll = async (pl) => {
+    await together("places.placedMany", async (p) => {
+      if (!p.editable) return false;
+      const r = await put(`${fileURL(p)}/geotag`, { lat: pl.lat, lon: pl.lon, name: pl.name || "" });
+      p.attachment.photo = r.attachment.photo;
+      return true;
+    });
+    if (view === "map") load(false);
+  };
   const showBulk = () => {
     bulk.hidden = !choosing;
     if (!choosing) return bulk.replaceChildren();
@@ -852,6 +863,13 @@ export function albumBrowser({ pick } = {}) {
         chosen.clear();
         load(false);
       } })),
+      // One place set by hand for every chosen picture (ADR-0181).
+      h("span", { class: "album-bulk-group album-bulk-place" },
+        placeInput({ label: t("places.bulkLabel"), id: "album-bulk-place", pick: (pl) => placeAll(pl) }).element,
+        h("button", { type: "button", class: "secondary", id: "album-bulk-place-map", disabled: !any, text: t("places.onMap"), onclick: async () => {
+          const pl = await pickPlace();
+          if (pl) placeAll(pl);
+        } })),
       h("button", { type: "button", class: "secondary", id: "album-bulk-zip", disabled: !any, text: t("photos.zip"), onclick: async () => {
         say(t("photos.zipping", { n: list.length }));
         try { await zipPictures(list); say(t("photos.zipped", { n: list.length }), "notice"); } catch (err) { fail(err); }

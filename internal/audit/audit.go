@@ -62,14 +62,17 @@ const (
 	// PhotosGoogleConnected is a person's sign-in at Google to bring
 	// photos into the album; no grant is kept beyond it (ADR-0177).
 	PhotosGoogleConnected = "photos.google.connect"
-	UserCreated           = "user.create"
-	RoleGranted           = "role.grant"
-	SystemRole            = "system-role.grant"
-	GroupMember           = "group.add"
-	RoleRevoked           = "role.revoke"
-	SystemRoleTaken       = "system-role.revoke"
-	GroupLeft             = "group.remove"
-	DesignChanged         = "design.change"
+	// PlacesChanged records an administrator turning the place search of
+	// places set by hand off or on (ADR-0181).
+	PlacesChanged   = "places.change"
+	UserCreated     = "user.create"
+	RoleGranted     = "role.grant"
+	SystemRole      = "system-role.grant"
+	GroupMember     = "group.add"
+	RoleRevoked     = "role.revoke"
+	SystemRoleTaken = "system-role.revoke"
+	GroupLeft       = "group.remove"
+	DesignChanged   = "design.change"
 	// RegulationChanged records a change of a data protection regulation
 	// (ADR-0058).
 	RegulationChanged = "regulation.change"

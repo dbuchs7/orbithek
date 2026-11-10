@@ -39,6 +39,12 @@ func photoRoutes(h itemHandlers) []Route {
 		{Method: http.MethodPut, Pattern: "/api/album/favourites", Summary: "Mark a picture as one's own favourite, or unmark it: item, file, favourite; a favourite stays through later versions of the file", Handler: http.HandlerFunc(h.setPictureFavourite)},
 		{Method: http.MethodPost, Pattern: "/api/album/zip", Summary: "A ZIP archive of chosen pictures (pictures: item and file each), each read with the caller's rights; at most the budgets AlbumZipPictures and AlbumZipBytes", Handler: http.HandlerFunc(h.albumZip)},
 		{Method: http.MethodGet, Pattern: "/api/map/tiles/{z}/{x}/{y}", Summary: "A tile of the album's map, fetched by the server from the tile service in OT_MAP_TILES and kept a while; nothing when none is named", Handler: http.HandlerFunc(h.mapTile)},
+		{Method: http.MethodGet, Pattern: "/api/settings/places", Summary: "Whether places set by hand are suggested from the place search: search (the administrators' setting), geocoder (the search the operator names in OT_GEOCODER, empty for none) and active (administrators)", Handler: http.HandlerFunc(h.placeSettings)},
+		{Method: http.MethodPut, Pattern: "/api/settings/places", Summary: "Turn the place search of places set by hand off or on: search (administrators)", Handler: http.HandlerFunc(h.setPlaceSettings)},
+		{Method: http.MethodGet, Pattern: "/api/places", Summary: "Places suggested for the first letters of a name (q, 2 to 100 characters; lang de, en, fr or it), from the place search in OT_GEOCODER: name, label, lat and lon", Handler: http.HandlerFunc(h.searchPlaces)},
+		{Method: http.MethodGet, Pattern: "/api/places/reverse", Summary: "The place at a point chosen on a map (lat, lon; lang), from the place search in OT_GEOCODER", Handler: http.HandlerFunc(h.reversePlace)},
+		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/geotag", Summary: "Set where a photo was taken by hand: lat, lon and name; who may edit its item may, unless its uploader keeps the place from them. Everyone but the uploader then gets the file without the file's own place", Handler: http.HandlerFunc(h.setGeotag)},
+		{Method: http.MethodDelete, Pattern: "/api/items/{ref}/attachments/{id}/geotag", Summary: "Remove where a photo was taken by hand; everyone but the uploader then gets the file without the file's own place", Handler: http.HandlerFunc(h.removeGeotag)},
 		{Method: http.MethodGet, Pattern: "/api/album/imports", Summary: "Which imports the server offers: google (Google Photos through its picker; connected says whether one is signed in at Google now) and icloud (shared iCloud albums)", Handler: http.HandlerFunc(h.photoImports)},
 		{Method: http.MethodGet, Pattern: "/api/album/google/connect", Summary: "Sign in at Google to bring photos into the album; redirects to Google, which asks to let this server read the photos one chooses, and back to the folder (folder)", Handler: http.HandlerFunc(h.googleConnect)},
 		{Method: http.MethodGet, Pattern: GooglePhotosCallback, Summary: "Google's redirect back after one allowed or refused an import; bound to the browser that began it, it goes on to the album", Access: Public, Handler: http.HandlerFunc(h.googlePhotosCallback)},
@@ -623,6 +629,8 @@ func (h itemHandlers) photoImports(w http.ResponseWriter, r *http.Request) {
 		"connected": p.Google != nil && p.Google.Connected(who(r)),
 		"icloud":    p.ICloud != nil,
 		"tiles":     p.TileURL != "",
+		"places":    h.placeSearch(),
+		"credit":    p.TileCredit,
 	})
 }
 
