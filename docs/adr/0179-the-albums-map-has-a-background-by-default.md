@@ -1,9 +1,9 @@
 # ADR-0179: The album's map has a background by default, OpenStreetMap's
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-10
-- **Deciders:** Project initiators (request of 2026-11-10 that the album's map always loads a background, for instance OpenStreetMap's)
+- **Deciders:** Project initiators (request of 2026-11-10 that the album's map always loads a background, for instance OpenStreetMap's; accepted 2026-11-10)
 - **Open question:** whether an installation with many readers should be warned that OpenStreetMap's tile servers are meant for light use; whether tiles should be kept on disk, as tile services recommend, rather than in memory only
 - **Question checked:** 2026-11
 
