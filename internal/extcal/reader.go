@@ -29,6 +29,12 @@ const (
 // says why, without the address.
 var ErrUnreadable = errors.New("extcal: the calendar cannot be read")
 
+// ErrRefused is a server that refuses an account's user name and password
+// (401 or 403), told apart from a calendar that cannot be read, so the
+// person is told to check them; for Apple iCloud, that an app-specific
+// password is needed.
+var ErrRefused = errors.New("extcal: the server refuses the user name and password")
+
 // Reader reads people's calendars from their services and keeps what it
 // read for a while, so a calendar shown again is not read again at once.
 // It is safe for concurrent use.

@@ -153,7 +153,10 @@ func TestCalendarsOfOtherServices(t *testing.T) {
 	b.expect("PUT", "/api/me/calendars/"+id, `{"name":`, http.StatusBadRequest)
 
 	// A CalDAV account: its calendars, one of them shown.
-	b.expect("POST", "/api/me/calendar-accounts", `{"kind":"caldav","server":"`+srv.URL+`/dav/","username":"bert","password":"wrong"}`, http.StatusBadGateway)
+	// A refused password is told as such, with a code the UI words.
+	if code := field(b.expect("POST", "/api/me/calendar-accounts", `{"kind":"caldav","server":"`+srv.URL+`/dav/","username":"bert","password":"wrong"}`, http.StatusUnprocessableEntity), "code"); code != "credentials" {
+		t.Fatalf("a refused password answers code %v", code)
+	}
 	b.expect("POST", "/api/me/calendar-accounts", `{"kind":"google"}`, http.StatusBadRequest)
 	b.expect("POST", "/api/me/calendar-accounts", `{"kind":`, http.StatusBadRequest)
 	acc := b.expect("POST", "/api/me/calendar-accounts", `{"kind":"caldav","server":"`+srv.URL+`/dav/","username":"bert","password":"app-password"}`, http.StatusCreated)

@@ -2371,6 +2371,8 @@ export default {
   "extcal.connect": "Connect",
   "extcal.connected": "Account {name} connected; choose which of its calendars are shown.",
   "extcal.unreadable": "The calendar “{name}” cannot be read now: {message}",
+  "extcal.error.credentials": "The server refused the user name and password. Check both; many servers want an app password here rather than your sign-in password.",
+  "extcal.error.appleCredentials": "Apple iCloud refused the sign-in. Use the e-mail address of your Apple ID and an app-specific password (account.apple.com → Sign-In and Security → App-Specific Passwords), never the Apple ID's own password. Changing the Apple ID's password makes earlier app-specific passwords invalid.",
   "extcal.error.off": "Calendars of other services are turned off on this server.",
   "extcal.error.config": "Google is not set up on this server.",
   "extcal.error.state": "Connecting to Google did not come back to the browser that began it; please try again.",
