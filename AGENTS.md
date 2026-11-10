@@ -94,6 +94,12 @@ go run ./cmd/dcocheck origin/main HEAD
 go run ./cmd/manualcheck origin/main HEAD
 ```
 
+CI also compares the numbers of the decision records a pull request adds with those on `main` and in every other open pull request, and warns on the record when one is taken, naming which pull request was opened first and the next free number. Records are numbered without gaps, so two pull requests adding one at the same time clash; the job only tells it early, is advisory and never blocks a merge. Run it locally with:
+
+```bash
+GITHUB_TOKEN=… go run ./cmd/adrnumbers -repo dbuchs7/orbithek -pr 123   # exit 1 on a clash; -advisory warns and exits 0
+```
+
 The repository settings on GitHub are compared with `.github/repository-settings.json` and `.github/rulesets/*.json` once a day by the `Settings drift` workflow ([ADR-0003](docs/adr/0003-repository-governance-settings.md)). A change to a setting goes into those files by pull request first and is applied on GitHub after the merge. Run the comparison locally with:
 
 ```bash
@@ -125,6 +131,7 @@ Dockerfile         container image: distroless, nonroot, multi-arch (ADR-0024)
 cmd/orbithek/ the product's single binary: serve, check, healthcheck, version (ADR-0024)
 cmd/dcocheck/      CLI that checks DCO sign-offs over a git range
 cmd/manualcheck/   CLI that checks a git range changes the user manuals with what people see (ADR-0185)
+cmd/adrnumbers/    CLI that warns when a decision record number a pull request adds is taken on main or by another open pull request
 cmd/settingscheck/ CLI that compares the GitHub settings with the recorded files (ADR-0003)
 internal/audit/    security audit trail, persisted in audit.wal (ADR-0029)
 internal/auth/     accounts, password hashing, sessions, API tokens, login throttle (ADR-0027)
