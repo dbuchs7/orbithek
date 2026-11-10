@@ -189,6 +189,7 @@ The **Calendar** shows items with date fields as a **Month**, **Week** or **Agen
 
 - Where you may edit, drag an entry to another day, or move it with Shift and an arrow key. In the week view, a meeting dropped at another hour keeps its length.
 - A repeating entry asks whether to move **Only this occurrence** or **The whole series**; Delete cancels one occurrence.
+- Where you may edit a room, double-click a day, or an hour in the week view, to make a new entry there; **New entry** does the same for today. The dialog asks for the type, the room, a title and the fields the type requires, and fills in the date from the place clicked. **Create** keeps you in the calendar with the new entry in focus; **Create and open** opens it.
 - **Save view…** keeps a view under a name. If calendar feeds are enabled, **Subscribe (iCal)** gives an address for a calendar program. Whoever knows this address sees the entries without signing in; **New address** and **End feed** withdraw it.
 - If your administrator allows it, **Other calendars** shows your calendars of other services beside Orbithek's: iCalendar addresses, Google accounts and CalDAV accounts such as Apple iCloud. They are shown read-only and only to you.
 
