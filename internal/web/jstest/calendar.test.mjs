@@ -12,7 +12,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { VIEWS, address, agendaDays, dayAt, entries, listQuery, localDayOf, moves, onDay, overdue, period, periodCondition, quote, readState, shift,
   shiftValue, tasksTab, typeFields, weekRows, weekStart, withoutOrder, assigneeOf, timedSpan, dayColumns, minutesAt, retime,
-  occurrenceChanges, seriesChanges, cancelChanges, externalEntries } from "../static/assets/calendar.js";
+  occurrenceChanges, seriesChanges, cancelChanges, externalEntries, appleServer } from "../static/assets/calendar.js";
 
 // Points in time are placed where the reader is; these tests read them in
 // Zurich, one hour ahead of UTC in winter and two in summer.
@@ -328,4 +328,12 @@ test("entries of calendars of other services stand on their days where the reade
   // On the axis of hours, a moment without length takes an hour.
   assert.deepEqual(timedSpan(got[2]), { from: 9 * 60, to: 10 * 60 });
   assert.deepEqual(externalEntries(undefined, undefined), []);
+});
+
+test("an Apple iCloud CalDAV address is told apart, for its own wording of a refused password", () => {
+  assert.equal(appleServer("https://caldav.icloud.com"), true);
+  assert.equal(appleServer("https://p42-caldav.icloud.com/123/"), true);
+  assert.equal(appleServer("https://dav.example.org"), false);
+  assert.equal(appleServer("https://icloud.com.example.org"), false);
+  assert.equal(appleServer("not an address"), false);
 });

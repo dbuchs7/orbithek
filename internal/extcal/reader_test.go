@@ -330,7 +330,7 @@ func fakeCalDAV(t *testing.T) *httptest.Server {
 func TestACalDAVAccountIsConnectedAndRead(t *testing.T) {
 	srv := fakeCalDAV(t)
 	r, s := readerFor(t, srv)
-	if _, _, err := r.ConnectCalDAV(context.Background(), "anna", srv.URL, "anna@icloud.com", "wrong"); err == nil || !strings.Contains(err.Error(), "refuses") {
+	if _, _, err := r.ConnectCalDAV(context.Background(), "anna", srv.URL, "anna@icloud.com", "wrong"); !errors.Is(err, ErrRefused) || errors.Is(err, ErrUnreadable) {
 		t.Fatalf("a wrong password: %v", err)
 	}
 	if len(s.Accounts("anna")) != 0 {
@@ -344,7 +344,8 @@ func TestACalDAVAccountIsConnectedAndRead(t *testing.T) {
 	if _, _, err := r.ConnectCalDAV(context.Background(), "anna", srv.URL, "", "pw"); !errors.Is(err, ErrInvalid) {
 		t.Error("no user name")
 	}
-	a, cals, err := r.ConnectCalDAV(context.Background(), "anna", srv.URL+"/#x", "anna@icloud.com", "app-password")
+	// A user name copied with spaces around it is the same name.
+	a, cals, err := r.ConnectCalDAV(context.Background(), "anna", srv.URL+"/#x", "  anna@icloud.com ", "app-password")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -422,5 +423,37 @@ func TestRedirectsKeepToHTTPS(t *testing.T) {
 	req, _ = http.NewRequest(http.MethodGet, "https://example.org/", nil)
 	if Redirects(req, make([]*http.Request, maxRedirects+1)) == nil || Redirects(req, nil) != nil {
 		t.Error("redirects")
+	}
+}
+
+// Apple's app-specific passwords are letters and dashes: spaces a copy
+// brings along are dropped. Other servers' passwords stay as typed.
+func TestAnApplePasswordLosesItsSpaces(t *testing.T) {
+	cases := []struct{ server, in, want string }{
+		{AppleServer, " abcd-efgh-ijkl-mnop\n", "abcd-efgh-ijkl-mnop"},
+		{AppleServer, "abcd efgh ijkl mnop", "abcdefghijklmnop"},
+		{"https://p42-caldav.icloud.com/", " x ", "x"},
+		{"https://dav.example.org/", " pass word ", " pass word "},
+		{"https://icloud.com.example.org/", " x ", " x "},
+		{"::", " x ", " x "},
+	}
+	for _, c := range cases {
+		if got := cleanPassword(c.server, c.in); got != c.want {
+			t.Errorf("%s %q: %q, want %q", c.server, c.in, got, c.want)
+		}
+	}
+}
+
+// A refusal of the credentials is told apart from other failures, also
+// when an account's calendars are listed again later.
+func TestARefusedPasswordIsToldApart(t *testing.T) {
+	for status, want := range map[int]bool{401: true, 403: true, 404: false, 500: false} {
+		err := refused(&StatusError{Status: status})
+		if errors.Is(err, ErrRefused) != want {
+			t.Errorf("%d: %v", status, err)
+		}
+	}
+	if refused(nil) != nil {
+		t.Error("no error became one")
 	}
 }
