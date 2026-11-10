@@ -7,11 +7,14 @@
 // exported as PNG or JPEG, a drawing also as SVG (ADR-0173). Collections
 // (ADR-0175) sit beside folders but hold nothing: their rule names labels,
 // and they gather the matching pictures of every room one may read.
+// The pictures shown are presented as slides, by name, with speaker's
+// notes kept on each picture (ADR-0176).
 import { h, when } from "./dom.js";
 import { t } from "./i18n.js";
 import { get, post, put, del, upload } from "./api.js";
 import { DRAWING } from "./drawing.js";
 import { exportFormats, exportPicture } from "./picexport.js";
+import { startPresentation } from "./present.js";
 
 const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
 
@@ -88,6 +91,10 @@ export function albumBrowser({ pick } = {}) {
   const grid = h("ul", { class: "album-grid" });
   const count = h("p", { class: "muted", role: "status" });
   const more = h("button", { type: "button", text: t("album.more"), hidden: true });
+  // present shows the pictures the album shows now as slides, ordered by
+  // name, in a presenter's window and a presentation window (ADR-0176).
+  const present = h("button", { type: "button", class: "secondary", id: "album-present", text: t("album.present", { n: 0 }),
+    title: t("album.presentTitle"), hidden: true, onclick: () => startPresentation(filters()) });
   const status = h("div", { class: "status" });
   let next = 0;
   let generation = 0;
@@ -141,6 +148,36 @@ export function albumBrowser({ pick } = {}) {
       input.addEventListener("blur", () => setTimeout(() => { if (!saving && row.contains(input)) show(); }, 150));
       row.replaceChildren(input);
       input.focus();
+    };
+    show();
+    return row;
+  };
+
+  // notesOf shows whether a picture has speaker's notes, for presenting it
+  // as a slide (ADR-0176); one who may edit the picture writes them here.
+  // The notes themselves show in the presenter's window.
+  const notesOf = (p) => {
+    if (p.versionOf) return null;
+    if (pick || !p.editable) return p.notes && !pick ? h("p", { class: "album-notes muted", text: t("album.hasNotes") }) : null;
+    const name = captionOf(p.attachment.name);
+    const row = h("div", { class: "album-notes" });
+    const show = () => row.replaceChildren(h("button", { type: "button", class: "link album-notes-edit",
+      text: p.notes ? t("album.notesEdit") : t("album.notesAdd"), "aria-label": t("album.notesOf", { name }), onclick: edit }));
+    const edit = () => {
+      const area = h("textarea", { class: "album-notes-input", rows: "4", value: p.notes || "",
+        placeholder: t("album.notesPlaceholder"), "aria-label": t("album.notesOf", { name }) });
+      const save = h("button", { type: "button", class: "primary album-notes-save", text: t("album.notesSave"), onclick: async () => {
+        try {
+          await put(`/api/items/${p.item.id}/attachments/${p.attachment.id}/notes`, { notes: area.value });
+          p.notes = area.value.replace(/\r\n?/g, "\n").trim();
+          status.replaceChildren(h("p", { class: "notice", role: "status", text: t("album.notesSaved", { name }) }));
+          show();
+        } catch (err) { fail(err); }
+      } });
+      area.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); show(); } });
+      row.replaceChildren(area, h("div", { class: "album-notes-actions" }, save,
+        h("button", { type: "button", class: "link", text: t("common.cancel"), onclick: show })));
+      area.focus();
     };
     show();
     return row;
@@ -241,6 +278,7 @@ export function albumBrowser({ pick } = {}) {
           h("a", { href: "#/item/" + encodeURIComponent(p.item.key), class: "muted album-item", text: `${p.item.key} ${p.item.title}`,
             title: `${p.item.key} ${p.item.title}`, target: pick ? "_blank" : null, rel: pick ? "noopener" : null }))),
       labelsOf(p),
+      notesOf(p),
       actions(p));
   };
 
@@ -360,7 +398,7 @@ export function albumBrowser({ pick } = {}) {
       li.classList.toggle("fanned", open);
       if (open) {
         fan = h("li", { class: "album-fan", "aria-label": t("album.versionsOf", { name: captionOf(p.attachment.name) }) },
-          h("ul", { class: "album-grid" }, versions.map((v, i) => card(v, n - 1 - i))));
+          h("ul", { class: "album-grid" }, versions.map((v, i) => card({ ...v, notes: undefined, versionOf: true }, n - 1 - i))));
         li.after(fan);
       } else {
         fan.remove();
@@ -511,11 +549,9 @@ export function albumBrowser({ pick } = {}) {
     } catch (err) { fail(err); }
   };
 
-  // load shows the first page of the filtered album, or with append the
-  // next. A later filter replaces an answer still on its way.
-  const load = async (append) => {
-    const mine = ++generation;
-    const q = new URLSearchParams({ offset: String(append ? next : 0) });
+  // filters are the album's filters as they are now.
+  const filters = () => {
+    const q = new URLSearchParams();
     if (search.value.trim()) q.set("q", search.value.trim());
     if (kind.value) q.set("kind", kind.value);
     // A collection gathers from every room; the room filter narrows it.
@@ -523,6 +559,15 @@ export function albumBrowser({ pick } = {}) {
     else if (space.value) q.set("space", space.value);
     if (inCollection()) q.set("collection", here().id);
     if (label.value) q.set("label", label.value);
+    return q;
+  };
+
+  // load shows the first page of the filtered album, or with append the
+  // next. A later filter replaces an answer still on its way.
+  const load = async (append) => {
+    const mine = ++generation;
+    const q = filters();
+    q.set("offset", String(append ? next : 0));
     try {
       const page = await get("/api/album?" + q);
       if (mine !== generation) return;
@@ -534,6 +579,8 @@ export function albumBrowser({ pick } = {}) {
       const on = filteredNow();
       count.textContent = page.total ? t("album.count", { n: page.total }) : on ? t("filter.none") : t("album.none");
       reset.hidden = !on;
+      present.hidden = !!pick || !page.total;
+      present.textContent = t("album.present", { n: page.total });
     } catch (err) { fail(err); }
   };
 
@@ -567,7 +614,7 @@ export function albumBrowser({ pick } = {}) {
     space.append(...roomOptions());
   }).catch(() => {});
   const root = h("div", { class: "album" }, h("div", { class: "album-filters filter-bar", role: "search", "aria-label": t("album.title") }, search, kind, space, label, reset), options,
-    trail, tools, status, folders, count, grid, more);
+    trail, tools, status, folders, h("div", { class: "album-count-row" }, count, present), grid, more);
   // Escape closes the open menu of a card and returns to its button.
   root.addEventListener("keydown", (e) => {
     const d = e.target instanceof Element ? e.target.closest("details.album-menu[open]") : null;

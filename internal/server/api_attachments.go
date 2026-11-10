@@ -25,6 +25,7 @@ func attachmentRoutes(h itemHandlers) []Route {
 		{Method: http.MethodGet, Pattern: "/api/items/{ref}/attachments/{id}", Summary: "Download a file; images show inline, everything else downloads", Handler: http.HandlerFunc(h.downloadAttachment)},
 		{Method: http.MethodDelete, Pattern: "/api/items/{ref}/attachments/{id}", Summary: "Delete a file; its content is destroyed", Handler: http.HandlerFunc(h.deleteAttachment)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/labels", Summary: "Set a picture's labels (labels); they narrow the album and are no labels of the item, so no kanban or label board shows them", Handler: http.HandlerFunc(h.setPictureLabels)},
+		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/notes", Summary: "Set a picture's speaker's notes (notes, plain text; empty clears them), kept on the file's first version so every version shows them (ADR-0176)", Handler: http.HandlerFunc(h.setPictureNotes)},
 		{Method: http.MethodGet, Pattern: "/api/album", Summary: "The album: images and drawings of every item one may read, newest first, the versions of one file stacked under the newest (versions); space, folder (only its pictures), collection (the pictures of every room its rule gathers), q (name, label, key or title), label, kind (image or drawing), offset and limit narrow it", Handler: http.HandlerFunc(h.album)},
 		{Method: http.MethodGet, Pattern: "/api/album/folders", Summary: "The album's folders one may read, by name, then its collections (collections, each with its rule): in space (every space when empty), right below parent (the top when empty)", Handler: http.HandlerFunc(h.albumFolders)},
 		{Method: http.MethodPost, Pattern: "/api/album/folders", Summary: "Make a folder of the album: name, and space or parent (a folder); who may create there may", Handler: http.HandlerFunc(h.createAlbumFolder)},
@@ -139,6 +140,9 @@ func (h itemHandlers) album(w http.ResponseWriter, r *http.Request) {
 			// Retention is the stack's own rule for its older versions
 			// (ADR-0104); absent while the album's default applies.
 			Retention *retentionJSON `json:"retention,omitempty"`
+			// Notes are the stack's speaker's notes, for showing it as a
+			// slide (ADR-0176); absent without notes.
+			Notes string `json:"notes,omitempty"`
 		}
 		one := func(p item.Picture) picture {
 			return picture{Item: itemRef{p.Item.ID, p.Item.Key, p.Item.Title, p.Item.Space, p.Item.Type},
@@ -147,6 +151,7 @@ func (h itemHandlers) album(w http.ResponseWriter, r *http.Request) {
 		out := []picture{}
 		for _, st := range all[min(offset, len(all)):min(offset+limit, len(all))] {
 			top := one(st[0])
+			top.Notes = st[0].Notes
 			if r := st[0].Retention; r != nil {
 				rule := ruleJSON(*r)
 				top.Retention = &rule
@@ -229,6 +234,18 @@ func (h itemHandlers) setPictureLabels(w http.ResponseWriter, r *http.Request) {
 	if decode(w, r, &req) {
 		h.change(w, r, func(x *item.Session, _ *item.Store, it item.Item) error {
 			return x.SetPictureLabels(it.ID, item.ID(r.PathValue("id")), req.Labels)
+		})
+	}
+}
+
+// setPictureNotes sets the speaker's notes of a picture (ADR-0176).
+func (h itemHandlers) setPictureNotes(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Notes string `json:"notes"`
+	}
+	if decode(w, r, &req) {
+		h.change(w, r, func(x *item.Session, _ *item.Store, it item.Item) error {
+			return x.SetPictureNotes(it.ID, item.ID(r.PathValue("id")), req.Notes)
 		})
 	}
 }

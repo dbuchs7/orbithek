@@ -71,7 +71,7 @@ func (it *Item) contentTexts() []string {
 	}
 	texts = append(texts, it.Labels...)
 	for _, a := range it.Attachments {
-		texts = append(texts, a.Name)
+		texts = append(texts, a.Name, a.Notes)
 		texts = append(texts, a.Labels...)
 	}
 	return texts
@@ -83,7 +83,7 @@ func (it *Item) fingerprints() map[string]bool { return fingerprintsOf(it.conten
 func eventFingerprints(e Event) map[string]bool {
 	texts := append([]string{e.Title, e.Text}, e.Labels...)
 	if e.Attachment != nil {
-		texts = append(texts, e.Attachment.Name)
+		texts = append(texts, e.Attachment.Name, e.Attachment.Notes)
 		texts = append(texts, e.Attachment.Labels...)
 	}
 	if e.Anchor != nil {
@@ -302,6 +302,11 @@ func (it *Item) texts() [][2]string {
 	}
 	for i, c := range it.Comments {
 		out = append(out, [2]string{fmt.Sprintf("comment %d", i+1), c.Text})
+	}
+	for _, a := range it.Attachments {
+		if !a.Deleted && a.Notes != "" {
+			out = append(out, [2]string{"notes of " + a.Name, a.Notes})
+		}
 	}
 	return out
 }

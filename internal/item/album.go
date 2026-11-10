@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"slices"
 	"strings"
+	"unicode/utf8"
 )
 
 // The album's folders and the labels of its pictures (ADR-0090). A folder
@@ -114,4 +115,39 @@ func (x *Session) SetPictureLabels(id, attachment ID, labels []string) error {
 // inBody reports whether a body shows a file of its item.
 func inBody(d Doc, attachment ID) bool {
 	return slices.ContainsFunc(d.Blocks, func(b Block) bool { return b.Kind == Image && b.Ref == attachment })
+}
+
+// notesOf returns a stack's speaker's notes, held by its first version
+// (ADR-0176).
+func notesOf(it *Item, first ID) string {
+	if a, ok := it.attachment(first); ok {
+		return a.Notes
+	}
+	return ""
+}
+
+// SetPictureNotes sets the speaker's notes of a picture shown as a slide
+// (ADR-0176), or clears them with empty notes. They are kept on the
+// file's first version, so every version of a drawing shares them; any
+// version names the stack. Line ends are made "\n" and the notes trimmed.
+// Whoever may edit the item may.
+func (x *Session) SetPictureNotes(id, attachment ID, notes string) error {
+	if !utf8.ValidString(notes) {
+		return invalid("notes must be UTF-8 text")
+	}
+	notes = strings.TrimSpace(strings.ReplaceAll(strings.ReplaceAll(notes, "\r\n", "\n"), "\r", "\n"))
+	if _, err := x.editable(id); err != nil {
+		return err
+	}
+	it, first, err := x.stackOf(id, attachment)
+	if err != nil {
+		return err
+	}
+	if it.Presence != Live {
+		return invalid("%s is %s", it.Key, it.Presence)
+	}
+	if notesOf(it, first) == notes {
+		return nil
+	}
+	return x.s.record(x.who, Event{Kind: AttachmentNotesSet, Item: id, Attachment: &Attachment{ID: first, Notes: notes}})
 }
