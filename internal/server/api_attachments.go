@@ -22,9 +22,10 @@ import (
 func attachmentRoutes(h itemHandlers) []Route {
 	return []Route{
 		{Method: http.MethodGet, Pattern: "/api/items/{ref}/attachments", Summary: "List the item's files", Handler: http.HandlerFunc(h.listAttachments)},
-		{Method: http.MethodPost, Pattern: "/api/items/{ref}/attachments", Summary: "Upload a file: the body is the content (application/octet-stream), name the file name; sourceItem and sourceAttachment name the file it is a copy or a new version of; place=strip removes where a photo was taken, from the file and its data", Handler: http.HandlerFunc(h.uploadAttachment)},
+		{Method: http.MethodPost, Pattern: "/api/items/{ref}/attachments", Summary: "Upload a file: the body is the content (application/octet-stream), name the file name; sourceItem and sourceAttachment name the file it is a copy or a new version of; place=strip removes where a photo was taken, from the file and its data; place=private keeps it to the uploader", Handler: http.HandlerFunc(h.uploadAttachment)},
 		{Method: http.MethodGet, Pattern: "/api/items/{ref}/attachments/{id}", Summary: "Download a file; images show inline, everything else downloads", Handler: http.HandlerFunc(h.downloadAttachment)},
 		{Method: http.MethodDelete, Pattern: "/api/items/{ref}/attachments/{id}", Summary: "Delete a file; its content is destroyed", Handler: http.HandlerFunc(h.deleteAttachment)},
+		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/place", Summary: "Keep where a photo was taken to oneself, the one who added it (private), or show it to every reader again; others then read the photo data and get the file without it", Handler: http.HandlerFunc(h.setPlacePrivate)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/labels", Summary: "Set a picture's labels (labels); they narrow the album and are no labels of the item, so no kanban or label board shows them", Handler: http.HandlerFunc(h.setPictureLabels)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/notes", Summary: "Set a picture's speaker's notes (notes, plain text; empty clears them), kept on the file's first version so every version shows them (ADR-0176)", Handler: http.HandlerFunc(h.setPictureNotes)},
 		{Method: http.MethodGet, Pattern: "/api/album", Summary: "The album: images and drawings of every item one may read, newest first, the versions of one file stacked under the newest (versions); space, folder (only its pictures), collection (the pictures of every room its rule gathers), q (name, label, key or title), label, kind (image or drawing), offset and limit narrow it", Handler: http.HandlerFunc(h.album)},
@@ -413,8 +414,10 @@ func (h itemHandlers) uploadAttachment(w http.ResponseWriter, r *http.Request) {
 	}
 	limit := budget.Get().AttachmentBytes
 	var body io.Reader = http.MaxBytesReader(w, r.Body, limit+1)
-	// An import may leave where a photo was taken behind (ADR-0177).
-	if r.URL.Query().Get("place") == "strip" {
+	// An import may leave where a photo was taken behind (ADR-0177), or
+	// keep it to the one who adds it (ADR-0178).
+	place := placeChoice(r.URL.Query().Get("place"), false)
+	if place == placeStrip {
 		var err error
 		if body, err = withoutPlace(body, limit); err != nil {
 			h.storeFail(w, err, limit)
@@ -434,9 +437,15 @@ func (h itemHandlers) uploadAttachment(w http.ResponseWriter, r *http.Request) {
 	a.Name = name
 	// What a picture tells about itself is recorded with it (ADR-0177).
 	a.Photo = h.readPhoto(id, a)
+	if place == placePrivate {
+		a.Photo = keepPrivate(a.Photo)
+	}
 	if q := r.URL.Query(); q.Get("sourceItem") != "" || q.Get("sourceAttachment") != "" {
 		a.Source = &item.Source{Item: item.ID(q.Get("sourceItem")), Attachment: item.ID(q.Get("sourceAttachment"))}
 	}
+	// A copy of a photo whose place is kept from the caller is the source
+	// without its place (ADR-0178).
+	h.markCopyWithoutPlace(r, id, &a)
 	// A drawing in use as a live whiteboard gets its new versions from the
 	// whiteboard only: a version from the drawing editor would be written
 	// over by the session's next save (ADR-0172).
@@ -470,17 +479,24 @@ func (h itemHandlers) downloadAttachment(w http.ResponseWriter, r *http.Request)
 	var it item.Item
 	var a item.Attachment
 	var err error
+	var hidden bool
 	h.d.DB.Read(func(s *item.Store) {
 		x := s.As(who(r))
 		if it, err = resolveItem(x, r.PathValue("ref")); err == nil {
 			a, err = x.Attachment(it.ID, item.ID(r.PathValue("id")))
+			hidden = err == nil && x.PlaceHidden(it.ID, a.ID)
 		}
 	})
 	if err != nil {
 		h.fail(w, err)
 		return
 	}
-	content, err := h.d.DB.OpenAttachment(it.ID, a.ID)
+	// A place its uploader keeps to themselves leaves the file (ADR-0178).
+	content, err := h.openFor(hidden, it.ID, a)
+	if errors.Is(err, errPlaceStays) {
+		writeError(w, http.StatusConflict, "this picture is given only without the place it was taken, and that place could not be removed")
+		return
+	}
 	if err != nil {
 		h.log.Error("attachment content missing", "item", it.ID, "attachment", a.ID, "err", err)
 		writeError(w, http.StatusGone, "the content of this file is not available")
@@ -503,7 +519,11 @@ func (h itemHandlers) downloadAttachment(w http.ResponseWriter, r *http.Request)
 	hd.Set("X-Content-Type-Options", "nosniff")
 	hd.Set("Content-Security-Policy", "default-src 'none'; sandbox")
 	hd.Set("Cache-Control", "private, max-age=3600")
-	hd.Set("ETag", strconv.Quote(a.SHA256))
+	if hidden {
+		hd.Set("ETag", strconv.Quote(a.SHA256+"-noplace"))
+	} else {
+		hd.Set("ETag", strconv.Quote(a.SHA256))
+	}
 	// Parts of a file are sent as asked for (Range), so a video plays and
 	// seeks (ADR-0097); the ETag answers a repeated request.
 	http.ServeContent(w, r, "", time.Time{}, readLogged{content, func(err error) {

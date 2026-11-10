@@ -18,11 +18,15 @@ export async function photoMap(query, open) {
   const note = h("p", { class: "muted photo-map-note", role: "status" });
   const zoomIn = h("button", { type: "button", class: "secondary", text: "+", "aria-label": t("photos.zoomIn") });
   const zoomOut = h("button", { type: "button", class: "secondary", text: "−", "aria-label": t("photos.zoomOut") });
-  const box = h("div", { class: "photo-map" }, h("div", { class: "photo-map-zoom" }, zoomIn, zoomOut), canvas);
+  const credit = h("p", { class: "photo-map-credit" });
+  const box = h("div", { class: "photo-map" }, h("div", { class: "photo-map-zoom" }, zoomIn, zoomOut), canvas, credit);
   const root = h("div", { class: "photo-map-view" }, note, box, strip);
 
   const answer = await get("/api/album/places?" + query);
   const places = answer.places;
+  // The tile service's credit, as it asks for it (ADR-0179).
+  credit.textContent = answer.tiles ? answer.credit || "" : "";
+  credit.hidden = !credit.textContent;
   note.textContent = !places.length ? t("photos.mapNone")
     : [t("photos.mapCount", { n: answer.total }), answer.truncated ? t("photos.mapTruncated", { n: places.length }) : "", answer.tiles ? "" : t("photos.mapNoTiles")].filter(Boolean).join(" ");
 

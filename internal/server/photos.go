@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/dbuchs7/orbithek/internal/budget"
+	"github.com/dbuchs7/orbithek/internal/buildinfo"
 	"github.com/dbuchs7/orbithek/internal/connector"
 	"github.com/dbuchs7/orbithek/internal/photosource"
 )
@@ -26,8 +27,13 @@ const (
 	PhotosICloudVar = "OT_PHOTOS_ICLOUD"
 	// MapTilesVar names the tile service the album's map is drawn on, as
 	// an address with {z}, {x} and {y}; the server fetches the tiles, so
-	// readers' browsers reach no other site.
+	// readers' browsers reach no other site. Unset, OpenStreetMap's is
+	// used (ADR-0179); "off" draws no tiles.
 	MapTilesVar = "OT_MAP_TILES"
+	// MapAttributionVar is the credit the map shows for its tiles, as the
+	// tile service asks for it; unset with the default service, it is
+	// OpenStreetMap's.
+	MapAttributionVar = "OT_MAP_ATTRIBUTION"
 	// MapAllowPrivateVar, set to "on", lets the tile service be in the
 	// server's own network.
 	MapAllowPrivateVar = "OT_MAP_ALLOW_PRIVATE"
@@ -38,6 +44,13 @@ const (
 // the redirect addresses of the Google client (ADR-0177).
 const GooglePhotosCallback = "/api/album/google/callback"
 
+// The tile service the album's map uses unless the operator names another
+// or none (ADR-0179), and the credit its use asks for.
+const (
+	DefaultMapTiles       = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+	DefaultMapAttribution = "© OpenStreetMap contributors"
+)
+
 // Photos holds what the album's photo management keeps in memory
 // (ADR-0177): thumbnails and map tiles made or fetched before, and the
 // imports from Google Photos and shared iCloud albums in progress.
@@ -45,9 +58,13 @@ type Photos struct {
 	thumbs, tiles *byteCache
 	// working bounds the thumbnails made at once.
 	working chan struct{}
-	// TileURL is the tile service's address template, empty for none.
+	// TileURL is the tile service's address template, empty for none;
+	// TileCredit the credit shown beneath the map; tileAgent names this
+	// server to the tile service, with its public address when known.
 	TileURL    string
+	TileCredit string
 	tileClient *http.Client
+	tileAgent  string
 	// Google and ICloud are nil while turned off.
 	Google *photosource.Google
 	ICloud *photosource.ICloud
@@ -97,9 +114,21 @@ func NewPhotos(getenv func(string) string, google *photosource.Google) *Photos {
 	b := budget.Get()
 	p := &Photos{thumbs: newByteCache(b.ThumbnailCacheBytes), tiles: newByteCache(b.MapTileCacheBytes),
 		working: make(chan struct{}, max(1, b.ThumbnailWorkers)), now: time.Now, albums: map[string]sharedAlbum{}}
-	if u := strings.TrimSpace(getenv(MapTilesVar)); validTileURL(u) {
+	switch u := strings.TrimSpace(getenv(MapTilesVar)); {
+	case u == "":
+		p.TileURL, p.TileCredit = DefaultMapTiles, DefaultMapAttribution
+	case validTileURL(u):
 		p.TileURL = u
+	}
+	if credit := strings.TrimSpace(getenv(MapAttributionVar)); credit != "" && len(credit) <= 300 {
+		p.TileCredit = credit
+	}
+	if p.TileURL != "" {
 		p.tileClient = PhotoClient(getenv, MapAllowPrivateVar)
+		p.tileAgent = "Orbithek/" + buildinfo.Get().Version + " (album map)"
+		if public := strings.TrimSpace(getenv("OT_PUBLIC_URL")); strings.HasPrefix(public, "https://") || strings.HasPrefix(public, "http://") {
+			p.tileAgent = "Orbithek/" + buildinfo.Get().Version + " (album map; +" + public + ")"
+		}
 	}
 	if getenv(PhotosGoogleVar) == "on" {
 		p.Google = google

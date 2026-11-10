@@ -66,6 +66,17 @@ services:
       # Editors may show Markdown files of public repositories (ADR-0138).
       # OT_GIT_FILES: "on"
 
+      # --- The album's photos and map (ADR-0177 to ADR-0179) -----------
+      # Photos from Google Photos through its picker, with the Google
+      # client of single sign-on above and OT_PUBLIC_URL, and from shared
+      # iCloud albums.
+      # OT_PHOTOS_GOOGLE: "on"
+      # OT_PHOTOS_ICLOUD: "on"
+      # The map draws OpenStreetMap's tiles unless another service, or
+      # "off", is named here; its credit goes with it.
+      # OT_MAP_TILES: "https://tiles.example.org/{z}/{x}/{y}.png"
+      # OT_MAP_ATTRIBUTION: "© Example"
+
       # --- Calendars of other services (ADR-0174) ----------------------
       # Turned on by an administrator in the UI. Google accounts use the
       # Google client of single sign-on above and OT_PUBLIC_URL. The
