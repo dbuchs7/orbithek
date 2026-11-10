@@ -1759,6 +1759,9 @@ function gitSource() {
     await page.waitForSelector("#album .photo-map-note");
     await page.click("#album-view-folders");
     await page.waitForSelector("#album-upload"); // back in the folder, with its tools
+    // The album is left at its top, as the steps after it begin there.
+    await page.click("#album .album-trail button:has-text('All pictures')");
+    await page.waitForSelector("#album .album-folder:has-text('Logos')");
 
     step("album presentation: a folder's pictures are slides by name, with speaker's notes, a presentation window, laser pointer, zoom and stepping (ADR-0176)");
     // A picture of 160 by 90 pixels, so the slides have a size to fit.

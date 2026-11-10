@@ -734,6 +734,10 @@ export function albumBrowser({ pick } = {}) {
     grid.hidden = !folders_;
     timeline.hidden = folders_ || view === "map";
     mapBox.hidden = view !== "map";
+    // A view not shown keeps no cards, so nothing counts or answers twice.
+    if (timeline.hidden) timeline.replaceChildren();
+    if (mapBox.hidden) mapBox.replaceChildren();
+    if (grid.hidden) grid.replaceChildren();
     for (const b of viewBar.querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.view === view));
     if (folders_) {
       showTrail();
