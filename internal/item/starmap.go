@@ -52,6 +52,9 @@ type StarNode struct {
 	Item ID
 	// Name is a picture's file name or a label's name.
 	Name string
+	// Count is how many items a group of the starmap of all spaces stands
+	// for (ADR-0191).
+	Count int
 }
 
 // StarEdge is one edge of a starmap, between two of its nodes.
@@ -60,6 +63,9 @@ type StarEdge struct {
 	Kind     string
 	// Type is a hand-made relation's type.
 	Type string
+	// Count is how many links an edge between two groups stands for
+	// (ADR-0191).
+	Count int
 }
 
 // Starmap is the graph of one space as its reader may see it (ADR-0157).
@@ -68,6 +74,11 @@ type Starmap struct {
 	Edges []StarEdge
 	// Truncated says that nodes were left out to stay within the budget.
 	Truncated bool
+	// Grouped says that the starmap of all spaces shows a node per space
+	// and type, the items being too many (ADR-0191); Items is how many
+	// items it covers.
+	Grouped bool
+	Items   int
 }
 
 func pictureNodeID(item, attachment ID) string {

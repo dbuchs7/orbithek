@@ -2331,6 +2331,23 @@ function gitSource() {
     await page.keyboard.press("Escape");
     await page.waitForSelector("#starmap-panel", { state: "hidden" });
 
+    step("starmap of all rooms: every readable item of every room, or a bubble per room and type; a label shown across the rooms (ADR-0191)");
+    await page.goto(base + "/#/starmap/*");
+    await page.waitForSelector("#starmap-canvas .star-node");
+    check(await page.inputValue("#starmap-space") === "*", "the room chooser offers every room");
+    if (await page.locator("#starmap-grouped").count()) {
+      check(await page.locator("#starmap-canvas .star-node.kind-group").count() > 0, "too many items show as bubbles per room and type");
+    } else {
+      check(await page.locator("#starmap-canvas .star-node.kind-item[data-key='PLAT-1']").count() === 1, "the map shows the items of the rooms");
+      check(await page.locator("#starmap-canvas .star-node.outside").count() === 0, "on the map of all rooms no item stands outside");
+    }
+    await page.fill("#starmap-label", "constellation");
+    await page.click("#starmap-label-form button[type=submit]");
+    await page.waitForFunction(() => location.hash === "#/starmap/*?label=constellation");
+    await page.waitForFunction(() => [...document.querySelectorAll("#starmap-canvas .star-node.kind-item")].map((n) => n.dataset.key).sort().join() === "PLAT-1,PLAT-2");
+    await page.goto(base + "/#/starmap/PLAT");
+    await page.waitForSelector("#starmap-canvas .star-node[data-key='PLAT-2']");
+
     step("starmap moves: the map settles, pointing lights a neighbourhood, a dragged node moves, a double-click separates a node, Escape and the trail step back, the address keeps the drill path (ADR-0158)");
     // The map is a live simulation; the canvas says when it rests, so the
     // steps wait for that instead of for time.

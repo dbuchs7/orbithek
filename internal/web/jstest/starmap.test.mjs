@@ -14,7 +14,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DEPTHS, GROUPS, IMPACT_DEPTHS, IMPACT_DIRECTIONS, around, captionShown, distanceClass, drillBack, drillInto, filter, fitView, groupOf, impactAddress, impactGraph,
-  impactList, impactParams, impactPath, impactSummary, kinds, kindOf, layout, matches, neighbourhood, size, toneOf, visible, zoomBand } from "../static/assets/starmap-graph.js";
+  impactList, impactParams, impactPath, impactSummary, kinds, kindOf, groupRadius, layout, matches, neighbourhood, size, toneOf, visible, zoomBand } from "../static/assets/starmap-graph.js";
 import { DEFAULTS, chargeExact, chargeTree, quadtree, simulation } from "../static/assets/starmap-sim.js";
 
 const graph = {
@@ -374,4 +374,14 @@ test("the summary counts items and pictures apart and says when the walk ended b
   assert.equal(impactSummary({ ...walk, complete: false }).endedEarly, false, "more is reachable");
   assert.equal(impactSummary({ ...walk, depth: "all" }).endedEarly, false, "all has no depth to end before");
   assert.deepEqual(impactSummary({ ...walk, nodes: [walk.nodes[0]] }), { items: 0, pictures: 0, farthest: 0, endedEarly: true });
+});
+
+test("a group of the starmap of all rooms is filtered by its type and drawn as big as its items (ADR-0191)", () => {
+  const groups = [{ id: "group:PLAT/page", kind: "group", space: "PLAT", type: "page", count: 3 }, { id: "group:OPS/task", kind: "group", space: "OPS", type: "task", count: 400 }];
+  assert.equal(kindOf(groups[0]), "type:page");
+  assert.deepEqual(kinds(groups).map((k) => k.key), ["type:page", "type:task"]);
+  assert.equal(groupRadius(0), 11);
+  assert.ok(groupRadius(3) > groupRadius(1) && groupRadius(100) > groupRadius(10));
+  assert.equal(groupRadius(1e6), 64, "a bound keeps a big group on the canvas");
+  assert.equal(groupRadius("x"), 11);
 });

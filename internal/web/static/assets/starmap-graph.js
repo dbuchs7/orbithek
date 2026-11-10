@@ -27,8 +27,15 @@ export function groupOf(kind) {
 // the users' own, never named here), a picture or a label. Outside nodes
 // have a switch of their own besides (outsideKind).
 export function kindOf(node) {
-  if (node.kind === "item") return "type:" + node.type;
+  if (node.kind === "item" || node.kind === "group") return "type:" + node.type;
   return node.kind;
+}
+
+// groupRadius is how big a group of the starmap of all rooms is drawn
+// (ADR-0191): its area grows with the number of its items, from an
+// item's size up to a bound.
+export function groupRadius(count) {
+  return Math.min(64, 11 + 4 * Math.sqrt(Math.max(0, Number(count) || 0)));
 }
 
 export const outsideKind = "outside";
@@ -37,7 +44,7 @@ export const outsideKind = "outside";
 // the order of the alphabet, then pictures, labels and outside nodes when
 // it has them.
 export function kinds(nodes) {
-  const types = [...new Set(nodes.filter((n) => n.kind === "item").map((n) => n.type))].sort();
+  const types = [...new Set(nodes.filter((n) => n.kind === "item" || n.kind === "group").map((n) => n.type))].sort();
   const out = types.map((type) => ({ key: "type:" + type, type }));
   for (const k of ["picture", "label"]) if (nodes.some((n) => n.kind === k)) out.push({ key: k });
   if (nodes.some((n) => n.outside)) out.push({ key: outsideKind });

@@ -59,6 +59,7 @@ func itemRoutes(d Deps) []Route {
 
 		{Method: get, Pattern: "/api/items", Summary: "Find readable items, paged; q narrows to items whose key, title, type, state or labels hold every word; query selects and orders them in the query language", Handler: http.HandlerFunc(h.findItems)},
 		{Method: get, Pattern: "/api/spaces/{space}/tree", Summary: "The readable children of an item (parent) or the top of a space, in sibling order, paged", Handler: http.HandlerFunc(h.tree)},
+		{Method: get, Pattern: "/api/starmap", Summary: "The starmap of every space one reads: their readable items with containment, relations and shared labels; label narrows it to the items that carry it. Beyond the budget StarmapNodes, a node per space and type (group, count its items) and edges counting the links between them (grouped) (ADR-0191)", Handler: http.HandlerFunc(h.starmapAll)},
 		{Method: get, Pattern: "/api/spaces/{space}/starmap", Summary: "The starmap of a space: its readable items, pictures and shared labels with their containment, relations, origins and labels, and related items of other spaces; truncated beyond the budget StarmapNodes", Handler: http.HandlerFunc(h.starmap)},
 		{Method: get, Pattern: "/api/search", Summary: "Full-text search over readable items (q; space, type, state), best first, paged", Handler: http.HandlerFunc(h.searchItems)},
 		{Method: post, Pattern: "/api/items", Summary: "Create an item", Handler: http.HandlerFunc(h.createItem)},
@@ -1049,13 +1050,15 @@ type starNodeJSON struct {
 	Labels  []string `json:"labels,omitempty"`
 	Item    item.ID  `json:"item,omitempty"`
 	Name    string   `json:"name,omitempty"`
+	Count   int      `json:"count,omitempty"`
 }
 
 type starEdgeJSON struct {
-	From string `json:"from"`
-	To   string `json:"to"`
-	Kind string `json:"kind"`
-	Type string `json:"type,omitempty"`
+	From  string `json:"from"`
+	To    string `json:"to"`
+	Kind  string `json:"kind"`
+	Type  string `json:"type,omitempty"`
+	Count int    `json:"count,omitempty"`
 }
 
 // starmap answers the graph of a space as the caller may read it
@@ -1074,6 +1077,20 @@ func (h itemHandlers) starmap(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// starmapAll answers the starmap of every space the caller reads, as
+// items or, when they are too many, as groups per space and type
+// (ADR-0191).
+func (h itemHandlers) starmapAll(w http.ResponseWriter, r *http.Request) {
+	h.read(w, r, func(x *item.Session) (any, error) {
+		m := x.StarmapAll(r.URL.Query().Get("label"), budget.Get().StarmapNodes)
+		nodes := make([]starNodeJSON, len(m.Nodes))
+		for i, n := range m.Nodes {
+			nodes[i] = toStarNodeJSON(n)
+		}
+		return map[string]any{"nodes": nodes, "edges": toStarEdgesJSON(m.Edges), "truncated": m.Truncated, "grouped": m.Grouped, "items": m.Items}, nil
+	})
+}
+
 type impactNodeJSON struct {
 	starNodeJSON
 	Distance int            `json:"distance"`
@@ -1082,13 +1099,13 @@ type impactNodeJSON struct {
 
 func toStarNodeJSON(n item.StarNode) starNodeJSON {
 	return starNodeJSON{ID: n.ID, Kind: n.Kind, Key: n.Key, Title: n.Title, Type: n.Type, Space: n.Space, State: n.State,
-		Outside: n.Outside, Labels: n.Labels, Item: n.Item, Name: n.Name}
+		Outside: n.Outside, Labels: n.Labels, Item: n.Item, Name: n.Name, Count: n.Count}
 }
 
 func toStarEdgesJSON(edges []item.StarEdge) []starEdgeJSON {
 	out := make([]starEdgeJSON, len(edges))
 	for i, e := range edges {
-		out[i] = starEdgeJSON{From: e.From, To: e.To, Kind: e.Kind, Type: e.Type}
+		out[i] = starEdgeJSON{From: e.From, To: e.To, Kind: e.Kind, Type: e.Type, Count: e.Count}
 	}
 	return out
 }

@@ -16,7 +16,7 @@ import { h, mount } from "./dom.js";
 import { t } from "./i18n.js";
 import { get } from "./api.js";
 import { DEPTHS, GROUPS, IMPACT_DEPTHS, distanceClass, drillBack, drillInto, fitView, groupOf, impactAddress, impactGraph, impactList, impactParams, impactPath,
-  impactSummary, kinds, layout, neighbourhood, size, toneOf, visible, zoomBand } from "./starmap-graph.js";
+  groupRadius, impactSummary, kinds, layout, neighbourhood, size, toneOf, visible, zoomBand } from "./starmap-graph.js";
 import { simulation } from "./starmap-sim.js";
 
 const NS = "http://www.w3.org/2000/svg";
@@ -33,8 +33,10 @@ const text = (value) => document.createTextNode(String(value));
 const short = (value, n = 22) => (value.length > n ? value.slice(0, n - 1) + "…" : value);
 
 // shape draws a node's mark: a circle for an item, a square for a
-// picture, a diamond for a label.
-function shape(kind) {
+// picture, a diamond for a label, a bubble as big as its items for a
+// group of the starmap of all rooms (ADR-0191).
+function shape(kind, node = {}) {
+  if (kind === "group") return s("circle", { r: groupRadius(node.count), class: "star-shape star-bubble" });
   if (kind === "picture") return s("rect", { x: -9, y: -9, width: 18, height: 18, rx: 3, class: "star-shape" });
   if (kind === "label") return s("polygon", { points: "0,-11 11,0 0,11 -11,0", class: "star-shape" });
   return s("circle", { r: 11, class: "star-shape" });
@@ -52,6 +54,7 @@ function nodeName(n) {
   let name;
   if (n.kind === "picture") name = t("starmap.nodePicture", { name: n.name });
   else if (n.kind === "label") name = t("starmap.nodeLabel", { name: n.name });
+  else if (n.kind === "group") name = t("starmap.nodeGroup", { space: n.title || n.space, type: n.type, n: n.count });
   else name = t("starmap.nodeItem", { key: n.key, title: n.title, type: n.type });
   return n.outside ? name + ", " + t("starmap.outside", { space: n.space }) : name;
 }
@@ -87,8 +90,10 @@ export async function starmapView(container, space, path = [], params = new URLS
   const { spaces } = await get("/api/spaces");
   const rooms = [...spaces.filter((r) => r.favourite), ...spaces.filter((r) => !r.favourite)];
   if (!rooms.length) return mount(container, h("p", { class: "empty", text: t("starmap.noSpaces") }));
-  const key = rooms.some((r) => r.key === space) ? space : rooms[0].key;
+  // "*" is every room one reads (ADR-0191).
+  const key = space === ALL || rooms.some((r) => r.key === space) ? space : rooms[0].key;
   const select = h("select", { "aria-label": t("starmap.space"), id: "starmap-space" },
+    h("option", { value: ALL, text: t("starmap.allRooms") }),
     rooms.map((r) => h("option", { value: r.key, text: r.name ? `${r.key} – ${r.name}` : r.key })));
   select.value = key;
   select.addEventListener("change", () => { location.hash = "#/starmap/" + encodeURIComponent(select.value); });
@@ -102,13 +107,44 @@ export async function starmapView(container, space, path = [], params = new URLS
     return;
   }
   impactReturn = null;
+  if (key === ALL) {
+    // Every room: its items, or a bubble per room and type when they are
+    // too many; a label narrows it to the items that carry it.
+    const label = (params.get("label") || "").trim();
+    const data = await get("/api/starmap" + (label ? "?label=" + encodeURIComponent(label) : ""));
+    const keep = new URLSearchParams(label ? { label } : {});
+    const map = drawMap(data, key, select, { path: key === space ? path : [], depth, preview, keep, extra: labelChooser(label) });
+    mount(container, map.root);
+    map.start();
+    return;
+  }
   const data = await get(`/api/spaces/${encodeURIComponent(key)}/starmap`);
   const map = drawMap(data, key, select, { path: key === space ? path : [], depth, preview });
   mount(container, map.root);
   map.start();
 }
 
-function drawMap(data, space, select, { path, depth: askedDepth, impact = null, preview = null }) {
+// ALL stands for every room in the address of the starmap (ADR-0191).
+const ALL = "*";
+
+// labelChooser lets one show a label across every room on the starmap of
+// all rooms, suggesting the labels of the items one reads (ADR-0191).
+function labelChooser(label) {
+  const options = h("datalist", { id: "starmap-label-options" });
+  get("/api/labels").then(({ labels }) => options.replaceChildren(...(labels || []).map((l) => h("option", { value: l.label, label: `${l.label} (${l.count})` })))).catch(() => {});
+  const input = h("input", { type: "search", id: "starmap-label", list: "starmap-label-options", value: label, placeholder: t("starmap.labelSearch"), "aria-label": t("starmap.labelSearch") });
+  const form = h("form", { class: "starmap-label-form", role: "search", id: "starmap-label-form" }, input, options,
+    h("button", { type: "submit", class: "secondary", text: t("starmap.labelShow") }));
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const v = input.value.trim();
+    location.hash = "#/starmap/" + ALL + (v ? "?label=" + encodeURIComponent(v) : "");
+  });
+  input.addEventListener("search", () => { if (!input.value.trim() && label) location.hash = "#/starmap/" + ALL; });
+  return form;
+}
+
+function drawMap(data, space, select, { path, depth: askedDepth, impact = null, preview = null, keep = new URLSearchParams(), extra = null }) {
   const graph = { nodes: data.nodes, edges: data.edges };
   const n = graph.nodes.length;
   const tone = toneOf(graph.nodes);
@@ -142,10 +178,11 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
       s("path", { d: "M0,0L10,5L0,10z" }))));
   const edgeLines = [], edgeLabels = [];
   const edgeEls = graph.edges.map((e, k) => {
-    const directed = e.kind !== "label" && e.kind !== "picture";
-    const line = s("line", { class: "star-edge edge-" + e.kind,
+    const directed = e.kind !== "label" && e.kind !== "picture" && e.kind !== "group";
+    // An edge between two groups is as thick as the links it stands for.
+    const line = s("line", { class: "star-edge edge-" + e.kind, "stroke-width": e.kind === "group" ? Math.min(8, 1 + Math.log2(e.count || 1)) : null,
       "marker-end": directed ? `url(#starmap-${e.kind === "copy" ? "arrow-copy" : "arrow"})` : null },
-      s("title", {}, text(e.type || edgeName(e.kind))));
+      s("title", {}, text(e.kind === "group" ? t("starmap.edgeGroup", { n: e.count || 0 }) : e.type || edgeName(e.kind))));
     edgeLines[k] = line;
     const g = s("g", { class: "star-link" + (e.walk ? " walk" : ""), "data-kind": e.kind }, line);
     if (e.kind === "relation" && e.type) {
@@ -157,14 +194,15 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
   const nodeEls = graph.nodes.map((node, i) => {
     const cls = ["star-node", "kind-" + node.kind, node.kind === "item" ? "tone-" + tone(node.type) : "", node.outside ? "outside" : "",
       impact ? distanceClass(node.distance) : "", impact && node.id === impact.start ? "root impact-start" : ""].join(" ");
-    const caption = node.kind === "item" ? short(node.title || node.key) : short(node.name || "");
+    const caption = node.kind === "item" ? short(node.title || node.key)
+      : node.kind === "group" ? `${short(node.name || "", 26)} (${node.count})` : short(node.name || "");
     // In an impact view a ring grades the node by its distance, and its
     // name says the distance too.
     const name = impact ? nodeName(node) + ", " + distanceName(node.distance) : nodeName(node);
     const g = s("g", { class: cls, tabindex: 0, role: "button", "aria-label": name, "data-id": node.id, "data-key": node.key || null,
       "data-distance": impact ? node.distance : null },
-    s("title", {}, text(name)), impact ? s("circle", { r: 17, class: "star-ring" }) : null, shape(node.kind),
-    s("text", { y: 24, "text-anchor": "middle", class: "star-caption" }, text(caption)));
+    s("title", {}, text(name)), impact ? s("circle", { r: 17, class: "star-ring" }) : null, shape(node.kind, node),
+    s("text", { y: node.kind === "group" ? groupRadius(node.count) + 13 : 24, "text-anchor": "middle", class: "star-caption" }, text(caption)));
     g.addEventListener("click", (ev) => {
       ev.stopPropagation();
       if (suppressClick) { suppressClick = false; return; }
@@ -184,7 +222,7 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
   });
   const view = s("g", { class: "star-view" }, s("g", { class: "star-edges" }, ...edgeEls), s("g", { class: "star-nodes" }, ...nodeEls));
   const svg = s("svg", { viewBox: "0 0 800 560", class: "starmap-canvas zoom-mid", id: "starmap-canvas", role: "group",
-    "aria-label": t("starmap.canvas", { space }), "aria-describedby": "starmap-legend", "data-settled": "false" }, markers, view);
+    "aria-label": space === ALL ? t("starmap.canvasAll") : t("starmap.canvas", { space }), "aria-describedby": "starmap-legend", "data-settled": "false" }, markers, view);
 
   // draw writes the simulation's positions into the shown nodes and
   // edges: attributes of the elements there are, never new elements.
@@ -394,7 +432,7 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
         h("ul", { class: "list", id: "starmap-label-list" }, carriers.map((m) => h("li", {},
           h("button", { type: "button", class: "link", "data-id": m.id, text: `${m.key} ${m.title}`, onclick: () => focus(m.id) })))));
     }
-    if (!preview) return null;
+    if (!preview || node.kind === "group") return null;
     const content = await preview(node.key || node.id);
     // Long pages are clipped; "Read more" opens them in the panel.
     const body = h("div", { class: "starmap-preview-body clipped", id: "starmap-preview-body" }, content);
@@ -417,6 +455,8 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
     if (node.kind === "item") link = h("a", { href: "#/item/" + encodeURIComponent(node.key), class: "button primary", id: "starmap-open", text: t("starmap.open") });
     else if (node.kind === "picture") link = h("a", { href: "#/item/" + encodeURIComponent(byID.get(node.item)?.key || node.item), class: "button primary", id: "starmap-open", text: t("starmap.openItem") });
     else if (node.kind === "label") link = h("a", { href: "#/label/" + encodeURIComponent(node.name), class: "button primary", id: "starmap-open", text: t("starmap.openLabel") });
+    // A group leads to the starmap of its room (ADR-0191).
+    else if (node.kind === "group") link = h("a", { href: "#/starmap/" + encodeURIComponent(node.space), class: "button primary", id: "starmap-open", text: t("starmap.openRoom") });
     const owner = node.kind === "picture" ? byID.get(node.item) : null;
     const drill = impact || node.id === trail[trail.length - 1] ? null
       : h("button", { type: "button", class: "secondary", id: "starmap-drill", title: t("starmap.drillHelp"), text: t("starmap.drill"), onclick: () => separate(node.id) });
@@ -424,7 +464,7 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
     // and the node; from an impact view, the same path, the node the new
     // start, the direction and depth kept.
     let impactLink = null;
-    if (node.kind !== "label" && !(impact && node.id === impact.start)) {
+    if (node.kind !== "label" && node.kind !== "group" && !(impact && node.id === impact.start)) {
       const stations = impact ? impact.stations : trail.map((id) => station(byID.get(id))).filter((st) => st !== station(node));
       impactLink = h("a", { href: impactAddress(space, [...stations, station(node)], impact || { direction: "affected", depth: 1 }), class: "button secondary",
         id: "starmap-impact-open", title: t("starmap.impactHelp"), text: t("starmap.impact"),
@@ -441,11 +481,12 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
       node.kind === "item" ? h("p", { class: "muted starmap-facts-line", id: "starmap-facts" },
         [node.type, node.key, node.space, node.state, impact ? distanceName(node.distance) : null].filter(Boolean).join(" · ")) : null,
       node.kind === "item" ? null : h("dl", { class: "starmap-facts" },
-        row(t("starmap.panelKind"), node.kind === "item" ? node.type : node.kind === "picture" ? t("starmap.kindPicture") : t("starmap.kindLabel")),
+        row(t("starmap.panelKind"), node.kind === "group" ? node.type : node.kind === "picture" ? t("starmap.kindPicture") : t("starmap.kindLabel")),
+        node.kind === "group" ? row(t("starmap.panelCount"), String(node.count)) : null,
         row(t("starmap.panelKey"), node.key || owner?.key),
         row(t("starmap.panelTitle"), owner ? owner.title : null),
         row(t("starmap.panelState"), node.state),
-        row(t("starmap.panelSpace"), node.space),
+        row(t("starmap.panelSpace"), node.kind === "group" && node.title && node.title !== node.space ? `${node.space} – ${node.title}` : node.space),
         impact ? row(t("starmap.impactDistanceLabel"), distanceName(node.distance)) : null),
       h("div", { class: "starmap-panel-actions" }, link, drill, impactLink),
       box);
@@ -513,8 +554,10 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
   // address keeps the drill path and its depth in the address, so a
   // reload and the browser's back button find it again.
   function address() {
-    const want = "#/starmap/" + [space, ...trail.map((id) => (byID.get(id).kind === "item" ? byID.get(id).key : id))].map(encodeURIComponent).join("/")
-      + (trail.length && depth !== 1 ? "?depth=" + depth : "");
+    const q = new URLSearchParams(keep);
+    if (trail.length && depth !== 1) q.set("depth", String(depth));
+    const want = "#/starmap/" + [space, ...trail.map((id) => (byID.get(id).kind === "item" ? byID.get(id).key : id))].map((v) => (v === ALL ? v : encodeURIComponent(v))).join("/")
+      + (q.toString() ? "?" + q : "");
     if (location.hash !== want) history.pushState(null, "", want);
   }
 
@@ -663,12 +706,14 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
         : h("p", { class: "empty", id: "starmap-impact-none", text: affected ? t("starmap.impactNoneAffected") : t("starmap.impactNoneDependsOn") }));
   }
 
-  const truncated = data.truncated ? h("p", { class: "notice", id: "starmap-truncated", role: "status", text: t("starmap.truncated") }) : null;
+  const truncated = data.grouped ? h("p", { class: "notice", id: "starmap-grouped", role: "status", text: t("starmap.grouped", { n: data.items }) })
+    : data.truncated ? h("p", { class: "notice", id: "starmap-truncated", role: "status", text: t("starmap.truncated") }) : null;
   const body = n
     ? h("div", { class: "starmap-stage" }, svg, panel)
     : h("p", { class: "empty", id: "starmap-empty", text: t("starmap.empty") });
   mount(root,
     h("div", { class: "filter-bar starmap-tools", role: "search", "aria-label": t("starmap.title") }, search, select, impactTools || depthBox, zoomIn, zoomOut, zoomFit, count),
+    extra,
     h("div", { class: "starmap-filters" }, kindBoxes, groupBoxes),
     crumbs, truncated, body, impactPanel, legend);
   if (impact) root.classList.add("impact-mode");
