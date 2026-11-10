@@ -1,9 +1,9 @@
 # ADR-0176: Pictures of the album are presented as slides, with speaker's notes, in two windows
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-10
-- **Deciders:** Project initiators (request of 2026-11-10: a presentation mode for drawings and photos of the album, in a second browser window so that the presenter reads their notes while presenting, with a laser pointer, zoom and stepping forward and back; asked where the notes are kept, which pictures form a presentation and who watches, the requester chose a field of its own on the picture, the pictures of a folder ordered by name, and a second window of the same browser)
+- **Deciders:** Project initiators (request of 2026-11-10: a presentation mode for drawings and photos of the album, in a second browser window so that the presenter reads their notes while presenting, with a laser pointer, zoom and stepping forward and back; asked where the notes are kept, which pictures form a presentation and who watches, the requester chose a field of its own on the picture, the pictures of a folder ordered by name, and a second window of the same browser; accepted 2026-11-10)
 - **Open question:** whether a presentation also needs an order of its own, apart from the names of its pictures; whether people elsewhere should follow it in their own browsers, as a whiteboard's presentation is followed (ADR-0170); whether the presentation window should place itself on the second screen where the browser allows it
 - **Question checked:** 2026-11
 
@@ -72,7 +72,7 @@ Chosen option: **1** (the requester's choices).
 | Order of the slides | the pictures' names | as the names are |
 | Current slide, zoom, laser, black | the presenter's window | gone |
 
-### Not built (Partial)
+### Left out of this decision
 
 - Following a presentation from other browsers or computers (option 4).
 - Placing the presentation window on the second screen by itself (the Window Management API needs a permission and is not offered by every browser).
