@@ -77,4 +77,4 @@ Strongest form: the manual would be content like any other — searchable, comme
 ## Links
 
 - relates to ADR-0009 and ADR-0024 (one binary), ADR-0014 and ADR-0031 (no markup from strings), ADR-0017 (languages), ADR-0133 (Markdown into blocks)
-- amended by [ADR-0184](0184-the-user-manual-is-kept-current-by-checks.md) (the manual is kept current by checks)
+- amended by [ADR-0185](0185-the-user-manual-is-kept-current-by-checks.md) (the manual is kept current by checks)

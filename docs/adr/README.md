@@ -196,4 +196,5 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0181](0181-a-photos-place-set-by-hand-with-suggestions.md) | A photo's place set by hand, with suggestions from a place search | Accepted | Landed |
 | [0182](0182-every-file-of-an-item-is-renamed-from-its-file-list.md) | Every file of an item is renamed from its file list | Accepted | Landed |
 | [0183](0183-a-user-manual-in-every-ui-language-behind-the-account-menu.md) | A user manual in every UI language, behind the account menu | Accepted | Landed |
-| [0184](0184-the-user-manual-is-kept-current-by-checks.md) | The user manual is kept current by checks, not by memory alone | Proposed | Not started |
+| [0184](0184-pictures-are-moved-by-dragging-them-onto-a-folder.md) | Pictures of the album are moved by dragging them onto a folder | Proposed | Partial |
+| [0185](0185-the-user-manual-is-kept-current-by-checks.md) | The user manual is kept current by checks, not by memory alone | Proposed | Not started |
