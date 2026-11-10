@@ -140,6 +140,10 @@ func (db *DB) Snapshot() (files []SnapshotFile, err error) {
 			}
 			rel := filepath.ToSlash(filepath.Join(AttachmentsDir, string(id), string(a)))
 			files = append(files, SnapshotFile{Name: rel, Size: fi.Size(), R: &lazyFile{path: path, size: fi.Size()}})
+			// A video's poster is backed up with it (ADR-0189).
+			if pi, err := os.Stat(path + PosterSuffix); err == nil {
+				files = append(files, SnapshotFile{Name: rel + PosterSuffix, Size: pi.Size(), R: &lazyFile{path: path + PosterSuffix, size: pi.Size()}})
+			}
 		}
 	}
 	return files, nil

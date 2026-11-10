@@ -19,6 +19,7 @@ import { regionsIn } from "./drawprocesses.js";
 import { formView, decisionView, pickFromEngine, startFormView, pickStartLink, editPrefill } from "./engineviews.js";
 import { architectureView, pickArchitecture } from "./architecture.js";
 import { pickFromAlbum, pictureFile, captionOf, copiedPicture, clipMark } from "./album.js";
+import { VIDEO_TYPES } from "./photoparts.js";
 import { assist } from "./assist.js";
 import { markdownToBlocks, pastesAsMarkdown } from "./markdown.js";
 
@@ -987,7 +988,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
   });
   // A video is uploaded as an attachment of the item, then played in the
   // text (ADR-0097); the server reads its format from its bytes.
-  const videoPicker = h("input", { type: "file", accept: "video/mp4,video/webm", hidden: true, "aria-label": t("editor.video") });
+  const videoPicker = h("input", { type: "file", accept: "video/mp4,video/webm,video/quicktime,.mov", hidden: true, "aria-label": t("editor.video") });
   videoPicker.addEventListener("change", async () => {
     const file = videoPicker.files[0];
     videoPicker.value = "";
@@ -995,7 +996,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     status.textContent = t("editor.uploading");
     try {
       const a = await files.upload(file);
-      if (!["video/mp4", "video/webm"].includes(a.type)) throw new Error(t("editor.notAVideo"));
+      if (!VIDEO_TYPES.includes(a.type)) throw new Error(t("editor.notAVideo"));
       status.textContent = "";
       insertBlock(schema.nodes.video.create({ ref: a.id, text: a.name.replace(/\.[^.]*$/, "") }));
     } catch (err) {
@@ -1074,7 +1075,9 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
   const placeAlbum = async (p) => {
     const a = p.item.id === files.item ? p.attachment
       : await files.upload(await pictureFile(p), { item: p.item.id, attachment: p.attachment.id });
-    insertBlock(schema.nodes.image.create({ ref: a.id, text: captionOf(p.attachment.name) }));
+    // A video of the album plays in the text (ADR-0097, ADR-0189).
+    const node = VIDEO_TYPES.includes(p.attachment.type) ? schema.nodes.video : schema.nodes.image;
+    insertBlock(node.create({ ref: a.id, text: captionOf(p.attachment.name) }));
   };
   // A picture copied in the album (ADR-0108), named by the clipboard's
   // marker; its name and type come from this browser's copy or the item.

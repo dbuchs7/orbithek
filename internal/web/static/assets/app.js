@@ -11,6 +11,7 @@ import { commentPlugin } from "./anchors.js";
 import { personalNotes } from "./notes.js";
 import { isDrawing } from "./drawing.js";
 import { albumBrowser, retentionCard, captionOf } from "./album.js";
+import { sorts } from "./photoparts.js";
 import { renameInPlace } from "./rename.js";
 import { presenterView, audienceView } from "./present.js";
 import { starmapView } from "./starmap.js";
@@ -540,7 +541,8 @@ const filesOf = (item, attachments = [], canEdit = false) => {
     url: (id) => `/api/items/${item.id}/attachments/${id}`,
     // source names the file a copy or new version comes from (ADR-0055).
     upload: async (file, source) => {
-      const a = await upload("/api/items/" + item.id, file, source);
+      // A video may be larger than other files (ADR-0189).
+      const a = await upload("/api/items/" + item.id, file, source, sorts(file.name, file.type) === "video" ? { video: "1" } : {});
       known.set(a.id, a);
       return a;
     },

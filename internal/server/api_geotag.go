@@ -303,8 +303,8 @@ func (h itemHandlers) placeByHand(w http.ResponseWriter, r *http.Request, lat, l
 		h.fail(w, err)
 		return
 	}
-	if !inlineTypes[a.Type] {
-		writeError(w, http.StatusBadRequest, "only a picture has a place")
+	if !inlineTypes[a.Type] && !albumVideo(a) {
+		writeError(w, http.StatusBadRequest, "only a picture or a video has a place")
 		return
 	}
 	var read *item.Photo

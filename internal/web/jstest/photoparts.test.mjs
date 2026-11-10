@@ -11,7 +11,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { deflateRawSync } from "node:zlib";
 import {
-  TILE, project, unproject, fit, tiles, cluster, pan, zoomAt, radius, hit, groups, yearsAgo, range, dragged,
+  TILE, project, unproject, fit, tiles, cluster, pan, zoomAt, radius, hit, groups, yearsAgo, range, dragged, durationText, posterTime, isVideo,
   sorts, typeOf, baseName, hidden, exposureText, placeText,
 } from "../static/assets/photoparts.js";
 import { entries, read } from "../static/assets/zipread.js";
@@ -103,18 +103,36 @@ test("a range is chosen in the order shown, either way", () => {
   assert.deepEqual(range(ids, "x", "c"), ["c"]);
 });
 
-test("the album takes JPEG, PNG, GIF and WebP, and tells HEIC apart", () => {
+test("the album takes JPEG, PNG, GIF, WebP and videos, and tells HEIC apart", () => {
   assert.equal(sorts("IMG_1.JPG"), "picture");
   assert.equal(sorts("x", "image/webp"), "picture");
   assert.equal(sorts("IMG_2.HEIC"), "heic");
   assert.equal(sorts("x", "image/heif"), "heic");
-  assert.equal(sorts("clip.mov", "video/quicktime"), "skip");
+  assert.equal(sorts("clip.mov", "video/quicktime"), "video");
+  assert.equal(sorts("IMG_0001.MOV"), "video");
+  assert.equal(sorts("clip.webm"), "video");
+  assert.equal(sorts("x", "video/mp4"), "video");
+  assert.equal(sorts("song.mp3", "audio/mpeg"), "skip");
+  assert.equal(typeOf("a/clip.m4v"), "video/mp4");
   assert.equal(sorts("photo.json"), "skip");
   assert.equal(typeOf("a/b/c.jpeg"), "image/jpeg");
   assert.equal(typeOf("c.tif"), "");
   assert.equal(baseName("Export/2024/IMG_1.jpg"), "IMG_1.jpg");
   assert.ok(hidden("__MACOSX/._IMG_1.jpg") && hidden("Export/.DS_Store") && hidden("Export/"));
   assert.ok(!hidden("Export/IMG_1.jpg"));
+});
+
+test("a video's length is written as a player writes it, and its poster is taken past the first frame", () => {
+  assert.equal(durationText(12.3), "0:12");
+  assert.equal(durationText(245), "4:05");
+  assert.equal(durationText(3723), "1:02:03");
+  assert.equal(durationText(0), "");
+  assert.equal(durationText(undefined), "");
+  assert.equal(posterTime(60), 1);
+  assert.equal(posterTime(5), 0.5);
+  assert.equal(posterTime(NaN), 0);
+  assert.equal(posterTime(Infinity), 0);
+  assert.ok(isVideo({ video: true }) && isVideo({ attachment: { type: "video/quicktime" } }) && !isVideo({ attachment: { type: "image/png" } }));
 });
 
 test("exposure and place are written plainly", () => {

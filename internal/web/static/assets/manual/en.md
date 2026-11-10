@@ -215,11 +215,20 @@ Pictures are added where you are, in the **Folders** view:
 - *In a collection*, the same ways work. A collection holds no files of its own, so the album asks which folder the new pictures are kept in, the folder chosen last coming first, or makes a **New folder…**; each picture gets the collection's labels and so shows in the collection. **Add from the album…** gives pictures already in the album the collection's labels, without copying them.
 - *At the top* of the album, uploading, dropping or pasting asks for the folder as well, and that folder then opens.
 
-A PowerPoint presentation comes in with the pictures of its slides (see *Importing a PowerPoint presentation*). Pictures exported from photo apps are unpacked in the browser. If enabled, photos also come **From Google Photos** or **From a shared iCloud album**. HEIC photos are not accepted; export them as JPEG first.
+A PowerPoint presentation comes in with the pictures of its slides (see *Importing a PowerPoint presentation*). Pictures exported from photo apps are unpacked in the browser. If enabled, photos also come **From Google Photos** or **From a shared iCloud album**. HEIC photos are not accepted; export them as JPEG first. Videos from Google Photos and shared iCloud albums are still skipped.
 
 A folder's **Place on import** decides what happens to the place where a photo was taken: **Keep for every reader**, **Keep to me only** or **Remove from the file**. Per picture, the place can later be kept to you or shown to every reader.
 
 Where a picture tells no place, or a wrong one, whoever may edit it sets the **Place** by hand: in the viewer, or for several chosen pictures at once. Typing a name such as *Zermatt* suggests places, unless an administrator has turned the suggestions off; **Choose on the map** sets the place with a click on the map. **Remove the place** clears it.
+
+### Videos
+
+Videos come into the album the same ways as pictures: uploaded, dropped, pasted or in a ZIP archive, as MP4, WebM or MOV (iPhone), each up to 2 GB unless an administrator set another limit. The album then handles them like pictures: in folders and collections, on the timeline and the map, as favourites and memories, with labels, renaming, moving, deleting and the ZIP download.
+
+- When a video is uploaded, the browser takes a picture from it, which the album shows on the card with the video's length. A video the browser cannot play keeps a symbol instead.
+- When and where it was taken, how long it plays and the camera are read from the video itself; **Place on import** works as for photos.
+- A click plays the video in the viewer. Whether a MOV video plays depends on the browser: Safari plays it, other browsers often only when it was recorded as H.264 rather than HEVC. Otherwise choose **Download**.
+- The kind filter **Videos** shows only videos. Videos are not shown as slides when presenting; they are not exported as PNG or JPEG.
 
 ### Importing a PowerPoint presentation
 

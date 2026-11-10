@@ -230,6 +230,19 @@ func (c *byteCache) get(key string) ([]byte, string, bool) {
 	return v.data, v.kind, true
 }
 
+// drop forgets every answer whose key starts with prefix.
+func (c *byteCache) drop(prefix string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for key, e := range c.at {
+		if strings.HasPrefix(key, prefix) {
+			c.size -= int64(len(e.Value.(cached).data))
+			c.order.Remove(e)
+			delete(c.at, key)
+		}
+	}
+}
+
 func (c *byteCache) put(key, kind string, data []byte) {
 	c.mu.Lock()
 	defer c.mu.Unlock()

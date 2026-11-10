@@ -51,6 +51,8 @@ type Photo struct {
 	// the file's place.
 	PlaceName   string `json:"placeName,omitempty"`
 	PlaceManual bool   `json:"placeManual,omitempty"`
+	// Duration is how long a video plays, in seconds (ADR-0189).
+	Duration float64 `json:"duration,omitempty"`
 }
 
 const takenLayout = "2006-01-02T15:04:05"
@@ -111,6 +113,9 @@ func checkPhoto(p *Photo) error {
 	}
 	if p.Orientation < 0 || p.Orientation > 8 || p.Width < 0 || p.Height < 0 || p.Width > 1<<20 || p.Height > 1<<20 {
 		return invalid("photo: orientation or size out of range")
+	}
+	if !finite(p.Duration) || p.Duration < 0 || p.Duration > 1e7 {
+		return invalid("photo: the duration is out of range")
 	}
 	return nil
 }

@@ -25,7 +25,7 @@ import { get, post, put, del, upload } from "./api.js";
 import { DRAWING } from "./drawing.js";
 import { exportFormats, exportPicture } from "./picexport.js";
 import { allFolders, copyTo, moveTo, dayText, deckText, googleImport, icloudImport, importDeck, importFiles, monthText, openViewer, rememberedAlbum, setFavourite, importPlace, PLACES, summaryText, thumbURL, zipPictures } from "./photos.js";
-import { dragged, groups, range, yearsAgo } from "./photoparts.js";
+import { dragged, durationText, groups, isVideo, range, yearsAgo } from "./photoparts.js";
 import { photoMap } from "./photomap.js";
 import { pickPlace, placeInput } from "./places.js";
 import { startPresentation } from "./present.js";
@@ -96,7 +96,7 @@ export const captionOf = (name) => (name.endsWith(DRAWING) ? name.slice(0, -DRAW
 export function albumBrowser({ pick, pickText } = {}) {
   const search = h("input", { type: "search", placeholder: t("album.search"), "aria-label": t("album.search") });
   const kind = h("select", { "aria-label": t("album.kind") },
-    [["", t("album.kindAll")], ["image", t("album.kindImages")], ["drawing", t("album.kindDrawings")]].map(([v, label]) => h("option", { value: v, text: label })));
+    [["", t("album.kindAll")], ["image", t("album.kindImages")], ["drawing", t("album.kindDrawings")], ["video", t("album.kindVideos")]].map(([v, label]) => h("option", { value: v, text: label })));
   const space = h("select", { "aria-label": t("album.space") }, h("option", { value: "", text: t("album.spaceAll") }));
   // The rooms one may see, for the filter and the room of a new folder.
   let rooms = [];
@@ -115,7 +115,7 @@ export function albumBrowser({ pick, pickText } = {}) {
     title: t("album.presentTitle"), hidden: true, onclick: () => startPresentation(filters()) });
   const status = h("div", { class: "status" });
   // files takes the pictures chosen to add where one is (ADR-0187).
-  const files = h("input", { type: "file", accept: "image/png,image/jpeg,image/gif,image/webp,.heic,.heif,.zip,application/zip,.pptx,.ppsx", multiple: true, hidden: true, id: "album-files" });
+  const files = h("input", { type: "file", accept: "image/png,image/jpeg,image/gif,image/webp,.heic,.heif,video/mp4,video/webm,video/quicktime,.mp4,.m4v,.webm,.mov,.zip,application/zip,.pptx,.ppsx", multiple: true, hidden: true, id: "album-files" });
   files.addEventListener("change", async () => {
     const list = [...files.files];
     files.value = "";
@@ -332,7 +332,20 @@ export function albumBrowser({ pick, pickText } = {}) {
         const system = await copyPicture(p);
         status.replaceChildren(h("p", { class: "notice", role: "status", text: t(system ? "album.copied" : "album.copiedHere", { name: captionOf(p.attachment.name) }) }));
       } }),
-      exportMenu(p));
+      // A video is downloaded as it is; it has no picture formats to
+      // export (ADR-0189).
+      isVideo(p) ? h("a", { class: "button secondary album-download", href: fileURL(p), download: p.attachment.name, text: t("album.download") }) : exportMenu(p));
+  };
+
+  // videoThumb shows a video by its poster, or by its symbol when it has
+  // none, with how long it plays (ADR-0189).
+  const videoThumb = (p, name) => {
+    const symbol = () => h("span", { class: "album-video-symbol", "aria-hidden": "true" });
+    const img = h("img", { src: thumbURL(p), alt: name, loading: "lazy", draggable: "false" });
+    img.addEventListener("error", () => img.replaceWith(symbol()), { once: true });
+    return h("div", { class: "album-video" }, img,
+      h("span", { class: "album-video-badge", "aria-label": t("album.videoOf", { duration: durationText(p.attachment.photo?.duration) || "–" }) },
+        h("span", { class: "album-play", "aria-hidden": "true", text: "▶" }), " ", durationText(p.attachment.photo?.duration)));
   };
 
   // card shows one picture, with the same parts in the same places on every
@@ -344,7 +357,7 @@ export function albumBrowser({ pick, pickText } = {}) {
   // is the top of a stack with older versions.
   const card = (p, version, picture, stacked = false) => {
     const name = captionOf(p.attachment.name);
-    const thumb = h("div", { class: "album-thumb" }, picture || h("img", { src: thumbURL(p), alt: name, loading: "lazy", draggable: "false" }));
+    const thumb = h("div", { class: "album-thumb" }, picture || (isVideo(p) ? videoThumb(p, name) : h("img", { src: thumbURL(p), alt: name, loading: "lazy", draggable: "false" })));
     const li = h("li", { class: "album-card", "data-attachment": p.attachment.id },
       h("figure", {},
         thumb,
@@ -355,6 +368,7 @@ export function albumBrowser({ pick, pickText } = {}) {
             !pick && p.editable ? moreMenu(p, stacked) : null),
           h("span", { class: "album-chips" },
             p.drawing ? h("span", { class: "chip", text: t("album.drawing") }) : null,
+            isVideo(p) ? h("span", { class: "chip album-video-chip", text: t("album.video") }) : null,
             version ? h("span", { class: "chip album-version", text: t("album.version", { n: version }) }) : null,
             stacked && p.retention ? h("span", { class: "chip album-own-rule", text: t("retention.chip") }) : null,
             h("span", { class: "muted album-when", text: when(p.attachment.created) })),

@@ -76,4 +76,5 @@ Strongest form: no storage for large files, and streaming done by others.
 ## Links
 
 - amends [ADR-0045](0045-attachments-encrypted-files-beside-the-log.md) (files are read and served in parts), [ADR-0052](0052-corporate-design-in-a-journal-of-its-own.md) (the name is the tab's title) and [ADR-0091](0091-rules-every-view-follows.md) (Done beside the text)
+- amended by [ADR-0189](0189-videos-in-the-album.md) (QuickTime plays in a text too; videos have a budget of their own)
 - relates to ADR-0056 and ADR-0059 (sizing and placing pictures), ADR-0071 (export), ADR-0025 (codec versions)

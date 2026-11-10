@@ -26,7 +26,9 @@ const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "bas
 // before "10 Outlook", and of two with the same name by the item and the
 // file, so the order is the same in every window.
 export function slidesOf(pictures) {
-  return (pictures || []).map((p) => ({
+  // Videos are no slides yet (ADR-0189): a slide is a picture to zoom
+  // into and point at.
+  return (pictures || []).filter((p) => !p.video).map((p) => ({
     item: { id: p.item.id, key: p.item.key, title: p.item.title },
     attachment: { id: p.attachment.id, name: p.attachment.name, type: p.attachment.type },
     name: captionOf(p.attachment.name),

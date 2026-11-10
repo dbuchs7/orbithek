@@ -182,7 +182,7 @@ func TestAPhotoTellsWhenAndWhereItWasTaken(t *testing.T) {
 		t.Errorf("photo route %v", r)
 	}
 	w.carla.expect("GET", "/api/items/"+w.folder+"/attachments/"+lake["id"].(string)+"/photo", "", http.StatusNotFound)
-	for _, bad := range []string{"?day=13-01", "?from=2024", "?order=random", "?kind=video"} {
+	for _, bad := range []string{"?day=13-01", "?from=2024", "?order=random", "?kind=audio"} {
 		w.vera.expect("GET", "/api/album"+bad, "", http.StatusBadRequest)
 		w.vera.expect("GET", "/api/album/months"+bad, "", http.StatusBadRequest)
 		w.vera.expect("GET", "/api/album/places"+bad, "", http.StatusBadRequest)

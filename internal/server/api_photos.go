@@ -74,7 +74,7 @@ var fallbackPhotos = NewPhotos(func(string) string { return "" }, nil)
 // when it tells nothing.
 func photoOf(m photo.Meta) *item.Photo {
 	p := &item.Photo{Taken: m.Taken, Offset: m.Offset, Lat: m.Lat, Lon: m.Lon, Alt: m.Alt, Make: m.Make, Model: m.Model, Lens: m.Lens,
-		Exposure: m.Exposure, FNumber: m.FNumber, ISO: m.ISO, Focal: m.Focal, Focal35: m.Focal35, Orientation: m.Orientation, Width: m.Width, Height: m.Height}
+		Exposure: m.Exposure, FNumber: m.FNumber, ISO: m.ISO, Focal: m.Focal, Focal35: m.Focal35, Orientation: m.Orientation, Width: m.Width, Height: m.Height, Duration: m.Duration}
 	if p.Lat == nil {
 		p.Alt = nil // a height without a place says nothing the album uses
 	}
@@ -88,6 +88,9 @@ func photoOf(m photo.Meta) *item.Photo {
 // file or one that tells nothing. Data the model would refuse is left out
 // rather than refusing the file.
 func (h itemHandlers) readPhoto(id item.ID, a item.Attachment) *item.Photo {
+	if albumVideo(a) {
+		return h.readVideo(id, a) // what a video tells (ADR-0189)
+	}
 	if !inlineTypes[a.Type] {
 		return nil
 	}
@@ -172,11 +175,14 @@ func (h itemHandlers) thumbnail(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, err)
 		return
 	}
-	if !inlineTypes[a.Type] {
+	if !inlineTypes[a.Type] && !albumVideo(a) {
 		writeError(w, http.StatusNotFound, "the file is no picture")
 		return
 	}
 	etag := strconv.Quote(a.SHA256 + "-" + strconv.Itoa(edge))
+	if albumVideo(a) {
+		etag = strconv.Quote(a.SHA256 + "-poster-" + strconv.Itoa(edge))
+	}
 	if r.Header.Get("If-None-Match") == etag {
 		w.WriteHeader(http.StatusNotModified)
 		return
@@ -188,6 +194,11 @@ func (h itemHandlers) thumbnail(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		data, kind, err = h.makeThumbnail(r.Context(), p, it.ID, a, edge)
 		switch {
+		case albumVideo(a) && err != nil:
+			// A video without a poster has no thumbnail; the album shows
+			// it by its symbol.
+			writeError(w, http.StatusNotFound, "the video has no poster")
+			return
 		case errors.Is(err, photo.ErrUnsupported), errors.Is(err, photo.ErrTooLarge):
 			http.Redirect(w, r, original, http.StatusFound)
 			return
@@ -216,6 +227,21 @@ func (h itemHandlers) makeThumbnail(ctx context.Context, p *Photos, id item.ID, 
 		defer func() { <-p.working }()
 	case <-ctx.Done():
 		return nil, "", ctx.Err()
+	}
+	// A video's thumbnail is its poster's (ADR-0189); the browser took the
+	// poster upright.
+	if albumVideo(a) {
+		c, err := h.d.DB.OpenPoster(id, a.ID)
+		if err != nil {
+			return nil, "", err
+		}
+		defer c.Close()
+		head := make([]byte, 512)
+		n, _ := io.ReadFull(c, head)
+		if _, err := c.Seek(0, io.SeekStart); err != nil {
+			return nil, "", err
+		}
+		return photo.Thumbnail(c, http.DetectContentType(head[:n]), edge, 0, budget.Get().ThumbnailPixels)
 	}
 	c, err := h.d.DB.OpenAttachment(id, a.ID)
 	if err != nil {
@@ -284,7 +310,7 @@ func (h itemHandlers) albumFilterOf(r *http.Request) (albumFilter, error) {
 		day: q.Get("day"), from: q.Get("from"), to: q.Get("to"), taken: q.Get("order") == "taken", place: q.Get("place") == "on", only: q.Get("favourites") == "on"}
 	f.label, _ = item.NormalLabel(q.Get("label"))
 	switch {
-	case f.kind != "" && f.kind != "image" && f.kind != "drawing":
+	case f.kind != "" && f.kind != "image" && f.kind != "drawing" && f.kind != "video":
 		return f, errors.New("kind is image or drawing")
 	case q.Get("order") != "" && q.Get("order") != "added" && q.Get("order") != "taken":
 		return f, errors.New("order is added or taken")
@@ -301,6 +327,18 @@ func (h itemHandlers) albumFilterOf(r *http.Request) (albumFilter, error) {
 	return f, nil
 }
 
+// albumKind is what the album shows a file as: an image, a drawing or a
+// video (ADR-0189).
+func albumKind(a item.Attachment) string {
+	switch {
+	case albumVideo(a):
+		return "video"
+	case strings.HasSuffix(a.Name, DrawingSuffix):
+		return "drawing"
+	}
+	return "image"
+}
+
 // albumStacks lists the stacks of versions the filter keeps (ADR-0103):
 // the versions of one file, newest on top. A stack shows when any of its
 // versions matches the words, labels and folder, and when its top matches
@@ -308,8 +346,7 @@ func (h itemHandlers) albumFilterOf(r *http.Request) (albumFilter, error) {
 // their top was taken, or by when it was added.
 func albumStacks(x *item.Session, f albumFilter) [][]item.Picture {
 	keep := func(a item.Attachment) bool {
-		drawing := strings.HasSuffix(a.Name, DrawingSuffix)
-		return inlineTypes[a.Type] && (f.kind == "" || (f.kind == "drawing") == drawing)
+		return (inlineTypes[a.Type] || albumVideo(a)) && (f.kind == "" || albumKind(a) == f.kind)
 	}
 	match := func(p item.Picture) bool {
 		return (f.inRule == nil || f.inRule(p)) && (f.folder == "" || p.Item.ID == f.folder) && (f.label == "" || slices.Contains(p.Attachment.Labels, f.label)) &&

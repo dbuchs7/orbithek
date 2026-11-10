@@ -143,8 +143,10 @@ var ArchitectureLayers = []string{"strategy", "business", "application", "data",
 var BPMNTypes = []string{"text/xml; charset=utf-8", "text/plain; charset=utf-8"}
 
 // VideoTypes are the formats of a video a body plays, as read from the
-// file's bytes; browsers play them without a plug-in (ADR-0097).
-var VideoTypes = []string{"video/mp4", "video/webm"}
+// file's bytes; browsers play them without a plug-in (ADR-0097). A
+// QuickTime file plays where the browser knows its codec, Safari always
+// (ADR-0189).
+var VideoTypes = []string{"video/mp4", "video/webm", "video/quicktime"}
 
 // PanelTones are the tones of a panel block.
 var PanelTones = []string{"info", "note", "warning", "tip", "error"}

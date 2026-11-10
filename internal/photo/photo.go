@@ -40,6 +40,8 @@ type Meta struct {
 	// Width and Height are the pixel size as stored, before orientation.
 	Width  int `json:"width,omitempty"`
 	Height int `json:"height,omitempty"`
+	// Duration is how long a video plays, in seconds (ADR-0189).
+	Duration float64 `json:"duration,omitempty"`
 }
 
 // Bounds on walking a file's structure.
