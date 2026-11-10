@@ -1,9 +1,9 @@
 # ADR-0185: The user manual is kept current by checks, not by memory alone
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-10
-- **Deciders:** Project initiators (request of 2026-11-10: a decision so that the user manual always stays current and is kept up to date; the means below are proposed and await the requester's confirmation)
+- **Deciders:** Project initiators (request of 2026-11-10: a decision so that the user manual always stays current and is kept up to date; the means below were proposed with this record; accepted by the requester 2026-11-10)
 - **Open question:** whether the change check should block merging from the start or only warn first, as the DCO check did (ADR-0019); whether the manual should name the release it describes; whether screenshots belong in the manual once it is kept current
 - **Question checked:** 2026-11
 
@@ -38,7 +38,7 @@ How does the project make a stale manual visible before a change is merged, with
 
 ## Decision outcome
 
-Chosen option: **3**, with the rule of option 1 kept as the explanation of the checks (proposed with this record).
+Chosen option: **3**, with the rule of option 1 kept as the explanation of the checks (proposed with this record, accepted by the requester).
 
 ### Check A: what the manual names exists (test, in the tree)
 
