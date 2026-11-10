@@ -291,6 +291,13 @@ func TestAlbumFoldersAndLabelsThroughTheAPI(t *testing.T) {
 	if len(folders) != 1 || folders[0].(map[string]any)["name"] != "Logos" {
 		t.Fatalf("top folders %v", folders)
 	}
+	// The listing says who may add pictures to a folder (ADR-0187).
+	if folders[0].(map[string]any)["editable"] != false {
+		t.Fatalf("a reader's folder %v", folders[0])
+	}
+	if own := field(w.bert.expect("GET", "/api/album/folders?space=PLAT", "", http.StatusOK), "folders").([]any); own[0].(map[string]any)["editable"] != true {
+		t.Fatalf("an editor's folder %v", own[0])
+	}
 	if sub := field(w.vera.expect("GET", "/api/album/folders?parent="+id, "", http.StatusOK), "folders").([]any); len(sub) != 1 || sub[0].(map[string]any)["id"] != brand["id"] {
 		t.Fatalf("sub folders %v", sub)
 	}

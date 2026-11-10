@@ -248,11 +248,17 @@ export function importPlace(value) {
   }
 }
 
+// labelUpload gives a picture just uploaded the labels asked, so that a
+// collection gathers it (ADR-0187).
+const labelUpload = (folder, att, labels) =>
+  labels.length ? put(`/api/items/${folder}/attachments/${att.id}/labels`, { labels: [...new Set([...(att.labels || []), ...labels])] }) : null;
+
 // importFiles uploads chosen or dropped files into a folder: pictures as
 // they are, ZIP archives unpacked here first. HEIC photos and other files
 // are skipped and counted. progress is told each step; place is what the
-// server does with where each photo was taken (PLACES).
-export async function importFiles(files, folder, progress, place = "") {
+// server does with where each photo was taken (PLACES); labels are given
+// to every picture uploaded.
+export async function importFiles(files, folder, progress, place = "", labels = []) {
   const sum = { done: 0, heic: 0, skipped: 0, failed: [] };
   const queue = [];
   for (const f of files) {
@@ -278,7 +284,8 @@ export async function importFiles(files, folder, progress, place = "") {
     progress(t("photos.uploading", { n: n + 1, total: queue.length, name: q.name }));
     try {
       const blob = await q.read();
-      await upload(`/api/items/${folder}`, blob instanceof File ? blob : new File([blob], q.name, { type: blob.type }), null, place ? { place } : {});
+      const att = await upload(`/api/items/${folder}`, blob instanceof File ? blob : new File([blob], q.name, { type: blob.type }), null, place ? { place } : {});
+      await labelUpload(folder, att, labels);
       sum.done++;
     } catch (err) { sum.failed.push(`${q.name}: ${err.message}`); }
   }
@@ -292,7 +299,7 @@ export async function importFiles(files, folder, progress, place = "") {
 // slide's picture goes into it named by its place and title, and the
 // slide's speaker's notes become the picture's notes. It gives null when
 // the files hold no presentation, so they are imported as pictures.
-export async function importDeck(files, folder, progress, place = "") {
+export async function importDeck(files, folder, progress, place = "", labels = []) {
   const decks = [];
   const pictures = [];
   let skipped = 0;
@@ -340,6 +347,7 @@ export async function importDeck(files, folder, progress, place = "") {
     try {
       const blob = await picture.read();
       const att = await upload(`/api/items/${item.id}`, new File([blob], name, { type: blob.type || typeOf(picture.name) }), null, place ? { place } : {});
+      await labelUpload(item.id, att, labels);
       sum.done++;
       if (slide.notes) {
         await put(`/api/items/${item.id}/attachments/${att.id}/notes`, { notes: slide.notes });

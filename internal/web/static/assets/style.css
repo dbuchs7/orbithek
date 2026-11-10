@@ -1069,6 +1069,21 @@ dialog.album-dialog { width: min(960px, calc(100vw - 32px)); max-height: calc(10
 dialog.album-dialog::backdrop { background: rgba(20, 22, 26, .45); }
 .album-dialog-body { padding: 12px; overflow: auto; max-height: calc(100vh - 130px); }
 .album-dialog .drawing-bar button { margin-left: auto; }
+/* Adding pictures where one is (ADR-0187): the invitation of an empty
+   folder or collection, the choice of a folder, the album to add from. */
+.album-drop-zone { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 12px 0; padding: 40px 16px; border: 2px dashed var(--border); border-radius: 12px; text-align: center; background: var(--surface); }
+.album-drop-zone[hidden] { display: none; }
+.album.dropping .album-drop-zone { border-color: var(--accent); }
+.album-drop-title { font-size: 1.15rem; }
+.album-drop-zone p { margin: 0; max-width: 46ch; }
+dialog.album-target { width: min(520px, calc(100vw - 32px)); border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: inherit; padding: 16px 20px; }
+dialog.album-target::backdrop { background: rgba(20, 22, 26, .45); }
+dialog.album-target h2 { margin: 0 0 8px; font-size: 1.1rem; }
+.album-target-form { display: flex; flex-direction: column; gap: 10px; }
+.album-target-form select, .album-target-form input { width: 100%; }
+.album-target-new { display: flex; gap: 8px; }
+.album-target-new[hidden] { display: none; }
+.album-add-hint { margin: 8px 12px 0; }
 
 /* Contrast warnings of the corporate design (ADR-0052). */
 .notice.warning { background: var(--danger-soft); border-color: var(--danger); }
