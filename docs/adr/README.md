@@ -7,9 +7,13 @@ Every load-bearing architectural decision is recorded as an ADR: context, decisi
 
 New records start from [`template.md`](template.md). An accepted decision is not overwritten; it is superseded by a new ADR.
 
+The index below is generated from each record's heading and front matter: run `go generate ./docs/adr` after adding a record or changing its title, status or implementation, and after a merge that conflicts in the index. A test fails while the index is not the generated one.
+
 ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](https://github.com/pblumer/atlas) and adapted to this product; each names its atlas sources under *Context* and *Links*.
 
 ## Index
+
+<!-- BEGIN INDEX: generated from the records' headings by `go generate ./docs/adr`; do not edit by hand -->
 
 | No. | Title | Status | Implementation |
 |---|---|---|---|
@@ -198,3 +202,5 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0183](0183-a-user-manual-in-every-ui-language-behind-the-account-menu.md) | A user manual in every UI language, behind the account menu | Accepted | Landed |
 | [0184](0184-pictures-are-moved-by-dragging-them-onto-a-folder.md) | Pictures of the album are moved by dragging them onto a folder | Accepted | Landed |
 | [0185](0185-the-user-manual-is-kept-current-by-checks.md) | The user manual is kept current by checks, not by memory alone | Proposed | Not started |
+
+<!-- END INDEX -->
