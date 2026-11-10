@@ -1,9 +1,9 @@
 # ADR-0177: Photo management in the album, with imports from Google Photos and Apple
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-10
-- **Deciders:** Project initiators (request of 2026-11-10 to manage photos in the album, covering what photo libraries commonly offer, and to bring in Google Photos and Apple Photos so photos are managed in one place; the four choices below were answered the same day; the option to remove the place on import was asked for the same day)
+- **Deciders:** Project initiators (request of 2026-11-10 to manage photos in the album, covering what photo libraries commonly offer, and to bring in Google Photos and Apple Photos so photos are managed in one place; the four choices below were answered the same day; the option to remove the place on import was asked for the same day; accepted 2026-11-10)
 - **Open question:** whether a shared iCloud album should be followed on a schedule rather than updated on request; whether older pictures should have their photo data recorded in one run; whether places should be told only to the person who added the picture, beyond removing them on import as one may now; whether videos, faces and similar pictures belong in the album
 - **Question checked:** 2026-11
 
