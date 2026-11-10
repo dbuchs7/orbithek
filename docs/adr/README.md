@@ -204,6 +204,6 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0189](0189-videos-in-the-album.md) | Videos in the album, handled as its pictures are | Accepted | Landed |
 | [0190](0190-a-folder-is-deleted-from-the-album.md) | A folder is deleted from the album, into the trash with what it holds | Accepted | Landed |
 | [0191](0191-a-starmap-of-all-rooms.md) | A starmap of all rooms, in bubbles per room and type when it is too large | Accepted | Landed |
-| [0192](0192-videos-as-slides-and-from-google-photos-and-icloud.md) | Videos as slides, and from Google Photos and shared iCloud albums | Proposed | Partial |
-| [0193](0193-a-collection-is-deleted-from-the-album.md) | A collection is deleted from the album, its pictures staying where they are | Proposed | Partial |
-| [0194](0194-faces-and-person-albums.md) | Faces found in the browser, named by people, and recognised only where administrators allow it | Proposed | Partial |
+| [0192](0192-videos-as-slides-and-from-google-photos-and-icloud.md) | Videos as slides, and from Google Photos and shared iCloud albums | Accepted | Landed |
+| [0193](0193-a-collection-is-deleted-from-the-album.md) | A collection is deleted from the album, its pictures staying where they are | Accepted | Landed |
+| [0194](0194-faces-and-person-albums.md) | Faces found in the browser, named by people, and recognised only where administrators allow it | Accepted | Landed |
