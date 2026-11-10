@@ -62,3 +62,38 @@ func TestStarmapThroughTheAPI(t *testing.T) {
 	w.vera.expect("GET", "/api/spaces/NOPE/starmap", "", http.StatusNotFound)
 	w.carla.expect("GET", "/api/spaces/PLAT/starmap", "", http.StatusNotFound)
 }
+
+// The starmap of all spaces (ADR-0191): every readable item of every
+// space, narrowed by a label, and grouped per space and type beyond the
+// budget; an outsider sees an empty map.
+func TestStarmapOfAllSpacesThroughTheAPI(t *testing.T) {
+	w := newWorld(t)
+	b := w.bert
+	var ids []string
+	for _, title := range []string{"One", "Two", "Three"} {
+		it := b.expect("POST", "/api/items", `{"space":"PLAT","type":"task","title":"`+title+`","properties":{"priority":"low"}}`, http.StatusCreated)
+		ids = append(ids, field(it, "item", "id").(string))
+	}
+	b.expect("PUT", "/api/items/"+ids[0]+"/labels", `{"labels":["q4"]}`, http.StatusOK)
+
+	m := w.vera.expect("GET", "/api/starmap", "", http.StatusOK)
+	if len(m["nodes"].([]any)) != 3 || m["grouped"] != false || m["items"] != 3.0 {
+		t.Fatalf("all spaces %v", m)
+	}
+	m = w.vera.expect("GET", "/api/starmap?label=q4", "", http.StatusOK)
+	if n := m["nodes"].([]any); len(n) != 1 || n[0].(map[string]any)["id"] != ids[0] {
+		t.Errorf("by label %v", m)
+	}
+	bud := budget.Get()
+	bud.StarmapNodes = 2
+	budget.Set(bud)
+	t.Cleanup(func() { budget.Set(budget.Default()) })
+	m = w.vera.expect("GET", "/api/starmap", "", http.StatusOK)
+	g := m["nodes"].([]any)
+	if m["grouped"] != true || len(g) != 1 || g[0].(map[string]any)["kind"] != "group" || g[0].(map[string]any)["count"] != 3.0 {
+		t.Errorf("grouped %v", m)
+	}
+	if m := w.carla.expect("GET", "/api/starmap", "", http.StatusOK); len(m["nodes"].([]any)) != 0 || m["items"] != 0.0 {
+		t.Errorf("an outsider's map %v", m)
+	}
+}
