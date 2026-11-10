@@ -195,4 +195,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0180](0180-pictures-of-the-album-are-renamed-with-all-their-versions.md) | Pictures of the album are renamed, with all their versions, keeping their file type | Accepted | Landed |
 | [0181](0181-a-photos-place-set-by-hand-with-suggestions.md) | A photo's place set by hand, with suggestions from a place search | Accepted | Landed |
 | [0182](0182-every-file-of-an-item-is-renamed-from-its-file-list.md) | Every file of an item is renamed from its file list | Accepted | Landed |
-| [0183](0183-a-user-manual-in-every-ui-language-behind-the-account-menu.md) | A user manual in every UI language, behind the account menu | Proposed | Partial |
+| [0183](0183-a-user-manual-in-every-ui-language-behind-the-account-menu.md) | A user manual in every UI language, behind the account menu | Accepted | Landed |
