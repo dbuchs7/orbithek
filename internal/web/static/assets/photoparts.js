@@ -89,6 +89,26 @@ export function cluster(places, center, zoom, width, height, cell = 48) {
   return [...cells.values()].map((k) => ({ x: k.x / k.places.length, y: k.y / k.places.length, count: k.places.length, places: k.places }));
 }
 
+// radius is how large a point of the map is drawn: a single place small,
+// a cluster growing with its number, up to a bound.
+export const radius = (count) => (count === 1 ? 7 : Math.min(26, 10 + Math.log2(count) * 3));
+
+// hit is the point of the map a click at (x, y) lands on: within its
+// drawn radius and a little more for a finger, the nearest if several;
+// null when none.
+export function hit(points, x, y, slack = 4) {
+  let best = null;
+  let bestD = Infinity;
+  for (const p of points) {
+    const d = Math.hypot(p.x - x, p.y - y);
+    if (d <= radius(p.count) + slack && d < bestD) {
+      best = p;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
 // pan moves a centre by pixels at a zoom.
 export function pan(center, zoom, dx, dy) {
   const c = project(center.lat, center.lon, zoom);
