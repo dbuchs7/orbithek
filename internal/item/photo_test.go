@@ -9,7 +9,7 @@ import (
 )
 
 // TestPhotoDataIsChecked: the model takes photo data a picture could
-// tell and refuses the rest (ADR-0176).
+// tell and refuses the rest (ADR-0177).
 func TestPhotoDataIsChecked(t *testing.T) {
 	f := func(v float64) *float64 { return &v }
 	good := []*Photo{nil, {}, {Taken: "2024-05-01T13:22:10", Offset: "+02:00", Lat: f(46.5), Lon: f(-7.8), Alt: f(-30), Make: "Maker", Exposure: "1/250", FNumber: 2.8, ISO: 100, Focal: 35, Focal35: 52, Orientation: 8, Width: 10, Height: 5}}

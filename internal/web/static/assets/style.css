@@ -949,7 +949,7 @@ dialog.drawing::backdrop { background: rgba(20, 22, 26, .45); }
   .album-export > .export-list { left: 0; right: auto; min-width: 14rem; }
   .album-more > .export-list { left: auto; right: 0; min-width: 12rem; }
 }
-/* The album as a photo library (ADR-0176). */
+/* The album as a photo library (ADR-0177). */
 .album-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 8px; }
 .album-bar .segmented { margin: 0; }
 .album-bar #album-choose { margin-left: auto; }
@@ -2443,3 +2443,60 @@ fieldset.rec-input .rec-day input { width: auto; }
 .whiteboards { list-style: none; padding: 0; margin: 0; }
 .whiteboards li { padding: .25rem 0; }
 .comment-element { font-style: normal; }
+
+/* Presenting pictures of the album (ADR-0176): the presenter's window and
+   the presentation window take the whole window, without the top bar. */
+body.presenting header.top, body.presenting #footer, body.presenting .storage-banner { display: none; }
+body.presenting main#app { padding: 0; max-width: none; }
+body.presenting-show { background: #000; }
+.album-count-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.album-count-row p { margin: 0; }
+.album-notes { padding: 0 12px 8px; font-size: 0.85rem; }
+.album-notes.muted { margin: 0; }
+.album-notes-input { width: 100%; box-sizing: border-box; font: inherit; resize: vertical; }
+.album-notes-actions { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+
+.present-stage { position: relative; overflow: hidden; background: #111; touch-action: none; user-select: none; }
+.present-img { position: absolute; left: 0; top: 0; transform-origin: 0 0; max-width: none; pointer-events: none; }
+.present-laser { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.present-black { position: absolute; inset: 0; background: #000; }
+.present-stage.laser-on { cursor: none; }
+.present-stage.zoomed { cursor: grab; }
+.present-stage.zoomed.dragging { cursor: grabbing; }
+
+.present-console { display: grid; grid-template-rows: auto 1fr auto; height: 100dvh; background: var(--bg); color: var(--text); }
+.present-bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
+.present-name { font-size: 1.1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 30ch; }
+.present-counter { font-variant-numeric: tabular-nums; color: var(--muted); }
+.present-tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.present-tools:last-child { margin-left: auto; }
+.present-tools button { min-width: 2.5rem; }
+.present-tools button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.present-time { font-variant-numeric: tabular-nums; font-size: 1.1rem; }
+.present-link { font-size: 0.85rem; }
+.present-link.ok { color: var(--success); }
+.present-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(16rem, 26rem); gap: 16px; padding: 16px; min-height: 0; }
+.present-main, .present-main .present-stage { min-height: 0; height: 100%; border-radius: var(--radius-sm); }
+.present-side { display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow: auto; }
+.present-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 4px 0 0; }
+.present-stage-small { aspect-ratio: 16 / 9; border-radius: var(--radius-sm); flex: none; }
+.present-notes { flex: 1; min-height: 8rem; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+.present-notes-text { white-space: pre-wrap; font-size: 1.25rem; line-height: 1.5; }
+.present-notes textarea { width: 100%; box-sizing: border-box; font: inherit; font-size: 1.1rem; resize: vertical; }
+.present-keys { font-size: 0.8rem; margin: 0; }
+.present-strip { display: flex; gap: 8px; overflow-x: auto; list-style: none; margin: 0; padding: 8px 16px; border-top: 1px solid var(--border); background: var(--surface); }
+.present-thumb { position: relative; display: block; width: 7rem; height: 4rem; padding: 0; border: 2px solid transparent; border-radius: var(--radius-sm); overflow: hidden; background: #111; cursor: pointer; }
+.present-thumb img { width: 100%; height: 100%; object-fit: contain; }
+.present-thumb span { position: absolute; left: 4px; bottom: 2px; font-size: 0.75rem; color: #fff; text-shadow: 0 0 3px #000; }
+.present-thumb.current { border-color: var(--accent); }
+.present-empty { padding: 48px; text-align: center; }
+
+.present-show { position: fixed; inset: 0; background: #000; }
+.present-show .present-stage { position: absolute; inset: 0; background: #000; }
+.present-waiting { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: #bbb; }
+.present-full { position: absolute; right: 16px; bottom: 16px; opacity: 0.25; transition: opacity 0.2s; }
+.present-full:hover, .present-full:focus-visible { opacity: 1; }
+.present-show.full .present-full { display: none; }
+@media (max-width: 800px) {
+  .present-body { grid-template-columns: 1fr; grid-template-rows: minmax(12rem, 1fr) auto; }
+}

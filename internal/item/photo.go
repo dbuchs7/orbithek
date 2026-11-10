@@ -9,7 +9,7 @@ import (
 	"unicode/utf8"
 )
 
-// Photo is what a picture tells about itself (ADR-0176): when it was
+// Photo is what a picture tells about itself (ADR-0177): when it was
 // taken, where, and with what. The server reads it from the file when the
 // file is stored (EXIF), or takes it from the service a picture is
 // imported from. It is content, sealed with the rest of the attachment and

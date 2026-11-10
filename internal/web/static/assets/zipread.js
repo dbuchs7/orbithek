@@ -1,4 +1,4 @@
-// zipread reads the files of a ZIP archive in the browser (ADR-0176), so
+// zipread reads the files of a ZIP archive in the browser (ADR-0177), so
 // a photo export packed as an archive is unpacked where it was chosen and
 // its pictures are uploaded one by one: the server never holds the archive
 // or a file outside its item's encryption. It reads stored and deflated

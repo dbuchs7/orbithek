@@ -1,4 +1,4 @@
-# ADR-0176: Photo management in the album, with imports from Google Photos and Apple
+# ADR-0177: Photo management in the album, with imports from Google Photos and Apple
 
 - **Status:** Proposed
 - **Implementation:** Partial
@@ -50,7 +50,7 @@ Chosen option: **1**.
 
 ### Photo data
 
-- **Recorded at upload:** when a file is stored, the server reads what the picture tells about itself (`internal/photo`): from EXIF in JPEG (APP1), PNG (`eXIf`) and WebP (`EXIF`), the time of capture (`DateTimeOriginal` with its offset when given), the place (GPS latitude, longitude and height), camera, lens, exposure, aperture, ISO, focal length and orientation; the pixel size from the image header. It is kept on the attachment as `Photo`, sealed with the rest of the attachment (codec version 44) and erased with it. An import that knows a time the file does not tell (Google's creation time, iCloud's date) gives that time.
+- **Recorded at upload:** when a file is stored, the server reads what the picture tells about itself (`internal/photo`): from EXIF in JPEG (APP1), PNG (`eXIf`) and WebP (`EXIF`), the time of capture (`DateTimeOriginal` with its offset when given), the place (GPS latitude, longitude and height), camera, lens, exposure, aperture, ISO, focal length and orientation; the pixel size from the image header. It is kept on the attachment as `Photo`, sealed with the rest of the attachment (codec version 45) and erased with it. An import that knows a time the file does not tell (Google's creation time, iCloud's date) gives that time.
 - **Pictures stored before:** have no recorded photo data. The album sorts them by the day they were added; the picture's information reads its data from the file when asked (`GET /api/items/{ref}/attachments/{id}/photo`) without recording it.
 - **HEIC:** a file the server cannot show is refused by the album's imports with a message saying how to export JPEG; it may still be attached to a page as any file.
 
@@ -133,5 +133,5 @@ Strongest form: photos taken anywhere appear in the wiki without anyone doing an
 
 ## Links
 
-- relates to ADR-0054 (the album), ADR-0055 (copies carry their source), ADR-0090 (folders and labels), ADR-0103 (versions stack), ADR-0173 (export), ADR-0175 (collections, which narrow the timeline, the months and the map as they narrow the album)
+- relates to ADR-0054 (the album), ADR-0055 (copies carry their source), ADR-0090 (folders and labels), ADR-0103 (versions stack), ADR-0173 (export), ADR-0175 (collections, which narrow the timeline, the months and the map as they narrow the album), ADR-0176 (slides with speaker's notes, which the album presents from any of its views)
 - relates to ADR-0026 (erasure), ADR-0045 (attachments), ADR-0066 (the Google client of single sign-on), ADR-0127 and ADR-0174 (public addresses only, other services read per person)

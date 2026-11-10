@@ -8,7 +8,7 @@ import (
 )
 
 // PictureRef names a picture of the album as a person marks it a
-// favourite (ADR-0176): its item and the first version of its file, so a
+// favourite (ADR-0177): its item and the first version of its file, so a
 // picture stays a favourite through its later versions. It names, and
 // holds no content.
 type PictureRef struct {

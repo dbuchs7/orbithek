@@ -134,7 +134,7 @@ type Deps struct {
 	// runs its Loop.
 	Disk *DiskWatch
 	// Photos holds the album's thumbnails, map tiles and imports
-	// (ADR-0176); Routes creates one from the process environment, without
+	// (ADR-0177); Routes creates one from the process environment, without
 	// Google, when it is nil.
 	Photos *Photos
 }

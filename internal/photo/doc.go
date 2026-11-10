@@ -1,4 +1,4 @@
-// Package photo serves the album's photo management (ADR-0176): it reads
+// Package photo serves the album's photo management (ADR-0177): it reads
 // what a picture tells about itself — capture time, place, camera and
 // exposure from its EXIF data, and its pixel size from its header — and it
 // makes thumbnails.

@@ -1,4 +1,4 @@
-// The album's photo management in the browser (ADR-0176): the viewer with
+// The album's photo management in the browser (ADR-0177): the viewer with
 // a picture's photo data, favourites, the archive of chosen pictures, and
 // the imports — files and ZIP archives exported from Apple Photos, an
 // iPhone or any camera, photos chosen in Google Photos, and shared iCloud
@@ -173,7 +173,7 @@ export async function copyTo(p, folder, move) {
 }
 
 // stripPlace is whether imports leave where a photo was taken behind
-// (ADR-0176), as this browser remembers it; with on it is set.
+// (ADR-0177), as this browser remembers it; with on it is set.
 export function stripPlace(on) {
   try {
     if (on !== undefined) localStorage.setItem("ot.stripPlace", on ? "on" : "");

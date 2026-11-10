@@ -319,7 +319,7 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 	if calendarsPrivate {
 		log.Info("people's calendars may be read in the server's own network", "variable", extcal.AllowPrivateVar)
 	}
-	// The album's photo management (ADR-0176): Google Photos through its
+	// The album's photo management (ADR-0177): Google Photos through its
 	// picker with the Google client of single sign-on, when it is turned
 	// on and the public address is set; shared iCloud albums and map
 	// tiles as the environment says.

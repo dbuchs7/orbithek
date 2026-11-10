@@ -31,7 +31,11 @@ type Attachment struct {
 	// first version; nil follows the album's default. It is content,
 	// sealed with the rest.
 	Retention *Retention `json:",omitempty"`
-	// Photo is what a picture tells about itself (ADR-0176): capture
+	// Notes are the speaker's notes of a picture shown as a slide
+	// (ADR-0176), kept on its first version so every version of a drawing
+	// shares them. They are content, sealed with the rest.
+	Notes string `json:",omitempty"`
+	// Photo is what a picture tells about itself (ADR-0177): capture
 	// time, place and camera. It is content, sealed with the rest.
 	Photo *Photo `json:",omitempty"`
 	// Author and Created come from the event that added it.
@@ -157,11 +161,17 @@ func (s *Store) applyAttachment(e Event, touch func(...ID)) {
 			// a deleted one (ADR-0055); it names files, not their content.
 			// So does the rule of the versions, which the first one holds
 			// (ADR-0104).
-			*a = Attachment{ID: a.ID, Source: a.Source, Retention: a.Retention, Author: a.Author, Created: a.Created, Deleted: true}
+			// So do the notes, which the first one holds as well (ADR-0176):
+			// the newer versions still show them.
+			*a = Attachment{ID: a.ID, Source: a.Source, Retention: a.Retention, Notes: a.Notes, Author: a.Author, Created: a.Created, Deleted: true}
 		}
 	case AttachmentLabelled:
 		if a, ok := it.attachment(e.Attachment.ID); ok {
 			a.Labels = slices.Clone(e.Attachment.Labels)
+		}
+	case AttachmentNotesSet:
+		if a, ok := it.attachment(e.Attachment.ID); ok {
+			a.Notes = e.Attachment.Notes
 		}
 	case AttachmentRetentionSet:
 		if a, ok := it.attachment(e.Attachment.ID); ok {
@@ -371,6 +381,9 @@ type Picture struct {
 	// Retention is the rule of the file's versions, set on its first
 	// version (ADR-0104); nil follows the album's default.
 	Retention *Retention
+	// Notes are the speaker's notes of the file, set on its first version
+	// (ADR-0176).
+	Notes string
 	// order is the file's place among its item's files: of two added in
 	// the same second, the later is the newer.
 	order int
@@ -404,7 +417,7 @@ func (x *Session) Pictures(space string, keep func(Attachment) bool) []Picture {
 			if !a.Deleted && keep(a) && x.s.readsFile(x.who, it, a.ID) {
 				first := firstVersion(it, a)
 				out = append(out, Picture{Item: Item{ID: it.ID, Key: it.Key, Title: it.Title, Space: it.Space, Type: it.Type, Parent: it.Parent, Labels: it.Labels}, Attachment: a,
-					Used: inBody(it.Body, a.ID), Editable: editable, First: first, Retention: ruleOf(it, first), order: i})
+					Used: inBody(it.Body, a.ID), Editable: editable, First: first, Retention: ruleOf(it, first), Notes: notesOf(it, first), order: i})
 			}
 		}
 	}

@@ -65,12 +65,14 @@ func TestContentIsNeverWrittenInPlaintext(t *testing.T) {
 	dir := t.TempDir()
 	db, _ := mustOpen(t, dir)
 	it := secretItem(t, db.Store)
-	// A picture's labels are content too (ADR-0090).
+	// A picture's labels and speaker's notes are content too (ADR-0090,
+	// ADR-0176).
 	noErr(t, db.Store.GrantRole("admin", "PLAT", "anna", item.Editor))
 	const pic = "0123456789abcdef0123456789abcdef"
 	_, err := db.Store.AddAttachment("anna", it.ID, item.Attachment{ID: pic, Name: "plan.png", Type: "image/png", Size: 3, SHA256: strings.Repeat("ab", 32)})
 	noErr(t, err)
 	noErr(t, db.Store.As("anna").SetPictureLabels(it.ID, pic, []string{secret}))
+	noErr(t, db.Store.As("anna").SetPictureNotes(it.ID, pic, "Say: "+secret))
 	noErr(t, db.Close())
 	log := readFile(t, dir, wal.FileName)
 	if bytes.Contains(log, []byte(secret)) || bytes.Contains(log, []byte(strings.ToLower(secret))) {

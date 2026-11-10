@@ -13,7 +13,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/photosource"
 )
 
-// The variables that turn the album's photo services on (ADR-0176). Each
+// The variables that turn the album's photo services on (ADR-0177). Each
 // makes the server reach another service on people's behalf, so each is
 // the operator's decision and off unless set.
 const (
@@ -35,11 +35,11 @@ const (
 
 // GooglePhotosCallback is the path Google sends a person back to after
 // they allowed an import; the public address and this path must be among
-// the redirect addresses of the Google client (ADR-0176).
+// the redirect addresses of the Google client (ADR-0177).
 const GooglePhotosCallback = "/api/album/google/callback"
 
 // Photos holds what the album's photo management keeps in memory
-// (ADR-0176): thumbnails and map tiles made or fetched before, and the
+// (ADR-0177): thumbnails and map tiles made or fetched before, and the
 // imports from Google Photos and shared iCloud albums in progress.
 type Photos struct {
 	thumbs, tiles *byteCache

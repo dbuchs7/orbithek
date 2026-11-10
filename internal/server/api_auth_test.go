@@ -98,7 +98,7 @@ var publicAPI = map[string]bool{
 	// Google's redirect back to a begun connection of a person's Google
 	// account (ADR-0174), bound by its state cookie as the engine's is.
 	"/api/calendar-accounts/google/callback": true,
-	"/api/album/google/callback":             true, // back from signing in at Google for an import (ADR-0176)
+	"/api/album/google/callback":             true, // back from signing in at Google for an import (ADR-0177)
 }
 
 func TestEveryAPIRouteButLoginNeedsAPrincipal(t *testing.T) {

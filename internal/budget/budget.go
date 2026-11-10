@@ -117,25 +117,25 @@ type Budgets struct {
 	WhiteboardSceneBytes   int64
 	WhiteboardRequestBytes int64
 	// PictureFavourites bounds the pictures one person marks as favourites
-	// in the album (ADR-0176).
+	// in the album (ADR-0177).
 	PictureFavourites int
 	// ThumbnailPixels bounds the pixels of a picture the server decodes to
-	// make a thumbnail (ADR-0176); a larger one is shown whole.
+	// make a thumbnail (ADR-0177); a larger one is shown whole.
 	// ThumbnailWorkers bounds how many thumbnails are made at once, and
 	// ThumbnailCacheBytes the thumbnails kept in memory.
 	ThumbnailPixels     int
 	ThumbnailWorkers    int
 	ThumbnailCacheBytes int64
 	// AlbumZipPictures and AlbumZipBytes bound one ZIP archive of chosen
-	// pictures (ADR-0176); AlbumPlaces bounds the pictures one map of the
+	// pictures (ADR-0177); AlbumPlaces bounds the pictures one map of the
 	// album shows.
 	AlbumZipPictures int
 	AlbumZipBytes    int64
 	AlbumPlaces      int
-	// MapTileCacheBytes bounds the map tiles kept in memory (ADR-0176).
+	// MapTileCacheBytes bounds the map tiles kept in memory (ADR-0177).
 	MapTileCacheBytes int64
 	// PhotoImports bounds the imports from Google Photos and shared iCloud
-	// albums the server holds at once, across all people (ADR-0176).
+	// albums the server holds at once, across all people (ADR-0177).
 	PhotoImports int
 }
 

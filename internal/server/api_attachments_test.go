@@ -317,6 +317,11 @@ func TestAlbumFoldersAndLabelsThroughTheAPI(t *testing.T) {
 	w.bert.expect("PUT", labels, `{"labels":["bad label!"]}`, http.StatusBadRequest)
 	w.bert.expect("PUT", labels, `{"labels":["Brand","print"]}`, http.StatusOK)
 
+	// Speaker's notes for a presentation of the folder (ADR-0176).
+	notes := "/api/items/" + id + "/attachments/" + up.Attachment.ID + "/notes"
+	w.vera.expect("PUT", notes, `{"notes":"Hello"}`, http.StatusForbidden)
+	w.bert.expect("PUT", notes, `{"notes":" Greet everyone.\r\nThen the logo. "}`, http.StatusOK)
+
 	pictures := func(query string) []map[string]any {
 		var out []map[string]any
 		for _, p := range field(w.vera.expect("GET", "/api/album"+query, "", http.StatusOK), "pictures").([]any) {
@@ -324,8 +329,12 @@ func TestAlbumFoldersAndLabelsThroughTheAPI(t *testing.T) {
 		}
 		return out
 	}
-	if got := pictures("?folder=" + id); len(got) != 1 || got[0]["used"] != false || got[0]["editable"] != false {
+	if got := pictures("?folder=" + id); len(got) != 1 || got[0]["used"] != false || got[0]["editable"] != false || got[0]["notes"] != "Greet everyone.\nThen the logo." {
 		t.Fatalf("the folder's pictures %v", got)
+	}
+	w.bert.expect("PUT", notes, `{"notes":""}`, http.StatusOK)
+	if got := pictures("?folder=" + id); got[0]["notes"] != nil {
+		t.Fatalf("cleared notes %v", got[0]["notes"])
 	}
 	if got := pictures("?label=Brand"); len(got) != 1 || got[0]["attachment"].(map[string]any)["labels"].([]any)[1] != "print" {
 		t.Fatalf("by label %v", got)

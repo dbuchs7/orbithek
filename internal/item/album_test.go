@@ -121,3 +121,79 @@ func TestPicturesSayWhetherTheyAreUsed(t *testing.T) {
 		}
 	}
 }
+
+// A picture's speaker's notes are kept on its first version: every
+// version of a drawing shows them, whichever version set them, and they
+// survive the deletion of the first version (ADR-0176).
+func TestPictureNotesFollowTheStack(t *testing.T) {
+	s := permFixture(t)
+	anna, ben := s.As("anna"), s.As("ben")
+	folder := mustItem(t)(anna.CreateFolder("PLAT", "", "Talk"))
+	const v1, v2 = "0123456789abcdef0123456789abcd01", "0123456789abcdef0123456789abcd02"
+	addPicture(t, anna, folder.ID, v1, "01 Intro.drawing.png")
+	_, err := anna.AddAttachment(folder.ID, Attachment{ID: v2, Name: "01 Intro.drawing.png", Type: "image/png", Size: 3,
+		SHA256: strings.Repeat("cd", 32), Source: &Source{Item: folder.ID, Attachment: v1}})
+	noErr(t, err)
+
+	noErr(t, anna.SetPictureNotes(folder.ID, v2, "  Welcome.\r\nAsk who used it.\r  "))
+	n := len(s.Log())
+	noErr(t, anna.SetPictureNotes(folder.ID, v1, "Welcome.\nAsk who used it.")) // no change
+	if len(s.Log()) != n {
+		t.Error("unchanged notes were recorded")
+	}
+	if err := ben.SetPictureNotes(folder.ID, v2, "x"); !errors.Is(err, ErrForbidden) {
+		t.Errorf("a viewer wrote notes: %v", err)
+	}
+	if err := anna.SetPictureNotes(folder.ID, "fedcba9876543210fedcba9876543210", "x"); !errors.Is(err, ErrNotFound) {
+		t.Errorf("notes of an unknown picture: %v", err)
+	}
+	if err := anna.SetPictureNotes(folder.ID, v2, "\xff"); !errors.Is(err, ErrValidation) {
+		t.Errorf("notes that are no UTF-8: %v", err)
+	}
+	all := func(Attachment) bool { return true }
+	notes := func(x *Session) map[ID]string {
+		out := map[ID]string{}
+		for _, p := range x.Pictures("PLAT", all) {
+			out[p.Attachment.ID] = p.Notes
+		}
+		return out
+	}
+	const want = "Welcome.\nAsk who used it."
+	if got := notes(ben); got[v1] != want || got[v2] != want {
+		t.Fatalf("notes %q", got)
+	}
+	re, err := Replay(s.Log())
+	noErr(t, err)
+	if got := notes(re.As("ben")); got[v2] != want {
+		t.Errorf("replayed %q", got)
+	}
+	noErr(t, anna.DeleteAttachment(folder.ID, v1))
+	if got := notes(ben); got[v2] != want {
+		t.Errorf("after the first version was deleted %q", got)
+	}
+	noErr(t, anna.SetPictureNotes(folder.ID, v2, ""))
+	if got := notes(ben); got[v2] != "" {
+		t.Errorf("cleared notes %q", got)
+	}
+}
+
+// Notes are content: sensitive data in them restricts the item at once,
+// and purging the item erases them (ADR-0026, ADR-0040).
+func TestPictureNotesAreContent(t *testing.T) {
+	s := permFixture(t)
+	anna, ben := s.As("anna"), s.As("ben")
+	folder := mustItem(t)(anna.CreateFolder("PLAT", "", "Talk"))
+	addPicture(t, anna, folder.ID, albumPic, "slide.png")
+	noErr(t, anna.SetPictureNotes(folder.ID, albumPic, "password: Sommer2026!"))
+	if _, err := ben.Get(folder.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("sensitive notes left the folder readable: %v", err)
+	}
+	e := s.Log()[len(s.Log())-2]
+	if e.Kind != AttachmentNotesSet || !e.HasContent() {
+		t.Fatalf("event %+v", e)
+	}
+	e.erase()
+	if e.Attachment != nil || !e.Erased {
+		t.Errorf("erased %+v", e)
+	}
+}

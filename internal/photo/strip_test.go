@@ -38,7 +38,7 @@ func placeless(t *testing.T, data []byte, kind string) {
 
 // TestThePlaceLeavesAJPEG: the GPS directory is emptied in both byte
 // orders, the XMP segments go, the picture still decodes and data is not
-// changed (ADR-0176).
+// changed (ADR-0177).
 func TestThePlaceLeavesAJPEG(t *testing.T) {
 	for _, bo := range []binary.ByteOrder{binary.LittleEndian, binary.BigEndian} {
 		in := jpegWith(encodeJPEG(t, testImage(32, 16)), exifAPP1(placeTIFF(bo)),

@@ -14,7 +14,7 @@ const (
 	xmpPNG     = "XML:com.adobe.xmp\x00"
 )
 
-// StripPlace removes from a picture where it was taken (ADR-0176): the GPS
+// StripPlace removes from a picture where it was taken (ADR-0177): the GPS
 // directory of its EXIF is emptied and every value it held overwritten with
 // zeros, and XMP metadata, which may repeat the place, is dropped. It works
 // on the whole file in memory and answers the file without them; data is

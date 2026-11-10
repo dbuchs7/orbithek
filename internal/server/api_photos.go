@@ -27,7 +27,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/storage"
 )
 
-// photoRoutes are the routes of the album's photo management (ADR-0176).
+// photoRoutes are the routes of the album's photo management (ADR-0177).
 // None is an MCP tool: thumbnails, tiles and archives are for browsers,
 // imports act with a person's sign-in at another service, and favourites
 // are a person's own.
@@ -98,7 +98,7 @@ func (h itemHandlers) readPhoto(id item.ID, a item.Attachment) *item.Photo {
 var errPlaceStays = errors.New("the place this picture was taken could not be removed from it, so it was not stored")
 
 // withoutPlace reads a picture whole, up to limit bytes (one more tells it
-// is too large), and answers it without where it was taken (ADR-0176): the
+// is too large), and answers it without where it was taken (ADR-0177): the
 // GPS data of its EXIF emptied and its XMP dropped. What is no picture is
 // answered as it is; a picture that still tells a place afterwards is
 // refused, never stored with it.
@@ -231,7 +231,7 @@ func (h itemHandlers) makeThumbnail(ctx context.Context, p *Photos, id item.ID, 
 
 // --- the album's views ----------------------------------------------------
 
-// albumFilter narrows the album (ADR-0054, ADR-0090, ADR-0176).
+// albumFilter narrows the album (ADR-0054, ADR-0090, ADR-0177).
 type albumFilter struct {
 	space, kind, text, label, day, from, to string
 	folder                                  item.ID
@@ -897,7 +897,7 @@ func (h itemHandlers) googleImport(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Media  string `json:"media"`
 		Folder string `json:"folder"`
-		// Strip removes where the photo was taken (ADR-0176).
+		// Strip removes where the photo was taken (ADR-0177).
 		Strip bool `json:"strip"`
 	}
 	if !decode(w, r, &req) {
@@ -1008,7 +1008,7 @@ func (h itemHandlers) icloudImport(w http.ResponseWriter, r *http.Request) {
 		URL    string `json:"url"`
 		Photo  string `json:"photo"`
 		Folder string `json:"folder"`
-		// Strip removes where the photo was taken (ADR-0176).
+		// Strip removes where the photo was taken (ADR-0177).
 		Strip bool `json:"strip"`
 	}
 	if !decode(w, r, &req) {
