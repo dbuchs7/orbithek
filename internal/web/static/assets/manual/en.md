@@ -218,7 +218,7 @@ Where a picture tells no place, or a wrong one, whoever may edit it sets the **P
 
 A click opens a picture with its details: when and where it was taken, camera, exposure, labels and the item it belongs to. A picture's card and its menu offer:
 
-- **Rename**: all versions take the new name; the file type stays;
+- **Rename**: gives the picture another name (see *Renaming pictures and files*);
 - **Copy**: to paste it into a page with Ctrl+V; the copy remembers its original and tells when the original changed;
 - **Export**: PNG, JPEG, or SVG for drawings;
 - **Insert** into the page being edited, **Delete**, and older versions.
@@ -227,9 +227,36 @@ A click opens a picture with its details: when and where it was taken, camera, e
 
 In the folders, a picture is moved by dragging it onto a folder: onto a folder listed below the open one, or onto a folder above it in the path at the top. A chosen picture takes every chosen picture with it. As with **Move**, a picture that you may not change, or that a text shows, is copied and also stays where it was. Without a mouse, choose the pictures and use **Move to folder…**.
 
+### Renaming pictures and files
+
+Whoever may edit a picture renames it in the album: open the card's menu **…** and choose **Rename**. The name on the card becomes a field. **Enter**, or a click elsewhere, saves; **Escape** keeps the old name. In a page's list of files, **Rename** beside **Delete** does the same for every kind of file, documents and videos included.
+
+- You type the name only: the file type stays. A drawing stays a drawing, and *IMG_0042.JPG* renamed to *Lake* becomes *Lake.JPG*.
+- Every version of the file takes the new name, the older versions of a drawing included.
+- Copies of the picture in other pages keep their names, and so do the captions of pictures in a text.
+- When a drawing is drawn again, its new version keeps the name.
+
 ### Presenting pictures
 
-**Present** shows the pictures of the current folder as slides, ordered by name. The album's window becomes the presenter's view with the next slide, speaker's notes, the time and all slides; **Presentation window** opens the window for the projector. Keys: arrows, Page Up/Down or Space to move; + and − to zoom; **L** laser pointer; **B** black screen; **F** full screen. Speaker's notes are written per picture by those who may edit it.
+The album presents the pictures it shows as slides: open a folder or a collection, narrow it with the search or a label if you like, and choose **Present N pictures**. The slides are ordered by name, numbers by their value, so *2 Plan* comes before *10 Outlook*; to change the order, rename the pictures.
+
+The click opens a second window, the **presentation window**, for the projector or a second screen. The album's window becomes the **presenter's view**. It shows the current and the next slide, the speaker's notes, the time since the start and the time of day, and a strip of all slides; a click on a slide in the strip goes there. If your browser blocked the second window, allow pop-ups for this site and choose **Presentation window**. In the presentation window, **Full screen** or **F** fills the screen.
+
+Both windows obey the same keys and buttons:
+
+| What | How |
+|---|---|
+| Next or previous slide | Arrow keys, Page Up/Down, Space, the buttons; a click in the presentation window moves on |
+| First or last slide | Home, End |
+| Zoom | + and −, the buttons, or the mouse wheel where it points; drag a zoomed slide to move it; **0** or a double click shows the whole slide |
+| Laser pointer | **L** or **Laser**, then point with the mouse; the red dot shows in both windows |
+| Black screen | **B** or **Black**, and again to show the slide |
+
+Presentation remotes that send Page Up and Page Down work too. **End** closes the presentation window and returns to the album.
+
+**Speaker's notes** belong to a picture: on its card in the album, **Add speaker's notes**, or in the presenter's view **Edit notes**. Whoever may edit the picture writes them; whoever sees the picture reads them. Notes stay with every version of a drawing.
+
+Both windows must be in the same browser on the same computer. People elsewhere follow by screen sharing.
 
 ## Drawings and whiteboards
 

@@ -218,7 +218,7 @@ Nennt ein Bild keinen oder einen falschen Ort, setzt ihn, wer das Bild bearbeite
 
 Ein Klick öffnet ein Bild mit seinen Angaben: Zeitpunkt und Ort der Aufnahme, Kamera, Belichtung, Labels und der zugehörige Eintrag. Die Karte eines Bildes und ihr Menü bieten:
 
-- **Umbenennen**: alle Versionen erhalten den neuen Namen; der Dateityp bleibt;
+- **Umbenennen**: gibt dem Bild einen anderen Namen (siehe *Bilder und Dateien umbenennen*);
 - **Kopieren**: um es mit Ctrl+V in eine Seite einzufügen; die Kopie kennt ihr Original und meldet, wenn es sich geändert hat;
 - **Exportieren**: PNG, JPEG oder bei Zeichnungen SVG;
 - **Einfügen** in die gerade bearbeitete Seite, **Löschen** und ältere Versionen.
@@ -227,9 +227,36 @@ Ein Klick öffnet ein Bild mit seinen Angaben: Zeitpunkt und Ort der Aufnahme, K
 
 In den Ordnern verschiebt man ein Bild, indem man es auf einen Ordner zieht: auf einen Ordner, der unter dem geöffneten aufgeführt ist, oder auf einen übergeordneten Ordner im Pfad oben. Ein ausgewähltes Bild nimmt alle ausgewählten Bilder mit. Wie bei **Verschieben** wird ein Bild, das man nicht ändern darf oder das ein Text zeigt, kopiert und bleibt zusätzlich, wo es war. Ohne Maus wählt man die Bilder aus und nutzt **In Ordner verschieben…**.
 
+### Bilder und Dateien umbenennen
+
+Wer ein Bild bearbeiten darf, benennt es im Album um: das Menü **…** der Karte öffnen und **Umbenennen** wählen. Der Name auf der Karte wird zum Eingabefeld. **Enter** oder ein Klick daneben speichert; **Escape** behält den bisherigen Namen. In der Dateiliste einer Seite tut **Umbenennen** neben **Löschen** dasselbe für jede Art von Datei, auch für Dokumente und Videos.
+
+- Man tippt nur den Namen: Der Dateityp bleibt. Eine Zeichnung bleibt eine Zeichnung, und aus *IMG_0042.JPG* wird mit *See* der Name *See.JPG*.
+- Alle Versionen der Datei erhalten den neuen Namen, auch die älteren Versionen einer Zeichnung.
+- Kopien des Bildes in anderen Seiten behalten ihren Namen, ebenso die Bildunterschriften in einem Text.
+- Wird eine Zeichnung neu gezeichnet, behält die neue Version den Namen.
+
 ### Bilder präsentieren
 
-**Präsentieren** zeigt die Bilder des aktuellen Ordners als Folien, nach Namen geordnet. Das Fenster des Albums wird zur Referentenansicht mit nächster Folie, Foliennotizen, Zeit und allen Folien; **Präsentationsfenster** öffnet das Fenster für den Projektor. Tasten: Pfeile, Bild auf/ab oder Leertaste zum Blättern; + und − zum Zoomen; **L** Laserpointer; **B** schwarzer Bildschirm; **F** Vollbild. Foliennotizen schreibt pro Bild, wer es bearbeiten darf.
+Das Album präsentiert die Bilder, die es gerade zeigt, als Folien: einen Ordner oder eine Sammlung öffnen, nach Wunsch mit der Suche oder einem Label eingrenzen und **N Bilder präsentieren** wählen. Die Folien sind nach Namen geordnet, Zahlen nach ihrem Wert, also *2 Plan* vor *10 Ausblick*; wer die Reihenfolge ändern will, benennt die Bilder um.
+
+Der Klick öffnet ein zweites Fenster, das **Präsentationsfenster**, für den Projektor oder einen zweiten Bildschirm. Das Fenster des Albums wird zur **Referentenansicht**. Sie zeigt die aktuelle und die nächste Folie, die Foliennotizen, die Zeit seit dem Start und die Uhrzeit sowie eine Leiste aller Folien; ein Klick auf eine Folie in der Leiste springt dorthin. Hat der Browser das zweite Fenster blockiert, Pop-ups für diese Seite erlauben und **Präsentationsfenster** wählen. Im Präsentationsfenster füllt **Vollbild** oder **F** den Bildschirm.
+
+Beide Fenster gehorchen denselben Tasten und Schaltflächen:
+
+| Was | Wie |
+|---|---|
+| Nächste oder vorherige Folie | Pfeiltasten, Bild auf/ab, Leertaste, die Schaltflächen; ein Klick ins Präsentationsfenster blättert weiter |
+| Erste oder letzte Folie | Pos1, Ende |
+| Zoom | + und −, die Schaltflächen oder das Mausrad dort, wohin es zeigt; eine vergrösserte Folie mit der Maus verschieben; **0** oder ein Doppelklick zeigt die ganze Folie |
+| Laserpointer | **L** oder **Laser**, dann mit der Maus zeigen; der rote Punkt erscheint in beiden Fenstern |
+| Schwarzer Bildschirm | **B** oder **Schwarz**, nochmals für die Folie |
+
+Präsentations-Fernbedienungen, die Bild auf und Bild ab senden, funktionieren ebenfalls. **Beenden** schliesst das Präsentationsfenster und kehrt ins Album zurück.
+
+**Foliennotizen** gehören zu einem Bild: auf seiner Karte im Album **Foliennotizen hinzufügen** oder in der Referentenansicht **Notizen bearbeiten**. Wer das Bild bearbeiten darf, schreibt sie; wer das Bild sieht, liest sie. Die Notizen bleiben bei allen Versionen einer Zeichnung erhalten.
+
+Beide Fenster müssen im selben Browser auf demselben Computer laufen. Personen an anderen Orten folgen über Bildschirmfreigabe.
 
 ## Zeichnungen und Whiteboards
 
