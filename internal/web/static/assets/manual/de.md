@@ -230,6 +230,10 @@ Videos kommen auf denselben Wegen ins Album wie Bilder: hochgeladen, abgelegt, e
 - Ein Klick spielt das Video im Betrachter ab. Ob ein MOV-Video abspielt, hängt vom Browser ab: Safari spielt es ab, andere Browser oft nur, wenn es als H.264 statt HEVC aufgenommen wurde. Sonst wählt man **Herunterladen**.
 - Der Filter **Videos** zeigt nur Videos. Beim Präsentieren erscheinen Videos nicht als Folien; als PNG oder JPEG werden sie nicht exportiert.
 
+### Einen Ordner löschen
+
+**Ordner löschen** in einem offenen Ordner verschiebt ihn mit seinen Ordnern, Bildern und Videos in den Papierkorb, nachdem gesagt wurde, wie viel mitgeht. Seine Seite stellt ihn mit **Wiederherstellen** wieder her. Ein Ordner wird nicht gelöscht, solange etwas ausserhalb, etwa eine Seite, noch verwendet, was darin ist; das Album nennt es.
+
 ### Eine PowerPoint-Präsentation importieren
 
 Eine Präsentation wird zu einem Ordner von Folien, bereit zum Präsentieren mit ihren Foliennotizen:
@@ -250,7 +254,7 @@ Ein Klick öffnet ein Bild mit seinen Angaben: Zeitpunkt und Ort der Aufnahme, K
 - **Exportieren**: PNG, JPEG oder bei Zeichnungen SVG;
 - **Einfügen** in die gerade bearbeitete Seite, **Löschen** und ältere Versionen.
 
-**Mehrere auswählen** wählt viele Bilder auf einmal aus, um Labels hinzuzufügen, Favoriten zu markieren, sie in einen Ordner zu verschieben, sie mit **Als ZIP herunterladen** herunterzuladen oder sie zu löschen.
+**Mehrere auswählen** wählt viele Bilder auf einmal aus, um Labels hinzuzufügen, Favoriten zu markieren, sie in einen Ordner zu verschieben, sie mit **Als ZIP herunterladen** herunterzuladen oder sie mit **Löschen** auf einmal zu löschen; **Alle angezeigten auswählen** wählt alle gezeigten Bilder.
 
 In den Ordnern verschiebt man ein Bild, indem man es auf einen Ordner zieht: auf einen Ordner, der unter dem geöffneten aufgeführt ist, oder auf einen übergeordneten Ordner im Pfad oben. Ein ausgewähltes Bild nimmt alle ausgewählten Bilder mit. Ein verschobenes Bild bleibt dasselbe Bild: Alle Versionen, Labels, Elementnotizen, der Ort und die Favoriten-Markierungen gehen mit, und Kopien in Seiten finden ihr Original weiterhin. Ein Bild, das man nicht ändern darf, das ein Text zeigt oder das geschützt ist, und eine Zeichnung mit Kommentaren bleiben, wo sie sind; das Album nennt sie mit dem Grund. Ohne Maus wählt man die Bilder aus und nutzt **In Ordner verschieben…**, das sie auf dieselbe Weise verschiebt.
 
