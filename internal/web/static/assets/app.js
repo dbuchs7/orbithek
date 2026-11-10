@@ -3867,7 +3867,9 @@ async function calendarScreen(params) {
     h("div", { class: "page-head" }, h("h1", { text: t("calendar.title") })),
     h("p", { class: "muted", text: t("calendar.intro") }),
     section);
-  await calendarView(section, params, { readAll, favouritesFirst });
+  // A new entry is made from the calendar with the inputs of item fields
+  // the item page uses.
+  await calendarView(section, params, { readAll, favouritesFirst, propertyInput, readProperty });
 }
 
 // starmapScreen shows the starmap of a room (ADR-0157): its items,
