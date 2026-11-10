@@ -169,7 +169,7 @@ func nameSuffix(name string) string {
 }
 
 // RenameFile gives every version of a file a new name: a picture of the
-// album (ADR-0180), or any file of an item from its file list (ADR-0181).
+// album (ADR-0180), or any file of an item from its file list (ADR-0182).
 // name is the name without its extension; the file keeps its extension,
 // and a drawing its marker, so it stays what it is. An extension typed
 // with the name is not doubled. Whoever may edit the item may; its copies

@@ -1470,7 +1470,7 @@ function gitSource() {
     const notes = await page.getAttribute("#attachments li a:has-text('notes.txt')", "href");
     const served = await page.evaluate(async (href) => { const r = await fetch(href); return [r.headers.get("content-type"), r.headers.get("content-disposition"), await r.text()]; }, notes);
     check(served[0] === "application/octet-stream" && served[1].startsWith("attachment") && served[2].includes("alert('file')"), "a text file only downloads: " + served);
-    // A file is renamed in the list, keeping its type (ADR-0181).
+    // A file is renamed in the list, keeping its type (ADR-0182).
     await page.click("#attachments li:has(a:text-is('notes.txt')) .att-rename");
     await page.fill("#attachments .att-rename-input", "Meeting notes");
     await page.press("#attachments .att-rename-input", "Enter");
@@ -1753,6 +1753,17 @@ function gitSource() {
     await page.click("#album .album-timeline .album-card:has(.album-name:text-is('holiday')) .album-open");
     await page.waitForSelector("dialog.photo-viewer[open] .photo-facts");
     check((await page.textContent("dialog.photo-viewer .photo-viewer-title")) === "holiday", "the viewer shows the picture chosen");
+    // A place set by hand, on the map: a click sets the point (ADR-0181).
+    await page.click("#photo-place-map");
+    await page.waitForSelector("dialog.place-picker[open] canvas");
+    const pickBox = await page.locator("dialog.place-picker canvas").boundingBox();
+    await page.mouse.click(pickBox.x + pickBox.width / 2, pickBox.y + pickBox.height / 2);
+    await page.click("#place-picker-ok");
+    await page.waitForSelector("dialog.place-picker", { state: "detached" });
+    await page.waitForSelector("#photo-place-remove");
+    check(/-?\d+\.\d{5}, -?\d+\.\d{5}/.test(await page.textContent("dialog.photo-viewer .photo-facts")), "the place chosen on the map is the photo's");
+    await page.click("#photo-place-remove");
+    await page.waitForSelector("#photo-place-remove", { state: "detached" });
     await page.click("#photo-viewer-close");
     await page.waitForSelector("dialog.photo-viewer", { state: "detached" });
     await page.click("#album-choose");
@@ -1768,6 +1779,12 @@ function gitSource() {
     // The album is left at its top, as the steps after it begin there.
     await page.click("#album .album-trail button:has-text('All pictures')");
     await page.waitForSelector("#album .album-folder:has-text('Logos')");
+    // Administrators see the place search on, and may turn it off (ADR-0181).
+    await page.goto(base + "/#/admin");
+    await page.waitForSelector("#places-search", { state: "attached" });
+    check(await page.isChecked("#places-search"), "the place search is on until administrators turn it off");
+    await page.goto(base + "/#/album");
+    await page.waitForSelector("#album .album-folder");
 
     step("album presentation: a folder's pictures are slides by name, with speaker's notes, a presentation window, laser pointer, zoom and stepping (ADR-0176)");
     // A picture of 160 by 90 pixels, so the slides have a size to fit.

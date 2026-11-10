@@ -818,7 +818,7 @@ function attachmentsSection(path, files, live) {
       : t("att.copyOfUnknown"),
     a.origin.newer ? [" ", h("span", { class: "chip", text: t("att.originChanged") })] : null) : null,
     isDrawing(a.name) ? [" · ", link(whiteboardHref(path, a.id), t("wb.open"), "wb-open")] : null,
-    // Renaming keeps the file type and renames every version (ADR-0181).
+    // Renaming keeps the file type and renames every version (ADR-0182).
     live ? h("button", { class: "link att-rename", text: t("att.rename"), "aria-label": t("att.renameOf", { name: a.name }),
       onclick: (e) => renameInPlace(e.currentTarget.closest("li")?.querySelector("a"), { value: captionOf(a.name),
         ariaLabel: t("att.renameOf", { name: a.name }), className: "att-rename-input",
@@ -5908,7 +5908,7 @@ async function adminView() {
 
   const storageSection = section("storage", t("storage.title"), await storageCard());
   const calendarsSection = section("calendars", t("extcal.adminTitle"), await calendarsCard());
-  const albumSection = section("album", t("retention.title"), await retentionCard());
+  const albumSection = section("album", t("retention.title"), await retentionCard(), await placesCard());
   const catalogSection = section("connectors", t("connector.title"), connectorsCard(spaces, users));
   const enginesSection = section("engines", t("engine.title"), enginesCard());
   const designSection = section("design", t("design.title"), await designCard());
@@ -5997,6 +5997,29 @@ async function adminView() {
       h("div", { class: "admin-sections" },
         spacesSection, typesSection, usersSection, requestsSection, groupsSection, grantSection, storageSection, calendarsSection, backupSection, albumSection, catalogSection, enginesSection, designSection, wordTemplatesSection, regulationsSection, importSection, auditSection)),
   );
+}
+
+// placesCard turns the place search of places set by hand off or on
+// (ADR-0181) and says which search the operator names.
+async function placesCard() {
+  const box = h("div", { id: "places-settings" });
+  const done = h("div", { class: "status", role: "status" });
+  const draw = (s) => box.replaceChildren(
+    h("h3", { text: t("places.adminTitle") }),
+    form({ id: "places-form" }, [
+      h("label", { class: "check" }, h("input", { type: "checkbox", name: "search", id: "places-search", checked: s.search }), t("places.adminAllow")),
+      h("p", { class: "muted", text: t("places.adminHelp") }),
+      s.geocoder
+        ? h("p", { class: "muted", id: "places-geocoder" }, t("places.adminService") + " ", h("code", { text: s.geocoder }))
+        : h("p", { class: "muted", id: "places-geocoder", text: t("places.adminNoService") }),
+      h("button", { type: "submit", text: t("common.save") }),
+    ], async (d) => {
+      draw(await put("/api/settings/places", { search: d.get("search") === "on" }));
+      done.replaceChildren(h("p", { class: "notice", text: t("places.adminSaved") }));
+    }),
+    done);
+  draw(await get("/api/settings/places"));
+  return box;
 }
 
 // calendarsCard turns people's calendars of other services on or off

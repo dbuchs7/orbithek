@@ -280,8 +280,18 @@ func (x *Session) AddAttachment(id ID, a Attachment) (Attachment, error) {
 		}
 		// A copy of a photo whose place is kept from the copier has the
 		// content without its place, which the server made (ADR-0178).
-		if a.Source.Item != id && from.SHA256 != a.SHA256 && !(a.WithoutPlace && placeHidden(x.who, *from)) {
+		if a.Source.Item != id && from.SHA256 != a.SHA256 && !(a.WithoutPlace && fileWithoutPlace(x.who, *from)) {
 			return Attachment{}, invalid("a copy of %s must have its content", a.Source.Attachment)
+		}
+		// A copy takes over a place set by hand on its original, as far as
+		// the copier may know it (ADR-0181).
+		if from.Photo != nil && from.Photo.PlaceManual && !placeHidden(x.who, *from) {
+			var p Photo
+			if a.Photo != nil {
+				p = *a.Photo
+			}
+			p.Lat, p.Lon, p.Alt, p.PlaceName, p.PlaceManual = from.Photo.Lat, from.Photo.Lon, nil, from.Photo.PlaceName, true
+			a.Photo = &p
 		}
 		// A copy keeps its place as private as its original's.
 		if from.Photo != nil && from.Photo.PlacePrivate && a.Photo.HasPlace() {

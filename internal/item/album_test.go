@@ -296,7 +296,7 @@ func TestAPictureNameIsContent(t *testing.T) {
 }
 
 // Any file of an item is renamed as a picture is, from its file list:
-// its extension stays, and a name without one stays without (ADR-0181).
+// its extension stays, and a name without one stays without (ADR-0182).
 func TestAnyFileIsRenamed(t *testing.T) {
 	s := permFixture(t)
 	anna, ben := s.As("anna"), s.As("ben")

@@ -1,5 +1,5 @@
 // renameInPlace lets one rename a file where its name is shown: in the
-// album's card and in an item's file list (ADR-0180, ADR-0181). The name
+// album's card and in an item's file list (ADR-0180, ADR-0182). The name
 // becomes a field holding value, the name without its extension, which the
 // server keeps; Enter or leaving the field saves through save(next),
 // Escape keeps the name. A name unchanged or emptied saves nothing. When

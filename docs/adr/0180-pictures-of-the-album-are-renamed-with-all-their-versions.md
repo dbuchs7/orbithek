@@ -83,4 +83,4 @@ Strongest form: the most freedom; a user who knows what they do may change the t
 
 - amends [ADR-0054](0054-an-album-of-readable-pictures-inserted-by-copy.md) (the album)
 - relates to ADR-0026 (sealed content), ADR-0040 (sensitive data), ADR-0045 (attachments), ADR-0053 (drawings), ADR-0055 (copies), ADR-0103 (versions in the album), ADR-0169 (whiteboards), ADR-0173 (export), ADR-0176 (presentations)
-- amended by [ADR-0181](0181-every-file-of-an-item-is-renamed-from-its-file-list.md) (every file of an item is renamed from its file list)
+- amended by [ADR-0182](0182-every-file-of-an-item-is-renamed-from-its-file-list.md) (every file of an item is renamed from its file list)

@@ -27,7 +27,7 @@ func attachmentRoutes(h itemHandlers) []Route {
 		{Method: http.MethodDelete, Pattern: "/api/items/{ref}/attachments/{id}", Summary: "Delete a file; its content is destroyed", Handler: http.HandlerFunc(h.deleteAttachment)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/place", Summary: "Keep where a photo was taken to oneself, the one who added it (private), or show it to every reader again; others then read the photo data and get the file without it", Handler: http.HandlerFunc(h.setPlacePrivate)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/labels", Summary: "Set a picture's labels (labels); they narrow the album and are no labels of the item, so no kanban or label board shows them", Handler: http.HandlerFunc(h.setPictureLabels)},
-		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/name", Summary: "Rename a file of an item, a picture or any other (name, without its extension): every version of the file takes the name, keeping its extension and a drawing its marker; copies in other items keep theirs (ADR-0180, ADR-0181)", Handler: http.HandlerFunc(h.renamePicture)},
+		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/name", Summary: "Rename a file of an item, a picture or any other (name, without its extension): every version of the file takes the name, keeping its extension and a drawing its marker; copies in other items keep theirs (ADR-0180, ADR-0182)", Handler: http.HandlerFunc(h.renamePicture)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/notes", Summary: "Set a picture's speaker's notes (notes, plain text; empty clears them), kept on the file's first version so every version shows them (ADR-0176)", Handler: http.HandlerFunc(h.setPictureNotes)},
 		{Method: http.MethodGet, Pattern: "/api/album", Summary: "The album: images and drawings of every item one may read, newest first, the versions of one file stacked under the newest (versions); space, folder (only its pictures), collection (the pictures of every room its rule gathers), q (name, label, key or title), label, kind (image or drawing), offset and limit narrow it", Handler: http.HandlerFunc(h.album)},
 		{Method: http.MethodGet, Pattern: "/api/album/folders", Summary: "The album's folders one may read, by name, then its collections (collections, each with its rule): in space (every space when empty), right below parent (the top when empty)", Handler: http.HandlerFunc(h.albumFolders)},
@@ -211,7 +211,7 @@ func (h itemHandlers) setPictureLabels(w http.ResponseWriter, r *http.Request) {
 }
 
 // renamePicture renames every version of a file, a picture or any other
-// (ADR-0180, ADR-0181).
+// (ADR-0180, ADR-0182).
 func (h itemHandlers) renamePicture(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Name string `json:"name"`

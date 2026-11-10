@@ -76,6 +76,10 @@ services:
       # "off", is named here; its credit goes with it.
       # OT_MAP_TILES: "https://tiles.example.org/{z}/{x}/{y}.png"
       # OT_MAP_ATTRIBUTION: "© Example"
+      # Places set by hand are suggested from a Photon place search on
+      # OpenStreetMap's data; name another, or "off". Administrators can
+      # also turn it off in the UI.
+      # OT_GEOCODER: "https://photon.example.org"
 
       # --- Calendars of other services (ADR-0174) ----------------------
       # Turned on by an administrator in the UI. Google accounts use the
