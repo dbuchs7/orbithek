@@ -197,3 +197,100 @@ func TestPictureNotesAreContent(t *testing.T) {
 		t.Errorf("erased %+v", e)
 	}
 }
+
+// Renaming a picture renames every version of it and keeps its extension,
+// and a drawing its marker; a copy in another item keeps its name
+// (ADR-0180).
+func TestRenamingAPictureRenamesItsVersions(t *testing.T) {
+	s := permFixture(t)
+	anna, ben := s.As("anna"), s.As("ben")
+	folder := mustItem(t)(anna.CreateFolder("PLAT", "", "Plans"))
+	const v1, v2, photo = "0123456789abcdef0123456789abcf01", "0123456789abcdef0123456789abcf02", "0123456789abcdef0123456789abcf03"
+	addPicture(t, anna, folder.ID, v1, "Sketch.drawing.png")
+	_, err := anna.AddAttachment(folder.ID, Attachment{ID: v2, Name: "Sketch.drawing.png", Type: "image/png", Size: 3,
+		SHA256: strings.Repeat("cd", 32), Source: &Source{Item: folder.ID, Attachment: v1}})
+	noErr(t, err)
+	addPicture(t, anna, folder.ID, photo, "IMG_0042.JPG")
+	page := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Copy"}))
+	const copied = "0123456789abcdef0123456789abcf04"
+	_, err = anna.AddAttachment(page.ID, Attachment{ID: copied, Name: "Sketch.drawing.png", Type: "image/png", Size: 3,
+		SHA256: strings.Repeat("cd", 32), Source: &Source{Item: folder.ID, Attachment: v2}})
+	noErr(t, err)
+
+	names := func(x *Session, id ID) map[ID]string {
+		out := map[ID]string{}
+		atts, err := x.Attachments(id)
+		noErr(t, err)
+		for _, a := range atts {
+			out[a.ID] = a.Name
+		}
+		return out
+	}
+	noErr(t, anna.RenamePicture(folder.ID, v1, "  01 Floor plan  "))
+	if got := names(ben, folder.ID); got[v1] != "01 Floor plan.drawing.png" || got[v2] != "01 Floor plan.drawing.png" {
+		t.Fatalf("names after renaming %v", got)
+	}
+	if got := names(ben, page.ID); got[copied] != "Sketch.drawing.png" {
+		t.Errorf("the copy was renamed: %v", got)
+	}
+	noErr(t, anna.RenamePicture(folder.ID, photo, "Lake at dawn.jpg")) // the extension typed is not doubled
+	if got := names(ben, folder.ID)[photo]; got != "Lake at dawn.JPG" {
+		t.Errorf("photo renamed to %q", got)
+	}
+	n := len(s.Log())
+	noErr(t, anna.RenamePicture(folder.ID, v2, "01 Floor plan")) // no change
+	if len(s.Log()) != n {
+		t.Error("an unchanged name was recorded")
+	}
+	for name, err := range map[string]error{
+		"a viewer":      ben.RenamePicture(folder.ID, v1, "x"),
+		"an empty name": anna.RenamePicture(folder.ID, v1, " .drawing.png "),
+		"a slash":       anna.RenamePicture(folder.ID, v1, "a/b"),
+		"too long":      anna.RenamePicture(folder.ID, v1, strings.Repeat("x", 250)),
+		"an unknown":    anna.RenamePicture(folder.ID, "fedcba9876543210fedcba9876543210", "x"),
+	} {
+		want := ErrValidation
+		switch name {
+		case "a viewer":
+			want = ErrForbidden
+		case "an unknown":
+			want = ErrNotFound
+		}
+		if !errors.Is(err, want) {
+			t.Errorf("%s: %v, want %v", name, err, want)
+		}
+	}
+	re, err := Replay(s.Log())
+	noErr(t, err)
+	if got := names(re.As("ben"), folder.ID); got[v2] != "01 Floor plan.drawing.png" {
+		t.Errorf("replayed %v", got)
+	}
+	// A later version of the renamed drawing is found under the new name
+	// as a stack: the album groups by first version, not by name.
+	noErr(t, anna.DeleteAttachment(folder.ID, v1))
+	noErr(t, anna.RenamePicture(folder.ID, v2, "Floor plan"))
+	if got := names(ben, folder.ID)[v2]; got != "Floor plan.drawing.png" {
+		t.Errorf("renamed after deleting the first version: %q", got)
+	}
+}
+
+// A name is content: sensitive data in it restricts the item at once,
+// and purging erases it (ADR-0026, ADR-0040).
+func TestAPictureNameIsContent(t *testing.T) {
+	s := permFixture(t)
+	anna, ben := s.As("anna"), s.As("ben")
+	folder := mustItem(t)(anna.CreateFolder("PLAT", "", "Plans"))
+	addPicture(t, anna, folder.ID, albumPic, "plan.png")
+	noErr(t, anna.RenamePicture(folder.ID, albumPic, "password: Sommer2026!"))
+	if _, err := ben.Get(folder.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("a sensitive name left the folder readable: %v", err)
+	}
+	e := s.Log()[len(s.Log())-2]
+	if e.Kind != AttachmentRenamed || !e.HasContent() {
+		t.Fatalf("event %+v", e)
+	}
+	e.erase()
+	if e.Attachment != nil || !e.Erased {
+		t.Errorf("erased %+v", e)
+	}
+}

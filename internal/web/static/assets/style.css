@@ -2506,3 +2506,5 @@ body.presenting-show { background: #000; }
 @media (max-width: 800px) {
   .present-body { grid-template-columns: 1fr; grid-template-rows: minmax(12rem, 1fr) auto; }
 }
+/* Renaming a picture in place of its name on the card (ADR-0180). */
+.album-head .album-rename-input { flex: 1; min-width: 0; width: 100%; box-sizing: border-box; font: inherit; font-weight: 600; }
