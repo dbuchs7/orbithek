@@ -1,7 +1,7 @@
 # ADR-0185: The user manual is kept current by checks, not by memory alone
 
 - **Status:** Proposed
-- **Implementation:** Not started
+- **Implementation:** Partial
 - **Date:** 2026-11-10
 - **Deciders:** Project initiators (request of 2026-11-10: a decision so that the user manual always stays current and is kept up to date; the means below are proposed and await the requester's confirmation)
 - **Open question:** whether the change check should block merging from the start or only warn first, as the DCO check did (ADR-0019); whether the manual should name the release it describes; whether screenshots belong in the manual once it is kept current
@@ -43,21 +43,27 @@ Chosen option: **3**, with the rule of option 1 kept as the explanation of the c
 ### Check A: what the manual names exists (test, in the tree)
 
 - A Go test in `internal/web` reads every manual and collects the UI labels it names in bold, as the manual writes them (`**Rename**`, `**Präsentationsfenster**`).
-- Each label must be a value of the catalogue of the manual's language, compared without ellipsis and trailing punctuation; a value with a placeholder such as `Present {n} pictures` matches with the placeholder as any word.
-- Bold text that is no UI label is listed in `internal/web/manual_terms.txt`, one entry per line, each with a reason. Examples are key names (**L**, **Enter**), field contents and product names.
+- Each label must be a value of the catalogue of the manual's language. They are compared:
+  - without case, an ellipsis and trailing punctuation (the manual writes "the **logo**", the UI "Logo");
+  - with a value's hint in brackets at its end left out as well (**Undo** for `Undo (Ctrl+Z)`, **As a list** for `As a list ({n} labels)`);
+  - with a placeholder as any one word (`Present {n} pictures` matches **Present 3 pictures**); a value of placeholders only, such as `{n} %`, names no label;
+  - a way through menus in one bold text, `**Account and password → Connected engines**`, step by step.
+- Bold text that is no UI label is listed in `internal/web/manual_terms.txt`, one entry per line as `<language> <term> — <reason>` (`*` for every language). Examples are key names (**L**, **Enter**), symbols named by their look (the **bell**) and concepts the manual introduces in bold (**kanban**). A term no manual sets in bold any more, or one that has become a label, fails a second test until its line goes, so the list stays the exceptions it claims to be.
+- Its first run found four places where the manual named what the UI does not show; they were corrected with the check: the **presenter's window** (the manual said "presenter's view"), **Download as ZIP** ("as ZIP"), and a whiteboard's **Note** ("Notes"), in both languages.
 - When a label is renamed or removed in the catalogue, the test fails until the manual follows. This catches the **wrong** manual on every push, in every pull request and locally.
 
 ### Check B: a change to what people see touches the manual (CI, per pull request)
 
-- A command `cmd/manualcheck <base> <head>` compares the pull request with its base, as `cmd/dcocheck` does.
+- A command `cmd/manualcheck <base> <head>` compares the pull request's head with the point where it left its base, as the pull request's diff does; its rules are in `internal/manualcheck`.
 - A pull request **changes what people see** when it:
-  - adds or changes values in `locales/en.js`;
-  - adds a route or a view in `assets/app.js`;
-  - adds a module under `internal/web/static/assets`.
+  - adds or changes values in `locales/en.js` (a removed value is no such change: a manual still naming its label fails Check A);
+  - adds a route in `assets/app.js`, a section the router hands to a view, or a view, a function named `…View` or `…Screen`;
+  - adds a module, a script directly in `internal/web/static/assets`.
+  A test keeps the patterns in step with `app.js`, so a router written another way does not pass unnoticed.
   Changes to tests, server code without UI strings, documentation and the manuals themselves are not.
-- Such a pull request passes when it changes `manual/en.md` and every other manual, or when its description holds a line of its own, `Manual: not needed — <reason>`. Examples of a reason: a fixed typo in a label, an error message no one looks up.
+- Such a pull request passes when it changes `manual/en.md` and every other manual, or when its description holds a line of its own, `Manual: not needed — <reason>` (an en dash or a hyphen does for the dash). Examples of a reason: a fixed typo in a label, an error message no one looks up.
 - This catches the **missing** manual at review, where the author still knows what changed.
-- The job is named `Manual (user-visible changes)`. It starts in **advisory** mode, reporting without failing, as the DCO check did. Making it required is the maintainer's decision; it then goes into the ruleset by pull request (ADR-0003).
+- The job is named `Manual (user-visible changes)`. Like every CI job it is a required check of the ruleset (`internal/repoconfig` holds every job to that), and it starts in **advisory** mode, as the DCO check did: it reports a missing manual as a warning and passes, so it blocks only when it cannot run. Switching it to `enforce`, so that a missing manual blocks the merge, is the maintainer's decision, recorded in this ADR. The ruleset's new entry is applied on GitHub after the merge (ADR-0003).
 
 ### What stays as it is
 
