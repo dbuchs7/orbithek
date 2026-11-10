@@ -1,11 +1,11 @@
 # ADR-0192: Videos as slides, and from Google Photos and shared iCloud albums
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-10
 - **Deciders:** Project initiators. Request of 2026-11-10: two open questions of ADR-0189 are to be built, videos as slides of a presentation and videos brought in from Google Photos and shared iCloud albums. The requester chose the same day that a video slide shows its poster until the space bar or a click starts it, controlled from both windows, with sound in the presentation window only.
 
-  The rest are defaults proposed with the implementation and await the requester's confirmation.
+  The rest are defaults proposed with the implementation, confirmed by the requester; accepted 2026-11-10.
 - **Open question:** whether the presenter's window should follow the presentation window's playing time exactly rather than play alongside it; whether WebM's metadata should be read
 - **Question checked:** 2026-11
 
@@ -30,7 +30,7 @@ How does a video become a slide, and how does it come in from the two services, 
 
 ## Decision outcome
 
-Chosen option: **1**.
+Chosen option: **1** (defaults proposed with the implementation, confirmed by the requester).
 
 ### Videos as slides
 

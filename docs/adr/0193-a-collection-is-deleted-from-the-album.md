@@ -1,9 +1,9 @@
 # ADR-0193: A collection is deleted from the album, its pictures staying where they are
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-10
-- **Deciders:** Project initiators. Request of 2026-11-10: the open question of ADR-0190, whether collections are deleted from the album the same way as folders, is to be built. That it moves the collection alone to the trash is a default proposed with the implementation and awaits the requester's confirmation.
+- **Deciders:** Project initiators. Request of 2026-11-10: the open question of ADR-0190, whether collections are deleted from the album the same way as folders, is to be built. That it moves the collection alone to the trash is a default proposed with the implementation, confirmed by the requester; accepted 2026-11-10.
 - **Open question:** whether the album should list what is in the trash
 - **Question checked:** 2026-11
 
@@ -27,7 +27,7 @@ How is a collection deleted from the album without touching the pictures it show
 
 ## Decision outcome
 
-Chosen option: **1**.
+Chosen option: **1** (defaults proposed with the implementation, confirmed by the requester).
 
 - An open collection offers **Delete collection** to whoever may edit it.
 - The album asks to confirm, saying that its pictures and videos stay where they are, with their labels.

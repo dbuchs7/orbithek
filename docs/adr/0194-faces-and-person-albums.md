@@ -1,14 +1,14 @@
 # ADR-0194: Faces found in the browser, named by people, and recognised only where administrators allow it
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-10
 - **Deciders:** Project initiators. Request of 2026-11-10: faces in the album's pictures are found and named, so that an album per person can be shown. The requester chose the same day:
   - recognition included, the person suggested on other pictures, with its model and licence settled in this record before it is built;
   - names seen by every reader of the picture;
   - faces found in the browser.
 
-  The rest are defaults proposed with the implementation and await the requester's confirmation.
+  The rest are defaults proposed with the implementation, confirmed by the requester; accepted 2026-11-10.
 - **Open question:** whether recognition should also need each person's own consent in the product, not only the administrators' setting; whether a face can be drawn by hand where none was found; whether faces should be found on videos' posters; whether the more accurate SSD detector (5.4 MB) should replace the tiny one; whether agents should read persons over MCP
 - **Question checked:** 2026-11
 
@@ -37,7 +37,7 @@ How are faces found, named and recognised within these limits, and so that biome
 
 ## Decision outcome
 
-Chosen option: **1**.
+Chosen option: **1** (defaults proposed with the implementation, confirmed by the requester).
 
 ### What runs where
 
