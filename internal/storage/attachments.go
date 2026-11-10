@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/dbuchs7/orbithek/internal/budget"
 	"github.com/dbuchs7/orbithek/internal/diskspace"
 	"github.com/dbuchs7/orbithek/internal/item"
 )
@@ -36,6 +37,18 @@ const (
 	attachmentMagic = "WWBBATT1"
 	chunkSize       = 64 << 10
 )
+
+// PosterSuffix ends the name of the file that holds a video's poster, a
+// picture taken from it (ADR-0189), beside the video's own file: sealed
+// with the item's key like it, kept while the video is, moved and removed
+// with it.
+const PosterSuffix = ".poster"
+
+// validFile reports whether a name is an attachment's file or its
+// poster's.
+func validFile(name item.ID) bool {
+	return item.ValidAttachmentID(strings.TrimSuffix(string(name), PosterSuffix))
+}
 
 func attachmentPath(dir string, id, attachment item.ID) string {
 	return filepath.Join(dir, AttachmentsDir, string(id), string(attachment))
@@ -105,7 +118,52 @@ func (db *DB) MoveAttachmentContent(from, to item.ID, want item.Attachment) erro
 		db.DiscardAttachment(to, want.ID)
 		return fmt.Errorf("storage: the content of %s is not the file recorded", want.ID)
 	}
+	// A video's poster goes with it (ADR-0189); one that does not read is
+	// left behind, and the video shows without it.
+	if p, err := db.OpenPoster(from, want.ID); err == nil {
+		_, err := db.sealAttachment(to, want.ID+PosterSuffix, p, budget.Get().AttachmentBytes)
+		p.Close()
+		if err != nil {
+			os.Remove(attachmentPath(db.dir, to, want.ID+PosterSuffix))
+		}
+	}
 	return nil
+}
+
+// StorePoster stores a picture taken from a video as the video's poster
+// (ADR-0189), replacing one stored before, sealed with the item's key.
+// The caller has checked that the video is a recorded file of the item;
+// the result tells the poster's type and size.
+func (db *DB) StorePoster(id, video item.ID, content io.Reader, limit int64) (item.Attachment, error) {
+	if !item.ValidAttachmentID(string(video)) {
+		return item.Attachment{}, fmt.Errorf("storage: attachment ID %q", video)
+	}
+	return db.sealAttachment(id, video+PosterSuffix, content, limit)
+}
+
+// HasPoster reports whether a video has a poster.
+func (db *DB) HasPoster(id, video item.ID) bool {
+	if !item.ValidAttachmentID(string(video)) {
+		return false
+	}
+	_, err := os.Stat(attachmentPath(db.dir, id, video+PosterSuffix))
+	return err == nil
+}
+
+// DiscardPoster removes a video's poster.
+func (db *DB) DiscardPoster(id, video item.ID) {
+	if item.ValidAttachmentID(string(video)) {
+		os.Remove(attachmentPath(db.dir, id, video+PosterSuffix))
+	}
+}
+
+// OpenPoster returns the decrypted poster of a video, or an error that
+// matches os.ErrNotExist when it has none.
+func (db *DB) OpenPoster(id, video item.ID) (io.ReadSeekCloser, error) {
+	if !item.ValidAttachmentID(string(video)) {
+		return nil, fmt.Errorf("storage: attachment %q: %w", video, os.ErrNotExist)
+	}
+	return db.openFile(id, video+PosterSuffix)
 }
 
 // sealAttachment encrypts content of at most limit bytes for an item and
@@ -114,7 +172,7 @@ func (db *DB) sealAttachment(id, attachment item.ID, content io.Reader, limit in
 	if db.Space() >= diskspace.Critical {
 		return item.Attachment{}, ErrNoSpace
 	}
-	if !item.ValidAttachmentID(string(attachment)) {
+	if !validFile(attachment) {
 		return item.Attachment{}, fmt.Errorf("storage: attachment ID %q", attachment)
 	}
 	key, err := db.itemKey(id)
@@ -199,6 +257,11 @@ func (db *DB) OpenAttachment(id, attachment item.ID) (io.ReadSeekCloser, error) 
 	if !item.ValidAttachmentID(string(attachment)) {
 		return nil, fmt.Errorf("storage: attachment %q: %w", attachment, os.ErrNotExist)
 	}
+	return db.openFile(id, attachment)
+}
+
+// openFile opens an attachment's file or its poster's.
+func (db *DB) openFile(id, attachment item.ID) (io.ReadSeekCloser, error) {
 	key, err := db.itemKey(id)
 	if err != nil {
 		return nil, err
@@ -313,6 +376,7 @@ func (r *attachmentReader) Close() error { return r.f.Close() }
 func (db *DB) DiscardAttachment(id, attachment item.ID) {
 	if item.ValidAttachmentID(string(attachment)) {
 		os.Remove(attachmentPath(db.dir, id, attachment))
+		os.Remove(attachmentPath(db.dir, id, attachment+PosterSuffix))
 	}
 }
 
@@ -326,6 +390,7 @@ func (db *DB) removeAttachments(items []item.ID, files map[item.ID][]item.ID) {
 	for id, list := range files {
 		for _, a := range list {
 			os.Remove(attachmentPath(db.dir, id, a))
+			os.Remove(attachmentPath(db.dir, id, a+PosterSuffix))
 		}
 	}
 }
@@ -354,7 +419,8 @@ func (db *DB) healAttachments() (int, error) {
 			return removed, err
 		}
 		for _, f := range files {
-			if !need[item.ID(f.Name())] || strings.HasSuffix(f.Name(), ".tmp") {
+			name := item.ID(f.Name())
+			if !need[name] && !(strings.HasSuffix(f.Name(), PosterSuffix) && need[name[:len(name)-len(PosterSuffix)]]) || strings.HasSuffix(f.Name(), ".tmp") {
 				if err := os.Remove(filepath.Join(root, d.Name(), f.Name())); err != nil {
 					return removed, err
 				}

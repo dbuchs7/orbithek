@@ -1673,11 +1673,13 @@ function gitSource() {
     step("album: every readable picture in one place; one is copied into another page and stays editable as a drawing");
     await page.goto(base + "/#/album");
     await page.waitForSelector("#album .album-card img");
-    check(await page.locator("#album .album-card").count() === 2, "the album shows the image and the drawing, not the text file");
+    // The video of the page plays there and shows in the album too
+    // (ADR-0189); the text file does not.
+    check(await page.locator("#album .album-card").count() === 3, "the album shows the image, the drawing and the video, not the text file");
     // Cards have their parts in the same places: the actions of a row of
     // cards line up, whatever else a card shows (ADR-0173).
     const actionTops = await page.$$eval("#album .album-grid > .album-card > .album-actions", (els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
-    check(actionTops.length === 2 && new Set(actionTops).size === 1, "the actions of a row of cards line up: " + actionTops);
+    check(actionTops.length === 3 && new Set(actionTops).size === 1, "the actions of a row of cards line up: " + actionTops);
     await page.selectOption("#album select[aria-label=Kind]", "drawing");
     await page.waitForFunction(() => document.querySelectorAll("#album .album-card").length === 1);
 
@@ -1945,6 +1947,40 @@ function gitSource() {
     await page.click("#album .album-trail button:has-text('Logos')");
     await page.waitForSelector(holiday);
     check(await page.locator(prints).count() === 1, "a picture dropped onto a folder of the trail goes back up");
+    // A video comes into the folder with a poster the browser takes from
+    // it, and plays in the viewer (ADR-0189). The browser records it, so
+    // the test carries no media file.
+    const webm = await page.evaluate(async () => {
+      const c = document.createElement("canvas");
+      c.width = 64;
+      c.height = 48;
+      const g = c.getContext("2d");
+      const rec = new MediaRecorder(c.captureStream(10), { mimeType: "video/webm" });
+      const parts = [];
+      rec.ondataavailable = (e) => parts.push(e.data);
+      const stopped = new Promise((r) => { rec.onstop = r; });
+      rec.start();
+      for (let i = 0; i < 12; i++) {
+        g.fillStyle = `hsl(${i * 30}, 80%, 50%)`;
+        g.fillRect(0, 0, 64, 48);
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      rec.stop();
+      await stopped;
+      return Array.from(new Uint8Array(await new Blob(parts, { type: "video/webm" }).arrayBuffer()));
+    });
+    await page.setInputFiles("#album-files", { name: "clip.webm", mimeType: "video/webm", buffer: Buffer.from(webm) });
+    const clipCard = "#album .album-card:has(.album-name:text-is('clip'))";
+    await page.waitForSelector(clipCard + " .album-video-badge");
+    check(await page.locator(clipCard + " .album-video-chip").count() === 1, "a video is marked as one on its card");
+    const clipPoster = await page.waitForSelector(clipCard + " .album-video img");
+    await page.waitForFunction((img) => img.isConnected && img.complete && img.naturalWidth > 0, clipPoster);
+    await page.selectOption("#album select[aria-label=Kind]", "video");
+    await page.waitForFunction(() => [...document.querySelectorAll("#album .album-card .album-name")].map((n) => n.textContent).join() === "clip");
+    await page.click(clipCard + " .album-open");
+    await page.waitForSelector("dialog.photo-viewer[open] video.photo-viewer-video[src]");
+    await page.click("#photo-viewer-close");
+    await page.selectOption("#album select[aria-label=Kind]", "");
     // The album is left at its top, as the steps after it begin there.
     await page.click("#album .album-trail button:has-text('All pictures')");
     await page.waitForSelector("#album .album-folder:has-text('Logos')");

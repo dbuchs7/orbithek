@@ -140,6 +140,12 @@ type Budgets struct {
 	// PhotoImports bounds the imports from Google Photos and shared iCloud
 	// albums the server holds at once, across all people (ADR-0177).
 	PhotoImports int
+	// VideoBytes is the largest video one upload stores, in the album or
+	// in a text (ADR-0189); every other file keeps AttachmentBytes.
+	// VideoTransferSeconds is how long the upload or download of a video
+	// may take, beyond the server's usual minute.
+	VideoBytes           int64
+	VideoTransferSeconds int
 }
 
 // Default returns the budgets the server uses unless configured otherwise.
@@ -188,6 +194,8 @@ func Default() Budgets {
 		MapTileCacheBytes:      32 << 20,
 		PlaceSearchCacheBytes:  4 << 20,
 		PhotoImports:           200,
+		VideoBytes:             2 << 30,
+		VideoTransferSeconds:   3600,
 	}
 }
 

@@ -142,7 +142,9 @@ import (
 //     (the item it came from, who added it, when, whether deleted),
 //     sealed, and AttachmentMovedOut, with the version's ID and the item it
 //     went to (ADR-0188). Versions 1 to 48 are still read.
-const CodecVersion = 49
+//   - 50: photo data may carry Duration, how long a video of the album
+//     plays (ADR-0189). Versions 1 to 49 are still read.
+const CodecVersion = 50
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

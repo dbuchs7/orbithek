@@ -8,7 +8,7 @@
 import { h, when } from "./dom.js";
 import { t } from "./i18n.js";
 import { get, post, put, del, upload, download } from "./api.js";
-import { baseName, exposureText, hidden, placeText, sorts, typeOf } from "./photoparts.js";
+import { baseName, durationText, exposureText, hidden, isVideo, placeText, posterTime, sorts, typeOf } from "./photoparts.js";
 import { entries as zipEntries, read as zipRead } from "./zipread.js";
 import { folderName, isDeck, pair, readDeck, slideName, widthOf } from "./pptx.js";
 import { pickPlace, placeInput } from "./places.js";
@@ -60,6 +60,9 @@ const bytesText = (n) => (n >= 1 << 20 ? `${(n / (1 << 20)).toFixed(1)} MB` : `$
 export function openViewer(list, index, changed = () => {}) {
   let i = index;
   const img = h("img", { class: "photo-viewer-img", alt: "" });
+  // A video plays in the viewer, its poster shown until it starts
+  // (ADR-0189).
+  const video = h("video", { class: "photo-viewer-img photo-viewer-video", controls: true, preload: "metadata", playsinline: true, hidden: true });
   const info = h("div", { class: "photo-viewer-info", "aria-live": "polite" });
   const prev = h("button", { type: "button", class: "photo-viewer-nav prev", "aria-label": t("photos.previous"), text: "‹" });
   const next = h("button", { type: "button", class: "photo-viewer-nav next", "aria-label": t("photos.next"), text: "›" });
@@ -68,13 +71,27 @@ export function openViewer(list, index, changed = () => {}) {
       h("strong", { class: "photo-viewer-title" }),
       h("span", { class: "muted photo-viewer-pos" }),
       h("button", { type: "button", id: "photo-viewer-close", text: t("common.close"), onclick: () => dialog.close() })),
-    h("div", { class: "photo-viewer-body" }, h("div", { class: "photo-viewer-stage" }, prev, img, next), info));
+    h("div", { class: "photo-viewer-body" }, h("div", { class: "photo-viewer-stage" }, prev, img, video, next), info));
+  dialog.addEventListener("close", () => { video.pause(); video.removeAttribute("src"); video.load(); });
   const row = (label, value) => (value ? h("div", { class: "photo-fact" }, h("dt", { text: label }), h("dd", {}, value)) : null);
   const show = async () => {
     const p = list[i];
     const name = caption(p.attachment.name);
-    img.src = thumbURL(p, 1600);
-    img.alt = name;
+    const playing = isVideo(p);
+    img.hidden = playing;
+    video.hidden = !playing;
+    video.pause();
+    if (playing) {
+      img.removeAttribute("src");
+      if (p.poster) video.poster = thumbURL(p, 1600);
+      else video.removeAttribute("poster");
+      video.src = fileURL(p);
+      video.setAttribute("aria-label", name);
+    } else {
+      video.removeAttribute("src");
+      img.src = thumbURL(p, 1600);
+      img.alt = name;
+    }
     dialog.querySelector(".photo-viewer-title").textContent = name;
     dialog.querySelector(".photo-viewer-pos").textContent = t("photos.position", { n: i + 1, total: list.length });
     prev.disabled = i === 0;
@@ -97,6 +114,7 @@ export function openViewer(list, index, changed = () => {}) {
         row(t("photos.camera"), camera),
         row(t("photos.lens"), photo?.lens),
         row(t("photos.exposure"), exposureText(photo)),
+        row(t("photos.duration"), durationText(photo?.duration)),
         row(t("photos.size"), [photo?.width && `${photo.width} × ${photo.height}`, p.attachment.size && bytesText(p.attachment.size)].filter(Boolean).join(" · ")),
         row(t("photos.place"), place && h("span", {}, photo.placeName ? photo.placeName + " · " : "",
           h("a", { href: `https://www.openstreetmap.org/?mlat=${photo.lat}&mlon=${photo.lon}#map=15/${photo.lat}/${photo.lon}`,
@@ -271,7 +289,7 @@ export async function importFiles(files, folder, progress, place = "", labels = 
           if (hidden(e.name)) continue;
           const name = baseName(e.name);
           const kind = sorts(name, typeOf(name));
-          if (kind === "picture") queue.push({ name, read: () => zipRead(f, e, typeOf(name)) });
+          if (kind === "picture" || kind === "video") queue.push({ name, read: () => zipRead(f, e, typeOf(name)), video: kind === "video" });
           else if (kind === "heic") sum.heic++;
           else sum.skipped++;
         }
@@ -279,7 +297,7 @@ export async function importFiles(files, folder, progress, place = "", labels = 
       continue;
     }
     const kind = sorts(f.name, f.type);
-    if (kind === "picture") queue.push({ name: f.name, read: async () => f });
+    if (kind === "picture" || kind === "video") queue.push({ name: f.name, read: async () => f, video: kind === "video" });
     else if (kind === "heic") sum.heic++;
     else sum.skipped++;
   }
@@ -287,7 +305,11 @@ export async function importFiles(files, folder, progress, place = "", labels = 
     progress(t("photos.uploading", { n: n + 1, total: queue.length, name: q.name }));
     try {
       const blob = await q.read();
-      const att = await upload(`/api/items/${folder}`, blob instanceof File ? blob : new File([blob], q.name, { type: blob.type }), null, place ? { place } : {});
+      const extra = { ...(place ? { place } : {}), ...(q.video ? { video: "1" } : {}) };
+      const att = await upload(`/api/items/${folder}`, blob instanceof File ? blob : new File([blob], q.name, { type: blob.type }), null, extra);
+      // The browser takes a picture of a video as its poster (ADR-0189);
+      // a video it cannot play keeps its symbol.
+      if (q.video) await setPoster(folder, att);
       await labelUpload(folder, att, labels);
       sum.done++;
     } catch (err) { sum.failed.push(`${q.name}: ${err.message}`); }
@@ -366,6 +388,58 @@ export function deckText(sum) {
   return [t("slides.imported", { n: sum.done, folder: sum.folder.title }), sum.notes ? t("slides.withNotes", { n: sum.notes }) : "",
     sum.hidden ? t("slides.hiddenLeft", { n: sum.hidden }) : "", sum.skipped ? t("photos.otherSkipped", { n: sum.skipped }) : "",
     sum.failed.length ? t("photos.failed", { n: sum.failed.length }) : ""].filter(Boolean).join(" ");
+}
+
+// posterOf takes a picture of a video at an address of this site, at
+// most 1600 pixels on its longer edge, as a JPEG; null when this browser
+// cannot play the video. The video is read from the server, not from the
+// file chosen: the content security policy plays media of this site only.
+export function posterOf(url, timeout = 15000) {
+  return new Promise((resolve) => {
+    const v = document.createElement("video");
+    let done = false;
+    const end = (out) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      v.removeAttribute("src");
+      v.load();
+      resolve(out);
+    };
+    const timer = setTimeout(() => end(null), timeout);
+    v.muted = true;
+    v.preload = "auto";
+    v.playsInline = true;
+    v.addEventListener("error", () => end(null));
+    const take = () => {
+      const scale = Math.min(1, 1600 / Math.max(v.videoWidth, v.videoHeight));
+      if (!v.videoWidth) return end(null);
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(v.videoWidth * scale);
+      canvas.height = Math.round(v.videoHeight * scale);
+      canvas.getContext("2d").drawImage(v, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((b) => end(b), "image/jpeg", 0.85);
+    };
+    // A video that tells no length, as a recording made in a browser, is
+    // taken at its first frame.
+    v.addEventListener("loadeddata", () => {
+      const at = posterTime(v.duration);
+      if (at > 0) v.currentTime = at;
+      else take();
+    });
+    v.addEventListener("seeked", take, { once: true });
+    v.src = url;
+  });
+}
+
+// setPoster stores a video's poster, taken from it in this browser.
+export async function setPoster(folder, att) {
+  const poster = await posterOf(`/api/items/${folder}/attachments/${att.id}`);
+  if (!poster) return false;
+  const res = await fetch(`/api/items/${folder}/attachments/${att.id}/poster`, {
+    method: "PUT", credentials: "same-origin", headers: { "Content-Type": "application/octet-stream" }, body: poster,
+  });
+  return res.ok;
 }
 
 // summaryText says what an import did.

@@ -142,7 +142,7 @@ export async function photoMap(query, open) {
     chosenHead.hidden = false;
     strip.replaceChildren(...list.map((p, i) => h("li", { class: "album-card photo-map-card" },
       h("button", { type: "button", class: "album-thumb", "aria-label": p.name, onclick: () => open(list, i) },
-        h("img", { src: thumb(p), alt: p.name, loading: "lazy" })),
+        p.video && !p.poster ? h("span", { class: "album-video-symbol", role: "img", "aria-label": p.name }) : h("img", { src: thumb(p), alt: p.name, loading: "lazy" })),
       h("span", { class: "muted", text: p.taken?.day || "" }))));
     draw();
     chosenHead.scrollIntoView({ block: "nearest", behavior: "smooth" });

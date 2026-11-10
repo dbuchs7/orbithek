@@ -21,15 +21,16 @@ import (
 func attachmentRoutes(h itemHandlers) []Route {
 	return []Route{
 		{Method: http.MethodGet, Pattern: "/api/items/{ref}/attachments", Summary: "List the item's files", Handler: http.HandlerFunc(h.listAttachments)},
-		{Method: http.MethodPost, Pattern: "/api/items/{ref}/attachments", Summary: "Upload a file: the body is the content (application/octet-stream), name the file name; sourceItem and sourceAttachment name the file it is a copy or a new version of; place=strip removes where a photo was taken, from the file and its data; place=private keeps it to the uploader", Handler: http.HandlerFunc(h.uploadAttachment)},
+		{Method: http.MethodPost, Pattern: "/api/items/{ref}/attachments", Summary: "Upload a file: the body is the content (application/octet-stream), name the file name; sourceItem and sourceAttachment name the file it is a copy or a new version of; place=strip removes where a photo was taken, from the file and its data; place=private keeps it to the uploader; video=1 takes a video of up to VideoBytes, given more time (ADR-0189)", Handler: http.HandlerFunc(h.uploadAttachment)},
 		{Method: http.MethodGet, Pattern: "/api/items/{ref}/attachments/{id}", Summary: "Download a file; images show inline, everything else downloads", Handler: http.HandlerFunc(h.downloadAttachment)},
 		{Method: http.MethodDelete, Pattern: "/api/items/{ref}/attachments/{id}", Summary: "Delete a file; its content is destroyed", Handler: http.HandlerFunc(h.deleteAttachment)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/place", Summary: "Keep where a photo was taken to oneself, the one who added it (private), or show it to every reader again; others then read the photo data and get the file without it", Handler: http.HandlerFunc(h.setPlacePrivate)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/labels", Summary: "Set a picture's labels (labels); they narrow the album and are no labels of the item, so no kanban or label board shows them", Handler: http.HandlerFunc(h.setPictureLabels)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/name", Summary: "Rename a file of an item, a picture or any other (name, without its extension): every version of the file takes the name, keeping its extension and a drawing its marker; copies in other items keep theirs (ADR-0180, ADR-0182)", Handler: http.HandlerFunc(h.renamePicture)},
 		{Method: http.MethodPost, Pattern: "/api/items/{ref}/attachments/{id}/move", Summary: "Move a file with all its versions to another item (to), keeping its identity: its versions, labels, notes, place and favourites go with it, and copies find it there; who may edit both items may. A file the item's text shows, a protected file and a drawing that comments are on stay (ADR-0188)", Handler: http.HandlerFunc(h.moveFile)},
+		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/poster", Summary: "Keep a picture taken from a video as its poster (JPEG, PNG or WebP, application/octet-stream), shown in the album in its place; who may add files to the item may (ADR-0189)", Handler: http.HandlerFunc(h.setPoster)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/notes", Summary: "Set a picture's speaker's notes (notes, plain text; empty clears them), kept on the file's first version so every version shows them (ADR-0176)", Handler: http.HandlerFunc(h.setPictureNotes)},
-		{Method: http.MethodGet, Pattern: "/api/album", Summary: "The album: images and drawings of every item one may read, newest first, the versions of one file stacked under the newest (versions); space, folder (only its pictures), collection (the pictures of every room its rule gathers), q (name, label, key or title, or a day, month or year the picture was taken, e.g. 2026, 11.2026, 10.11.2026, 2026-11-10, November 2026, 10.11. for that day in every year), label, kind (image or drawing), offset and limit narrow it", Handler: http.HandlerFunc(h.album)},
+		{Method: http.MethodGet, Pattern: "/api/album", Summary: "The album: images, drawings and videos of every item one may read, newest first, the versions of one file stacked under the newest (versions); space, folder (only its pictures), collection (the pictures of every room its rule gathers), q (name, label, key or title, or a day, month or year the picture was taken, e.g. 2026, 11.2026, 10.11.2026, 2026-11-10, November 2026, 10.11. for that day in every year), label, kind (image, drawing or video), offset and limit narrow it", Handler: http.HandlerFunc(h.album)},
 		{Method: http.MethodGet, Pattern: "/api/album/folders", Summary: "The album's folders one may read, by name, each saying whether one may add pictures to it (editable), then its collections (collections, each with its rule): in space (every space when empty), right below parent (the top when empty)", Handler: http.HandlerFunc(h.albumFolders)},
 		{Method: http.MethodPost, Pattern: "/api/album/folders", Summary: "Make a folder of the album: name, and space or parent (a folder); who may create there may", Handler: http.HandlerFunc(h.createAlbumFolder)},
 		{Method: http.MethodPost, Pattern: "/api/album/collections", Summary: "Make a collection of the album, which gathers the labelled pictures of every room: name, space or parent (a folder), labels, match (any or all) and items (the labels of a picture's item count too); who may create there may", Handler: http.HandlerFunc(h.createAlbumCollection)},
@@ -90,6 +91,10 @@ func (h itemHandlers) album(w http.ResponseWriter, r *http.Request) {
 			Item       itemRef        `json:"item"`
 			Attachment attachmentJSON `json:"attachment"`
 			Drawing    bool           `json:"drawing"`
+			// Video: the file is a video, shown by its poster when it has
+			// one (Poster), else by its symbol (ADR-0189).
+			Video  bool `json:"video,omitempty"`
+			Poster bool `json:"poster,omitempty"`
 			// Used: its item's text shows it, so the album does not delete
 			// it. Editable: the caller may label or delete it (ADR-0090).
 			Used     bool `json:"used"`
@@ -112,7 +117,8 @@ func (h itemHandlers) album(w http.ResponseWriter, r *http.Request) {
 		}
 		one := func(p item.Picture) picture {
 			return picture{Item: itemRef{p.Item.ID, p.Item.Key, p.Item.Title, p.Item.Space, p.Item.Type},
-				Attachment: toAttachmentJSON(p.Attachment), Drawing: strings.HasSuffix(p.Attachment.Name, DrawingSuffix), Used: p.Used, Editable: p.Editable, First: p.First}
+				Attachment: toAttachmentJSON(p.Attachment), Drawing: albumKind(p.Attachment) == "drawing", Video: albumVideo(p.Attachment),
+				Poster: albumVideo(p.Attachment) && h.d.DB.HasPoster(p.Item.ID, p.Attachment.ID), Used: p.Used, Editable: p.Editable, First: p.First}
 		}
 		out := []picture{}
 		for _, st := range all[min(offset, len(all)):min(offset+limit, len(all))] {
@@ -494,11 +500,19 @@ func (h itemHandlers) uploadAttachment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	limit := budget.Get().AttachmentBytes
+	// A video may be larger and take longer (ADR-0189); what is stored
+	// under that budget must turn out to be one.
+	video := r.URL.Query().Get("video") == "1"
+	if video {
+		limit = max(limit, budget.Get().VideoBytes)
+		longTransfer(w, true)
+	}
 	var body io.Reader = http.MaxBytesReader(w, r.Body, limit+1)
 	// An import may leave where a photo was taken behind (ADR-0177), or
-	// keep it to the one who adds it (ADR-0178).
+	// keep it to the one who adds it (ADR-0178); a video's place is
+	// removed once it is stored.
 	place := placeChoice(r.URL.Query().Get("place"), false)
-	if place == placeStrip {
+	if place == placeStrip && !video {
 		var err error
 		if body, err = withoutPlace(body, limit); err != nil {
 			h.storeFail(w, err, limit)
@@ -516,7 +530,24 @@ func (h itemHandlers) uploadAttachment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.Name = name
-	// What a picture tells about itself is recorded with it (ADR-0177).
+	// A video is told by its own bytes (ADR-0189): QuickTime, and some
+	// MP4 brands, read as an octet stream to the standard detection.
+	if vt := h.videoType(id, a); vt != "" {
+		a.Type = vt
+	} else if video && a.Size > budget.Get().AttachmentBytes {
+		h.d.DB.DiscardAttachment(id, a.ID)
+		writeError(w, http.StatusRequestEntityTooLarge, fmt.Sprintf("a file other than a video may have at most %d bytes", budget.Get().AttachmentBytes))
+		return
+	}
+	if place == placeStrip && albumVideo(a) {
+		if a, err = h.videoWithoutPlace(id, a); err != nil {
+			h.storeFail(w, err, limit)
+			return
+		}
+		a.Name = name
+	}
+	// What a picture or a video tells about itself is recorded with it
+	// (ADR-0177, ADR-0189).
 	a.Photo = h.readPhoto(id, a)
 	if place == placePrivate {
 		a.Photo = keepPrivate(a.Photo)
@@ -571,6 +602,10 @@ func (h itemHandlers) downloadAttachment(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		h.fail(w, err)
 		return
+	}
+	// A video takes longer than the server's usual minute (ADR-0189).
+	if albumVideo(a) {
+		longTransfer(w, false)
 	}
 	// A place its uploader keeps to themselves leaves the file (ADR-0178).
 	content, err := h.openFor(hidden, it.ID, a)

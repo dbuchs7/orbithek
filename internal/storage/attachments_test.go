@@ -332,3 +332,85 @@ func TestAMovedFileIsSealedForItsNewItem(t *testing.T) {
 		t.Fatalf("the file not moved: %q %v", got, err)
 	}
 }
+
+// A video's poster is sealed beside it, kept while the video is, backed
+// up, moved and removed with it (ADR-0189).
+func TestAPosterGoesWithItsVideo(t *testing.T) {
+	dir := t.TempDir()
+	db, from := pageIn(t, dir)
+	var to item.ID
+	if err := db.Write(func(s *item.Store) error {
+		if err := s.GrantRole("admin", "PLAT", "admin", item.Editor); err != nil {
+			return err
+		}
+		it, err := s.Create("admin", item.NewItem{Space: "PLAT", Type: "page", Title: "Archive"})
+		to = it.ID
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	video := attach(t, db, from, []byte("a video"), "clip.mp4")
+	if _, err := db.OpenPoster(from, video.ID); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("a poster before one is stored: %v", err)
+	}
+	if _, err := db.StorePoster(from, video.ID, bytes.NewReader([]byte("a poster")), 100); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := readPoster(db, from, video.ID); err != nil || string(got) != "a poster" {
+		t.Fatalf("poster %q %v", got, err)
+	}
+	raw, _ := os.ReadFile(attachmentPath(dir, from, video.ID+PosterSuffix))
+	if bytes.Contains(raw, []byte("a poster")) {
+		t.Fatal("the poster is stored in plaintext")
+	}
+	files, err := db.Snapshot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	backedUp := false
+	for _, f := range files {
+		backedUp = backedUp || strings.HasSuffix(f.Name, string(video.ID)+PosterSuffix)
+	}
+	if !backedUp {
+		t.Error("the poster is not backed up")
+	}
+	// A restart keeps it: it belongs to a recorded video.
+	db.Close()
+	db, rec, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.Orphans != 0 {
+		t.Errorf("removed %d files at the start", rec.Orphans)
+	}
+	// It moves with its video.
+	if err := db.MoveAttachmentContent(from, to, video); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Write(func(s *item.Store) error { return s.As("admin").MoveFile(from, video.ID, to, []item.ID{video.ID}) }); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := readPoster(db, to, video.ID); err != nil || string(got) != "a poster" {
+		t.Fatalf("poster after the move %q %v", got, err)
+	}
+	if _, err := os.Stat(attachmentPath(dir, from, video.ID+PosterSuffix)); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("the poster stayed behind: %v", err)
+	}
+	// It goes with its video.
+	if err := db.Write(func(s *item.Store) error { return s.DeleteAttachment("admin", to, video.ID) }); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(attachmentPath(dir, to, video.ID+PosterSuffix)); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("the poster of a deleted video stays: %v", err)
+	}
+	db.Close()
+}
+
+func readPoster(db *DB, id, video item.ID) ([]byte, error) {
+	r, err := db.OpenPoster(id, video)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	return io.ReadAll(r)
+}

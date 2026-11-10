@@ -167,19 +167,39 @@ export function dragged(p, chosen, key) {
   return chosen.has(key(p)) ? [...chosen.values()] : [p];
 }
 
-// ALBUM_TYPES are the formats the album takes (JPEG, PNG, GIF, WebP).
+// ALBUM_TYPES are the formats the album takes (JPEG, PNG, GIF, WebP), and
+// VIDEO_TYPES its videos (MP4, WebM, QuickTime; ADR-0189).
 export const ALBUM_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-const EXT = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif", webp: "image/webp" };
+export const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+const EXT = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif", webp: "image/webp",
+  mp4: "video/mp4", m4v: "video/mp4", webm: "video/webm", mov: "video/quicktime", qt: "video/quicktime" };
 
-// sorts says what the album does with a file: "picture" it takes, "heic"
-// an iPhone photo it does not take, "skip" anything else (a video, a
-// sidecar file, a folder).
+// sorts says what the album does with a file: "picture" it takes, "video"
+// it takes as a video, "heic" an iPhone photo it does not take, "skip"
+// anything else (a sidecar file, a folder).
 export function sorts(name, type = "") {
   const ext = (name.match(/\.([^./\\]+)$/)?.[1] || "").toLowerCase();
   if (/^(heic|heif)$/.test(ext) || /^image\/hei[cf]/.test(type)) return "heic";
+  if (VIDEO_TYPES.includes(type) || VIDEO_TYPES.includes(EXT[ext])) return "video";
   if (ALBUM_TYPES.includes(type) || EXT[ext]) return "picture";
   return "skip";
 }
+
+// isVideo reports whether a picture of the album is a video.
+export const isVideo = (p) => Boolean(p?.video) || VIDEO_TYPES.includes(p?.attachment?.type);
+
+// durationText writes how long a video plays: "0:12", "4:05", "1:02:03".
+export function durationText(seconds) {
+  if (!(seconds > 0)) return "";
+  const s = Math.round(seconds);
+  const pad = (n) => String(n).padStart(2, "0");
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+  return h ? `${h}:${pad(m)}:${pad(r)}` : `${m}:${pad(r)}`;
+}
+
+// posterTime is where in a video its poster is taken: a second in, or a
+// tenth of a shorter video, so it is not the black first frame.
+export const posterTime = (duration) => (duration > 0 && Number.isFinite(duration) ? Math.min(1, duration / 10) : 0);
 
 // typeOf is the format of a file by its name, for files unpacked from an
 // archive, which carry no type.

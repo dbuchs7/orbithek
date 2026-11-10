@@ -47,6 +47,12 @@ type nopSeekCloser struct{ *bytes.Reader }
 
 func (nopSeekCloser) Close() error { return nil }
 
+// videoCloser reads a video without its place and closes its file.
+type videoCloser struct {
+	io.ReadSeeker
+	io.Closer
+}
+
 // openFor opens a stored file as the caller may have it (ADR-0178): whole,
 // or, when its uploader keeps the place a photo was taken from them,
 // without it. A picture whose place cannot be removed is not given.
@@ -54,6 +60,16 @@ func (h itemHandlers) openFor(hidden bool, id item.ID, a item.Attachment) (io.Re
 	c, err := h.d.DB.OpenAttachment(id, a.ID)
 	if err != nil || !hidden {
 		return c, err
+	}
+	// A video is given as it is read, its place read as zeros, so it is
+	// never held in memory (ADR-0189).
+	if albumVideo(a) {
+		out, ok := photo.VideoWithoutPlace(c)
+		if !ok {
+			c.Close()
+			return nil, errPlaceStays
+		}
+		return videoCloser{out, c}, nil
 	}
 	defer c.Close()
 	data, err := io.ReadAll(io.LimitReader(c, a.Size+1))

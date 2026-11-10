@@ -154,7 +154,7 @@ func TestAlbumListsReadableImages(t *testing.T) {
 	if field(page, "total").(float64) != 2 || field(page, "next").(float64) != 1 {
 		t.Errorf("paging: %v", page)
 	}
-	for _, bad := range []string{"?kind=video", "?limit=0", "?limit=201", "?offset=-1"} {
+	for _, bad := range []string{"?kind=audio", "?limit=0", "?limit=201", "?offset=-1"} {
 		w.vera.expect("GET", "/api/album"+bad, "", http.StatusBadRequest)
 	}
 }
