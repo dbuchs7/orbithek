@@ -1,13 +1,13 @@
 # ADR-0188: A file moved to another item keeps its identity
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-10
 - **Deciders:** Project initiators. Request of 2026-11-10: a move keeps the picture's identity, the open question of ADR-0184. The requester chose the same day:
   - a picture that cannot leave its item stays where it is, and the album says which and why, instead of being copied;
   - agents get no tool for moving.
 
-  The rest are defaults proposed with the implementation and await the requester's confirmation: refusing protected files and drawings with comments, taking deleted versions along, and favourites by file.
+  The rest are defaults proposed with the implementation, confirmed by the requester: refusing protected files and drawings with comments, taking deleted versions along, and favourites by file. Accepted 2026-11-10.
 - **Open question:** whether a picture a text shows should move with a copy left in the text; whether moving should be offered in an item's file list as well as in the album; whether pictures should be dropped onto folders in the timeline, favourites and memories (from ADR-0184)
 - **Question checked:** 2026-11
 

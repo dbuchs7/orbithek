@@ -200,4 +200,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0185](0185-the-user-manual-is-kept-current-by-checks.md) | The user manual is kept current by checks, not by memory alone | Accepted | Landed |
 | [0186](0186-a-presentation-is-imported-into-the-album-as-slides-with-their-notes.md) | A presentation is imported into the album as slides with their notes | Proposed | Partial |
 | [0187](0187-pictures-are-added-where-one-is-in-the-album.md) | Pictures are added where one is in the album, a collection's by its labels | Proposed | Partial |
-| [0188](0188-a-moved-file-keeps-its-identity.md) | A file moved to another item keeps its identity | Proposed | Partial |
+| [0188](0188-a-moved-file-keeps-its-identity.md) | A file moved to another item keeps its identity | Accepted | Landed |
