@@ -1526,7 +1526,7 @@ func renameLog(t *testing.T) []Event {
 	noErr(t, err)
 	_, err = anna.AddAttachment(folder.ID, Attachment{ID: v2, Name: "Sketch.drawing.png", Type: "image/png", Size: 3, SHA256: strings.Repeat("cd", 32), Source: &Source{Item: folder.ID, Attachment: v1}})
 	noErr(t, err)
-	noErr(t, anna.RenamePicture(folder.ID, v2, "01 Floor plan"))
+	noErr(t, anna.RenameFile(folder.ID, v2, "01 Floor plan"))
 	return s.Log()
 }
 

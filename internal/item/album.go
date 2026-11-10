@@ -168,12 +168,13 @@ func nameSuffix(name string) string {
 	return ""
 }
 
-// RenamePicture gives every version of a file a new name (ADR-0180).
+// RenameFile gives every version of a file a new name: a picture of the
+// album (ADR-0180), or any file of an item from its file list (ADR-0181).
 // name is the name without its extension; the file keeps its extension,
 // and a drawing its marker, so it stays what it is. An extension typed
 // with the name is not doubled. Whoever may edit the item may; its copies
 // in other items keep their names.
-func (x *Session) RenamePicture(id, attachment ID, name string) error {
+func (x *Session) RenameFile(id, attachment ID, name string) error {
 	if _, err := x.editable(id); err != nil {
 		return err
 	}

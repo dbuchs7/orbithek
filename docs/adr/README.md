@@ -193,3 +193,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0178](0178-the-place-of-a-photo-for-its-uploader-alone.md) | The place of a photo for its uploader alone | Accepted | Landed |
 | [0179](0179-the-albums-map-has-a-background-by-default.md) | The album's map has a background by default, OpenStreetMap's | Accepted | Landed |
 | [0180](0180-pictures-of-the-album-are-renamed-with-all-their-versions.md) | Pictures of the album are renamed, with all their versions, keeping their file type | Accepted | Landed |
+| [0181](0181-every-file-of-an-item-is-renamed-from-its-file-list.md) | Every file of an item is renamed from its file list | Proposed | Partial |

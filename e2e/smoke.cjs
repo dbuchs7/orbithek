@@ -1470,6 +1470,11 @@ function gitSource() {
     const notes = await page.getAttribute("#attachments li a:has-text('notes.txt')", "href");
     const served = await page.evaluate(async (href) => { const r = await fetch(href); return [r.headers.get("content-type"), r.headers.get("content-disposition"), await r.text()]; }, notes);
     check(served[0] === "application/octet-stream" && served[1].startsWith("attachment") && served[2].includes("alert('file')"), "a text file only downloads: " + served);
+    // A file is renamed in the list, keeping its type (ADR-0181).
+    await page.click("#attachments li:has(a:text-is('notes.txt')) .att-rename");
+    await page.fill("#attachments .att-rename-input", "Meeting notes");
+    await page.press("#attachments .att-rename-input", "Enter");
+    await page.waitForSelector("#attachments li a:text-is('Meeting notes.txt')");
     await page.click("#edit");
     await page.waitForSelector("#body.editing .ProseMirror");
     await page.locator("#body .ProseMirror").click();
