@@ -3023,6 +3023,38 @@ function gitSource() {
       holidays.close();
     }
 
+    step("calendar: a double-click on a day of the month, or on an hour of the week, makes a new entry there");
+    await page.goto(base + "/#/calendar?at=2026-03-01&type=standup");
+    await page.waitForSelector("#calendar-grid .cal-week");
+    // Thursday 19 March, in the fourth row of the month.
+    await page.dblclick(".cal-week >> nth=3 >> .cal-day >> nth=3", { position: { x: 30, y: 70 } });
+    await page.waitForSelector("#calendar-new");
+    check(await page.inputValue("#calendar-new-type") === "standup", "the new entry takes the type the calendar shows");
+    check(await page.inputValue("#calendar-new [name='p:starts']") === "2026-03-19T09:00", "a day of the month gives nine o'clock: " + await page.inputValue("#calendar-new [name='p:starts']"));
+    await page.fill("#calendar-new-title", "Retrospective");
+    await page.click("#calendar-new-create");
+    await page.waitForFunction(() => /created|erstellt/i.test(document.querySelector("#calendar-moved")?.textContent || ""));
+    const retroKey = (await page.textContent("#calendar-moved")).trim().split(" ")[0];
+    await page.waitForSelector(`#calendar-grid .cal-entry[data-key='${retroKey}']`);
+    const retroAt = await page.evaluate(() => new Date(2026, 2, 19, 9, 0).toISOString());
+    check(Date.parse((await propsOf(retroKey)).starts) === Date.parse(retroAt) && Date.parse((await propsOf(retroKey)).ends) === Date.parse(retroAt) + 3600000,
+      "the new entry stands on the day double-clicked, an hour long: " + JSON.stringify(await propsOf(retroKey)));
+    // Friday 20 March at two o'clock on the axis of hours, opened at once.
+    await page.goto(base + "/#/calendar?at=2026-03-16&view=week&type=standup");
+    const fridayHours = page.locator(".cal-hour-day >> nth=4");
+    await fridayHours.scrollIntoViewIfNeeded();
+    const hoursBox = await fridayHours.boundingBox();
+    await fridayHours.dblclick({ position: { x: 20, y: (hoursBox.height * (14 * 60 + 3)) / 1440 } });
+    await page.waitForSelector("#calendar-new");
+    check(await page.inputValue("#calendar-new [name='p:starts']") === "2026-03-20T14:00", "an hour of the week gives that time: " + await page.inputValue("#calendar-new [name='p:starts']"));
+    await page.fill("#calendar-new-title", "Planning");
+    await page.click("#calendar-new-open");
+    await page.waitForFunction(() => location.hash.startsWith("#/item/"));
+    const opened = await page.evaluate(() => decodeURIComponent(location.hash.slice("#/item/".length).split("?")[0]));
+    const planning = await page.evaluate((k) => fetch("/api/items/" + k).then((r) => r.json()).then((d) => d.item), opened);
+    const planningAt = await page.evaluate(() => new Date(2026, 2, 20, 14, 0).toISOString());
+    check(planning.title === "Planning" && Date.parse(planning.properties.starts) === Date.parse(planningAt), "Create and open goes to the new item, at the hour double-clicked: " + planning.properties.starts);
+
     step("starmap of the labels: a star per label, sized by its items, lines between labels carried together, filtered by labels (ADR-0165)");
     await page.goto(base + "/#/label/plan-q1");
     await page.click("#label-labelmap");

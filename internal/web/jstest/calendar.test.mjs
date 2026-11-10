@@ -12,7 +12,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { VIEWS, address, agendaDays, dayAt, entries, listQuery, localDayOf, moves, onDay, overdue, period, periodCondition, quote, readState, shift,
   shiftValue, tasksTab, typeFields, weekRows, weekStart, withoutOrder, assigneeOf, timedSpan, dayColumns, minutesAt, retime,
-  occurrenceChanges, seriesChanges, cancelChanges, externalEntries, appleServer } from "../static/assets/calendar.js";
+  occurrenceChanges, seriesChanges, cancelChanges, externalEntries, slotValues, NEW_AT, appleServer } from "../static/assets/calendar.js";
 
 // Points in time are placed where the reader is; these tests read them in
 // Zurich, one hour ahead of UTC in winter and two in summer.
@@ -328,6 +328,21 @@ test("entries of calendars of other services stand on their days where the reade
   // On the axis of hours, a moment without length takes an hour.
   assert.deepEqual(timedSpan(got[2]), { from: 9 * 60, to: 10 * 60 });
   assert.deepEqual(externalEntries(undefined, undefined), []);
+});
+
+test("a double-click places a new item on its day, and at its hour on the axis of hours", () => {
+  const d = parseDay("2026-11-12");
+  const meeting = { type: "meeting", start: "starts", end: "ends", startTimed: true, endTimed: true };
+  // Zurich is an hour ahead of UTC in November.
+  assert.deepEqual(slotValues(meeting, d, 14 * 60 + 15), { starts: "2026-11-12T13:15:00.000Z", ends: "2026-11-12T14:15:00.000Z" });
+  assert.deepEqual(slotValues(meeting, d), { starts: "2026-11-12T08:00:00.000Z", ends: "2026-11-12T09:00:00.000Z" });
+  assert.equal(NEW_AT, 9 * 60);
+  // An hour before midnight ends on the next day.
+  assert.deepEqual(slotValues(meeting, d, 23 * 60 + 30), { starts: "2026-11-12T22:30:00.000Z", ends: "2026-11-12T23:30:00.000Z" });
+  assert.deepEqual(slotValues({ type: "task", start: "", end: "due" }, d, 600), { due: "2026-11-12" });
+  assert.deepEqual(slotValues({ type: "trip", start: "from", end: "to" }, d), { from: "2026-11-12", to: "2026-11-12" });
+  assert.deepEqual(slotValues({ type: "mixed", start: "day", end: "ends", endTimed: true }, d, 60), { day: "2026-11-12", ends: "2026-11-12T01:00:00.000Z" });
+  assert.deepEqual(slotValues({ type: "summer", start: "starts", startTimed: true }, parseDay("2026-07-01"), 9 * 60), { starts: "2026-07-01T07:00:00.000Z" });
 });
 
 test("an Apple iCloud CalDAV address is told apart, for its own wording of a refused password", () => {
