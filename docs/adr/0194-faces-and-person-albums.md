@@ -61,7 +61,7 @@ Chosen option: **1**.
 
 ### What is done
 
-- Opening a picture one may edit that was never searched looks for faces; **Find faces** looks again. Uploads are searched after the upload; **Find faces in all pictures** searches what the album shows. A search keeps the names of the faces found again where they were and never drops a named face.
+- Opening a picture one may edit that was never searched looks for faces; **Find faces** looks again. Each picture uploaded in the album is searched from the file in the browser right after its upload; **Find faces in all pictures** searches what the album shows. A search keeps the names of the faces found again where they were and never drops a named face.
 - `PUT /api/items/{ref}/attachments/{id}/faces` sets the faces, for whoever may edit the item. A face sent without a vector keeps the vector of the face of the same box, so naming a face keeps what recognises it.
 - `GET …/faces/suggestions` compares the vectors of the unnamed faces with those of the named faces of every picture the caller may read. It uses the Euclidean distance, below 0.55. It answers only names, for whoever may edit the picture, and only while recognition is on. The vectors read are kept in memory, bounded, and dropped when they change.
 - `GET /api/album/people` lists the persons named on the pictures one may read, with a picture count and a cover. `GET /api/album?person=` is a person's album, presentable as slides. The album's words find persons too.

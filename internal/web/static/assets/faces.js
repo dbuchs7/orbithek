@@ -78,6 +78,20 @@ export async function scan(p, image) {
   return p.attachment.faces;
 }
 
+// scanFile looks for faces on a picture just uploaded, read from the file
+// in this browser rather than from the server, and stores what it found
+// (ADR-0194). A file the browser cannot draw is left unsearched.
+export async function scanFile(p, blob) {
+  const bitmap = await createImageBitmap(blob);
+  const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close?.();
+  return scan(p, canvas);
+}
+
 // scanAll looks for faces on every picture of list one may edit that was
 // not searched yet, one after another; progress is told each step and
 // cancelled is asked before each. It answers how many were searched and

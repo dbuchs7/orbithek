@@ -5,7 +5,7 @@
 // albums. Files are unpacked and uploaded here, one by one, through the
 // files of the folder's item; Google and iCloud photos are fetched by the
 // server, which asks Google or Apple for them.
-import { facesPanel } from "./faces.js";
+import { facesPanel, scanFile } from "./faces.js";
 import { h, when } from "./dom.js";
 import { t } from "./i18n.js";
 import { get, post, put, del, upload, download } from "./api.js";
@@ -286,8 +286,7 @@ const labelUpload = (folder, att, labels) =>
 // server does with where each photo was taken (PLACES); labels are given
 // to every picture uploaded.
 export async function importFiles(files, folder, progress, place = "", labels = []) {
-  // pictures are the pictures uploaded, to look for faces on (ADR-0194).
-  const sum = { done: 0, heic: 0, skipped: 0, failed: [], pictures: [] };
+  const sum = { done: 0, heic: 0, skipped: 0, failed: [] };
   const queue = [];
   for (const f of files) {
     if (/\.zip$/i.test(f.name) || f.type === "application/zip" || f.type === "application/x-zip-compressed") {
@@ -318,7 +317,12 @@ export async function importFiles(files, folder, progress, place = "", labels = 
       // a video it cannot play keeps its symbol.
       if (q.video) await setPoster(folder, att);
       await labelUpload(folder, att, labels);
-      if (!q.video) sum.pictures.push({ item: { id: folder }, attachment: att, editable: true });
+      // Faces are looked for on the file uploaded, here and now; a picture
+      // this browser cannot search stays unsearched (ADR-0194).
+      if (!q.video && /^image\//.test(att.type || "")) {
+        progress(t("faces.scanningUpload", { n: n + 1, total: queue.length, name: q.name }));
+        await scanFile({ item: { id: folder }, attachment: att, editable: true }, blob).catch(() => {});
+      }
       sum.done++;
     } catch (err) { sum.failed.push(`${q.name}: ${err.message}`); }
   }

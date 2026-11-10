@@ -1178,9 +1178,6 @@ export function albumBrowser({ pick, pickText } = {}) {
           path = [folder];
           opens = true;
         }
-        // Faces are looked for on the pictures uploaded, after the upload
-        // and without waiting for it (ADR-0194).
-        if (sum.pictures.length) scanAll(sum.pictures).catch(() => {});
         const where = collection || top ? " " + t("album.uploadedTo", { folder: folder.name }) : "";
         outcome = [summaryText(sum) + where + (sum.failed.length ? " " + sum.failed.slice(0, 3).join("; ") : ""), sum.failed.length ? "error" : "notice"];
       }

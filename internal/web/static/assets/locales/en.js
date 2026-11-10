@@ -1020,6 +1020,7 @@ export default {
   "faces.failed": "Faces could not be looked for: {reason}",
   "faces.unreadable": "The picture could not be read.",
   "faces.scanning": "Looking for faces: picture {n} of {total}",
+  "faces.scanningUpload": "Looking for faces: {n} of {total}, {name}",
   "faces.scanAll": "Find faces in all pictures",
   "faces.scanAllTitle": "Looks for faces on every picture shown that you may edit and that was not searched yet",
   "faces.scanned": "Pictures searched: {n}; faces found: {faces}.",

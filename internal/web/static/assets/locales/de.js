@@ -1018,6 +1018,7 @@ export default {
   "faces.failed": "Gesichter konnten nicht gesucht werden: {reason}",
   "faces.unreadable": "Das Bild liess sich nicht lesen.",
   "faces.scanning": "Gesichter werden gesucht: Bild {n} von {total}",
+  "faces.scanningUpload": "Gesichter werden gesucht: {n} von {total}, {name}",
   "faces.scanAll": "Gesichter in allen Bildern finden",
   "faces.scanAllTitle": "Sucht Gesichter auf jedem angezeigten Bild, das man bearbeiten darf und das noch nicht durchsucht wurde",
   "faces.scanned": "Durchsuchte Bilder: {n}; gefundene Gesichter: {faces}.",
