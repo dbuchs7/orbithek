@@ -677,7 +677,7 @@ function gitSource() {
   // reports each drop, naming the value by its hash. These two values, and
   // no other inline style, are expected.
   const watermarkStyles = /'sha256-(r3vOsuepBDg6tz\/cOusiNJ9Y4Lp9hGQTT7pzDks1Xxc=|CA\/eh4\+2R0J7cEQ14gBMtx834RIOjzMUqCM\+evtrkp4=)'/;
-  page.on("console", (m) => { if (m.type() === "error" && !/status of 401/.test(m.text()) && !watermarkStyles.test(m.text()) && !(expectedConsole && expectedConsole.test(m.text()))) problems.push("console: " + m.text()); });
+  page.on("console", (m) => { if (m.type() === "error" && !/status of 401/.test(m.text()) && !watermarkStyles.test(m.text()) && !(expectedConsole && expectedConsole.test(m.text()))) problems.push("console: " + m.text() + (m.location()?.url ? " (" + m.location().url + ")" : "")); });
   // A step that expects a confirmation or prompt sets its answer first:
   // true accepts, a string is typed in; any other dialog is a problem.
   let answer = null;
