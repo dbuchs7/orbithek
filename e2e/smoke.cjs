@@ -1611,7 +1611,8 @@ function gitSource() {
       await page.click(card + " .album-export summary");
       check((await page.locator(card + " .album-export button").allTextContents()).join("|") === "PNG (lossless)|JPEG (no transparency)|SVG (vector, drawn from the drawing)", "a drawing offers PNG, JPEG and SVG");
       await page.click(card + " .album-export summary");
-      const src = await page.evaluate(() => (document.querySelector("#album .album-card .album-front") || document.querySelector("#album .album-card .album-thumb > img")).getAttribute("src"));
+      // The card shows a thumbnail (ADR-0175); the stored file is its picture's address without it.
+      const src = (await page.evaluate(() => (document.querySelector("#album .album-card .album-front") || document.querySelector("#album .album-card .album-thumb > img")).getAttribute("src"))).replace(/\/thumbnail\?edge=\d+$/, "");
       const stored = await (await page.request.get(base + src)).body();
       const svg = await saved("svg");
       const svgText = svg.bytes.toString("utf8");
@@ -1702,6 +1703,58 @@ function gitSource() {
     await page.click(brandCard + " .album-more summary"); // deleting is under More
     await page.click(brandCard + " .album-delete");
     await page.waitForSelector(brandCard, { state: "detached" });
+
+    step("photos: a ZIP archive comes into a folder, a picture is marked as a favourite, shown on the timeline and in the viewer, chosen with all others and downloaded as one archive (ADR-0175)");
+    // A stored ZIP archive as a photo app exports one, with an iPhone photo
+    // the album does not take; the browser unpacks it.
+    const storedZip = (files) => {
+      const parts = [], central = [];
+      let offset = 0;
+      for (const [name, data] of files) {
+        const n = Buffer.from(name);
+        const local = Buffer.alloc(30);
+        local.writeUInt32LE(0x04034b50, 0); local.writeUInt32LE(data.length, 18); local.writeUInt32LE(data.length, 22); local.writeUInt16LE(n.length, 26);
+        const head = Buffer.alloc(46);
+        head.writeUInt32LE(0x02014b50, 0); head.writeUInt32LE(data.length, 20); head.writeUInt32LE(data.length, 24); head.writeUInt16LE(n.length, 28); head.writeUInt32LE(offset, 42);
+        parts.push(local, n, data);
+        central.push(head, n);
+        offset += 30 + n.length + data.length;
+      }
+      const dir = Buffer.concat(central);
+      const end = Buffer.alloc(22);
+      end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(files.length, 8); end.writeUInt16LE(files.length, 10); end.writeUInt32LE(dir.length, 12); end.writeUInt32LE(offset, 16);
+      return Buffer.concat([...parts, dir, end]);
+    };
+    await page.click("#album .album-folder:has-text('Logos')");
+    await page.waitForSelector("#album-upload");
+    await page.setInputFiles("#album-files", { name: "export.zip", mimeType: "application/zip", buffer: storedZip([["Export/holiday.png", png], ["Export/IMG_2.HEIC", Buffer.from("heic")], ["__MACOSX/._holiday.png", Buffer.from("x")]]) });
+    const holiday = "#album .album-card:has(.album-name:text-is('holiday'))";
+    await page.waitForSelector(holiday);
+    await page.waitForSelector("#album .status .notice");
+    const imported = await page.textContent("#album .status");
+    check(imported.includes("1 picture brought in.") && imported.includes("1 HEIC photo skipped"), "the archive's picture comes in and the HEIC photo is skipped with advice: " + imported);
+    check((await page.getAttribute(holiday + " .album-thumb img", "src")).endsWith("/thumbnail?edge=400"), "the album shows thumbnails");
+    await page.click(holiday + " .album-favourite");
+    await page.waitForSelector(holiday + " .album-favourite[aria-pressed=true]");
+    await page.click("#album-view-favourites");
+    await page.waitForFunction(() => { const c = document.querySelectorAll("#album .album-timeline .album-card"); return c.length === 1 && c[0].textContent.includes("holiday"); });
+    await page.click("#album-view-timeline");
+    await page.waitForSelector("#album .album-timeline h2.album-month");
+    await page.click("#album .album-timeline .album-card:has(.album-name:text-is('holiday')) .album-open");
+    await page.waitForSelector("dialog.photo-viewer[open] .photo-facts");
+    check((await page.textContent("dialog.photo-viewer .photo-viewer-title")) === "holiday", "the viewer shows the picture chosen");
+    await page.click("#photo-viewer-close");
+    await page.waitForSelector("dialog.photo-viewer", { state: "detached" });
+    await page.click("#album-choose");
+    await page.click("#album-choose-all");
+    check(/^[1-9]\d* pictures? chosen$/.test(await page.textContent("#album-chosen-count")), "all shown pictures are chosen");
+    const [archive] = await Promise.all([page.waitForEvent("download"), page.click("#album-bulk-zip")]);
+    check(archive.suggestedFilename() === "album.zip", "the chosen pictures download as one archive");
+    await page.click("#album-choose");
+    await page.click("#album-view-map");
+    await page.waitForSelector("#album .photo-map-note");
+    await page.click("#album-view-folders");
+    await page.waitForSelector("#album .album-folder");
 
     step("provenance: the original is drawn again; its copy learns of it and takes the newer version over");
     await page.goto(base + "/#/item/" + drawingKey + "?edit");
