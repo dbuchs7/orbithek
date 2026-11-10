@@ -1,9 +1,9 @@
 # ADR-0175: A collection in the album gathers the labelled pictures of every room
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-10
-- **Deciders:** Project initiators (request of 2026-11-10 for a sub-album that, steered by labels, gathers every drawing and picture of the instance; the choices below are defaults proposed with the implementation and await the maintainer's confirmation)
+- **Deciders:** Project initiators (request of 2026-11-10 for a sub-album that, steered by labels, gathers every drawing and picture of the instance; the defaults below, proposed with the implementation, were confirmed by the requester; accepted 2026-11-10)
 - **Open question:** whether a collection should also gather by kind (only drawings), by room or by a free query (ADR-0136) rather than by labels alone, and whether its rule should be offered to agents as an MCP tool; all are left out here
 - **Question checked:** 2026-11
 
