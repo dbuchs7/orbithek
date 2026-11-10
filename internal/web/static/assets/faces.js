@@ -67,10 +67,13 @@ const loadImage = (src) => new Promise((resolve, reject) => {
 });
 
 // scan looks for faces on a picture, keeps the names it had, and stores
-// what it found. It answers the picture's faces as stored.
-export async function scan(p, image) {
+// what it found. It answers the picture's faces as stored, or null when
+// keep, asked once the search is done, says the picture is no longer
+// wanted: the viewer moved on, and the picture may be gone.
+export async function scan(p, image, keep = () => true) {
   const recognise = await recognition();
   const found = await findFaces(image || await loadImage(thumbURL(p, 1600)), recognise);
+  if (!keep()) return null;
   const faces = mergeFaces(p.attachment.faces, found);
   const r = await put(`${fileURL(p)}/faces`, facesBody(faces));
   p.attachment.faces = r.faces || [];
@@ -102,7 +105,7 @@ export async function scanAll(list, progress = () => {}, cancelled = () => false
   for (const p of todo) {
     if (cancelled()) break;
     progress(t("faces.scanning", { n: done + 1, total: todo.length }));
-    try { faces += (await scan(p)).length; done++; } catch { /* the next picture */ }
+    try { faces += (await scan(p) || []).length; done++; } catch { /* the next picture */ }
   }
   return { done, faces, total: todo.length };
 }
@@ -204,7 +207,8 @@ export function facesPanel({ p, image, layer, still, changed = () => {} }) {
     say(t("faces.looking"));
     try {
       if (!image.complete || !image.naturalWidth) await new Promise((r) => image.addEventListener("load", r, { once: true }));
-      await scan(p, image);
+      // A search finished after the viewer moved on stores nothing.
+      if (!(await scan(p, image, still))) { busy = false; return; }
       faces = p.attachment.faces;
       changed(p);
       await suggest();
