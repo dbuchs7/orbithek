@@ -106,4 +106,5 @@ Strongest form: a video host streams in every quality to every device, and a pho
 ## Links
 
 - amends [ADR-0177](0177-photo-management-in-the-album.md) (the album as a photo library) and [ADR-0097](0097-videos-in-the-text-the-instance-in-the-tab-done-beside-the-text.md) (videos in the text: QuickTime, a larger budget)
+- amended by [ADR-0192](0192-videos-as-slides-and-from-google-photos-and-icloud.md) (videos as slides; videos from Google Photos and iCloud)
 - relates to ADR-0015 (budgets), ADR-0026 (encryption), ADR-0045 (attachments), ADR-0173 (export), ADR-0176 (presentation), ADR-0178 and ADR-0181 (places), ADR-0188 (moving files)

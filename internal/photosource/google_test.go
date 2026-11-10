@@ -97,12 +97,17 @@ func (f *fakeGoogle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
-		if !strings.HasSuffix(r.URL.Path, "=d") {
-			http.NotFound(w, r)
-			return
-		}
 		w.(http.Flusher).Flush() // no length: the limit is found while reading
-		w.Write(f.photo)
+		switch {
+		case strings.HasSuffix(r.URL.Path, "=d"):
+			w.Write(f.photo)
+		case strings.HasSuffix(r.URL.Path, "=dv"):
+			w.Write([]byte("VIDEODATA"))
+		case strings.HasSuffix(r.URL.Path, "=w1600-h1600"):
+			w.Write([]byte("POSTER"))
+		default:
+			http.NotFound(w, r)
+		}
 		return
 	}
 	http.NotFound(w, r)
@@ -394,11 +399,33 @@ func TestDownloadLimitsAndRefusals(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, m, err := g.Download(ctx, "alice", s.ID, "item-0", 100)
-	wantErr(t, err, ErrVideo)
-	if !m.Video {
-		t.Fatal("not marked a video")
+	// A video is downloaded with "=dv", and its poster is the picture
+	// Google makes of it (ADR-0192).
+	if m, err := g.Picked("alice", s.ID, "item-0"); err != nil || !m.Video {
+		t.Fatalf("picked %+v, %v", m, err)
 	}
+	_, err := g.Picked("bob", s.ID, "item-0")
+	wantErr(t, err, ErrNotFound)
+	_, err = g.Picked("alice", s.ID, "item-9")
+	wantErr(t, err, ErrNotFound)
+	rc, m, err := g.Download(ctx, "alice", s.ID, "item-0", 100)
+	if err != nil || !m.Video {
+		t.Fatalf("video %+v, %v", m, err)
+	}
+	if data, _ := io.ReadAll(rc); string(data) != "VIDEODATA" {
+		t.Fatalf("video %q", data)
+	}
+	rc.Close()
+	rc, err = g.Poster(ctx, "alice", s.ID, "item-0", 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if data, _ := io.ReadAll(rc); string(data) != "POSTER" {
+		t.Fatalf("poster %q", data)
+	}
+	rc.Close()
+	_, err = g.Poster(ctx, "alice", s.ID, "item-1", 100)
+	wantErr(t, err, ErrInvalid)
 	_, _, err = g.Download(ctx, "alice", s.ID, "item-1", 0)
 	wantErr(t, err, ErrInvalid)
 	_, _, err = g.Download(ctx, "alice", s.ID, "item-9", 100)
@@ -407,7 +434,7 @@ func TestDownloadLimitsAndRefusals(t *testing.T) {
 	wantErr(t, err, ErrNotFound)
 
 	// Longer than the limit fails while reading.
-	rc, _, err := g.Download(ctx, "alice", s.ID, "item-1", 4)
+	rc, _, err = g.Download(ctx, "alice", s.ID, "item-1", 4)
 	if err != nil {
 		t.Fatal(err)
 	}

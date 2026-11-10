@@ -215,7 +215,7 @@ Bilder werden dort hinzugefügt, wo man gerade ist, in der Ansicht **Ordner**:
 - *In einer Sammlung* gelten dieselben Wege. Eine Sammlung hält keine eigenen Dateien; das Album fragt deshalb, in welchem Ordner die neuen Bilder abgelegt werden, wobei der zuletzt gewählte Ordner vorne steht, oder legt einen **Neuer Ordner…** an. Jedes Bild erhält die Labels der Sammlung und erscheint so in ihr. **Aus dem Album hinzufügen…** gibt Bildern, die schon im Album sind, die Labels der Sammlung, ohne sie zu kopieren.
 - *Ganz oben* im Album fragt das Hochladen, Ablegen oder Einfügen ebenfalls nach dem Ordner, der sich danach öffnet.
 
-Eine PowerPoint-Präsentation kommt mit den Bildern ihrer Folien (siehe *Eine PowerPoint-Präsentation importieren*). Aus Foto-Apps exportierte Bilder werden im Browser entpackt. Sofern eingeschaltet, kommen Fotos auch **Aus Google Fotos** oder **Aus geteiltem iCloud-Album**. HEIC-Fotos werden nicht übernommen; sie sind vorher als JPEG zu exportieren. Videos aus Google Fotos und geteilten iCloud-Alben werden weiterhin übersprungen.
+Eine PowerPoint-Präsentation kommt mit den Bildern ihrer Folien (siehe *Eine PowerPoint-Präsentation importieren*). Aus Foto-Apps exportierte Bilder werden im Browser entpackt. Sofern eingeschaltet, kommen Fotos auch **Aus Google Fotos** oder **Aus geteiltem iCloud-Album**. HEIC-Fotos werden nicht übernommen; sie sind vorher als JPEG zu exportieren. Videos aus Google Fotos und geteilten iCloud-Alben kommen ebenfalls, mit dem Bild, das der Dienst von ihnen hat, als Vorschaubild.
 
 Der **Ort beim Import** eines Ordners bestimmt, was mit dem Aufnahmeort eines Fotos geschieht: **Für alle behalten**, **Nur für mich** oder **Aus der Datei entfernen**. Pro Bild lässt sich der Ort später nur für sich behalten oder allen zeigen.
 
@@ -223,16 +223,19 @@ Nennt ein Bild keinen oder einen falschen Ort, setzt ihn, wer das Bild bearbeite
 
 ### Videos
 
-Videos kommen auf denselben Wegen ins Album wie Bilder: hochgeladen, abgelegt, eingefügt oder in einem ZIP-Archiv, als MP4, WebM oder MOV (iPhone), je bis 2 GB, sofern die Administration keine andere Grenze gesetzt hat. Das Album behandelt sie danach wie Bilder: in Ordnern und Sammlungen, in der Zeitachse und auf der Karte, als Favoriten und Erinnerungen, mit Labels, Umbenennen, Verschieben, Löschen und dem ZIP-Download.
+Videos kommen auf denselben Wegen ins Album wie Bilder: hochgeladen, abgelegt, eingefügt, in einem ZIP-Archiv oder aus Google Fotos und geteilten iCloud-Alben, als MP4, WebM oder MOV (iPhone), je bis 2 GB, sofern die Administration keine andere Grenze gesetzt hat. Das Album behandelt sie danach wie Bilder: in Ordnern und Sammlungen, in der Zeitachse und auf der Karte, als Favoriten und Erinnerungen, mit Labels, Umbenennen, Verschieben, Löschen und dem ZIP-Download.
 
 - Beim Hochladen nimmt der Browser ein Bild aus dem Video; das Album zeigt es auf der Karte zusammen mit der Dauer des Videos. Ein Video, das der Browser nicht abspielen kann, behält stattdessen ein Symbol.
 - Aufnahmezeit und -ort, Dauer und Kamera werden aus dem Video selbst gelesen; **Ort beim Import** wirkt wie bei Fotos.
 - Ein Klick spielt das Video im Betrachter ab. Ob ein MOV-Video abspielt, hängt vom Browser ab: Safari spielt es ab, andere Browser oft nur, wenn es als H.264 statt HEVC aufgenommen wurde. Sonst wählt man **Herunterladen**.
-- Der Filter **Videos** zeigt nur Videos. Beim Präsentieren erscheinen Videos nicht als Folien; als PNG oder JPEG werden sie nicht exportiert.
+- Der Filter **Videos** zeigt nur Videos. Als PNG oder JPEG werden sie nicht exportiert.
+- Beim Präsentieren ist ein Video eine Folie: Es zeigt sein Vorschaubild, bis die Leertaste oder ein Klick es startet, im Präsentationsfenster und nur dort mit Ton. Die Leertaste hält es wieder an; die Pfeiltasten gehen weiter. Es lässt sich nicht vergrössern und nicht mit dem Laserpointer zeigen.
 
 ### Einen Ordner löschen
 
 **Ordner löschen** in einem offenen Ordner verschiebt ihn mit seinen Ordnern, Bildern und Videos in den Papierkorb, nachdem gesagt wurde, wie viel mitgeht. Seine Seite stellt ihn mit **Wiederherstellen** wieder her. Ein Ordner wird nicht gelöscht, solange etwas ausserhalb, etwa eine Seite, noch verwendet, was darin ist; das Album nennt es.
+
+**Sammlung löschen** in einer offenen Sammlung verschiebt nur die Sammlung in den Papierkorb. Ihre Bilder und Videos bleiben, wo sie sind, mit ihren Labels; ihre Seite stellt sie mit **Wiederherstellen** wieder her.
 
 ### Eine PowerPoint-Präsentation importieren
 

@@ -41,7 +41,11 @@ func newFakeICloud() *fakeICloud {
 					"2049": map[string]any{"checksum": "large", "fileSize": "900000", "width": "2049", "height": "1536"},
 				}},
 			{"photoGuid": "g2", "batchDateCreated": "2024-07-02T08:00:00Z", "mediaAssetType": "video", "width": 1920, "height": 1080,
-				"derivatives": map[string]any{"PosterFrame": map[string]any{"checksum": "poster", "width": "1920", "height": "1080"}}},
+				"derivatives": map[string]any{"PosterFrame": map[string]any{"checksum": "poster", "width": "1920", "height": "1080"},
+					"720p": map[string]any{"checksum": "video720", "fileSize": "5000000", "width": "1280", "height": "720"},
+					"360p": map[string]any{"checksum": "video360", "fileSize": "900000", "width": "640", "height": "360"}}},
+			{"photoGuid": "g4", "mediaAssetType": "video",
+				"derivatives": map[string]any{"PosterFrame": map[string]any{"checksum": "poster4", "width": "1920", "height": "1080"}}},
 			{"photoGuid": "g3", "derivatives": map[string]any{}},
 			{"photoGuid": "", "derivatives": map[string]any{"a": map[string]any{"checksum": "x"}}},
 			{"photoGuid": "g1", "derivatives": map[string]any{"a": map[string]any{"checksum": "y"}}},
@@ -87,8 +91,10 @@ func (f *fakeICloud) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			json.NewDecoder(r.Body).Decode(&body)
 			f.assetReqs = append(f.assetReqs, body.PhotoGuids)
 			json.NewEncoder(w).Encode(map[string]any{"items": map[string]any{
-				"large": map[string]any{"url_expiry": "2026-11-10T13:00:00Z", "url_location": f.location, "url_path": f.path},
-				"small": map[string]any{"url_location": "cvws.icloud-content.com", "url_path": "/small.jpg"},
+				"large":    map[string]any{"url_expiry": "2026-11-10T13:00:00Z", "url_location": f.location, "url_path": f.path},
+				"small":    map[string]any{"url_location": "cvws.icloud-content.com", "url_path": "/small.jpg"},
+				"video720": map[string]any{"url_location": "cvws.icloud-content.com", "url_path": "/B/video.mp4"},
+				"poster":   map[string]any{"url_location": "cvws.icloud-content.com", "url_path": "/B/poster.jpg"},
 			}, "locations": map[string]any{}})
 		default:
 			http.NotFound(w, r)
@@ -169,7 +175,7 @@ func TestAlbumFollows330AndReadsPhotos(t *testing.T) {
 	if len(f.streamed) != 1 || f.streamed[0] != "p42-sharedstreams.icloud.com" {
 		t.Fatalf("streamed on %v", f.streamed)
 	}
-	if a.Name != "Holidays" || a.Owner != "Anna Muster" || len(a.Photos) != 2 {
+	if a.Name != "Holidays" || a.Owner != "Anna Muster" || len(a.Photos) != 3 {
 		t.Fatalf("album %+v", a)
 	}
 	p := a.Photos[0]
@@ -178,7 +184,7 @@ func TestAlbumFollows330AndReadsPhotos(t *testing.T) {
 		t.Fatalf("photo %+v", p)
 	}
 	v := a.Photos[1]
-	if !v.Video || v.Width != 1920 || !v.Created.Equal(time.Date(2024, 7, 2, 8, 0, 0, 0, time.UTC)) {
+	if !v.Video || v.Width != 1920 || !v.Created.Equal(time.Date(2024, 7, 2, 8, 0, 0, 0, time.UTC)) || v.checksum != "video720" || v.poster != "poster" {
 		t.Fatalf("video %+v", v)
 	}
 
@@ -196,8 +202,23 @@ func TestAlbumFollows330AndReadsPhotos(t *testing.T) {
 		t.Fatalf("asked %v, downloaded %v", f.assetReqs, f.downloads)
 	}
 
-	_, err = c.Download(context.Background(), token, v, 100)
-	wantErr(t, err, ErrVideo)
+	// A video is its largest video, not its poster frame, which is its
+	// poster (ADR-0192).
+	if _, err = c.Download(context.Background(), token, v, 100); err != nil || f.downloads[1] != "cvws.icloud-content.com/B/video.mp4" {
+		t.Fatalf("video downloaded %v, %v", f.downloads, err)
+	}
+	if _, err = c.Poster(context.Background(), token, v, 100); err != nil || f.downloads[2] != "cvws.icloud-content.com/B/poster.jpg" {
+		t.Fatalf("poster downloaded %v, %v", f.downloads, err)
+	}
+	_, err = c.Poster(context.Background(), token, p, 100)
+	wantErr(t, err, ErrNotFound)
+	// A video Apple offers only a picture of is listed, not downloaded.
+	only := a.Photos[2]
+	if only.GUID != "g4" || !only.Video {
+		t.Fatalf("poster only %+v", only)
+	}
+	_, err = c.Download(context.Background(), token, only, 100)
+	wantErr(t, err, ErrNotFound)
 }
 
 func TestAlbumWithoutRedirectAndHeaderRedirect(t *testing.T) {

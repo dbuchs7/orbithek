@@ -392,15 +392,17 @@ func TestImportsAreOffTillTheOperatorTurnsThemOn(t *testing.T) {
 }
 
 // fakeICloud answers as Apple's shared album interface does for one album
-// of two photos and a video.
+// of two photos and two videos, one of them no video at all.
 func fakeICloud(t *testing.T, photo []byte) http.Handler {
+	video := quickTime("+46.5584+007.8352/", 100)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case strings.HasSuffix(r.URL.Path, "/sharedstreams/webstream"):
 			w.Write([]byte(`{"streamName":"Summer","userFirstName":"Anna","userLastName":"Muster","photos":[
 				{"photoGuid":"G1","caption":"Lake","dateCreated":"2024-05-01T11:22:10Z","width":"64","height":"32","derivatives":{"1":{"checksum":"c1","fileSize":"100","width":"64","height":"32"}}},
 				{"photoGuid":"G2","caption":"","dateCreated":"2024-05-02T11:22:10Z","width":"64","height":"32","derivatives":{"1":{"checksum":"c2","fileSize":"100","width":"64","height":"32"}}},
-				{"photoGuid":"G3","mediaAssetType":"video","dateCreated":"2024-05-03T11:22:10Z","derivatives":{"1":{"checksum":"c3","fileSize":"100","width":"64","height":"32"}}}]}`))
+				{"photoGuid":"G3","mediaAssetType":"video","dateCreated":"2024-05-03T11:22:10Z","derivatives":{"720p":{"checksum":"c3","fileSize":"100","width":"64","height":"32"},"PosterFrame":{"checksum":"p3","width":"64","height":"32"}}},
+				{"photoGuid":"G4","mediaAssetType":"video","dateCreated":"2024-05-04T11:22:10Z","derivatives":{"720p":{"checksum":"c4","fileSize":"100","width":"64","height":"32"}}}]}`))
 		case strings.HasSuffix(r.URL.Path, "/sharedstreams/webasseturls"):
 			var req struct {
 				PhotoGuids []string `json:"photoGuids"`
@@ -409,12 +411,17 @@ func fakeICloud(t *testing.T, photo []byte) http.Handler {
 			items := map[string]any{}
 			for _, g := range req.PhotoGuids {
 				items["c"+g[1:]] = map[string]string{"url_location": "cvws.icloud-content.com", "url_path": "/asset/" + g}
+				items["p"+g[1:]] = map[string]string{"url_location": "cvws.icloud-content.com", "url_path": "/poster/" + g}
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"items": items})
 		case strings.HasPrefix(r.URL.Path, "/asset/G1"):
 			w.Write(photo)
-		case strings.HasPrefix(r.URL.Path, "/asset/G2"):
+		case strings.HasPrefix(r.URL.Path, "/asset/G2"), strings.HasPrefix(r.URL.Path, "/asset/G4"):
 			w.Write([]byte("not a picture at all"))
+		case strings.HasPrefix(r.URL.Path, "/asset/G3"):
+			w.Write(video)
+		case strings.HasPrefix(r.URL.Path, "/poster/G3"):
+			w.Write(photo)
 		default:
 			http.NotFound(w, r)
 		}
@@ -423,7 +430,8 @@ func fakeICloud(t *testing.T, photo []byte) http.Handler {
 
 // TestASharedICloudAlbumComesIntoAFolder: the album is read by its
 // address; each photo comes in as the caller's upload with the time Apple
-// tells, again only once, and what is no picture is refused (ADR-0177).
+// tells, again only once, and what is no picture is refused (ADR-0177). A
+// video comes in with Apple's poster frame as its poster (ADR-0192).
 func TestASharedICloudAlbumComesIntoAFolder(t *testing.T) {
 	// The photo without EXIF: its time comes from Apple.
 	var raw bytes.Buffer
@@ -436,7 +444,7 @@ func TestASharedICloudAlbumComesIntoAFolder(t *testing.T) {
 	}
 	address := "https://www.icloud.com/sharedalbum/#B0aGWZuqDGKS7Ke"
 	album := w.bert.expect("POST", "/api/album/icloud/albums", `{"url":"`+address+`"}`, http.StatusOK)
-	if album["name"] != "Summer" || len(album["photos"].([]any)) != 3 {
+	if album["name"] != "Summer" || len(album["photos"].([]any)) != 4 {
 		t.Fatalf("album %v", album)
 	}
 	w.bert.expect("POST", "/api/album/icloud/albums", `{"url":"https://example.org/x"}`, http.StatusBadRequest)
@@ -452,10 +460,17 @@ func TestASharedICloudAlbumComesIntoAFolder(t *testing.T) {
 		t.Errorf("again %v", again)
 	}
 	imp(w.bert, "G2", http.StatusUnsupportedMediaType)
-	imp(w.bert, "G3", http.StatusUnsupportedMediaType)
+	v := imp(w.bert, "G3", http.StatusCreated)["attachment"].(map[string]any)
+	if v["type"] != "video/quicktime" || v["name"] != "G3.mov" || v["photo"].(map[string]any)["duration"] != 10.0 {
+		t.Errorf("video %v", v)
+	}
+	if rec := w.vera.do("GET", "/api/items/"+w.folder+"/attachments/"+v["id"].(string)+"/thumbnail", ""); rec.Code != http.StatusOK {
+		t.Errorf("the video has no poster: %d", rec.Code)
+	}
+	imp(w.bert, "G4", http.StatusUnsupportedMediaType)
 	imp(w.bert, "G9", http.StatusNotFound)
 	imp(w.vera, "G1", http.StatusForbidden)
-	if got := names(w.vera, "?folder="+w.folder); len(got) != 1 {
+	if got := names(w.vera, "?folder="+w.folder); len(got) != 2 {
 		t.Errorf("the folder holds %v", got)
 	}
 }
@@ -463,6 +478,7 @@ func TestASharedICloudAlbumComesIntoAFolder(t *testing.T) {
 // fakeGoogle answers as Google's sign-in and Photos Picker do for one
 // chosen photo and one video.
 func fakeGoogle(t *testing.T, photo []byte) http.Handler {
+	video := quickTime("+46.5584+007.8352/", 100)
 	polled := 0
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
@@ -486,6 +502,10 @@ func fakeGoogle(t *testing.T, photo []byte) http.Handler {
 				return
 			}
 			w.Write(photo)
+		case r.URL.Path == "/M2=dv":
+			w.Write(video)
+		case r.URL.Path == "/M2=w1600-h1600":
+			w.Write(photo)
 		default:
 			http.NotFound(w, r)
 		}
@@ -494,8 +514,9 @@ func fakeGoogle(t *testing.T, photo []byte) http.Handler {
 
 // TestPhotosChosenInGooglePhotosComeIntoAFolder: one signs in at Google,
 // bound to the browser that began it, opens a picker, waits until the
-// photos are chosen and brings each into the folder; videos are refused
-// and the picker is closed (ADR-0177).
+// photos are chosen and brings each into the folder, a video with the
+// picture Google makes of it as its poster (ADR-0192), and the picker is
+// closed (ADR-0177).
 func TestPhotosChosenInGooglePhotosComeIntoAFolder(t *testing.T) {
 	photo := exifJPEG(t, "2024:05:01 13:22:10", 46.5, 7.8, 64)
 	client := anyHost(t, fakeGoogle(t, photo))
@@ -557,7 +578,13 @@ func TestPhotosChosenInGooglePhotosComeIntoAFolder(t *testing.T) {
 	if a := got["attachment"].(map[string]any); a["name"] != "IMG_1.jpg" || a["photo"].(map[string]any)["taken"] != "2024-05-01T13:22:10" {
 		t.Errorf("imported %v", got)
 	}
-	w.bert.expect("POST", "/api/album/google/sessions/S1/import", `{"media":"M2","folder":"`+w.folder+`"}`, http.StatusUnsupportedMediaType)
+	v := w.bert.expect("POST", "/api/album/google/sessions/S1/import", `{"media":"M2","folder":"`+w.folder+`","place":"strip"}`, http.StatusCreated)["attachment"].(map[string]any)
+	if v["type"] != "video/quicktime" || v["name"] != "VID.mp4" || v["photo"].(map[string]any)["lat"] != nil {
+		t.Errorf("video %v", v)
+	}
+	if rec := w.bert.do("GET", "/api/items/"+w.folder+"/attachments/"+v["id"].(string)+"/thumbnail", ""); rec.Code != http.StatusOK {
+		t.Errorf("the video has no poster: %d", rec.Code)
+	}
 	w.vera.expect("POST", "/api/album/google/sessions/S1/import", `{"media":"M1","folder":"`+w.folder+`"}`, http.StatusForbidden)
 	w.bert.expect("DELETE", "/api/album/google/sessions/S1", "", http.StatusNoContent)
 	// A refusal at Google comes back as one.
@@ -572,6 +599,7 @@ func TestImportNames(t *testing.T) {
 	for _, c := range []struct{ in, kind, want string }{
 		{"IMG_1.jpg", "image/jpeg", "IMG_1.jpg"}, {"a/b", "image/png", "a_b.png"}, {"", "image/gif", "photo.gif"}, {"Lake", "image/webp", "Lake.webp"},
 		{strings.Repeat("x", 300), "image/jpeg", strings.Repeat("x", 200) + ".jpg"},
+		{"G3", "video/quicktime", "G3.mov"}, {"clip", "video/mp4", "clip.mp4"}, {"x", "video/webm", "x.webm"},
 	} {
 		if got := importName(c.in, c.kind); got != c.want {
 			t.Errorf("%q: %q, want %q", c.in, got, c.want)

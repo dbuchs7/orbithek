@@ -94,7 +94,8 @@ func AlbumToken(raw string) (string, error) {
 }
 
 // SharedPhoto is a photo or video of a shared album. Its best derivative,
-// the largest Apple offers, is the one downloaded.
+// the largest Apple offers, is the one downloaded; of a video, the largest
+// video, and its poster frame as its poster (ADR-0192).
 type SharedPhoto struct {
 	GUID, Caption string
 	Created       time.Time
@@ -102,8 +103,12 @@ type SharedPhoto struct {
 	Video         bool
 
 	checksum string
+	poster   string
 	host     string
 }
+
+// posterFrame is the derivative of a video that is a picture of it.
+const posterFrame = "posterframe"
 
 // Album is a shared album: its name, its owner's name and its photos.
 type Album struct {
@@ -132,11 +137,12 @@ type wirePhoto struct {
 }
 
 // best answers the checksum of the largest derivative, by its pixels and
-// then its bytes, ties broken by the checksum so the choice is stable.
+// then its bytes, ties broken by the checksum so the choice is stable. Of
+// a video, its poster frame is left out: it is a picture.
 func (w wirePhoto) best() string {
 	var best wireDerivative
-	for _, d := range w.Derivatives {
-		if d.Checksum == "" {
+	for name, d := range w.Derivatives {
+		if d.Checksum == "" || w.video() && strings.EqualFold(name, posterFrame) {
 			continue
 		}
 		pd, pb := int64(d.Width)*int64(d.Height), int64(best.Width)*int64(best.Height)
@@ -146,6 +152,21 @@ func (w wirePhoto) best() string {
 		}
 	}
 	return best.Checksum
+}
+
+func (w wirePhoto) video() bool { return w.MediaAssetType == "video" }
+
+// poster answers the checksum of a video's poster frame, "" for none.
+func (w wirePhoto) poster() string {
+	if !w.video() {
+		return ""
+	}
+	for name, d := range w.Derivatives {
+		if strings.EqualFold(name, posterFrame) {
+			return d.Checksum
+		}
+	}
+	return ""
 }
 
 func (c *ICloud) host(token string) string {
@@ -182,8 +203,10 @@ func (c *ICloud) Album(ctx context.Context, token string) (Album, error) {
 		Owner: strings.TrimSpace(answer.UserFirstName + " " + answer.UserLastName)}
 	seen := map[string]bool{}
 	for _, w := range answer.Photos {
-		sum := w.best()
-		if w.PhotoGUID == "" || sum == "" || seen[w.PhotoGUID] {
+		sum, poster := w.best(), w.poster()
+		// A video Apple offers only its poster frame of stays listed, and
+		// cannot be downloaded.
+		if w.PhotoGUID == "" || sum == "" && poster == "" || seen[w.PhotoGUID] {
 			continue
 		}
 		seen[w.PhotoGUID] = true
@@ -192,8 +215,8 @@ func (c *ICloud) Album(ctx context.Context, token string) (Album, error) {
 			created, _ = time.Parse(time.RFC3339, w.BatchDateCreated)
 		}
 		album.Photos = append(album.Photos, SharedPhoto{GUID: w.PhotoGUID, Caption: w.Caption, Created: created,
-			Width: w.Width.int(), Height: w.Height.int(), Video: w.MediaAssetType == "video",
-			checksum: sum, host: host})
+			Width: w.Width.int(), Height: w.Height.int(), Video: w.video(),
+			checksum: sum, poster: poster, host: host})
 	}
 	return album, nil
 }
@@ -268,9 +291,10 @@ func moved(resp *http.Response) (string, error) {
 	return host, nil
 }
 
-// assetURL asks the stream host for the download address of one photo's
-// best derivative and checks it is one of iCloud's.
-func (c *ICloud) assetURL(ctx context.Context, token string, p SharedPhoto) (string, error) {
+// assetURL asks the stream host for the download address of one
+// derivative of a photo, by its checksum, and checks it is one of
+// iCloud's.
+func (c *ICloud) assetURL(ctx context.Context, token string, p SharedPhoto, checksum string) (string, error) {
 	host := p.host
 	if host == "" {
 		host = c.host(token)
@@ -288,7 +312,7 @@ func (c *ICloud) assetURL(ctx context.Context, token string, p SharedPhoto) (str
 	if err := json.Unmarshal(data, &answer); err != nil {
 		return "", fmt.Errorf("%w: iCloud's answer cannot be read", ErrUnreadable)
 	}
-	it, ok := answer.Items[p.checksum]
+	it, ok := answer.Items[checksum]
 	if !ok {
 		return "", fmt.Errorf("%w: iCloud hands out no address for the photo", ErrNotFound)
 	}
@@ -300,23 +324,39 @@ func (c *ICloud) assetURL(ctx context.Context, token string, p SharedPhoto) (str
 	return addr, nil
 }
 
-// Download reads one photo of a shared album, its best derivative, at most
-// limit bytes (more fails with ErrTooLarge while reading). The photo must
-// come from Album; a video is ErrVideo. Its download address is asked for
-// anew, as Apple's addresses expire, and redirects are followed only to
-// iCloud's hosts.
+// Download reads one photo or video of a shared album, its best
+// derivative, at most limit bytes (more fails with ErrTooLarge while
+// reading). The photo must come from Album. Its download address is asked
+// for anew, as Apple's addresses expire, and redirects are followed only
+// to iCloud's hosts.
 func (c *ICloud) Download(ctx context.Context, token string, p SharedPhoto, limit int64) (io.ReadCloser, error) {
+	if p.GUID != "" && p.checksum == "" && p.poster != "" {
+		return nil, fmt.Errorf("%w: iCloud offers no video of it, only a picture", ErrNotFound)
+	}
+	return c.derivative(ctx, token, p, p.checksum, limit)
+}
+
+// Poster reads the poster frame of a video of a shared album, the picture
+// Apple keeps of it (ADR-0192), at most limit bytes. A photo, or a video
+// without one, is ErrNotFound.
+func (c *ICloud) Poster(ctx context.Context, token string, p SharedPhoto, limit int64) (io.ReadCloser, error) {
+	if p.GUID != "" && p.poster == "" {
+		return nil, fmt.Errorf("%w: iCloud keeps no poster of it", ErrNotFound)
+	}
+	return c.derivative(ctx, token, p, p.poster, limit)
+}
+
+// derivative reads one derivative of a photo by its checksum.
+func (c *ICloud) derivative(ctx context.Context, token string, p SharedPhoto, checksum string, limit int64) (io.ReadCloser, error) {
 	switch {
 	case !albumToken.MatchString(token):
 		return nil, fmt.Errorf("%w: not the token of a shared album", ErrInvalid)
 	case limit <= 0:
 		return nil, fmt.Errorf("%w: no limit", ErrInvalid)
-	case p.Video:
-		return nil, ErrVideo
-	case p.GUID == "" || p.checksum == "":
+	case p.GUID == "" || checksum == "":
 		return nil, fmt.Errorf("%w: a photo not read from its album", ErrInvalid)
 	}
-	addr, err := c.assetURL(ctx, token, p)
+	addr, err := c.assetURL(ctx, token, p, checksum)
 	if err != nil {
 		return nil, err
 	}

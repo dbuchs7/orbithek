@@ -96,4 +96,5 @@ Strongest form: the collection is an ordinary folder afterwards; it works offlin
 
 - amends [ADR-0090](0090-album-folders-uploads-and-picture-labels.md) (collections beside folders)
 - amended by [ADR-0187](0187-pictures-are-added-where-one-is-in-the-album.md) (a collection is filled by giving its labels)
+- amended by [ADR-0193](0193-a-collection-is-deleted-from-the-album.md) (a collection deleted from the album)
 - relates to ADR-0054 (the album), ADR-0103 (stacks of versions), ADR-0044 (labels), ADR-0022 (permissions), ADR-0033 (search in memory), ADR-0136 (query language)

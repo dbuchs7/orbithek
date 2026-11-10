@@ -1851,6 +1851,13 @@ function gitSource() {
     await page.waitForSelector("#album .album-folder:has-text('Logos')");
     await page.click("#album .album-collection:has-text('Print')");
     await page.waitForSelector("#album-rule-text");
+    // A collection is deleted from the album, into the trash; its pictures
+    // stay where they are (ADR-0193).
+    answer = true;
+    await page.click("#album-collection-delete");
+    await page.waitForSelector("#album-collection-restore");
+    check((await page.textContent("#album .status")).includes('"Print" is in the trash.'), "a deleted collection goes to the trash");
+    check(await page.locator("#album .album-collection:has-text('Print')").count() === 0, "a deleted collection leaves the album");
     await page.click("#album .album-trail button:has-text('All pictures')");
     await page.selectOption("#album-label", "logo");
     await page.waitForSelector(brandCard);
@@ -2021,18 +2028,19 @@ function gitSource() {
     await page.setInputFiles("#album-files", [
       { name: "10 Outlook.png", mimeType: "image/png", buffer: Buffer.from(slidePng) },
       { name: "2 Plan.png", mimeType: "image/png", buffer: Buffer.from(slidePng) },
+      { name: "12 Clip.webm", mimeType: "video/webm", buffer: Buffer.from(webm) },
     ]);
-    await page.waitForFunction(() => document.querySelectorAll("#album .album-card").length === 2);
+    await page.waitForFunction(() => document.querySelectorAll("#album .album-card").length === 3);
     const planCard = "#album .album-card:has(.album-name:text-is('2 Plan'))";
     await page.click(planCard + " .album-notes-edit");
     await page.fill(planCard + " .album-notes-input", "Start with the plan.\nThen the budget.");
     await page.click(planCard + " .album-notes-save");
     await page.waitForSelector(planCard + ' .album-notes-edit:text-is("Edit speaker\'s notes")');
-    await page.waitForSelector("#album-present:not([hidden]):text-is('Present 2 pictures')");
+    await page.waitForSelector("#album-present:not([hidden]):text-is('Present 3 pictures')");
     const [show] = await Promise.all([page.waitForEvent("popup"), page.click("#album-present")]);
     show.on("pageerror", (e) => problems.push("presentation window: " + e.message));
     await page.waitForSelector("#present-console #present-name:text-is('2 Plan')"); // by name, numbers by value
-    check(await page.textContent("#present-counter") === "1 / 2", "the console counts the slides");
+    check(await page.textContent("#present-counter") === "1 / 3", "the console counts the slides, a video among them");
     check((await page.textContent("#present-notes .present-notes-text")) === "Start with the plan.\nThen the budget.", "the notes of the slide show");
     // Long notes scroll inside their box rather than run out of it.
     check(await page.$eval("#present-notes", (box) => {
@@ -2072,6 +2080,20 @@ function gitSource() {
     await page.keyboard.press("b");
     await show.waitForSelector("#show-stage .present-black:not([hidden])");
     await page.keyboard.press("b");
+    // A video is a slide too: the space bar plays it, with sound in the
+    // presentation window only, and it is not zoomed (ADR-0192).
+    await page.keyboard.press("End");
+    await page.waitForSelector("#present-name:text-is('12 Clip')");
+    await page.waitForSelector("#present-laser[aria-pressed=false]"); // the laser goes away on a video by itself
+    await show.waitForSelector("#show-stage video.present-video[src]:not([hidden])");
+    check(await page.$eval("#present-current video", (v) => v.muted), "the console plays a video without sound");
+    await page.keyboard.press(" ");
+    await show.waitForFunction(() => { const v = document.querySelector("#show-stage video"); return v.currentTime > 0 || !v.paused; });
+    check(await page.textContent("#present-counter") === "3 / 3", "the space bar plays a video rather than moving on");
+    await page.click("#present-zoom-in");
+    check(await page.textContent("#present-zoom") === "", "a video is not zoomed");
+    await page.keyboard.press("Home");
+    await show.waitForFunction(() => { const v = document.querySelector("#show-stage video"); return v.hidden && !v.hasAttribute("src"); });
     // Ending closes the presentation window; it may close during the click.
     await Promise.all([show.isClosed() ? null : show.waitForEvent("close"), page.click("#present-end")]);
     check(show.isClosed(), "ending closes the presentation window");

@@ -50,10 +50,10 @@ func photoRoutes(h itemHandlers) []Route {
 		{Method: http.MethodGet, Pattern: GooglePhotosCallback, Summary: "Google's redirect back after one allowed or refused an import; bound to the browser that began it, it goes on to the album", Access: Public, Handler: http.HandlerFunc(h.googlePhotosCallback)},
 		{Method: http.MethodPost, Pattern: "/api/album/google/sessions", Summary: "Open a picker at Google: answers its id and the address where one chooses photos", Handler: http.HandlerFunc(h.googleSession)},
 		{Method: http.MethodGet, Pattern: "/api/album/google/sessions/{id}", Summary: "Whether the photos are chosen in a picker; once they are, the chosen media (id, name, type, taken, video)", Handler: http.HandlerFunc(h.googlePoll)},
-		{Method: http.MethodPost, Pattern: "/api/album/google/sessions/{id}/import", Summary: "Bring one chosen photo (media) into a folder (folder) as one's own upload; skipped when the folder holds the same picture; place is private (kept to oneself) or strip (removed)", Handler: http.HandlerFunc(h.googleImport)},
+		{Method: http.MethodPost, Pattern: "/api/album/google/sessions/{id}/import", Summary: "Bring one chosen photo or video (media) into a folder (folder) as one's own upload, a video with the picture Google makes of it as its poster (ADR-0192); skipped when the folder holds the same file; place is private (kept to oneself) or strip (removed); poster says whether a video has one", Handler: http.HandlerFunc(h.googleImport)},
 		{Method: http.MethodDelete, Pattern: "/api/album/google/sessions/{id}", Summary: "Close a picker at Google", Handler: http.HandlerFunc(h.googleClose)},
 		{Method: http.MethodPost, Pattern: "/api/album/icloud/albums", Summary: "Read a shared iCloud album by its public address (url): its name and photos (guid, caption, created, video)", Handler: http.HandlerFunc(h.icloudAlbum)},
-		{Method: http.MethodPost, Pattern: "/api/album/icloud/import", Summary: "Bring one photo (photo, its guid) of a shared iCloud album read before (url) into a folder (folder) as one's own upload; skipped when the folder holds the same picture; place is private (kept to oneself) or strip (removed)", Handler: http.HandlerFunc(h.icloudImport)},
+		{Method: http.MethodPost, Pattern: "/api/album/icloud/import", Summary: "Bring one photo or video (photo, its guid) of a shared iCloud album read before (url) into a folder (folder) as one's own upload, a video with Apple's poster frame as its poster (ADR-0192); skipped when the folder holds the same file; place is private (kept to oneself) or strip (removed); poster says whether a video has one", Handler: http.HandlerFunc(h.icloudImport)},
 	}
 }
 
@@ -689,7 +689,12 @@ func (h itemHandlers) photoImports(w http.ResponseWriter, r *http.Request) {
 // as the caller's upload: only a picture the album shows, not one the
 // folder holds already. fallback is what the service tells when the file
 // does not: the time it was taken.
-func (h itemHandlers) importInto(w http.ResponseWriter, r *http.Request, folder, name string, body io.Reader, taken time.Time, place string) {
+//
+// A video (ADR-0192) may have up to VideoBytes and must turn out to be
+// one; its place is removed once it is stored, and poster, when given,
+// reads the picture the service keeps of it, kept as its poster. A video
+// whose poster cannot be read keeps its symbol.
+func (h itemHandlers) importInto(w http.ResponseWriter, r *http.Request, folder, name string, body io.Reader, taken time.Time, place string, video bool, poster func(limit int64) (io.ReadCloser, error)) {
 	var id item.ID
 	var check error
 	h.d.DB.Read(func(s *item.Store) {
@@ -705,7 +710,10 @@ func (h itemHandlers) importInto(w http.ResponseWriter, r *http.Request, folder,
 		return
 	}
 	limit := budget.Get().AttachmentBytes
-	if place == placeStrip {
+	if video {
+		limit = max(limit, budget.Get().VideoBytes)
+	}
+	if place == placeStrip && !video {
 		var err error
 		if body, err = withoutPlace(body, limit); err != nil {
 			h.storeFail(w, err, limit)
@@ -727,10 +735,26 @@ func (h itemHandlers) importInto(w http.ResponseWriter, r *http.Request, folder,
 		h.fail(w, err)
 		return
 	}
-	if !inlineTypes[a.Type] {
+	switch vt := h.videoType(id, a); {
+	case video && vt == "":
+		h.d.DB.DiscardAttachment(id, a.ID)
+		writeError(w, http.StatusUnsupportedMediaType, "the service handed over no MP4, WebM or QuickTime video")
+		return
+	case video:
+		a.Type = vt
+		if place == placeStrip {
+			if a, err = h.videoWithoutPlace(id, a); err != nil {
+				h.storeFail(w, err, limit)
+				return
+			}
+		}
+	case !inlineTypes[a.Type]:
 		h.d.DB.DiscardAttachment(id, a.ID)
 		writeError(w, http.StatusUnsupportedMediaType, "the album takes JPEG, PNG, GIF and WebP; export HEIC photos as JPEG")
 		return
+	}
+	if video && poster != nil {
+		h.importPoster(id, a, poster)
 	}
 	a.Name = importName(name, a.Type)
 	a.Photo = h.readPhoto(id, a)
@@ -758,8 +782,28 @@ func (h itemHandlers) importInto(w http.ResponseWriter, r *http.Request, folder,
 			h.d.DB.DiscardAttachment(id, a.ID)
 			return nil, err
 		}
-		return map[string]any{"skipped": false, "attachment": toAttachmentJSON(got)}, nil
+		// poster says whether a video has one; the browser takes one of a
+		// video that came without (ADR-0192).
+		return map[string]any{"skipped": false, "attachment": toAttachmentJSON(got), "poster": h.d.DB.HasPoster(id, got.ID)}, nil
 	})
+}
+
+// importPoster keeps the picture another service keeps of a video as its
+// poster (ADR-0192), if it is a JPEG, PNG or WebP picture within
+// AttachmentBytes; otherwise the video has none.
+func (h itemHandlers) importPoster(id item.ID, a item.Attachment, poster func(limit int64) (io.ReadCloser, error)) {
+	limit := budget.Get().AttachmentBytes
+	rc, err := poster(limit)
+	if err != nil {
+		h.log.Info("video poster not brought in", "err", err)
+		return
+	}
+	defer rc.Close()
+	p, err := h.d.DB.StorePoster(id, a.ID, rc, limit)
+	if err != nil || !slices.Contains(posterTypes, p.Type) {
+		h.d.DB.DiscardPoster(id, a.ID)
+		h.log.Info("video poster not brought in", "err", err, "type", p.Type)
+	}
 }
 
 // storeFail answers a picture that could not be read to remove its place.
@@ -802,6 +846,12 @@ func importName(name, kind string) string {
 			name += ".gif"
 		case "image/webp":
 			name += ".webp"
+		case photo.TypeMP4:
+			name += ".mp4"
+		case photo.TypeQuickTime:
+			name += ".mov"
+		case photo.TypeWebM:
+			name += ".webm"
 		}
 	}
 	return name
@@ -818,8 +868,6 @@ func (h itemHandlers) photosFail(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusUnauthorized, "sign in at Google again to bring photos in")
 	case errors.Is(err, photosource.ErrTooMany):
 		writeError(w, http.StatusTooManyRequests, err.Error())
-	case errors.Is(err, photosource.ErrVideo):
-		writeError(w, http.StatusUnsupportedMediaType, "the album takes photos, not videos")
 	case errors.Is(err, photosource.ErrTooLarge):
 		writeError(w, http.StatusRequestEntityTooLarge, err.Error())
 	case errors.Is(err, context.Canceled):
@@ -972,13 +1020,29 @@ func (h itemHandlers) googleImport(w http.ResponseWriter, r *http.Request) {
 	if !h.mayImportInto(w, r, req.Folder) {
 		return
 	}
-	body, m, err := g.Download(r.Context(), who(r), r.PathValue("id"), req.Media, budget.Get().AttachmentBytes)
+	user, session := who(r), r.PathValue("id")
+	m, err := g.Picked(user, session, req.Media)
+	if err != nil {
+		h.photosFail(w, err)
+		return
+	}
+	limit := budget.Get().AttachmentBytes
+	var poster func(int64) (io.ReadCloser, error)
+	// A video may be larger and take longer (ADR-0192).
+	if m.Video {
+		limit = max(limit, budget.Get().VideoBytes)
+		longTransfer(w, false)
+		poster = func(limit int64) (io.ReadCloser, error) {
+			return g.Poster(r.Context(), user, session, req.Media, limit)
+		}
+	}
+	body, m, err := g.Download(r.Context(), user, session, req.Media, limit)
 	if err != nil {
 		h.photosFail(w, err)
 		return
 	}
 	defer body.Close()
-	h.importInto(w, r, req.Folder, m.Name, body, m.Taken, placeChoice(req.Place, req.Strip))
+	h.importInto(w, r, req.Folder, m.Name, body, m.Taken, placeChoice(req.Place, req.Strip), m.Video, poster)
 }
 
 // mayImportInto refuses an import into an item the caller may not add
@@ -1097,15 +1161,27 @@ func (h itemHandlers) icloudImport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p := a.Photos[i]
-	body, err := c.Download(r.Context(), token, p, budget.Get().AttachmentBytes)
+	limit := budget.Get().AttachmentBytes
+	var poster func(int64) (io.ReadCloser, error)
+	// A video may be larger and take longer (ADR-0192).
+	if p.Video {
+		limit = max(limit, budget.Get().VideoBytes)
+		longTransfer(w, false)
+		poster = func(limit int64) (io.ReadCloser, error) { return c.Poster(r.Context(), token, p, limit) }
+	}
+	body, err := c.Download(r.Context(), token, p, limit)
 	if err != nil {
 		h.photosFail(w, err)
 		return
 	}
 	defer body.Close()
-	name := p.GUID + ".jpg"
+	// The type gives a name without a caption its extension.
+	name := p.GUID
+	if !p.Video {
+		name += ".jpg"
+	}
 	if p.Caption != "" {
 		name = strings.TrimSpace(p.Caption)
 	}
-	h.importInto(w, r, req.Folder, name, body, p.Created, placeChoice(req.Place, req.Strip))
+	h.importInto(w, r, req.Folder, name, body, p.Created, placeChoice(req.Place, req.Strip), p.Video, poster)
 }

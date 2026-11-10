@@ -173,3 +173,28 @@ test("commands change the state; a new slide starts unzoomed", () => {
   assert.equal(apply(s0, "nonsense", view, image), s0);
   assert.equal(s0.index, 0, "the state given is not changed");
 });
+
+test("a video is a slide, played and paused, not zoomed or pointed at (ADR-0192)", () => {
+  const slides = slidesOf([pic("2 Clip.mp4", "v", { video: true, poster: true }), pic("1 Intro.png", "a")]);
+  assert.deepEqual(slides.map((s) => s.name), ["1 Intro", "2 Clip"]);
+  assert.equal(slides[1].video, true);
+  assert.equal(slides[1].poster, true);
+  assert.equal(slides[0].video, false);
+  assert.equal(keyAction(" ", true), "play");
+  assert.equal(keyAction("k", true), "play");
+  assert.equal(keyAction(" ", false), "next", "on a picture the space bar moves on");
+  assert.equal(keyAction("ArrowRight", true), "next");
+  const view = { w: 800, h: 450 }, image = { w: 1600, h: 900 };
+  let s = { slides, index: 0, zoom: 1, center: { x: 0.5, y: 0.5 }, laser: true, black: false, playing: false };
+  assert.equal(apply(s, "play", view, image), s, "a picture does not play");
+  s = apply(s, "next", view, image);
+  assert.equal(s.index, 1);
+  assert.equal(s.laser, false, "the laser is put away on a video");
+  assert.equal(apply(s, "zoomIn", view, image), s, "a video is not zoomed");
+  assert.equal(apply(s, "laser", view, image), s, "nor pointed at");
+  s = apply(s, "play", view, image);
+  assert.equal(s.playing, true);
+  assert.equal(apply(s, "ended", view, image).playing, false);
+  assert.equal(apply(s, "play", view, image).playing, false, "play again pauses");
+  assert.equal(apply(s, "prev", view, image).playing, false, "another slide starts stopped");
+});
