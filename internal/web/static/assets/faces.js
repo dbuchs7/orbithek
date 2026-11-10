@@ -28,8 +28,11 @@ let library = null;
 const load = () => (library ||= (async () => {
   const f = await import("/vendor/face-api.js");
   // The graphics card where the browser offers it, else the processor.
-  try { await f.tf.setBackend("webgl"); } catch { /* not offered */ }
-  if (f.tf.getBackend() !== "webgl") await f.tf.setBackend("cpu");
+  // The WebAssembly backend's files are not shipped, so it is never tried:
+  // asking which backend runs before one is set would try it.
+  try { f.tf.removeBackend("wasm"); } catch { /* not registered */ }
+  const gpu = await f.tf.setBackend("webgl").catch(() => false);
+  if (!gpu) await f.tf.setBackend("cpu");
   await f.tf.ready();
   await f.nets.tinyFaceDetector.loadFromUri(MODELS);
   return f;
