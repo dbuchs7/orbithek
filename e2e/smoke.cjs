@@ -1884,6 +1884,56 @@ function gitSource() {
     await page.press("#album .album-rename-input", "Escape"); // Escape keeps the name
     await page.waitForSelector("#album .album-card .album-name:text-is('2 Plan')");
 
+    step("slide import: a presentation with its slides exported as pictures becomes a folder of slides with their notes, hidden slides left out (ADR-0184)");
+    {
+      const ns = `xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"`;
+      const relType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/";
+      const rels = (list) => `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${list.map(([id, type, target]) =>
+        `<Relationship Id="${id}" Type="${relType}${type}" Target="${target}"/>`).join("")}</Relationships>`;
+      const sp = (ph, text) => `<p:sp><p:nvSpPr><p:cNvPr id="2" name="x"/><p:cNvSpPr/><p:nvPr><p:ph type="${ph}"/></p:nvPr></p:nvSpPr>` +
+        `<p:txBody><a:bodyPr/>${text.split("\n").map((l) => `<a:p><a:r><a:t>${l}</a:t></a:r></a:p>`).join("")}</p:txBody></p:sp>`;
+      const slideXml = (title, hidden) => `<p:sld ${ns}${hidden ? ' show="0"' : ""}><p:cSld><p:spTree>${sp("title", title)}</p:spTree></p:cSld></p:sld>`;
+      const deck = storedZip([
+        ["_rels/.rels", rels([["rId1", "officeDocument", "ppt/presentation.xml"]])],
+        ["ppt/presentation.xml", `<p:presentation ${ns}><p:sldIdLst><p:sldId id="256" r:id="rId1"/><p:sldId id="257" r:id="rId2"/><p:sldId id="258" r:id="rId3"/></p:sldIdLst></p:presentation>`],
+        ["ppt/_rels/presentation.xml.rels", rels([["rId1", "slide", "slides/slide1.xml"], ["rId2", "slide", "slides/slide2.xml"], ["rId3", "slide", "slides/slide3.xml"]])],
+        ["ppt/slides/slide1.xml", slideXml("Kick-off")],
+        ["ppt/slides/_rels/slide1.xml.rels", rels([["rId1", "notesSlide", "../notesSlides/notesSlide1.xml"]])],
+        ["ppt/notesSlides/notesSlide1.xml", `<p:notes ${ns}><p:cSld><p:spTree>${sp("body", "Welcome everyone.\nIntroduce the team.")}</p:spTree></p:cSld></p:notes>`],
+        ["ppt/slides/slide2.xml", slideXml("Backup", true)],
+        ["ppt/slides/slide3.xml", slideXml("Next steps")],
+      ].map(([name, text]) => [name, Buffer.from(text)]));
+      await page.setInputFiles("#album-files", [
+        { name: "Quarterly review.pptx", mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation", buffer: deck },
+        { name: "Slide1.PNG", mimeType: "image/png", buffer: Buffer.from(slidePng) },
+        { name: "Slide2.PNG", mimeType: "image/png", buffer: Buffer.from(slidePng) },
+        { name: "Slide3.PNG", mimeType: "image/png", buffer: Buffer.from(slidePng) },
+      ]);
+      await page.waitForSelector("#album .status .notice:has-text('2 slides brought into the folder Quarterly review.')");
+      check((await page.textContent("#album .status")).includes("1 hidden slide left out."), "the hidden slide is left out");
+      await page.waitForFunction(() => document.querySelectorAll("#album .album-card").length === 2);
+      check((await page.textContent("#album")).includes("Quarterly review"), "the presentation's folder opens");
+      const kickoff = "#album .album-card:has(.album-name:text-is('01 Kick-off'))";
+      await page.waitForSelector(kickoff + ' .album-notes-edit:text-is("Edit speaker\'s notes")');
+      await page.waitForSelector("#album .album-card .album-name:text-is('02 Next steps')");
+      const imported = await page.evaluate(async () => (await (await fetch("/api/album?q=Kick-off")).json()).pictures.map((p) => [p.attachment.name, p.notes]));
+      check(JSON.stringify(imported) === JSON.stringify([["01 Kick-off.png", "Welcome everyone.\nIntroduce the team."]]), "the slide's notes are the picture's: " + JSON.stringify(imported));
+      await page.waitForSelector("#album-present:not([hidden]):text-is('Present 2 pictures')");
+      // Pictures that do not match the slides bring nothing in.
+      await page.setInputFiles("#album-files", [
+        { name: "Quarterly review.pptx", mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation", buffer: deck },
+        { name: "Slide1.PNG", mimeType: "image/png", buffer: Buffer.from(slidePng) },
+      ]);
+      await page.waitForSelector("#album .status .error:has-text('The pictures do not match the slides')");
+      check(await page.locator("#album .album-folder").count() === 0, "no folder is made for pictures that do not match");
+      // The folder goes into the trash, so the room's map later on is as before.
+      const trashed = await page.evaluate(async () => {
+        const { pictures } = await (await fetch("/api/album?q=Kick-off")).json();
+        return (await fetch(`/api/items/${pictures[0].item.id}/trash`, { method: "POST" })).status;
+      });
+      check(trashed === 200, "the imported folder goes into the trash: " + trashed);
+    }
+
     step("provenance: the original is drawn again; its copy learns of it and takes the newer version over");
     await page.goto(base + "/#/item/" + drawingKey + "?edit");
     await page.waitForSelector("#body.editing .pm-redraw");

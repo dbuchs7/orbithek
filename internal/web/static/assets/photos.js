@@ -10,6 +10,7 @@ import { t } from "./i18n.js";
 import { get, post, put, del, upload, download } from "./api.js";
 import { baseName, exposureText, hidden, placeText, sorts, typeOf } from "./photoparts.js";
 import { entries as zipEntries, read as zipRead } from "./zipread.js";
+import { folderName, isDeck, pair, readDeck, slideName, widthOf } from "./pptx.js";
 import { pickPlace, placeInput } from "./places.js";
 
 export const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
@@ -282,6 +283,78 @@ export async function importFiles(files, folder, progress, place = "") {
     } catch (err) { sum.failed.push(`${q.name}: ${err.message}`); }
   }
   return sum;
+}
+
+// importDeck brings a presentation into the album (ADR-0184): when the
+// files chosen or dropped hold a .pptx or .ppsx — on its own or in a ZIP
+// archive — together with the pictures its slides were exported as, a
+// folder named after the presentation is made below folder, each shown
+// slide's picture goes into it named by its place and title, and the
+// slide's speaker's notes become the picture's notes. It gives null when
+// the files hold no presentation, so they are imported as pictures.
+export async function importDeck(files, folder, progress, place = "") {
+  const decks = [];
+  const pictures = [];
+  let skipped = 0;
+  for (const f of files) {
+    if (isDeck(f.name)) { decks.push({ name: f.name, read: async () => f }); continue; }
+    if (/\.zip$/i.test(f.name) || f.type === "application/zip" || f.type === "application/x-zip-compressed") {
+      let list;
+      try { list = await zipEntries(f); } catch { skipped++; continue; }
+      for (const e of list) {
+        if (hidden(e.name)) continue;
+        const name = baseName(e.name);
+        if (isDeck(name)) decks.push({ name, read: () => zipRead(f, e) });
+        else if (sorts(name, typeOf(name)) === "picture") pictures.push({ name, read: () => zipRead(f, e, typeOf(name)) });
+        else skipped++;
+      }
+      continue;
+    }
+    if (sorts(f.name, f.type) === "picture") pictures.push({ name: f.name, read: async () => f });
+    else skipped++;
+  }
+  if (!decks.length) return null;
+  if (decks.length > 1) throw new Error(t("slides.oneAtATime"));
+  const deck = decks[0];
+  progress(t("slides.reading", { name: deck.name }));
+  let slides;
+  try {
+    ({ slides } = await readDeck(await deck.read()));
+  } catch {
+    throw new Error(t("slides.unreadable", { name: deck.name }));
+  }
+  if (!pictures.length) throw new Error(t("slides.noPictures"));
+  let plan;
+  try {
+    plan = pair(slides, pictures);
+  } catch (err) {
+    if (err.code === "mismatch") throw new Error(t("slides.mismatch", { slides: err.slides, pictures: err.pictures }));
+    throw err;
+  }
+  const { item } = await post("/api/album/folders", { parent: folder, name: folderName(deck.name, t("slides.folder")) });
+  const sum = { folder: item, done: 0, notes: 0, hidden: plan.hidden, skipped, failed: [] };
+  const width = widthOf(plan.pairs.length);
+  for (const [i, { slide, picture }] of plan.pairs.entries()) {
+    const name = slideName(i + 1, width, slide.title, picture.name);
+    progress(t("photos.uploading", { n: i + 1, total: plan.pairs.length, name }));
+    try {
+      const blob = await picture.read();
+      const att = await upload(`/api/items/${item.id}`, new File([blob], name, { type: blob.type || typeOf(picture.name) }), null, place ? { place } : {});
+      sum.done++;
+      if (slide.notes) {
+        await put(`/api/items/${item.id}/attachments/${att.id}/notes`, { notes: slide.notes });
+        sum.notes++;
+      }
+    } catch (err) { sum.failed.push(`${name}: ${err.message}`); }
+  }
+  return sum;
+}
+
+// deckText says what a presentation's import did.
+export function deckText(sum) {
+  return [t("slides.imported", { n: sum.done, folder: sum.folder.title }), sum.notes ? t("slides.withNotes", { n: sum.notes }) : "",
+    sum.hidden ? t("slides.hiddenLeft", { n: sum.hidden }) : "", sum.skipped ? t("photos.otherSkipped", { n: sum.skipped }) : "",
+    sum.failed.length ? t("photos.failed", { n: sum.failed.length }) : ""].filter(Boolean).join(" ");
 }
 
 // summaryText says what an import did.
