@@ -1,9 +1,9 @@
 # ADR-0181: A photo's place set by hand, with suggestions from a place search
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-10
-- **Deciders:** Project initiators (request of 2026-11-10 to set the place of photos by hand, with suggestions after the first letters typed; asked where suggestions come from and where a place is set, the requester chose a Photon place search on OpenStreetMap's data, and setting the place in the viewer, for several chosen pictures at once and by clicking on a map; asked the same day that administrators can turn the place search off)
+- **Deciders:** Project initiators (request of 2026-11-10 to set the place of photos by hand, with suggestions after the first letters typed; asked where suggestions come from and where a place is set, the requester chose a Photon place search on OpenStreetMap's data, and setting the place in the viewer, for several chosen pictures at once and by clicking on a map; asked the same day that administrators can turn the place search off; accepted on 2026-11-10)
 - **Open question:** whether a list of places built into the binary should answer when no place search is reachable; whether places already used in the album should be suggested first; whether a place set by hand should also be written into the file's EXIF
 - **Question checked:** 2026-11
 
