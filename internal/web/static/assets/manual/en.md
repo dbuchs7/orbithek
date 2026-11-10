@@ -234,7 +234,7 @@ A click opens a picture with its details: when and where it was taken, camera, e
 - **Export**: PNG, JPEG, or SVG for drawings;
 - **Insert** into the page being edited, **Delete**, and older versions.
 
-**Choose several** selects many pictures at once to add labels, mark favourites, move them to a folder, download them **as ZIP** or delete them.
+**Choose several** selects many pictures at once to add labels, mark favourites, move them to a folder, download them with **Download as ZIP** or delete them.
 
 In the folders, a picture is moved by dragging it onto a folder: onto a folder listed below the open one, or onto a folder above it in the path at the top. A chosen picture takes every chosen picture with it. As with **Move**, a picture that you may not change, or that a text shows, is copied and also stays where it was. Without a mouse, choose the pictures and use **Move to folder…**.
 
@@ -251,7 +251,7 @@ Whoever may edit a picture renames it in the album: open the card's menu **…**
 
 The album presents the pictures it shows as slides: open a folder or a collection, narrow it with the search or a label if you like, and choose **Present N pictures**. The slides are ordered by name, numbers by their value, so *2 Plan* comes before *10 Outlook*; to change the order, rename the pictures.
 
-The click opens a second window, the **presentation window**, for the projector or a second screen. The album's window becomes the **presenter's view**. It shows the current and the next slide, the speaker's notes, the time since the start and the time of day, and a strip of all slides; a click on a slide in the strip goes there. If your browser blocked the second window, allow pop-ups for this site and choose **Presentation window**. In the presentation window, **Full screen** or **F** fills the screen.
+The click opens a second window, the **presentation window**, for the projector or a second screen. The album's window becomes the **presenter's window**. It shows the current and the next slide, the speaker's notes, the time since the start and the time of day, and a strip of all slides; a click on a slide in the strip goes there. If your browser blocked the second window, allow pop-ups for this site and choose **Presentation window**. In the presentation window, **Full screen** or **F** fills the screen.
 
 Both windows obey the same keys and buttons:
 
@@ -265,7 +265,7 @@ Both windows obey the same keys and buttons:
 
 Presentation remotes that send Page Up and Page Down work too. **End** closes the presentation window and returns to the album.
 
-**Speaker's notes** belong to a picture: on its card in the album, **Add speaker's notes**, or in the presenter's view **Edit notes**. Whoever may edit the picture writes them; whoever sees the picture reads them. Notes stay with every version of a drawing.
+**Speaker's notes** belong to a picture: on its card in the album, **Add speaker's notes**, or in the presenter's window **Edit notes**. Whoever may edit the picture writes them; whoever sees the picture reads them. Notes stay with every version of a drawing.
 
 Both windows must be in the same browser on the same computer. People elsewhere follow by screen sharing.
 
@@ -277,7 +277,7 @@ Both windows must be in the same browser on the same computer. People elsewhere 
 
 ### Live whiteboards
 
-Every drawing can be opened with **Open as whiteboard**: up to 20 people and AI agents draw on it at the same time, each element locked while someone works on it. A whiteboard offers coloured **Notes**, a **Vote** with a number of votes per person (the result is written as a comment), a **Timer** and **Present**, which others follow frame by frame. Comments can be placed on single elements. The module **Whiteboards** lists the whiteboards in use and the drawings you can open; **New whiteboard** creates one.
+Every drawing can be opened with **Open as whiteboard**: up to 20 people and AI agents draw on it at the same time, each element locked while someone works on it. A whiteboard offers coloured notes (**Note**), a **Vote** with a number of votes per person (the result is written as a comment), a **Timer** and **Present**, which others follow frame by frame. Comments can be placed on single elements. The module **Whiteboards** lists the whiteboards in use and the drawings you can open; **New whiteboard** creates one.
 
 While people work on a whiteboard, the drawing cannot be edited alone; the page offers to join instead.
 

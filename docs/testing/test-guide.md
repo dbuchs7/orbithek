@@ -158,6 +158,8 @@ The click opens a second window, the **presentation window**, for the projector;
 
 Search, item history, relations, mentions (toolbar: *Mention*), formatting, the API at `/api/openapi.json`. Anything that surprises you is worth a report.
 
+The **user manual** is under the account menu. Where it describes something other than what you see — a button with another name, a step that no longer exists, a feature it does not mention — that is a finding too (ADR-0185).
+
 ## Report a finding
 
 Open an issue with the **Test finding** template: <https://github.com/dbuchs7/orbithek/issues/new/choose>. One finding per issue. The template asks for:
