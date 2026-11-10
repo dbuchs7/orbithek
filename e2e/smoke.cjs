@@ -1703,6 +1703,74 @@ function gitSource() {
     await page.click(brandCard + " .album-delete");
     await page.waitForSelector(brandCard, { state: "detached" });
 
+    step("album presentation: a folder's pictures are slides by name, with speaker's notes, a presentation window, laser pointer, zoom and stepping (ADR-0176)");
+    // A picture of 160 by 90 pixels, so the slides have a size to fit.
+    const slidePng = await page.evaluate(async () => {
+      const c = document.createElement("canvas");
+      c.width = 160; c.height = 90;
+      const g = c.getContext("2d");
+      g.fillStyle = "#2a6"; g.fillRect(0, 0, 160, 90);
+      const b = await new Promise((done) => c.toBlob(done, "image/png"));
+      return Array.from(new Uint8Array(await b.arrayBuffer()));
+    });
+    await page.goto(base + "/#/album");
+    await page.waitForSelector("#album .album-card img");
+    await page.click("#album-new-folder");
+    await page.selectOption("#album-folder-space", "PLAT");
+    await page.fill("#album-folder-name", "Talk");
+    await page.click("#album .album-new-folder button[type=submit]");
+    await page.click("#album .album-folder:has-text('Talk')");
+    await page.waitForSelector("#album-upload");
+    await page.setInputFiles("#album-files", [
+      { name: "10 Outlook.png", mimeType: "image/png", buffer: Buffer.from(slidePng) },
+      { name: "2 Plan.png", mimeType: "image/png", buffer: Buffer.from(slidePng) },
+    ]);
+    await page.waitForFunction(() => document.querySelectorAll("#album .album-card").length === 2);
+    const planCard = "#album .album-card:has(.album-name:text-is('2 Plan'))";
+    await page.click(planCard + " .album-notes-edit");
+    await page.fill(planCard + " .album-notes-input", "Start with the plan.\nThen the budget.");
+    await page.click(planCard + " .album-notes-save");
+    await page.waitForSelector(planCard + ' .album-notes-edit:text-is("Edit speaker\'s notes")');
+    await page.waitForSelector("#album-present:not([hidden]):text-is('Present 2 pictures')");
+    const [show] = await Promise.all([page.waitForEvent("popup"), page.click("#album-present")]);
+    show.on("pageerror", (e) => problems.push("presentation window: " + e.message));
+    await page.waitForSelector("#present-console #present-name:text-is('2 Plan')"); // by name, numbers by value
+    check(await page.textContent("#present-counter") === "1 / 2", "the console counts the slides");
+    check((await page.textContent("#present-notes .present-notes-text")) === "Start with the plan.\nThen the budget.", "the notes of the slide show");
+    check(await page.locator("header.top").isHidden(), "the console takes the whole window");
+    await show.waitForSelector("#present-show #show-waiting[hidden]", { state: "attached" });
+    await show.waitForFunction(() => { const i = document.querySelector("#show-stage img"); return i && i.complete && i.naturalWidth === 160 && i.alt === "2 Plan"; });
+    await page.waitForSelector("#present-link.ok");
+    await show.keyboard.press("ArrowRight"); // the presentation window's keys step too
+    await page.waitForSelector("#present-name:text-is('10 Outlook')");
+    await show.waitForFunction(() => document.querySelector("#show-stage img").alt === "10 Outlook");
+    await page.waitForSelector("#present-notes p.muted"); // no notes for this slide
+    await page.keyboard.press("ArrowLeft");
+    await page.waitForSelector("#present-name:text-is('2 Plan')");
+    await page.click("#present-zoom-in");
+    await page.waitForSelector("#present-zoom:text-is('125 %')");
+    await show.waitForFunction(() => document.querySelector("#show-stage").classList.contains("zoomed"));
+    await page.keyboard.press("0");
+    await show.waitForFunction(() => !document.querySelector("#show-stage").classList.contains("zoomed"));
+    await page.keyboard.press("l");
+    await page.waitForSelector("#present-laser[aria-pressed=true]");
+    const stageBox = await page.locator("#present-current").boundingBox();
+    await page.mouse.move(stageBox.x + stageBox.width / 2 - 5, stageBox.y + stageBox.height / 2 - 5);
+    await page.mouse.move(stageBox.x + stageBox.width / 2, stageBox.y + stageBox.height / 2);
+    await show.waitForFunction(() => {
+      const c = document.querySelector("#show-stage canvas");
+      const g = c.getContext("2d");
+      const d = g.getImageData(Math.floor(c.width / 2), Math.floor(c.height / 2), 1, 1).data;
+      return d[0] > 200 && d[1] < 100; // the laser's red dot, mid-slide in the other window too
+    });
+    await page.keyboard.press("b");
+    await show.waitForSelector("#show-stage .present-black:not([hidden])");
+    await page.keyboard.press("b");
+    // Ending closes the presentation window; it may close during the click.
+    await Promise.all([show.isClosed() ? null : show.waitForEvent("close"), page.click("#present-end")]);
+    check(show.isClosed(), "ending closes the presentation window");
+    await page.waitForSelector("#album");
+
     step("provenance: the original is drawn again; its copy learns of it and takes the newer version over");
     await page.goto(base + "/#/item/" + drawingKey + "?edit");
     await page.waitForSelector("#body.editing .pm-redraw");

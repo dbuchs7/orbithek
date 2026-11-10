@@ -122,7 +122,10 @@ import (
 //   - 43: an anchor may name an element of a drawing, with Drawing and
 //     Element, sealed with the rest of it (ADR-0171). Versions 1 to 42 are
 //     still read.
-const CodecVersion = 43
+//   - 44: an attachment may carry Notes, and the kind AttachmentNotesSet
+//     with attachment, sealed (ADR-0176). Versions 1 to 43 are still
+//     read; their pictures have no notes.
+const CodecVersion = 44
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

@@ -11,6 +11,7 @@ import { commentPlugin } from "./anchors.js";
 import { personalNotes } from "./notes.js";
 import { isDrawing } from "./drawing.js";
 import { albumBrowser, retentionCard } from "./album.js";
+import { presenterView, audienceView } from "./present.js";
 import { starmapView } from "./starmap.js";
 import { roadmapView } from "./roadmap.js";
 import { calendarView } from "./calendarview.js";
@@ -1630,6 +1631,8 @@ async function route() {
       case "my-notes": return await myNotesView();
       case "comments": return await commentsView(arg);
       case "album": return albumView();
+      case "present": return await presentScreen(params);
+      case "show": return showScreen(params);
       case "whiteboards": return await whiteboardsView();
       case "whiteboard": return await whiteboardView(arg, arg2);
       case "labelmap": return await labelmapScreen(params);
@@ -3949,6 +3952,23 @@ async function whiteboardsView() {
 
 function albumView() {
   screen()(h("h1", { text: t("album.title") }), h("p", { class: "muted", text: t("album.intro") }), h("section", { id: "album" }, albumBrowser()));
+}
+
+// presentScreen is the presenter's window of a presentation of the
+// album's pictures, showScreen the presentation window it opens
+// (ADR-0176). Both take the whole window, without the top bar.
+async function presentScreen(params) {
+  const show = screen();
+  document.body.classList.add("presenting");
+  onLeave(() => document.body.classList.remove("presenting"));
+  // Ending returns to the album.
+  await presenterView({ params, show, onLeave, done: () => { location.hash = "#/album"; } });
+}
+
+function showScreen(params) {
+  document.body.classList.add("presenting", "presenting-show");
+  onLeave(() => document.body.classList.remove("presenting", "presenting-show"));
+  audienceView({ params, show: screen(), onLeave });
 }
 
 // infoTip is an "i" that explains what it stands beside. text holds a
