@@ -2025,6 +2025,15 @@ function gitSource() {
     await page.waitForSelector("#present-console #present-name:text-is('2 Plan')"); // by name, numbers by value
     check(await page.textContent("#present-counter") === "1 / 2", "the console counts the slides");
     check((await page.textContent("#present-notes .present-notes-text")) === "Start with the plan.\nThen the budget.", "the notes of the slide show");
+    // Long notes scroll inside their box rather than run out of it.
+    check(await page.$eval("#present-notes", (box) => {
+      const text = box.querySelector(".present-notes-text");
+      const kept = text.textContent;
+      text.textContent = "A line of notes.\n".repeat(400);
+      const ok = text.scrollHeight > text.clientHeight && text.getBoundingClientRect().bottom <= box.getBoundingClientRect().bottom + 1;
+      text.textContent = kept;
+      return ok;
+    }), "long notes scroll inside their box");
     check(await page.locator("header.top").isHidden(), "the console takes the whole window");
     await show.waitForSelector("#present-show #show-waiting[hidden]", { state: "attached" });
     await show.waitForFunction(() => { const i = document.querySelector("#show-stage img"); return i && i.complete && i.naturalWidth === 160 && i.alt === "2 Plan"; });
