@@ -1,9 +1,9 @@
 # ADR-0182: Every file of an item is renamed from its file list
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-10
-- **Deciders:** Project initiators (request of 2026-11-10: renaming also in the file list of a page; that the rules of ADR-0180 hold for every kind of file is a default proposed with the implementation and awaits the requester's confirmation)
+- **Deciders:** Project initiators (request of 2026-11-10: renaming also in the file list of a page; that the rules of ADR-0180 hold for every kind of file is a default proposed with the implementation, confirmed by the requester; accepted 2026-11-10)
 - **Open question:** whether a rename should reach the captions of image blocks and the copies of a file in other items, and whether agents should rename files over MCP; both stay open from ADR-0180
 - **Question checked:** 2026-11
 
@@ -28,7 +28,7 @@ Where is a file renamed outside the album, which files may be renamed, and by wh
 
 ## Decision outcome
 
-Chosen option: **1** (a default proposed with the implementation).
+Chosen option: **1** (a default proposed with the implementation, confirmed by the requester).
 
 - Every file in an item's file list has *Rename* beside *Delete* for whoever may edit the item. The name becomes a field holding the name without its extension; Enter or leaving it saves, Escape keeps the name.
 - The rules are ADR-0180's: every live version takes the name, in one `AttachmentRenamed` event; the extension and a drawing's marker are kept, an extension typed with the name is not doubled, a file without an extension stays without; copies in other items and the captions of image blocks keep theirs. The name is content: sealed, erased with its item, scanned for sensitive data.
