@@ -1,9 +1,9 @@
 # ADR-0178: The place of a photo for its uploader alone
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-10
-- **Deciders:** Project initiators (request of 2026-11-10 to show where a photo was taken to the person who added it only, the open question of ADR-0177; asked when the choice is made and what others get, the requester chose on import and later for each picture, and the place hidden everywhere, the file included)
+- **Deciders:** Project initiators (request of 2026-11-10 to show where a photo was taken to the person who added it only, the open question of ADR-0177; asked when the choice is made and what others get, the requester chose on import and later for each picture, and the place hidden everywhere, the file included; accepted 2026-11-10)
 - **Open question:** whether an administrator, or the erasure role, should see a place kept private, for instance to answer a request about personal data; whether a picture added by an agent or a connector should have its place kept to the person whose token it used
 - **Question checked:** 2026-11
 
