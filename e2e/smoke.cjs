@@ -637,6 +637,11 @@ function gitSource() {
     await d.dismiss();
   });
   const step = (name) => console.log("·", name);
+  // painted waits until the browser has drawn what the page just changed.
+  // Chrome moves the caret by the layout it has drawn: an arrow key a few
+  // milliseconds after the editor rebuilt a block is sometimes lost, which
+  // no person typing can provoke.
+  const painted = (p) => p.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
 
   try {
     step("login form: help for a forgotten password and an account is always offered");
@@ -897,6 +902,7 @@ function gitSource() {
     // last chosen elsewhere applies at once (a choice that shows it already
     // would not change).
     check(await page.inputValue(".pm-toolbar select") === "paragraph", "the block kind follows the cursor into a paragraph");
+    await painted(page); // the empty item just became a paragraph
     await page.keyboard.press("ArrowUp");
     await page.waitForFunction(() => document.querySelector(".pm-toolbar select").value === "bullet"); // and into a list item
     await page.keyboard.press("ArrowDown");
