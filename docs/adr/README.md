@@ -190,3 +190,5 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0175](0175-a-collection-in-the-album-gathers-labelled-pictures-of-every-room.md) | A collection in the album gathers the labelled pictures of every room | Accepted | Landed |
 | [0176](0176-pictures-of-the-album-are-presented-as-slides-with-speakers-notes.md) | Pictures of the album are presented as slides, with speaker's notes, in two windows | Accepted | Landed |
 | [0177](0177-photo-management-in-the-album.md) | Photo management in the album, with imports from Google Photos and Apple | Accepted | Landed |
+| [0178](0178-the-place-of-a-photo-for-its-uploader-alone.md) | The place of a photo for its uploader alone | Proposed | Partial |
+| [0179](0179-the-albums-map-has-a-background-by-default.md) | The album's map has a background by default, OpenStreetMap's | Proposed | Partial |

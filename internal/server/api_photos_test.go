@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/dbuchs7/orbithek/internal/budget"
+	"github.com/dbuchs7/orbithek/internal/item"
 	"github.com/dbuchs7/orbithek/internal/photo"
 	"github.com/dbuchs7/orbithek/internal/photosource"
 )
@@ -168,7 +169,7 @@ func TestAPhotoTellsWhenAndWhereItWasTaken(t *testing.T) {
 		t.Errorf("months %v", months)
 	}
 	places := w.vera.expect("GET", "/api/album/places", "", http.StatusOK)
-	if len(places["places"].([]any)) != 2 || places["tiles"] != false || places["truncated"] != false {
+	if len(places["places"].([]any)) != 2 || places["tiles"] != true || places["truncated"] != false {
 		t.Errorf("places %v", places)
 	}
 	if got := field(w.carla.expect("GET", "/api/album/places", "", http.StatusOK), "places").([]any); len(got) != 0 {
@@ -371,7 +372,9 @@ func anyHost(t *testing.T, h http.Handler) *http.Client {
 func TestImportsAreOffTillTheOperatorTurnsThemOn(t *testing.T) {
 	w := newPhotoWorld(t, func(d *Deps) { d.Photos = NewPhotos(func(string) string { return "" }, nil) })
 	r := w.vera.expect("GET", "/api/album/imports", "", http.StatusOK)
-	if r["google"] != false || r["icloud"] != false || r["tiles"] != false {
+	// The map has OpenStreetMap's tiles unless the operator names others
+	// or none (ADR-0179).
+	if r["google"] != false || r["icloud"] != false || r["tiles"] != true {
 		t.Errorf("imports %v", r)
 	}
 	w.bert.expect("GET", "/api/album/google/connect", "", http.StatusNotFound)
@@ -644,5 +647,126 @@ func TestStoreFailures(t *testing.T) {
 		if rec.Code != status {
 			t.Errorf("%v: %d, want %d", err, rec.Code, status)
 		}
+	}
+}
+
+// TestTheMapHasTilesUnlessTurnedOff: without a tile service named the map
+// draws OpenStreetMap's, with its credit; "off" draws none; another
+// service has the credit the operator gives (ADR-0179).
+func TestTheMapHasTilesUnlessTurnedOff(t *testing.T) {
+	env := func(vars map[string]string) func(string) string { return func(k string) string { return vars[k] } }
+	p := NewPhotos(env(nil), nil)
+	if p.TileURL != DefaultMapTiles || p.TileCredit != DefaultMapAttribution || !strings.HasPrefix(p.tileAgent, "Orbithek/") {
+		t.Errorf("default: %q %q %q", p.TileURL, p.TileCredit, p.tileAgent)
+	}
+	if p := NewPhotos(env(map[string]string{MapTilesVar: "off"}), nil); p.TileURL != "" || p.TileCredit != "" {
+		t.Errorf("off: %q %q", p.TileURL, p.TileCredit)
+	}
+	p = NewPhotos(env(map[string]string{MapTilesVar: "https://tiles.example/{z}/{x}/{y}.png", MapAttributionVar: "© Example", "OT_PUBLIC_URL": "https://wiki.example.org"}), nil)
+	if p.TileURL != "https://tiles.example/{z}/{x}/{y}.png" || p.TileCredit != "© Example" || !strings.Contains(p.tileAgent, "+https://wiki.example.org") {
+		t.Errorf("own service: %q %q %q", p.TileURL, p.TileCredit, p.tileAgent)
+	}
+	if p := NewPhotos(env(map[string]string{MapTilesVar: "https://tiles.example/{z}/{x}/{y}.png"}), nil); p.TileCredit != "" {
+		t.Errorf("another service took OpenStreetMap's credit: %q", p.TileCredit)
+	}
+	w := newPhotoWorld(t, func(d *Deps) { d.Photos = NewPhotos(env(nil), nil) })
+	if r := w.vera.expect("GET", "/api/album/places", "", http.StatusOK); r["tiles"] != true || r["credit"] != DefaultMapAttribution {
+		t.Errorf("places %v", r)
+	}
+}
+
+// TestAPlaceKeptToItsUploaderLeavesTheFile: with place=private the one
+// who adds a photo keeps its place; every other reader reads the photo
+// data and downloads the file, alone or in an archive, without it, and may
+// copy it only so; the uploader shows it again, nobody else may (ADR-0178).
+func TestAPlaceKeptToItsUploaderLeavesTheFile(t *testing.T) {
+	w := newPhotoWorld(t)
+	lake := exifJPEG(t, "2024:05:01 13:22:10", 46.5584, 7.8352, 64)
+	r := w.bert.upload("/api/items/"+w.folder+"/attachments?name=lake.jpg&place=private", "application/octet-stream", lake)
+	if r.Code != http.StatusCreated {
+		t.Fatalf("upload: %d %s", r.Code, r.Body)
+	}
+	var out map[string]any
+	_ = json.Unmarshal(r.Body.Bytes(), &out)
+	a := out["attachment"].(map[string]any)
+	id := a["id"].(string)
+	if p := a["photo"].(map[string]any); p["lat"] == nil || p["placePrivate"] != true {
+		t.Fatalf("the uploader's photo data %v", p)
+	}
+	file := "/api/items/" + w.folder + "/attachments/" + id
+	seen := field(w.vera.expect("GET", file+"/photo", "", http.StatusOK), "photo").(map[string]any)
+	if seen["lat"] != nil || seen["placePrivate"] != nil || seen["taken"] != "2024-05-01T13:22:10" {
+		t.Errorf("vera reads %v", seen)
+	}
+	got := w.vera.do("GET", file, "")
+	if m := photo.Read(bytes.NewReader(got.Body.Bytes()), "image/jpeg"); got.Code != http.StatusOK || m.Lat != nil || m.Taken == "" || !strings.HasSuffix(got.Header().Get("ETag"), `-noplace"`) {
+		t.Errorf("vera's download: %d %+v %s", got.Code, m, got.Header().Get("ETag"))
+	}
+	if m := photo.Read(bytes.NewReader(w.bert.do("GET", file, "").Body.Bytes()), "image/jpeg"); m.Lat == nil {
+		t.Error("the uploader's download lost the place")
+	}
+	if places := field(w.vera.expect("GET", "/api/album/places", "", http.StatusOK), "places").([]any); len(places) != 0 {
+		t.Errorf("vera's map shows %v", places)
+	}
+	if places := field(w.bert.expect("GET", "/api/album/places", "", http.StatusOK), "places").([]any); len(places) != 1 {
+		t.Errorf("bert's map shows %v", places)
+	}
+	zr := w.vera.do("POST", "/api/album/zip", `{"pictures":[{"item":"`+w.folder+`","file":"`+id+`"}]}`)
+	zf, err := zip.NewReader(bytes.NewReader(zr.Body.Bytes()), int64(zr.Body.Len()))
+	if err != nil || len(zf.File) != 1 {
+		t.Fatalf("archive: %v", err)
+	}
+	f, _ := zf.File[0].Open()
+	inZip, _ := io.ReadAll(f)
+	if m := photo.Read(bytes.NewReader(inZip), "image/jpeg"); m.Lat != nil {
+		t.Error("vera's archive tells the place")
+	}
+
+	// The administrator copies it: only without the place.
+	other := w.admin.expect("POST", "/api/album/folders", `{"space":"PLAT","name":"Mine"}`, http.StatusCreated)
+	mine := field(other, "item", "id").(string)
+	src := "&sourceItem=" + w.folder + "&sourceAttachment=" + id
+	stripped := w.admin.do("GET", file, "").Body.Bytes()
+	if r := w.admin.upload("/api/items/"+mine+"/attachments?name=lake.jpg"+src, "application/octet-stream", stripped); r.Code != http.StatusCreated {
+		t.Errorf("a copy without the place: %d %s", r.Code, r.Body)
+	}
+	// Who holds the original already copies it as it is; the copy keeps
+	// its place from everyone else, as its original does.
+	r = w.admin.upload("/api/items/"+mine+"/attachments?name=lake.jpg"+src, "application/octet-stream", lake)
+	_ = json.Unmarshal(r.Body.Bytes(), &out)
+	if r.Code != http.StatusCreated || field(out, "attachment", "photo", "placePrivate") != true {
+		t.Errorf("a copy of the original: %d %s", r.Code, r.Body)
+	}
+	if r := w.admin.upload("/api/items/"+mine+"/attachments?name=lake.jpg"+src, "application/octet-stream", append(stripped, 0)); r.Code != http.StatusBadRequest {
+		t.Errorf("other content as a copy: %d %s", r.Code, r.Body)
+	}
+
+	// Only the uploader decides.
+	w.vera.expect("PUT", file+"/place", `{"private":false}`, http.StatusForbidden)
+	w.carla.expect("PUT", file+"/place", `{"private":false}`, http.StatusNotFound)
+	if r := w.bert.expect("PUT", file+"/place", `{"private":false}`, http.StatusOK); field(r, "attachment", "photo", "placePrivate") != nil {
+		t.Errorf("shown again: %v", r)
+	}
+	if field(w.vera.expect("GET", file+"/photo", "", http.StatusOK), "photo", "lat") == nil {
+		t.Error("shown again, vera still reads no place")
+	}
+	// A picture without a place has none to keep.
+	png := append([]byte("\x89PNG\r\n\x1a\n"), bytes.Repeat([]byte{7}, 100)...)
+	drawn := w.put(t, "drawn.png", png)
+	w.bert.expect("PUT", "/api/items/"+w.folder+"/attachments/"+drawn["id"].(string)+"/place", `{"private":true}`, http.StatusBadRequest)
+}
+
+func TestPlaceChoices(t *testing.T) {
+	for _, c := range []struct {
+		value string
+		strip bool
+		want  string
+	}{{"", false, placeKeep}, {"private", false, placePrivate}, {"strip", false, placeStrip}, {"", true, placeStrip}, {"private", true, placeStrip}, {"other", false, placeKeep}} {
+		if got := placeChoice(c.value, c.strip); got != c.want {
+			t.Errorf("%q %v: %q, want %q", c.value, c.strip, got, c.want)
+		}
+	}
+	if keepPrivate(nil) != nil || keepPrivate(&item.Photo{Taken: "x"}).PlacePrivate {
+		t.Error("keepPrivate without a place")
 	}
 }

@@ -38,6 +38,11 @@ type Attachment struct {
 	// Photo is what a picture tells about itself (ADR-0177): capture
 	// time, place and camera. It is content, sealed with the rest.
 	Photo *Photo `json:",omitempty"`
+	// WithoutPlace tells AddAttachment that the server stored a copy of a
+	// photo without the place its uploader keeps from the copier
+	// (ADR-0178), so the copy's content differs from its source's. It is
+	// never persisted.
+	WithoutPlace bool `json:"-"`
 	// Author and Created come from the event that added it.
 	Author  string `json:"-"`
 	Created int64  `json:"-"` // Unix seconds
@@ -173,6 +178,11 @@ func (s *Store) applyAttachment(e Event, touch func(...ID)) {
 		if a, ok := it.attachment(e.Attachment.ID); ok {
 			a.Notes = e.Attachment.Notes
 		}
+	case AttachmentPlaceSet:
+		if a, ok := it.attachment(e.Attachment.ID); ok && e.Attachment.Photo != nil {
+			p := *e.Attachment.Photo
+			a.Photo = &p
+		}
 	case AttachmentRetentionSet:
 		if a, ok := it.attachment(e.Attachment.ID); ok {
 			if r := e.Attachment.Retention; r != nil {
@@ -211,7 +221,11 @@ func (x *Session) Attachments(id ID) ([]Attachment, error) {
 	}
 	// The files of protected blocks are listed to their readers only
 	// (ADR-0160).
-	return slices.DeleteFunc(slices.Clone(it.Attachments), func(a Attachment) bool { return a.Deleted || !x.s.readsFile(x.who, it, a.ID) }), nil
+	out := slices.DeleteFunc(slices.Clone(it.Attachments), func(a Attachment) bool { return a.Deleted || !x.s.readsFile(x.who, it, a.ID) })
+	for i := range out {
+		out[i] = seenBy(x.who, out[i])
+	}
+	return out, nil
 }
 
 // Attachment returns one attachment of a readable item.
@@ -224,7 +238,7 @@ func (x *Session) Attachment(id, attachment ID) (Attachment, error) {
 	if !ok || a.Deleted || !x.s.readsFile(x.who, it, attachment) {
 		return Attachment{}, notFound("attachment %s of item %s", attachment, id)
 	}
-	return *a, nil
+	return seenBy(x.who, *a), nil
 }
 
 // CanAttach reports whether the principal may add files to an item, so a
@@ -256,8 +270,16 @@ func (x *Session) AddAttachment(id ID, a Attachment) (Attachment, error) {
 		if !ok || (a.Source.Item != id && from.Deleted) || !x.s.readsFile(x.who, src, a.Source.Attachment) {
 			return Attachment{}, notFound("attachment %s of item %s", a.Source.Attachment, a.Source.Item)
 		}
-		if a.Source.Item != id && from.SHA256 != a.SHA256 {
+		// A copy of a photo whose place is kept from the copier has the
+		// content without its place, which the server made (ADR-0178).
+		if a.Source.Item != id && from.SHA256 != a.SHA256 && !(a.WithoutPlace && placeHidden(x.who, *from)) {
 			return Attachment{}, invalid("a copy of %s must have its content", a.Source.Attachment)
+		}
+		// A copy keeps its place as private as its original's.
+		if from.Photo != nil && from.Photo.PlacePrivate && a.Photo.HasPlace() {
+			p := *a.Photo
+			p.PlacePrivate = true
+			a.Photo = &p
 		}
 		if err := x.copiesProtection(src, a.Source.Attachment, id); err != nil {
 			return Attachment{}, err
@@ -324,7 +346,7 @@ func (x *Session) FileOrigin(id, attachment ID) (o FileOrigin, ok bool, err erro
 	}
 	o = FileOrigin{Readable: true, Item: Item{ID: src.ID, Key: src.Key, Title: src.Title, Space: src.Space, Type: src.Type}}
 	if latest := latestVersion(src, a.Source.Attachment); latest != nil && latest.ID != a.Source.Attachment && x.s.readsFile(x.who, src, latest.ID) {
-		l := *latest
+		l := seenBy(x.who, *latest)
 		o.Latest = &l
 	}
 	return o, true, nil
@@ -416,7 +438,7 @@ func (x *Session) Pictures(space string, keep func(Attachment) bool) []Picture {
 		for i, a := range it.Attachments {
 			if !a.Deleted && keep(a) && x.s.readsFile(x.who, it, a.ID) {
 				first := firstVersion(it, a)
-				out = append(out, Picture{Item: Item{ID: it.ID, Key: it.Key, Title: it.Title, Space: it.Space, Type: it.Type, Parent: it.Parent, Labels: it.Labels}, Attachment: a,
+				out = append(out, Picture{Item: Item{ID: it.ID, Key: it.Key, Title: it.Title, Space: it.Space, Type: it.Type, Parent: it.Parent, Labels: it.Labels}, Attachment: seenBy(x.who, a),
 					Used: inBody(it.Body, a.ID), Editable: editable, First: first, Retention: ruleOf(it, first), Notes: notesOf(it, first), order: i})
 			}
 		}
@@ -489,5 +511,6 @@ func (x *Session) Drawing(id, file ID) (Drawing, error) {
 	if !ok || !x.s.readsFile(x.who, it, d.Newest.ID) {
 		return Drawing{}, notFound("attachment %s of item %s", file, id)
 	}
+	d.Newest = seenBy(x.who, d.Newest)
 	return d, nil
 }

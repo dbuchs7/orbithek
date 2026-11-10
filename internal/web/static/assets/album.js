@@ -18,7 +18,7 @@ import { t } from "./i18n.js";
 import { get, post, put, del, upload } from "./api.js";
 import { DRAWING } from "./drawing.js";
 import { exportFormats, exportPicture } from "./picexport.js";
-import { allFolders, copyTo, dayText, googleImport, icloudImport, importFiles, monthText, openViewer, rememberedAlbum, setFavourite, stripPlace, summaryText, thumbURL, zipPictures } from "./photos.js";
+import { allFolders, copyTo, dayText, googleImport, icloudImport, importFiles, monthText, openViewer, rememberedAlbum, setFavourite, importPlace, PLACES, summaryText, thumbURL, zipPictures } from "./photos.js";
 import { groups, range, yearsAgo } from "./photoparts.js";
 import { photoMap } from "./photomap.js";
 import { startPresentation } from "./present.js";
@@ -829,12 +829,16 @@ export function albumBrowser({ pick } = {}) {
       } }));
   };
 
-  // placeChoice lets imports leave where photos were taken behind
+  // placeChoice says what imports do with where photos were taken: keep
+  // it for every reader, keep it to oneself (ADR-0178) or remove it
   // (ADR-0177); this browser remembers the choice.
   const placeChoice = () => {
-    const box = h("input", { type: "checkbox", id: "album-strip-place", checked: stripPlace() });
-    box.addEventListener("change", () => stripPlace(box.checked));
-    return h("label", { class: "check album-strip-place", title: t("photos.stripPlaceTitle") }, box, t("photos.stripPlace"));
+    const text = { "": t("photos.placeKeep"), private: t("photos.placePrivate"), strip: t("photos.placeStrip") };
+    const choice = h("select", { id: "album-import-place", "aria-label": t("photos.placeOnImport"), title: t("photos.placeOnImportTitle") },
+      PLACES.map((v) => h("option", { value: v, text: text[v] })));
+    choice.value = importPlace();
+    choice.addEventListener("change", () => importPlace(choice.value));
+    return h("label", { class: "field album-import-place" }, h("span", { text: t("photos.placeOnImport") }), choice);
   };
 
   // takeFiles uploads files chosen or dropped onto an open folder; ZIP
@@ -842,7 +846,7 @@ export function albumBrowser({ pick } = {}) {
   const takeFiles = async (list) => {
     if (!inFolder() || !list.length) return;
     try {
-      const sum = await importFiles(list, here().id, (text) => say(text), stripPlace());
+      const sum = await importFiles(list, here().id, (text) => say(text), importPlace());
       say(summaryText(sum) + (sum.failed.length ? " " + sum.failed.slice(0, 3).join("; ") : ""), sum.failed.length ? "error" : "notice");
     } catch (err) { fail(err); }
     load(false);
@@ -858,7 +862,7 @@ export function albumBrowser({ pick } = {}) {
     }
     stop = false;
     try {
-      const sum = await googleImport(here().id, progressOf, () => stop, stripPlace());
+      const sum = await googleImport(here().id, progressOf, () => stop, importPlace());
       say(summaryText(sum), sum.failed.length ? "error" : "notice");
     } catch (err) {
       if (err.status === 401) {
@@ -883,7 +887,7 @@ export function albumBrowser({ pick } = {}) {
       form.remove();
       stop = false;
       try {
-        const sum = await icloudImport(address.value.trim(), folder.id, (text) => progressOf(text), () => stop, stripPlace());
+        const sum = await icloudImport(address.value.trim(), folder.id, (text) => progressOf(text), () => stop, importPlace());
         say(`${sum.name ? sum.name + ": " : ""}${summaryText(sum)}`, sum.failed.length ? "error" : "notice");
       } catch (err) { fail(err); }
       load(false);

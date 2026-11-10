@@ -13,6 +13,12 @@ import { entries as zipEntries, read as zipRead } from "./zipread.js";
 
 export const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
 export const thumbURL = (p, edge = 400) => `${fileURL(p)}/thumbnail?edge=${edge}`;
+// whoAmI is the signed-in person's ID, asked once.
+let me = null;
+const whoAmI = async () => {
+  if (!me) me = get("/api/me").then((r) => r.user?.id || "").catch(() => "");
+  return me;
+};
 const caption = (name) => name.replace(/(\.drawing)?\.[^.]*$/, "");
 
 // setFavourite marks a picture as one's favourite, or unmarks it.
@@ -96,7 +102,27 @@ export function openViewer(list, index, changed = () => {}) {
         row(t("photos.item"), p.item.key ? h("a", { href: "#/item/" + encodeURIComponent(p.item.key), text: `${p.item.key} ${p.item.title || ""}`.trim(), onclick: () => dialog.close() }) : ""),
         row(t("photos.added"), p.attachment.created ? when(p.attachment.created) : ""));
     };
-    info.replaceChildren(facts(), h("div", { class: "actions-row" }, fav,
+    // The one who added a photo keeps its place to themselves, or shows it
+    // to every reader again (ADR-0178).
+    const placeRow = h("div", { class: "photo-place-choice" });
+    const showPlaceChoice = async () => {
+      const mine = (await whoAmI()) === p.attachment.author;
+      if (!mine || photo?.lat == null || list[i] !== p) return placeRow.replaceChildren();
+      const priv = !!photo.placePrivate;
+      const b = h("button", { type: "button", class: "secondary", id: "photo-place-private", "aria-pressed": String(priv),
+        text: priv ? t("photos.placeShowAll") : t("photos.placeKeepMine") });
+      b.addEventListener("click", async () => {
+        try {
+          const r = await put(`${fileURL(p)}/place`, { private: !priv });
+          photo = r.attachment.photo;
+          p.attachment.photo = photo;
+          info.firstChild.replaceWith(facts());
+          showPlaceChoice();
+        } catch (err) { info.append(h("p", { class: "error", role: "alert", text: err.message })); }
+      });
+      placeRow.replaceChildren(h("p", { class: "muted", text: priv ? t("photos.placeIsMine") : t("photos.placeIsEveryones") }), b);
+    };
+    info.replaceChildren(facts(), placeRow, h("div", { class: "actions-row" }, fav,
       h("a", { class: "button secondary", href: fileURL(p), download: p.attachment.name, text: t("photos.original") })));
     // A picture stored before photo data was recorded is read now.
     if (!photo && p.item.id) {
@@ -108,6 +134,7 @@ export function openViewer(list, index, changed = () => {}) {
         }
       } catch { /* the facts known so far */ }
     }
+    showPlaceChoice();
   };
   prev.addEventListener("click", () => { if (i > 0) { i--; show(); } });
   next.addEventListener("click", () => { if (i < list.length - 1) { i++; show(); } });
@@ -172,22 +199,29 @@ export async function copyTo(p, folder, move) {
   return false;
 }
 
-// stripPlace is whether imports leave where a photo was taken behind
-// (ADR-0177), as this browser remembers it; with on it is set.
-export function stripPlace(on) {
+// PLACES are the choices of what an import does with where a photo was
+// taken: keep it for every reader, keep it to oneself (ADR-0178), or
+// remove it from the file (ADR-0177).
+export const PLACES = ["", "private", "strip"];
+
+// importPlace is the choice this browser remembers for imports; with a
+// value it is set. An earlier "remove the place" is taken over.
+export function importPlace(value) {
   try {
-    if (on !== undefined) localStorage.setItem("ot.stripPlace", on ? "on" : "");
-    return localStorage.getItem("ot.stripPlace") === "on";
+    if (value !== undefined) localStorage.setItem("ot.importPlace", value);
+    const kept = localStorage.getItem("ot.importPlace");
+    if (kept !== null) return PLACES.includes(kept) ? kept : "";
+    return localStorage.getItem("ot.stripPlace") === "on" ? "strip" : "";
   } catch {
-    return !!on;
+    return PLACES.includes(value) ? value : "";
   }
 }
 
 // importFiles uploads chosen or dropped files into a folder: pictures as
 // they are, ZIP archives unpacked here first. HEIC photos and other files
-// are skipped and counted. progress is told each step; with strip, the
-// server removes where each photo was taken, from the file and its data.
-export async function importFiles(files, folder, progress, strip = false) {
+// are skipped and counted. progress is told each step; place is what the
+// server does with where each photo was taken (PLACES).
+export async function importFiles(files, folder, progress, place = "") {
   const sum = { done: 0, heic: 0, skipped: 0, failed: [] };
   const queue = [];
   for (const f of files) {
@@ -213,7 +247,7 @@ export async function importFiles(files, folder, progress, strip = false) {
     progress(t("photos.uploading", { n: n + 1, total: queue.length, name: q.name }));
     try {
       const blob = await q.read();
-      await upload(`/api/items/${folder}`, blob instanceof File ? blob : new File([blob], q.name, { type: blob.type }), null, strip ? { place: "strip" } : {});
+      await upload(`/api/items/${folder}`, blob instanceof File ? blob : new File([blob], q.name, { type: blob.type }), null, place ? { place } : {});
       sum.done++;
     } catch (err) { sum.failed.push(`${q.name}: ${err.message}`); }
   }
@@ -233,7 +267,7 @@ const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 // into a folder. The picker opens in a window opened at once, while the
 // click still counts, and given its address once Google answers; the
 // album then waits until the photos are chosen.
-export async function googleImport(folder, progress, cancelled = () => false, strip = false) {
+export async function googleImport(folder, progress, cancelled = () => false, place = "") {
   const win = window.open("", "_blank");
   let session;
   try {
@@ -261,7 +295,7 @@ export async function googleImport(folder, progress, cancelled = () => false, st
       if (m.video) { sum.videos++; continue; }
       progress(t("photos.uploading", { n: n + 1, total: items.length, name: m.name }));
       try {
-        const r = await post(`/api/album/google/sessions/${encodeURIComponent(session.id)}/import`, { media: m.id, folder, strip });
+        const r = await post(`/api/album/google/sessions/${encodeURIComponent(session.id)}/import`, { media: m.id, folder, place });
         if (r.skipped) sum.duplicates++;
         else sum.done++;
       } catch (err) {
@@ -277,7 +311,7 @@ export async function googleImport(folder, progress, cancelled = () => false, st
 
 // icloudImport reads a shared iCloud album by its address and brings its
 // photos into a folder; giving the address again brings only new ones.
-export async function icloudImport(address, folder, progress, cancelled = () => false, strip = false) {
+export async function icloudImport(address, folder, progress, cancelled = () => false, place = "") {
   progress(t("photos.icloudReading"));
   const album = await post("/api/album/icloud/albums", { url: address });
   const sum = { done: 0, duplicates: 0, videos: 0, heic: 0, skipped: 0, failed: [], name: album.name };
@@ -286,7 +320,7 @@ export async function icloudImport(address, folder, progress, cancelled = () => 
     if (p.video) { sum.videos++; continue; }
     progress(t("photos.uploading", { n: n + 1, total: album.photos.length, name: p.caption || album.name }));
     try {
-      const r = await post("/api/album/icloud/import", { url: address, photo: p.guid, folder, strip });
+      const r = await post("/api/album/icloud/import", { url: address, photo: p.guid, folder, place });
       if (r.skipped) sum.duplicates++;
       else sum.done++;
     } catch (err) {

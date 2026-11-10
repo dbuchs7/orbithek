@@ -20,7 +20,6 @@ import (
 	"github.com/dbuchs7/orbithek/internal/audit"
 	"github.com/dbuchs7/orbithek/internal/auth"
 	"github.com/dbuchs7/orbithek/internal/budget"
-	"github.com/dbuchs7/orbithek/internal/buildinfo"
 	"github.com/dbuchs7/orbithek/internal/item"
 	"github.com/dbuchs7/orbithek/internal/photo"
 	"github.com/dbuchs7/orbithek/internal/photosource"
@@ -45,10 +44,10 @@ func photoRoutes(h itemHandlers) []Route {
 		{Method: http.MethodGet, Pattern: GooglePhotosCallback, Summary: "Google's redirect back after one allowed or refused an import; bound to the browser that began it, it goes on to the album", Access: Public, Handler: http.HandlerFunc(h.googlePhotosCallback)},
 		{Method: http.MethodPost, Pattern: "/api/album/google/sessions", Summary: "Open a picker at Google: answers its id and the address where one chooses photos", Handler: http.HandlerFunc(h.googleSession)},
 		{Method: http.MethodGet, Pattern: "/api/album/google/sessions/{id}", Summary: "Whether the photos are chosen in a picker; once they are, the chosen media (id, name, type, taken, video)", Handler: http.HandlerFunc(h.googlePoll)},
-		{Method: http.MethodPost, Pattern: "/api/album/google/sessions/{id}/import", Summary: "Bring one chosen photo (media) into a folder (folder) as one's own upload; skipped when the folder holds the same picture; strip removes where it was taken", Handler: http.HandlerFunc(h.googleImport)},
+		{Method: http.MethodPost, Pattern: "/api/album/google/sessions/{id}/import", Summary: "Bring one chosen photo (media) into a folder (folder) as one's own upload; skipped when the folder holds the same picture; place is private (kept to oneself) or strip (removed)", Handler: http.HandlerFunc(h.googleImport)},
 		{Method: http.MethodDelete, Pattern: "/api/album/google/sessions/{id}", Summary: "Close a picker at Google", Handler: http.HandlerFunc(h.googleClose)},
 		{Method: http.MethodPost, Pattern: "/api/album/icloud/albums", Summary: "Read a shared iCloud album by its public address (url): its name and photos (guid, caption, created, video)", Handler: http.HandlerFunc(h.icloudAlbum)},
-		{Method: http.MethodPost, Pattern: "/api/album/icloud/import", Summary: "Bring one photo (photo, its guid) of a shared iCloud album read before (url) into a folder (folder) as one's own upload; skipped when the folder holds the same picture; strip removes where it was taken", Handler: http.HandlerFunc(h.icloudImport)},
+		{Method: http.MethodPost, Pattern: "/api/album/icloud/import", Summary: "Bring one photo (photo, its guid) of a shared iCloud album read before (url) into a folder (folder) as one's own upload; skipped when the folder holds the same picture; place is private (kept to oneself) or strip (removed)", Handler: http.HandlerFunc(h.icloudImport)},
 	}
 }
 
@@ -417,7 +416,7 @@ func (h itemHandlers) albumPlaces(w http.ResponseWriter, r *http.Request) {
 			out = append(out, map[string]any{"item": p.Item.ID, "key": p.Item.Key, "file": p.Attachment.ID, "first": p.First, "name": p.Attachment.Name,
 				"lat": *p.Attachment.Photo.Lat, "lon": *p.Attachment.Photo.Lon, "taken": takenOf(p.Attachment)})
 		}
-		return map[string]any{"places": out, "total": len(all), "truncated": len(all) > limit, "tiles": h.photos().TileURL != ""}, nil
+		return map[string]any{"places": out, "total": len(all), "truncated": len(all) > limit, "tiles": h.photos().TileURL != "", "credit": h.photos().TileCredit}, nil
 	})
 }
 
@@ -474,6 +473,8 @@ func (h itemHandlers) albumZip(w http.ResponseWriter, r *http.Request) {
 	type entry struct {
 		item item.ID
 		a    item.Attachment
+		// hidden: its uploader keeps the place from the caller (ADR-0178).
+		hidden bool
 	}
 	var entries []entry
 	var total int64
@@ -485,7 +486,7 @@ func (h itemHandlers) albumZip(w http.ResponseWriter, r *http.Request) {
 			if a, err = x.Attachment(p.Item, p.File); err != nil {
 				return
 			}
-			entries = append(entries, entry{p.Item, a})
+			entries = append(entries, entry{p.Item, a, x.PlaceHidden(p.Item, p.File)})
 			total += a.Size
 		}
 	})
@@ -511,9 +512,9 @@ func (h itemHandlers) albumZip(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return
 		}
-		c, err := h.d.DB.OpenAttachment(e.item, e.a.ID)
+		c, err := h.openFor(e.hidden, e.item, e.a)
 		if err != nil {
-			h.log.Error("attachment content missing", "item", e.item, "attachment", e.a.ID, "err", err)
+			h.log.Error("attachment content not given", "item", e.item, "attachment", e.a.ID, "err", err)
 			continue
 		}
 		_, err = io.Copy(fw, c)
@@ -556,7 +557,7 @@ const maxTileZoom = 19
 func (h itemHandlers) mapTile(w http.ResponseWriter, r *http.Request) {
 	p := h.photos()
 	if p.TileURL == "" {
-		writeError(w, http.StatusNotFound, "no tile service is named; the operator sets "+MapTilesVar)
+		writeError(w, http.StatusNotFound, "the map draws no tiles here; "+MapTilesVar+" is off")
 		return
 	}
 	z, errZ := strconv.Atoi(r.PathValue("z"))
@@ -581,7 +582,7 @@ func (h itemHandlers) mapTile(w http.ResponseWriter, r *http.Request) {
 	hd := w.Header()
 	hd.Set("Content-Type", kind)
 	hd.Set("X-Content-Type-Options", "nosniff")
-	hd.Set("Cache-Control", "private, max-age=86400")
+	hd.Set("Cache-Control", "private, max-age=604800") // a week, as tile services ask
 	w.Write(data)
 }
 
@@ -593,7 +594,7 @@ func (p *Photos) fetchTile(ctx context.Context, z, x, y int) ([]byte, string, er
 	if err != nil {
 		return nil, "", err
 	}
-	req.Header.Set("User-Agent", "Orbithek/"+buildinfo.Get().Version+" (album map)")
+	req.Header.Set("User-Agent", p.tileAgent)
 	resp, err := p.tileClient.Do(req)
 	if err != nil {
 		return nil, "", err
@@ -629,7 +630,7 @@ func (h itemHandlers) photoImports(w http.ResponseWriter, r *http.Request) {
 // as the caller's upload: only a picture the album shows, not one the
 // folder holds already. fallback is what the service tells when the file
 // does not: the time it was taken.
-func (h itemHandlers) importInto(w http.ResponseWriter, r *http.Request, folder, name string, body io.Reader, taken time.Time, strip bool) {
+func (h itemHandlers) importInto(w http.ResponseWriter, r *http.Request, folder, name string, body io.Reader, taken time.Time, place string) {
 	var id item.ID
 	var check error
 	h.d.DB.Read(func(s *item.Store) {
@@ -645,7 +646,7 @@ func (h itemHandlers) importInto(w http.ResponseWriter, r *http.Request, folder,
 		return
 	}
 	limit := budget.Get().AttachmentBytes
-	if strip {
+	if place == placeStrip {
 		var err error
 		if body, err = withoutPlace(body, limit); err != nil {
 			h.storeFail(w, err, limit)
@@ -679,6 +680,9 @@ func (h itemHandlers) importInto(w http.ResponseWriter, r *http.Request, folder,
 			a.Photo = &item.Photo{}
 		}
 		a.Photo.Taken, a.Photo.Offset = taken.UTC().Format("2006-01-02T15:04:05"), "+00:00"
+	}
+	if place == placePrivate {
+		a.Photo = keepPrivate(a.Photo)
 	}
 	h.write(w, r, http.StatusCreated, func(x *item.Session, _ *item.Store) (any, error) {
 		have, err := x.Attachments(id)
@@ -897,8 +901,11 @@ func (h itemHandlers) googleImport(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Media  string `json:"media"`
 		Folder string `json:"folder"`
-		// Strip removes where the photo was taken (ADR-0177).
-		Strip bool `json:"strip"`
+		// Place keeps where the photo was taken (empty), keeps it to the
+		// caller (private, ADR-0178) or removes it (strip, ADR-0177);
+		// Strip is the older way of asking to remove it.
+		Place string `json:"place"`
+		Strip bool   `json:"strip"`
 	}
 	if !decode(w, r, &req) {
 		return
@@ -912,7 +919,7 @@ func (h itemHandlers) googleImport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer body.Close()
-	h.importInto(w, r, req.Folder, m.Name, body, m.Taken, req.Strip)
+	h.importInto(w, r, req.Folder, m.Name, body, m.Taken, placeChoice(req.Place, req.Strip))
 }
 
 // mayImportInto refuses an import into an item the caller may not add
@@ -1008,8 +1015,11 @@ func (h itemHandlers) icloudImport(w http.ResponseWriter, r *http.Request) {
 		URL    string `json:"url"`
 		Photo  string `json:"photo"`
 		Folder string `json:"folder"`
-		// Strip removes where the photo was taken (ADR-0177).
-		Strip bool `json:"strip"`
+		// Place keeps where the photo was taken (empty), keeps it to the
+		// caller (private, ADR-0178) or removes it (strip, ADR-0177);
+		// Strip is the older way of asking to remove it.
+		Place string `json:"place"`
+		Strip bool   `json:"strip"`
 	}
 	if !decode(w, r, &req) {
 		return
@@ -1038,5 +1048,5 @@ func (h itemHandlers) icloudImport(w http.ResponseWriter, r *http.Request) {
 	if p.Caption != "" {
 		name = strings.TrimSpace(p.Caption)
 	}
-	h.importInto(w, r, req.Folder, name, body, p.Created, req.Strip)
+	h.importInto(w, r, req.Folder, name, body, p.Created, placeChoice(req.Place, req.Strip))
 }

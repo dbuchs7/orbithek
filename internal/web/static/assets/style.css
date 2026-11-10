@@ -997,6 +997,11 @@ dialog.photo-viewer #photo-viewer-close { margin-left: auto; }
 .photo-map-canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .photo-map-zoom { position: absolute; top: 8px; right: 8px; z-index: 1; display: flex; flex-direction: column; gap: 4px; }
 .photo-map-zoom button { width: 32px; height: 32px; padding: 0; font-size: 18px; }
+.photo-map-credit { position: absolute; right: 0; bottom: 0; z-index: 1; margin: 0; padding: 2px 6px; font-size: 11px; color: #333; background: rgba(255, 255, 255, .8); border-top-left-radius: 4px; }
+.photo-place-choice { display: flex; flex-direction: column; gap: 6px; }
+.photo-place-choice:empty { display: none; }
+.photo-place-choice p { margin: 0; }
+.album-import-place { flex-direction: row; align-items: center; gap: 6px; }
 .photo-map-card .album-thumb { border: 0; padding: 0; background: none; cursor: zoom-in; width: 100%; }
 .album-own-rule { background: #fff5e6 !important; color: #8a4b00 !important; }
 dialog.retention-dialog { width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 64px); padding: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: inherit; }

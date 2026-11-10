@@ -41,6 +41,10 @@ type Photo struct {
 	Orientation int `json:"orientation,omitempty"`
 	Width       int `json:"width,omitempty"`
 	Height      int `json:"height,omitempty"`
+	// PlacePrivate keeps the place to the one who added the picture
+	// (ADR-0178): everyone else reads the photo data without it and gets
+	// the file without it.
+	PlacePrivate bool `json:"placePrivate,omitempty"`
 }
 
 const takenLayout = "2006-01-02T15:04:05"
@@ -80,6 +84,9 @@ func checkPhoto(p *Photo) error {
 	}
 	if p.Lat != nil && (!finite(*p.Lat, *p.Lon) || math.Abs(*p.Lat) > 90 || math.Abs(*p.Lon) > 180) {
 		return invalid("photo: the place is out of range")
+	}
+	if p.PlacePrivate && p.Lat == nil {
+		return invalid("photo: only a place can be kept private")
 	}
 	if p.Alt != nil && (p.Lat == nil || !finite(*p.Alt) || math.Abs(*p.Alt) > 100000) {
 		return invalid("photo: the height is out of range")
@@ -133,3 +140,72 @@ func (p *Photo) Day(created int64) string {
 
 // HasPlace reports whether the picture tells where it was taken.
 func (p *Photo) HasPlace() bool { return p != nil && p.Lat != nil && p.Lon != nil }
+
+// placeHidden reports whether a file's place is kept from who: the photo
+// tells a place, and the one who added it keeps it to themselves
+// (ADR-0178).
+func placeHidden(who string, a Attachment) bool {
+	return a.Photo.HasPlace() && a.Photo.PlacePrivate && a.Author != who
+}
+
+// seenBy is a file as who may know it: without a place its uploader keeps
+// to themselves, and without saying that there is one.
+func seenBy(who string, a Attachment) Attachment {
+	if !placeHidden(who, a) {
+		return a
+	}
+	p := *a.Photo
+	p.Lat, p.Lon, p.Alt, p.PlacePrivate = nil, nil, nil, false
+	a.Photo = &p
+	return a
+}
+
+// PlaceHidden reports whether the file of a readable item tells a place
+// its uploader keeps from the principal, so the file is given to them
+// only without it (ADR-0178).
+func (x *Session) PlaceHidden(id, attachment ID) bool {
+	it, err := x.readable(id)
+	if err != nil {
+		return false
+	}
+	a, ok := it.attachment(attachment)
+	return ok && !a.Deleted && x.s.readsFile(x.who, it, attachment) && placeHidden(x.who, *a)
+}
+
+// SetPlacePrivate keeps where a photo was taken to the one who added it,
+// or shows it to every reader again (ADR-0178). Only the one who added the
+// picture decides, while they may read it. read is the photo data the
+// server read from the file, for a picture stored before photo data was
+// recorded; it is recorded with the choice.
+func (x *Session) SetPlacePrivate(id, attachment ID, private bool, read *Photo) error {
+	it, err := x.readable(id)
+	if err != nil {
+		return err
+	}
+	if it.Presence != Live {
+		return invalid("%s is %s", it.Key, it.Presence)
+	}
+	a, ok := it.attachment(attachment)
+	if !ok || a.Deleted || !x.s.readsFile(x.who, it, attachment) {
+		return notFound("attachment %s of item %s", attachment, it.Key)
+	}
+	if a.Author != x.who {
+		return forbidden("only the one who added the picture decides who sees where it was taken")
+	}
+	p := a.Photo
+	if p == nil {
+		p = read
+	}
+	if !p.HasPlace() {
+		return invalid("the picture tells no place")
+	}
+	if a.Photo != nil && p.PlacePrivate == private {
+		return nil
+	}
+	next := *p
+	next.PlacePrivate = private
+	if err := checkPhoto(&next); err != nil {
+		return err
+	}
+	return x.s.record(x.who, Event{Kind: AttachmentPlaceSet, Item: id, Attachment: &Attachment{ID: attachment, Photo: &next}})
+}
