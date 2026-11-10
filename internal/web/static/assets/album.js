@@ -19,7 +19,7 @@ import { t } from "./i18n.js";
 import { get, post, put, del, upload } from "./api.js";
 import { DRAWING } from "./drawing.js";
 import { exportFormats, exportPicture } from "./picexport.js";
-import { allFolders, copyTo, dayText, googleImport, icloudImport, importFiles, monthText, openViewer, rememberedAlbum, setFavourite, importPlace, PLACES, summaryText, thumbURL, zipPictures } from "./photos.js";
+import { allFolders, copyTo, dayText, deckText, googleImport, icloudImport, importDeck, importFiles, monthText, openViewer, rememberedAlbum, setFavourite, importPlace, PLACES, summaryText, thumbURL, zipPictures } from "./photos.js";
 import { dragged, groups, range, yearsAgo } from "./photoparts.js";
 import { photoMap } from "./photomap.js";
 import { pickPlace, placeInput } from "./places.js";
@@ -655,7 +655,7 @@ export function albumBrowser({ pick } = {}) {
         loadFolders();
       } catch (err) { fail(err); }
     });
-    const files = h("input", { type: "file", accept: "image/png,image/jpeg,image/gif,image/webp,.heic,.heif,.zip,application/zip", multiple: true, hidden: true, id: "album-files" });
+    const files = h("input", { type: "file", accept: "image/png,image/jpeg,image/gif,image/webp,.heic,.heif,.zip,application/zip,.pptx,.ppsx", multiple: true, hidden: true, id: "album-files" });
     files.addEventListener("change", async () => {
       const list = [...files.files];
       files.value = "";
@@ -935,10 +935,20 @@ export function albumBrowser({ pick } = {}) {
   };
 
   // takeFiles uploads files chosen or dropped onto an open folder; ZIP
-  // archives are unpacked here (ADR-0177).
+  // archives are unpacked here (ADR-0177). A presentation with the
+  // pictures of its slides becomes a folder of its own, which opens
+  // (ADR-0186).
   const takeFiles = async (list) => {
     if (!inFolder() || !list.length) return;
     try {
+      const deck = await importDeck(list, here().id, (text) => say(text), importPlace());
+      if (deck) {
+        const f = deck.folder;
+        path = [...path, { id: f.id, key: f.key, name: f.title, space: f.space }];
+        open();
+        say(deckText(deck) + (deck.failed.length ? " " + deck.failed.slice(0, 3).join("; ") : ""), deck.failed.length ? "error" : "notice");
+        return;
+      }
       const sum = await importFiles(list, here().id, (text) => say(text), importPlace());
       say(summaryText(sum) + (sum.failed.length ? " " + sum.failed.slice(0, 3).join("; ") : ""), sum.failed.length ? "error" : "notice");
     } catch (err) { fail(err); }
