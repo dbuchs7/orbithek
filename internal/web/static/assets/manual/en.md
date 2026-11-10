@@ -225,6 +225,8 @@ A click opens a picture with its details: when and where it was taken, camera, e
 
 **Choose several** selects many pictures at once to add labels, mark favourites, move them to a folder, download them **as ZIP** or delete them.
 
+In the folders, a picture is moved by dragging it onto a folder: onto a folder listed below the open one, or onto a folder above it in the path at the top. A chosen picture takes every chosen picture with it. As with **Move**, a picture that you may not change, or that a text shows, is copied and also stays where it was. Without a mouse, choose the pictures and use **Move to folder…**.
+
 ### Presenting pictures
 
 **Present** shows the pictures of the current folder as slides, ordered by name. The album's window becomes the presenter's view with the next slide, speaker's notes, the time and all slides; **Presentation window** opens the window for the projector. Keys: arrows, Page Up/Down or Space to move; + and − to zoom; **L** laser pointer; **B** black screen; **F** full screen. Speaker's notes are written per picture by those who may edit it.

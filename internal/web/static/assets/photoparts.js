@@ -160,6 +160,13 @@ export function range(ids, anchor, target) {
   return ids.slice(Math.min(a, b), Math.max(a, b) + 1);
 }
 
+// dragged is what a picture dragged onto a folder takes with it: every
+// chosen picture when it is one of them, else itself alone. chosen maps
+// keys to pictures; key names a picture.
+export function dragged(p, chosen, key) {
+  return chosen.has(key(p)) ? [...chosen.values()] : [p];
+}
+
 // ALBUM_TYPES are the formats the album takes (JPEG, PNG, GIF, WebP).
 export const ALBUM_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 const EXT = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif", webp: "image/webp" };

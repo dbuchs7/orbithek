@@ -225,6 +225,8 @@ Ein Klick öffnet ein Bild mit seinen Angaben: Zeitpunkt und Ort der Aufnahme, K
 
 **Mehrere auswählen** wählt viele Bilder auf einmal aus, um Labels hinzuzufügen, Favoriten zu markieren, sie in einen Ordner zu verschieben, **Als ZIP herunterzuladen** oder zu löschen.
 
+In den Ordnern verschiebt man ein Bild, indem man es auf einen Ordner zieht: auf einen Ordner, der unter dem geöffneten aufgeführt ist, oder auf einen übergeordneten Ordner im Pfad oben. Ein ausgewähltes Bild nimmt alle ausgewählten Bilder mit. Wie bei **Verschieben** wird ein Bild, das man nicht ändern darf oder das ein Text zeigt, kopiert und bleibt zusätzlich, wo es war. Ohne Maus wählt man die Bilder aus und nutzt **In Ordner verschieben…**.
+
 ### Bilder präsentieren
 
 **Präsentieren** zeigt die Bilder des aktuellen Ordners als Folien, nach Namen geordnet. Das Fenster des Albums wird zur Referentenansicht mit nächster Folie, Foliennotizen, Zeit und allen Folien; **Präsentationsfenster** öffnet das Fenster für den Projektor. Tasten: Pfeile, Bild auf/ab oder Leertaste zum Blättern; + und − zum Zoomen; **L** Laserpointer; **B** schwarzer Bildschirm; **F** Vollbild. Foliennotizen schreibt pro Bild, wer es bearbeiten darf.
