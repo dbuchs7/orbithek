@@ -243,7 +243,7 @@ Ein Klick öffnet ein Bild mit seinen Angaben: Zeitpunkt und Ort der Aufnahme, K
 
 **Mehrere auswählen** wählt viele Bilder auf einmal aus, um Labels hinzuzufügen, Favoriten zu markieren, sie in einen Ordner zu verschieben, sie mit **Als ZIP herunterladen** herunterzuladen oder sie zu löschen.
 
-In den Ordnern verschiebt man ein Bild, indem man es auf einen Ordner zieht: auf einen Ordner, der unter dem geöffneten aufgeführt ist, oder auf einen übergeordneten Ordner im Pfad oben. Ein ausgewähltes Bild nimmt alle ausgewählten Bilder mit. Ein verschobenes Bild bleibt dasselbe Bild: Alle Versionen, Labels, Foliennotizen, der Ort und die Favoriten-Markierungen gehen mit, und Kopien in Seiten finden ihr Original weiterhin. Ein Bild, das man nicht ändern darf, das ein Text zeigt oder das geschützt ist, und eine Zeichnung mit Kommentaren bleiben, wo sie sind; das Album nennt sie mit dem Grund. Ohne Maus wählt man die Bilder aus und nutzt **In Ordner verschieben…**, das sie auf dieselbe Weise verschiebt.
+In den Ordnern verschiebt man ein Bild, indem man es auf einen Ordner zieht: auf einen Ordner, der unter dem geöffneten aufgeführt ist, oder auf einen übergeordneten Ordner im Pfad oben. Ein ausgewähltes Bild nimmt alle ausgewählten Bilder mit. Ein verschobenes Bild bleibt dasselbe Bild: Alle Versionen, Labels, Elementnotizen, der Ort und die Favoriten-Markierungen gehen mit, und Kopien in Seiten finden ihr Original weiterhin. Ein Bild, das man nicht ändern darf, das ein Text zeigt oder das geschützt ist, und eine Zeichnung mit Kommentaren bleiben, wo sie sind; das Album nennt sie mit dem Grund. Ohne Maus wählt man die Bilder aus und nutzt **In Ordner verschieben…**, das sie auf dieselbe Weise verschiebt.
 
 ### Bilder und Dateien umbenennen
 
@@ -272,7 +272,7 @@ Beide Fenster gehorchen denselben Tasten und Schaltflächen:
 
 Präsentations-Fernbedienungen, die Bild auf und Bild ab senden, funktionieren ebenfalls. **Beenden** schliesst das Präsentationsfenster und kehrt ins Album zurück.
 
-**Foliennotizen** gehören zu einem Bild: auf seiner Karte im Album **Foliennotizen hinzufügen** oder im Referentenfenster **Notizen bearbeiten**. Wer das Bild bearbeiten darf, schreibt sie; wer das Bild sieht, liest sie. Die Notizen bleiben bei allen Versionen einer Zeichnung erhalten.
+**Foliennotizen** gehören zu einem Bild; auf seiner Karte im Album heissen sie Elementnotizen. Man schreibt sie dort mit **Elementnotizen hinzufügen** oder im Referentenfenster mit **Notizen bearbeiten**. Wer das Bild bearbeiten darf, schreibt sie; wer das Bild sieht, liest sie. Die Notizen bleiben bei allen Versionen einer Zeichnung erhalten.
 
 Beide Fenster müssen im selben Browser auf demselben Computer laufen. Personen an anderen Orten folgen über Bildschirmfreigabe.
 
