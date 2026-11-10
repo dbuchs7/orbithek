@@ -1,13 +1,13 @@
 # ADR-0191: A starmap of all rooms, in bubbles per room and type when it is too large
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-10
 - **Deciders:** Project initiators. Request of 2026-11-10: a starmap of all items across every room; where they are too many, bubbles sized by the number of pages and tasks; then a label shown across every room from the search field. The requester chose the same day:
   - bubbles per room and type;
   - a label shows the items that carry it, in bubbles when they are too many.
 
-  The rest are defaults proposed with the implementation and await the requester's confirmation.
+  The rest are defaults proposed with the implementation, confirmed by the requester; accepted 2026-11-10.
 - **Open question:** whether pictures belong on the starmap of all rooms; whether a bubble should open as the items of its type only, not its whole room; whether agents should read the map of all rooms over MCP
 - **Question checked:** 2026-11
 

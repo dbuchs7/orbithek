@@ -1,9 +1,9 @@
 # ADR-0190: A folder is deleted from the album, into the trash with what it holds
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-10
-- **Deciders:** Project initiators. Request of 2026-11-10: folders can be deleted. The requester chose the same day that a folder goes to the trash with its folders and pictures, restorable, after being told how much goes with it.
+- **Deciders:** Project initiators. Request of 2026-11-10: folders can be deleted. The requester chose the same day that a folder goes to the trash with its folders and pictures, restorable, after being told how much goes with it. Accepted 2026-11-10.
 - **Open question:** whether collections should be deleted from the album the same way; whether the album should list what is in the trash
 - **Question checked:** 2026-11
 

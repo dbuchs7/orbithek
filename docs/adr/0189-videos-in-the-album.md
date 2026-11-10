@@ -1,14 +1,14 @@
 # ADR-0189: Videos in the album, handled as its pictures are
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-10
 - **Deciders:** Project initiators. Request of 2026-11-10: films are uploaded into the album and handled as photos are. The requester chose the same day:
   - MP4, WebM and also MOV are taken;
   - a budget of its own allows videos of up to 2 GiB, while every other file keeps its limit;
   - the browser takes a picture from the video as its poster when it uploads it.
 
-  The rest are defaults proposed with the implementation and await the requester's confirmation.
+  The rest are defaults proposed with the implementation, confirmed by the requester; accepted 2026-11-10.
 - **Open question:** whether videos should become slides of a presentation; whether Google Photos and shared iCloud albums should bring their videos too; whether WebM's metadata should be read; whether a poster should be made for videos that did not come through the album's upload
 - **Question checked:** 2026-11
 
@@ -36,7 +36,7 @@ How does the album take videos and handle them as pictures, within these limits?
 
 ## Decision outcome
 
-Chosen option: **1**.
+Chosen option: **1** (defaults proposed with the implementation, confirmed by the requester).
 
 ### What is taken
 
