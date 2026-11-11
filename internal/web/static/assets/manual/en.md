@@ -215,7 +215,7 @@ Pictures are added where you are, in the **Folders** view:
 - *In a collection*, the same ways work. A collection holds no files of its own, so the album asks which folder the new pictures are kept in, the folder chosen last coming first, or makes a **New folder…**; each picture gets the collection's labels and so shows in the collection. **Add from the album…** gives pictures already in the album the collection's labels, without copying them.
 - *At the top* of the album, uploading, dropping or pasting asks for the folder as well, and that folder then opens.
 
-A PowerPoint presentation comes in with the pictures of its slides (see *Importing a PowerPoint presentation*). Pictures exported from photo apps are unpacked in the browser. If enabled, photos also come **From Google Photos** or **From a shared iCloud album**. HEIC photos are not accepted; export them as JPEG first. Videos from Google Photos and shared iCloud albums come in too, with the picture the service keeps of them as their poster.
+A PowerPoint presentation becomes a folder of slides with their notes (see *Importing a PowerPoint presentation*). Pictures exported from photo apps are unpacked in the browser. If enabled, photos also come **From Google Photos** or **From a shared iCloud album**. HEIC photos are not accepted; export them as JPEG first. Videos from Google Photos and shared iCloud albums come in too, with the picture the service keeps of them as their poster.
 
 A folder's **Place on import** decides what happens to the place where a photo was taken: **Keep for every reader**, **Keep to me only** or **Remove from the file**. Per picture, the place can later be kept to you or shown to every reader.
 
@@ -247,14 +247,15 @@ Faces are found in your browser; nothing is sent elsewhere. If an administrator 
 
 ### Importing a PowerPoint presentation
 
-A presentation becomes a folder of slides, ready to present with its speaker's notes:
-
-1. In PowerPoint, choose **File › Export › Change File Type › PNG** (or JPEG) and export **All Slides**. PowerPoint writes one picture per slide, such as *Slide1.PNG* or *Folie1.PNG*.
-2. In the album, open the folder the presentation belongs in and choose **Upload pictures**. Choose the *.pptx* file together with all these pictures, or together with a ZIP archive of them; dropping them onto the folder works too.
+A presentation becomes a folder of slides, ready to present with its speaker's notes. In the album, open the folder the presentation belongs in and choose **Upload pictures**, then choose the *.pptx* file — or simply drop it onto the folder.
 
 A folder named after the presentation is made in the open folder and opens. Each slide becomes a picture named by its place and title, such as *03 Our goals.png*, so the album keeps the order of the slides, and the slide's notes become the picture's speaker's notes. Hidden slides are left out, as a slide show leaves them out.
 
-A presentation file holds no pictures of its slides; this is why the exported pictures are needed. The pictures are matched to the slides by the numbers in their names. If they do not match, nothing is brought in and the album says how many slides and pictures it found. Only the pictures and the notes reach the server, not the presentation file. Animations, transitions, videos and the presentation's own comments are not taken over; *.ppt* files of older versions must first be saved as *.pptx*.
+A presentation file holds no pictures of its slides, so the browser draws each slide itself: backgrounds, text with its bullets and numbering, shapes, pictures, tables and SmartArt, in the presentation's colours and fonts. The result is close to the original, but not always the same: a font your computer lacks is replaced by a similar one, so lines may break differently, and effects such as shadows are left out. Charts, embedded objects and pictures in formats the browser cannot show (such as EMF) appear as grey boxes; the album then says how many slides hold them.
+
+For exact slides, export them from PowerPoint first: **File › Export › Change File Type › PNG** (or JPEG), **All Slides**. Choose the *.pptx* file together with all these pictures, or with a ZIP archive of them. The album then takes the pictures instead of drawing, matched to the slides by the numbers in their names, such as *Slide1.PNG* or *Folie1.PNG*. If they do not match, nothing is brought in and the album says how many slides and pictures it found.
+
+Only the pictures and the notes reach the server, not the presentation file. Animations, transitions, videos and the presentation's own comments are not taken over; *.ppt* files of older versions must first be saved as *.pptx*.
 
 ### Working with pictures
 
