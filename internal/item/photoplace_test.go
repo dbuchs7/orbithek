@@ -115,12 +115,12 @@ func TestCopiesOfAPrivatePlace(t *testing.T) {
 	if _, err := paul.AddAttachment(to.ID, Attachment{ID: "00112233445566778899aabbccddee02", Name: "garden.jpg", Type: "image/jpeg", Size: 3, SHA256: strings.Repeat("e9", 32), Source: src}); !errors.Is(err, ErrValidation) {
 		t.Errorf("a copy of other content was taken: %v", err)
 	}
-	if _, err := paul.AddAttachment(to.ID, Attachment{ID: "00112233445566778899aabbccddee03", Name: "garden.jpg", Type: "image/jpeg", Size: 3, SHA256: strings.Repeat("e9", 32), Source: src, WithoutPlace: true}); err != nil {
+	if _, err := paul.AddAttachment(to.ID, Attachment{ID: "00112233445566778899aabbccddee03", Name: "garden.jpg", Type: "image/jpeg", Size: 3, SHA256: strings.Repeat("e9", 32), Source: src, AsGiven: true}); err != nil {
 		t.Errorf("the copy without the place was refused: %v", err)
 	}
 	// Without a hidden place, other content is still no copy.
 	noErr(t, anna.SetPlacePrivate(from.ID, garden, false, nil))
-	if _, err := paul.AddAttachment(to.ID, Attachment{ID: "00112233445566778899aabbccddee04", Name: "garden.jpg", Type: "image/jpeg", Size: 3, SHA256: strings.Repeat("e9", 32), Source: src, WithoutPlace: true}); !errors.Is(err, ErrValidation) {
+	if _, err := paul.AddAttachment(to.ID, Attachment{ID: "00112233445566778899aabbccddee04", Name: "garden.jpg", Type: "image/jpeg", Size: 3, SHA256: strings.Repeat("e9", 32), Source: src, AsGiven: true}); !errors.Is(err, ErrValidation) {
 		t.Errorf("WithoutPlace made a copy of other content: %v", err)
 	}
 }

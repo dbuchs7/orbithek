@@ -2,7 +2,7 @@
 // (photoparts.js, zipread.js, ADR-0177): the map's projection, tiles,
 // clusters and zoom, the timeline's groups, choosing a range, what a
 // picture dragged onto a folder takes with it, where pictures dropped
-// among others go in the order of slides (ADR-0195), which files the album takes, and reading ZIP archives exported from photo apps.
+// among others go in the order of slides (ADR-0195), which files the album takes, the times set by hand (ADR-0198), and reading ZIP archives exported from photo apps.
 // They run in Node.js without a browser and without dependencies:
 //
 //   node --test "internal/web/jstest/*.test.mjs"
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { deflateRawSync } from "node:zlib";
 import {
   TILE, project, unproject, fit, tiles, cluster, pan, zoomAt, radius, hit, groups, yearsAgo, range, dragged, orderDrop, moveWithin, durationText, posterTime, isVideo,
-  sorts, typeOf, baseName, hidden, exposureText, placeText,
+  sorts, typeOf, baseName, hidden, exposureText, placeText, OFFSETS, takenValue, shiftMinutes, shiftTaken,
 } from "../static/assets/photoparts.js";
 import { entries, read } from "../static/assets/zipread.js";
 
@@ -219,4 +219,34 @@ test("what is no ZIP archive, or a damaged one, is refused", async () => {
   await assert.rejects(read(zip, { ...list[0], encrypted: true }), /encrypted/);
   await assert.rejects(read(zip, { ...list[0], method: 12 }), /compression/);
   await assert.rejects(read(zip, { ...list[0], local: 5 }), /damaged/);
+});
+
+test("the offsets a time set by hand may name run every quarter hour from -12:00 to +14:00", () => {
+  assert.equal(OFFSETS.length, 105);
+  assert.deepEqual([OFFSETS[0], OFFSETS[1], OFFSETS[48], OFFSETS[57], OFFSETS.at(-1)], ["-12:00", "-11:45", "+00:00", "+02:15", "+14:00"]);
+  assert.ok(OFFSETS.every((o) => /^[+-](0\d|1[0-4]):[0-5]\d$/.test(o)), "every offset is one the server takes");
+});
+
+test("a field's date and time becomes the time set by hand, or nothing", () => {
+  assert.equal(takenValue("2024-05-01T13:22"), "2024-05-01T13:22:00");
+  assert.equal(takenValue("2024-05-01T13:22:10"), "2024-05-01T13:22:10");
+  assert.equal(takenValue("2024-05-01T13:22:10.5"), "2024-05-01T13:22:10");
+  assert.equal(takenValue("1800-01-01T00:00"), "1800-01-01T00:00:00");
+  assert.equal(takenValue("2024-02-29T12:00"), "2024-02-29T12:00:00");
+  for (const bad of ["", "2024-05-01", "2023-02-29T12:00", "2024-13-01T00:00", "2024-05-01T24:00", "1799-12-31T23:59", "2201-01-01T00:00", "x"]) {
+    assert.equal(takenValue(bad), "", bad);
+  }
+});
+
+test("a time is shifted by days, hours and minutes, later or earlier, within the years a time may lie in", () => {
+  assert.equal(shiftMinutes({ days: 1, hours: 2, minutes: 3 }), 1563);
+  assert.equal(shiftMinutes({ days: "0", hours: "1", minutes: "", later: false }), -60);
+  assert.equal(shiftMinutes({}), 0);
+  assert.equal(shiftTaken("2024-12-31T23:30:00", 60), "2025-01-01T00:30:00");
+  assert.equal(shiftTaken("2024-03-01T00:10:05", -20), "2024-02-29T23:50:05");
+  assert.equal(shiftTaken("2024-05-01T13:22:10", 365 * 1440), "2025-05-01T13:22:10");
+  assert.equal(shiftTaken("1800-01-01T00:00:00", -1), "");
+  assert.equal(shiftTaken("2200-12-31T23:59:00", 1), "");
+  assert.equal(shiftTaken("", 10), "");
+  assert.equal(shiftTaken("2024-05-01T13:22:10", NaN), "");
 });

@@ -1948,6 +1948,15 @@ function gitSource() {
     check(/-?\d+\.\d{5}, -?\d+\.\d{5}/.test(await page.textContent("dialog.photo-viewer .photo-facts")), "the place chosen on the map is the photo's");
     await page.click("#photo-place-remove");
     await page.waitForSelector("#photo-place-remove", { state: "detached" });
+    // A time set by hand, with its offset, and back to the file's own (ADR-0198).
+    await page.fill("#photo-time-input", "1987-06-05T04:03:02");
+    await page.selectOption("#photo-time-offset", "+01:00");
+    await page.click("#photo-time-save");
+    await page.waitForSelector("#photo-time-reset");
+    check((await page.textContent("dialog.photo-viewer .photo-facts")).includes("set by hand"), "the viewer says the time was set by hand");
+    check((await page.textContent("dialog.photo-viewer .photo-facts")).includes("UTC+01:00"), "the viewer shows the offset set by hand");
+    await page.click("#photo-time-reset");
+    await page.waitForSelector("#photo-time-reset", { state: "detached" });
     await page.click("#photo-viewer-close");
     await page.waitForSelector("dialog.photo-viewer", { state: "detached" });
     await page.click("#album-choose");
@@ -1955,6 +1964,14 @@ function gitSource() {
     check(/^[1-9]\d* pictures? chosen$/.test(await page.textContent("#album-chosen-count")), "all shown pictures are chosen");
     const [archive] = await Promise.all([page.waitForEvent("download"), page.click("#album-bulk-zip")]);
     check(archive.suggestedFilename() === "album.zip", "the chosen pictures download as one archive");
+    // The chosen pictures' time is shifted by an hour (ADR-0198).
+    await page.click("#album-bulk-time");
+    await page.waitForSelector("dialog.photo-time-dialog[open]");
+    await page.click("#album-time-mode-shift");
+    await page.fill("#album-shift-hours", "1");
+    await page.click("#album-time-ok");
+    await page.waitForSelector("dialog.photo-time-dialog", { state: "detached" });
+    await page.waitForFunction(() => /Time set for \d+ pictures?\./.test(document.querySelector("#album")?.textContent || ""));
     await page.click("#album-choose");
     await page.click("#album-view-map");
     await page.waitForSelector("#album .photo-map-note");

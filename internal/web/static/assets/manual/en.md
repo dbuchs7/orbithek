@@ -224,6 +224,8 @@ A folder's **Place on import** decides what happens to the place where a photo w
 
 Where a picture tells no place, or a wrong one, whoever may edit it sets the **Place** by hand: in the viewer, or for several chosen pictures at once. Typing a name such as *Zermatt* suggests places, unless an administrator has turned the suggestions off; **Choose on the map** sets the place with a click on the map. **Remove the place** clears it.
 
+Where a picture tells no time, or a wrong one, such as a scan or a photo from a camera whose clock was wrong, whoever may edit it sets the **Time taken** by hand. In the viewer, enter the date and time and, where known, the **Offset from UTC**, then choose **Set the time**; **Back to the file's time** returns to the time the file itself tells. For several chosen pictures, **Set the time…** offers **Set to**, which gives them all one time, and **Shift by**, which moves each by the same days, hours and minutes, later or earlier; pictures that tell no time are not shifted. The album, the timeline and *On this day* then use the time set by hand, and every download, ZIP archive and copy carries it in the picture's EXIF data, while the stored file stays as it was. A video keeps its own time in its file.
+
 ### Videos
 
 Videos come into the album the same ways as pictures: uploaded, dropped, pasted, in a ZIP archive or from Google Photos and shared iCloud albums, as MP4, WebM or MOV (iPhone), each up to 2 GB unless an administrator set another limit. The album then handles them like pictures: in folders and collections, on the timeline and the map, as favourites and memories, with labels, renaming, moving, deleting and the ZIP download.
