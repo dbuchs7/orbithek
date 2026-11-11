@@ -146,6 +146,7 @@ internal/sso/       OpenID Connect relying party (ADR-0030); sso/ssotest is a fa
 internal/mcp/      MCP adapter over the HTTP API: JSON-RPC, tool table, stdio transport (ADR-0012)
 internal/metrics/  Prometheus metrics on a registry of its own, labelled by route pattern (ADR-0016)
 internal/backup/   encrypted backups, full and incremental, and restore of a data directory or a chain (ADR-0016, ADR-0034, ADR-0073); backup/dest stores them at a destination: a directory, WebDAV, S3, FTPS or SFTP
+internal/s3sig/    signs requests to S3-compatible stores (signature version 4) and sends them path-style; shared by backups and file shares
 internal/autobackup/ takes backups on the schedule set under Administration and keeps the newest versions (ADR-0073)
 internal/connector/ connectors that keep catalog spaces in step with sources such as opendata.swiss or any JSON source, on schedules (ADR-0075, ADR-0077, ADR-0127)
 internal/engine/   reads processes from process engines (atlas): newest versions, BPMN models, operations as counts (ADR-0129); forms with their schemas and decisions with their DMN models (ADR-0144); the architecture sketches of releases as SVG pictures (ADR-0146); the forms of a process's steps, public start links and starts through them without the credential (ADR-0148); the open user tasks, with a credential of their own (ADR-0151)
@@ -157,6 +158,7 @@ internal/collab/   live editing sessions: block locks, commit on release (ADR-00
 internal/whiteboard/ live whiteboards: a drawing edited by several people and agents at once, element locks, checkpoints, the scene in the PNG, workshop tools (ADR-0169, ADR-0170)
 internal/photo/    reads what a picture tells about itself (EXIF in JPEG, PNG and WebP) and makes thumbnails, standard library only (ADR-0177)
 internal/photosource/ brings photos in from Google Photos (Picker API) and from shared iCloud albums, every address checked (ADR-0177)
+internal/share/    lists and reads the files of a file share an album folder shows: a mounted directory through os.Root, or an S3 bucket, public addresses only unless allowed (ADR-0196)
 internal/query/    the query language: parses a query into conditions and an order, and reads points in time (ADR-0136)
 internal/server/   HTTP route table with access classes, principal resolution, JSON API, graceful shutdown
 internal/web/      embedded web UI (plain HTML, CSS, ES modules; ADR-0009, ADR-0031)

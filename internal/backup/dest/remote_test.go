@@ -20,6 +20,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/dbuchs7/orbithek/internal/s3sig"
 )
 
 // caFile writes the certificate of a test server for CAFileEnv.
@@ -243,7 +245,7 @@ func (f *fakeS3) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	at, _ := time.Parse("20060102T150405Z", r.Header.Get("x-amz-date"))
 	check, _ := http.NewRequest(r.Method, "https://"+r.Host+r.URL.RequestURI(), nil)
 	check.Header.Set("x-amz-content-sha256", r.Header.Get("x-amz-content-sha256"))
-	sign(check, "AKID", "SECRET", "eu-central-1", "s3", at, hex.EncodeToString(sum[:]), []string{"host", "x-amz-content-sha256", "x-amz-date"})
+	s3sig.Sign(check, "AKID", "SECRET", "eu-central-1", "s3", at, hex.EncodeToString(sum[:]), []string{"host", "x-amz-content-sha256", "x-amz-date"})
 	if check.Header.Get("Authorization") != r.Header.Get("Authorization") {
 		w.WriteHeader(http.StatusForbidden)
 		io.WriteString(w, "SignatureDoesNotMatch")
