@@ -88,6 +88,7 @@ func TestTheAlbumFindsDuplicates(t *testing.T) {
 		t.Fatalf("groups %v, want %v", groups, want)
 	}
 	g := out["groups"].([]any)[0].(map[string]any)
+
 	if g["same"] != false || out["pending"] != float64(0) || out["total"] != float64(1) {
 		t.Errorf("group %v, pending %v, total %v", g["same"], out["pending"], out["total"])
 	}
@@ -124,6 +125,27 @@ func scaleTo(m image.Image, w, h int) *image.RGBA {
 		}
 	}
 	return out
+}
+
+// TestAGroupBeginsWithTheOldest: of the same file added twice to a
+// folder, also within the same second, the first upload comes first, so
+// the browser keeps it when it deletes the duplicates at once.
+func TestAGroupBeginsWithTheOldest(t *testing.T) {
+	for range 5 {
+		w := newPhotoWorld(t)
+		data := jpegOf(t, landscape(300, 200, 5), 90)
+		w.put(t, "first.jpg", data)
+		w.put(t, "second.jpg", data)
+		w.put(t, "third.jpg", data)
+		_, out := groupNames(t, w.bert, "")
+		var order []string
+		for _, p := range out["groups"].([]any)[0].(map[string]any)["pictures"].([]any) {
+			order = append(order, field(p.(map[string]any), "attachment", "name").(string))
+		}
+		if fmt.Sprint(order) != "[first.jpg second.jpg third.jpg]" {
+			t.Fatalf("group in the order %v, want the uploads' order", order)
+		}
+	}
 }
 
 // TestACopyIsNoDuplicate: a picture copied into another item, which
