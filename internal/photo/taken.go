@@ -15,7 +15,7 @@ const maxTIFFBytes = maxExifBytes
 // maxAPP1 is the most a JPEG segment holds after its length.
 const maxAPP1 = 0xFFFF - 2
 
-// SetTaken writes when a picture was taken into its EXIF (ADR-0196): taken
+// SetTaken writes when a picture was taken into its EXIF (ADR-0198): taken
 // is "2006-01-02T15:04:05", offset its offset from UTC, "+02:00", or
 // empty. The Exif directory's DateTimeOriginal is set and its
 // OffsetTimeOriginal set or, without an offset, removed; a picture without

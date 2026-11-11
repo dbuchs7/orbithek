@@ -1,4 +1,4 @@
-# ADR-0196: A photo's time set by hand, and written into the files given out
+# ADR-0198: A photo's time set by hand, and written into the files given out
 
 - **Status:** Proposed
 - **Implementation:** Partial

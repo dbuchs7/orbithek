@@ -141,14 +141,18 @@ var (
 // read and annotate the album is a decision of its own. Renaming its pictures
 // (ADR-0180) is not offered for the same reason, nor moving files to
 // another item (ADR-0188): a move takes a file out of an item and changes
-// who may read it.
+// who may read it. Nor is the order of the slides of a folder or
+// collection set by hand (ADR-0195): it orders pictures an agent cannot
+// list.
 //
 // The album's photo management (ADR-0177) is not offered: thumbnails, map
 // tiles and ZIP archives are for browsers, favourites are a person's own,
 // and the imports from Google Photos and shared iCloud albums act with a
 // person's sign-in at another service. An agent finds pictures, their
-// photo data included, in the files of the items it reads. Setting when a
-// photo was taken by hand (ADR-0196) is not offered with it: it changes
+// photo data included, in the files of the items it reads. Nor are the
+// album's duplicates (ADR-0196): they serve its upload and its view of
+// duplicates in the browser, and an agent compares files by their SHA-256. Setting when a
+// photo was taken by hand (ADR-0198) is not offered either: it changes
 // every file of the picture given out, and an agent that cannot list the
 // album would date pictures it never saw.
 var tools = []tool{

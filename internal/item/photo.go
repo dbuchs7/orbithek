@@ -20,7 +20,7 @@ type Photo struct {
 	// Offset its offset from UTC, "+02:00", when the picture tells it.
 	Taken  string `json:"taken,omitempty"`
 	Offset string `json:"offset,omitempty"`
-	// TakenManual says the time was set by hand (ADR-0196), so it, not the
+	// TakenManual says the time was set by hand (ADR-0198), so it, not the
 	// file's own, counts: every file given out carries it in its EXIF.
 	TakenManual bool `json:"takenManual,omitempty"`
 	// Lat and Lon are the place in decimal degrees, Alt the height in
@@ -177,12 +177,12 @@ func fileWithoutPlace(who string, a Attachment) bool {
 }
 
 // timeWritten reports whether every file given out of a picture carries
-// a time set by hand in its EXIF rather than the file's own (ADR-0196).
+// a time set by hand in its EXIF rather than the file's own (ADR-0198).
 func timeWritten(a Attachment) bool { return a.Photo != nil && a.Photo.TakenManual }
 
 // fileAsGiven reports whether who gets a file other than as it is stored:
 // without its place (ADR-0178, ADR-0181) or with a time set by hand
-// (ADR-0196).
+// (ADR-0198).
 func fileAsGiven(who string, a Attachment) bool { return fileWithoutPlace(who, a) || timeWritten(a) }
 
 // seenBy is a file as who may know it: without a place its uploader keeps
@@ -292,7 +292,7 @@ func (x *Session) SetPlacePrivate(id, attachment ID, private bool, read *Photo) 
 // (ADR-0177).
 const minTakenYear, maxTakenYear = 1800, 2200
 
-// SetTaken sets when a photo was taken by hand (ADR-0196): taken is the
+// SetTaken sets when a photo was taken by hand (ADR-0198): taken is the
 // wall-clock time "2006-01-02T15:04:05", offset its offset from UTC,
 // "+02:00", or empty when it is not known. An empty taken goes back to the
 // time the file itself tells. Who may edit the picture's item may. file is

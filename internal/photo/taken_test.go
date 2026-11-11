@@ -22,7 +22,7 @@ func takenIs(t *testing.T, data []byte, kind, taken, offset string, want Meta) {
 
 // TestTheTimeIsWrittenIntoAJPEG: the time and offset replace those the
 // file told, in both byte orders, and nothing else it tells changes; the
-// picture still decodes and data is not changed (ADR-0196).
+// picture still decodes and data is not changed (ADR-0198).
 func TestTheTimeIsWrittenIntoAJPEG(t *testing.T) {
 	for _, bo := range []binary.ByteOrder{binary.LittleEndian, binary.BigEndian} {
 		in := jpegWith(encodeJPEG(t, testImage(32, 16)), exifAPP1(fullTIFF(bo)))

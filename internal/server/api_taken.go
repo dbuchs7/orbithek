@@ -6,7 +6,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/item"
 )
 
-// Times set by hand (ADR-0196): when a photo was taken is set by its
+// Times set by hand (ADR-0198): when a photo was taken is set by its
 // item's editors, or goes back to the time its file tells. Every file given
 // out of a picture then carries that time in its EXIF (openFor); the stored
 // file is never changed.

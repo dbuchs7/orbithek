@@ -33,50 +33,15 @@ const thumbQuality = 82
 // maxPixels pixels is refused with ErrTooLarge. Formats without a decoder
 // give ErrUnsupported.
 func Thumbnail(r io.Reader, mediaType string, edge, orientation, maxPixels int) (data []byte, contentType string, err error) {
-	var decodeConfig func(io.Reader) (image.Config, error)
-	var decode func(io.Reader) (image.Image, error)
-	switch normType(mediaType) {
-	case "image/jpeg":
-		decodeConfig, decode = jpeg.DecodeConfig, jpeg.Decode
-	case "image/png":
-		decodeConfig, decode = png.DecodeConfig, png.Decode
-	case "image/gif":
-		decodeConfig, decode = gif.DecodeConfig, gif.Decode
-	default:
-		return nil, "", ErrUnsupported
+	if edge < 1 {
+		return nil, "", fmt.Errorf("photo: edge (%d) must be positive", edge)
 	}
-	if edge < 1 || maxPixels < 1 {
-		return nil, "", fmt.Errorf("photo: edge (%d) and maxPixels (%d) must be positive", edge, maxPixels)
-	}
-	if r == nil {
-		return nil, "", errors.New("photo: no picture")
-	}
-
-	// The header is read through a copy, so the decoder reads it again
-	// without reading the whole file first.
-	var head bytes.Buffer
-	cfg, err := decodeConfig(io.TeeReader(r, &head))
+	img, err := decodePicture(r, mediaType, maxPixels)
 	if err != nil {
-		return nil, "", fmt.Errorf("photo: %w", err)
+		return nil, "", err
 	}
-	if cfg.Width < 1 || cfg.Height < 1 {
-		return nil, "", errors.New("photo: the picture has no pixels")
-	}
-	if int64(cfg.Width)*int64(cfg.Height) > int64(maxPixels) {
-		return nil, "", ErrTooLarge
-	}
-	img, err := decode(io.MultiReader(&head, r))
-	if err != nil {
-		return nil, "", fmt.Errorf("photo: %w", err)
-	}
-	if full := image.Rect(0, 0, cfg.Width, cfg.Height); img.Bounds() != full {
-		// A GIF's first frame may cover part of its screen only.
-		canvas := image.NewRGBA(full)
-		draw.Draw(canvas, img.Bounds(), img, img.Bounds().Min, draw.Src)
-		img = canvas
-	}
-
-	w, h := fit(cfg.Width, cfg.Height, edge)
+	b := img.Bounds()
+	w, h := fit(b.Dx(), b.Dy(), edge)
 	small := orient(scale(img, w, h), orientation)
 
 	var buf bytes.Buffer
@@ -91,6 +56,55 @@ func Thumbnail(r io.Reader, mediaType string, edge, orientation, maxPixels int) 
 		return nil, "", fmt.Errorf("photo: %w", err)
 	}
 	return buf.Bytes(), contentType, nil
+}
+
+// decodePicture decodes a JPEG, PNG or GIF (its first frame, drawn on its whole
+// screen) after checking the pixel count its header claims against
+// maxPixels (ErrTooLarge); other formats give ErrUnsupported.
+func decodePicture(r io.Reader, mediaType string, maxPixels int) (image.Image, error) {
+	var decodeConfig func(io.Reader) (image.Config, error)
+	var decodeImage func(io.Reader) (image.Image, error)
+	switch normType(mediaType) {
+	case "image/jpeg":
+		decodeConfig, decodeImage = jpeg.DecodeConfig, jpeg.Decode
+	case "image/png":
+		decodeConfig, decodeImage = png.DecodeConfig, png.Decode
+	case "image/gif":
+		decodeConfig, decodeImage = gif.DecodeConfig, gif.Decode
+	default:
+		return nil, ErrUnsupported
+	}
+	if maxPixels < 1 {
+		return nil, fmt.Errorf("photo: maxPixels (%d) must be positive", maxPixels)
+	}
+	if r == nil {
+		return nil, errors.New("photo: no picture")
+	}
+
+	// The header is read through a copy, so the decoder reads it again
+	// without reading the whole file first.
+	var head bytes.Buffer
+	cfg, err := decodeConfig(io.TeeReader(r, &head))
+	if err != nil {
+		return nil, fmt.Errorf("photo: %w", err)
+	}
+	if cfg.Width < 1 || cfg.Height < 1 {
+		return nil, errors.New("photo: the picture has no pixels")
+	}
+	if int64(cfg.Width)*int64(cfg.Height) > int64(maxPixels) {
+		return nil, ErrTooLarge
+	}
+	img, err := decodeImage(io.MultiReader(&head, r))
+	if err != nil {
+		return nil, fmt.Errorf("photo: %w", err)
+	}
+	if full := image.Rect(0, 0, cfg.Width, cfg.Height); img.Bounds() != full {
+		// A GIF's first frame may cover part of its screen only.
+		canvas := image.NewRGBA(full)
+		draw.Draw(canvas, img.Bounds(), img, img.Bounds().Min, draw.Src)
+		img = canvas
+	}
+	return img, nil
 }
 
 // fit is the size of w×h scaled so that its longer side is at most edge,

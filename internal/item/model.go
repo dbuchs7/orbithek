@@ -331,6 +331,11 @@ type Item struct {
 	// made with or last moved to (ADR-0167); nil for items of types without
 	// one and for items made before the type had one.
 	Template *TemplateRef
+	// PictureOrder is the order of the slides of a folder or collection
+	// of the album set by hand: the first versions of its stacks
+	// (ADR-0195). It may name files that are gone or that a reader does
+	// not read; it only sorts what a reader reads.
+	PictureOrder []ID
 
 	created int // sequence number of the creating event; orders items
 	// erasedBefore withholds the versions of the body before it: they may
@@ -436,7 +441,7 @@ const (
 	// they are afterwards.
 	AttachmentPlaceSet EventKind = "AttachmentPlaceSet"
 	// AttachmentTakenSet sets when a photo was taken by hand, or goes back
-	// to the time its file tells (ADR-0196): it carries the photo data as
+	// to the time its file tells (ADR-0198): it carries the photo data as
 	// they are afterwards.
 	AttachmentTakenSet EventKind = "AttachmentTakenSet"
 	// AttachmentRenamed renames every version of a file: Attachment names
@@ -494,6 +499,10 @@ const (
 	// TemplateSet moves an item to another version of its type's Word
 	// template (ADR-0167).
 	TemplateSet EventKind = "TemplateSet"
+	// PicturesOrdered sets the order of the slides of a folder or a
+	// collection of the album by hand, or clears it: Order names the first
+	// versions of the stacks in their order (ADR-0195).
+	PicturesOrdered EventKind = "PicturesOrdered"
 )
 
 // TemplateRef names a version of a Word template (ADR-0167).
@@ -532,7 +541,8 @@ type Event struct {
 	Parent      ID       // ItemCreated, ItemMoved
 	// Order is the new order of the children of Parent (or the top of
 	// Space) after an ItemMoved that placed the item (ADR-0041); nil keeps
-	// the order.
+	// the order. After KanbanCardPlaced it is the column's cards; after
+	// PicturesOrdered the slides of a folder or collection (ADR-0195).
 	Order      []ID
 	Title      string // ItemCreated, TitleSet
 	Props      Props  // ItemCreated
@@ -621,6 +631,7 @@ func (it *Item) clone() Item {
 	c.Labels = slices.Clone(it.Labels)
 	c.LinkedFields = slices.Clone(it.LinkedFields)
 	c.Attachments = slices.Clone(it.Attachments)
+	c.PictureOrder = slices.Clone(it.PictureOrder)
 	c.ErasedSecrets = slices.Clone(it.ErasedSecrets)
 	c.secretFiles = maps.Clone(it.secretFiles)
 	c.Secrets = make([]Secret, len(it.Secrets))

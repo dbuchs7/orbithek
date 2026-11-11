@@ -57,7 +57,7 @@ type videoCloser struct {
 // its uploader keeps the place a photo was taken from them, without it
 // (ADR-0178); a picture whose place cannot be removed is not given. A
 // picture whose time was set by hand carries that time in its EXIF
-// (ADR-0196).
+// (ADR-0198).
 func (h itemHandlers) openFor(hidden bool, id item.ID, a item.Attachment) (io.ReadSeekCloser, error) {
 	c, err := h.openWithoutPlace(hidden, id, a)
 	if err != nil || !timeWritten(a) {
@@ -77,7 +77,7 @@ func (h itemHandlers) openFor(hidden bool, id item.ID, a item.Attachment) (io.Re
 }
 
 // timeWritten reports whether a file is given with the time set by hand
-// written into it (ADR-0196): a picture of a format whose EXIF the server
+// written into it (ADR-0198): a picture of a format whose EXIF the server
 // writes. A video keeps its own.
 func timeWritten(a item.Attachment) bool {
 	return a.Photo != nil && a.Photo.TakenManual && inlineTypes[a.Type] && !albumVideo(a)
@@ -114,7 +114,7 @@ func (h itemHandlers) openWithoutPlace(hidden bool, id item.ID, a item.Attachmen
 
 // givenSHA is the SHA-256 of a stored picture as the caller is given it:
 // the content of a copy made by a reader from whom its uploader keeps the
-// place (ADR-0178), or of a picture whose time was set by hand (ADR-0196).
+// place (ADR-0178), or of a picture whose time was set by hand (ADR-0198).
 func (h itemHandlers) givenSHA(hidden bool, id item.ID, a item.Attachment) (string, error) {
 	c, err := h.openFor(hidden, id, a)
 	if err != nil {
@@ -131,7 +131,7 @@ func (h itemHandlers) givenSHA(hidden bool, id item.ID, a item.Attachment) (stri
 // markCopyAsGiven tells the item model that an uploaded copy is its
 // source as the caller is given it — without the place its uploader keeps
 // from them (ADR-0178), or with the time set by hand written into it
-// (ADR-0196) — when the server finds the copy's content to be exactly that.
+// (ADR-0198) — when the server finds the copy's content to be exactly that.
 func (h itemHandlers) markCopyAsGiven(r *http.Request, id item.ID, a *item.Attachment) {
 	if a.Source == nil || a.Source.Item == id {
 		return

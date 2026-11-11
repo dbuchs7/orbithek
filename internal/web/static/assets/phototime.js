@@ -1,4 +1,4 @@
-// When a photo was taken, set by hand (ADR-0196): the fields for a date and
+// When a photo was taken, set by hand (ADR-0198): the fields for a date and
 // time and its offset from UTC, in the viewer and in the dialog that sets
 // or shifts the time of every chosen picture. The server records the time
 // and writes it into every file it gives out; the parts that need no

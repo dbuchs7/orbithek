@@ -8,6 +8,7 @@
 import { facesPanel, scanFile } from "./faces.js";
 import { h, when } from "./dom.js";
 import { t } from "./i18n.js";
+import { askDuplicates, findDuplicates } from "./duplicates.js";
 import { get, post, put, del, upload, download } from "./api.js";
 import { baseName, durationText, exposureText, hidden, isVideo, placeText, posterTime, sorts, typeOf } from "./photoparts.js";
 import { entries as zipEntries, read as zipRead } from "./zipread.js";
@@ -177,7 +178,7 @@ export function openViewer(list, index, changed = () => {}) {
           } }) : null));
     };
     // Who may edit the picture sets when it was taken by hand, or goes back
-    // to the time its file tells (ADR-0196).
+    // to the time its file tells (ADR-0198).
     const timeEdit = h("div", { class: "photo-time-edit" });
     const timed = (r) => {
       photo = r.attachment.photo;
@@ -206,7 +207,7 @@ export function openViewer(list, index, changed = () => {}) {
     info.replaceChildren(facts(), faces ? faces.element : "", placeRow, placeEdit, timeEdit, h("div", { class: "actions-row" }, fav,
       h("a", { class: "button secondary", id: "photo-download", href: fileURL(p), download: p.attachment.name, text: t("photos.original"),
         // A file whose time was set by hand is fetched anew, not from
-        // the browser's cache (ADR-0196).
+        // the browser's cache (ADR-0198).
         onclick: (e) => { if (photo?.takenManual) e.currentTarget.href = `${fileURL(p)}?taken=${encodeURIComponent(photo.taken + (photo.offset || ""))}`; } })));
     // A picture stored before photo data was recorded is read now.
     if (!photo && p.item.id) {
@@ -273,7 +274,7 @@ export async function allFolders(depth = 4) {
 // insert does (ADR-0054, ADR-0055); the original stays where it is.
 export async function copyTo(p, folder) {
   // Asked anew, so a picture whose time was set by hand is copied as it is
-  // given now (ADR-0196).
+  // given now (ADR-0198).
   const res = await fetch(fileURL(p), { credentials: "same-origin", cache: "no-cache" });
   if (!res.ok) throw new Error(res.statusText);
   const file = new File([await res.blob()], p.attachment.name, { type: p.attachment.type });
@@ -317,9 +318,11 @@ const labelUpload = (folder, att, labels) =>
 // they are, ZIP archives unpacked here first. HEIC photos and other files
 // are skipped and counted. progress is told each step; place is what the
 // server does with where each photo was taken (PLACES); labels are given
-// to every picture uploaded.
-export async function importFiles(files, folder, progress, place = "", labels = []) {
-  const sum = { done: 0, heic: 0, skipped: 0, failed: [] };
+// to every picture uploaded. With check, the files that are duplicates of
+// readable pictures or of each other are found first, and the person
+// chooses which to skip (ADR-0196); cancelling uploads nothing.
+export async function importFiles(files, folder, progress, place = "", labels = [], check = false) {
+  const sum = { done: 0, heic: 0, skipped: 0, doubles: 0, cancelled: false, failed: [] };
   const queue = [];
   for (const f of files) {
     if (/\.zip$/i.test(f.name) || f.type === "application/zip" || f.type === "application/x-zip-compressed") {
@@ -339,6 +342,19 @@ export async function importFiles(files, folder, progress, place = "", labels = 
     if (kind === "picture" || kind === "video") queue.push({ name: f.name, read: async () => f, video: kind === "video" });
     else if (kind === "heic") sum.heic++;
     else sum.skipped++;
+  }
+  if (check && queue.length) {
+    let found = [];
+    try { found = await findDuplicates(queue, progress); } catch (err) { sum.failed.push(`${t("duplicates.title")}: ${err.message}`); }
+    if (found.length) {
+      const skip = await askDuplicates(found);
+      if (!skip) {
+        sum.cancelled = true;
+        return sum;
+      }
+      sum.doubles = skip.size;
+      for (const i of [...skip].sort((a, b) => b - a)) queue.splice(i, 1);
+    }
   }
   for (const [n, q] of queue.entries()) {
     progress(t("photos.uploading", { n: n + 1, total: queue.length, name: q.name }));
@@ -364,10 +380,11 @@ export async function importFiles(files, folder, progress, place = "", labels = 
 
 // importDeck brings a presentation into the album (ADR-0186): when the
 // files chosen or dropped hold a .pptx or .ppsx — on its own or in a ZIP
-// archive — together with the pictures its slides were exported as, a
-// folder named after the presentation is made below folder, each shown
-// slide's picture goes into it named by its place and title, and the
-// slide's speaker's notes become the picture's notes. It gives null when
+// archive — a folder named after the presentation is made below folder,
+// each shown slide becomes a picture in it named by its place and title,
+// and the slide's speaker's notes become the picture's notes. The browser
+// draws the slides itself (assets/pptxdraw.js); chosen together with the
+// pictures its slides were exported as, those are taken instead. It gives null when
 // the files hold no presentation, so they are imported as pictures.
 export async function importDeck(files, folder, progress, place = "", labels = []) {
   const decks = [];
@@ -392,31 +409,47 @@ export async function importDeck(files, folder, progress, place = "", labels = [
   }
   if (!decks.length) return null;
   if (decks.length > 1) throw new Error(t("slides.oneAtATime"));
-  const deck = decks[0];
-  progress(t("slides.reading", { name: deck.name }));
-  let slides;
+  const file = decks[0];
+  progress(t("slides.reading", { name: file.name }));
+  let deck;
   try {
-    ({ slides } = await readDeck(await deck.read()));
+    deck = await readDeck(await file.read());
   } catch {
-    throw new Error(t("slides.unreadable", { name: deck.name }));
+    throw new Error(t("slides.unreadable", { name: file.name }));
   }
-  if (!pictures.length) throw new Error(t("slides.noPictures"));
+  // With the pictures of an exported presentation, they are the slides;
+  // without, the browser draws each slide itself.
   let plan;
-  try {
-    plan = pair(slides, pictures);
-  } catch (err) {
-    if (err.code === "mismatch") throw new Error(t("slides.mismatch", { slides: err.slides, pictures: err.pictures }));
-    throw err;
-  }
-  const { item } = await post("/api/album/folders", { parent: folder, name: folderName(deck.name, t("slides.folder")) });
-  const sum = { folder: item, done: 0, notes: 0, hidden: plan.hidden, skipped, failed: [] };
-  const width = widthOf(plan.pairs.length);
-  for (const [i, { slide, picture }] of plan.pairs.entries()) {
-    const name = slideName(i + 1, width, slide.title, picture.name);
-    progress(t("photos.uploading", { n: i + 1, total: plan.pairs.length, name }));
+  if (pictures.length) {
     try {
-      const blob = await picture.read();
-      const att = await upload(`/api/items/${item.id}`, new File([blob], name, { type: blob.type || typeOf(picture.name) }), null, place ? { place } : {});
+      plan = pair(deck.slides, pictures);
+    } catch (err) {
+      if (err.code === "mismatch") throw new Error(t("slides.mismatch", { slides: err.slides, pictures: err.pictures }));
+      throw err;
+    }
+  } else {
+    const shown = deck.slides.filter((s) => !s.hidden);
+    plan = { pairs: shown.map((slide) => ({ slide })), hidden: deck.slides.length - shown.length };
+  }
+  const { item } = await post("/api/album/folders", { parent: folder, name: folderName(file.name, t("slides.folder")) });
+  const sum = { folder: item, done: 0, notes: 0, hidden: plan.hidden, skipped, failed: [], drawn: !pictures.length, approximated: 0 };
+  const width = widthOf(plan.pairs.length);
+  const draw = pictures.length ? null : (await import("./pptxdraw.js")).renderSlide;
+  const cache = new Map();
+  for (const [i, { slide, picture }] of plan.pairs.entries()) {
+    let name = slideName(i + 1, width, slide.title, picture ? picture.name : "slide.png");
+    try {
+      let blob;
+      if (picture) blob = await picture.read();
+      else {
+        progress(t("slides.drawing", { n: i + 1, total: plan.pairs.length }));
+        const drawn = await draw(deck, slide, cache);
+        blob = drawn.blob;
+        if (drawn.missing.length) sum.approximated++;
+        if (blob.type === "image/jpeg") name = slideName(i + 1, width, slide.title, "slide.jpg");
+      }
+      progress(t("photos.uploading", { n: i + 1, total: plan.pairs.length, name }));
+      const att = await upload(`/api/items/${item.id}`, new File([blob], name, { type: blob.type || typeOf(picture?.name || name) }), null, place ? { place } : {});
       await labelUpload(item.id, att, labels);
       sum.done++;
       if (slide.notes) {
@@ -425,13 +458,14 @@ export async function importDeck(files, folder, progress, place = "", labels = [
       }
     } catch (err) { sum.failed.push(`${name}: ${err.message}`); }
   }
+  for (const img of cache.values()) img.then((b) => b?.close?.()).catch(() => {});
   return sum;
 }
 
 // deckText says what a presentation's import did.
 export function deckText(sum) {
   return [t("slides.imported", { n: sum.done, folder: sum.folder.title }), sum.notes ? t("slides.withNotes", { n: sum.notes }) : "",
-    sum.hidden ? t("slides.hiddenLeft", { n: sum.hidden }) : "", sum.skipped ? t("photos.otherSkipped", { n: sum.skipped }) : "",
+    sum.hidden ? t("slides.hiddenLeft", { n: sum.hidden }) : "", sum.approximated ? t("slides.approximated", { n: sum.approximated }) : "", sum.skipped ? t("photos.otherSkipped", { n: sum.skipped }) : "",
     sum.failed.length ? t("photos.failed", { n: sum.failed.length }) : ""].filter(Boolean).join(" ");
 }
 
@@ -489,7 +523,9 @@ export async function setPoster(folder, att) {
 
 // summaryText says what an import did.
 export function summaryText(sum) {
+  if (sum.cancelled) return t("duplicates.cancelled");
   return [t("photos.imported", { n: sum.done }), sum.duplicates ? t("photos.duplicates", { n: sum.duplicates }) : "",
+    sum.doubles ? t("duplicates.skipped", { n: sum.doubles }) : "",
     sum.heic ? t("photos.heicSkipped", { n: sum.heic }) : "",
     sum.skipped ? t("photos.otherSkipped", { n: sum.skipped }) : "", sum.failed.length ? t("photos.failed", { n: sum.failed.length }) : ""].filter(Boolean).join(" ");
 }

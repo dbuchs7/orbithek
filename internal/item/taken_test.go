@@ -9,7 +9,7 @@ import (
 // TestATimeSetByHand: who may edit a picture's item sets when it was
 // taken, with or without an offset, and goes back to the file's own; the
 // rest of the photo data, a private place above all, stays; who may only
-// read may not; bad times are refused (ADR-0196).
+// read may not; bad times are refused (ADR-0198).
 func TestATimeSetByHand(t *testing.T) {
 	s := setup(t)
 	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))
@@ -88,7 +88,7 @@ func TestATimeSetByHand(t *testing.T) {
 // TestACopyTakesATimeSetByHand: a copy carries the time set by hand on
 // its original and is accepted with its content as the server gave it,
 // which differs from the original's; a copy not marked so is not
-// (ADR-0196).
+// (ADR-0198).
 func TestACopyTakesATimeSetByHand(t *testing.T) {
 	s := setup(t)
 	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))

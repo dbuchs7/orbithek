@@ -17,7 +17,7 @@ import (
 // download, a ZIP archive — carries it in its EXIF with the file's other
 // data, while the stored file stays as it was; going back gives the
 // file's own time again; a reader may not set one, nor has a file that is
-// no picture one (ADR-0196).
+// no picture one (ADR-0198).
 func TestATimeSetByHandThroughTheAPI(t *testing.T) {
 	w := newPhotoWorld(t)
 	original := exifJPEG(t, "2024:05:01 13:22:10", 46.5584, 7.8352, 64)
@@ -107,7 +107,7 @@ func TestATimeSetByHandThroughTheAPI(t *testing.T) {
 // TestACopyOfAPictureWithATimeSetByHand: a copy uploaded as it was
 // downloaded, with the time written into it, is taken as a copy and
 // carries the time set by hand; other content is not; a copy of a whole
-// item copies the file as it is given (ADR-0196).
+// item copies the file as it is given (ADR-0198).
 func TestACopyOfAPictureWithATimeSetByHand(t *testing.T) {
 	w := newPhotoWorld(t)
 	lake := w.put(t, "lake.jpg", exifJPEG(t, "2024:05:01 13:22:10", 0, 0, 64))

@@ -38,6 +38,11 @@ type Attachment struct {
 	// Photo is what a picture tells about itself (ADR-0177): capture
 	// time, place and camera. It is content, sealed with the rest.
 	Photo *Photo `json:",omitempty"`
+	// Fingerprint is how a picture looks, as 16 hexadecimal digits
+	// (ADR-0196): the server makes it when it stores the picture, and the
+	// album finds pictures that look the same by it. Empty for a file
+	// without one. It is content, sealed with the rest.
+	Fingerprint string `json:",omitempty"`
 	// Faces are the faces found on this version of a picture and the
 	// persons named on them (ADR-0194); FacesSeen says it was searched
 	// for faces, also when none were found. They are content, sealed with
@@ -48,7 +53,7 @@ type Attachment struct {
 	// as its source is given to the copier: without the place its uploader
 	// keeps from them (ADR-0178) or a place set by hand replaces
 	// (ADR-0181), or with the time set by hand written into it
-	// (ADR-0196), so the copy's content differs from its source's. It is
+	// (ADR-0198), so the copy's content differs from its source's. It is
 	// never persisted.
 	AsGiven bool `json:"-"`
 	// Move is set on the events of a move only (ADR-0188), never kept
@@ -84,6 +89,7 @@ var (
 	itemIDRE       = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
 	attachmentIDRE = regexp.MustCompile(`^[0-9a-f]{32}$`)
 	sha256RE       = regexp.MustCompile(`^[0-9a-f]{64}$`)
+	fingerprintRE  = regexp.MustCompile(`^[0-9a-f]{16}$`)
 )
 
 // ValidItemID reports whether s has the form of an item ID, so storage
@@ -138,7 +144,10 @@ func (s *Store) AddAttachment(actor string, id ID, a Attachment) (Attachment, er
 	if err := checkPhoto(a.Photo); err != nil {
 		return Attachment{}, err
 	}
-	rec := Attachment{ID: a.ID, Name: a.Name, Type: a.Type, Size: a.Size, SHA256: a.SHA256, Source: a.Source, Photo: a.Photo}
+	if a.Fingerprint != "" && !fingerprintRE.MatchString(a.Fingerprint) {
+		return Attachment{}, invalid("attachment %s: the fingerprint must be 16 hexadecimal digits", a.ID)
+	}
+	rec := Attachment{ID: a.ID, Name: a.Name, Type: a.Type, Size: a.Size, SHA256: a.SHA256, Source: a.Source, Photo: a.Photo, Fingerprint: a.Fingerprint}
 	if err := s.record(actor, Event{Kind: AttachmentAdded, Item: id, Attachment: &rec}); err != nil {
 		return Attachment{}, err
 	}
@@ -326,7 +335,7 @@ func (x *Session) AddAttachment(id ID, a Attachment) (Attachment, error) {
 			return Attachment{}, notFound("attachment %s of item %s", a.Source.Attachment, a.Source.Item)
 		}
 		// A copy of a photo given to the copier other than as stored has
-		// the content as given, which the server made (ADR-0178, ADR-0196).
+		// the content as given, which the server made (ADR-0178, ADR-0198).
 		if a.Source.Item != id && from.SHA256 != a.SHA256 && !(a.AsGiven && fileAsGiven(x.who, *from)) {
 			return Attachment{}, invalid("a copy of %s must have its content", a.Source.Attachment)
 		}
@@ -340,7 +349,7 @@ func (x *Session) AddAttachment(id ID, a Attachment) (Attachment, error) {
 			p.Lat, p.Lon, p.Alt, p.PlaceName, p.PlaceManual = from.Photo.Lat, from.Photo.Lon, nil, from.Photo.PlaceName, true
 			a.Photo = &p
 		}
-		// A copy takes over a time set by hand on its original (ADR-0196).
+		// A copy takes over a time set by hand on its original (ADR-0198).
 		if from.Photo != nil && from.Photo.TakenManual {
 			var p Photo
 			if a.Photo != nil {
