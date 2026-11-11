@@ -38,6 +38,11 @@ type Attachment struct {
 	// Photo is what a picture tells about itself (ADR-0177): capture
 	// time, place and camera. It is content, sealed with the rest.
 	Photo *Photo `json:",omitempty"`
+	// Fingerprint is how a picture looks, as 16 hexadecimal digits
+	// (ADR-0196): the server makes it when it stores the picture, and the
+	// album finds pictures that look the same by it. Empty for a file
+	// without one. It is content, sealed with the rest.
+	Fingerprint string `json:",omitempty"`
 	// Faces are the faces found on this version of a picture and the
 	// persons named on them (ADR-0194); FacesSeen says it was searched
 	// for faces, also when none were found. They are content, sealed with
@@ -82,6 +87,7 @@ var (
 	itemIDRE       = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
 	attachmentIDRE = regexp.MustCompile(`^[0-9a-f]{32}$`)
 	sha256RE       = regexp.MustCompile(`^[0-9a-f]{64}$`)
+	fingerprintRE  = regexp.MustCompile(`^[0-9a-f]{16}$`)
 )
 
 // ValidItemID reports whether s has the form of an item ID, so storage
@@ -136,7 +142,10 @@ func (s *Store) AddAttachment(actor string, id ID, a Attachment) (Attachment, er
 	if err := checkPhoto(a.Photo); err != nil {
 		return Attachment{}, err
 	}
-	rec := Attachment{ID: a.ID, Name: a.Name, Type: a.Type, Size: a.Size, SHA256: a.SHA256, Source: a.Source, Photo: a.Photo}
+	if a.Fingerprint != "" && !fingerprintRE.MatchString(a.Fingerprint) {
+		return Attachment{}, invalid("attachment %s: the fingerprint must be 16 hexadecimal digits", a.ID)
+	}
+	rec := Attachment{ID: a.ID, Name: a.Name, Type: a.Type, Size: a.Size, SHA256: a.SHA256, Source: a.Source, Photo: a.Photo, Fingerprint: a.Fingerprint}
 	if err := s.record(actor, Event{Kind: AttachmentAdded, Item: id, Attachment: &rec}); err != nil {
 		return Attachment{}, err
 	}

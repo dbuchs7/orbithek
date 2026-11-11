@@ -1024,6 +1024,8 @@ func (s *Store) apply(e Event) {
 		s.applyHold(e, touch)
 	case KanbanSet, KanbanRemoved, KanbanCardPlaced:
 		s.applyKanban(e)
+	case PicturesOrdered:
+		s.applyPictureOrder(e, touch)
 	case SpaceTrashed, SpaceRestored, SpacePurged, SpaceRenamed:
 		s.applySpace(e, touch)
 	case SecretSet, SecretRemoved, SecretRequested, SecretGranted, SecretDeclined, SecretErased:

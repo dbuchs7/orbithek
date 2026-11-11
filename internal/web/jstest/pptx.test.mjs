@@ -133,12 +133,13 @@ test("relationships resolve relative to their part, or from the root", () => {
 });
 
 test("a presentation's slides are read in the presentation's order, with hidden ones, titles and notes", async () => {
-  const { slides } = await readDeck(deck());
+  const { slides, size } = await readDeck(deck());
+  assert.deepEqual(size, { cx: 12192000, cy: 6858000 });
   assert.deepEqual(slides, [
-    { number: 1, hidden: false, title: "Willkommen & Ziele", notes: "Begrüssung\nErstens\nzweitens\n\nDanke <alle>" },
-    { number: 2, hidden: false, title: "Agenda: Q4/2026", notes: "" },
-    { number: 3, hidden: true, title: "Versteckt", notes: "geheim" },
-    { number: 4, hidden: false, title: "", notes: "" },
+    { number: 1, hidden: false, title: "Willkommen & Ziele", notes: "Begrüssung\nErstens\nzweitens\n\nDanke <alle>", part: "ppt/slides/slide1.xml" },
+    { number: 2, hidden: false, title: "Agenda: Q4/2026", notes: "", part: "ppt/slides/slide3.xml" },
+    { number: 3, hidden: true, title: "Versteckt", notes: "geheim", part: "ppt/slides/slide2.xml" },
+    { number: 4, hidden: false, title: "", notes: "", part: "ppt/slides/slide4.xml" },
   ]);
 });
 

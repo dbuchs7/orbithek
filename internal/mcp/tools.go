@@ -141,13 +141,17 @@ var (
 // read and annotate the album is a decision of its own. Renaming its pictures
 // (ADR-0180) is not offered for the same reason, nor moving files to
 // another item (ADR-0188): a move takes a file out of an item and changes
-// who may read it.
+// who may read it. Nor is the order of the slides of a folder or
+// collection set by hand (ADR-0195): it orders pictures an agent cannot
+// list.
 //
 // The album's photo management (ADR-0177) is not offered: thumbnails, map
 // tiles and ZIP archives are for browsers, favourites are a person's own,
 // and the imports from Google Photos and shared iCloud albums act with a
 // person's sign-in at another service. An agent finds pictures, their
-// photo data included, in the files of the items it reads.
+// photo data included, in the files of the items it reads. Nor are the
+// album's duplicates (ADR-0196): they serve its upload and its view of
+// duplicates in the browser, and an agent compares files by their SHA-256.
 var tools = []tool{
 	{Name: "list_spaces", Description: "List the spaces the caller holds a role in.", Method: "GET", Path: "/api/spaces"},
 	{Name: "get_own_roles", Description: "The caller's own roles: the system roles held, and every space role granted to the caller, directly or through a group (via), one entry per grant.",

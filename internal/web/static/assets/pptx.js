@@ -82,20 +82,20 @@ export function parseXML(text) {
   return root;
 }
 
-const kids = (node, name) => node.children.filter((c) => typeof c !== "string" && (!name || c.name === name));
-const child = (node, name) => kids(node, name)[0] || null;
+export const kids = (node, name) => node.children.filter((c) => typeof c !== "string" && (!name || c.name === name));
+export const child = (node, name) => kids(node, name)[0] || null;
 // all lists the elements of a name below a node, in document order.
-function all(node, name, out = []) {
+export function all(node, name, out = []) {
   for (const c of kids(node)) {
     if (c.name === name) out.push(c);
     all(c, name, out);
   }
   return out;
 }
-const rootOf = (doc) => kids(doc)[0] || null;
+export const rootOf = (doc) => kids(doc)[0] || null;
 // attrOf reads an attribute by its local name; prefixed says whether the
 // one with a prefix is meant, as r:id beside id on a slide's entry.
-const attrOf = (node, name, prefixed = false) => {
+export const attrOf = (node, name, prefixed = false) => {
   for (const [k, v] of Object.entries(node?.attrs || {})) {
     if (localName(k) === name && k.includes(":") === prefixed) return v;
   }
@@ -187,15 +187,15 @@ function relationships(doc, part) {
   }
   return out;
 }
-const isType = (rel, kind) => rel.type.endsWith("/" + kind);
+export const isType = (rel, kind) => rel.type.endsWith("/" + kind);
 
 // MAX_PART bounds the XML read of one part; slides and notes are far
 // smaller, so a larger part is a damaged or hostile file.
 export const MAX_PART = 16 << 20;
 
-// readDeck reads a presentation: its slides in their order, each with its
-// position (from 1), whether it is hidden, its title and its notes.
-export async function readDeck(blob) {
+// openPackage opens a presentation's package: its parts read as XML or
+// as files, each read once, and the relationships of a part.
+export async function openPackage(blob) {
   let list;
   try {
     list = await zipEntries(blob);
@@ -208,40 +208,61 @@ export async function readDeck(blob) {
     byName.set(name, e);
     if (!byName.has(name.toLowerCase())) byName.set(name.toLowerCase(), e);
   }
+  const entry = (part) => byName.get(part) || byName.get(part.toLowerCase());
+  const docs = new Map();
   const xml = async (part, needed = true) => {
-    const e = byName.get(part) || byName.get(part.toLowerCase());
+    const e = entry(part);
     if (!e) {
       if (needed) throw new Error(`pptx: ${part} is missing`);
       return null;
     }
     if (e.size > MAX_PART) throw new Error(`pptx: ${part} is too large`);
-    return parseXML(await (await zipRead(blob, e)).text());
+    if (!docs.has(part)) docs.set(part, zipRead(blob, e).then((b) => b.text()).then(parseXML));
+    return docs.get(part);
   };
-  const pkg = await xml("_rels/.rels", false);
-  const main = (pkg && [...relationships(pkg, "").values()].find((r) => isType(r, "officeDocument"))?.part) || "ppt/presentation.xml";
-  const presentation = rootOf(await xml(main));
+  const rels = async (part) => {
+    const doc = await xml(relsPath(part), false);
+    return doc ? relationships(doc, part) : new Map();
+  };
+  const file = async (part, type = "") => {
+    const e = entry(part);
+    return e ? zipRead(blob, e, type) : null;
+  };
+  return { xml, rels, file, has: (part) => Boolean(entry(part)) };
+}
+
+// readDeck reads a presentation: its slides in their order, each with its
+// position (from 1), whether it is hidden, its title, its notes and its
+// part, the size of its slides in EMU, and the package to draw them from.
+export async function readDeck(blob) {
+  const pkg = await openPackage(blob);
+  const top = await pkg.xml("_rels/.rels", false);
+  const main = (top && [...relationships(top, "").values()].find((r) => isType(r, "officeDocument"))?.part) || "ppt/presentation.xml";
+  const presentation = rootOf(await pkg.xml(main));
   if (!presentation || presentation.name !== "presentation") throw new Error("pptx: not a presentation");
-  const rels = relationships(await xml(relsPath(main)), main);
+  const rels = await pkg.rels(main);
   const order = all(presentation, "sldIdLst")[0];
   const slides = [];
   for (const entry of order ? kids(order, "sldId") : []) {
     const rel = rels.get(attrOf(entry, "id", true));
     if (!rel || !isType(rel, "slide")) continue;
-    const slide = rootOf(await xml(rel.part));
+    const slide = rootOf(await pkg.xml(rel.part));
     if (!slide) continue;
-    const own = await xml(relsPath(rel.part), false);
-    const notesRel = own ? [...relationships(own, rel.part).values()].find((r) => isType(r, "notesSlide")) : null;
-    const notesDoc = notesRel ? await xml(notesRel.part, false) : null;
+    const notesRel = [...(await pkg.rels(rel.part)).values()].find((r) => isType(r, "notesSlide"));
+    const notesDoc = notesRel ? await pkg.xml(notesRel.part, false) : null;
     const show = attrOf(slide, "show");
     slides.push({
       number: slides.length + 1,
       hidden: show === "0" || show === "false",
       title: titleOf(slide),
       notes: notesDoc ? notesOf(notesDoc) : "",
+      part: rel.part,
     });
   }
   if (!slides.length) throw new Error("pptx: no slides");
-  return { slides };
+  const sz = child(presentation, "sldSz");
+  const size = { cx: Number(sz?.attrs.cx) || 12192000, cy: Number(sz?.attrs.cy) || 6858000 };
+  return { slides, size, pkg, main };
 }
 
 // numberOf is the slide number a picture's file name tells: the last

@@ -147,7 +147,14 @@ import (
 //   - 51: an attachment may carry Faces and FacesSeen, and the kind
 //     AttachmentFacesSet with attachment, sealed (ADR-0194). Versions 1 to
 //     50 are still read; their pictures were not searched for faces.
-const CodecVersion = 51
+//   - 52: the kind PicturesOrdered with order, the first versions of the
+//     stacks of a folder or collection of the album in the order of its
+//     slides set by hand; not sealed, as it names files only (ADR-0195).
+//     Versions 1 to 51 are still read; their slides are ordered by name.
+//   - 53: an attachment may carry Fingerprint, how a picture looks, sealed
+//     with the rest of it (ADR-0196). Versions 1 to 52 are still read;
+//     their pictures have no fingerprint.
+const CodecVersion = 53
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

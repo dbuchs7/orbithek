@@ -14,6 +14,8 @@
 // earlier years; pictures are chosen many at once, and photos come in from
 // files, ZIP archives, Google Photos and shared iCloud albums. A picture,
 // or every chosen one, is moved by dragging it onto a folder (ADR-0184).
+// Shown in the order of slides, the pictures of a folder or collection
+// are dragged among each other to set that order by hand (ADR-0195).
 // Pictures are added where one is (ADR-0187): files dropped, pasted or
 // chosen go into the open folder, or, in a collection or at the top, into
 // a folder chosen each time, where a collection's labels are given to
@@ -25,17 +27,28 @@ import { get, post, put, del, upload } from "./api.js";
 import { DRAWING } from "./drawing.js";
 import { exportFormats, exportPicture } from "./picexport.js";
 import { allFolders, copyTo, moveTo, dayText, deckText, googleImport, icloudImport, importDeck, importFiles, monthText, openViewer, rememberedAlbum, setFavourite, importPlace, PLACES, summaryText, thumbURL, zipPictures } from "./photos.js";
-import { dragged, durationText, groups, isVideo, range, yearsAgo } from "./photoparts.js";
+import { dragged, durationText, groups, isVideo, orderDrop, range, yearsAgo } from "./photoparts.js";
 import { photoMap } from "./photomap.js";
 import { pickPlace, placeInput } from "./places.js";
 import { startPresentation } from "./present.js";
 import { personCover, scanAll } from "./faces.js";
 import { renameInPlace } from "./rename.js";
+import { groupTitle, loadDuplicates } from "./duplicates.js";
 
 const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
 
 // VIEWS are the album's ways of showing pictures (ADR-0177).
-const VIEWS = ["folders", "timeline", "favourites", "memories", "map", "people"];
+const VIEWS = ["folders", "timeline", "favourites", "memories", "map", "people", "duplicates"];
+
+// SORT keeps, in this browser, how a folder or collection is shown:
+// newest first ("") or in the order of its slides ("slides", ADR-0195).
+const SORT = "ot.albumSort";
+const sortKept = () => {
+  try { return localStorage.getItem(SORT) === "slides" ? "slides" : ""; } catch { return ""; }
+};
+const keepSort = (v) => {
+  try { localStorage.setItem(SORT, v); } catch { /* for this visit only */ }
+};
 
 // The album's clipboard (ADR-0108): a picture copied in the album is pasted
 // into a text as a copy of its original file, with its source, as "Insert…
@@ -105,13 +118,18 @@ export function albumBrowser({ pick, pickText } = {}) {
   const label = h("select", { "aria-label": t("album.label"), id: "album-label" }, h("option", { value: "", text: t("album.labelAll") }));
   const options = h("datalist", { id: "album-label-options" });
   const trail = h("nav", { class: "album-trail", "aria-label": t("album.folders") });
+  // manage stands beside the trail and changes the open folder or
+  // collection itself; tools below it add pictures to it.
+  const manage = h("div", { class: "album-manage" });
+  const headRow = h("div", { class: "album-location" }, trail, manage);
   const tools = h("div", { class: "album-tools" });
   const folders = h("ul", { class: "album-folders" });
   const grid = h("ul", { class: "album-grid" });
   const count = h("p", { class: "muted", role: "status" });
   const more = h("button", { type: "button", text: t("album.more"), hidden: true });
-  // present shows the pictures the album shows now as slides, ordered by
-  // name, in a presenter's window and a presentation window (ADR-0176).
+  // present shows the pictures the album shows now as slides, in the
+  // order of the folder or collection set by hand and else by name, in a
+  // presenter's window and a presentation window (ADR-0176, ADR-0195).
   const present = h("button", { type: "button", class: "secondary", id: "album-present", text: t("album.present", { n: 0 }),
     title: t("album.presentTitle"), hidden: true, onclick: () => startPresentation(filters()) });
   const status = h("div", { class: "status" });
@@ -142,8 +160,52 @@ export function albumBrowser({ pick, pickText } = {}) {
   const chosen = new Map();
   let anchor = null;
   let shown = [];
-  // dragging holds the pictures being dragged onto a folder (ADR-0184).
+  // dragging holds the pictures being dragged onto a folder (ADR-0184),
+  // or among the others to order them as slides (ADR-0195).
   let dragging = null;
+  // sort is how a folder or collection is shown: newest first, or as its
+  // slides; order says whether it has an order set by hand, whether one
+  // may change it, and whether every picture is shown (ADR-0195).
+  let sort = pick ? "" : sortKept();
+  let order = { ordered: false, orderable: false, complete: false };
+  const sortSelect = h("select", { id: "album-sort", "aria-label": t("album.sort"), hidden: true },
+    h("option", { value: "", text: t("album.sortNewest") }), h("option", { value: "slides", text: t("album.sortSlides") }));
+  sortSelect.value = sort;
+  sortSelect.addEventListener("change", () => { sort = sortSelect.value; keepSort(sort); load(false); });
+  const orderHint = h("span", { class: "muted album-order-hint", id: "album-order-hint", hidden: true, text: t("album.orderHint") });
+  const orderReset = h("button", { type: "button", class: "link", id: "album-order-reset", hidden: true, text: t("album.orderReset"), title: t("album.orderResetTitle"),
+    onclick: async () => {
+      if (!confirm(t("album.orderResetConfirm"))) return;
+      try {
+        await del(`/api/album/order/${encodeURIComponent(here().id)}`);
+        say(t("album.orderCleared"), "notice");
+        refresh();
+      } catch (err) { fail(err); }
+    } });
+  // bySlides says whether the album shows a folder or collection in the
+  // order of its slides; reordering whether one may drag pictures there.
+  const bySlides = () => !pick && view === "folders" && Boolean(here()) && sort === "slides";
+  const reordering = () => bySlides() && order.orderable;
+  // placePictures moves pictures, by the first versions of their stacks,
+  // right before another, or to the end with "", and shows the album
+  // again as far as it was shown.
+  const placePictures = async (moved, before) => {
+    try {
+      await put(`/api/album/order/${encodeURIComponent(here().id)}`, { pictures: moved, before });
+      say(t("album.ordered", { n: moved.length }), "notice");
+      refresh();
+    } catch (err) { fail(err); }
+  };
+  // stepPicture moves a picture one place earlier (-1) or later (+1), the
+  // way without a pointer.
+  const stepPicture = (p, delta) => {
+    const firsts = shown.map((q) => q.first);
+    const i = firsts.indexOf(p.first);
+    if (i < 0) return;
+    const before = delta < 0 ? (i > 0 ? firsts[i - 1] : null) : orderDrop(firsts, [p.first], i + 1, true, order.complete);
+    if (before === null) return say(t("album.orderUnknown"));
+    placePictures([p.first], before);
+  };
   let imports = { google: false, icloud: false, connected: false };
   const timeline = h("div", { class: "album-timeline" });
   const mapBox = h("div", { class: "album-map" });
@@ -284,6 +346,10 @@ export function albumBrowser({ pick, pickText } = {}) {
         onclick: () => { m.open = false; rename(p, m.closest(".album-card")?.querySelector(".album-name")); } }),
       stacked ? h("button", { type: "button", class: "link album-retention", text: t("retention.open"),
         onclick: () => { m.open = false; cleanUp(p); } }) : null,
+      reordering() && !p.versionOf ? h("button", { type: "button", class: "link album-earlier", text: t("album.moveEarlier"),
+        onclick: () => { m.open = false; stepPicture(p, -1); } }) : null,
+      reordering() && !p.versionOf ? h("button", { type: "button", class: "link album-later", text: t("album.moveLater"),
+        onclick: () => { m.open = false; stepPicture(p, 1); } }) : null,
       h("button", { type: "button", class: "link danger album-delete", text: t("album.delete"), disabled: p.used,
         onclick: async () => {
           m.open = false;
@@ -379,6 +445,8 @@ export function albumBrowser({ pick, pickText } = {}) {
             isVideo(p) ? h("span", { class: "chip album-video-chip", text: t("album.video") }) : null,
             version ? h("span", { class: "chip album-version", text: t("album.version", { n: version }) }) : null,
             stacked && p.retention ? h("span", { class: "chip album-own-rule", text: t("retention.chip") }) : null,
+            // In the view of duplicates, how it matches the others (ADR-0196).
+            view === "duplicates" ? h("span", { class: p.same ? "chip duplicate-same" : "chip duplicate-alike", text: t(p.same ? "duplicates.same" : "duplicates.alike") }) : null,
             h("span", { class: "muted album-when", text: when(p.attachment.created) })),
           h("a", { href: "#/item/" + encodeURIComponent(p.item.key), class: "muted album-item", text: `${p.item.key} ${p.item.title}`,
             title: `${p.item.key} ${p.item.title}`, target: pick ? "_blank" : null, rel: pick ? "noopener" : null }))),
@@ -416,7 +484,39 @@ export function albumBrowser({ pick, pickText } = {}) {
       li.addEventListener("dragend", () => {
         dragging = null;
         root.classList.remove("dragging-pictures");
-        for (const el of root.querySelectorAll(".drop-target")) el.classList.remove("drop-target");
+        for (const el of root.querySelectorAll(".drop-target, .drop-before, .drop-after")) el.classList.remove("drop-target", "drop-before", "drop-after");
+      });
+      // Shown as slides, a picture dropped onto another goes before it, or
+      // after it when dropped onto its latter half (ADR-0195).
+      const after = (e) => {
+        const r = li.getBoundingClientRect();
+        return e.clientX > r.left + r.width / 2;
+      };
+      const over = (e) => {
+        if (!dragging || !reordering()) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        const a = after(e);
+        li.classList.toggle("drop-after", a);
+        li.classList.toggle("drop-before", !a);
+      };
+      li.addEventListener("dragenter", over);
+      li.addEventListener("dragover", over);
+      li.addEventListener("dragleave", (e) => { if (!li.contains(e.relatedTarget)) li.classList.remove("drop-before", "drop-after"); });
+      li.addEventListener("drop", (e) => {
+        li.classList.remove("drop-before", "drop-after");
+        if (!dragging || !reordering()) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const firsts = shown.map((q) => q.first);
+        const taken = new Set(dragging.map((q) => q.first));
+        const moved = firsts.filter((f) => taken.has(f));
+        dragging = null;
+        root.classList.remove("dragging-pictures");
+        const before = orderDrop(firsts, moved, firsts.indexOf(p.first), after(e), order.complete);
+        if (!moved.length) return;
+        if (before === null) return say(t("album.orderUnknown"));
+        placePictures(moved, before);
       });
     }
     return li;
@@ -687,28 +787,28 @@ export function albumBrowser({ pick, pickText } = {}) {
   const showCollection = () => {
     const c = here();
     const about = h("p", { class: "muted album-rule-text", id: "album-rule-text", text: ruleText(c.rule) });
+    manage.replaceChildren();
     if (pick) return tools.replaceChildren(about);
     // Pictures are added to a collection by giving them its labels: new
     // files go into a folder chosen each time (ADR-0187).
     const adding = [
       h("button", { type: "button", class: "primary", id: "album-upload", text: t("album.upload"), title: t("album.uploadCollectionTitle", { labels: c.rule.labels.join(", ") }), onclick: () => files.click() }),
       h("button", { type: "button", class: "secondary", id: "album-add-existing", text: t("album.addExisting"), title: t("album.addExistingCollectionTitle", { labels: c.rule.labels.join(", ") }), onclick: addFromAlbum }),
-      h("span", { class: "muted album-drop-hint", text: t("album.collectionDropHint") }),
-      placeChoice()];
+      placeChoice(),
+      dropHint()];
     if (!c.editable) return tools.replaceChildren(about, ...adding);
     const { form, first } = ruleForm({ id: "album-rule-form", rule: c.rule, submit: t("album.ruleSave"), done: async (rule) => {
       c.rule = (await put(`/api/album/collections/${c.id}`, rule)).rule;
       showCollection();
       load(false);
     } });
-    tools.replaceChildren(about,
+    manage.replaceChildren(
       h("button", { type: "button", class: "secondary", id: "album-rule-edit", text: t("album.ruleEdit"), onclick: () => {
         form.hidden = !form.hidden;
         if (!form.hidden) first().focus();
       } }),
-      ...adding,
-      h("button", { type: "button", class: "danger", id: "album-collection-delete", text: t("album.collectionDelete"), onclick: deleteCollection }),
-      form);
+      h("button", { type: "button", class: "danger", id: "album-collection-delete", text: t("album.collectionDelete"), onclick: deleteCollection }));
+    tools.replaceChildren(about, form, ...adding);
   };
 
   // deleteCollection moves the open collection to the trash, from where
@@ -728,6 +828,7 @@ export function albumBrowser({ pick, pickText } = {}) {
 
   const showTools = () => {
     if (inCollection()) return showCollection();
+    manage.replaceChildren();
     if (pick) return tools.replaceChildren();
     const name = h("input", { id: "album-folder-name", placeholder: t("album.folderName"), "aria-label": t("album.folderName"), required: true });
     // A folder at the top names its room here; below a folder it is made in
@@ -758,8 +859,10 @@ export function albumBrowser({ pick, pickText } = {}) {
       collect.form.hidden = true;
       loadFolders();
     } });
-    // replaceChildren, unlike h, writes null as text.
-    tools.replaceChildren(...[
+    // The open folder is changed beside the trail: a folder or collection
+    // made in it, or the folder deleted. replaceChildren, unlike h, writes
+    // null as text.
+    manage.replaceChildren(...[
       h("button", { type: "button", class: "secondary", id: "album-new-folder", text: t("album.newFolder"), onclick: () => {
         make.hidden = !make.hidden;
         collect.form.hidden = true;
@@ -777,15 +880,16 @@ export function albumBrowser({ pick, pickText } = {}) {
         }
         collect.first().focus();
       } }),
+      inFolder() && here().editable !== false ? h("button", { type: "button", class: "danger", id: "album-folder-delete", text: t("album.folderDelete"), onclick: deleteFolder }) : null].filter(Boolean));
+    // Below it, pictures are added; the forms open beneath the buttons.
+    tools.replaceChildren(...[make, collect.form,
       // At the top, the folder is asked for once the pictures are chosen.
       h("button", { type: "button", class: "primary", id: "album-upload", text: t("album.upload"), title: here() ? t("photos.uploadTitle") : t("album.uploadTopTitle"), onclick: () => files.click() }),
       here() ? h("button", { type: "button", class: "secondary", id: "album-add-existing", text: t("album.addExisting"), title: t("album.addExistingFolderTitle"), onclick: addFromAlbum }) : null,
       here() && imports.google ? h("button", { type: "button", class: "secondary", id: "album-google", text: t("photos.fromGoogle"), onclick: fromGoogle }) : null,
       here() && imports.icloud ? h("button", { type: "button", class: "secondary", id: "album-icloud", text: t("photos.fromICloud"), onclick: fromICloud }) : null,
-      h("span", { class: "muted album-drop-hint", text: here() ? t("photos.dropHint") : t("album.uploadHint") }),
       placeChoice(),
-      inFolder() && here().editable !== false ? h("button", { type: "button", class: "danger", id: "album-folder-delete", text: t("album.folderDelete"), onclick: deleteFolder }) : null,
-      make, collect.form].filter(Boolean));
+      dropHint()].filter(Boolean));
   };
 
   // deleteFolder moves the open folder with its folders and pictures to
@@ -848,6 +952,7 @@ export function albumBrowser({ pick, pickText } = {}) {
     if (view === "folders" && inCollection()) q.set("collection", here().id);
     if (label.value) q.set("label", label.value);
     if (view !== "folders") q.set("order", "taken");
+    else if (bySlides()) q.set("order", "slides");
     if (view === "favourites") q.set("favourites", "on");
     if (view === "people" && person) q.set("person", person);
     if (view === "memories") {
@@ -887,6 +992,8 @@ export function albumBrowser({ pick, pickText } = {}) {
   // does not fold the album back to its first page.
   const load = async (append, keep = 0) => {
     const mine = ++generation;
+    sortSelect.hidden = pick || view !== "folders" || !here();
+    if (!append) orderHint.hidden = orderReset.hidden = true;
     if (view === "people") showPeople(mine);
     if (view === "people" && !person) {
       count.textContent = "";
@@ -895,6 +1002,7 @@ export function albumBrowser({ pick, pickText } = {}) {
       reset.hidden = !filteredNow();
       return;
     }
+    if (view === "duplicates") return showDuplicates(mine);
     if (view === "map") {
       mapBox.replaceChildren(h("p", { class: "muted", text: t("photos.mapLoading") }));
       try {
@@ -922,6 +1030,8 @@ export function albumBrowser({ pick, pickText } = {}) {
         if (mine !== generation) return;
         pictures.push(...page.pictures);
       }
+      // The cards are made knowing whether one may order them (ADR-0195).
+      order = { ordered: !!page.ordered, orderable: !!page.orderable, complete: !page.next };
       if (!append) {
         grid.replaceChildren();
         shown = [];
@@ -942,6 +1052,34 @@ export function albumBrowser({ pick, pickText } = {}) {
       reset.hidden = !on;
       present.hidden = !!pick || !page.total;
       present.textContent = t("album.present", { n: page.total });
+      orderHint.hidden = !reordering() || page.total < 2;
+      orderReset.hidden = !reordering() || !order.ordered;
+    } catch (err) { fail(err); }
+  };
+
+  // showDuplicates shows the groups of pictures that are the same file or
+  // look the same, as far as the room filter narrows them (ADR-0196); while
+  // the server still compares older pictures, it says how many remain.
+  const showDuplicates = async (mine) => {
+    more.hidden = true;
+    present.hidden = true;
+    reset.hidden = !filteredNow();
+    count.textContent = "";
+    timeline.replaceChildren(h("p", { class: "muted", id: "album-duplicates-loading", text: t("duplicates.loading") }));
+    try {
+      const answer = await loadDuplicates(space.value, (a) => {
+        if (mine === generation) timeline.replaceChildren(h("p", { class: "muted", id: "album-duplicates-loading", text: t("duplicates.comparing", { n: a.pending }) }));
+      }, () => mine === generation);
+      if (mine !== generation) return;
+      timeline.replaceChildren();
+      shown = [];
+      for (const g of answer.groups) {
+        shown.push(...g.pictures);
+        timeline.append(h("h2", { class: "album-month", text: groupTitle(g) }),
+          h("ul", { class: "album-grid album-duplicate-group" }, ...g.pictures.map((p) => stack(p))));
+      }
+      count.textContent = [answer.total ? t("duplicates.count", { n: answer.total }) : t("duplicates.none"),
+        answer.pending ? t("duplicates.pending", { n: answer.pending }) : ""].filter(Boolean).join(" ");
     } catch (err) { fail(err); }
   };
 
@@ -1008,7 +1146,7 @@ export function albumBrowser({ pick, pickText } = {}) {
     status.replaceChildren();
     const folders_ = view === "folders";
     space.disabled = folders_ && inFolder();
-    trail.hidden = folders.hidden = tools.hidden = !folders_;
+    headRow.hidden = folders.hidden = tools.hidden = !folders_;
     grid.hidden = !folders_;
     timeline.hidden = folders_ || view === "map" || (view === "people" && !person);
     mapBox.hidden = view !== "map";
@@ -1029,7 +1167,7 @@ export function albumBrowser({ pick, pickText } = {}) {
 
   // The views (ADR-0177): folders, timeline, favourites, memories, map.
   const viewText = { folders: t("photos.viewFolders"), timeline: t("photos.viewTimeline"), favourites: t("photos.viewFavourites"),
-    memories: t("photos.viewMemories"), map: t("photos.viewMap"), people: t("faces.viewPeople") };
+    memories: t("photos.viewMemories"), map: t("photos.viewMap"), people: t("faces.viewPeople"), duplicates: t("duplicates.view") };
   const viewBar = h("div", { class: "album-views segmented", role: "group", "aria-label": t("photos.views") },
     VIEWS.map((v) => h("button", { type: "button", class: "segment", "data-view": v, id: "album-view-" + v, text: viewText[v], onclick: () => {
       view = v;
@@ -1140,6 +1278,10 @@ export function albumBrowser({ pick, pickText } = {}) {
     return h("label", { class: "field album-import-place" }, h("span", { text: t("photos.placeOnImport") }), choice);
   };
 
+  // dropHint says, on a line of its own below the buttons, that files are
+  // also dropped or pasted where one is (ADR-0187).
+  const dropHint = () => h("p", { class: "muted album-drop-hint", text: t("photos.dropHint") });
+
   // takeFiles adds files chosen, dropped or pasted where one is
   // (ADR-0187): into the open folder; in a collection, into a folder
   // chosen now, each picture with the collection's labels; at the top,
@@ -1173,7 +1315,8 @@ export function albumBrowser({ pick, pickText } = {}) {
         }
         outcome = [deckText(deck) + (deck.failed.length ? " " + deck.failed.slice(0, 3).join("; ") : ""), deck.failed.length ? "error" : "notice"];
       } else {
-        const sum = await importFiles(list, folder.id, (text) => say(text), importPlace(), labels);
+        // Duplicates of readable pictures are asked about first (ADR-0196).
+        const sum = await importFiles(list, folder.id, (text) => say(text), importPlace(), labels, true);
         if (top) {
           path = [folder];
           opens = true;
@@ -1398,9 +1541,13 @@ export function albumBrowser({ pick, pickText } = {}) {
     space.append(...roomOptions());
   }).catch(() => {});
   const root = h("div", { class: "album" },
-    pick ? null : h("div", { class: "album-bar" }, viewBar, chooseButton),
+    pick ? null : h("div", { class: "album-bar" }, viewBar),
     h("div", { class: "album-filters filter-bar", role: "search", "aria-label": t("album.title") }, search, kind, space, label, reset), options,
-    bulk, trail, tools, status, folders, h("div", { class: "album-count-row" }, count, present), dropZone, grid, peopleBox, timeline, mapBox, more, files);
+    headRow, tools, status, folders,
+    // Right above the pictures: how many there are, their order, choosing
+    // several of them and presenting them; the chosen ones' actions follow.
+    h("div", { class: "album-count-row" }, count, sortSelect, pick ? null : chooseButton, present, orderReset, orderHint),
+    bulk, dropZone, grid, peopleBox, timeline, mapBox, more, files);
   // Files dropped onto the album are added where one is (ADR-0177,
   // ADR-0187); a picture pasted is too.
   if (!pick) {

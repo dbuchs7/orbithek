@@ -1543,6 +1543,10 @@ function gitSource() {
 
     step("files: an upload is listed and downloads; an image goes into the body and shows after a reload");
     const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+    // own is the pixel as a file of its own: bytes after the end of a PNG
+    // change its SHA-256, not its picture, so the album's check for
+    // duplicates (ADR-0196) does not stop an upload that means a new file.
+    const own = (tag) => Buffer.concat([png, Buffer.from(tag)]);
     await page.setInputFiles("#upload", { name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("<script>alert('file')</script>") });
     await page.waitForSelector("#attachments li:has-text('notes.txt')");
     const notes = await page.getAttribute("#attachments li a:has-text('notes.txt')", "href");
@@ -1749,7 +1753,7 @@ function gitSource() {
     await page.click("#album .album-new-folder button[type=submit]");
     await page.click("#album .album-folder:has-text('Logos')");
     await page.waitForSelector("#album-add-existing"); // inside the folder: the top offers uploading too (ADR-0187)
-    await page.setInputFiles("#album-files", { name: "brand.png", mimeType: "image/png", buffer: png });
+    await page.setInputFiles("#album-files", { name: "brand.png", mimeType: "image/png", buffer: own("brand") });
     const brandCard = "#album .album-card:has(.album-name:text-is('brand'))";
     await page.waitForSelector(brandCard + " .album-labels-edit");
     check(await page.locator("#album .album-card").count() === 1, "the folder shows its own picture only");
@@ -1786,7 +1790,7 @@ function gitSource() {
     await page.waitForSelector("#album-drop-zone:not([hidden]) #album-drop-choose");
     check(!(await page.textContent("#album .album-count-row")).includes("No pictures found"), "an empty collection invites pictures");
     // A file uploaded into a collection asks for its folder and gets the collection's labels.
-    await page.setInputFiles("#album-files", { name: "collected.png", mimeType: "image/png", buffer: png });
+    await page.setInputFiles("#album-files", { name: "collected.png", mimeType: "image/png", buffer: own("collected") });
     await page.waitForSelector("dialog#album-target[open] #album-target-folder option:has-text('Logos')", { state: "attached" });
     check((await page.textContent("dialog#album-target")).includes("nothing-here"), "the folder's question names the labels the pictures get");
     await page.selectOption("#album-target-folder", { label: "PLAT › Logos" });
@@ -1836,7 +1840,7 @@ function gitSource() {
       const dt = new DataTransfer();
       dt.items.add(new File([Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))], "image.png", { type: "image/png" }));
       document.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
-    }, png.toString("base64"));
+    }, own("pasted").toString("base64"));
     await page.waitForSelector("dialog#album-target[open] #album-target-folder option:has-text('Logos')", { state: "attached" });
     await page.selectOption("#album-target-folder", { label: "PLAT › Logos" });
     await page.click("#album-target-ok");
@@ -1891,13 +1895,36 @@ function gitSource() {
     await page.waitForSelector("#album-add-existing");
     // The place is left behind on import, a choice this browser keeps (ADR-0177, ADR-0178).
     await page.selectOption("#album-import-place", "strip");
-    await page.setInputFiles("#album-files", { name: "export.zip", mimeType: "application/zip", buffer: storedZip([["Export/holiday.png", png], ["Export/IMG_2.HEIC", Buffer.from("heic")], ["__MACOSX/._holiday.png", Buffer.from("x")]]) });
+    await page.setInputFiles("#album-files", { name: "export.zip", mimeType: "application/zip", buffer: storedZip([["Export/holiday.png", own("holiday")], ["Export/IMG_2.HEIC", Buffer.from("heic")], ["__MACOSX/._holiday.png", Buffer.from("x")]]) });
     const holiday = "#album .album-card:has(.album-name:text-is('holiday'))";
     await page.waitForSelector(holiday);
     await page.waitForSelector("#album .status .notice");
     const imported = await page.textContent("#album .status");
     check(imported.includes("1 picture brought in.") && imported.includes("1 HEIC photo skipped"), "the archive's picture comes in and the HEIC photo is skipped with advice: " + imported);
     check((await page.getAttribute(holiday + " .album-thumb img", "src")).endsWith("/thumbnail?edge=400"), "the album shows thumbnails");
+
+    step("album duplicates: a file already in the album is asked about before it is added, and the view Duplicates shows it (ADR-0196)");
+    await page.setInputFiles("#album-files", { name: "holiday-again.png", mimeType: "image/png", buffer: own("holiday") });
+    await page.waitForSelector("dialog#album-duplicates[open] .duplicate-row:has-text('holiday-again.png')");
+    const asked = await page.textContent("dialog#album-duplicates");
+    check(asked.includes("Same file") && asked.includes("holiday.png in Logos"), "the dialog names the same file and its folder: " + asked);
+    check(await page.isChecked("dialog#album-duplicates input[type=checkbox]"), "a duplicate is skipped unless unticked");
+    await page.click("#album-duplicates-skip");
+    await page.waitForSelector("#album .status .notice:has-text('1 duplicate skipped.')");
+    check(await page.locator("#album .album-card:has(.album-name:text-is('holiday-again'))").count() === 0, "the skipped file is not added");
+    await page.setInputFiles("#album-files", { name: "holiday-again.png", mimeType: "image/png", buffer: own("holiday") });
+    await page.click("dialog#album-duplicates[open] #album-duplicates-all");
+    await page.waitForSelector("#album .album-card:has(.album-name:text-is('holiday-again'))");
+    await page.click("#album-view-duplicates");
+    await page.waitForSelector("#album .album-duplicate-group .album-card:has(.album-name:text-is('holiday-again')) .duplicate-same");
+    const group = await page.textContent("#album .album-timeline");
+    check(group.includes("The same file, 2 times") && group.includes("holiday"), "the view groups the same file: " + group);
+    await page.evaluate(async () => {
+      const { groups } = await (await fetch("/api/album/duplicates")).json();
+      for (const g of groups) for (const p of g.pictures) if (p.attachment.name === "holiday-again.png") await fetch(`/api/items/${p.item.id}/attachments/${p.attachment.id}`, { method: "DELETE" });
+    });
+    await page.click("#album-view-folders"); // back in the folder Logos, which the view kept
+    await page.waitForSelector(holiday);
     check(await page.inputValue("#album-import-place") === "strip", "the choice to remove the place stays after the import");
     check((await page.locator("#album-import-place option").allTextContents()).join("|") === "Keep for every reader|Keep to me only|Remove from the file", "imports keep the place, keep it to oneself or remove it");
     await page.selectOption("#album-import-place", "");
@@ -2030,6 +2057,9 @@ function gitSource() {
       { name: "2 Plan.png", mimeType: "image/png", buffer: Buffer.from(slidePng) },
       { name: "12 Clip.webm", mimeType: "video/webm", buffer: Buffer.from(webm) },
     ]);
+    // The two slides are the same picture, chosen twice; both are added.
+    await page.waitForSelector("dialog#album-duplicates[open] .duplicate-match:has-text('Chosen twice: 10 Outlook.png')");
+    await page.click("#album-duplicates-all");
     await page.waitForFunction(() => document.querySelectorAll("#album .album-card").length === 3);
     const planCard = "#album .album-card:has(.album-name:text-is('2 Plan'))";
     await page.click(planCard + " .album-notes-edit");
@@ -2117,6 +2147,43 @@ function gitSource() {
     await page.press("#album .album-rename-input", "Escape"); // Escape keeps the name
     await page.waitForSelector("#album .album-card .album-name:text-is('2 Plan')");
 
+    step("album order of slides: a folder's pictures are dragged into an order of their own, in the album and in the presenter's strip, and presented so (ADR-0195)");
+    {
+      const names = () => page.$$eval("#album .album-grid > .album-card .album-name", (els) => els.map((e) => e.textContent).join(" | "));
+      const cardOf = (name) => `#album .album-grid > .album-card:has(.album-name:text-is('${name}'))`;
+      await page.selectOption("#album-sort", "slides");
+      await page.waitForFunction(() => [...document.querySelectorAll("#album .album-grid > .album-card .album-name")].map((e) => e.textContent).join(" | ") === "2 Plan | 3 Outlook | 12 Clip");
+      await page.waitForSelector("#album-order-hint:not([hidden])");
+      check(await page.locator("#album-order-reset").isHidden(), "no order to forget before one is set");
+      // Dropped onto the left half of a picture, a picture goes before it.
+      await page.dragAndDrop(cardOf("12 Clip"), cardOf("2 Plan"), { targetPosition: { x: 4, y: 40 } });
+      await page.waitForFunction(() => [...document.querySelectorAll("#album .album-grid > .album-card .album-name")].map((e) => e.textContent).join(" | ") === "12 Clip | 2 Plan | 3 Outlook");
+      await page.waitForSelector("#album-order-reset:not([hidden])");
+      // Without a mouse, the menu moves a picture one place.
+      await page.click(cardOf("2 Plan") + " .album-more summary");
+      await page.click(cardOf("2 Plan") + " .album-later");
+      await page.waitForFunction(() => [...document.querySelectorAll("#album .album-grid > .album-card .album-name")].map((e) => e.textContent).join(" | ") === "12 Clip | 3 Outlook | 2 Plan");
+      // The presentation follows the order; its strip is ordered too.
+      const [show] = await Promise.all([page.waitForEvent("popup"), page.click("#album-present")]);
+      show.on("pageerror", (e) => problems.push("presentation window: " + e.message));
+      await page.waitForSelector("#present-console #present-name:text-is('12 Clip')");
+      await page.dragAndDrop("#present-strip .present-thumb[data-index='2']", "#present-strip .present-thumb[data-index='0']", { targetPosition: { x: 4, y: 20 } });
+      await page.waitForSelector("#present-counter:text-is('2 / 3')"); // the slide shown stays, one place further
+      check(await page.textContent("#present-name") === "12 Clip", "the slide shown stays after reordering the strip");
+      await page.waitForSelector("#present-strip .present-thumb[data-index='0'][title='2 Plan']");
+      await Promise.all([show.isClosed() ? null : show.waitForEvent("close"), page.click("#present-end")]);
+      await page.waitForSelector("#album");
+      await page.click("#album .album-folder:has-text('Talk')");
+      await page.waitForFunction(() => [...document.querySelectorAll("#album .album-grid > .album-card .album-name")].map((e) => e.textContent).join(" | ") === "2 Plan | 12 Clip | 3 Outlook");
+      // Ordered by name again.
+      answer = true;
+      await page.click("#album-order-reset");
+      await page.waitForFunction(() => [...document.querySelectorAll("#album .album-grid > .album-card .album-name")].map((e) => e.textContent).join(" | ") === "2 Plan | 3 Outlook | 12 Clip");
+      check(await names() === "2 Plan | 3 Outlook | 12 Clip", "cleared to the order by name");
+      await page.selectOption("#album-sort", "");
+      await page.waitForSelector("#album-order-hint", { state: "hidden" });
+    }
+
     step("faces: a picture opened is searched for faces in the browser; a face named shows in the viewer, under People and in the person's album (ADR-0194)");
     {
       const planCard = "#album .album-card:has(.album-name:text-is('2 Plan'))";
@@ -2149,7 +2216,7 @@ function gitSource() {
       await page.waitForSelector("#album .album-card .album-name:text-is('2 Plan')"); // back in the folder Talk
     }
 
-    step("slide import: a presentation with its slides exported as pictures becomes a folder of slides with their notes, hidden slides left out (ADR-0186)");
+    step("slide import: a presentation, alone or with its slides exported as pictures, becomes a folder of slides with their notes, hidden slides left out (ADR-0186)");
     {
       const ns = `xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"`;
       const relType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/";
@@ -2191,11 +2258,34 @@ function gitSource() {
       ]);
       await page.waitForSelector("#album .status .error:has-text('The pictures do not match the slides')");
       check(await page.locator("#album .album-folder").count() === 0, "no folder is made for pictures that do not match");
-      // The folder goes into the trash, so the room's map later on is as before.
-      const trashed = await page.evaluate(async () => {
+      const outer = await page.evaluate(async () => (await (await fetch("/api/album?q=Kick-off")).json()).pictures[0].item.id);
+      // The presentation alone: the browser draws its slides.
+      await page.setInputFiles("#album-files", [
+        { name: "Quarterly review.pptx", mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation", buffer: deck },
+      ]);
+      await page.waitForSelector("#album .status .notice:has-text('2 slides brought into the folder Quarterly review.')", { timeout: 60000 });
+      await page.waitForFunction(() => document.querySelectorAll("#album .album-card").length === 2);
+      await page.waitForSelector(kickoff + ' .album-notes-edit:text-is("Edit speaker\'s notes")');
+      const drawn = await page.evaluate(async (outer) => {
         const { pictures } = await (await fetch("/api/album?q=Kick-off")).json();
-        return (await fetch(`/api/items/${pictures[0].item.id}/trash`, { method: "POST" })).status;
-      });
+        const p = pictures.find((x) => x.item.id !== outer);
+        const img = new Image();
+        img.src = `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
+        await img.decode();
+        const c = document.createElement("canvas");
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        const g = c.getContext("2d");
+        g.drawImage(img, 0, 0);
+        const d = g.getImageData(0, 0, c.width, c.height).data;
+        let dark = 0;
+        for (let i = 0; i < d.length; i += 4) if (d[i] < 100 && d[i + 1] < 100 && d[i + 2] < 100) dark++;
+        return { name: p.attachment.name, notes: p.notes, w: img.naturalWidth, h: img.naturalHeight, dark };
+      }, outer);
+      check(drawn.name === "01 Kick-off.png" && drawn.notes === "Welcome everyone.\nIntroduce the team.", "a drawn slide is named by its title and keeps its notes: " + JSON.stringify(drawn));
+      check(drawn.w === 1920 && drawn.h === 1080, "a drawn slide is 1920 pixels wide, in the slide's proportions: " + drawn.w + "×" + drawn.h);
+      check(drawn.dark > 500, "the slide's title is drawn: " + drawn.dark + " dark pixels");
+      // The folders go into the trash, so the room's map later on is as before.
+      const trashed = await page.evaluate(async (outer) => (await fetch(`/api/items/${outer}/trash`, { method: "POST" })).status, outer);
       check(trashed === 200, "the imported folder goes into the trash: " + trashed);
     }
 
