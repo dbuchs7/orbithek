@@ -1904,24 +1904,24 @@ function gitSource() {
     check((await page.getAttribute(holiday + " .album-thumb img", "src")).endsWith("/thumbnail?edge=400"), "the album shows thumbnails");
 
     step("album duplicates: a file already in the album is asked about before it is added, and the view Duplicates shows it (ADR-0195)");
-    await page.setInputFiles("#album-files", { name: "brand-again.png", mimeType: "image/png", buffer: own("brand") });
-    await page.waitForSelector("dialog#album-duplicates[open] .duplicate-row:has-text('brand-again.png')");
+    await page.setInputFiles("#album-files", { name: "holiday-again.png", mimeType: "image/png", buffer: own("holiday") });
+    await page.waitForSelector("dialog#album-duplicates[open] .duplicate-row:has-text('holiday-again.png')");
     const asked = await page.textContent("dialog#album-duplicates");
-    check(asked.includes("Same file") && asked.includes("brand.png in Logos"), "the dialog names the same file and its folder: " + asked);
+    check(asked.includes("Same file") && asked.includes("holiday.png in Logos"), "the dialog names the same file and its folder: " + asked);
     check(await page.isChecked("dialog#album-duplicates input[type=checkbox]"), "a duplicate is skipped unless unticked");
     await page.click("#album-duplicates-skip");
     await page.waitForSelector("#album .status .notice:has-text('1 duplicate skipped.')");
-    check(await page.locator("#album .album-card:has(.album-name:text-is('brand-again'))").count() === 0, "the skipped file is not added");
-    await page.setInputFiles("#album-files", { name: "brand-again.png", mimeType: "image/png", buffer: own("brand") });
+    check(await page.locator("#album .album-card:has(.album-name:text-is('holiday-again'))").count() === 0, "the skipped file is not added");
+    await page.setInputFiles("#album-files", { name: "holiday-again.png", mimeType: "image/png", buffer: own("holiday") });
     await page.click("dialog#album-duplicates[open] #album-duplicates-all");
-    await page.waitForSelector("#album .album-card:has(.album-name:text-is('brand-again'))");
+    await page.waitForSelector("#album .album-card:has(.album-name:text-is('holiday-again'))");
     await page.click("#album-view-duplicates");
-    await page.waitForSelector("#album .album-duplicate-group .album-card:has(.album-name:text-is('brand-again')) .duplicate-same");
+    await page.waitForSelector("#album .album-duplicate-group .album-card:has(.album-name:text-is('holiday-again')) .duplicate-same");
     const group = await page.textContent("#album .album-timeline");
-    check(group.includes("The same file, 2 times") && group.includes("brand"), "the view groups the same file: " + group);
+    check(group.includes("The same file, 2 times") && group.includes("holiday"), "the view groups the same file: " + group);
     await page.evaluate(async () => {
       const { groups } = await (await fetch("/api/album/duplicates")).json();
-      for (const g of groups) for (const p of g.pictures) if (p.attachment.name === "brand-again.png") await fetch(`/api/items/${p.item.id}/attachments/${p.attachment.id}`, { method: "DELETE" });
+      for (const g of groups) for (const p of g.pictures) if (p.attachment.name === "holiday-again.png") await fetch(`/api/items/${p.item.id}/attachments/${p.attachment.id}`, { method: "DELETE" });
     });
     await page.click("#album-view-folders"); // back in the folder Logos, which the view kept
     await page.waitForSelector(holiday);
