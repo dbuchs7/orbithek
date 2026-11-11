@@ -1,9 +1,9 @@
 # ADR-0187: Pictures are added where one is in the album, a collection's by its labels
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-10
-- **Deciders:** Project initiators (request of 2026-11-10 to make loading photos into a folder or a collection as simple as possible; asked how pictures reach a collection, the requester chose uploading and choosing pictures already in the album; asked where uploads to a collection are kept, to be asked for a folder each time, the last one first; and chose a large drop area, adding from the album, dropping at the top and pasting with Ctrl+V)
+- **Deciders:** Project initiators (request of 2026-11-10 to make loading photos into a folder or a collection as simple as possible; asked how pictures reach a collection, the requester chose uploading and choosing pictures already in the album; asked where uploads to a collection are kept, to be asked for a folder each time, the last one first; and chose a large drop area, adding from the album, dropping at the top and pasting with Ctrl+V; accepted on 2026-11-11)
 - **Open question:** whether the folder chosen for a collection's uploads should be kept on the collection, for everyone who adds to it; whether pictures added from the album to a folder should be moved rather than copied
 - **Question checked:** 2026-11
 
