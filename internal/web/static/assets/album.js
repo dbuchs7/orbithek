@@ -14,6 +14,8 @@
 // earlier years; pictures are chosen many at once, and photos come in from
 // files, ZIP archives, Google Photos and shared iCloud albums. A picture,
 // or every chosen one, is moved by dragging it onto a folder (ADR-0184).
+// Shown in the order of slides, the pictures of a folder or collection
+// are dragged among each other to set that order by hand (ADR-0195).
 // Pictures are added where one is (ADR-0187): files dropped, pasted or
 // chosen go into the open folder, or, in a collection or at the top, into
 // a folder chosen each time, where a collection's labels are given to
@@ -25,7 +27,7 @@ import { get, post, put, del, upload } from "./api.js";
 import { DRAWING } from "./drawing.js";
 import { exportFormats, exportPicture } from "./picexport.js";
 import { allFolders, copyTo, moveTo, dayText, deckText, googleImport, icloudImport, importDeck, importFiles, monthText, openViewer, rememberedAlbum, setFavourite, importPlace, PLACES, summaryText, thumbURL, zipPictures } from "./photos.js";
-import { dragged, durationText, groups, isVideo, range, yearsAgo } from "./photoparts.js";
+import { dragged, durationText, groups, isVideo, orderDrop, range, yearsAgo } from "./photoparts.js";
 import { photoMap } from "./photomap.js";
 import { pickPlace, placeInput } from "./places.js";
 import { startPresentation } from "./present.js";
@@ -36,6 +38,16 @@ const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
 
 // VIEWS are the album's ways of showing pictures (ADR-0177).
 const VIEWS = ["folders", "timeline", "favourites", "memories", "map", "people"];
+
+// SORT keeps, in this browser, how a folder or collection is shown:
+// newest first ("") or in the order of its slides ("slides", ADR-0195).
+const SORT = "ot.albumSort";
+const sortKept = () => {
+  try { return localStorage.getItem(SORT) === "slides" ? "slides" : ""; } catch { return ""; }
+};
+const keepSort = (v) => {
+  try { localStorage.setItem(SORT, v); } catch { /* for this visit only */ }
+};
 
 // The album's clipboard (ADR-0108): a picture copied in the album is pasted
 // into a text as a copy of its original file, with its source, as "Insert…
@@ -114,8 +126,9 @@ export function albumBrowser({ pick, pickText } = {}) {
   const grid = h("ul", { class: "album-grid" });
   const count = h("p", { class: "muted", role: "status" });
   const more = h("button", { type: "button", text: t("album.more"), hidden: true });
-  // present shows the pictures the album shows now as slides, ordered by
-  // name, in a presenter's window and a presentation window (ADR-0176).
+  // present shows the pictures the album shows now as slides, in the
+  // order of the folder or collection set by hand and else by name, in a
+  // presenter's window and a presentation window (ADR-0176, ADR-0195).
   const present = h("button", { type: "button", class: "secondary", id: "album-present", text: t("album.present", { n: 0 }),
     title: t("album.presentTitle"), hidden: true, onclick: () => startPresentation(filters()) });
   const status = h("div", { class: "status" });
@@ -146,8 +159,52 @@ export function albumBrowser({ pick, pickText } = {}) {
   const chosen = new Map();
   let anchor = null;
   let shown = [];
-  // dragging holds the pictures being dragged onto a folder (ADR-0184).
+  // dragging holds the pictures being dragged onto a folder (ADR-0184),
+  // or among the others to order them as slides (ADR-0195).
   let dragging = null;
+  // sort is how a folder or collection is shown: newest first, or as its
+  // slides; order says whether it has an order set by hand, whether one
+  // may change it, and whether every picture is shown (ADR-0195).
+  let sort = pick ? "" : sortKept();
+  let order = { ordered: false, orderable: false, complete: false };
+  const sortSelect = h("select", { id: "album-sort", "aria-label": t("album.sort"), hidden: true },
+    h("option", { value: "", text: t("album.sortNewest") }), h("option", { value: "slides", text: t("album.sortSlides") }));
+  sortSelect.value = sort;
+  sortSelect.addEventListener("change", () => { sort = sortSelect.value; keepSort(sort); load(false); });
+  const orderHint = h("span", { class: "muted album-order-hint", id: "album-order-hint", hidden: true, text: t("album.orderHint") });
+  const orderReset = h("button", { type: "button", class: "link", id: "album-order-reset", hidden: true, text: t("album.orderReset"), title: t("album.orderResetTitle"),
+    onclick: async () => {
+      if (!confirm(t("album.orderResetConfirm"))) return;
+      try {
+        await del(`/api/album/order/${encodeURIComponent(here().id)}`);
+        say(t("album.orderCleared"), "notice");
+        refresh();
+      } catch (err) { fail(err); }
+    } });
+  // bySlides says whether the album shows a folder or collection in the
+  // order of its slides; reordering whether one may drag pictures there.
+  const bySlides = () => !pick && view === "folders" && Boolean(here()) && sort === "slides";
+  const reordering = () => bySlides() && order.orderable;
+  // placePictures moves pictures, by the first versions of their stacks,
+  // right before another, or to the end with "", and shows the album
+  // again as far as it was shown.
+  const placePictures = async (moved, before) => {
+    try {
+      await put(`/api/album/order/${encodeURIComponent(here().id)}`, { pictures: moved, before });
+      say(t("album.ordered", { n: moved.length }), "notice");
+      refresh();
+    } catch (err) { fail(err); }
+  };
+  // stepPicture moves a picture one place earlier (-1) or later (+1), the
+  // way without a pointer.
+  const stepPicture = (p, delta) => {
+    const firsts = shown.map((q) => q.first);
+    const i = firsts.indexOf(p.first);
+    if (i < 0) return;
+    const before = delta < 0 ? (i > 0 ? firsts[i - 1] : null) : orderDrop(firsts, [p.first], i + 1, true, order.complete);
+    if (before === null) return say(t("album.orderUnknown"));
+    placePictures([p.first], before);
+  };
   let imports = { google: false, icloud: false, connected: false };
   const timeline = h("div", { class: "album-timeline" });
   const mapBox = h("div", { class: "album-map" });
@@ -288,6 +345,10 @@ export function albumBrowser({ pick, pickText } = {}) {
         onclick: () => { m.open = false; rename(p, m.closest(".album-card")?.querySelector(".album-name")); } }),
       stacked ? h("button", { type: "button", class: "link album-retention", text: t("retention.open"),
         onclick: () => { m.open = false; cleanUp(p); } }) : null,
+      reordering() && !p.versionOf ? h("button", { type: "button", class: "link album-earlier", text: t("album.moveEarlier"),
+        onclick: () => { m.open = false; stepPicture(p, -1); } }) : null,
+      reordering() && !p.versionOf ? h("button", { type: "button", class: "link album-later", text: t("album.moveLater"),
+        onclick: () => { m.open = false; stepPicture(p, 1); } }) : null,
       h("button", { type: "button", class: "link danger album-delete", text: t("album.delete"), disabled: p.used,
         onclick: async () => {
           m.open = false;
@@ -420,7 +481,39 @@ export function albumBrowser({ pick, pickText } = {}) {
       li.addEventListener("dragend", () => {
         dragging = null;
         root.classList.remove("dragging-pictures");
-        for (const el of root.querySelectorAll(".drop-target")) el.classList.remove("drop-target");
+        for (const el of root.querySelectorAll(".drop-target, .drop-before, .drop-after")) el.classList.remove("drop-target", "drop-before", "drop-after");
+      });
+      // Shown as slides, a picture dropped onto another goes before it, or
+      // after it when dropped onto its latter half (ADR-0195).
+      const after = (e) => {
+        const r = li.getBoundingClientRect();
+        return e.clientX > r.left + r.width / 2;
+      };
+      const over = (e) => {
+        if (!dragging || !reordering()) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        const a = after(e);
+        li.classList.toggle("drop-after", a);
+        li.classList.toggle("drop-before", !a);
+      };
+      li.addEventListener("dragenter", over);
+      li.addEventListener("dragover", over);
+      li.addEventListener("dragleave", (e) => { if (!li.contains(e.relatedTarget)) li.classList.remove("drop-before", "drop-after"); });
+      li.addEventListener("drop", (e) => {
+        li.classList.remove("drop-before", "drop-after");
+        if (!dragging || !reordering()) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const firsts = shown.map((q) => q.first);
+        const taken = new Set(dragging.map((q) => q.first));
+        const moved = firsts.filter((f) => taken.has(f));
+        dragging = null;
+        root.classList.remove("dragging-pictures");
+        const before = orderDrop(firsts, moved, firsts.indexOf(p.first), after(e), order.complete);
+        if (!moved.length) return;
+        if (before === null) return say(t("album.orderUnknown"));
+        placePictures(moved, before);
       });
     }
     return li;
@@ -856,6 +949,7 @@ export function albumBrowser({ pick, pickText } = {}) {
     if (view === "folders" && inCollection()) q.set("collection", here().id);
     if (label.value) q.set("label", label.value);
     if (view !== "folders") q.set("order", "taken");
+    else if (bySlides()) q.set("order", "slides");
     if (view === "favourites") q.set("favourites", "on");
     if (view === "people" && person) q.set("person", person);
     if (view === "memories") {
@@ -895,6 +989,8 @@ export function albumBrowser({ pick, pickText } = {}) {
   // does not fold the album back to its first page.
   const load = async (append, keep = 0) => {
     const mine = ++generation;
+    sortSelect.hidden = pick || view !== "folders" || !here();
+    if (!append) orderHint.hidden = orderReset.hidden = true;
     if (view === "people") showPeople(mine);
     if (view === "people" && !person) {
       count.textContent = "";
@@ -930,6 +1026,8 @@ export function albumBrowser({ pick, pickText } = {}) {
         if (mine !== generation) return;
         pictures.push(...page.pictures);
       }
+      // The cards are made knowing whether one may order them (ADR-0195).
+      order = { ordered: !!page.ordered, orderable: !!page.orderable, complete: !page.next };
       if (!append) {
         grid.replaceChildren();
         shown = [];
@@ -950,6 +1048,8 @@ export function albumBrowser({ pick, pickText } = {}) {
       reset.hidden = !on;
       present.hidden = !!pick || !page.total;
       present.textContent = t("album.present", { n: page.total });
+      orderHint.hidden = !reordering() || page.total < 2;
+      orderReset.hidden = !reordering() || !order.ordered;
     } catch (err) { fail(err); }
   };
 
@@ -1413,9 +1513,9 @@ export function albumBrowser({ pick, pickText } = {}) {
     pick ? null : h("div", { class: "album-bar" }, viewBar),
     h("div", { class: "album-filters filter-bar", role: "search", "aria-label": t("album.title") }, search, kind, space, label, reset), options,
     headRow, tools, status, folders,
-    // Right above the pictures: how many there are, choosing several of
-    // them and presenting them; the chosen ones' actions follow.
-    h("div", { class: "album-count-row" }, count, pick ? null : chooseButton, present),
+    // Right above the pictures: how many there are, their order, choosing
+    // several of them and presenting them; the chosen ones' actions follow.
+    h("div", { class: "album-count-row" }, count, sortSelect, pick ? null : chooseButton, present, orderReset, orderHint),
     bulk, dropZone, grid, peopleBox, timeline, mapBox, more, files);
   // Files dropped onto the album are added where one is (ADR-0177,
   // ADR-0187); a picture pasted is too.

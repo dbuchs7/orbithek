@@ -1,7 +1,8 @@
 // Unit tests of the album's photo management that need no browser
 // (photoparts.js, zipread.js, ADR-0177): the map's projection, tiles,
 // clusters and zoom, the timeline's groups, choosing a range, what a
-// picture dragged onto a folder takes with it, which files the album takes, and reading ZIP archives exported from photo apps.
+// picture dragged onto a folder takes with it, where pictures dropped
+// among others go in the order of slides (ADR-0195), which files the album takes, and reading ZIP archives exported from photo apps.
 // They run in Node.js without a browser and without dependencies:
 //
 //   node --test "internal/web/jstest/*.test.mjs"
@@ -11,7 +12,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { deflateRawSync } from "node:zlib";
 import {
-  TILE, project, unproject, fit, tiles, cluster, pan, zoomAt, radius, hit, groups, yearsAgo, range, dragged, durationText, posterTime, isVideo,
+  TILE, project, unproject, fit, tiles, cluster, pan, zoomAt, radius, hit, groups, yearsAgo, range, dragged, orderDrop, moveWithin, durationText, posterTime, isVideo,
   sorts, typeOf, baseName, hidden, exposureText, placeText,
 } from "../static/assets/photoparts.js";
 import { entries, read } from "../static/assets/zipread.js";
@@ -94,6 +95,23 @@ test("a dragged picture takes the chosen ones with it only when it is chosen", (
   assert.deepEqual(dragged(a, chosen, key), [a, b]);
   assert.deepEqual(dragged(c, chosen, key), [c]);
   assert.deepEqual(dragged(c, new Map(), key), [c]);
+});
+
+test("pictures dropped onto another go before it, or after it onto its latter half", () => {
+  const firsts = ["a", "b", "c", "d"];
+  assert.equal(orderDrop(firsts, ["d"], 1, false, true), "b");
+  assert.equal(orderDrop(firsts, ["d"], 1, true, true), "c");
+  assert.equal(orderDrop(firsts, ["a"], 3, true, true), "", "after the last one is the end");
+  assert.equal(orderDrop(firsts, ["a"], 3, true, false), null, "after the last one shown while more follow is not known");
+  assert.equal(orderDrop(firsts, ["b", "c"], 0, true, true), "d", "the moved ones are passed over");
+  assert.equal(orderDrop(firsts, ["c"], 2, false, true), "d", "onto itself: before the next one");
+});
+
+test("pictures move within a list as the server moves them", () => {
+  const id = (x) => x;
+  assert.deepEqual(moveWithin(["a", "b", "c", "d"], id, ["d"], "b"), ["a", "d", "b", "c"]);
+  assert.deepEqual(moveWithin(["a", "b", "c", "d"], id, ["c", "a"], ""), ["b", "d", "c", "a"]);
+  assert.deepEqual(moveWithin(["a", "b"], id, ["x"], "a"), ["a", "b"], "one not in the list is left out");
 });
 
 test("a range is chosen in the order shown, either way", () => {

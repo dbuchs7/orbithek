@@ -2117,6 +2117,43 @@ function gitSource() {
     await page.press("#album .album-rename-input", "Escape"); // Escape keeps the name
     await page.waitForSelector("#album .album-card .album-name:text-is('2 Plan')");
 
+    step("album order of slides: a folder's pictures are dragged into an order of their own, in the album and in the presenter's strip, and presented so (ADR-0195)");
+    {
+      const names = () => page.$$eval("#album .album-grid > .album-card .album-name", (els) => els.map((e) => e.textContent).join(" | "));
+      const cardOf = (name) => `#album .album-grid > .album-card:has(.album-name:text-is('${name}'))`;
+      await page.selectOption("#album-sort", "slides");
+      await page.waitForFunction(() => [...document.querySelectorAll("#album .album-grid > .album-card .album-name")].map((e) => e.textContent).join(" | ") === "2 Plan | 3 Outlook | 12 Clip");
+      await page.waitForSelector("#album-order-hint:not([hidden])");
+      check(await page.locator("#album-order-reset").isHidden(), "no order to forget before one is set");
+      // Dropped onto the left half of a picture, a picture goes before it.
+      await page.dragAndDrop(cardOf("12 Clip"), cardOf("2 Plan"), { targetPosition: { x: 4, y: 40 } });
+      await page.waitForFunction(() => [...document.querySelectorAll("#album .album-grid > .album-card .album-name")].map((e) => e.textContent).join(" | ") === "12 Clip | 2 Plan | 3 Outlook");
+      await page.waitForSelector("#album-order-reset:not([hidden])");
+      // Without a mouse, the menu moves a picture one place.
+      await page.click(cardOf("2 Plan") + " .album-more summary");
+      await page.click(cardOf("2 Plan") + " .album-later");
+      await page.waitForFunction(() => [...document.querySelectorAll("#album .album-grid > .album-card .album-name")].map((e) => e.textContent).join(" | ") === "12 Clip | 3 Outlook | 2 Plan");
+      // The presentation follows the order; its strip is ordered too.
+      const [show] = await Promise.all([page.waitForEvent("popup"), page.click("#album-present")]);
+      show.on("pageerror", (e) => problems.push("presentation window: " + e.message));
+      await page.waitForSelector("#present-console #present-name:text-is('12 Clip')");
+      await page.dragAndDrop("#present-strip .present-thumb[data-index='2']", "#present-strip .present-thumb[data-index='0']", { targetPosition: { x: 4, y: 20 } });
+      await page.waitForSelector("#present-counter:text-is('2 / 3')"); // the slide shown stays, one place further
+      check(await page.textContent("#present-name") === "12 Clip", "the slide shown stays after reordering the strip");
+      await page.waitForSelector("#present-strip .present-thumb[data-index='0'][title='2 Plan']");
+      await Promise.all([show.isClosed() ? null : show.waitForEvent("close"), page.click("#present-end")]);
+      await page.waitForSelector("#album");
+      await page.click("#album .album-folder:has-text('Talk')");
+      await page.waitForFunction(() => [...document.querySelectorAll("#album .album-grid > .album-card .album-name")].map((e) => e.textContent).join(" | ") === "2 Plan | 12 Clip | 3 Outlook");
+      // Ordered by name again.
+      answer = true;
+      await page.click("#album-order-reset");
+      await page.waitForFunction(() => [...document.querySelectorAll("#album .album-grid > .album-card .album-name")].map((e) => e.textContent).join(" | ") === "2 Plan | 3 Outlook | 12 Clip");
+      check(await names() === "2 Plan | 3 Outlook | 12 Clip", "cleared to the order by name");
+      await page.selectOption("#album-sort", "");
+      await page.waitForSelector("#album-order-hint", { state: "hidden" });
+    }
+
     step("faces: a picture opened is searched for faces in the browser; a face named shows in the viewer, under People and in the person's album (ADR-0194)");
     {
       const planCard = "#album .album-card:has(.album-name:text-is('2 Plan'))";
@@ -2149,7 +2186,7 @@ function gitSource() {
       await page.waitForSelector("#album .album-card .album-name:text-is('2 Plan')"); // back in the folder Talk
     }
 
-    step("slide import: a presentation with its slides exported as pictures becomes a folder of slides with their notes, hidden slides left out (ADR-0186)");
+    step("slide import: a presentation, alone or with its slides exported as pictures, becomes a folder of slides with their notes, hidden slides left out (ADR-0186)");
     {
       const ns = `xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"`;
       const relType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/";
@@ -2191,11 +2228,34 @@ function gitSource() {
       ]);
       await page.waitForSelector("#album .status .error:has-text('The pictures do not match the slides')");
       check(await page.locator("#album .album-folder").count() === 0, "no folder is made for pictures that do not match");
-      // The folder goes into the trash, so the room's map later on is as before.
-      const trashed = await page.evaluate(async () => {
+      const outer = await page.evaluate(async () => (await (await fetch("/api/album?q=Kick-off")).json()).pictures[0].item.id);
+      // The presentation alone: the browser draws its slides.
+      await page.setInputFiles("#album-files", [
+        { name: "Quarterly review.pptx", mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation", buffer: deck },
+      ]);
+      await page.waitForSelector("#album .status .notice:has-text('2 slides brought into the folder Quarterly review.')", { timeout: 60000 });
+      await page.waitForFunction(() => document.querySelectorAll("#album .album-card").length === 2);
+      await page.waitForSelector(kickoff + ' .album-notes-edit:text-is("Edit speaker\'s notes")');
+      const drawn = await page.evaluate(async (outer) => {
         const { pictures } = await (await fetch("/api/album?q=Kick-off")).json();
-        return (await fetch(`/api/items/${pictures[0].item.id}/trash`, { method: "POST" })).status;
-      });
+        const p = pictures.find((x) => x.item.id !== outer);
+        const img = new Image();
+        img.src = `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
+        await img.decode();
+        const c = document.createElement("canvas");
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        const g = c.getContext("2d");
+        g.drawImage(img, 0, 0);
+        const d = g.getImageData(0, 0, c.width, c.height).data;
+        let dark = 0;
+        for (let i = 0; i < d.length; i += 4) if (d[i] < 100 && d[i + 1] < 100 && d[i + 2] < 100) dark++;
+        return { name: p.attachment.name, notes: p.notes, w: img.naturalWidth, h: img.naturalHeight, dark };
+      }, outer);
+      check(drawn.name === "01 Kick-off.png" && drawn.notes === "Welcome everyone.\nIntroduce the team.", "a drawn slide is named by its title and keeps its notes: " + JSON.stringify(drawn));
+      check(drawn.w === 1920 && drawn.h === 1080, "a drawn slide is 1920 pixels wide, in the slide's proportions: " + drawn.w + "×" + drawn.h);
+      check(drawn.dark > 500, "the slide's title is drawn: " + drawn.dark + " dark pixels");
+      // The folders go into the trash, so the room's map later on is as before.
+      const trashed = await page.evaluate(async (outer) => (await fetch(`/api/items/${outer}/trash`, { method: "POST" })).status, outer);
       check(trashed === 200, "the imported folder goes into the trash: " + trashed);
     }
 
