@@ -255,6 +255,8 @@ Die Ansicht **Personen** listet alle benannten Personen mit ihrem Gesicht und de
 
 Gesichter werden im eigenen Browser gefunden; nichts wird anderswohin gesendet. Hat die Administration **Gesichter wiedererkennen** eingeschaltet, berechnet der Browser zu jedem Gesicht zusätzlich Zahlenwerte, mit denen das Album für ein Gesicht, das bereits benannten Gesichtern ähnelt, einen Namen vorschlägt, etwa *Ada?*. Diese Werte sind biometrische Daten: Man schaltet das nur ein, wenn die abgebildeten Personen einverstanden sind. Beim Ausschalten werden sie alle gelöscht; die Namen bleiben.
 
+Ist die Wiedererkennung eingeschaltet, zeigt das Album einer Person zusätzlich **Ist das Ada?**: Gesichter auf anderen Bildern, die man bearbeiten darf und die Ada mehr ähneln als allen anderen benannten Personen, die ähnlichsten zuerst. Man klickt die Gesichter an, die Ada zeigen, oder wählt **Alle wählen** und klickt die falschen wieder ab, dann **Gewählte bestätigen**. Nicht gewählte Gesichter bleiben unbenannt und werden später erneut vorgeschlagen. Vorgeschlagen werden nur Bilder, deren Gesichter bei eingeschalteter Wiedererkennung gesucht wurden.
+
 ### Einen Ordner löschen
 
 **Ordner löschen** in einem offenen Ordner verschiebt ihn mit seinen Ordnern, Bildern und Videos in den Papierkorb, nachdem gesagt wurde, wie viel mitgeht. Seine Seite stellt ihn mit **Wiederherstellen** wieder her. Ein Ordner wird nicht gelöscht, solange etwas ausserhalb, etwa eine Seite, noch verwendet, was darin ist; das Album nennt es.

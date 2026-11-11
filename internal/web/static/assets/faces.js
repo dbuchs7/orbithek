@@ -11,7 +11,7 @@
 import { h } from "./dom.js";
 import { t } from "./i18n.js";
 import { get, put } from "./api.js";
-import { boxOf, mergeFaces, facesBody, coverCut } from "./faceparts.js";
+import { boxOf, mergeFaces, facesBody, coverCut, nameFaces } from "./faceparts.js";
 
 const MODELS = "/vendor/face-models";
 const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
@@ -232,6 +232,86 @@ export function facesPanel({ p, image, layer, still, changed = () => {} }) {
   suggest().then(render);
   if (p.editable && !p.attachment.facesSeen && !p.video) find();
   return { element: box, stop: () => { resize?.disconnect(); image.removeEventListener("load", place); layer.replaceChildren(); } };
+}
+
+// personSuggestions shows, in a person's album, the unnamed faces of
+// other pictures that resemble the person, most alike first (ADR-0199).
+// Whoever may edit those pictures chooses the faces that show the person
+// and confirms them at once; the others stay unnamed. Nothing is shown
+// while recognition is off or nothing resembles the person. tell shows
+// what was done, outside the panel, which may be gone afterwards; changed
+// is told once faces were named.
+export function personSuggestions({ person, space = "", tell = () => {}, changed = () => {} }) {
+  const box = h("section", { class: "album-suggested", id: "album-suggested", hidden: true });
+  let chosen = new Set();
+  let list = [];
+  const key = (s, i) => `${s.attachment.id}:${i}`;
+  const render = (total) => {
+    if (!list.length) { box.hidden = true; box.replaceChildren(); return; }
+    box.hidden = false;
+    const confirm = h("button", { type: "button", class: "primary", id: "album-suggested-confirm", disabled: chosen.size === 0,
+      text: t("faces.suggestedConfirm", { n: chosen.size }), onclick: () => save() });
+    const tiles = [];
+    for (const s of list) {
+      for (const m of s.matches) {
+        const k = key(s, m.index);
+        const tile = h("button", { type: "button", class: "album-suggested-face", "data-face": k, "aria-pressed": String(chosen.has(k)),
+          "aria-label": t("faces.suggestedFace", { picture: s.attachment.name }), title: s.attachment.name,
+          onclick: () => {
+            if (chosen.has(k)) chosen.delete(k); else chosen.add(k);
+            tile.setAttribute("aria-pressed", String(chosen.has(k)));
+            confirm.disabled = chosen.size === 0;
+            confirm.textContent = t("faces.suggestedConfirm", { n: chosen.size });
+          } }, personCover({ cover: { item: s.item, attachment: s.attachment }, face: s.faces[m.index] }, 72));
+        tiles.push(h("li", {}, tile));
+      }
+    }
+    const all = h("button", { type: "button", class: "secondary", id: "album-suggested-all", text: t("faces.suggestedAll"), onclick: () => {
+      for (const s of list) for (const m of s.matches) chosen.add(key(s, m.index));
+      render(total);
+    } });
+    // replaceChildren would show a null as text, so none is passed.
+    box.replaceChildren(...[
+      h("h3", { class: "album-suggested-title", text: t("faces.suggestedTitle", { name: person }) }),
+      h("p", { class: "muted", text: t("faces.suggestedHelp", { name: person }) }),
+      h("ul", { class: "album-suggested-grid" }, ...tiles),
+      total > list.length ? h("p", { class: "muted", id: "album-suggested-more", text: t("faces.suggestedMore", { n: list.length, total }) }) : null,
+      h("div", { class: "actions-row" }, all, confirm)].filter(Boolean));
+  };
+
+  const load = async () => {
+    if (!(await recognition())) return;
+    const q = new URLSearchParams({ person });
+    if (space) q.set("space", space);
+    try {
+      const r = await get("/api/album/people/suggestions?" + q);
+      list = r.suggestions || [];
+      chosen = new Set([...chosen].filter((k) => list.some((s) => s.matches.some((m) => key(s, m.index) === k))));
+      render(r.total || 0);
+    } catch { list = []; render(0); }
+  };
+
+  // save names the faces chosen, one picture after another; a picture that
+  // fails keeps its faces and the next is named.
+  const save = async () => {
+    let named = 0, failed = "";
+    box.querySelectorAll("button").forEach((b) => { b.disabled = true; });
+    for (const s of list) {
+      const indices = s.matches.map((m) => m.index).filter((i) => chosen.has(key(s, i)));
+      if (!indices.length) continue;
+      try {
+        await put(`/api/items/${s.item.id}/attachments/${s.attachment.id}/faces`, facesBody(nameFaces(s.faces, indices, person)));
+        named += indices.length;
+        indices.forEach((i) => chosen.delete(key(s, i)));
+      } catch (err) { failed = err.message; }
+    }
+    tell(failed ? t("faces.failed", { reason: failed }) : t("faces.suggestedDone", { n: named, name: person }), failed ? "error" : "notice");
+    // changed shows the album again, and with it what is still suggested.
+    if (named) changed(); else await load();
+  };
+
+  load();
+  return box;
 }
 
 // personCover is a square picture of a person's face, cut from the

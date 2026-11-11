@@ -115,3 +115,80 @@ func TestFacesAndPersonAlbums(t *testing.T) {
 		t.Errorf("the album of Ben %v", got)
 	}
 }
+
+// TestFacesSuggestedForAPerson: across the album, the unnamed faces that
+// resemble a person's named faces more than anyone else's are suggested
+// for that person, most alike first, on the pictures one may edit, and
+// only while recognition is on (ADR-0199).
+func TestFacesSuggestedForAPerson(t *testing.T) {
+	w := newPhotoWorld(t)
+	lake := w.put(t, "lake.jpg", exifJPEG(t, "2024:05:01 13:22:10", 0, 0, 64))
+	town := w.put(t, "town.jpg", exifJPEG(t, "2024:05:02 13:22:10", 0, 0, 66))
+	forest := w.put(t, "forest.jpg", exifJPEG(t, "2024:05:03 13:22:10", 0, 0, 68))
+	hill := w.put(t, "hill.jpg", exifJPEG(t, "2024:05:04 13:22:10", 0, 0, 70))
+	faces := func(pic map[string]any) string {
+		return "/api/items/" + w.folder + "/attachments/" + pic["id"].(string) + "/faces"
+	}
+	const suggest = "/api/album/people/suggestions?person="
+	w.bert.expect("GET", suggest+"Anna", "", http.StatusNotFound)
+	w.admin.expect("PUT", "/api/settings/faces", `{"recognition":true}`, http.StatusOK)
+
+	w.bert.expect("PUT", faces(lake), `{"faces":[{"x":0.1,"y":0.1,"w":0.1,"h":0.1,"person":"Anna","vector":`+faceVector(0.1)+`},{"x":0.3,"y":0.1,"w":0.1,"h":0.1,"person":"Ben","vector":`+faceVector(0.3)+`},{"x":0.5,"y":0.1,"w":0.1,"h":0.1,"person":"Cleo","vector":`+faceVector(0.16)+`}]}`, http.StatusOK)
+	// Town: the first face is Anna's, the second nobody's, the third Ben's.
+	w.bert.expect("PUT", faces(town), `{"faces":[{"x":0.1,"y":0.1,"w":0.1,"h":0.1,"vector":`+faceVector(0.11)+`},{"x":0.3,"y":0.1,"w":0.1,"h":0.1,"vector":`+faceVector(0.9)+`},{"x":0.5,"y":0.1,"w":0.1,"h":0.1,"vector":`+faceVector(0.29)+`}]}`, http.StatusOK)
+	// Forest: Anna's, less alike; and a face already named stays out.
+	w.bert.expect("PUT", faces(forest), `{"faces":[{"x":0.1,"y":0.1,"w":0.1,"h":0.1,"person":"Dora","vector":`+faceVector(0.1)+`},{"x":0.3,"y":0.1,"w":0.1,"h":0.1,"vector":`+faceVector(0.12)+`}]}`, http.StatusOK)
+	// Hill: near enough to Anna, but nearer to Cleo; and one without vector.
+	w.bert.expect("PUT", faces(hill), `{"faces":[{"x":0.1,"y":0.1,"w":0.1,"h":0.1,"vector":`+faceVector(0.135)+`},{"x":0.3,"y":0.1,"w":0.1,"h":0.1}]}`, http.StatusOK)
+
+	w.bert.expect("GET", suggest, "", http.StatusBadRequest)
+	w.bert.expect("GET", suggest+"Anna&limit=0", "", http.StatusBadRequest)
+	r := w.bert.expect("GET", suggest+"anna", "", http.StatusOK)
+	got := r["suggestions"].([]any)
+	if r["total"] != 2.0 || len(got) != 2 {
+		t.Fatalf("suggestions for Anna %v", r)
+	}
+	first, second := got[0].(map[string]any), got[1].(map[string]any)
+	if first["attachment"].(map[string]any)["id"] != town["id"] || second["attachment"].(map[string]any)["id"] != forest["id"] {
+		t.Fatalf("not most alike first: %v", got)
+	}
+	if m := first["matches"].([]any); len(m) != 1 || m[0].(map[string]any)["index"] != 0.0 {
+		t.Errorf("matches on town %v", m)
+	}
+	if m := second["matches"].([]any); len(m) != 1 || m[0].(map[string]any)["index"] != 1.0 {
+		t.Errorf("matches on forest %v", m)
+	}
+	if f := first["faces"].([]any); len(f) != 3 || f[0].(map[string]any)["vector"] != nil {
+		t.Errorf("faces of town %v", f)
+	}
+	if r := w.bert.expect("GET", suggest+"Anna&limit=1", "", http.StatusOK); len(r["suggestions"].([]any)) != 1 || r["total"] != 2.0 {
+		t.Errorf("limited %v", r)
+	}
+	cleo := w.bert.expect("GET", suggest+"Cleo", "", http.StatusOK)["suggestions"].([]any)
+	if len(cleo) != 1 || cleo[0].(map[string]any)["attachment"].(map[string]any)["id"] != hill["id"] {
+		t.Errorf("suggestions for Cleo %v", cleo)
+	}
+	if got := w.bert.expect("GET", suggest+"Nobody", "", http.StatusOK)["suggestions"].([]any); len(got) != 0 {
+		t.Errorf("suggestions for no one named %v", got)
+	}
+	// Only pictures one may edit are offered, and only from what one reads.
+	if got := w.vera.expect("GET", suggest+"Anna", "", http.StatusOK)["suggestions"].([]any); len(got) != 0 {
+		t.Errorf("a reader got suggestions %v", got)
+	}
+	if got := w.carla.expect("GET", suggest+"Anna", "", http.StatusOK)["suggestions"].([]any); len(got) != 0 {
+		t.Errorf("an outsider got suggestions %v", got)
+	}
+	if got := w.bert.expect("GET", suggest+"Anna&space=OPS", "", http.StatusOK)["suggestions"].([]any); len(got) != 0 {
+		t.Errorf("suggestions of another space %v", got)
+	}
+
+	// Confirmed, the face is named and keeps its vector; it is no longer
+	// suggested.
+	w.bert.expect("PUT", faces(town), `{"faces":[{"x":0.1,"y":0.1,"w":0.1,"h":0.1,"person":"Anna"},{"x":0.3,"y":0.1,"w":0.1,"h":0.1},{"x":0.5,"y":0.1,"w":0.1,"h":0.1}]}`, http.StatusOK)
+	if r := w.bert.expect("GET", suggest+"Anna", "", http.StatusOK); r["total"] != 1.0 {
+		t.Errorf("after confirming %v", r)
+	}
+	if v, err := w.db.FaceVectors(item.ID(w.folder), item.ID(town["id"].(string))); err != nil || len(v) != 3 || len(v[0]) != 128 {
+		t.Errorf("vectors after confirming %d %v", len(v), err)
+	}
+}

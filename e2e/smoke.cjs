@@ -2233,6 +2233,36 @@ function gitSource() {
       await page.waitForSelector("#album .album-card .album-name:text-is('2 Plan')"); // back in the folder Talk
     }
 
+    step("faces suggested for a person: with recognition on, a person's album offers the unnamed faces that resemble them, and those chosen are named together (ADR-0199)");
+    {
+      check((await page.request.put(base + "/api/settings/faces", { data: { recognition: true } })).status() === 200, "recognition turned on");
+      const pics = await page.evaluate(async () => (await (await fetch("/api/album")).json()).pictures);
+      const plan = pics.find((p) => p.attachment.name === "2 Plan.png");
+      const other = pics.find((p) => p.attachment.id !== plan.attachment.id && /^image\//.test(p.attachment.type) && !p.video && p.editable);
+      check(plan && other, "two pictures to compare");
+      const near = (seed) => Array.from({ length: 128 }, (_, i) => seed + (i % 7) / 100);
+      const setFaces = (p, faces) => page.evaluate(async ([p, faces]) => (await fetch(`/api/items/${p.item.id}/attachments/${p.attachment.id}/faces`, { method: "PUT",
+        headers: { "Content-Type": "application/json" }, body: JSON.stringify({ faces }) })).status, [p, faces]);
+      check(await setFaces(plan, [{ x: 0.3, y: 0.2, w: 0.25, h: 0.4, person: "Ada Lovelace", vector: near(0.1) }]) === 200, "Ada's face with its vector");
+      check(await setFaces(other, [{ x: 0.2, y: 0.2, w: 0.3, h: 0.4, vector: near(0.11) }]) === 200, "an unnamed face that resembles Ada");
+      await page.click("#album-view-people");
+      await page.click("#album-people .album-person[data-person='Ada Lovelace']");
+      await page.waitForSelector("#album-suggested .album-suggested-face");
+      check(await page.textContent("#album-suggested .album-suggested-title") === "Is this Ada Lovelace?", "the suggestions name the person");
+      check(await page.isDisabled("#album-suggested-confirm"), "nothing is confirmed before a face is chosen");
+      await page.click("#album-suggested .album-suggested-face");
+      check(await page.getAttribute("#album-suggested .album-suggested-face", "aria-pressed") === "true", "a click chooses a face");
+      await page.click("#album-suggested-confirm");
+      await page.waitForSelector("#album .status .notice:text-is('1 face named Ada Lovelace.')");
+      await page.waitForSelector("#album-suggested", { state: "hidden" });
+      await page.waitForFunction(() => document.querySelectorAll("#album .album-card").length === 2);
+      check((await setFaces(other, [])) === 200, "the face named for the test is removed again");
+      check((await page.request.put(base + "/api/settings/faces", { data: { recognition: false } })).status() === 200, "recognition turned off again");
+      await page.click("#album-people-back");
+      await page.click("#album-view-folders");
+      await page.waitForSelector("#album .album-card .album-name:text-is('2 Plan')");
+    }
+
     step("slide import: a presentation, alone or with its slides exported as pictures, becomes a folder of slides with their notes, hidden slides left out (ADR-0186)");
     {
       const ns = `xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"`;

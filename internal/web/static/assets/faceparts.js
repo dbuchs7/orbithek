@@ -77,3 +77,10 @@ export function personNames(faces) {
   }
   return out;
 }
+
+// nameFaces gives name to the faces of a picture at the indices chosen
+// that nobody named yet (ADR-0199); the other faces stay as they are.
+export function nameFaces(faces, indices, name) {
+  const chosen = new Set(indices);
+  return (faces || []).map((f, i) => (chosen.has(i) && !f.person ? { ...f, person: name } : { ...f }));
+}

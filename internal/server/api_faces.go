@@ -1,11 +1,13 @@
 package server
 
 import (
+	"cmp"
 	"errors"
 	"math"
 	"net/http"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/dbuchs7/orbithek/internal/audit"
@@ -27,6 +29,7 @@ func faceRoutes(h itemHandlers) []Route {
 	return []Route{
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/faces", Summary: "Set the faces found on one version of a picture (faces: x, y, w and h as fractions of the picture from its top left corner, person, and vector, 128 numbers computed to recognise it, kept only while recognition is on) and mark it as searched; who may edit the item may (ADR-0194)", Handler: http.HandlerFunc(h.setFaces)},
 		{Method: http.MethodGet, Pattern: "/api/items/{ref}/attachments/{id}/faces/suggestions", Summary: "Names suggested for the unnamed faces of a picture, from the named faces of the pictures one may read that resemble them (index, person, distance); only while recognition is on, for who may edit the item (ADR-0194)", Handler: http.HandlerFunc(h.faceSuggestions)},
+		{Method: http.MethodGet, Pattern: "/api/album/people/suggestions", Summary: "The pictures one may edit, in space or every space, whose unnamed faces resemble the named faces of person more than those of anyone else, most alike first: item, attachment, faces (all faces of the picture, without vectors) and matches (index and distance of the faces suggested), at most limit pictures (default 60, at most 200) and their total; only while recognition is on (ADR-0199)", Handler: http.HandlerFunc(h.personSuggestions)},
 		{Method: http.MethodGet, Pattern: "/api/album/people", Summary: "The persons named on the pictures one may read, by name: name, pictures (how many show them) and the newest picture with the face as a cover (space)", Handler: http.HandlerFunc(h.albumPeople)},
 		{Method: http.MethodGet, Pattern: "/api/settings/faces", Summary: "Whether faces are recognised: recognition (administrators)", Handler: http.HandlerFunc(h.faceSettings)},
 		{Method: http.MethodPut, Pattern: "/api/settings/faces", Summary: "Turn the recognition of faces on or off (recognition); turning it off forgets every vector computed of a face (administrators)", Handler: http.HandlerFunc(h.setFaceSettings)},
@@ -243,6 +246,128 @@ func (h itemHandlers) faceSuggestions(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"suggestions": out})
+}
+
+// Pictures suggested for a person at once: by default and at most
+// (ADR-0199, ADR-0015).
+const (
+	personSuggestionsDefault = 60
+	personSuggestionsMax     = 200
+)
+
+// namedVector is the vector of a face someone named, by the name's key.
+type namedVector struct {
+	key    string
+	vector []float32
+}
+
+// matchJSON is a face of a picture suggested for a person.
+type matchJSON struct {
+	Index    int     `json:"index"`
+	Distance float64 `json:"distance"`
+}
+
+// personSuggestion is a picture with faces suggested for a person.
+type personSuggestion struct {
+	pic     item.Picture
+	matches []matchJSON
+	best    float64
+}
+
+// personSuggestions finds, across the album, the unnamed faces that
+// resemble a person (ADR-0199). A face is suggested when one of the
+// person's named faces is within faceMatch of it and no face named
+// otherwise is nearer, as the suggestions of one picture choose the
+// nearest name. The person's faces and the others are read from the
+// pictures the caller may read; faces are suggested only on pictures the
+// caller may edit, since naming them is editing.
+func (h itemHandlers) personSuggestions(w http.ResponseWriter, r *http.Request) {
+	if !h.recognition() {
+		writeError(w, http.StatusNotFound, "faces are not recognised here: administrators have not turned recognition on")
+		return
+	}
+	q := r.URL.Query()
+	person, err := item.NormalPerson(q.Get("person"))
+	if err != nil || person == "" {
+		writeError(w, http.StatusBadRequest, "name the person whose faces are suggested")
+		return
+	}
+	limit := personSuggestionsDefault
+	if v := q.Get("limit"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 {
+			writeError(w, http.StatusBadRequest, "limit is a positive number")
+			return
+		}
+		limit = min(n, personSuggestionsMax)
+	}
+	var named, open []item.Picture
+	h.d.DB.Read(func(s *item.Store) {
+		x := s.As(who(r))
+		named = x.Pictures("", func(b item.Attachment) bool {
+			return slices.ContainsFunc(b.Faces, func(f item.Face) bool { return f.Person != "" })
+		})
+		open = x.UnnamedFaces(q.Get("space"))
+	})
+	key := strings.ToLower(person)
+	var theirs, others []namedVector
+	for _, p := range named {
+		vectors := h.vectorsOf(p.Item.ID, p.Attachment.ID)
+		for j, f := range p.Attachment.Faces {
+			if f.Person == "" || j >= len(vectors) || len(vectors[j]) == 0 {
+				continue
+			}
+			v := namedVector{key: strings.ToLower(f.Person), vector: vectors[j]}
+			if v.key == key {
+				theirs = append(theirs, v)
+			} else {
+				others = append(others, v)
+			}
+		}
+	}
+	found := []personSuggestion{}
+	if len(theirs) > 0 {
+		for _, p := range open {
+			mine := h.vectorsOf(p.Item.ID, p.Attachment.ID)
+			s := personSuggestion{pic: p, best: math.Inf(1)}
+			for i, f := range p.Attachment.Faces {
+				if f.Person != "" || i >= len(mine) || len(mine[i]) == 0 {
+					continue
+				}
+				d := nearest(mine[i], theirs)
+				if d >= faceMatch || nearest(mine[i], others) < d {
+					continue
+				}
+				s.matches = append(s.matches, matchJSON{Index: i, Distance: math.Round(d*1000) / 1000})
+				s.best = min(s.best, d)
+			}
+			if len(s.matches) > 0 {
+				found = append(found, s)
+			}
+		}
+	}
+	slices.SortStableFunc(found, func(a, b personSuggestion) int { return cmp.Compare(a.best, b.best) })
+	total := len(found)
+	out := make([]map[string]any, 0, min(total, limit))
+	for _, s := range found[:min(total, limit)] {
+		out = append(out, map[string]any{
+			"item":       map[string]any{"id": s.pic.Item.ID, "key": s.pic.Item.Key},
+			"attachment": map[string]any{"id": s.pic.Attachment.ID, "name": s.pic.Attachment.Name, "type": s.pic.Attachment.Type},
+			"faces":      toFacesJSON(s.pic.Attachment.Faces),
+			"matches":    s.matches,
+		})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"person": person, "suggestions": out, "total": total})
+}
+
+// nearest is the distance of v to the nearest of vectors, infinite when
+// there is none.
+func nearest(v []float32, vectors []namedVector) float64 {
+	d := math.Inf(1)
+	for _, n := range vectors {
+		d = min(d, distance(v, n.vector))
+	}
+	return d
 }
 
 // distance is the Euclidean distance of two vectors of one length.

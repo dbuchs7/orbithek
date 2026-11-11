@@ -4,7 +4,7 @@
 //   node --test "internal/web/jstest/*.test.mjs"
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { boxOf, overlap, mergeFaces, facesBody, coverCut, personNames } from "../static/assets/faceparts.js";
+import { boxOf, overlap, mergeFaces, facesBody, coverCut, personNames, nameFaces } from "../static/assets/faceparts.js";
 
 test("a box in pixels becomes fractions within the picture", () => {
   assert.deepEqual(boxOf({ x: 100, y: 50, width: 200, height: 100 }, 1000, 500), { x: 0.1, y: 0.1, w: 0.2, h: 0.2 });
@@ -48,4 +48,12 @@ test("a cover is cut around the face", () => {
 
 test("the persons of faces are named once", () => {
   assert.deepEqual(personNames([{ person: "Anna" }, { person: "anna" }, {}, { person: "Ben" }]), ["Anna", "Ben"]);
+});
+
+test("faces chosen from the suggestions are named, and no name is changed", () => {
+  const faces = [{ x: 0.1, y: 0.1, w: 0.1, h: 0.1 }, { x: 0.3, y: 0.1, w: 0.1, h: 0.1, person: "Ben" }, { x: 0.5, y: 0.1, w: 0.1, h: 0.1 }];
+  const named = nameFaces(faces, [0, 1], "Anna");
+  assert.deepEqual(named.map((f) => f.person), ["Anna", "Ben", undefined]);
+  assert.equal(faces[0].person, undefined, "the faces given are not changed");
+  assert.deepEqual(nameFaces(null, [0], "Anna"), []);
 });
