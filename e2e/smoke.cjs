@@ -2117,6 +2117,43 @@ function gitSource() {
     await page.press("#album .album-rename-input", "Escape"); // Escape keeps the name
     await page.waitForSelector("#album .album-card .album-name:text-is('2 Plan')");
 
+    step("album order of slides: a folder's pictures are dragged into an order of their own, in the album and in the presenter's strip, and presented so (ADR-0195)");
+    {
+      const names = () => page.$$eval("#album .album-grid > .album-card .album-name", (els) => els.map((e) => e.textContent).join(" | "));
+      const cardOf = (name) => `#album .album-grid > .album-card:has(.album-name:text-is('${name}'))`;
+      await page.selectOption("#album-sort", "slides");
+      await page.waitForFunction(() => [...document.querySelectorAll("#album .album-grid > .album-card .album-name")].map((e) => e.textContent).join(" | ") === "2 Plan | 3 Outlook | 12 Clip");
+      await page.waitForSelector("#album-order-hint:not([hidden])");
+      check(await page.locator("#album-order-reset").isHidden(), "no order to forget before one is set");
+      // Dropped onto the left half of a picture, a picture goes before it.
+      await page.dragAndDrop(cardOf("12 Clip"), cardOf("2 Plan"), { targetPosition: { x: 4, y: 40 } });
+      await page.waitForFunction(() => [...document.querySelectorAll("#album .album-grid > .album-card .album-name")].map((e) => e.textContent).join(" | ") === "12 Clip | 2 Plan | 3 Outlook");
+      await page.waitForSelector("#album-order-reset:not([hidden])");
+      // Without a mouse, the menu moves a picture one place.
+      await page.click(cardOf("2 Plan") + " .album-more summary");
+      await page.click(cardOf("2 Plan") + " .album-later");
+      await page.waitForFunction(() => [...document.querySelectorAll("#album .album-grid > .album-card .album-name")].map((e) => e.textContent).join(" | ") === "12 Clip | 3 Outlook | 2 Plan");
+      // The presentation follows the order; its strip is ordered too.
+      const [show] = await Promise.all([page.waitForEvent("popup"), page.click("#album-present")]);
+      show.on("pageerror", (e) => problems.push("presentation window: " + e.message));
+      await page.waitForSelector("#present-console #present-name:text-is('12 Clip')");
+      await page.dragAndDrop("#present-strip .present-thumb[data-index='2']", "#present-strip .present-thumb[data-index='0']", { targetPosition: { x: 4, y: 20 } });
+      await page.waitForSelector("#present-counter:text-is('2 / 3')"); // the slide shown stays, one place further
+      check(await page.textContent("#present-name") === "12 Clip", "the slide shown stays after reordering the strip");
+      await page.waitForSelector("#present-strip .present-thumb[data-index='0'][title='2 Plan']");
+      await Promise.all([show.isClosed() ? null : show.waitForEvent("close"), page.click("#present-end")]);
+      await page.waitForSelector("#album");
+      await page.click("#album .album-folder:has-text('Talk')");
+      await page.waitForFunction(() => [...document.querySelectorAll("#album .album-grid > .album-card .album-name")].map((e) => e.textContent).join(" | ") === "2 Plan | 12 Clip | 3 Outlook");
+      // Ordered by name again.
+      answer = true;
+      await page.click("#album-order-reset");
+      await page.waitForFunction(() => [...document.querySelectorAll("#album .album-grid > .album-card .album-name")].map((e) => e.textContent).join(" | ") === "2 Plan | 3 Outlook | 12 Clip");
+      check(await names() === "2 Plan | 3 Outlook | 12 Clip", "cleared to the order by name");
+      await page.selectOption("#album-sort", "");
+      await page.waitForSelector("#album-order-hint", { state: "hidden" });
+    }
+
     step("faces: a picture opened is searched for faces in the browser; a face named shows in the viewer, under People and in the person's album (ADR-0194)");
     {
       const planCard = "#album .album-card:has(.album-name:text-is('2 Plan'))";

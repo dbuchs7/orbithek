@@ -280,7 +280,7 @@ Whoever may edit a picture renames it in the album: open the card's menu **…**
 
 ### Presenting pictures
 
-The album presents the pictures it shows as slides: open a folder or a collection, narrow it with the search or a label if you like, and choose **Present N pictures**. The slides are ordered by name, numbers by their value, so *2 Plan* comes before *10 Outlook*; to change the order, rename the pictures.
+The album presents the pictures it shows as slides: open a folder or a collection, narrow it with the search or a label if you like, and choose **Present N pictures**. The slides of a folder or collection follow its order of slides (see *Ordering slides by hand*); pictures not yet placed come after, by name, numbers by their value, so *2 Plan* comes before *10 Outlook*.
 
 The click opens a second window, the **presentation window**, for the projector or a second screen. The album's window becomes the **presenter's window**. It shows the current and the next slide, the speaker's notes, the time since the start and the time of day, and a strip of all slides; a click on a slide in the strip goes there. If your browser blocked the second window, allow pop-ups for this site and choose **Presentation window**. In the presentation window, **Full screen** or **F** fills the screen.
 
@@ -299,6 +299,14 @@ Presentation remotes that send Page Up and Page Down work too. **End** closes th
 **Speaker's notes** belong to a picture: on its card in the album, **Add speaker's notes**, or in the presenter's window **Edit notes**. Whoever may edit the picture writes them; whoever sees the picture reads them. Notes stay with every version of a drawing.
 
 Both windows must be in the same browser on the same computer. People elsewhere follow by screen sharing.
+
+### Ordering slides by hand
+
+A folder or a collection keeps its own order of slides, the same for everyone who reads it. In an open folder or collection, choose **Order of the slides** instead of **Newest first**: the album shows the pictures in the order they are presented. Whoever may edit the folder or collection drags a picture onto another one: dropped onto its left half it goes before it, onto its right half after it. Chosen pictures move together. Without a mouse, the menu of a picture offers **Move one place earlier** and **Move one place later**.
+
+In the presenter's window, the slides of the strip are dragged the same way; the order is kept at once and the presentation window follows.
+
+Pictures added later come after the placed ones, by name; a new version of a drawing keeps its place. **Order by name** forgets the order set by hand. To place a picture after the last one shown while more follow, choose **Show more** first.
 
 ## Drawings and whiteboards
 

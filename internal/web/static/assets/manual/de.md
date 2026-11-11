@@ -280,7 +280,7 @@ Wer ein Bild bearbeiten darf, benennt es im Album um: das Menü **…** der Kart
 
 ### Bilder präsentieren
 
-Das Album präsentiert die Bilder, die es gerade zeigt, als Folien: einen Ordner oder eine Sammlung öffnen, nach Wunsch mit der Suche oder einem Label eingrenzen und **N Bilder präsentieren** wählen. Die Folien sind nach Namen geordnet, Zahlen nach ihrem Wert, also *2 Plan* vor *10 Ausblick*; wer die Reihenfolge ändern will, benennt die Bilder um.
+Das Album präsentiert die Bilder, die es gerade zeigt, als Folien: einen Ordner oder eine Sammlung öffnen, nach Wunsch mit der Suche oder einem Label eingrenzen und **N Bilder präsentieren** wählen. Die Folien eines Ordners oder einer Sammlung folgen seiner Reihenfolge der Folien (siehe *Folien von Hand ordnen*); noch nicht eingereihte Bilder folgen danach, nach Namen, Zahlen nach ihrem Wert, also *2 Plan* vor *10 Ausblick*.
 
 Der Klick öffnet ein zweites Fenster, das **Präsentationsfenster**, für den Projektor oder einen zweiten Bildschirm. Das Fenster des Albums wird zum **Referentenfenster**. Es zeigt die aktuelle und die nächste Folie, die Foliennotizen, die Zeit seit dem Start und die Uhrzeit sowie eine Leiste aller Folien; ein Klick auf eine Folie in der Leiste springt dorthin. Hat der Browser das zweite Fenster blockiert, Pop-ups für diese Seite erlauben und **Präsentationsfenster** wählen. Im Präsentationsfenster füllt **Vollbild** oder **F** den Bildschirm.
 
@@ -299,6 +299,14 @@ Präsentations-Fernbedienungen, die Bild auf und Bild ab senden, funktionieren e
 **Foliennotizen** gehören zu einem Bild; auf seiner Karte im Album heissen sie Elementnotizen. Man schreibt sie dort mit **Elementnotizen hinzufügen** oder im Referentenfenster mit **Notizen bearbeiten**. Wer das Bild bearbeiten darf, schreibt sie; wer das Bild sieht, liest sie. Die Notizen bleiben bei allen Versionen einer Zeichnung erhalten.
 
 Beide Fenster müssen im selben Browser auf demselben Computer laufen. Personen an anderen Orten folgen über Bildschirmfreigabe.
+
+### Folien von Hand ordnen
+
+Ein Ordner oder eine Sammlung behält eine eigene Reihenfolge der Folien, für alle gleich, die ihn lesen. In einem geöffneten Ordner oder einer Sammlung **Reihenfolge der Folien** statt **Neueste zuerst** wählen: Das Album zeigt die Bilder in der Reihenfolge, in der sie präsentiert werden. Wer den Ordner oder die Sammlung bearbeiten darf, zieht ein Bild auf ein anderes: Auf dessen linke Hälfte fallen gelassen, kommt es davor, auf die rechte Hälfte danach. Ausgewählte Bilder werden gemeinsam verschoben. Ohne Maus bietet das Menü eines Bildes **Eine Stelle nach vorne** und **Eine Stelle nach hinten**.
+
+Im Referentenfenster werden die Folien der Leiste ebenso gezogen; die Reihenfolge wird sofort gespeichert, und das Präsentationsfenster folgt.
+
+Später hinzugefügte Bilder folgen nach den eingereihten, nach Namen; eine neue Version einer Zeichnung behält ihren Platz. **Nach Namen ordnen** verwirft die von Hand gesetzte Reihenfolge. Um ein Bild hinter das letzte gezeigte zu setzen, während weitere folgen, zuerst **Mehr anzeigen** wählen.
 
 ## Zeichnungen und Whiteboards
 

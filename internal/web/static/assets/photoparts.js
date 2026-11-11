@@ -167,6 +167,35 @@ export function dragged(p, chosen, key) {
   return chosen.has(key(p)) ? [...chosen.values()] : [p];
 }
 
+// orderDrop says where pictures dropped onto a picture of a list go in
+// the order of slides set by hand (ADR-0195). firsts are the first
+// versions of the pictures listed, in their order; moved those of the
+// pictures dropped; target the index of the picture dropped onto and
+// after whether onto its latter half; complete whether the list holds
+// every picture, so that after its last one is the end. It answers the
+// first version to place them before, "" for the end, or null when the
+// place is not known: after the last picture shown while more follow.
+export function orderDrop(firsts, moved, target, after, complete) {
+  const skip = new Set(moved);
+  for (let i = after ? target + 1 : target; i < firsts.length; i++) {
+    if (!skip.has(firsts[i])) return firsts[i];
+  }
+  return complete ? "" : null;
+}
+
+// moveWithin moves items of a list as the server moves pictures in the
+// order of slides (ADR-0195): those moved, in the order given, right
+// before the item before names, or to the end when before is "". keyOf
+// names an item.
+export function moveWithin(list, keyOf, moved, before) {
+  const skip = new Set(moved);
+  const rest = list.filter((x) => !skip.has(keyOf(x)));
+  const taken = moved.map((k) => list.find((x) => keyOf(x) === k)).filter(Boolean);
+  const at = before ? rest.findIndex((x) => keyOf(x) === before) : -1;
+  const i = at < 0 ? rest.length : at;
+  return [...rest.slice(0, i), ...taken, ...rest.slice(i)];
+}
+
 // ALBUM_TYPES are the formats the album takes (JPEG, PNG, GIF, WebP), and
 // VIDEO_TYPES its videos (MP4, WebM, QuickTime; ADR-0189).
 export const ALBUM_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];

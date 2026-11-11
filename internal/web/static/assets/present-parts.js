@@ -19,27 +19,32 @@ export const LASER_TRAIL = 350;
 // drawing's marker, as the album shows it.
 export const captionOf = (name) => (name.endsWith(DRAWING) ? name.slice(0, -DRAWING.length) : name.replace(/\.[^.]*$/, ""));
 
-const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
-
-// slidesOf makes the slides of a presentation from the album's pictures:
-// the newest version of each, ordered by name so that "2 Plan" comes
-// before "10 Outlook", and of two with the same name by the item and the
-// file, so the order is the same in every window. A video is a slide too
-// (ADR-0192), played rather than zoomed into or pointed at; poster says
-// whether it has a picture to show until it plays.
+// slidesOf makes the slides of a presentation from the album's pictures,
+// listed as slides (order=slides): the newest version of each, in the
+// order of the folder or collection set by hand, the rest by name so
+// that "2 Plan" comes before "10 Outlook" (ADR-0176, ADR-0195). The
+// server orders them, so the order is the same in every window and in
+// the album. A video is a slide too (ADR-0192), played rather than
+// zoomed into or pointed at; poster says whether it has a picture to
+// show until it plays. first names the picture's stack, by which it is
+// moved within the order.
 export function slidesOf(pictures) {
   return (pictures || []).map((p) => ({
     item: { id: p.item.id, key: p.item.key, title: p.item.title },
     attachment: { id: p.attachment.id, name: p.attachment.name, type: p.attachment.type },
+    first: p.first || p.attachment.id,
     name: captionOf(p.attachment.name),
     notes: p.notes || "",
     editable: !!p.editable,
     drawing: !!p.drawing,
     video: !!p.video,
     poster: !!p.poster,
-  })).sort((a, b) => collator.compare(a.name, b.name) || collator.compare(a.item.key, b.item.key) ||
-    (a.attachment.id < b.attachment.id ? -1 : a.attachment.id > b.attachment.id ? 1 : 0));
+  }));
 }
+
+// orderOf is the folder or collection whose order of slides a deck
+// follows, from the album's filters: "" for a deck of neither.
+export const orderOf = (params) => params.get("collection") || params.get("folder") || "";
 
 // DECK_FILTERS are the album's filters a presentation is chosen by, a
 // collection (ADR-0175) among them.

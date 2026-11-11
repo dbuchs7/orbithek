@@ -119,4 +119,5 @@ Strongest form: anyone may follow from anywhere, as on a whiteboard (ADR-0170); 
 
 - amends [ADR-0054](0054-an-album-of-readable-pictures-inserted-by-copy.md) (the album)
 - amended by [ADR-0192](0192-videos-as-slides-and-from-google-photos-and-icloud.md) (videos as slides)
+- amended by [ADR-0195](0195-the-slides-of-a-folder-or-collection-are-ordered-by-hand.md) (an order of slides set by hand)
 - relates to ADR-0026 (sealed content), ADR-0175 (collections of the album), ADR-0040 (sensitive data), ADR-0090 (folders and labels of pictures), ADR-0103 (versions in the album), ADR-0104 (the rule of a stack on its first version), ADR-0170 (a whiteboard's presentation), ADR-0173 (exporting pictures)
