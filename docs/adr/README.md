@@ -199,7 +199,7 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0184](0184-pictures-are-moved-by-dragging-them-onto-a-folder.md) | Pictures of the album are moved by dragging them onto a folder | Accepted | Landed |
 | [0185](0185-the-user-manual-is-kept-current-by-checks.md) | The user manual is kept current by checks, not by memory alone | Accepted | Landed |
 | [0186](0186-a-presentation-is-imported-into-the-album-as-slides-with-their-notes.md) | A presentation is imported into the album as slides with their notes | Proposed | Partial |
-| [0187](0187-pictures-are-added-where-one-is-in-the-album.md) | Pictures are added where one is in the album, a collection's by its labels | Proposed | Partial |
+| [0187](0187-pictures-are-added-where-one-is-in-the-album.md) | Pictures are added where one is in the album, a collection's by its labels | Accepted | Landed |
 | [0188](0188-a-moved-file-keeps-its-identity.md) | A file moved to another item keeps its identity | Accepted | Landed |
 | [0189](0189-videos-in-the-album.md) | Videos in the album, handled as its pictures are | Accepted | Landed |
 | [0190](0190-a-folder-is-deleted-from-the-album.md) | A folder is deleted from the album, into the trash with what it holds | Accepted | Landed |
