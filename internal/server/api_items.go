@@ -98,6 +98,7 @@ func itemRoutes(d Deps) []Route {
 	routes = append(routes, attachmentRoutes(h)...)
 	routes = append(routes, faceRoutes(h)...)
 	routes = append(routes, photoRoutes(h)...)
+	routes = append(routes, duplicateRoutes(h)...)
 	routes = append(routes, retentionRoutes(h)...)
 	routes = append(routes, noteRoutes(h)...)
 	routes = append(routes, watchRoutes(h)...)

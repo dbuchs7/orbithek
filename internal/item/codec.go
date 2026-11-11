@@ -151,7 +151,10 @@ import (
 //     stacks of a folder or collection of the album in the order of its
 //     slides set by hand; not sealed, as it names files only (ADR-0195).
 //     Versions 1 to 51 are still read; their slides are ordered by name.
-const CodecVersion = 52
+//   - 53: an attachment may carry Fingerprint, how a picture looks, sealed
+//     with the rest of it (ADR-0196). Versions 1 to 52 are still read;
+//     their pictures have no fingerprint.
+const CodecVersion = 53
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

@@ -84,49 +84,9 @@ func (h itemHandlers) album(w http.ResponseWriter, r *http.Request) {
 		ordered, orderable := withSlideRanks(x, &f)
 		// The versions of one file form a stack (ADR-0103), newest on top.
 		all := albumStacks(x, f)
-		type itemRef struct {
-			ID    item.ID `json:"id"`
-			Key   string  `json:"key"`
-			Title string  `json:"title"`
-			Space string  `json:"space"`
-			Type  string  `json:"type"`
-		}
-		type picture struct {
-			Item       itemRef        `json:"item"`
-			Attachment attachmentJSON `json:"attachment"`
-			Drawing    bool           `json:"drawing"`
-			// Video: the file is a video, shown by its poster when it has
-			// one (Poster), else by its symbol (ADR-0189).
-			Video  bool `json:"video,omitempty"`
-			Poster bool `json:"poster,omitempty"`
-			// Used: its item's text shows it, so the album does not delete
-			// it. Editable: the caller may label or delete it (ADR-0090).
-			Used     bool `json:"used"`
-			Editable bool `json:"editable"`
-			// First is the first version of the file, which names its
-			// stack; Favourite whether the caller marked it; Taken when it
-			// was taken, as the album sorts it (ADR-0177).
-			First     item.ID    `json:"first"`
-			Favourite bool       `json:"favourite"`
-			Taken     *takenJSON `json:"taken,omitempty"`
-			// Versions are the older versions of the file, newest first
-			// (ADR-0103); absent for a file with one version.
-			Versions []picture `json:"versions,omitempty"`
-			// Retention is the stack's own rule for its older versions
-			// (ADR-0104); absent while the album's default applies.
-			Retention *retentionJSON `json:"retention,omitempty"`
-			// Notes are the stack's speaker's notes, for showing it as a
-			// slide (ADR-0176); absent without notes.
-			Notes string `json:"notes,omitempty"`
-		}
-		one := func(p item.Picture) picture {
-			return picture{Item: itemRef{p.Item.ID, p.Item.Key, p.Item.Title, p.Item.Space, p.Item.Type},
-				Attachment: toAttachmentJSON(p.Attachment), Drawing: albumKind(p.Attachment) == "drawing", Video: albumVideo(p.Attachment),
-				Poster: albumVideo(p.Attachment) && h.d.DB.HasPoster(p.Item.ID, p.Attachment.ID), Used: p.Used, Editable: p.Editable, First: p.First}
-		}
-		out := []picture{}
+		out := []albumPicture{}
 		for _, st := range all[min(offset, len(all)):min(offset+limit, len(all))] {
-			top := one(st[0])
+			top := h.albumPictureOf(st[0])
 			top.Notes = st[0].Notes
 			taken := takenOf(st[0].Attachment)
 			top.Taken = &taken
@@ -136,7 +96,7 @@ func (h itemHandlers) album(w http.ResponseWriter, r *http.Request) {
 				top.Retention = &rule
 			}
 			for _, p := range st[1:] {
-				top.Versions = append(top.Versions, one(p))
+				top.Versions = append(top.Versions, h.albumPictureOf(p))
 			}
 			out = append(out, top)
 		}
@@ -153,6 +113,53 @@ func (h itemHandlers) album(w http.ResponseWriter, r *http.Request) {
 		}
 		return page, nil
 	})
+}
+
+// albumItemRef names a picture's item in the album's listings.
+type albumItemRef struct {
+	ID    item.ID `json:"id"`
+	Key   string  `json:"key"`
+	Title string  `json:"title"`
+	Space string  `json:"space"`
+	Type  string  `json:"type"`
+}
+
+// albumPicture is a picture as the album lists it (ADR-0054).
+type albumPicture struct {
+	Item       albumItemRef   `json:"item"`
+	Attachment attachmentJSON `json:"attachment"`
+	Drawing    bool           `json:"drawing"`
+	// Video: the file is a video, shown by its poster when it has
+	// one (Poster), else by its symbol (ADR-0189).
+	Video  bool `json:"video,omitempty"`
+	Poster bool `json:"poster,omitempty"`
+	// Used: its item's text shows it, so the album does not delete
+	// it. Editable: the caller may label or delete it (ADR-0090).
+	Used     bool `json:"used"`
+	Editable bool `json:"editable"`
+	// First is the first version of the file, which names its
+	// stack; Favourite whether the caller marked it; Taken when it
+	// was taken, as the album sorts it (ADR-0177).
+	First     item.ID    `json:"first"`
+	Favourite bool       `json:"favourite"`
+	Taken     *takenJSON `json:"taken,omitempty"`
+	// Versions are the older versions of the file, newest first
+	// (ADR-0103); absent for a file with one version.
+	Versions []albumPicture `json:"versions,omitempty"`
+	// Retention is the stack's own rule for its older versions
+	// (ADR-0104); absent while the album's default applies.
+	Retention *retentionJSON `json:"retention,omitempty"`
+	// Notes are the stack's speaker's notes, for showing it as a
+	// slide (ADR-0176); absent without notes.
+	Notes string `json:"notes,omitempty"`
+}
+
+// albumPictureOf is a picture as the album lists it, without the parts
+// that belong to its stack (versions, rule, notes, favourite, taken).
+func (h itemHandlers) albumPictureOf(p item.Picture) albumPicture {
+	return albumPicture{Item: albumItemRef{p.Item.ID, p.Item.Key, p.Item.Title, p.Item.Space, p.Item.Type},
+		Attachment: toAttachmentJSON(p.Attachment), Drawing: albumKind(p.Attachment) == "drawing", Video: albumVideo(p.Attachment),
+		Poster: albumVideo(p.Attachment) && h.d.DB.HasPoster(p.Item.ID, p.Attachment.ID), Used: p.Used, Editable: p.Editable, First: p.First}
 }
 
 type attachmentJSON struct {
@@ -605,6 +612,9 @@ func (h itemHandlers) uploadAttachment(w http.ResponseWriter, r *http.Request) {
 	if place == placePrivate {
 		a.Photo = keepPrivate(a.Photo)
 	}
+	// So is how a picture looks, by which the album finds duplicates
+	// (ADR-0196).
+	a.Fingerprint = h.makeFingerprint(r.Context(), id, a)
 	if q := r.URL.Query(); q.Get("sourceItem") != "" || q.Get("sourceAttachment") != "" {
 		a.Source = &item.Source{Item: item.ID(q.Get("sourceItem")), Attachment: item.ID(q.Get("sourceAttachment"))}
 	}

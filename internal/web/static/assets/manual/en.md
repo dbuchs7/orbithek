@@ -203,7 +203,8 @@ The **Album** shows the pictures and drawings of every page and task you may rea
 - **Timeline**: by the month they were taken;
 - **Favourites**: the pictures you marked with the star;
 - **On this day**: pictures taken on this day in earlier years;
-- **Map**: the places where pictures were taken.
+- **Map**: the places where pictures were taken;
+- **Duplicates**: pictures that are the same file or look the same (see *Duplicates*).
 
 Search by name, label, key or title, and narrow by kind, room and label. The search also takes a date and finds the pictures taken then, or added then when a picture tells no time: a year (*2026*), a month (*11.2026*, *2026-11*, *November 2026*), a day (*10.11.2026*, *2026-11-10*, *10 November 2026*), or a day or month without a year (*10.11.*, *November*), which finds it in every year.
 
@@ -232,6 +233,17 @@ Videos come into the album the same ways as pictures: uploaded, dropped, pasted,
 - A click plays the video in the viewer. Whether a MOV video plays depends on the browser: Safari plays it, other browsers often only when it was recorded as H.264 rather than HEVC. Otherwise choose **Download**.
 - The kind filter **Videos** shows only videos. Videos are not exported as PNG or JPEG.
 - When presenting, a video is a slide: it shows its poster until the space bar or a click starts it, in the presentation window, with sound there only. The space bar pauses it again; the arrow keys go on. It cannot be zoomed or pointed at.
+
+### Duplicates
+
+Before pictures and videos are uploaded, dropped or pasted, the browser checks whether they are already in the album, in every folder you may read:
+
+- **Same file**: a picture with exactly the same content;
+- **Looks the same**: the same picture saved again, smaller, in another format or without its place. Its proportions must be the same; a picture cut differently is no duplicate.
+
+Files chosen twice count too. If duplicates are found, a dialog lists each file with the pictures it matches and their folders. Ticked files are skipped: **Skip ticked files** adds the others, **Add all** adds everything, **Cancel** adds nothing. Videos are compared as files only. Copies made with **Add from the album…** are no duplicates of their original. The check needs a secure connection (HTTPS); without one, files are added unchecked.
+
+The view **Duplicates** shows groups of pictures that are the same file or look the same, newest group first, as far as the room filter narrows it. Choose pictures there and delete them as in every view. Pictures added before this check existed are compared as the album gets to them: the view says how many still wait and compares more each time it opens.
 
 ### Faces and people
 
