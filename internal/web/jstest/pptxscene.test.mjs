@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { deflateRawSync } from "node:zlib";
 import { parseXML, readDeck } from "../static/assets/pptx.js";
 import {
-  colorOf, css, readTheme, fillOf, lineOf, xfrmOf, boxMatrix, apply, textOf, autoNumber, geometry, findPlaceholder, slideScene, KNOWN, defaultBox,
+  colorOf, css, readTheme, fillOf, lineOf, xfrmOf, boxMatrix, apply, textOf, autoNumber, geometry, findPlaceholder, slideScene, KNOWN, defaultBox, textRect,
 } from "../static/assets/pptxscene.js";
 import { layoutText, fitText, family, fontCSS } from "../static/assets/pptxdraw.js";
 
@@ -168,6 +168,16 @@ test("preset shapes trace their outlines; unknown ones are rectangles", () => {
     { op: "quadBezTo", pts: [["10", "10"], ["20", "20"]] }, { op: "close", pts: [] }] }] }, 200, 50).paths[0].cmds;
   assert.deepEqual([custom[1].x, custom[1].y], [200, 50], "freeform points scale to the shape");
   assert.deepEqual(custom.map((c) => c.op), ["M", "L", "C", "E", "Q", "Z"]);
+});
+
+test("text stands in a shape's text rectangle: an ellipse's inscribed one, a triangle's lower half", () => {
+  assert.deepEqual(textRect({ preset: "rect", adj: {} }, 100, 50), { x: 0, y: 0, w: 100, h: 50 });
+  const e = textRect({ preset: "ellipse", adj: {} }, 100, 100);
+  near(e.x, 14.64); near(e.w, 70.72);
+  assert.deepEqual(textRect({ preset: "triangle", adj: {} }, 100, 100), { x: 25, y: 50, w: 50, h: 50 });
+  assert.deepEqual(textRect({ preset: "chevron", adj: {} }, 200, 100), { x: 50, y: 0, w: 150, h: 100 });
+  for (const p of KNOWN) { const r = textRect({ preset: p, adj: {} }, 100, 60); assert.ok(r.w > 0 && r.h > 0 && r.x >= 0 && r.x + r.w <= 100.001, p); }
+  assert.deepEqual(textRect({ custom: true, paths: [] }, 10, 20), { x: 0, y: 0, w: 10, h: 20 });
 });
 
 // ---- a whole slide ----

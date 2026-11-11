@@ -590,7 +590,7 @@ async function shapeItem(sp, env, m, out, groupFill) {
   out.push({
     kind: "shape", m: mul(m, boxMatrix(t)), tm: mul(m, boxMatrix(t, false)), w: t.w, h: t.h, geom: g, fill, line,
     text: text && text.paragraphs.some((p) => p.runs.some((r) => r.text.trim())) ? text : null,
-    textBox: txX ? { x: txX.x - t.x, y: txX.y - t.y, w: txX.w, h: txX.h } : null,
+    textBox: txX ? { x: txX.x - t.x, y: txX.y - t.y, w: txX.w, h: txX.h } : textRect(g, t.w, t.h),
   });
 }
 
@@ -875,6 +875,38 @@ export function geometry(g, w, h) {
     case "cube": { const d = ss * a("adj", 25000); return { paths: [{ cmds: poly([[0, d], [d, 0], [w, 0], [w, h - d], [w - d, h], [0, h]]), fill: true, stroke: true }, { cmds: [P(0, d), L(w - d, d), L(w, 0), P(w - d, d), L(w - d, h)], fill: false, stroke: true }] }; }
     case "can": { const d = ss * a("adj", 25000) / 2; return { paths: [{ cmds: [P(0, d), L(0, h - d), { op: "E", cx: w / 2, cy: h - d, rx: w / 2, ry: d, a0: Math.PI, a1: 0, ccw: true }, L(w, d), { op: "E", cx: w / 2, cy: d, rx: w / 2, ry: d, a0: 0, a1: Math.PI, ccw: true }, Z], fill: true, stroke: true }, { cmds: [{ op: "E", cx: w / 2, cy: d, rx: w / 2, ry: d, a0: Math.PI, a1: 0, ccw: true }], fill: false, stroke: true }] }; }
     default: return one(poly([[0, 0], [w, 0], [w, h], [0, h]]));
+  }
+}
+
+// textRect is the part of a shape of size w × h its text is laid out in,
+// as the presets define it: inside an ellipse's inscribed rectangle, a
+// triangle's lower half, an arrow's shaft. Others take their whole box.
+export function textRect(g, w, h) {
+  const a = (name, d) => ((g.adj || {})[name] ?? d) / 100000;
+  const ss = Math.min(w, h);
+  const r = (l, t, rr, b) => ({ x: l, y: t, w: Math.max(0, rr - l), h: Math.max(0, b - t) });
+  switch (g.custom ? "" : g.preset) {
+    case "ellipse": case "flowChartConnector": return r(w * 0.1464, h * 0.1464, w * 0.8536, h * 0.8536);
+    case "roundRect": case "flowChartAlternateProcess": { const i = Math.min(ss * a("adj", 16667), w / 2, h / 2) * 0.2929; return r(i, i, w - i, h - i); }
+    case "flowChartTerminator": { const i = (ss / 2) * 0.2929; return r(i, 0, w - i, h); }
+    case "triangle": { const x = w * a("adj", 50000); return r(x / 2, h / 2, (x + w) / 2, h); }
+    case "rtTriangle": return r(w / 12, h * 7 / 12, w * 7 / 12, h * 11 / 12);
+    case "diamond": case "flowChartDecision": return r(w / 4, h / 4, w * 3 / 4, h * 3 / 4);
+    case "chevron": { const x = ss * a("adj", 50000); return r(x, 0, w, h); }
+    case "homePlate": { const x = ss * a("adj", 50000); return r(0, 0, w - x / 2, h); }
+    case "rightArrow": case "notchedRightArrow": { const t = h * a("adj1", 50000) / 2; return r(0, h / 2 - t, w - ss * a("adj2", 50000) / 2, h / 2 + t); }
+    case "leftArrow": { const t = h * a("adj1", 50000) / 2; return r(ss * a("adj2", 50000) / 2, h / 2 - t, w, h / 2 + t); }
+    case "leftRightArrow": { const t = h * a("adj1", 50000) / 2, x = ss * a("adj2", 50000) / 2; return r(x, h / 2 - t, w - x, h / 2 + t); }
+    case "upArrow": { const t = w * a("adj1", 50000) / 2; return r(w / 2 - t, ss * a("adj2", 50000) / 2, w / 2 + t, h); }
+    case "downArrow": { const t = w * a("adj1", 50000) / 2; return r(w / 2 - t, 0, w / 2 + t, h - ss * a("adj2", 50000) / 2); }
+    case "hexagon": { const x = ss * a("adj", 25000) / 2; return r(x, 0, w - x, h); }
+    case "octagon": { const x = ss * a("adj", 29289) / 2; return r(x, x, w - x, h - x); }
+    case "parallelogram": case "trapezoid": { const x = ss * a("adj", 25000) / 2; return r(x, 0, w - x, h); }
+    case "pentagon": return r(w * 0.2, h * 0.38, w * 0.8, h);
+    case "plus": { const x = ss * a("adj", 25000); return r(0, x, w, h - x); }
+    case "star5": return r(w * 0.31, h * 0.38, w * 0.69, h * 0.75);
+    case "donut": return r(w * 0.1464, h * 0.1464, w * 0.8536, h * 0.8536);
+    default: return r(0, 0, w, h);
   }
 }
 
