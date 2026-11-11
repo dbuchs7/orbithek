@@ -65,7 +65,7 @@ func TestWhenAPhotoWasTaken(t *testing.T) {
 
 // TestAFingerprintIsCheckedAndKept: a picture's fingerprint has 16
 // hexadecimal digits, travels with it when it moves and goes with a
-// deleted version (ADR-0195).
+// deleted version (ADR-0196).
 func TestAFingerprintIsCheckedAndKept(t *testing.T) {
 	s := setup(t)
 	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))

@@ -2,7 +2,7 @@
 // what a picture tells about itself — capture time, place, camera and
 // exposure from its EXIF data, and its pixel size from its header — and it
 // makes thumbnails and fingerprints, by which pictures that look the same
-// are found (ADR-0195).
+// are found (ADR-0196).
 //
 // Pictures are uploads and therefore untrusted. Read is best effort and never
 // panics; every loop over the file's structure (segments, chunks, IFD

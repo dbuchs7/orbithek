@@ -30,11 +30,13 @@ func attachmentRoutes(h itemHandlers) []Route {
 		{Method: http.MethodPost, Pattern: "/api/items/{ref}/attachments/{id}/move", Summary: "Move a file with all its versions to another item (to), keeping its identity: its versions, labels, notes, place and favourites go with it, and copies find it there; who may edit both items may. A file the item's text shows, a protected file and a drawing that comments are on stay (ADR-0188)", Handler: http.HandlerFunc(h.moveFile)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/poster", Summary: "Keep a picture taken from a video as its poster (JPEG, PNG or WebP, application/octet-stream), shown in the album in its place; who may add files to the item may (ADR-0189)", Handler: http.HandlerFunc(h.setPoster)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/notes", Summary: "Set a picture's speaker's notes (notes, plain text; empty clears them), kept on the file's first version so every version shows them (ADR-0176)", Handler: http.HandlerFunc(h.setPictureNotes)},
-		{Method: http.MethodGet, Pattern: "/api/album", Summary: "The album: images, drawings and videos of every item one may read, newest first, the versions of one file stacked under the newest (versions); space, folder (only its pictures), collection (the pictures of every room its rule gathers), q (name, label, key or title, or a day, month or year the picture was taken, e.g. 2026, 11.2026, 10.11.2026, 2026-11-10, November 2026, 10.11. for that day in every year), label, kind (image, drawing or video), offset and limit narrow it; person narrows to the pictures that show a person (ADR-0194)", Handler: http.HandlerFunc(h.album)},
+		{Method: http.MethodGet, Pattern: "/api/album", Summary: "The album: images, drawings and videos of every item one may read, newest first (order=taken: by when they were taken; order=slides: as the slides of a presentation, by the order of the folder or collection set by hand, saying so with ordered and whether one may change it with orderable, the rest by name), the versions of one file stacked under the newest (versions); space, folder (only its pictures), collection (the pictures of every room its rule gathers), q (name, label, key or title, or a day, month or year the picture was taken, e.g. 2026, 11.2026, 10.11.2026, 2026-11-10, November 2026, 10.11. for that day in every year), label, kind (image, drawing or video), offset and limit narrow it; person narrows to the pictures that show a person (ADR-0194)", Handler: http.HandlerFunc(h.album)},
 		{Method: http.MethodGet, Pattern: "/api/album/folders", Summary: "The album's folders one may read, by name, each saying whether one may add pictures to it (editable), then its collections (collections, each with its rule): in space (every space when empty), right below parent (the top when empty)", Handler: http.HandlerFunc(h.albumFolders)},
 		{Method: http.MethodPost, Pattern: "/api/album/folders", Summary: "Make a folder of the album: name, and space or parent (a folder); who may create there may", Handler: http.HandlerFunc(h.createAlbumFolder)},
 		{Method: http.MethodPost, Pattern: "/api/album/collections", Summary: "Make a collection of the album, which gathers the labelled pictures of every room: name, space or parent (a folder), labels, match (any or all) and items (the labels of a picture's item count too); who may create there may", Handler: http.HandlerFunc(h.createAlbumCollection)},
 		{Method: http.MethodPut, Pattern: "/api/album/collections/{ref}", Summary: "Change a collection's rule: labels, match (any or all) and items; who may edit the collection may", Handler: http.HandlerFunc(h.setAlbumCollection)},
+		{Method: http.MethodPut, Pattern: "/api/album/order/{ref}", Summary: "Move pictures within the order of the slides of a folder or collection ({ref}), set by hand: pictures (the first versions of their stacks, first, in the order they are to have) go right before before, or to the end without it; the album lists the pictures so with order=slides, those the order does not name after the others by name; who may edit the folder or collection may (ADR-0195)", Handler: http.HandlerFunc(h.placePictures)},
+		{Method: http.MethodDelete, Pattern: "/api/album/order/{ref}", Summary: "Forget the order of the slides set by hand of a folder or collection ({ref}): its slides are ordered by name again; who may edit it may (ADR-0195)", Handler: http.HandlerFunc(h.clearPictureOrder)},
 		{Method: http.MethodGet, Pattern: "/api/album/labels", Summary: "The labels of the pictures one may read, most used first (space; q: holding it)", Handler: http.HandlerFunc(h.albumLabels)},
 	}
 }
@@ -78,6 +80,8 @@ func (h itemHandlers) album(w http.ResponseWriter, r *http.Request) {
 		if err := withCollection(x, &f, q.Get("collection")); err != nil {
 			return nil, err
 		}
+		// Ordered as slides: by the order set by hand (ADR-0195).
+		ordered, orderable := withSlideRanks(x, &f)
 		// The versions of one file form a stack (ADR-0103), newest on top.
 		all := albumStacks(x, f)
 		out := []albumPicture{}
@@ -100,7 +104,14 @@ func (h itemHandlers) album(w http.ResponseWriter, r *http.Request) {
 		if offset+limit < len(all) {
 			next = offset + limit
 		}
-		return map[string]any{"pictures": out, "total": len(all), "next": next}, nil
+		page := map[string]any{"pictures": out, "total": len(all), "next": next}
+		if ordered {
+			page["ordered"] = true
+		}
+		if orderable {
+			page["orderable"] = true
+		}
+		return page, nil
 	})
 }
 
@@ -317,6 +328,43 @@ func (h itemHandlers) setPictureNotes(w http.ResponseWriter, r *http.Request) {
 			return x.SetPictureNotes(it.ID, item.ID(r.PathValue("id")), req.Notes)
 		})
 	}
+}
+
+// placePictures moves pictures within the order of the slides of a
+// folder or collection set by hand (ADR-0195).
+func (h itemHandlers) placePictures(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Pictures []item.ID `json:"pictures"`
+		Before   item.ID   `json:"before"`
+	}
+	if !decode(w, r, &req) {
+		return
+	}
+	h.write(w, r, http.StatusOK, func(x *item.Session, _ *item.Store) (any, error) {
+		it, err := resolveItem(x, r.PathValue("ref"))
+		if err != nil {
+			return nil, err
+		}
+		if err := x.PlacePictures(it.ID, req.Pictures, req.Before); err != nil {
+			return nil, err
+		}
+		return map[string]bool{"ordered": true}, nil
+	})
+}
+
+// clearPictureOrder forgets the order of the slides set by hand of a
+// folder or collection (ADR-0195).
+func (h itemHandlers) clearPictureOrder(w http.ResponseWriter, r *http.Request) {
+	h.write(w, r, http.StatusOK, func(x *item.Session, _ *item.Store) (any, error) {
+		it, err := resolveItem(x, r.PathValue("ref"))
+		if err != nil {
+			return nil, err
+		}
+		if err := x.ClearPictureOrder(it.ID); err != nil {
+			return nil, err
+		}
+		return map[string]bool{"ordered": false}, nil
+	})
 }
 
 // albumFolders lists the album's folders (ADR-0090) and, beside them,
@@ -565,7 +613,7 @@ func (h itemHandlers) uploadAttachment(w http.ResponseWriter, r *http.Request) {
 		a.Photo = keepPrivate(a.Photo)
 	}
 	// So is how a picture looks, by which the album finds duplicates
-	// (ADR-0195).
+	// (ADR-0196).
 	a.Fingerprint = h.makeFingerprint(r.Context(), id, a)
 	if q := r.URL.Query(); q.Get("sourceItem") != "" || q.Get("sourceAttachment") != "" {
 		a.Source = &item.Source{Item: item.ID(q.Get("sourceItem")), Attachment: item.ID(q.Get("sourceAttachment"))}

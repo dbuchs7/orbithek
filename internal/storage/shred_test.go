@@ -74,7 +74,7 @@ func TestContentIsNeverWrittenInPlaintext(t *testing.T) {
 	noErr(t, db.Store.As("anna").SetPictureLabels(it.ID, pic, []string{secret}))
 	noErr(t, db.Store.As("anna").SetPictureNotes(it.ID, pic, "Say: "+secret))
 	noErr(t, db.Store.As("anna").RenameFile(it.ID, pic, "Plan "+secret))
-	// So is how a picture looks (ADR-0195).
+	// So is how a picture looks (ADR-0196).
 	const look = "5ea1ed5ea1ed5ea1"
 	_, err = db.Store.AddAttachment("anna", it.ID, item.Attachment{ID: "0123456789abcdef0123456789abcde0", Name: "look.png", Type: "image/png", Size: 3, SHA256: strings.Repeat("cd", 32), Fingerprint: look})
 	noErr(t, err)

@@ -17,7 +17,7 @@ import (
 )
 
 // duplicateRoutes are the routes that find duplicate pictures in the album
-// (ADR-0195). Neither is an MCP tool: they serve the album's upload and
+// (ADR-0196). Neither is an MCP tool: they serve the album's upload and
 // its view of duplicates, both in the browser.
 func duplicateRoutes(h itemHandlers) []Route {
 	return []Route{
@@ -27,7 +27,7 @@ func duplicateRoutes(h itemHandlers) []Route {
 }
 
 // fingerprints keeps the fingerprints made of pictures stored before
-// fingerprints were recorded (ADR-0195), by their content's SHA-256; ""
+// fingerprints were recorded (ADR-0196), by their content's SHA-256; ""
 // says one was tried and the picture has none. It holds 16 hexadecimal
 // digits per picture of the store at most.
 type fingerprints struct {
@@ -282,7 +282,7 @@ type duplicateJSON struct {
 	Same bool `json:"same"`
 }
 
-// albumDuplicates answers the groups of duplicate pictures (ADR-0195).
+// albumDuplicates answers the groups of duplicate pictures (ADR-0196).
 func (h itemHandlers) albumDuplicates(w http.ResponseWriter, r *http.Request) {
 	var cands []duplicate
 	h.d.DB.Read(func(s *item.Store) { cands = h.duplicateCandidates(s.As(who(r)), r.URL.Query().Get("space")) })
@@ -333,7 +333,7 @@ type fileCheck struct {
 var sha256Hex = regexp.MustCompile(`^[0-9a-f]{64}$`)
 
 // checkDuplicates answers which readable pictures are duplicates of files
-// about to be added (ADR-0195).
+// about to be added (ADR-0196).
 func (h itemHandlers) checkDuplicates(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Files []fileCheck `json:"files"`

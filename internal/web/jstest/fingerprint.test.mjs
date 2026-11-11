@@ -1,4 +1,4 @@
-// Unit tests of how the album compares pictures (fingerprint.js, ADR-0195).
+// Unit tests of how the album compares pictures (fingerprint.js, ADR-0196).
 // They run in Node.js without a browser:
 //
 //   node --test "internal/web/jstest/*.test.mjs"

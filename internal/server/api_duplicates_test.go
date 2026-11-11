@@ -67,7 +67,7 @@ func groupNames(t *testing.T, c *client, query string) ([][]string, map[string]a
 
 // TestTheAlbumFindsDuplicates: the same file in two folders and the same
 // picture scaled and encoded again form one group; another picture is in
-// none; only pictures one may read are compared (ADR-0195).
+// none; only pictures one may read are compared (ADR-0196).
 func TestTheAlbumFindsDuplicates(t *testing.T) {
 	w := newPhotoWorld(t)
 	lake := landscape(400, 300, 1)
@@ -189,7 +189,7 @@ func TestOlderPicturesAreComparedAsTheyAreRead(t *testing.T) {
 
 // TestFilesAboutToBeAddedAreChecked: the browser asks before an upload
 // which readable pictures are the same file or look the same as the files
-// chosen (ADR-0195).
+// chosen (ADR-0196).
 func TestFilesAboutToBeAddedAreChecked(t *testing.T) {
 	w := newPhotoWorld(t)
 	lake := landscape(400, 300, 1)

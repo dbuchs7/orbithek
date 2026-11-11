@@ -1,4 +1,4 @@
-// Duplicates in the album (ADR-0195): before files are added, the browser
+// Duplicates in the album (ADR-0196): before files are added, the browser
 // reads each one's SHA-256 and, for a picture, how it looks, asks the
 // server which readable pictures are the same file or look the same, and
 // asks the person which files to skip; the album's view of duplicates

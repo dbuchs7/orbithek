@@ -9,7 +9,7 @@ import (
 )
 
 // A fingerprint tells pictures that look the same apart from others
-// (ADR-0195): a difference hash of the picture turned upright. The picture
+// (ADR-0196): a difference hash of the picture turned upright. The picture
 // is reduced by area averaging to a grid of 9×8 cells of grey, and each of
 // the 64 bits says whether a cell is brighter than its right neighbour. It
 // survives scaling, a new encoding and a removed place, all of which change

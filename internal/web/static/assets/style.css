@@ -963,8 +963,7 @@ dialog.drawing::backdrop { background: rgba(20, 22, 26, .45); }
 /* The album as a photo library (ADR-0177). */
 .album-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 8px; }
 .album-bar .segmented { margin: 0; }
-.album-bar #album-choose { margin-left: auto; }
-.album-favourite { flex: none; min-width: 28px; height: 24px; padding: 0 4px; border: 1px solid transparent; border-radius: 6px; background: none; color: var(--muted); font-size: 16px; line-height: 20px; cursor: pointer; }
+.album-favourite { flex: none; min-width: 28px; height: 24px; min-height: 0; margin: 0; padding: 0 4px; border: 1px solid transparent; border-radius: 6px; background: none; color: var(--muted); font-size: 16px; line-height: 20px; cursor: pointer; }
 .album-favourite[aria-pressed="true"] { color: #d4a000; }
 .album-favourite:hover { background: var(--row-hover); }
 .album-card { position: relative; }
@@ -984,6 +983,10 @@ dialog.drawing::backdrop { background: rgba(20, 22, 26, .45); }
 .album-card[draggable="true"] { cursor: grab; }
 .album.dragging-pictures .album-folder:not(.album-collection), .album.dragging-pictures .album-trail button[title] { outline: 1px dashed var(--accent); outline-offset: 2px; }
 .album .drop-target, .album.dragging-pictures .drop-target { outline: 2px solid var(--accent); outline-offset: 2px; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+/* Where pictures dropped among others go in the order of slides (ADR-0195). */
+.album-card.drop-before, .present-thumb.drop-before { box-shadow: -4px 0 0 0 var(--accent); }
+.album-card.drop-after, .present-thumb.drop-after { box-shadow: 4px 0 0 0 var(--accent); }
+.present-thumb[draggable="true"] { cursor: grab; }
 .album-icloud { flex-basis: 100%; display: flex; flex-direction: column; gap: 8px; max-width: 40rem; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
 .album-icloud p { margin: 0; }
 dialog.photo-viewer { width: min(1200px, calc(100vw - 24px)); height: min(860px, calc(100vh - 24px)); padding: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: inherit; }
@@ -1035,7 +1038,8 @@ dialog.photo-viewer #photo-viewer-close { margin-left: auto; }
 .photo-place-choice { display: flex; flex-direction: column; gap: 6px; }
 .photo-place-choice:empty { display: none; }
 .photo-place-choice p { margin: 0; }
-.album-import-place { flex-direction: row; align-items: center; gap: 6px; }
+.field.album-import-place { flex-direction: row; align-items: center; gap: 6px; margin: 0; }
+.field.album-import-place > span { font-size: 13px; color: var(--muted); white-space: nowrap; }
 .photo-map-chosen { display: flex; align-items: baseline; gap: 8px; margin: 12px 0 0; }
 .place-input { position: relative; }
 .place-suggestions { position: absolute; z-index: 5; left: 0; right: 0; top: 100%; margin: 2px 0 0; padding: 4px 0; list-style: none; max-height: 18rem; overflow: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 4px 12px rgba(0, 0, 0, .12); }
@@ -1068,8 +1072,19 @@ dialog.retention-dialog .drawing-bar button { margin-left: auto; }
 .retention-version.remove .retention-state { background: #fde2e2; color: #a12020; }
 .retention-version.used .retention-state { background: #fff5e6; color: #8a4b00; }
 #album-retention .retention-fields { margin-bottom: 8px; }
-.album-trail { margin: 8px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+/* Where one is, with what changes the open folder beside it; below it
+   what adds pictures, the hint on a line of its own; right above the
+   pictures their number, choosing several and presenting them. */
+.album-location { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 16px 0 8px; }
+.album-trail { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 1.05rem; }
+.album-manage { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
+.album-manage:empty { display: none; }
 .album-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.album-tools:empty { display: none; }
+.album-tools > .album-rule-text { flex-basis: 100%; margin: 0; }
+.album-tools > .album-drop-hint { flex-basis: 100%; margin: -2px 0 0; font-size: 12px; }
+.album-count-row { margin: 16px 0 8px; padding-top: 12px; border-top: 1px solid var(--border); }
+.album-count-row > #album-choose[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
 .album-new-folder { display: flex; gap: 8px; flex: 1 1 100%; }
 .album-folders { list-style: none; margin: 8px 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
 .album-folder { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; text-align: left; overflow-wrap: anywhere; }
@@ -2534,7 +2549,9 @@ body.presenting main#app { padding: 0; max-width: none; }
 body.presenting-show { background: #000; }
 .album-count-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .album-count-row p { margin: 0; }
-.album-notes { padding: 0 12px 8px; font-size: 0.85rem; }
+.album-notes { padding: 0; font-size: 12px; }
+button.link.album-notes-edit { font-size: 12px; color: var(--muted); }
+button.link.album-notes-edit:hover { color: var(--accent); }
 .album-notes.muted { margin: 0; }
 .album-notes-input { width: 100%; box-sizing: border-box; font: inherit; resize: vertical; }
 .album-notes-actions { display: flex; gap: 8px; align-items: center; margin-top: 6px; }

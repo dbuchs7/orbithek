@@ -208,6 +208,8 @@ Das **Album** zeigt die Bilder und Zeichnungen aller Seiten und Aufgaben, die ma
 
 Man sucht nach Name, Label, Schlüssel oder Titel und schränkt nach Art, Raum und Label ein. Die Suche nimmt auch ein Datum und findet die Bilder, die dann aufgenommen wurden, oder, wenn ein Bild keine Zeit nennt, dann hinzugefügt wurden: ein Jahr (*2026*), einen Monat (*11.2026*, *2026-11*, *November 2026*), einen Tag (*10.11.2026*, *2026-11-10*, *10. November 2026*) oder einen Tag oder Monat ohne Jahr (*10.11.*, *November*), der in jedem Jahr gefunden wird.
 
+In der Ansicht **Ordner** steht über dem Inhalt der Pfad zum offenen Ordner, daneben, was den Ordner selbst ändert: **Neuer Ordner**, **Neue Sammlung** und **Ordner löschen**, in einer Sammlung **Regel ändern** und **Sammlung löschen**. Darunter folgen die Wege, Bilder hinzuzufügen, dann die Ordner und direkt über den Bildern ihre Zahl, **Mehrere auswählen** und **N Bilder präsentieren**.
+
 ### Hochladen und importieren
 
 Bilder werden dort hinzugefügt, wo man gerade ist, in der Ansicht **Ordner**:
@@ -216,7 +218,7 @@ Bilder werden dort hinzugefügt, wo man gerade ist, in der Ansicht **Ordner**:
 - *In einer Sammlung* gelten dieselben Wege. Eine Sammlung hält keine eigenen Dateien; das Album fragt deshalb, in welchem Ordner die neuen Bilder abgelegt werden, wobei der zuletzt gewählte Ordner vorne steht, oder legt einen **Neuer Ordner…** an. Jedes Bild erhält die Labels der Sammlung und erscheint so in ihr. **Aus dem Album hinzufügen…** gibt Bildern, die schon im Album sind, die Labels der Sammlung, ohne sie zu kopieren.
 - *Ganz oben* im Album fragt das Hochladen, Ablegen oder Einfügen ebenfalls nach dem Ordner, der sich danach öffnet.
 
-Eine PowerPoint-Präsentation kommt mit den Bildern ihrer Folien (siehe *Eine PowerPoint-Präsentation importieren*). Aus Foto-Apps exportierte Bilder werden im Browser entpackt. Sofern eingeschaltet, kommen Fotos auch **Aus Google Fotos** oder **Aus geteiltem iCloud-Album**. HEIC-Fotos werden nicht übernommen; sie sind vorher als JPEG zu exportieren. Videos aus Google Fotos und geteilten iCloud-Alben kommen ebenfalls, mit dem Bild, das der Dienst von ihnen hat, als Vorschaubild.
+Eine PowerPoint-Präsentation wird zu einem Ordner von Folien mit ihren Notizen (siehe *Eine PowerPoint-Präsentation importieren*). Aus Foto-Apps exportierte Bilder werden im Browser entpackt. Sofern eingeschaltet, kommen Fotos auch **Aus Google Fotos** oder **Aus geteiltem iCloud-Album**. HEIC-Fotos werden nicht übernommen; sie sind vorher als JPEG zu exportieren. Videos aus Google Fotos und geteilten iCloud-Alben kommen ebenfalls, mit dem Bild, das der Dienst von ihnen hat, als Vorschaubild.
 
 Der **Ort beim Import** eines Ordners bestimmt, was mit dem Aufnahmeort eines Fotos geschieht: **Für alle behalten**, **Nur für mich** oder **Aus der Datei entfernen**. Pro Bild lässt sich der Ort später nur für sich behalten oder allen zeigen.
 
@@ -259,14 +261,15 @@ Gesichter werden im eigenen Browser gefunden; nichts wird anderswohin gesendet. 
 
 ### Eine PowerPoint-Präsentation importieren
 
-Eine Präsentation wird zu einem Ordner von Folien, bereit zum Präsentieren mit ihren Foliennotizen:
-
-1. In PowerPoint **Datei › Exportieren › Dateityp ändern › PNG** (oder JPEG) wählen und **Alle Folien** exportieren. PowerPoint schreibt ein Bild pro Folie, etwa *Folie1.PNG* oder *Slide1.PNG*.
-2. Im Album den Ordner öffnen, in den die Präsentation gehört, und **Bilder hochladen** wählen. Die *.pptx*-Datei zusammen mit all diesen Bildern wählen oder zusammen mit einem ZIP-Archiv davon; Ablegen auf dem Ordner funktioniert ebenfalls.
+Eine Präsentation wird zu einem Ordner von Folien, bereit zum Präsentieren mit ihren Foliennotizen. Im Album den Ordner öffnen, in den die Präsentation gehört, **Bilder hochladen** wählen und die *.pptx*-Datei wählen – oder sie einfach auf dem Ordner ablegen.
 
 Im offenen Ordner entsteht ein Ordner mit dem Namen der Präsentation und öffnet sich. Jede Folie wird zu einem Bild, benannt nach ihrer Stelle und ihrem Titel, etwa *03 Unsere Ziele.png*, sodass das Album die Reihenfolge der Folien behält; die Notizen der Folie werden zu den Foliennotizen des Bildes. Ausgeblendete Folien werden weggelassen, wie eine Bildschirmpräsentation sie weglässt.
 
-Eine Präsentationsdatei enthält keine Bilder ihrer Folien; deshalb sind die exportierten Bilder nötig. Die Bilder werden den Folien über die Zahlen in ihren Namen zugeordnet. Passen sie nicht, wird nichts übernommen und das Album nennt, wie viele Folien und Bilder es gefunden hat. Nur die Bilder und die Notizen gelangen auf den Server, nicht die Präsentationsdatei. Animationen, Übergänge, Videos und die Kommentare der Präsentation werden nicht übernommen; *.ppt*-Dateien älterer Versionen sind zuerst als *.pptx* zu speichern.
+Eine Präsentationsdatei enthält keine Bilder ihrer Folien, deshalb zeichnet der Browser jede Folie selbst: Hintergründe, Text mit Aufzählungszeichen und Nummerierung, Formen, Bilder, Tabellen und SmartArt, in den Farben und Schriften der Präsentation. Das Ergebnis kommt dem Original nahe, ist aber nicht immer gleich: Eine Schrift, die auf dem Computer fehlt, wird durch eine ähnliche ersetzt, sodass Zeilen anders umbrechen können, und Effekte wie Schatten fehlen. Diagramme, eingebettete Objekte und Bilder in Formaten, die der Browser nicht anzeigen kann (etwa EMF), erscheinen als graue Flächen; das Album nennt dann, wie viele Folien sie enthalten.
+
+Für exakte Folien exportiert man sie zuerst aus PowerPoint: **Datei › Exportieren › Dateityp ändern › PNG** (oder JPEG), **Alle Folien**. Dann die *.pptx*-Datei zusammen mit all diesen Bildern wählen oder zusammen mit einem ZIP-Archiv davon. Das Album übernimmt dann die Bilder, statt zu zeichnen, und ordnet sie den Folien über die Zahlen in ihren Namen zu, etwa *Folie1.PNG* oder *Slide1.PNG*. Passen sie nicht, wird nichts übernommen und das Album nennt, wie viele Folien und Bilder es gefunden hat.
+
+Nur die Bilder und die Notizen gelangen auf den Server, nicht die Präsentationsdatei. Animationen, Übergänge, Videos und die Kommentare der Präsentation werden nicht übernommen; *.ppt*-Dateien älterer Versionen sind zuerst als *.pptx* zu speichern.
 
 ### Mit Bildern arbeiten
 
@@ -292,7 +295,7 @@ Wer ein Bild bearbeiten darf, benennt es im Album um: das Menü **…** der Kart
 
 ### Bilder präsentieren
 
-Das Album präsentiert die Bilder, die es gerade zeigt, als Folien: einen Ordner oder eine Sammlung öffnen, nach Wunsch mit der Suche oder einem Label eingrenzen und **N Bilder präsentieren** wählen. Die Folien sind nach Namen geordnet, Zahlen nach ihrem Wert, also *2 Plan* vor *10 Ausblick*; wer die Reihenfolge ändern will, benennt die Bilder um.
+Das Album präsentiert die Bilder, die es gerade zeigt, als Folien: einen Ordner oder eine Sammlung öffnen, nach Wunsch mit der Suche oder einem Label eingrenzen und **N Bilder präsentieren** wählen. Die Folien eines Ordners oder einer Sammlung folgen seiner Reihenfolge der Folien (siehe *Folien von Hand ordnen*); noch nicht eingereihte Bilder folgen danach, nach Namen, Zahlen nach ihrem Wert, also *2 Plan* vor *10 Ausblick*.
 
 Der Klick öffnet ein zweites Fenster, das **Präsentationsfenster**, für den Projektor oder einen zweiten Bildschirm. Das Fenster des Albums wird zum **Referentenfenster**. Es zeigt die aktuelle und die nächste Folie, die Foliennotizen, die Zeit seit dem Start und die Uhrzeit sowie eine Leiste aller Folien; ein Klick auf eine Folie in der Leiste springt dorthin. Hat der Browser das zweite Fenster blockiert, Pop-ups für diese Seite erlauben und **Präsentationsfenster** wählen. Im Präsentationsfenster füllt **Vollbild** oder **F** den Bildschirm.
 
@@ -311,6 +314,14 @@ Präsentations-Fernbedienungen, die Bild auf und Bild ab senden, funktionieren e
 **Foliennotizen** gehören zu einem Bild; auf seiner Karte im Album heissen sie Elementnotizen. Man schreibt sie dort mit **Elementnotizen hinzufügen** oder im Referentenfenster mit **Notizen bearbeiten**. Wer das Bild bearbeiten darf, schreibt sie; wer das Bild sieht, liest sie. Die Notizen bleiben bei allen Versionen einer Zeichnung erhalten.
 
 Beide Fenster müssen im selben Browser auf demselben Computer laufen. Personen an anderen Orten folgen über Bildschirmfreigabe.
+
+### Folien von Hand ordnen
+
+Ein Ordner oder eine Sammlung behält eine eigene Reihenfolge der Folien, für alle gleich, die ihn lesen. In einem geöffneten Ordner oder einer Sammlung **Reihenfolge der Folien** statt **Neueste zuerst** wählen: Das Album zeigt die Bilder in der Reihenfolge, in der sie präsentiert werden. Wer den Ordner oder die Sammlung bearbeiten darf, zieht ein Bild auf ein anderes: Auf dessen linke Hälfte fallen gelassen, kommt es davor, auf die rechte Hälfte danach. Ausgewählte Bilder werden gemeinsam verschoben. Ohne Maus bietet das Menü eines Bildes **Eine Stelle nach vorne** und **Eine Stelle nach hinten**.
+
+Im Referentenfenster werden die Folien der Leiste ebenso gezogen; die Reihenfolge wird sofort gespeichert, und das Präsentationsfenster folgt.
+
+Später hinzugefügte Bilder folgen nach den eingereihten, nach Namen; eine neue Version einer Zeichnung behält ihren Platz. **Nach Namen ordnen** verwirft die von Hand gesetzte Reihenfolge. Um ein Bild hinter das letzte gezeigte zu setzen, während weitere folgen, zuerst **Mehr anzeigen** wählen.
 
 ## Zeichnungen und Whiteboards
 

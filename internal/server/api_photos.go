@@ -280,6 +280,13 @@ type albumFilter struct {
 	inRule func(item.Picture) bool
 	// person is a person the pictures show (ADR-0194), "" for any.
 	person string
+	// collection is the collection inRule is of, "" for none.
+	collection item.ID
+	// slides orders the stacks as the slides of a presentation (ADR-0176,
+	// ADR-0195): by the order of the folder or collection set by hand
+	// (ranks), the rest by name.
+	slides bool
+	ranks  item.SlideRanks
 }
 
 // withCollection narrows the filter to what a collection gathers, when
@@ -296,7 +303,7 @@ func withCollection(x *item.Session, f *albumFilter, ref string) error {
 	if err != nil {
 		return err
 	}
-	f.inRule = rule.Matches
+	f.inRule, f.collection = rule.Matches, c.ID
 	return nil
 }
 
@@ -309,14 +316,14 @@ var (
 func (h itemHandlers) albumFilterOf(r *http.Request) (albumFilter, error) {
 	q := r.URL.Query()
 	f := albumFilter{space: q.Get("space"), kind: q.Get("kind"), text: strings.ToLower(strings.TrimSpace(q.Get("q"))), folder: item.ID(q.Get("folder")),
-		day: q.Get("day"), from: q.Get("from"), to: q.Get("to"), taken: q.Get("order") == "taken", place: q.Get("place") == "on", only: q.Get("favourites") == "on"}
+		day: q.Get("day"), from: q.Get("from"), to: q.Get("to"), taken: q.Get("order") == "taken", slides: q.Get("order") == "slides", place: q.Get("place") == "on", only: q.Get("favourites") == "on"}
 	f.label, _ = item.NormalLabel(q.Get("label"))
 	f.person, _ = item.NormalPerson(q.Get("person"))
 	switch {
 	case f.kind != "" && f.kind != "image" && f.kind != "drawing" && f.kind != "video":
 		return f, errors.New("kind is image or drawing")
-	case q.Get("order") != "" && q.Get("order") != "added" && q.Get("order") != "taken":
-		return f, errors.New("order is added or taken")
+	case q.Get("order") != "" && q.Get("order") != "added" && q.Get("order") != "taken" && q.Get("order") != "slides":
+		return f, errors.New("order is added, taken or slides")
 	case f.day != "" && !dayRE.MatchString(f.day):
 		return f, errors.New("day is a month and day, MM-DD")
 	case f.from != "" && !dateRE.MatchString(f.from), f.to != "" && !dateRE.MatchString(f.to):
@@ -398,7 +405,37 @@ func albumStacks(x *item.Session, f albumFilter) [][]item.Picture {
 			return tb.Compare(ta)
 		})
 	}
+	if f.slides {
+		key := func(p item.Picture) item.SlideKey {
+			return item.SlideKey{First: p.First, Name: p.Attachment.Name, ItemKey: p.Item.Key, Attachment: p.Attachment.ID}
+		}
+		slices.SortFunc(out, func(a, b []item.Picture) int { return f.ranks.Compare(key(a[0]), key(b[0])) })
+	}
 	return out
+}
+
+// withSlideRanks reads the order set by hand of the folder or collection
+// the filter narrows to, for ordering its stacks as slides (ADR-0195).
+// It reports whether it has one (ordered) and whether the caller may
+// change it (orderable). A folder the caller cannot read has none: the
+// album shows nothing of it anyway.
+func withSlideRanks(x *item.Session, f *albumFilter) (ordered, orderable bool) {
+	if !f.slides {
+		return false, false
+	}
+	c := f.collection
+	if c == "" {
+		c = f.folder
+	}
+	if c == "" {
+		return false, false
+	}
+	ranks, err := x.SlideRanks(c)
+	if err != nil {
+		return false, false
+	}
+	f.ranks = ranks
+	return len(ranks) > 0, x.MayEdit(c)
 }
 
 // cameraText is the camera of a photo, searched with the album's words.

@@ -133,7 +133,7 @@ type Budgets struct {
 	AlbumZipBytes    int64
 	AlbumPlaces      int
 	// DuplicateChecks bounds the files one request asks the album's
-	// duplicates for (ADR-0195); FingerprintReads the pictures stored
+	// duplicates for (ADR-0196); FingerprintReads the pictures stored
 	// without a fingerprint that one request decodes to make one.
 	DuplicateChecks  int
 	FingerprintReads int

@@ -1,4 +1,4 @@
-# ADR-0195: Duplicates in the album, found by the file and by how a picture looks
+# ADR-0196: Duplicates in the album, found by the file and by how a picture looks
 
 - **Status:** Proposed
 - **Implementation:** Partial
@@ -42,7 +42,7 @@ How does the album find duplicates when pictures are added and among those it ho
 Chosen option: **2, the same file and a perceptual fingerprint kept with the picture**, because it finds what the requester asked for — the same photo with other bytes — at the cost of one decode per upload, and keeps the computation that is stored on the server.
 
 - **Fingerprint** (`internal/photo/fingerprint.go`): the picture is decoded (JPEG, PNG, GIF; at most `ThumbnailPixels`), reduced by area averaging to 9×8 cells of grey (0.299 R + 0.587 G + 0.114 B, premultiplied) in its upright position by the EXIF orientation, and each of 64 bits says whether a cell is brighter than its right neighbour; written as 16 hexadecimal digits. A picture smaller than the grid, or one whose cells differ by less than 3 of 255 (one colour, an empty page), has none. Two pictures **look the same** when their fingerprints differ in at most `photo.SimilarBits` (5) bits **and** their proportions differ by at most 2 %.
-- **Kept with the picture**: `Attachment.Fingerprint`, sealed with the rest of the file (**codec version 52**). The server makes it when a picture is uploaded or imported, waiting for a worker of the thumbnails (`ThumbnailWorkers`); a copy of a whole item takes its original's; a move keeps it (ADR-0188). Videos and WebP have none; they are compared as files only.
+- **Kept with the picture**: `Attachment.Fingerprint`, sealed with the rest of the file (**codec version 53**). The server makes it when a picture is uploaded or imported, waiting for a worker of the thumbnails (`ThumbnailWorkers`); a copy of a whole item takes its original's; a move keeps it (ADR-0188). Videos and WebP have none; they are compared as files only.
 - **Older pictures**: a picture stored without a fingerprint gets one made when the album compares it, at most `FingerprintReads` (100) per request, kept in memory by its SHA-256 until the server stops; answers say how many are `pending`, and the browser asks again while that number falls.
 - **Who is compared**: the top of every stack of versions (ADR-0103) the caller may read, as the album lists them (`albumStacks`, `Session.Pictures`), so protections, restrictions and protected blocks (ADR-0160) apply unchanged. A copy and its original — two pictures whose versions or sources meet — are never duplicates.
 - **When files are added** (`POST /api/album/duplicates`): the browser reads each file's SHA-256 (`crypto.subtle`) and, for a picture, draws it at most 256 pixels on its longer edge and computes the same fingerprint (`assets/fingerprint.js`), and asks with at most `DuplicateChecks` (200) files per request. The server answers, per file, up to ten readable pictures that are the same file (`same`) or look the same. Files chosen twice are found in the browser. A dialog (`assets/duplicates.js`) lists each duplicate with the pictures it matches and their folders; ticked files, all at first, are skipped; **Add all** and **Cancel** are offered. This applies to files chosen, dropped, pasted and unpacked from ZIP archives into a folder or a collection (ADR-0187); a PowerPoint import (ADR-0186) is not checked. Without a secure context (`crypto.subtle` missing) or for a file above 256 MB, nothing is checked.
@@ -54,7 +54,7 @@ Chosen option: **2, the same file and a perceptual fingerprint kept with the pic
 
 - **Positive:** the same photo is found across folders and rooms, also when its place was removed or it was saved smaller; uploads ask before a duplicate is stored; the existing pictures can be tidied up in one view.
 - **Negative / trade-offs accepted:**
-  - a data directory written by this build cannot be opened by an older one (codec version 52);
+  - a data directory written by this build cannot be opened by an older one (codec version 53);
   - every upload of a picture decodes it once more on the server;
   - after a restart, fingerprints of pictures stored before this record are made again, a share per request;
   - a 64-bit difference hash also takes pictures that are merely very alike (a burst of photos) for the same; the dialog and the view show them as "looks the same", and the person decides;
@@ -94,4 +94,4 @@ Strongest form: the browser already decodes the picture to find faces (ADR-0194)
 
 - amends ADR-0177 (photo management), whose follow-up it takes up
 - relates to ADR-0045 (attachments and their SHA-256), ADR-0054 and ADR-0055 (copies and their source), ADR-0103 (versions as stacks), ADR-0160 (protected blocks), ADR-0178 (place on import), ADR-0186 (presentations), ADR-0187 (where pictures are added), ADR-0188 (moves), ADR-0189 (videos), ADR-0194 (faces)
-- ADR-0015 (budgets `DuplicateChecks`, `FingerprintReads`), ADR-0025 (codec version 52), ADR-0026 (sealed content), ADR-0022 (D10)
+- ADR-0015 (budgets `DuplicateChecks`, `FingerprintReads`), ADR-0025 (codec version 53), ADR-0026 (sealed content), ADR-0022 (D10)

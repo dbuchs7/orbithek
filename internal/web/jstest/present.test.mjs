@@ -9,7 +9,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  MAX_ZOOM, ZOOM_STEP, captionOf, slidesOf, deckParams, step, fit, clampView, placement, toImage, toView,
+  MAX_ZOOM, ZOOM_STEP, captionOf, slidesOf, orderOf, deckParams, step, fit, clampView, placement, toImage, toView,
   zoomAt, panBy, keyAction, clock, channelName, newId, validMessage, apply,
 } from "../static/assets/present-parts.js";
 
@@ -22,24 +22,25 @@ test("a slide's name is its file name without extension or drawing marker", () =
   assert.equal(captionOf("plain"), "plain");
 });
 
-test("slides are ordered by name, numbers by their value", () => {
+test("slides keep the order the album lists them in", () => {
   const slides = slidesOf([
-    pic("10 Outlook.png", "a3"), pic("2 Plan.drawing.png", "a2", { drawing: true, notes: "Say it", editable: true }), pic("1 intro.jpg", "a1"),
+    pic("10 Outlook.png", "a3", { first: "f3" }), pic("2 Plan.drawing.png", "a2", { drawing: true, notes: "Say it", editable: true }), pic("1 intro.jpg", "a1"),
   ]);
-  assert.deepEqual(slides.map((s) => s.name), ["1 intro", "2 Plan", "10 Outlook"]);
+  assert.deepEqual(slides.map((s) => s.name), ["10 Outlook", "2 Plan", "1 intro"]);
+  assert.equal(slides[0].first, "f3", "a slide names its stack");
+  assert.equal(slides[2].first, "a1", "a picture of one version is its own stack");
   assert.equal(slides[1].notes, "Say it");
   assert.equal(slides[1].editable, true);
   assert.equal(slides[1].drawing, true);
   assert.equal(slides[0].notes, "", "a picture without notes has empty notes");
   assert.equal(slides[0].editable, false);
+  assert.deepEqual(slidesOf(undefined), []);
 });
 
-test("slides of the same name keep one order in every window", () => {
-  const a = slidesOf([pic("Plan.png", "b"), pic("Plan.png", "a")]);
-  const b = slidesOf([pic("Plan.png", "a"), pic("Plan.png", "b")]);
-  assert.deepEqual(a.map((s) => s.attachment.id), ["a", "b"]);
-  assert.deepEqual(b.map((s) => s.attachment.id), ["a", "b"]);
-  assert.deepEqual(slidesOf(undefined), []);
+test("a deck follows the order of its folder or collection", () => {
+  assert.equal(orderOf(new URLSearchParams("folder=F1&q=x")), "F1");
+  assert.equal(orderOf(new URLSearchParams("collection=C1&space=PLAT")), "C1");
+  assert.equal(orderOf(new URLSearchParams("space=PLAT")), "");
 });
 
 test("a deck is chosen by the album's filters only", () => {
@@ -175,7 +176,7 @@ test("commands change the state; a new slide starts unzoomed", () => {
 });
 
 test("a video is a slide, played and paused, not zoomed or pointed at (ADR-0192)", () => {
-  const slides = slidesOf([pic("2 Clip.mp4", "v", { video: true, poster: true }), pic("1 Intro.png", "a")]);
+  const slides = slidesOf([pic("1 Intro.png", "a"), pic("2 Clip.mp4", "v", { video: true, poster: true })]);
   assert.deepEqual(slides.map((s) => s.name), ["1 Intro", "2 Clip"]);
   assert.equal(slides[1].video, true);
   assert.equal(slides[1].poster, true);

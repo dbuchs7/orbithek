@@ -39,7 +39,7 @@ type Attachment struct {
 	// time, place and camera. It is content, sealed with the rest.
 	Photo *Photo `json:",omitempty"`
 	// Fingerprint is how a picture looks, as 16 hexadecimal digits
-	// (ADR-0195): the server makes it when it stores the picture, and the
+	// (ADR-0196): the server makes it when it stores the picture, and the
 	// album finds pictures that look the same by it. Empty for a file
 	// without one. It is content, sealed with the rest.
 	Fingerprint string `json:",omitempty"`

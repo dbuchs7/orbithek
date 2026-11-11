@@ -1,4 +1,4 @@
-// How a picture looks, as the album compares it (ADR-0195): a difference
+// How a picture looks, as the album compares it (ADR-0196): a difference
 // hash of the picture turned upright, the same the server makes with
 // internal/photo/fingerprint.go. The picture is reduced by area averaging
 // to 9×8 cells of grey; each of the 64 bits says whether a cell is
