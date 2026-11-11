@@ -207,6 +207,8 @@ The **Album** shows the pictures and drawings of every page and task you may rea
 
 Search by name, label, key or title, and narrow by kind, room and label. The search also takes a date and finds the pictures taken then, or added then when a picture tells no time: a year (*2026*), a month (*11.2026*, *2026-11*, *November 2026*), a day (*10.11.2026*, *2026-11-10*, *10 November 2026*), or a day or month without a year (*10.11.*, *November*), which finds it in every year.
 
+In the **Folders** view, the path to the open folder stands above its contents, with what changes the folder itself beside it: **New folder**, **New collection** and **Delete folder**, or **Change rule** and **Delete collection** in a collection. Below it are the ways to add pictures, then the folders, and right above the pictures their number, **Choose several** and **Present N pictures**.
+
 ### Uploading and importing
 
 Pictures are added where you are, in the **Folders** view:
