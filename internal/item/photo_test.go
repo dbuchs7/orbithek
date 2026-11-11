@@ -62,3 +62,42 @@ func TestWhenAPhotoWasTaken(t *testing.T) {
 		t.Error("HasPlace")
 	}
 }
+
+// TestAFingerprintIsCheckedAndKept: a picture's fingerprint has 16
+// hexadecimal digits, travels with it when it moves and goes with a
+// deleted version (ADR-0196).
+func TestAFingerprintIsCheckedAndKept(t *testing.T) {
+	s := setup(t)
+	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))
+	anna := s.As("anna")
+	from := mustItem(t)(anna.CreateFolder("PLAT", "", "Inbox"))
+	to := mustItem(t)(anna.CreateFolder("PLAT", "", "Holidays"))
+	pic := func(id, fp string) Attachment {
+		return Attachment{ID: ID(id), Name: "a.jpg", Type: "image/jpeg", Size: 1, SHA256: strings.Repeat("ab", 32), Fingerprint: fp}
+	}
+	for _, fp := range []string{"690d69db9bd296b", "690D69DB9BD296B0", "690d69db9bd296b0a", "690d69db9bd296bg"} {
+		if _, err := anna.AddAttachment(from.ID, pic("00112233445566778899aabbccddee00", fp)); !errors.Is(err, ErrValidation) {
+			t.Errorf("fingerprint %q was taken: %v", fp, err)
+		}
+	}
+	const id = "00112233445566778899aabbccddee01"
+	got, err := anna.AddAttachment(from.ID, pic(id, "690d69db9bd296b0"))
+	noErr(t, err)
+	if got.Fingerprint != "690d69db9bd296b0" {
+		t.Fatalf("fingerprint %q, want it kept", got.Fingerprint)
+	}
+	noErr(t, anna.MoveFile(from.ID, id, to.ID, []ID{id}))
+	moved, err := anna.Attachment(to.ID, id)
+	noErr(t, err)
+	if moved.Fingerprint != "690d69db9bd296b0" {
+		t.Errorf("a moved picture's fingerprint is %q", moved.Fingerprint)
+	}
+	noErr(t, anna.DeleteAttachment(to.ID, id))
+	it, err := anna.Get(to.ID)
+	noErr(t, err)
+	for _, a := range it.Attachments {
+		if a.ID == id && a.Fingerprint != "" {
+			t.Errorf("a deleted version keeps its fingerprint %q", a.Fingerprint)
+		}
+	}
+}

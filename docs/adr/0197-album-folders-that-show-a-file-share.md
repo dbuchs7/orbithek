@@ -1,4 +1,4 @@
-# ADR-0196: Album folders that show a file share, as previews, with the share as master
+# ADR-0197: Album folders that show a file share, as previews, with the share as master
 
 - **Status:** Proposed
 - **Implementation:** Not started

@@ -167,6 +167,35 @@ export function dragged(p, chosen, key) {
   return chosen.has(key(p)) ? [...chosen.values()] : [p];
 }
 
+// orderDrop says where pictures dropped onto a picture of a list go in
+// the order of slides set by hand (ADR-0195). firsts are the first
+// versions of the pictures listed, in their order; moved those of the
+// pictures dropped; target the index of the picture dropped onto and
+// after whether onto its latter half; complete whether the list holds
+// every picture, so that after its last one is the end. It answers the
+// first version to place them before, "" for the end, or null when the
+// place is not known: after the last picture shown while more follow.
+export function orderDrop(firsts, moved, target, after, complete) {
+  const skip = new Set(moved);
+  for (let i = after ? target + 1 : target; i < firsts.length; i++) {
+    if (!skip.has(firsts[i])) return firsts[i];
+  }
+  return complete ? "" : null;
+}
+
+// moveWithin moves items of a list as the server moves pictures in the
+// order of slides (ADR-0195): those moved, in the order given, right
+// before the item before names, or to the end when before is "". keyOf
+// names an item.
+export function moveWithin(list, keyOf, moved, before) {
+  const skip = new Set(moved);
+  const rest = list.filter((x) => !skip.has(keyOf(x)));
+  const taken = moved.map((k) => list.find((x) => keyOf(x) === k)).filter(Boolean);
+  const at = before ? rest.findIndex((x) => keyOf(x) === before) : -1;
+  const i = at < 0 ? rest.length : at;
+  return [...rest.slice(0, i), ...taken, ...rest.slice(i)];
+}
+
 // ALBUM_TYPES are the formats the album takes (JPEG, PNG, GIF, WebP), and
 // VIDEO_TYPES its videos (MP4, WebM, QuickTime; ADR-0189).
 export const ALBUM_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
@@ -224,4 +253,51 @@ export function exposureText(p) {
 export function placeText(p) {
   if (!p || p.lat == null || p.lon == null) return "";
   return `${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}`;
+}
+
+// OFFSETS are the offsets from UTC a time set by hand may name
+// (ADR-0198): every quarter of an hour from -12:00 to +14:00.
+export const OFFSETS = Array.from({ length: (26 * 60) / 15 + 1 }, (_, i) => {
+  const m = -12 * 60 + i * 15;
+  const a = Math.abs(m);
+  return `${m < 0 ? "-" : "+"}${String(Math.floor(a / 60)).padStart(2, "0")}:${String(a % 60).padStart(2, "0")}`;
+});
+
+// The years a time set by hand may lie in, as the server takes them.
+const MIN_YEAR = 1800;
+const MAX_YEAR = 2200;
+
+// wallTime writes the parts of a wall-clock time as the server takes it,
+// "2024-05-01T13:22:10", or "" when they are no time of those years.
+function wallTime(y, mo, d, hr, mi, s) {
+  const t = new Date(Date.UTC(2000, mo - 1, d, hr, mi, s));
+  t.setUTCFullYear(y, mo - 1, d);
+  if (y < MIN_YEAR || y > MAX_YEAR || t.getUTCMonth() !== mo - 1 || t.getUTCDate() !== d || hr > 23 || mi > 59 || s > 59) return "";
+  const two = (n) => String(n).padStart(2, "0");
+  return `${String(y).padStart(4, "0")}-${two(mo)}-${two(d)}T${two(hr)}:${two(mi)}:${two(s)}`;
+}
+
+// takenValue turns the value of a field for a date and time,
+// "2024-05-01T13:22" or with seconds, into the time a photo was taken as
+// it is set by hand, "2024-05-01T13:22:00"; "" when it is none (ADR-0198).
+export function takenValue(value) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?$/.exec(value || "");
+  return m ? wallTime(+m[1], +m[2], +m[3], +m[4], +m[5], +(m[6] || 0)) : "";
+}
+
+// shiftMinutes is how far a shift moves a time, in minutes: days, hours
+// and minutes, later or earlier.
+export const shiftMinutes = ({ days = 0, hours = 0, minutes = 0, later = true }) =>
+  (later ? 1 : -1) * (Math.trunc(+days || 0) * 1440 + Math.trunc(+hours || 0) * 60 + Math.trunc(+minutes || 0));
+
+// shiftTaken moves the wall-clock time a photo was taken by minutes, as a
+// camera whose clock was wrong is put right; "" when the time is none or
+// leaves the years a time may lie in (ADR-0198).
+export function shiftTaken(taken, minutes) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})$/.exec(taken || "");
+  if (!m || !Number.isFinite(minutes)) return "";
+  const t = new Date(Date.UTC(2000, +m[2] - 1, +m[3], +m[4], +m[5], +m[6]));
+  t.setUTCFullYear(+m[1], +m[2] - 1, +m[3]);
+  t.setTime(t.getTime() + minutes * 60000);
+  return wallTime(t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate(), t.getUTCHours(), t.getUTCMinutes(), t.getUTCSeconds());
 }

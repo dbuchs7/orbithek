@@ -114,7 +114,7 @@ func (x *Session) MoveFile(from, file, to ID, stored []ID) error {
 			rec.Source = &src
 		}
 		rec.Move = &Move{From: it.ID, Author: a.Author, Created: a.Created, Deleted: a.Deleted}
-		rec.Author, rec.Created, rec.Deleted, rec.WithoutPlace = "", 0, false, false
+		rec.Author, rec.Created, rec.Deleted, rec.AsGiven = "", 0, false, false
 		in = append(in, Event{Kind: AttachmentMovedIn, Item: dst.ID, Attachment: &rec})
 		out = append(out, Event{Kind: AttachmentMovedOut, Item: it.ID, Attachment: &Attachment{ID: a.ID, Move: &Move{To: dst.ID}}})
 	}

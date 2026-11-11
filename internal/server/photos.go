@@ -86,6 +86,9 @@ type Photos struct {
 	// vectors keeps what was computed of the faces of pictures, by the
 	// picture's ID, as read from storage for suggestions (ADR-0194).
 	vectors map[item.ID][][]float32
+	// fingerprints are those made of pictures stored without one
+	// (ADR-0196).
+	fingerprints fingerprints
 }
 
 // sharedAlbum is a shared iCloud album one person read, kept while they

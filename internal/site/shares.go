@@ -11,7 +11,7 @@ import (
 )
 
 // Share binds an album folder to a file share, which the folder shows as
-// previews (ADR-0196): a directory of the server, such as a mounted Samba
+// previews (ADR-0197): a directory of the server, such as a mounted Samba
 // share, or an S3 bucket. The share is the master; the wiki only reads
 // it. Its ID names the share in every entry it makes, so it does not
 // change.

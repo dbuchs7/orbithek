@@ -1017,13 +1017,15 @@ func (s *Store) apply(e Event) {
 		s.applyImport(e, touch)
 	case CommentAdded, CommentEdited, CommentDeleted, CommentResolved, CommentReopened:
 		s.applyComment(e, touch)
-	case AttachmentAdded, AttachmentDeleted, AttachmentLabelled, AttachmentRetentionSet, AttachmentNotesSet, AttachmentPlaceSet, AttachmentRenamed,
+	case AttachmentAdded, AttachmentDeleted, AttachmentLabelled, AttachmentRetentionSet, AttachmentNotesSet, AttachmentPlaceSet, AttachmentTakenSet, AttachmentRenamed,
 		AttachmentMovedIn, AttachmentMovedOut, AttachmentFacesSet:
 		s.applyAttachment(e, touch)
 	case HoldSet, HoldReleased:
 		s.applyHold(e, touch)
 	case KanbanSet, KanbanRemoved, KanbanCardPlaced:
 		s.applyKanban(e)
+	case PicturesOrdered:
+		s.applyPictureOrder(e, touch)
 	case SpaceTrashed, SpaceRestored, SpacePurged, SpaceRenamed:
 		s.applySpace(e, touch)
 	case SecretSet, SecretRemoved, SecretRequested, SecretGranted, SecretDeclined, SecretErased:

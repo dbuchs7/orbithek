@@ -1,6 +1,7 @@
 // Presenting pictures of the album (ADR-0176): the pictures the album
-// shows — a folder, narrowed by its filters — become slides, ordered by
-// name. The presenter's window shows the slide, the next one, the
+// shows — a folder, narrowed by its filters — become slides, in the order
+// of the folder or collection set by hand and else by name; whoever may
+// change that order drags the slides of the strip (ADR-0195). The presenter's window shows the slide, the next one, the
 // speaker's notes, the time and every slide; a second window, opened from
 // it and moved to the projector, shows the slide alone. The two talk over
 // a BroadcastChannel of this browser: nothing goes through the server but
@@ -13,8 +14,9 @@
 import { h } from "./dom.js";
 import { t } from "./i18n.js";
 import { get, put } from "./api.js";
+import { moveWithin, orderDrop } from "./photoparts.js";
 import {
-  LASER_TRAIL, ZOOM_STEP, slidesOf, clampView, deckParams, placement, toImage, toView, zoomAt, panBy, keyAction, clock,
+  LASER_TRAIL, ZOOM_STEP, slidesOf, orderOf, clampView, deckParams, placement, toImage, toView, zoomAt, panBy, keyAction, clock,
   channelName, newId, validMessage, apply,
 } from "./present-parts.js";
 
@@ -44,17 +46,19 @@ export function startPresentation(filters) {
   location.hash = "#/present?" + q;
 }
 
-// loadDeck reads every picture the filters select, page by page.
+// loadDeck reads every picture the filters select, page by page, in the
+// order of slides (ADR-0195), and whether one may change that order.
 async function loadDeck(filters) {
   const all = [];
   let offset = 0;
   for (;;) {
     const q = deckParams(filters);
+    q.set("order", "slides");
     q.set("limit", "200");
     q.set("offset", String(offset));
     const page = await get("/api/album?" + q);
     all.push(...page.pictures);
-    if (!page.next) return slidesOf(all);
+    if (!page.next) return { slides: slidesOf(all), orderable: !!page.orderable };
     offset = page.next;
   }
 }
@@ -237,7 +241,9 @@ const typing = (e) => e.target instanceof Element && e.target.closest("input, te
 // album's filters in params and leads the presentation window the album
 // opened, or one opened from here.
 export async function presenterView({ params, show, onLeave, done }) {
-  const slides = await loadDeck(params);
+  const { slides, orderable } = await loadDeck(params);
+  // The folder or collection whose order the slides follow (ADR-0195).
+  const container = orderOf(params);
   if (!slides.length) {
     show(h("div", { class: "present-empty" }, h("p", { text: t("present.empty") }),
       h("button", { type: "button", class: "secondary", text: t("present.back"), onclick: done })));
@@ -268,12 +274,67 @@ export async function presenterView({ params, show, onLeave, done }) {
   const elapsed = h("span", { class: "present-time", id: "present-elapsed", title: t("present.elapsed") });
   const now = h("span", { class: "present-time muted", id: "present-clock", title: t("present.clock") });
   const linkState = h("span", { class: "present-link muted", id: "present-link", role: "status" });
-  const strip = h("ol", { class: "present-strip", id: "present-strip", "aria-label": t("present.slides") },
-    slides.map((s, i) => h("li", {}, h("button", { type: "button", class: "present-thumb", "data-index": String(i), title: s.name,
+  const strip = h("ol", { class: "present-strip", id: "present-strip", "aria-label": t("present.slides") });
+  // The strip shows every slide; where one may change the order, a slide
+  // is dragged before another, or after it onto its latter half, and the
+  // order is kept for the folder or collection (ADR-0195).
+  const canOrder = orderable && !!container;
+  let draggingSlide = null;
+  const fillStrip = () => strip.replaceChildren(...state.slides.map((s, i) => {
+    const b = h("button", { type: "button", class: "present-thumb", "data-index": String(i), title: s.name, draggable: canOrder ? "true" : "false",
       "aria-label": t("present.goTo", { n: i + 1, name: s.name }), onclick: () => set({ ...state, index: i, zoom: 1, center: { x: 0.5, y: 0.5 } }) },
-    s.video && !s.poster ? h("span", { class: "present-thumb-video", "aria-hidden": "true" }) : h("img", { src: s.video ? posterURL(s) : fileURL(s), alt: "", loading: "lazy" }),
-    h("span", { text: String(i + 1) })))));
-
+    s.video && !s.poster ? h("span", { class: "present-thumb-video", "aria-hidden": "true" }) : h("img", { src: s.video ? posterURL(s) : fileURL(s), alt: "", loading: "lazy", draggable: "false" }),
+    h("span", { text: String(i + 1) }));
+    if (canOrder) {
+      const after = (e) => { const r = b.getBoundingClientRect(); return e.clientX > r.left + r.width / 2; };
+      b.addEventListener("dragstart", (e) => {
+        draggingSlide = s.first;
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", s.name);
+      });
+      b.addEventListener("dragend", () => {
+        draggingSlide = null;
+        for (const el of strip.querySelectorAll(".drop-before, .drop-after")) el.classList.remove("drop-before", "drop-after");
+      });
+      const over = (e) => {
+        if (!draggingSlide) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        const a = after(e);
+        b.classList.toggle("drop-after", a);
+        b.classList.toggle("drop-before", !a);
+      };
+      b.addEventListener("dragenter", over);
+      b.addEventListener("dragover", over);
+      b.addEventListener("dragleave", (e) => { if (!b.contains(e.relatedTarget)) b.classList.remove("drop-before", "drop-after"); });
+      b.addEventListener("drop", (e) => {
+        b.classList.remove("drop-before", "drop-after");
+        if (!draggingSlide) return;
+        e.preventDefault();
+        const moved = draggingSlide;
+        draggingSlide = null;
+        const firsts = state.slides.map((x) => x.first);
+        placeSlide(moved, orderDrop(firsts, [moved], i, after(e), true));
+      });
+    }
+    return h("li", {}, b);
+  }));
+  // placeSlide moves a slide before another ("" for the end), keeps the
+  // order for the folder or collection, and stays on the slide shown.
+  const placeSlide = async (moved, before) => {
+    const current = state.slides[state.index];
+    const slides = moveWithin(state.slides, (x) => x.first, [moved], before);
+    if (slides.every((x, i) => x === state.slides[i])) return;
+    try {
+      await put(`/api/album/order/${encodeURIComponent(container)}`, { pictures: [moved], before });
+    } catch (err) {
+      linkState.textContent = err.message;
+      return;
+    }
+    set({ ...state, slides, index: Math.max(0, slides.indexOf(current)) });
+    fillStrip();
+    render();
+  };
   const btn = (id, text, title, onclick, cls = "secondary") => h("button", { type: "button", id, class: cls, text, title, "aria-label": title, onclick });
   const laserBtn = btn("present-laser", t("present.laser"), t("present.laserTitle"), () => command("laser"));
   const blackBtn = btn("present-blackout", t("present.black"), t("present.blackTitle"), () => command("black"));
@@ -403,6 +464,7 @@ export async function presenterView({ params, show, onLeave, done }) {
         h("h2", { class: "present-label", text: t("present.notes") }), notesBox,
         h("p", { class: "muted present-keys", text: t("present.keys") }))),
     strip));
+  fillStrip();
   render();
   showLink();
   elapsed.textContent = clock(0);

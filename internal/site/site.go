@@ -156,7 +156,7 @@ type event struct {
 	// Faces is set by FacesSet (ADR-0194).
 	Faces *Faces `json:"faces,omitempty"`
 	// Share is set by ShareSet; ShareRemoved names it in Asset
-	// (ADR-0196).
+	// (ADR-0197).
 	Share *Share `json:"share,omitempty"`
 }
 
@@ -195,7 +195,7 @@ const (
 	facesSet = "FacesSet"
 
 	// shareSet binds an album folder to a file share, shareRemoved
-	// unbinds it (ADR-0196).
+	// unbinds it (ADR-0197).
 	shareSet     = "ShareSet"
 	shareRemoved = "ShareRemoved"
 )
@@ -231,7 +231,7 @@ type Settings struct {
 	taskLinks map[string]TaskLinks
 	// wordTemplates are the Word templates by ID (ADR-0167).
 	wordTemplates map[string]*WordTemplate
-	// shares are the file shares album folders show, by ID (ADR-0196).
+	// shares are the file shares album folders show, by ID (ADR-0197).
 	shares map[string]Share
 }
 

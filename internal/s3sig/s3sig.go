@@ -1,6 +1,6 @@
 // Package s3sig signs requests to S3-compatible object stores with AWS
 // signature version 4 and sends them path-style. Backups (ADR-0073) and
-// file shares of the album (ADR-0196) share it; it holds no knowledge of
+// file shares of the album (ADR-0197) share it; it holds no knowledge of
 // either.
 package s3sig
 

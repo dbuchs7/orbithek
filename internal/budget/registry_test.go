@@ -51,17 +51,17 @@ var classified = map[string]string{
 		"it guards against a host that names a next page for ever",
 	"internal/connector.maxPages": "how many pages of a JSON source's list a connector reads (ADR-0127, ADR-0135), not a caller's input to this server; " +
 		"it guards the connector against a source that names a next page for ever",
-	"internal/share.MaxPath": "the shape of a path below a file share's address (ADR-0196), like the length of a file name; " +
+	"internal/share.MaxPath": "the shape of a path below a file share's address (ADR-0197), like the length of a file name; " +
 		"a run's size is bounded by ShareFiles",
-	"internal/share.maxListingPage": "a page of an S3 share's listing (ADR-0196), read and parsed; not a caller's input to this server, " +
+	"internal/share.maxListingPage": "a page of an S3 share's listing (ADR-0197), read and parsed; not a caller's input to this server, " +
 		"it guards against a store that misbehaves",
 	"internal/share/s3.go:maxListingPage": "the same bound, where the page is read",
-	"internal/share.maxErrorAnswer":       "an S3 store's error answer (ADR-0196), read for its code only; it guards against a store that misbehaves",
+	"internal/share.maxErrorAnswer":       "an S3 store's error answer (ADR-0197), read for its code only; it guards against a store that misbehaves",
 	"internal/share/s3.go:maxErrorAnswer": "the same bound, where the answer is read",
 	"internal/connector.maxCell":          "the shape of a generated catalog page (ADR-0080): how long one value of the source may be on it, like the length of a title",
 	"internal/site.maxConnectors":         "the shape of the site's settings (ADR-0077): how many connectors an administrator keeps, like the number of regulations",
 	"internal/site.maxEngines":            "the shape of the site's settings (ADR-0129): how many process engines an administrator keeps, like the number of connectors",
-	"internal/site.maxShares":             "the shape of the site's settings (ADR-0196): how many file shares an administrator binds, like the number of connectors",
+	"internal/site.maxShares":             "the shape of the site's settings (ADR-0197): how many file shares an administrator binds, like the number of connectors",
 	"internal/site.maxWordTemplates":      "the shape of the site's settings (ADR-0167): how many Word templates an administrator keeps, like the number of engines",
 	"internal/wordtemplate.maxParts": "the shape of a Word template (ADR-0167): how many parts its package holds, like the part names it may use; " +
 		"what the parts hold is bounded by WordTemplateBytes",
@@ -117,6 +117,9 @@ var classified = map[string]string{
 	"internal/photo.maxOffsetHours":                    "the shape of a time zone offset (ADR-0177), like the length of a username",
 	"internal/photo.maxPNGChunks":                      "a guard of walking a PNG's chunks (ADR-0177), so a damaged file cannot make it endless",
 	"internal/photo.maxSegments":                       "a guard of walking a JPEG's segments (ADR-0177), so a damaged file cannot make it endless",
+	"internal/photo.maxAPP1":                           "a file-format limit: the most a JPEG segment holds after its length, so a time set by hand is not written into an Exif segment that cannot hold it (ADR-0198)",
+	"internal/photo.maxTIFFBytes":                      "the shape of a picture's EXIF chunk as Read takes it (ADR-0177), written by SetTaken into a file already bounded by AttachmentBytes (ADR-0198)",
+	"internal/item.maxTakenYear":                       "a validation rule: the last year a time set by hand may lie in, the years the EXIF reader takes (ADR-0177, ADR-0198)",
 	"internal/photo.maxStringRunes":                    "the shape of photo data (ADR-0177): a camera's name, like the length of a title",
 	"internal/photo.maxWebPChunks":                     "a guard of walking a WebP's chunks (ADR-0177), so a damaged file cannot make it endless",
 	"internal/photosource.maxPending":                  "a guard of sign-ins at Google in progress (ADR-0177), each forgotten after ten minutes, as engine and calendar connections are",

@@ -11,7 +11,7 @@ const folderA = "0123456789abcdef0123456789abcdef"
 
 // TestSharesBindFoldersToFileShares: administrators add, change and
 // remove shares; each folder shows one share, a share keeps its folder,
-// and the journal gives them back (ADR-0196).
+// and the journal gives them back (ADR-0197).
 func TestSharesBindFoldersToFileShares(t *testing.T) {
 	var records [][]byte
 	s, err := New(nil, func(r []byte) error { records = append(records, r); return nil })

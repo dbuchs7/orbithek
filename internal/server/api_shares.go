@@ -12,7 +12,7 @@ import (
 )
 
 // Shares holds what the album's file shares need besides the site's
-// settings (ADR-0196): the process environment, which names the
+// settings (ADR-0197): the process environment, which names the
 // directories administrators may bind and holds the keys of S3 shares.
 type Shares struct {
 	env func(string) string
@@ -23,7 +23,7 @@ func NewShares(env func(string) string) *Shares {
 	return &Shares{env: env}
 }
 
-// shareRoutes bind album folders to file shares (ADR-0196). They are for
+// shareRoutes bind album folders to file shares (ADR-0197). They are for
 // administrators and are not offered to agents (ADR-0012): binding a
 // share discloses everything its credential reads to the folder's
 // readers.

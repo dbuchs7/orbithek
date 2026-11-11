@@ -1,7 +1,8 @@
 // Package photo serves the album's photo management (ADR-0177): it reads
 // what a picture tells about itself — capture time, place, camera and
 // exposure from its EXIF data, and its pixel size from its header — and it
-// makes thumbnails.
+// makes thumbnails and fingerprints, by which pictures that look the same
+// are found (ADR-0196).
 //
 // Pictures are uploads and therefore untrusted. Read is best effort and never
 // panics; every loop over the file's structure (segments, chunks, IFD
@@ -11,5 +12,6 @@
 // small file that claims a huge picture is refused instead of decoded.
 //
 // Only the standard library is used. WebP has no decoder there, so Read gives
-// its size and EXIF data but Thumbnail refuses it with ErrUnsupported.
+// its size and EXIF data but Thumbnail and Fingerprint refuse it with
+// ErrUnsupported.
 package photo

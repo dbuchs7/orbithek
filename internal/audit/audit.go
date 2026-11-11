@@ -70,7 +70,7 @@ const (
 	FacesChanged = "faces.change"
 	// ShareAdded, ShareChanged and ShareRemoved record an administrator
 	// binding an album folder to a file share, changing the binding, or
-	// removing it (ADR-0196).
+	// removing it (ADR-0197).
 	ShareAdded      = "share.add"
 	ShareChanged    = "share.change"
 	ShareRemoved    = "share.remove"

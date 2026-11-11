@@ -203,9 +203,12 @@ The **Album** shows the pictures and drawings of every page and task you may rea
 - **Timeline**: by the month they were taken;
 - **Favourites**: the pictures you marked with the star;
 - **On this day**: pictures taken on this day in earlier years;
-- **Map**: the places where pictures were taken.
+- **Map**: the places where pictures were taken;
+- **Duplicates**: pictures that are the same file or look the same (see *Duplicates*).
 
 Search by name, label, key or title, and narrow by kind, room and label. The search also takes a date and finds the pictures taken then, or added then when a picture tells no time: a year (*2026*), a month (*11.2026*, *2026-11*, *November 2026*), a day (*10.11.2026*, *2026-11-10*, *10 November 2026*), or a day or month without a year (*10.11.*, *November*), which finds it in every year.
+
+In the **Folders** view, the path to the open folder stands above its contents, with what changes the folder itself beside it: **New folder**, **New collection** and **Delete folder**, or **Change rule** and **Delete collection** in a collection. Below it are the ways to add pictures, then the folders, and right above the pictures their number, **Choose several** and **Present N pictures**.
 
 ### Uploading and importing
 
@@ -215,11 +218,13 @@ Pictures are added where you are, in the **Folders** view:
 - *In a collection*, the same ways work. A collection holds no files of its own, so the album asks which folder the new pictures are kept in, the folder chosen last coming first, or makes a **New folder…**; each picture gets the collection's labels and so shows in the collection. **Add from the album…** gives pictures already in the album the collection's labels, without copying them.
 - *At the top* of the album, uploading, dropping or pasting asks for the folder as well, and that folder then opens.
 
-A PowerPoint presentation comes in with the pictures of its slides (see *Importing a PowerPoint presentation*). Pictures exported from photo apps are unpacked in the browser. If enabled, photos also come **From Google Photos** or **From a shared iCloud album**. HEIC photos are not accepted; export them as JPEG first. Videos from Google Photos and shared iCloud albums come in too, with the picture the service keeps of them as their poster.
+A PowerPoint presentation becomes a folder of slides with their notes (see *Importing a PowerPoint presentation*). Pictures exported from photo apps are unpacked in the browser. If enabled, photos also come **From Google Photos** or **From a shared iCloud album**. HEIC photos are not accepted; export them as JPEG first. Videos from Google Photos and shared iCloud albums come in too, with the picture the service keeps of them as their poster.
 
 A folder's **Place on import** decides what happens to the place where a photo was taken: **Keep for every reader**, **Keep to me only** or **Remove from the file**. Per picture, the place can later be kept to you or shown to every reader.
 
 Where a picture tells no place, or a wrong one, whoever may edit it sets the **Place** by hand: in the viewer, or for several chosen pictures at once. Typing a name such as *Zermatt* suggests places, unless an administrator has turned the suggestions off; **Choose on the map** sets the place with a click on the map. **Remove the place** clears it.
+
+Where a picture tells no time, or a wrong one, such as a scan or a photo from a camera whose clock was wrong, whoever may edit it sets the **Time taken** by hand. In the viewer, enter the date and time and, where known, the **Offset from UTC**, then choose **Set the time**; **Back to the file's time** returns to the time the file itself tells. For several chosen pictures, **Set the time…** offers **Set to**, which gives them all one time, and **Shift by**, which moves each by the same days, hours and minutes, later or earlier; pictures that tell no time are not shifted. The album, the timeline and *On this day* then use the time set by hand, and every download, ZIP archive and copy carries it in the picture's EXIF data, while the stored file stays as it was. A video keeps its own time in its file.
 
 ### Videos
 
@@ -230,6 +235,17 @@ Videos come into the album the same ways as pictures: uploaded, dropped, pasted,
 - A click plays the video in the viewer. Whether a MOV video plays depends on the browser: Safari plays it, other browsers often only when it was recorded as H.264 rather than HEVC. Otherwise choose **Download**.
 - The kind filter **Videos** shows only videos. Videos are not exported as PNG or JPEG.
 - When presenting, a video is a slide: it shows its poster until the space bar or a click starts it, in the presentation window, with sound there only. The space bar pauses it again; the arrow keys go on. It cannot be zoomed or pointed at.
+
+### Duplicates
+
+Before pictures and videos are uploaded, dropped or pasted, the browser checks whether they are already in the album, in every folder you may read:
+
+- **Same file**: a picture with exactly the same content;
+- **Looks the same**: the same picture saved again, smaller, in another format or without its place. Its proportions must be the same; a picture cut differently is no duplicate.
+
+Files chosen twice count too. If duplicates are found, a dialog lists each file with the pictures it matches and their folders. Ticked files are skipped: **Skip ticked files** adds the others, **Add all** adds everything, **Cancel** adds nothing. Videos are compared as files only. Copies made with **Add from the album…** are no duplicates of their original. The check needs a secure connection (HTTPS); without one, files are added unchecked.
+
+The view **Duplicates** shows groups of pictures that are the same file or look the same, newest group first, as far as the room filter narrows it. Choose pictures there and delete them as in every view. Pictures added before this check existed are compared as the album gets to them: the view says how many still wait and compares more each time it opens.
 
 ### Faces and people
 
@@ -247,14 +263,15 @@ Faces are found in your browser; nothing is sent elsewhere. If an administrator 
 
 ### Importing a PowerPoint presentation
 
-A presentation becomes a folder of slides, ready to present with its speaker's notes:
-
-1. In PowerPoint, choose **File › Export › Change File Type › PNG** (or JPEG) and export **All Slides**. PowerPoint writes one picture per slide, such as *Slide1.PNG* or *Folie1.PNG*.
-2. In the album, open the folder the presentation belongs in and choose **Upload pictures**. Choose the *.pptx* file together with all these pictures, or together with a ZIP archive of them; dropping them onto the folder works too.
+A presentation becomes a folder of slides, ready to present with its speaker's notes. In the album, open the folder the presentation belongs in and choose **Upload pictures**, then choose the *.pptx* file — or simply drop it onto the folder.
 
 A folder named after the presentation is made in the open folder and opens. Each slide becomes a picture named by its place and title, such as *03 Our goals.png*, so the album keeps the order of the slides, and the slide's notes become the picture's speaker's notes. Hidden slides are left out, as a slide show leaves them out.
 
-A presentation file holds no pictures of its slides; this is why the exported pictures are needed. The pictures are matched to the slides by the numbers in their names. If they do not match, nothing is brought in and the album says how many slides and pictures it found. Only the pictures and the notes reach the server, not the presentation file. Animations, transitions, videos and the presentation's own comments are not taken over; *.ppt* files of older versions must first be saved as *.pptx*.
+A presentation file holds no pictures of its slides, so the browser draws each slide itself: backgrounds, text with its bullets and numbering, shapes, pictures, tables and SmartArt, in the presentation's colours and fonts. The result is close to the original, but not always the same: a font your computer lacks is replaced by a similar one, so lines may break differently, and effects such as shadows are left out. Charts, embedded objects and pictures in formats the browser cannot show (such as EMF) appear as grey boxes; the album then says how many slides hold them.
+
+For exact slides, export them from PowerPoint first: **File › Export › Change File Type › PNG** (or JPEG), **All Slides**. Choose the *.pptx* file together with all these pictures, or with a ZIP archive of them. The album then takes the pictures instead of drawing, matched to the slides by the numbers in their names, such as *Slide1.PNG* or *Folie1.PNG*. If they do not match, nothing is brought in and the album says how many slides and pictures it found.
+
+Only the pictures and the notes reach the server, not the presentation file. Animations, transitions, videos and the presentation's own comments are not taken over; *.ppt* files of older versions must first be saved as *.pptx*.
 
 ### Working with pictures
 
@@ -280,7 +297,7 @@ Whoever may edit a picture renames it in the album: open the card's menu **…**
 
 ### Presenting pictures
 
-The album presents the pictures it shows as slides: open a folder or a collection, narrow it with the search or a label if you like, and choose **Present N pictures**. The slides are ordered by name, numbers by their value, so *2 Plan* comes before *10 Outlook*; to change the order, rename the pictures.
+The album presents the pictures it shows as slides: open a folder or a collection, narrow it with the search or a label if you like, and choose **Present N pictures**. The slides of a folder or collection follow its order of slides (see *Ordering slides by hand*); pictures not yet placed come after, by name, numbers by their value, so *2 Plan* comes before *10 Outlook*.
 
 The click opens a second window, the **presentation window**, for the projector or a second screen. The album's window becomes the **presenter's window**. It shows the current and the next slide, the speaker's notes, the time since the start and the time of day, and a strip of all slides; a click on a slide in the strip goes there. If your browser blocked the second window, allow pop-ups for this site and choose **Presentation window**. In the presentation window, **Full screen** or **F** fills the screen.
 
@@ -299,6 +316,14 @@ Presentation remotes that send Page Up and Page Down work too. **End** closes th
 **Speaker's notes** belong to a picture: on its card in the album, **Add speaker's notes**, or in the presenter's window **Edit notes**. Whoever may edit the picture writes them; whoever sees the picture reads them. Notes stay with every version of a drawing.
 
 Both windows must be in the same browser on the same computer. People elsewhere follow by screen sharing.
+
+### Ordering slides by hand
+
+A folder or a collection keeps its own order of slides, the same for everyone who reads it. In an open folder or collection, choose **Order of the slides** instead of **Newest first**: the album shows the pictures in the order they are presented. Whoever may edit the folder or collection drags a picture onto another one: dropped onto its left half it goes before it, onto its right half after it. Chosen pictures move together. Without a mouse, the menu of a picture offers **Move one place earlier** and **Move one place later**.
+
+In the presenter's window, the slides of the strip are dragged the same way; the order is kept at once and the presentation window follows.
+
+Pictures added later come after the placed ones, by name; a new version of a drawing keeps its place. **Order by name** forgets the order set by hand. To place a picture after the last one shown while more follow, choose **Show more** first.
 
 ## Drawings and whiteboards
 

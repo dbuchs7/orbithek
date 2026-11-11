@@ -138,7 +138,7 @@ type Deps struct {
 	// Google, when it is nil.
 	Photos *Photos
 	// Shares holds what the album's file shares need besides the site's
-	// settings (ADR-0196); Routes creates one over the process
+	// settings (ADR-0197); Routes creates one over the process
 	// environment when it is nil.
 	Shares *Shares
 }

@@ -1,5 +1,5 @@
 // Package share reads the files of a file share an album folder shows
-// (ADR-0196): a directory of the server, such as a Samba share the
+// (ADR-0197): a directory of the server, such as a Samba share the
 // operator mounted, or a bucket of an S3-compatible object store. It only
 // lists and reads; nothing here writes to a share.
 package share

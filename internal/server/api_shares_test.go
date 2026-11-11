@@ -11,7 +11,7 @@ import (
 
 // TestSharesThroughTheAPI: administrators bind an empty album folder to a
 // directory the operator allows or to an S3 bucket, change and remove the
-// binding; everyone else is refused (ADR-0196).
+// binding; everyone else is refused (ADR-0197).
 func TestSharesThroughTheAPI(t *testing.T) {
 	roots := t.TempDir()
 	photos := filepath.Join(roots, "photos")
