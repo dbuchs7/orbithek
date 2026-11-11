@@ -203,7 +203,8 @@ Das **Album** zeigt die Bilder und Zeichnungen aller Seiten und Aufgaben, die ma
 - **Zeitachse**: nach dem Monat der Aufnahme;
 - **Favoriten**: die mit dem Stern markierten Bilder;
 - **An diesem Tag**: Bilder, die an diesem Tag in früheren Jahren aufgenommen wurden;
-- **Karte**: die Aufnahmeorte.
+- **Karte**: die Aufnahmeorte;
+- **Duplikate**: Bilder, die dieselbe Datei sind oder gleich aussehen (siehe *Duplikate*).
 
 Man sucht nach Name, Label, Schlüssel oder Titel und schränkt nach Art, Raum und Label ein. Die Suche nimmt auch ein Datum und findet die Bilder, die dann aufgenommen wurden, oder, wenn ein Bild keine Zeit nennt, dann hinzugefügt wurden: ein Jahr (*2026*), einen Monat (*11.2026*, *2026-11*, *November 2026*), einen Tag (*10.11.2026*, *2026-11-10*, *10. November 2026*) oder einen Tag oder Monat ohne Jahr (*10.11.*, *November*), der in jedem Jahr gefunden wird.
 
@@ -230,6 +231,17 @@ Videos kommen auf denselben Wegen ins Album wie Bilder: hochgeladen, abgelegt, e
 - Ein Klick spielt das Video im Betrachter ab. Ob ein MOV-Video abspielt, hängt vom Browser ab: Safari spielt es ab, andere Browser oft nur, wenn es als H.264 statt HEVC aufgenommen wurde. Sonst wählt man **Herunterladen**.
 - Der Filter **Videos** zeigt nur Videos. Als PNG oder JPEG werden sie nicht exportiert.
 - Beim Präsentieren ist ein Video eine Folie: Es zeigt sein Vorschaubild, bis die Leertaste oder ein Klick es startet, im Präsentationsfenster und nur dort mit Ton. Die Leertaste hält es wieder an; die Pfeiltasten gehen weiter. Es lässt sich nicht vergrössern und nicht mit dem Laserpointer zeigen.
+
+### Duplikate
+
+Bevor Bilder und Videos hochgeladen, abgelegt oder eingefügt werden, prüft der Browser, ob sie schon im Album sind, in allen Ordnern, die man lesen darf:
+
+- **Dieselbe Datei**: ein Bild mit genau demselben Inhalt;
+- **Sieht gleich aus**: dasselbe Bild erneut gespeichert, kleiner, in einem anderen Format oder ohne seinen Ort. Die Proportionen müssen gleich sein; ein anders zugeschnittenes Bild ist kein Duplikat.
+
+Doppelt gewählte Dateien zählen ebenfalls. Werden Duplikate gefunden, listet ein Dialog jede Datei mit den Bildern, denen sie entspricht, und deren Ordnern. Angekreuzte Dateien werden übersprungen: **Angekreuzte überspringen** fügt die übrigen hinzu, **Alle hinzufügen** fügt alles hinzu, **Abbrechen** fügt nichts hinzu. Videos werden nur als Dateien verglichen. Kopien, die mit **Aus dem Album hinzufügen…** entstanden sind, sind keine Duplikate ihres Originals. Die Prüfung setzt eine sichere Verbindung (HTTPS) voraus; ohne sie werden Dateien ungeprüft hinzugefügt.
+
+Die Ansicht **Duplikate** zeigt Gruppen von Bildern, die dieselbe Datei sind oder gleich aussehen, die neueste Gruppe zuerst, soweit der Raumfilter sie einschränkt. Dort wählt man Bilder aus und löscht sie wie in jeder Ansicht. Bilder, die vor dieser Prüfung hinzugefügt wurden, werden verglichen, sobald das Album zu ihnen kommt: Die Ansicht nennt, wie viele noch warten, und vergleicht bei jedem Öffnen weitere.
 
 ### Gesichter und Personen
 

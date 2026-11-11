@@ -772,6 +772,7 @@ func (h itemHandlers) importInto(w http.ResponseWriter, r *http.Request, folder,
 	if place == placePrivate {
 		a.Photo = keepPrivate(a.Photo)
 	}
+	a.Fingerprint = h.makeFingerprint(r.Context(), id, a)
 	h.write(w, r, http.StatusCreated, func(x *item.Session, _ *item.Store) (any, error) {
 		have, err := x.Attachments(id)
 		if err != nil {

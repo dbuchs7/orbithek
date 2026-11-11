@@ -31,11 +31,12 @@ import { pickPlace, placeInput } from "./places.js";
 import { startPresentation } from "./present.js";
 import { personCover, scanAll } from "./faces.js";
 import { renameInPlace } from "./rename.js";
+import { groupTitle, loadDuplicates } from "./duplicates.js";
 
 const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
 
 // VIEWS are the album's ways of showing pictures (ADR-0177).
-const VIEWS = ["folders", "timeline", "favourites", "memories", "map", "people"];
+const VIEWS = ["folders", "timeline", "favourites", "memories", "map", "people", "duplicates"];
 
 // The album's clipboard (ADR-0108): a picture copied in the album is pasted
 // into a text as a copy of its original file, with its source, as "Insert…
@@ -379,6 +380,8 @@ export function albumBrowser({ pick, pickText } = {}) {
             isVideo(p) ? h("span", { class: "chip album-video-chip", text: t("album.video") }) : null,
             version ? h("span", { class: "chip album-version", text: t("album.version", { n: version }) }) : null,
             stacked && p.retention ? h("span", { class: "chip album-own-rule", text: t("retention.chip") }) : null,
+            // In the view of duplicates, how it matches the others (ADR-0195).
+            view === "duplicates" ? h("span", { class: p.same ? "chip duplicate-same" : "chip duplicate-alike", text: t(p.same ? "duplicates.same" : "duplicates.alike") }) : null,
             h("span", { class: "muted album-when", text: when(p.attachment.created) })),
           h("a", { href: "#/item/" + encodeURIComponent(p.item.key), class: "muted album-item", text: `${p.item.key} ${p.item.title}`,
             title: `${p.item.key} ${p.item.title}`, target: pick ? "_blank" : null, rel: pick ? "noopener" : null }))),
@@ -895,6 +898,7 @@ export function albumBrowser({ pick, pickText } = {}) {
       reset.hidden = !filteredNow();
       return;
     }
+    if (view === "duplicates") return showDuplicates(mine);
     if (view === "map") {
       mapBox.replaceChildren(h("p", { class: "muted", text: t("photos.mapLoading") }));
       try {
@@ -942,6 +946,32 @@ export function albumBrowser({ pick, pickText } = {}) {
       reset.hidden = !on;
       present.hidden = !!pick || !page.total;
       present.textContent = t("album.present", { n: page.total });
+    } catch (err) { fail(err); }
+  };
+
+  // showDuplicates shows the groups of pictures that are the same file or
+  // look the same, as far as the room filter narrows them (ADR-0195); while
+  // the server still compares older pictures, it says how many remain.
+  const showDuplicates = async (mine) => {
+    more.hidden = true;
+    present.hidden = true;
+    reset.hidden = !filteredNow();
+    count.textContent = "";
+    timeline.replaceChildren(h("p", { class: "muted", id: "album-duplicates-loading", text: t("duplicates.loading") }));
+    try {
+      const answer = await loadDuplicates(space.value, (a) => {
+        if (mine === generation) timeline.replaceChildren(h("p", { class: "muted", id: "album-duplicates-loading", text: t("duplicates.comparing", { n: a.pending }) }));
+      }, () => mine === generation);
+      if (mine !== generation) return;
+      timeline.replaceChildren();
+      shown = [];
+      for (const g of answer.groups) {
+        shown.push(...g.pictures);
+        timeline.append(h("h2", { class: "album-month", text: groupTitle(g) }),
+          h("ul", { class: "album-grid album-duplicate-group" }, ...g.pictures.map((p) => stack(p))));
+      }
+      count.textContent = [answer.total ? t("duplicates.count", { n: answer.total }) : t("duplicates.none"),
+        answer.pending ? t("duplicates.pending", { n: answer.pending }) : ""].filter(Boolean).join(" ");
     } catch (err) { fail(err); }
   };
 
@@ -1029,7 +1059,7 @@ export function albumBrowser({ pick, pickText } = {}) {
 
   // The views (ADR-0177): folders, timeline, favourites, memories, map.
   const viewText = { folders: t("photos.viewFolders"), timeline: t("photos.viewTimeline"), favourites: t("photos.viewFavourites"),
-    memories: t("photos.viewMemories"), map: t("photos.viewMap"), people: t("faces.viewPeople") };
+    memories: t("photos.viewMemories"), map: t("photos.viewMap"), people: t("faces.viewPeople"), duplicates: t("duplicates.view") };
   const viewBar = h("div", { class: "album-views segmented", role: "group", "aria-label": t("photos.views") },
     VIEWS.map((v) => h("button", { type: "button", class: "segment", "data-view": v, id: "album-view-" + v, text: viewText[v], onclick: () => {
       view = v;
@@ -1173,7 +1203,8 @@ export function albumBrowser({ pick, pickText } = {}) {
         }
         outcome = [deckText(deck) + (deck.failed.length ? " " + deck.failed.slice(0, 3).join("; ") : ""), deck.failed.length ? "error" : "notice"];
       } else {
-        const sum = await importFiles(list, folder.id, (text) => say(text), importPlace(), labels);
+        // Duplicates of readable pictures are asked about first (ADR-0195).
+        const sum = await importFiles(list, folder.id, (text) => say(text), importPlace(), labels, true);
         if (top) {
           path = [folder];
           opens = true;

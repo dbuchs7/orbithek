@@ -132,6 +132,11 @@ type Budgets struct {
 	AlbumZipPictures int
 	AlbumZipBytes    int64
 	AlbumPlaces      int
+	// DuplicateChecks bounds the files one request asks the album's
+	// duplicates for (ADR-0195); FingerprintReads the pictures stored
+	// without a fingerprint that one request decodes to make one.
+	DuplicateChecks  int
+	FingerprintReads int
 	// MapTileCacheBytes bounds the map tiles kept in memory (ADR-0177).
 	MapTileCacheBytes int64
 	// PlaceSearchCacheBytes bounds the answers of place searches kept in
@@ -191,6 +196,8 @@ func Default() Budgets {
 		AlbumZipPictures:       1000,
 		AlbumZipBytes:          2 << 30,
 		AlbumPlaces:            5000,
+		DuplicateChecks:        200,
+		FingerprintReads:       100,
 		MapTileCacheBytes:      32 << 20,
 		PlaceSearchCacheBytes:  4 << 20,
 		PhotoImports:           200,

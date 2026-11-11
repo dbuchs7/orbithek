@@ -171,6 +171,8 @@ func (h itemHandlers) copyOne(r *http.Request, space string, t copyTask) (item.I
 			return made, err
 		}
 		a.Name, a.Source, a.WithoutPlace = f.Name, &item.Source{Item: src.ID, Attachment: f.ID}, hidden
+		// A copy looks as its original does (ADR-0195).
+		a.Fingerprint = f.Fingerprint
 		err = h.d.DB.Write(func(s *item.Store) error {
 			got, err := s.As(who(r)).AddAttachment(made.ID, a)
 			renamed[f.ID] = got.ID

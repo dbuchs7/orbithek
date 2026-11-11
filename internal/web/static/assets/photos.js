@@ -8,6 +8,7 @@
 import { facesPanel, scanFile } from "./faces.js";
 import { h, when } from "./dom.js";
 import { t } from "./i18n.js";
+import { askDuplicates, findDuplicates } from "./duplicates.js";
 import { get, post, put, del, upload, download } from "./api.js";
 import { baseName, durationText, exposureText, hidden, isVideo, placeText, posterTime, sorts, typeOf } from "./photoparts.js";
 import { entries as zipEntries, read as zipRead } from "./zipread.js";
@@ -284,9 +285,11 @@ const labelUpload = (folder, att, labels) =>
 // they are, ZIP archives unpacked here first. HEIC photos and other files
 // are skipped and counted. progress is told each step; place is what the
 // server does with where each photo was taken (PLACES); labels are given
-// to every picture uploaded.
-export async function importFiles(files, folder, progress, place = "", labels = []) {
-  const sum = { done: 0, heic: 0, skipped: 0, failed: [] };
+// to every picture uploaded. With check, the files that are duplicates of
+// readable pictures or of each other are found first, and the person
+// chooses which to skip (ADR-0195); cancelling uploads nothing.
+export async function importFiles(files, folder, progress, place = "", labels = [], check = false) {
+  const sum = { done: 0, heic: 0, skipped: 0, doubles: 0, cancelled: false, failed: [] };
   const queue = [];
   for (const f of files) {
     if (/\.zip$/i.test(f.name) || f.type === "application/zip" || f.type === "application/x-zip-compressed") {
@@ -306,6 +309,19 @@ export async function importFiles(files, folder, progress, place = "", labels = 
     if (kind === "picture" || kind === "video") queue.push({ name: f.name, read: async () => f, video: kind === "video" });
     else if (kind === "heic") sum.heic++;
     else sum.skipped++;
+  }
+  if (check && queue.length) {
+    let found = [];
+    try { found = await findDuplicates(queue, progress); } catch (err) { sum.failed.push(`${t("duplicates.title")}: ${err.message}`); }
+    if (found.length) {
+      const skip = await askDuplicates(found);
+      if (!skip) {
+        sum.cancelled = true;
+        return sum;
+      }
+      sum.doubles = skip.size;
+      for (const i of [...skip].sort((a, b) => b - a)) queue.splice(i, 1);
+    }
   }
   for (const [n, q] of queue.entries()) {
     progress(t("photos.uploading", { n: n + 1, total: queue.length, name: q.name }));
@@ -456,7 +472,9 @@ export async function setPoster(folder, att) {
 
 // summaryText says what an import did.
 export function summaryText(sum) {
+  if (sum.cancelled) return t("duplicates.cancelled");
   return [t("photos.imported", { n: sum.done }), sum.duplicates ? t("photos.duplicates", { n: sum.duplicates }) : "",
+    sum.doubles ? t("duplicates.skipped", { n: sum.doubles }) : "",
     sum.heic ? t("photos.heicSkipped", { n: sum.heic }) : "",
     sum.skipped ? t("photos.otherSkipped", { n: sum.skipped }) : "", sum.failed.length ? t("photos.failed", { n: sum.failed.length }) : ""].filter(Boolean).join(" ");
 }

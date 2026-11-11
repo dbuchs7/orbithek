@@ -1543,6 +1543,10 @@ function gitSource() {
 
     step("files: an upload is listed and downloads; an image goes into the body and shows after a reload");
     const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+    // own is the pixel as a file of its own: bytes after the end of a PNG
+    // change its SHA-256, not its picture, so the album's check for
+    // duplicates (ADR-0195) does not stop an upload that means a new file.
+    const own = (tag) => Buffer.concat([png, Buffer.from(tag)]);
     await page.setInputFiles("#upload", { name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("<script>alert('file')</script>") });
     await page.waitForSelector("#attachments li:has-text('notes.txt')");
     const notes = await page.getAttribute("#attachments li a:has-text('notes.txt')", "href");
@@ -1749,7 +1753,7 @@ function gitSource() {
     await page.click("#album .album-new-folder button[type=submit]");
     await page.click("#album .album-folder:has-text('Logos')");
     await page.waitForSelector("#album-add-existing"); // inside the folder: the top offers uploading too (ADR-0187)
-    await page.setInputFiles("#album-files", { name: "brand.png", mimeType: "image/png", buffer: png });
+    await page.setInputFiles("#album-files", { name: "brand.png", mimeType: "image/png", buffer: own("brand") });
     const brandCard = "#album .album-card:has(.album-name:text-is('brand'))";
     await page.waitForSelector(brandCard + " .album-labels-edit");
     check(await page.locator("#album .album-card").count() === 1, "the folder shows its own picture only");
@@ -1786,7 +1790,7 @@ function gitSource() {
     await page.waitForSelector("#album-drop-zone:not([hidden]) #album-drop-choose");
     check(!(await page.textContent("#album .album-count-row")).includes("No pictures found"), "an empty collection invites pictures");
     // A file uploaded into a collection asks for its folder and gets the collection's labels.
-    await page.setInputFiles("#album-files", { name: "collected.png", mimeType: "image/png", buffer: png });
+    await page.setInputFiles("#album-files", { name: "collected.png", mimeType: "image/png", buffer: own("collected") });
     await page.waitForSelector("dialog#album-target[open] #album-target-folder option:has-text('Logos')", { state: "attached" });
     check((await page.textContent("dialog#album-target")).includes("nothing-here"), "the folder's question names the labels the pictures get");
     await page.selectOption("#album-target-folder", { label: "PLAT › Logos" });
@@ -1836,7 +1840,7 @@ function gitSource() {
       const dt = new DataTransfer();
       dt.items.add(new File([Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))], "image.png", { type: "image/png" }));
       document.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
-    }, png.toString("base64"));
+    }, own("pasted").toString("base64"));
     await page.waitForSelector("dialog#album-target[open] #album-target-folder option:has-text('Logos')", { state: "attached" });
     await page.selectOption("#album-target-folder", { label: "PLAT › Logos" });
     await page.click("#album-target-ok");
@@ -1891,13 +1895,36 @@ function gitSource() {
     await page.waitForSelector("#album-add-existing");
     // The place is left behind on import, a choice this browser keeps (ADR-0177, ADR-0178).
     await page.selectOption("#album-import-place", "strip");
-    await page.setInputFiles("#album-files", { name: "export.zip", mimeType: "application/zip", buffer: storedZip([["Export/holiday.png", png], ["Export/IMG_2.HEIC", Buffer.from("heic")], ["__MACOSX/._holiday.png", Buffer.from("x")]]) });
+    await page.setInputFiles("#album-files", { name: "export.zip", mimeType: "application/zip", buffer: storedZip([["Export/holiday.png", own("holiday")], ["Export/IMG_2.HEIC", Buffer.from("heic")], ["__MACOSX/._holiday.png", Buffer.from("x")]]) });
     const holiday = "#album .album-card:has(.album-name:text-is('holiday'))";
     await page.waitForSelector(holiday);
     await page.waitForSelector("#album .status .notice");
     const imported = await page.textContent("#album .status");
     check(imported.includes("1 picture brought in.") && imported.includes("1 HEIC photo skipped"), "the archive's picture comes in and the HEIC photo is skipped with advice: " + imported);
     check((await page.getAttribute(holiday + " .album-thumb img", "src")).endsWith("/thumbnail?edge=400"), "the album shows thumbnails");
+
+    step("album duplicates: a file already in the album is asked about before it is added, and the view Duplicates shows it (ADR-0195)");
+    await page.setInputFiles("#album-files", { name: "brand-again.png", mimeType: "image/png", buffer: own("brand") });
+    await page.waitForSelector("dialog#album-duplicates[open] .duplicate-row:has-text('brand-again.png')");
+    const asked = await page.textContent("dialog#album-duplicates");
+    check(asked.includes("Same file") && asked.includes("brand.png in Logos"), "the dialog names the same file and its folder: " + asked);
+    check(await page.isChecked("dialog#album-duplicates input[type=checkbox]"), "a duplicate is skipped unless unticked");
+    await page.click("#album-duplicates-skip");
+    await page.waitForSelector("#album .status .notice:has-text('1 duplicate skipped.')");
+    check(await page.locator("#album .album-card:has(.album-name:text-is('brand-again'))").count() === 0, "the skipped file is not added");
+    await page.setInputFiles("#album-files", { name: "brand-again.png", mimeType: "image/png", buffer: own("brand") });
+    await page.click("dialog#album-duplicates[open] #album-duplicates-all");
+    await page.waitForSelector("#album .album-card:has(.album-name:text-is('brand-again'))");
+    await page.click("#album-view-duplicates");
+    await page.waitForSelector("#album .album-duplicate-group .album-card:has(.album-name:text-is('brand-again')) .duplicate-same");
+    const group = await page.textContent("#album .album-timeline");
+    check(group.includes("The same file, 2 times") && group.includes("brand"), "the view groups the same file: " + group);
+    await page.evaluate(async () => {
+      const { groups } = await (await fetch("/api/album/duplicates")).json();
+      for (const g of groups) for (const p of g.pictures) if (p.attachment.name === "brand-again.png") await fetch(`/api/items/${p.item.id}/attachments/${p.attachment.id}`, { method: "DELETE" });
+    });
+    await page.click("#album-view-folders"); // back in the folder Logos, which the view kept
+    await page.waitForSelector(holiday);
     check(await page.inputValue("#album-import-place") === "strip", "the choice to remove the place stays after the import");
     check((await page.locator("#album-import-place option").allTextContents()).join("|") === "Keep for every reader|Keep to me only|Remove from the file", "imports keep the place, keep it to oneself or remove it");
     await page.selectOption("#album-import-place", "");
@@ -2030,6 +2057,9 @@ function gitSource() {
       { name: "2 Plan.png", mimeType: "image/png", buffer: Buffer.from(slidePng) },
       { name: "12 Clip.webm", mimeType: "video/webm", buffer: Buffer.from(webm) },
     ]);
+    // The two slides are the same picture, chosen twice; both are added.
+    await page.waitForSelector("dialog#album-duplicates[open] .duplicate-match:has-text('Chosen twice: 10 Outlook.png')");
+    await page.click("#album-duplicates-all");
     await page.waitForFunction(() => document.querySelectorAll("#album .album-card").length === 3);
     const planCard = "#album .album-card:has(.album-name:text-is('2 Plan'))";
     await page.click(planCard + " .album-notes-edit");
