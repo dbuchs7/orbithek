@@ -296,8 +296,17 @@ func (h itemHandlers) albumDuplicates(w http.ResponseWriter, r *http.Request) {
 		}
 		return n
 	}
+	// Oldest first. The album lists the newest first, so of two pictures
+	// of one item added in the same second the later index is the older
+	// one; times are kept to the second, so two items' pictures of the same
+	// second keep the store's order, which is by item ID.
 	for _, g := range groups {
-		slices.SortStableFunc(g, func(a, b int) int { return cmp.Compare(cands[a].created, cands[b].created) })
+		slices.SortFunc(g, func(a, b int) int {
+			if c := cmp.Compare(cands[a].created, cands[b].created); c != 0 {
+				return c
+			}
+			return cmp.Compare(b, a)
+		})
 	}
 	slices.SortStableFunc(groups, func(a, b []int) int { return cmp.Compare(newest(b), newest(a)) })
 	total := len(groups)
