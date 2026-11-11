@@ -20,6 +20,9 @@ type Photo struct {
 	// Offset its offset from UTC, "+02:00", when the picture tells it.
 	Taken  string `json:"taken,omitempty"`
 	Offset string `json:"offset,omitempty"`
+	// TakenManual says the time was set by hand (ADR-0196), so it, not the
+	// file's own, counts: every file given out carries it in its EXIF.
+	TakenManual bool `json:"takenManual,omitempty"`
 	// Lat and Lon are the place in decimal degrees, Alt the height in
 	// metres; absent when the picture tells no place.
 	Lat *float64 `json:"lat,omitempty"`
@@ -86,6 +89,9 @@ func checkPhoto(p *Photo) error {
 	}
 	if p.Offset != "" && (p.Taken == "" || !offsetRE.MatchString(p.Offset)) {
 		return invalid("photo: offset %q", p.Offset)
+	}
+	if p.TakenManual && p.Taken == "" {
+		return invalid("photo: a time set by hand needs a time")
 	}
 	if (p.Lat == nil) != (p.Lon == nil) {
 		return invalid("photo: a place needs latitude and longitude")
@@ -169,6 +175,15 @@ func placeHidden(who string, a Attachment) bool {
 func fileWithoutPlace(who string, a Attachment) bool {
 	return placeHidden(who, a) || (a.Photo != nil && a.Photo.PlaceManual && a.Author != who)
 }
+
+// timeWritten reports whether every file given out of a picture carries
+// a time set by hand in its EXIF rather than the file's own (ADR-0196).
+func timeWritten(a Attachment) bool { return a.Photo != nil && a.Photo.TakenManual }
+
+// fileAsGiven reports whether who gets a file other than as it is stored:
+// without its place (ADR-0178, ADR-0181) or with a time set by hand
+// (ADR-0196).
+func fileAsGiven(who string, a Attachment) bool { return fileWithoutPlace(who, a) || timeWritten(a) }
 
 // seenBy is a file as who may know it: without a place its uploader keeps
 // to themselves, and without saying that there is one.
@@ -271,4 +286,61 @@ func (x *Session) SetPlacePrivate(id, attachment ID, private bool, read *Photo) 
 		return err
 	}
 	return x.s.record(x.who, Event{Kind: AttachmentPlaceSet, Item: id, Attachment: &Attachment{ID: attachment, Photo: &next}})
+}
+
+// Years a time set by hand may lie in: those the EXIF reader takes
+// (ADR-0177).
+const minTakenYear, maxTakenYear = 1800, 2200
+
+// SetTaken sets when a photo was taken by hand (ADR-0196): taken is the
+// wall-clock time "2006-01-02T15:04:05", offset its offset from UTC,
+// "+02:00", or empty when it is not known. An empty taken goes back to the
+// time the file itself tells. Who may edit the picture's item may. file is
+// the photo data the server read from the stored file: the time it tells,
+// and everything else for a picture stored before photo data was recorded.
+// The rest of the photo data, its place above all, stays as it is.
+func (x *Session) SetTaken(id, attachment ID, taken, offset string, file *Photo) error {
+	it, err := x.editable(id)
+	if err != nil {
+		return err
+	}
+	if it.Presence != Live {
+		return invalid("%s is %s", it.Key, it.Presence)
+	}
+	a, ok := it.attachment(attachment)
+	if !ok || a.Deleted || !x.s.readsFile(x.who, it, attachment) {
+		return notFound("attachment %s of item %s", attachment, it.Key)
+	}
+	var next Photo
+	switch {
+	case a.Photo != nil:
+		next = *a.Photo
+	case file != nil:
+		next = *file
+	}
+	if taken == "" {
+		if a.Photo == nil || !a.Photo.TakenManual {
+			return nil // the file's own time counts already
+		}
+		next.Taken, next.Offset, next.TakenManual = "", "", false
+		if file != nil {
+			next.Taken, next.Offset = file.Taken, file.Offset
+		}
+	} else {
+		t, err := time.Parse(takenLayout, taken)
+		if err != nil || t.Year() < minTakenYear || t.Year() > maxTakenYear {
+			return invalid("a time a photo was taken is of the form 2006-01-02T15:04:05, in the years %d to %d", minTakenYear, maxTakenYear)
+		}
+		if offset != "" && !offsetRE.MatchString(offset) {
+			return invalid("an offset from UTC is of the form +02:00")
+		}
+		next.Taken, next.Offset, next.TakenManual = taken, offset, true
+	}
+	if err := checkPhoto(&next); err != nil {
+		return err
+	}
+	if p := a.Photo; p != nil && p.Taken == next.Taken && p.Offset == next.Offset && p.TakenManual == next.TakenManual {
+		return nil
+	}
+	return x.s.record(x.who, Event{Kind: AttachmentTakenSet, Item: id, Attachment: &Attachment{ID: attachment, Photo: &next}})
 }

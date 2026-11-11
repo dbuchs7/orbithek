@@ -13,6 +13,7 @@ import { baseName, durationText, exposureText, hidden, isVideo, placeText, poste
 import { entries as zipEntries, read as zipRead } from "./zipread.js";
 import { folderName, isDeck, pair, readDeck, slideName, widthOf } from "./pptx.js";
 import { pickPlace, placeInput } from "./places.js";
+import { timeFields } from "./phototime.js";
 
 export const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
 export const thumbURL = (p, edge = 400) => `${fileURL(p)}/thumbnail?edge=${edge}`;
@@ -114,7 +115,8 @@ export function openViewer(list, index, changed = () => {}) {
       const place = placeText(photo);
       const camera = [photo?.make, photo?.model].filter(Boolean).join(" ");
       return h("dl", { class: "photo-facts" },
-        row(t("photos.taken"), photo?.taken ? wallClock(photo.taken) : p.taken?.day ? t("photos.addedOn", { day: dayText(p.taken.day) }) : ""),
+        row(t("photos.taken"), photo?.taken ? [wallClock(photo.taken), photo.offset && ` (UTC${photo.offset})`, photo.takenManual && ` · ${t("photos.timeByHand")}`].filter(Boolean).join("")
+          : p.taken?.day ? t("photos.addedOn", { day: dayText(p.taken.day) }) : ""),
         row(t("photos.camera"), camera),
         row(t("photos.lens"), photo?.lens),
         row(t("photos.exposure"), exposureText(photo)),
@@ -174,10 +176,38 @@ export function openViewer(list, index, changed = () => {}) {
             try { placed(await del(`${fileURL(p)}/geotag`)); } catch (err) { info.append(h("p", { class: "error", role: "alert", text: err.message })); }
           } }) : null));
     };
+    // Who may edit the picture sets when it was taken by hand, or goes back
+    // to the time its file tells (ADR-0196).
+    const timeEdit = h("div", { class: "photo-time-edit" });
+    const timed = (r) => {
+      photo = r.attachment.photo;
+      p.attachment.photo = photo;
+      info.firstChild.replaceWith(facts());
+      showTimeEdit();
+      changed(p);
+    };
+    const showTimeEdit = () => {
+      if (!p.editable || list[i] !== p) return timeEdit.replaceChildren();
+      const fields = timeFields({ id: "photo-time", taken: photo?.taken, offset: photo?.offset });
+      const fail = (err) => timeEdit.append(h("p", { class: "error", role: "alert", text: err.message }));
+      timeEdit.replaceChildren(fields.element,
+        h("div", { class: "actions-row" },
+          h("button", { type: "button", class: "secondary", id: "photo-time-save", text: t("photos.timeSave"), onclick: async () => {
+            const v = fields.value();
+            if (!v.taken) return fail(new Error(t("photos.timeInvalid")));
+            try { timed(await put(`${fileURL(p)}/taken`, v)); } catch (err) { fail(err); }
+          } }),
+          photo?.takenManual ? h("button", { type: "button", class: "link", id: "photo-time-reset", text: t("photos.timeReset"), onclick: async () => {
+            try { timed(await del(`${fileURL(p)}/taken`)); } catch (err) { fail(err); }
+          } }) : null));
+    };
     faces?.stop();
     faces = playing ? null : facesPanel({ p, image: img, layer, still: () => list[i] === p && dialog.open, changed });
-    info.replaceChildren(facts(), faces ? faces.element : "", placeRow, placeEdit, h("div", { class: "actions-row" }, fav,
-      h("a", { class: "button secondary", href: fileURL(p), download: p.attachment.name, text: t("photos.original") })));
+    info.replaceChildren(facts(), faces ? faces.element : "", placeRow, placeEdit, timeEdit, h("div", { class: "actions-row" }, fav,
+      h("a", { class: "button secondary", id: "photo-download", href: fileURL(p), download: p.attachment.name, text: t("photos.original"),
+        // A file whose time was set by hand is fetched anew, not from
+        // the browser's cache (ADR-0196).
+        onclick: (e) => { if (photo?.takenManual) e.currentTarget.href = `${fileURL(p)}?taken=${encodeURIComponent(photo.taken + (photo.offset || ""))}`; } })));
     // A picture stored before photo data was recorded is read now.
     if (!photo && p.item.id) {
       try {
@@ -190,6 +220,7 @@ export function openViewer(list, index, changed = () => {}) {
     }
     showPlaceChoice();
     showPlaceEdit();
+    showTimeEdit();
   };
   prev.addEventListener("click", () => { if (i > 0) { i--; show(); } });
   next.addEventListener("click", () => { if (i < list.length - 1) { i++; show(); } });
@@ -241,7 +272,9 @@ export async function allFolders(depth = 4) {
 // copyTo copies a picture into a folder with its source, as the album's
 // insert does (ADR-0054, ADR-0055); the original stays where it is.
 export async function copyTo(p, folder) {
-  const res = await fetch(fileURL(p), { credentials: "same-origin" });
+  // Asked anew, so a picture whose time was set by hand is copied as it is
+  // given now (ADR-0196).
+  const res = await fetch(fileURL(p), { credentials: "same-origin", cache: "no-cache" });
   if (!res.ok) throw new Error(res.statusText);
   const file = new File([await res.blob()], p.attachment.name, { type: p.attachment.type });
   await upload(`/api/items/${folder}`, file, { item: p.item.id, attachment: p.attachment.id });

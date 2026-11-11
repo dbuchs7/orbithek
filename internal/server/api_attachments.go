@@ -560,9 +560,9 @@ func (h itemHandlers) uploadAttachment(w http.ResponseWriter, r *http.Request) {
 	if q := r.URL.Query(); q.Get("sourceItem") != "" || q.Get("sourceAttachment") != "" {
 		a.Source = &item.Source{Item: item.ID(q.Get("sourceItem")), Attachment: item.ID(q.Get("sourceAttachment"))}
 	}
-	// A copy of a photo whose place is kept from the caller is the source
-	// without its place (ADR-0178).
-	h.markCopyWithoutPlace(r, id, &a)
+	// A copy of a photo given to the caller other than as stored is the
+	// source as given (ADR-0178, ADR-0196).
+	h.markCopyAsGiven(r, id, &a)
 	// A drawing in use as a live whiteboard gets its new versions from the
 	// whiteboard only: a version from the drawing editor would be written
 	// over by the session's next save (ADR-0172).
@@ -640,11 +640,15 @@ func (h itemHandlers) downloadAttachment(w http.ResponseWriter, r *http.Request)
 	hd.Set("X-Content-Type-Options", "nosniff")
 	hd.Set("Content-Security-Policy", "default-src 'none'; sandbox")
 	hd.Set("Cache-Control", "private, max-age=3600")
+	etag := a.SHA256
 	if hidden {
-		hd.Set("ETag", strconv.Quote(a.SHA256+"-noplace"))
-	} else {
-		hd.Set("ETag", strconv.Quote(a.SHA256))
+		etag += "-noplace"
 	}
+	if timeWritten(a) {
+		// A time set again gives another file (ADR-0196).
+		etag += "-taken-" + a.Photo.Taken + a.Photo.Offset
+	}
+	hd.Set("ETag", strconv.Quote(etag))
 	// Parts of a file are sent as asked for (Range), so a video plays and
 	// seeks (ADR-0097); the ETag answers a repeated request.
 	http.ServeContent(w, r, "", time.Time{}, readLogged{content, func(err error) {

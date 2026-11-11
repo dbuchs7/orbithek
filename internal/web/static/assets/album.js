@@ -25,7 +25,8 @@ import { get, post, put, del, upload } from "./api.js";
 import { DRAWING } from "./drawing.js";
 import { exportFormats, exportPicture } from "./picexport.js";
 import { allFolders, copyTo, moveTo, dayText, deckText, googleImport, icloudImport, importDeck, importFiles, monthText, openViewer, rememberedAlbum, setFavourite, importPlace, PLACES, summaryText, thumbURL, zipPictures } from "./photos.js";
-import { dragged, durationText, groups, isVideo, range, yearsAgo } from "./photoparts.js";
+import { dragged, durationText, groups, isVideo, range, shiftTaken, yearsAgo } from "./photoparts.js";
+import { askTime } from "./phototime.js";
 import { photoMap } from "./photomap.js";
 import { pickPlace, placeInput } from "./places.js";
 import { startPresentation } from "./present.js";
@@ -1070,6 +1071,26 @@ export function albumBrowser({ pick, pickText } = {}) {
     });
     if (view === "map") load(false);
   };
+  // timeAll sets when every chosen picture one may edit was taken, to one
+  // time or each shifted by the same span; a picture that tells no time
+  // is not shifted (ADR-0196).
+  const timeAll = async () => {
+    const how = await askTime(chosen.size);
+    if (!how) return;
+    const done = await together("photos.timeSetMany", async (p) => {
+      if (!p.editable) return false;
+      let body = how;
+      if (how.minutes !== undefined) {
+        const taken = shiftTaken(p.attachment.photo?.taken, how.minutes);
+        if (!taken) return false;
+        body = { taken, offset: p.attachment.photo.offset || "" };
+      }
+      const r = await put(`${fileURL(p)}/taken`, body);
+      p.attachment.photo = r.attachment.photo;
+      return true;
+    });
+    if (done) refresh();
+  };
   const showBulk = () => {
     bulk.hidden = !choosing;
     if (!choosing) return bulk.replaceChildren();
@@ -1114,6 +1135,8 @@ export function albumBrowser({ pick, pickText } = {}) {
           const pl = await pickPlace();
           if (pl) placeAll(pl);
         } })),
+      // One time, or one shift, for every chosen picture (ADR-0196).
+      h("button", { type: "button", class: "secondary", id: "album-bulk-time", disabled: !any, text: t("photos.timeBulk"), onclick: timeAll }),
       h("button", { type: "button", class: "secondary", id: "album-bulk-zip", disabled: !any, text: t("photos.zip"), onclick: async () => {
         say(t("photos.zipping", { n: list.length }));
         try { await zipPictures(list); say(t("photos.zipped", { n: list.length }), "notice"); } catch (err) { fail(err); }

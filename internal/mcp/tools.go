@@ -147,7 +147,10 @@ var (
 // tiles and ZIP archives are for browsers, favourites are a person's own,
 // and the imports from Google Photos and shared iCloud albums act with a
 // person's sign-in at another service. An agent finds pictures, their
-// photo data included, in the files of the items it reads.
+// photo data included, in the files of the items it reads. Setting when a
+// photo was taken by hand (ADR-0196) is not offered with it: it changes
+// every file of the picture given out, and an agent that cannot list the
+// album would date pictures it never saw.
 var tools = []tool{
 	{Name: "list_spaces", Description: "List the spaces the caller holds a role in.", Method: "GET", Path: "/api/spaces"},
 	{Name: "get_own_roles", Description: "The caller's own roles: the system roles held, and every space role granted to the caller, directly or through a group (via), one entry per grant.",

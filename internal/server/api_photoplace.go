@@ -53,10 +53,39 @@ type videoCloser struct {
 	io.Closer
 }
 
-// openFor opens a stored file as the caller may have it (ADR-0178): whole,
-// or, when its uploader keeps the place a photo was taken from them,
-// without it. A picture whose place cannot be removed is not given.
+// openFor opens a stored file as the caller may have it: whole, or, when
+// its uploader keeps the place a photo was taken from them, without it
+// (ADR-0178); a picture whose place cannot be removed is not given. A
+// picture whose time was set by hand carries that time in its EXIF
+// (ADR-0196).
 func (h itemHandlers) openFor(hidden bool, id item.ID, a item.Attachment) (io.ReadSeekCloser, error) {
+	c, err := h.openWithoutPlace(hidden, id, a)
+	if err != nil || !timeWritten(a) {
+		return c, err
+	}
+	defer c.Close()
+	data, err := io.ReadAll(io.LimitReader(c, a.Size+1))
+	if err != nil {
+		return nil, err
+	}
+	out, ok := photo.SetTaken(data, a.Type, a.Photo.Taken, a.Photo.Offset)
+	if !ok {
+		// The time stays in the photo data; the file is given as it is.
+		h.log.Warn("the time set by hand could not be written into the file", "item", id, "attachment", a.ID)
+	}
+	return nopSeekCloser{bytes.NewReader(out)}, nil
+}
+
+// timeWritten reports whether a file is given with the time set by hand
+// written into it (ADR-0196): a picture of a format whose EXIF the server
+// writes. A video keeps its own.
+func timeWritten(a item.Attachment) bool {
+	return a.Photo != nil && a.Photo.TakenManual && inlineTypes[a.Type] && !albumVideo(a)
+}
+
+// openWithoutPlace opens a stored file whole, or without the place a photo
+// was taken when hidden (ADR-0178).
+func (h itemHandlers) openWithoutPlace(hidden bool, id item.ID, a item.Attachment) (io.ReadSeekCloser, error) {
 	c, err := h.d.DB.OpenAttachment(id, a.ID)
 	if err != nil || !hidden {
 		return c, err
@@ -83,11 +112,11 @@ func (h itemHandlers) openFor(hidden bool, id item.ID, a item.Attachment) (io.Re
 	return nopSeekCloser{bytes.NewReader(out)}, nil
 }
 
-// strippedSHA is the SHA-256 of a stored picture without its place: the
-// content of a copy made by a reader from whom its uploader keeps the
-// place (ADR-0178).
-func (h itemHandlers) strippedSHA(id item.ID, a item.Attachment) (string, error) {
-	c, err := h.openFor(true, id, a)
+// givenSHA is the SHA-256 of a stored picture as the caller is given it:
+// the content of a copy made by a reader from whom its uploader keeps the
+// place (ADR-0178), or of a picture whose time was set by hand (ADR-0196).
+func (h itemHandlers) givenSHA(hidden bool, id item.ID, a item.Attachment) (string, error) {
+	c, err := h.openFor(hidden, id, a)
 	if err != nil {
 		return "", err
 	}
@@ -99,10 +128,11 @@ func (h itemHandlers) strippedSHA(id item.ID, a item.Attachment) (string, error)
 	return hex.EncodeToString(sum.Sum(nil)), nil
 }
 
-// markCopyWithoutPlace tells the item model that an uploaded copy is its
-// source without the place its uploader keeps from the caller, when the
-// server finds the copy's content to be exactly that (ADR-0178).
-func (h itemHandlers) markCopyWithoutPlace(r *http.Request, id item.ID, a *item.Attachment) {
+// markCopyAsGiven tells the item model that an uploaded copy is its
+// source as the caller is given it — without the place its uploader keeps
+// from them (ADR-0178), or with the time set by hand written into it
+// (ADR-0196) — when the server finds the copy's content to be exactly that.
+func (h itemHandlers) markCopyAsGiven(r *http.Request, id item.ID, a *item.Attachment) {
 	if a.Source == nil || a.Source.Item == id {
 		return
 	}
@@ -110,16 +140,16 @@ func (h itemHandlers) markCopyWithoutPlace(r *http.Request, id item.ID, a *item.
 	var src item.Attachment
 	h.d.DB.Read(func(s *item.Store) {
 		x := s.As(who(r))
-		if hidden = x.PlaceHidden(a.Source.Item, a.Source.Attachment); hidden {
-			// Its name, type and size, to strip it the way a download does.
-			src, _ = x.Attachment(a.Source.Item, a.Source.Attachment)
-		}
+		hidden = x.PlaceHidden(a.Source.Item, a.Source.Attachment)
+		// Its name, type, size and photo data, to give it the way a
+		// download does.
+		src, _ = x.Attachment(a.Source.Item, a.Source.Attachment)
 	})
-	if !hidden || src.ID == "" {
+	if src.ID == "" || src.SHA256 == a.SHA256 || (!hidden && !timeWritten(src)) {
 		return
 	}
-	if sum, err := h.strippedSHA(a.Source.Item, src); err == nil && sum == a.SHA256 {
-		a.WithoutPlace = true
+	if sum, err := h.givenSHA(hidden, a.Source.Item, src); err == nil && sum == a.SHA256 {
+		a.AsGiven = true
 	}
 }
 

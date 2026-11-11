@@ -147,7 +147,10 @@ import (
 //   - 51: an attachment may carry Faces and FacesSeen, and the kind
 //     AttachmentFacesSet with attachment, sealed (ADR-0194). Versions 1 to
 //     50 are still read; their pictures were not searched for faces.
-const CodecVersion = 51
+//   - 52: photo data may carry TakenManual, a time set by hand, and the
+//     kind AttachmentTakenSet with attachment, sealed (ADR-0196). Versions
+//     1 to 51 are still read; their times are the files' own.
+const CodecVersion = 52
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

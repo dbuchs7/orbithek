@@ -95,7 +95,7 @@ func TestACopyTakesAPlaceSetByHand(t *testing.T) {
 	zLat, zLon := 46.0207, 7.7491
 	noErr(t, anna.SetPlace(from.ID, lake, &zLat, &zLon, "Zermatt", nil))
 	got, err := paul.AddAttachment(to.ID, Attachment{ID: "00112233445566778899aabbccddee11", Name: "lake.jpg", Type: "image/jpeg", Size: 3, SHA256: strings.Repeat("e9", 32),
-		Source: &Source{Item: from.ID, Attachment: lake}, WithoutPlace: true, Photo: &Photo{Taken: "2024-05-01T13:22:10"}})
+		Source: &Source{Item: from.ID, Attachment: lake}, AsGiven: true, Photo: &Photo{Taken: "2024-05-01T13:22:10"}})
 	noErr(t, err)
 	if *got.Photo.Lat != zLat || got.Photo.PlaceName != "Zermatt" || !got.Photo.PlaceManual || got.Photo.Taken != "2024-05-01T13:22:10" {
 		t.Errorf("the copy's photo data %+v", got.Photo)
