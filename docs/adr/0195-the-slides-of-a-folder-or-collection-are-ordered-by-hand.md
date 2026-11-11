@@ -1,9 +1,9 @@
 # ADR-0195: The slides of a folder or collection are ordered by hand, by dragging
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-11
-- **Deciders:** Project initiators (request of 2026-11-11: the order of the slides in a folder is changed by drag and drop, because ordering them by file name is not practical; asked where the order is changed, for whom it holds, where pictures added later go and whether collections have one too, the requester chose the album and the presenter's window, one order for everyone kept on the folder, new pictures at the end, and folders and collections alike)
+- **Deciders:** Project initiators (request of 2026-11-11: the order of the slides in a folder is changed by drag and drop, because ordering them by file name is not practical; asked where the order is changed, for whom it holds, where pictures added later go and whether collections have one too, the requester chose the album and the presenter's window, one order for everyone kept on the folder, new pictures at the end, and folders and collections alike; built in #282 and accepted on 2026-11-11)
 - **Open question:** whether the album should show a folder in its order of slides by itself once it has one, rather than on choosing it; whether pictures may also be dragged into the order in the timeline's or a filtered whole album's presentation, which belongs to no folder
 - **Question checked:** 2026-11
 
@@ -47,7 +47,7 @@ Chosen option: **1** (the requester's choices for where, for whom, new pictures 
 ### How it changes
 
 - `PUT /api/album/order/{ref}` with `pictures` (first versions, in the order they are to have) and `before` (a first version, or none for the end) moves pictures; `DELETE /api/album/order/{ref}` clears the order. Whoever may edit the folder or collection may (D9). Every picture named must be one the caller reads there; otherwise the answer is *not found*, as for any picture the caller does not read.
-- The server builds the new list in one deterministic step (`Session.PlacePictures`): the stacks the order named, as far as they still exist; then the stacks the caller reads that it did not name, by name, as the caller saw them; then the moved ones are taken out and put before `before`. Stacks the caller does not read keep their places among the others. The list replaces the old one in one event; replaying it yields the same state (`applyToState` sets the list and nothing else).
+- The server builds the new list in one deterministic step (`Session.PlacePictures`): the stacks the order named, as far as they still exist; then the stacks the caller reads that it did not name, by name, as the caller saw them; then the moved ones are taken out and put before `before`. Stacks the caller does not read keep their places among the others. The list replaces the old one in one event; replaying it yields the same state (`applyPictureOrder` sets the list and nothing else).
 - A move rather than a whole list was chosen because it works with part of a folder on screen, with pictures the caller does not read, and with another person's change made meanwhile.
 
 ### How it is shown
@@ -88,7 +88,7 @@ Strongest form: a fractional rank on the stack's first version moves one picture
 
 Strongest form: no new event kind or codec version; the order is written as properties are, validated by the type (D3), and shows on the folder's page.
 
-- Bad: folders are of a type without fields (ADR-0090) and collections of a fixed shape (ADR-0175); adding a field changes what `isFolderType` accepts in existing data directories.
+- Bad: folders are of a type without fields (ADR-0090) and collections of a fixed shape (ADR-0175); every existing data directory holds both types without such a field, so the album would have to define new versions of them on first use.
 - Bad: the field would be text a person could type on the item's page, with file IDs no one can read; in a collection it would show IDs of pictures a reader does not read, against D10.
 
 ### Option 4: a personal order
