@@ -67,7 +67,13 @@ const (
 	PlacesChanged = "places.change"
 	// FacesChanged records an administrator turning the recognition of
 	// faces in the album on or off (ADR-0194).
-	FacesChanged    = "faces.change"
+	FacesChanged = "faces.change"
+	// ShareAdded, ShareChanged and ShareRemoved record an administrator
+	// binding an album folder to a file share, changing the binding, or
+	// removing it (ADR-0196).
+	ShareAdded      = "share.add"
+	ShareChanged    = "share.change"
+	ShareRemoved    = "share.remove"
 	UserCreated     = "user.create"
 	RoleGranted     = "role.grant"
 	SystemRole      = "system-role.grant"

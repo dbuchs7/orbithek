@@ -19,6 +19,9 @@ import (
 // maxListingPage bounds one page of a bucket's listing as read.
 const maxListingPage = 8 << 20
 
+// maxErrorAnswer bounds an error answer of a store as read.
+const maxErrorAnswer = 64 << 10
+
 // requestTimeout bounds connecting and the answer's headers.
 const requestTimeout = 30 * time.Second
 
@@ -152,7 +155,7 @@ func statusError(resp *http.Response, what string) error {
 	var e struct {
 		Code string `xml:"Code"`
 	}
-	_ = xml.NewDecoder(io.LimitReader(resp.Body, 64<<10)).Decode(&e)
+	_ = xml.NewDecoder(io.LimitReader(resp.Body, maxErrorAnswer)).Decode(&e)
 	code := e.Code
 	if len(code) > 64 {
 		code = code[:64]

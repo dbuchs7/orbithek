@@ -137,6 +137,10 @@ type Deps struct {
 	// (ADR-0177); Routes creates one from the process environment, without
 	// Google, when it is nil.
 	Photos *Photos
+	// Shares holds what the album's file shares need besides the site's
+	// settings (ADR-0196); Routes creates one over the process
+	// environment when it is nil.
+	Shares *Shares
 }
 
 // MetricsPath serves the operational metrics. It is the only path a token
@@ -224,6 +228,9 @@ func Routes(d Deps) []Route {
 	if d.Photos == nil {
 		d.Photos = NewPhotos(os.Getenv, nil)
 	}
+	if d.Shares == nil {
+		d.Shares = NewShares(os.Getenv)
+	}
 	if d.Calendars == nil && d.DB != nil {
 		d.Calendars = extcal.NewReader(d.DB.Calendars, CalendarClient(os.Getenv), nil)
 	}
@@ -280,6 +287,7 @@ func Routes(d Deps) []Route {
 	routes = append(routes, oauthRoutes(d)...)
 	routes = append(routes, autoBackupRoutes(d)...)
 	routes = append(routes, connectorRoutes(d)...)
+	routes = append(routes, shareRoutes(d)...)
 	routes = append(routes, engineRoutes(d)...)
 	routes = append(routes, taskLinkRoutes(d)...)
 	routes = append(routes, engineConnRoutes(d)...)
