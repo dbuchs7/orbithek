@@ -207,4 +207,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0192](0192-videos-as-slides-and-from-google-photos-and-icloud.md) | Videos as slides, and from Google Photos and shared iCloud albums | Accepted | Landed |
 | [0193](0193-a-collection-is-deleted-from-the-album.md) | A collection is deleted from the album, its pictures staying where they are | Accepted | Landed |
 | [0194](0194-faces-and-person-albums.md) | Faces found in the browser, named by people, and recognised only where administrators allow it | Accepted | Landed |
-| [0195](0195-the-slides-of-a-folder-or-collection-are-ordered-by-hand.md) | The slides of a folder or collection are ordered by hand, by dragging | Proposed | Partial |
+| [0195](0195-the-slides-of-a-folder-or-collection-are-ordered-by-hand.md) | The slides of a folder or collection are ordered by hand, by dragging | Accepted | Landed |

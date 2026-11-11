@@ -1,9 +1,9 @@
 # ADR-0195: The slides of a folder or collection are ordered by hand, by dragging
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-11
-- **Deciders:** Project initiators (request of 2026-11-11: the order of the slides in a folder is changed by drag and drop, because ordering them by file name is not practical; asked where the order is changed, for whom it holds, where pictures added later go and whether collections have one too, the requester chose the album and the presenter's window, one order for everyone kept on the folder, new pictures at the end, and folders and collections alike)
+- **Deciders:** Project initiators (request of 2026-11-11: the order of the slides in a folder is changed by drag and drop, because ordering them by file name is not practical; asked where the order is changed, for whom it holds, where pictures added later go and whether collections have one too, the requester chose the album and the presenter's window, one order for everyone kept on the folder, new pictures at the end, and folders and collections alike; built in #282 and accepted on 2026-11-11)
 - **Open question:** whether the album should show a folder in its order of slides by itself once it has one, rather than on choosing it; whether pictures may also be dragged into the order in the timeline's or a filtered whole album's presentation, which belongs to no folder
 - **Question checked:** 2026-11
 
