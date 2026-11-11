@@ -117,6 +117,10 @@ export function albumBrowser({ pick, pickText } = {}) {
   const label = h("select", { "aria-label": t("album.label"), id: "album-label" }, h("option", { value: "", text: t("album.labelAll") }));
   const options = h("datalist", { id: "album-label-options" });
   const trail = h("nav", { class: "album-trail", "aria-label": t("album.folders") });
+  // manage stands beside the trail and changes the open folder or
+  // collection itself; tools below it add pictures to it.
+  const manage = h("div", { class: "album-manage" });
+  const headRow = h("div", { class: "album-location" }, trail, manage);
   const tools = h("div", { class: "album-tools" });
   const folders = h("ul", { class: "album-folders" });
   const grid = h("ul", { class: "album-grid" });
@@ -780,28 +784,28 @@ export function albumBrowser({ pick, pickText } = {}) {
   const showCollection = () => {
     const c = here();
     const about = h("p", { class: "muted album-rule-text", id: "album-rule-text", text: ruleText(c.rule) });
+    manage.replaceChildren();
     if (pick) return tools.replaceChildren(about);
     // Pictures are added to a collection by giving them its labels: new
     // files go into a folder chosen each time (ADR-0187).
     const adding = [
       h("button", { type: "button", class: "primary", id: "album-upload", text: t("album.upload"), title: t("album.uploadCollectionTitle", { labels: c.rule.labels.join(", ") }), onclick: () => files.click() }),
       h("button", { type: "button", class: "secondary", id: "album-add-existing", text: t("album.addExisting"), title: t("album.addExistingCollectionTitle", { labels: c.rule.labels.join(", ") }), onclick: addFromAlbum }),
-      h("span", { class: "muted album-drop-hint", text: t("album.collectionDropHint") }),
-      placeChoice()];
+      placeChoice(),
+      dropHint()];
     if (!c.editable) return tools.replaceChildren(about, ...adding);
     const { form, first } = ruleForm({ id: "album-rule-form", rule: c.rule, submit: t("album.ruleSave"), done: async (rule) => {
       c.rule = (await put(`/api/album/collections/${c.id}`, rule)).rule;
       showCollection();
       load(false);
     } });
-    tools.replaceChildren(about,
+    manage.replaceChildren(
       h("button", { type: "button", class: "secondary", id: "album-rule-edit", text: t("album.ruleEdit"), onclick: () => {
         form.hidden = !form.hidden;
         if (!form.hidden) first().focus();
       } }),
-      ...adding,
-      h("button", { type: "button", class: "danger", id: "album-collection-delete", text: t("album.collectionDelete"), onclick: deleteCollection }),
-      form);
+      h("button", { type: "button", class: "danger", id: "album-collection-delete", text: t("album.collectionDelete"), onclick: deleteCollection }));
+    tools.replaceChildren(about, form, ...adding);
   };
 
   // deleteCollection moves the open collection to the trash, from where
@@ -821,6 +825,7 @@ export function albumBrowser({ pick, pickText } = {}) {
 
   const showTools = () => {
     if (inCollection()) return showCollection();
+    manage.replaceChildren();
     if (pick) return tools.replaceChildren();
     const name = h("input", { id: "album-folder-name", placeholder: t("album.folderName"), "aria-label": t("album.folderName"), required: true });
     // A folder at the top names its room here; below a folder it is made in
@@ -851,8 +856,10 @@ export function albumBrowser({ pick, pickText } = {}) {
       collect.form.hidden = true;
       loadFolders();
     } });
-    // replaceChildren, unlike h, writes null as text.
-    tools.replaceChildren(...[
+    // The open folder is changed beside the trail: a folder or collection
+    // made in it, or the folder deleted. replaceChildren, unlike h, writes
+    // null as text.
+    manage.replaceChildren(...[
       h("button", { type: "button", class: "secondary", id: "album-new-folder", text: t("album.newFolder"), onclick: () => {
         make.hidden = !make.hidden;
         collect.form.hidden = true;
@@ -870,15 +877,16 @@ export function albumBrowser({ pick, pickText } = {}) {
         }
         collect.first().focus();
       } }),
+      inFolder() && here().editable !== false ? h("button", { type: "button", class: "danger", id: "album-folder-delete", text: t("album.folderDelete"), onclick: deleteFolder }) : null].filter(Boolean));
+    // Below it, pictures are added; the forms open beneath the buttons.
+    tools.replaceChildren(...[make, collect.form,
       // At the top, the folder is asked for once the pictures are chosen.
       h("button", { type: "button", class: "primary", id: "album-upload", text: t("album.upload"), title: here() ? t("photos.uploadTitle") : t("album.uploadTopTitle"), onclick: () => files.click() }),
       here() ? h("button", { type: "button", class: "secondary", id: "album-add-existing", text: t("album.addExisting"), title: t("album.addExistingFolderTitle"), onclick: addFromAlbum }) : null,
       here() && imports.google ? h("button", { type: "button", class: "secondary", id: "album-google", text: t("photos.fromGoogle"), onclick: fromGoogle }) : null,
       here() && imports.icloud ? h("button", { type: "button", class: "secondary", id: "album-icloud", text: t("photos.fromICloud"), onclick: fromICloud }) : null,
-      h("span", { class: "muted album-drop-hint", text: here() ? t("photos.dropHint") : t("album.uploadHint") }),
       placeChoice(),
-      inFolder() && here().editable !== false ? h("button", { type: "button", class: "danger", id: "album-folder-delete", text: t("album.folderDelete"), onclick: deleteFolder }) : null,
-      make, collect.form].filter(Boolean));
+      dropHint()].filter(Boolean));
   };
 
   // deleteFolder moves the open folder with its folders and pictures to
@@ -1108,7 +1116,7 @@ export function albumBrowser({ pick, pickText } = {}) {
     status.replaceChildren();
     const folders_ = view === "folders";
     space.disabled = folders_ && inFolder();
-    trail.hidden = folders.hidden = tools.hidden = !folders_;
+    headRow.hidden = folders.hidden = tools.hidden = !folders_;
     grid.hidden = !folders_;
     timeline.hidden = folders_ || view === "map" || (view === "people" && !person);
     mapBox.hidden = view !== "map";
@@ -1239,6 +1247,10 @@ export function albumBrowser({ pick, pickText } = {}) {
     choice.addEventListener("change", () => importPlace(choice.value));
     return h("label", { class: "field album-import-place" }, h("span", { text: t("photos.placeOnImport") }), choice);
   };
+
+  // dropHint says, on a line of its own below the buttons, that files are
+  // also dropped or pasted where one is (ADR-0187).
+  const dropHint = () => h("p", { class: "muted album-drop-hint", text: t("photos.dropHint") });
 
   // takeFiles adds files chosen, dropped or pasted where one is
   // (ADR-0187): into the open folder; in a collection, into a folder
@@ -1498,9 +1510,13 @@ export function albumBrowser({ pick, pickText } = {}) {
     space.append(...roomOptions());
   }).catch(() => {});
   const root = h("div", { class: "album" },
-    pick ? null : h("div", { class: "album-bar" }, viewBar, chooseButton),
+    pick ? null : h("div", { class: "album-bar" }, viewBar),
     h("div", { class: "album-filters filter-bar", role: "search", "aria-label": t("album.title") }, search, kind, space, label, reset), options,
-    bulk, trail, tools, status, folders, h("div", { class: "album-count-row" }, count, sortSelect, orderHint, orderReset, present), dropZone, grid, peopleBox, timeline, mapBox, more, files);
+    headRow, tools, status, folders,
+    // Right above the pictures: how many there are, their order, choosing
+    // several of them and presenting them; the chosen ones' actions follow.
+    h("div", { class: "album-count-row" }, count, sortSelect, pick ? null : chooseButton, present, orderReset, orderHint),
+    bulk, dropZone, grid, peopleBox, timeline, mapBox, more, files);
   // Files dropped onto the album are added where one is (ADR-0177,
   // ADR-0187); a picture pasted is too.
   if (!pick) {

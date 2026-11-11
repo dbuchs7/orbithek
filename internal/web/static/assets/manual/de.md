@@ -207,6 +207,8 @@ Das **Album** zeigt die Bilder und Zeichnungen aller Seiten und Aufgaben, die ma
 
 Man sucht nach Name, Label, Schlüssel oder Titel und schränkt nach Art, Raum und Label ein. Die Suche nimmt auch ein Datum und findet die Bilder, die dann aufgenommen wurden, oder, wenn ein Bild keine Zeit nennt, dann hinzugefügt wurden: ein Jahr (*2026*), einen Monat (*11.2026*, *2026-11*, *November 2026*), einen Tag (*10.11.2026*, *2026-11-10*, *10. November 2026*) oder einen Tag oder Monat ohne Jahr (*10.11.*, *November*), der in jedem Jahr gefunden wird.
 
+In der Ansicht **Ordner** steht über dem Inhalt der Pfad zum offenen Ordner, daneben, was den Ordner selbst ändert: **Neuer Ordner**, **Neue Sammlung** und **Ordner löschen**, in einer Sammlung **Regel ändern** und **Sammlung löschen**. Darunter folgen die Wege, Bilder hinzuzufügen, dann die Ordner und direkt über den Bildern ihre Zahl, **Mehrere auswählen** und **N Bilder präsentieren**.
+
 ### Hochladen und importieren
 
 Bilder werden dort hinzugefügt, wo man gerade ist, in der Ansicht **Ordner**:
