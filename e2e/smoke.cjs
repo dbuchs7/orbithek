@@ -2149,7 +2149,7 @@ function gitSource() {
       await page.waitForSelector("#album .album-card .album-name:text-is('2 Plan')"); // back in the folder Talk
     }
 
-    step("slide import: a presentation with its slides exported as pictures becomes a folder of slides with their notes, hidden slides left out (ADR-0186)");
+    step("slide import: a presentation, alone or with its slides exported as pictures, becomes a folder of slides with their notes, hidden slides left out (ADR-0186)");
     {
       const ns = `xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"`;
       const relType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/";
@@ -2191,11 +2191,34 @@ function gitSource() {
       ]);
       await page.waitForSelector("#album .status .error:has-text('The pictures do not match the slides')");
       check(await page.locator("#album .album-folder").count() === 0, "no folder is made for pictures that do not match");
-      // The folder goes into the trash, so the room's map later on is as before.
-      const trashed = await page.evaluate(async () => {
+      const outer = await page.evaluate(async () => (await (await fetch("/api/album?q=Kick-off")).json()).pictures[0].item.id);
+      // The presentation alone: the browser draws its slides.
+      await page.setInputFiles("#album-files", [
+        { name: "Quarterly review.pptx", mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation", buffer: deck },
+      ]);
+      await page.waitForSelector("#album .status .notice:has-text('2 slides brought into the folder Quarterly review.')", { timeout: 60000 });
+      await page.waitForFunction(() => document.querySelectorAll("#album .album-card").length === 2);
+      await page.waitForSelector(kickoff + ' .album-notes-edit:text-is("Edit speaker\'s notes")');
+      const drawn = await page.evaluate(async (outer) => {
         const { pictures } = await (await fetch("/api/album?q=Kick-off")).json();
-        return (await fetch(`/api/items/${pictures[0].item.id}/trash`, { method: "POST" })).status;
-      });
+        const p = pictures.find((x) => x.item.id !== outer);
+        const img = new Image();
+        img.src = `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
+        await img.decode();
+        const c = document.createElement("canvas");
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        const g = c.getContext("2d");
+        g.drawImage(img, 0, 0);
+        const d = g.getImageData(0, 0, c.width, c.height).data;
+        let dark = 0;
+        for (let i = 0; i < d.length; i += 4) if (d[i] < 100 && d[i + 1] < 100 && d[i + 2] < 100) dark++;
+        return { name: p.attachment.name, notes: p.notes, w: img.naturalWidth, h: img.naturalHeight, dark };
+      }, outer);
+      check(drawn.name === "01 Kick-off.png" && drawn.notes === "Welcome everyone.\nIntroduce the team.", "a drawn slide is named by its title and keeps its notes: " + JSON.stringify(drawn));
+      check(drawn.w === 1920 && drawn.h === 1080, "a drawn slide is 1920 pixels wide, in the slide's proportions: " + drawn.w + "×" + drawn.h);
+      check(drawn.dark > 500, "the slide's title is drawn: " + drawn.dark + " dark pixels");
+      // The folders go into the trash, so the room's map later on is as before.
+      const trashed = await page.evaluate(async (outer) => (await fetch(`/api/items/${outer}/trash`, { method: "POST" })).status, outer);
       check(trashed === 200, "the imported folder goes into the trash: " + trashed);
     }
 
