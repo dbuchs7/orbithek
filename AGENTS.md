@@ -27,7 +27,7 @@ The single binary `cmd/orbithek` opens the data directory and serves the web UI,
 it is released for every common platform and as a container image (ADR-0024).
 A buildless web UI (`internal/web`, ADR-0031) runs on top of the API;
 bodies are edited with ProseMirror, vendored as one pre-built bundle (ADR-0032);
-Markdown pasted or inserted through a dialog becomes blocks of the body in the browser, never stored as Markdown (`assets/markdown.js`, proposed, ADR-0133);
+Markdown pasted or inserted through a dialog becomes blocks of the body in the browser, a table's cells keeping their formats (ADR-0214), never stored as Markdown (`assets/markdown.js`, proposed, ADR-0133);
 drawings are made with Excalidraw on a page of its own with a looser content security policy and stored as PNG attachments that carry their scene (ADR-0053).
 The album lists the pictures of every readable item; inserting one copies it into the edited item (ADR-0054);
 copies carry their source and learn of a changed original (ADR-0055).

@@ -2899,7 +2899,7 @@ function webSource() {
       "# Installationsanleitung", "", "## Voraussetzungen", "", "- Docker installieren", "- Go installieren", "- **Zugriffsrechte** prüfen 😀", "",
       "### Konfiguration", "", "1. Repository klonen", "2. Konfigurationsdatei anpassen", "3. Anwendung starten", "",
       "> Hinweis: Die Konfiguration ist erforderlich.", "", "Weitere Informationen findest du in der", "[Dokumentation](https://example.com).", "",
-      "```bash", "docker compose up -d", "```", "", "---", "", "- [x] Backups prüfen", "", "| Name | Status |", "|---|---|", "| Atlas | Aktiv |",
+      "```bash", "docker compose up -d", "```", "", "---", "", "- [x] Backups prüfen", "", "| Name | Status |", "|---|---|", "| Atlas | **Aktiv** |",
     ].join("\n");
     const clip = (text, html) => page.evaluate(([t, hm]) => navigator.clipboard.write([new ClipboardItem({
       "text/plain": new Blob([t], { type: "text/plain" }), ...(hm ? { "text/html": new Blob([hm], { type: "text/html" }) } : {}) })]), [text, html]);
@@ -2915,7 +2915,7 @@ function webSource() {
       check((await page.textContent("#body .ProseMirror pre")) === "docker compose up -d", "the code block " + when);
       check(await page.locator("#body .ProseMirror hr.pm-divider").count() === 1, "the divider " + when);
       check(await page.locator("#body .pm-task[data-checked='true']:has-text('Backups prüfen')").count() === 1, "the checked task " + when);
-      check((await page.textContent("#body .pm-table tr:nth-child(2) td:nth-child(2) .pm-cell-text")) === "Aktiv", "the table " + when);
+      check((await page.textContent("#body .pm-table tr:nth-child(2) td:nth-child(2) .pm-cell-text strong")) === "Aktiv", "the table, its cell still bold (ADR-0214), " + when);
       const order = await bodyOrder();
       check(order[0] === "p:Before" && order[order.length - 1] === "p:After" && order[1] === "h2:Installationsanleitung", "inserted between the paragraphs, which stay: " + order.join(" | "));
     };
