@@ -88,6 +88,7 @@ The menu **Insert…** adds blocks after the cursor:
 - **Image**, **Video**, **Drawing**, a picture **From the album** or a **Copied picture**;
 - **Embed an item…**: shows another item whole inside the text;
 - **New task…** (created below the page and shown as a link or whole) and **Task list…** (every task with a label, or the result of a query);
+- **View of items…**: the items of a type as a table, a gallery or a list, grouped by a field (see *Views of items*);
 - **Paste Markdown…** and **Markdown file from a repository…** (if enabled);
 - BPMN diagrams, and processes, forms, decisions, start forms and architecture sketches of a process engine (see *Process engines*).
 
@@ -95,7 +96,7 @@ Pictures can be placed left or right with text beside them, centred, and resized
 
 ### Labels, relations and files
 
-**Labels** are short words that group items across rooms, such as `release-2` or `security`. Add them in the panel at the side; a click on a label lists every item carrying it and offers it **As a board**.
+**Labels** are short words that group items across rooms, such as `release-2` or `security`. Add them in the panel at the side; a click on a label lists every item carrying it and offers it **As a board**. A label may have a page that describes it (see *Label pages and collections*).
 
 **Relations** link an item to another with a named type, for example *blocks* or *depends on*: enter the relation and the other item's key and choose **Relate**. Links and mentions in the text are shown as relations too.
 
@@ -159,7 +160,21 @@ Ctrl+Enter runs a query. The results can be exported as CSV.
 
 ### Views of a room
 
-A room offers several views: its page tree, **All items**, a **Board** per type with a workflow, the **Calendar**, the **Roadmap** and, depending on your role, **Governance** and **Link check**. **Watch** on a room tells you of everything that happens in it.
+A room offers several views: its page tree, **All items**, a **Board** per type with a workflow, **Views** of its items, the **Calendar**, the **Roadmap** and, depending on your role, **Governance** and **Link check**. **Watch** on a room tells you of everything that happens in it.
+
+### Views of items
+
+**Views** in a room, or **View of a type…** beside it, shows the items you may read as a **Table**, a **Gallery** of cards or a **List** of compact rows. Choose the **Room** (or all rooms), the **Type** and, if you like, a **Query** in the query language, then **Apply**. **Group by** puts the items under headers with their counts: by state, by label, or by a field that holds a choice, a person or yes and no; a click on a header folds the group. **Sort** orders them by a column, as does a click on a column's heading, a second click the other way. **Columns** chooses what the table shows; the cards of a gallery show the first picture of the text, or a file field's file, with the title and the chosen fields.
+
+Where you may edit an item, the pencil beside a cell changes it in place: the title, a field, or the state, by one of the workflow's transitions. The address keeps the whole view, so a link shows it to others as far as they may read the items.
+
+In a text, **Insert…** → **View of items…** places such a view; **Change the view…** changes it while editing, and **Open as a view** shows it on a page of its own. Every reader sees only the items they may read.
+
+### Label pages and collections
+
+A label can have a page that says what it is about. On a label's list of items, **Describe this label** makes that page, of the type *topic*, in a room you choose; afterwards the label's list shows it on top with **Read the page**. If several rooms have a page for the same label, you see the oldest one you may read.
+
+A label's page shows the items carrying its label as a view: **Table**, **Gallery** or **List**, grouped and sorted as you choose. With **Order set by hand**, whoever may edit the page drags an item before another or moves it with the arrows (Alt+↑ and Alt+↓); items added later come after the ordered ones, and items you may not read keep their places without being shown. **Forget the order set by hand** lists them in the order they were made again. Such a page with its order is a collection: **Add to collection…** on an item gives it the label of a page you choose.
 
 ## Tasks
 
