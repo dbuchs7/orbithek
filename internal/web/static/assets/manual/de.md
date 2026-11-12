@@ -83,7 +83,7 @@ Mit **Bearbeiten** wird der Text bearbeitet, mit **Fertig** abgeschlossen. Ände
 - **Erwähnen** (@): eine Person oder einen Eintrag;
 - **Rückgängig** und **Wiederholen**.
 
-Eingefügtes Markdown wird zu formatiertem Text. Ctrl+Shift+V fügt stattdessen reinen Text ein.
+Eingefügtes Markdown wird zu formatiertem Text; eine Tabelle behält die Formatierung ihrer Zellen. Ctrl+Shift+V fügt stattdessen reinen Text ein.
 
 Hat kein Eintrag den Titel, den man nach @ oder als Adresse eines Links tippt, bietet die Liste *«Titel» erstellen als …* an. Der Dialog **Erstellen und erwähnen** fragt nach dem Typ (dem Seitentyp des Raums, wenn man keinen anderen wählt) und dem Raum (dem Raum des bearbeiteten Texts, wenn man keinen anderen wählt); eine Seite im selben Raum kommt unter die bearbeitete Seite und ist wie diese geschützt; aus einer Tagesnotiz kommt sie zuoberst in den Raum. Der neue Eintrag wird dort erwähnt, wo man getippt hat. Typen mit Pflichtfeldern erstellt man stattdessen mit **+ Neu**. Darf man in einem Raum nichts erstellen oder ist der Speicher fast voll, sagt es der Dialog, und es wird nichts erstellt.
 
