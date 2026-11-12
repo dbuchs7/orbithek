@@ -151,6 +151,18 @@ type Budgets struct {
 	// may take, beyond the server's usual minute.
 	VideoBytes           int64
 	VideoTransferSeconds int
+	// LinkPreviewPageBytes bounds what the server reads of one web page
+	// whose metadata or text it takes (ADR-0206), LinkPreviewImageBytes
+	// the picture a page names, kept as a file of its item, and
+	// LinkPreviewSeconds each of those requests, redirects included.
+	// LinkPreviewsAtOnce bounds the pages and pictures read at once,
+	// across all people, LinkPreviewBlocks the blocks one page's text
+	// becomes.
+	LinkPreviewPageBytes  int64
+	LinkPreviewImageBytes int64
+	LinkPreviewSeconds    int
+	LinkPreviewsAtOnce    int
+	LinkPreviewBlocks     int
 }
 
 // Default returns the budgets the server uses unless configured otherwise.
@@ -203,6 +215,11 @@ func Default() Budgets {
 		PhotoImports:           200,
 		VideoBytes:             2 << 30,
 		VideoTransferSeconds:   3600,
+		LinkPreviewPageBytes:   2 << 20,
+		LinkPreviewImageBytes:  5 << 20,
+		LinkPreviewSeconds:     10,
+		LinkPreviewsAtOnce:     8,
+		LinkPreviewBlocks:      500,
 	}
 }
 

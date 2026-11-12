@@ -171,6 +171,8 @@ var classified = map[string]string{
 		"not a caller's input to this server",
 	"internal/notify/hooks.go:maxHookAnswer":    "the same bound, where the answer is dropped",
 	"internal/migrate/cloud.go:maxSourceAnswer": "the same bound, where the import reads (ADR-0023)",
+	"internal/linkpreview.maxField": "the shape of a web link's fields (ADR-0206): how long one value a page names may be, like the length of a title; " +
+		"the page itself is bounded by LinkPreviewPageBytes",
 }
 
 // TestNoCeilingWithoutAName keeps the budgets complete (ADR-0015). Every
