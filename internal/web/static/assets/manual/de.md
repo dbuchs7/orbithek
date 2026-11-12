@@ -257,6 +257,10 @@ Gesichter werden im eigenen Browser gefunden; nichts wird anderswohin gesendet. 
 
 Ist die Wiedererkennung eingeschaltet, zeigt das Album einer Person zusätzlich **Ist das Ada?**: Gesichter auf anderen Bildern, die man bearbeiten darf und die Ada mehr ähneln als allen anderen benannten Personen, die ähnlichsten zuerst. Man klickt die Gesichter an, die Ada zeigen, oder wählt **Alle wählen** und klickt die falschen wieder ab, dann **Gewählte bestätigen**. Nicht gewählte Gesichter bleiben unbenannt und werden später erneut vorgeschlagen. Vorgeschlagen werden nur Bilder, deren Gesichter bei eingeschalteter Wiedererkennung gesucht wurden.
 
+### Einen Ordner verschieben
+
+**Ordner verschieben** in einem offenen Ordner verschiebt ihn mit seinen Ordnern, Bildern und Videos in einen anderen Ordner oder auf die oberste Ebene eines Raums. Den Ort unter **Verschieben nach…** wählen und **Verschieben** klicken; der Pfad führt danach zum Ordner an seinem neuen Ort. Ein Ordner lässt sich auch auf einen daneben aufgeführten Ordner oder auf einen übergeordneten Ordner im Pfad ziehen; auf **Alle Bilder** gezogen, kommt er auf die oberste Ebene seines Raums. Wird der Ordner in einen anderen Raum verschoben, fragt das Album zuerst nach: Danach entscheidet dieser Raum, wer ihn sehen und ändern darf. Verschieben darf einen Ordner nur, wer ihn und alles darin ändern und am Ziel etwas erstellen darf; in sich selbst oder einen Ordner darunter lässt er sich nicht verschieben.
+
 ### Einen Ordner löschen
 
 **Ordner löschen** in einem offenen Ordner verschiebt ihn mit seinen Ordnern, Bildern und Videos in den Papierkorb, nachdem gesagt wurde, wie viel mitgeht. Seine Seite stellt ihn mit **Wiederherstellen** wieder her. Ein Ordner wird nicht gelöscht, solange etwas ausserhalb, etwa eine Seite, noch verwendet, was darin ist; das Album nennt es.

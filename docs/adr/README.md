@@ -212,3 +212,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0197](0197-album-folders-that-show-a-file-share.md) | Album folders that show a file share, as previews, with the share as master | Proposed | Not started |
 | [0198](0198-a-photos-time-set-by-hand-and-written-into-the-files-given-out.md) | A photo's time set by hand, and written into the files given out | Proposed | Partial |
 | [0199](0199-faces-searched-again-and-suggested-for-a-person.md) | Faces searched again until they can be recognised, and suggested for a person across the album | Proposed | Partial |
+| [0200](0200-a-folder-is-moved-from-the-album.md) | A folder is moved from the album, with what it holds | Proposed | Partial |
