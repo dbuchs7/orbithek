@@ -923,7 +923,7 @@ export default {
   "slides.oneAtATime": "Choose one presentation at a time.",
   "slides.mismatch": "The pictures do not match the slides: the presentation shows {slides} slides, {pictures} pictures were chosen. Choose the presentation alone to have its slides drawn, or all its exported slides together with it.",
   "slides.drawing": "Drawing slide {n} of {total}…",
-  "slides.approximated": {"one": "{n} slide holds a chart, an embedded object or a picture the browser cannot draw; it shows as a grey box. For exact slides, choose the presentation together with its slides exported as PNG.", "other": "{n} slides hold charts, embedded objects or pictures the browser cannot draw; they show as grey boxes. For exact slides, choose the presentation together with its slides exported as PNG."},
+  "slides.approximated": {"one": "{n} slide holds a kind of chart, an embedded object or a picture the browser cannot draw; it shows as a grey box. For exact slides, choose the presentation together with its slides exported as PNG.", "other": "{n} slides hold kinds of chart, embedded objects or pictures the browser cannot draw; they show as grey boxes. For exact slides, choose the presentation together with its slides exported as PNG."},
   "slides.imported": {"one": "{n} slide brought into the folder {folder}.", "other": "{n} slides brought into the folder {folder}."},
   "slides.withNotes": {"one": "{n} with speaker's notes.", "other": "{n} with speaker's notes."},
   "slides.hiddenLeft": {"one": "{n} hidden slide left out.", "other": "{n} hidden slides left out."},

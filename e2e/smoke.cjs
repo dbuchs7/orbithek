@@ -2494,7 +2494,16 @@ function webSource() {
         `<Relationship Id="${id}" Type="${relType}${type}" Target="${target}"/>`).join("")}</Relationships>`;
       const sp = (ph, text) => `<p:sp><p:nvSpPr><p:cNvPr id="2" name="x"/><p:cNvSpPr/><p:nvPr><p:ph type="${ph}"/></p:nvPr></p:nvSpPr>` +
         `<p:txBody><a:bodyPr/>${text.split("\n").map((l) => `<a:p><a:r><a:t>${l}</a:t></a:r></a:p>`).join("")}</p:txBody></p:sp>`;
-      const slideXml = (title, hidden) => `<p:sld ${ns}${hidden ? ' show="0"' : ""}><p:cSld><p:spTree>${sp("title", title)}</p:spTree></p:cSld></p:sld>`;
+      const slideXml = (title, hidden, more = "") => `<p:sld ${ns}${hidden ? ' show="0"' : ""}><p:cSld><p:spTree>${sp("title", title)}${more}</p:spTree></p:cSld></p:sld>`;
+      // A column chart, drawn from the values the presentation keeps for it.
+      const chartFrame = `<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="5" name="Chart"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr>` +
+        `<p:xfrm><a:off x="1000000" y="1700000"/><a:ext cx="10000000" cy="4800000"/></p:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart">` +
+        `<c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" r:id="rId2"/></a:graphicData></a:graphic></p:graphicFrame>`;
+      const pts = (vals) => `<c:ptCount val="${vals.length}"/>${vals.map((v, i) => `<c:pt idx="${i}"><c:v>${v}</c:v></c:pt>`).join("")}`;
+      const chartXml = `<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" ${ns}><c:chart><c:plotArea><c:barChart><c:barDir val="col"/><c:grouping val="clustered"/>` +
+        `<c:ser><c:idx val="0"/><c:tx><c:strRef><c:strCache>${pts(["Revenue"])}</c:strCache></c:strRef></c:tx><c:cat><c:strRef><c:strCache>${pts(["Q1", "Q2", "Q3"])}</c:strCache></c:strRef></c:cat>` +
+        `<c:val><c:numRef><c:numCache><c:formatCode>General</c:formatCode>${pts([10, 14, 18])}</c:numCache></c:numRef></c:val></c:ser></c:barChart>` +
+        `<c:catAx><c:axId val="1"/><c:axPos val="b"/></c:catAx><c:valAx><c:axId val="2"/><c:axPos val="l"/><c:majorGridlines/></c:valAx></c:plotArea></c:chart></c:chartSpace>`;
       const deck = storedZip([
         ["_rels/.rels", rels([["rId1", "officeDocument", "ppt/presentation.xml"]])],
         ["ppt/presentation.xml", `<p:presentation ${ns}><p:sldIdLst><p:sldId id="256" r:id="rId1"/><p:sldId id="257" r:id="rId2"/><p:sldId id="258" r:id="rId3"/></p:sldIdLst></p:presentation>`],
@@ -2503,7 +2512,9 @@ function webSource() {
         ["ppt/slides/_rels/slide1.xml.rels", rels([["rId1", "notesSlide", "../notesSlides/notesSlide1.xml"]])],
         ["ppt/notesSlides/notesSlide1.xml", `<p:notes ${ns}><p:cSld><p:spTree>${sp("body", "Welcome everyone.\nIntroduce the team.")}</p:spTree></p:cSld></p:notes>`],
         ["ppt/slides/slide2.xml", slideXml("Backup", true)],
-        ["ppt/slides/slide3.xml", slideXml("Next steps")],
+        ["ppt/slides/slide3.xml", slideXml("Next steps", false, chartFrame)],
+        ["ppt/slides/_rels/slide3.xml.rels", rels([["rId2", "chart", "../charts/chart1.xml"]])],
+        ["ppt/charts/chart1.xml", chartXml],
       ].map(([name, text]) => [name, Buffer.from(text)]));
       await page.setInputFiles("#album-files", [
         { name: "Quarterly review.pptx", mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation", buffer: deck },
@@ -2554,6 +2565,23 @@ function webSource() {
       check(drawn.name === "01 Kick-off.png" && drawn.notes === "Welcome everyone.\nIntroduce the team.", "a drawn slide is named by its title and keeps its notes: " + JSON.stringify(drawn));
       check(drawn.w === 1920 && drawn.h === 1080, "a drawn slide is 1920 pixels wide, in the slide's proportions: " + drawn.w + "×" + drawn.h);
       check(drawn.dark > 500, "the slide's title is drawn: " + drawn.dark + " dark pixels");
+      check(!(await page.textContent("#album .status")).includes("grey box"), "a chart is drawn, not left as a grey box");
+      const bars = await page.evaluate(async (outer) => {
+        const { pictures } = await (await fetch("/api/album?q=Next")).json();
+        const p = pictures.find((x) => x.item.id !== outer);
+        const img = new Image();
+        img.src = `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
+        await img.decode();
+        const c = document.createElement("canvas");
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        const g = c.getContext("2d");
+        g.drawImage(img, 0, 0);
+        const d = g.getImageData(0, 0, c.width, c.height).data;
+        let blue = 0;
+        for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - 69) < 12 && Math.abs(d[i + 1] - 115) < 12 && Math.abs(d[i + 2] - 196) < 12) blue++;
+        return blue;
+      }, outer);
+      check(bars > 5000, "the chart's columns are drawn in the first accent: " + bars + " pixels");
       // The folders go into the trash, so the room's map later on is as before.
       const trashed = await page.evaluate(async (outer) => (await fetch(`/api/items/${outer}/trash`, { method: "POST" })).status, outer);
       check(trashed === 200, "the imported folder goes into the trash: " + trashed);
