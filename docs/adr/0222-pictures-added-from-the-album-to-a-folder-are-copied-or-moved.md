@@ -4,8 +4,6 @@
 - **Implementation:** Landed
 - **Date:** 2026-11-12
 - **Deciders:** Project initiators (request of 2026-11-12 to decide the last open question of ADR-0187; asked whether *Add from the album…* should copy, move from folders only, always move or let one choose, the requester chose to choose in the dialog, the browser remembering the choice, copying by default; accepted on 2026-11-12)
-- **Open question:** whether the choice should also be offered when a picture is dragged onto a folder (ADR-0184), which always moves
-- **Question checked:** 2026-11
 
 ## Context and problem statement
 
@@ -42,7 +40,7 @@ Chosen option: **1**.
 - **Positive:** tidying one's photos into folders takes one choice; pictures of pages stay unless a move is chosen.
 - **Positive:** nothing changes on the server.
 - **Negative / trade-offs accepted:** one more control in the dialog; the choice is per browser, not per person.
-- **Follow-ups / risks to watch:** the open question above.
+- **Follow-ups / risks to watch:** whether dragging should offer the choice too, settled by ADR-0223.
 
 ## Pros and cons of the options
 
@@ -74,5 +72,6 @@ Strongest form: nothing is ever taken away.
 
 ## Links
 
+- amended by [ADR-0223](0223-pictures-dropped-onto-a-folder-are-moved-or-copied-as-a-menu-asks.md) (the choice when dropping onto a folder)
 - amends [ADR-0187](0187-pictures-are-added-where-one-is-in-the-album.md) (its last open question)
 - relates to ADR-0054 (copies with their source), ADR-0184 (moving by dragging), ADR-0188 (a moved file keeps its identity), ADR-0196 (duplicates)

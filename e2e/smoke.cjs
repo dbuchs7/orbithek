@@ -2168,8 +2168,12 @@ function webSource() {
     await page.click("#album .album-new-folder button[type=submit]");
     const prints = "#album .album-folder:has-text('Prints')";
     await page.waitForSelector(prints);
-    check((await page.getAttribute(prints, "title")) === "Drop pictures or a folder here to move them into Prints.", "a folder says that it takes dropped pictures and folders");
+    check((await page.getAttribute(prints, "title")) === "Drop pictures here to move or copy them into Prints, or a folder to move it there.", "a folder says that it takes dropped pictures and folders");
+    // Where pictures are dropped, a menu asks to move or copy them (ADR-0223).
     await page.locator(holiday).dragTo(page.locator(prints));
+    await page.waitForSelector("#album-drop-menu #album-drop-move:focus");
+    check((await page.getAttribute("#album-drop-menu", "aria-label")) === "Move or copy the picture to Prints", "the menu names what it moves or copies, and where");
+    await page.click("#album-drop-move");
     await page.waitForSelector(holiday, { state: "detached" });
     check((await page.textContent("#album .status")).includes("1 picture moved with its versions"), "the dragged picture is moved into the folder it is dropped onto");
     await page.click(prints);
@@ -2177,10 +2181,30 @@ function webSource() {
     // A moved picture is the same picture: it stays a favourite (ADR-0188).
     check(await page.locator(holiday + " .album-favourite[aria-pressed=true]").count() === 1, "a moved picture stays a favourite");
     await page.locator(holiday).dragTo(page.locator("#album .album-trail button:has-text('Logos')"));
+    await page.click("#album-drop-move");
     await page.waitForSelector(holiday, { state: "detached" });
     await page.click("#album .album-trail button:has-text('Logos')");
     await page.waitForSelector(holiday);
     check(await page.locator(prints).count() === 1, "a picture dropped onto a folder of the trail goes back up");
+    // Escape keeps the picture where it is; "Copy here" copies it.
+    await page.locator(holiday).dragTo(page.locator(prints));
+    await page.waitForSelector("#album-drop-menu");
+    await page.keyboard.press("Escape");
+    await page.waitForSelector("#album-drop-menu", { state: "detached" });
+    await page.locator(holiday).dragTo(page.locator(prints));
+    await page.click("#album-drop-copy");
+    await page.waitForSelector("#album .status :text('1 picture copied.')");
+    check(await page.locator(holiday).count() === 1, "a copied picture stays where it was");
+    const copies = await page.evaluate(async () => {
+      const { folders } = await (await fetch("/api/album/folders?space=PLAT")).json();
+      const logos = folders.find((f) => f.name === "Logos");
+      const sub = (await (await fetch(`/api/album/folders?parent=${logos.id}`)).json()).folders.find((f) => f.name === "Prints");
+      const { pictures } = await (await fetch(`/api/album?folder=${sub.id}`)).json();
+      // The copy leaves again, so the duplicates step counts as before.
+      for (const p of pictures) await fetch(`/api/items/${p.item.id}/attachments/${p.attachment.id}`, { method: "DELETE" });
+      return pictures.map((p) => p.attachment.name);
+    });
+    check(copies.length === 1 && copies[0] === "holiday.png", "the copy is in the folder it was dropped onto: " + copies.join(", "));
     // A video comes into the folder with a poster the browser takes from
     // it, and plays in the viewer (ADR-0189). The browser records it, so
     // the test carries no media file.
