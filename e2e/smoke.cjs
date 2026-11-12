@@ -813,11 +813,15 @@ function webSource() {
     await page.waitForSelector("#welcome h1:has-text('admin')");
     await page.waitForSelector("#welcome img.welcome-art");
     await page.waitForSelector("#welcome #home-version:has-text('Version')");
-    check(await page.locator(".home-tiles a").count() === 7, "seven quick accesses, one's notes, the starmap and the whiteboards among them");
+    check(await page.locator(".home-tiles a").count() === 8, "eight quick accesses, one's day, one's notes, the starmap and the whiteboards among them");
     check(await page.getAttribute("#home-whiteboards", "href") === "#/whiteboards", "a quick access leads to the whiteboards (ADR-0169)");
-    check(await page.locator(".home-tiles a .module-icon svg").count() === 7, "each quick access wears the symbol of its module on the station");
+    check(await page.locator(".home-tiles a .module-icon svg").count() === 8, "each quick access wears the symbol of its module on the station");
     check(await page.getAttribute(".home-tiles a:first-child", "id") === "home-starmap" && await page.getAttribute("#home-starmap", "href") === "#/starmap"
       && await page.locator("#home-starmap .module-icon.module-starmap").count() === 1, "the starmap is the first quick access, with its module's symbol");
+    // My day follows the starmap: today's daily note, its date and its
+    // day of the month on the calendar sheet (ADR-0205).
+    check(await page.getAttribute(".home-tiles a:nth-child(2)", "id") === "home-today" && await page.getAttribute("#home-today", "href") === "#/daily"
+      && (await page.textContent("#home-today .module-icon.module-day svg text")) === String(new Date().getDate()), "my day is the second quick access and leads to today's daily note");
     await page.click("#home-starmap");
     await page.waitForSelector("h1:has-text('Starmap')");
     check(page.url().endsWith("#/starmap"), "the starmap tile leads to the starmap: " + page.url());
@@ -6195,12 +6199,15 @@ function webSource() {
     await page.click("#nav-today");
     await page.waitForSelector("#daily-title");
     if (await page.locator("#daily-note.daily-empty").count()) {
-      // The room is chosen once; the note is made then.
+      // The room is chosen once, where the note will be, so that it is
+      // seen with the side column folded away too; the note is made then.
+      check(await page.locator("#daily-note.daily-empty #daily-room").count() === 1, "the room is chosen in the note's place");
       await page.selectOption("#daily-room", "PLAT");
       await page.waitForSelector("#daily-note.editing .ProseMirror");
     }
     await page.waitForSelector("#daily-note.editing .ProseMirror");
     check(await page.inputValue("#daily-room") === "PLAT", "the room of the daily notes is kept");
+    check(await page.locator(".daily-layout .item-side .col-toggle-side").count() === 1, "the side column of a daily note folds away and comes back");
     const dailyKey = (await page.getAttribute("#daily-item", "href")).replace("#/item/", "");
     const dailyNote = (await (await page.request.get(base + "/api/items/" + dailyKey)).json()).item;
     check(dailyNote.labels.includes("daily-note") && dailyNote.restriction.read.length === 1, "the note is labelled and restricted to its author");

@@ -1286,6 +1286,8 @@ export default {
   "home.notesUnread": {"one": "{n} unread change", "other": "{n} unread changes"},
   "home.notesNone": "Nothing new",
   "home.starmapText": "Your rooms as a map of connections",
+  "home.today": "My day",
+  "home.todayText": "Your daily note for {date}",
   "home.albumText": "Images and drawings",
   "home.whiteboardsText": "Work together on one surface, live",
   "home.whiteboardsLive": {"one": "{n} whiteboard in use now", "other": "{n} whiteboards in use now"},

@@ -1207,17 +1207,25 @@ const moduleGlyphs = {
     ["path", { d: "M9 20.5l3-4 3 4", fill: "none", stroke: "#fff", "stroke-width": "1.8", "stroke-linecap": "round", "stroke-linejoin": "round" }],
     ["rect", { x: "6", y: "7", width: "5.5", height: "5.5", rx: "1", fill: "#fff" }],
     ["path", { d: "M14 8.5h4M14 11.5h3", fill: "none", stroke: "#fff", "stroke-width": "1.6", "stroke-linecap": "round" }]],
+  // A calendar sheet with today's day of the month (ADR-0205); the number
+  // is given by the caller as a text glyph, so the icon is today's.
+  day: [
+    ["rect", { x: "3.5", y: "5", width: "17", height: "15.5", rx: "2.5", fill: "none", stroke: "#fff", "stroke-width": "1.8" }],
+    ["path", { d: "M3.5 9.5h17M8 3v4M16 3v4", fill: "none", stroke: "#fff", "stroke-width": "1.8", "stroke-linecap": "round" }]],
   protection: [
     ["path", { d: "M12 3l7 3v5c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6z", fill: "#fff" }],
     ["path", { d: "M8.8 11.8l2.3 2.3 4.2-4.4", fill: "none", class: "module-stroke", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }]],
 };
-function moduleIcon(kind) {
+// moduleIcon draws a module's symbol; extra glyphs are drawn on top, and
+// a glyph's text, if it has one, is its content rather than an attribute.
+function moduleIcon(kind, extra = []) {
   const ns = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(ns, "svg");
   for (const [k, v] of Object.entries({ viewBox: "0 0 24 24", width: "22", height: "22", "aria-hidden": "true" })) svg.setAttribute(k, v);
-  for (const [tag, attrs] of moduleGlyphs[kind]) {
+  for (const [tag, attrs, text] of [...moduleGlyphs[kind], ...extra]) {
     const el = document.createElementNS(ns, tag);
     for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    if (text !== undefined) el.textContent = text;
     svg.append(el);
   }
   return h("span", { class: "module-icon module-" + kind }, svg);
@@ -2320,8 +2328,14 @@ async function homeView() {
   const name = brand.name || "Orbithek";
   // Each tile wears the symbol and colour of its module on the station of
   // the start page's picture.
-  const quick = (href, title, text, id, extra, module) => h("a", { class: "home-tile", href, id },
-    module ? moduleIcon(module) : null, h("strong", { text: title }), h("span", { class: "muted", text }), extra || null);
+  const quick = (href, title, text, id, extra, module, glyphs) => h("a", { class: "home-tile", href, id },
+    module ? moduleIcon(module, glyphs) : null, h("strong", { text: title }), h("span", { class: "muted", text }), extra || null);
+  // Today, where the browser is: its long date for "My day" and its day of
+  // the month on the tile's calendar sheet.
+  const now = new Date();
+  const todayText = now.toLocaleDateString(language() || undefined, { weekday: "long", day: "numeric", month: "long" });
+  const todayNumber = ["text", { x: "12", y: "18.6", "text-anchor": "middle", "font-size": "9", "font-weight": "700",
+    "font-family": "system-ui, sans-serif", fill: "#fff" }, String(now.getDate())];
   // How much the wiki holds that one may read: pages, tasks (open and
   // done) and pictures in the album. Counted after the page is shown.
   const stats = h("p", { class: "home-stats", id: "home-stats", "aria-live": "polite" });
@@ -2368,6 +2382,9 @@ async function homeView() {
       // The starmap first: one's rooms as a map of connections (ADR-0157);
       // the view picks the favourite or first room.
       quick("#/starmap", t("nav.starmap"), t("home.starmapText"), "home-starmap", null, "starmap"),
+      // My day: today's daily note, made in one's daily room on opening
+      // when there is none (ADR-0205).
+      quick("#/daily", t("home.today"), t("home.todayText", { date: todayText }), "home-today", null, "day", [todayNumber]),
       quick("#/tasks", t("nav.tasks"), t("home.tasksText"), "home-tasks",
         requests.length ? h("span", { class: "chip", text: t("nav.requestsWaiting", { n: requests.length }) }) : null, "tasks"),
       quick("#/notifications", t("nav.notifications"), notes.unread ? t("home.notesUnread", { n: notes.unread }) : t("home.notesNone"), "home-notes",
@@ -4055,7 +4072,7 @@ async function calendarScreen(params) {
 
 // dailyScreen shows one's daily note of a day (ADR-0205).
 async function dailyScreen(arg, params) {
-  await dailyView(screen(), arg || "", params, { ...textTools(), favouritesFirst, reload: () => route() });
+  await dailyView(screen(), arg || "", params, { ...textTools(), favouritesFirst, columnToggle, reload: () => route() });
 }
 
 // storagePaused tells that nothing new is made now (ADR-0163).
