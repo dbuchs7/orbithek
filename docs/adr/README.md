@@ -211,3 +211,6 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0196](0196-duplicates-in-the-album.md) | Duplicates in the album, found by the file and by how a picture looks | Proposed | Partial |
 | [0197](0197-album-folders-that-show-a-file-share.md) | Album folders that show a file share, as previews, with the share as master | Proposed | Not started |
 | [0198](0198-a-photos-time-set-by-hand-and-written-into-the-files-given-out.md) | A photo's time set by hand, and written into the files given out | Proposed | Partial |
+| [0203](0203-a-daily-note-per-person-and-day.md) | A daily note per person and day | Proposed | Partial |
+| [0204](0204-an-item-is-created-where-it-is-mentioned.md) | An item is created where it is mentioned | Proposed | Partial |
+| [0205](0205-a-command-palette-an-item-beside-another-and-the-context-of-an-item.md) | A command palette, an item beside another, and the context of an item | Proposed | Partial |
