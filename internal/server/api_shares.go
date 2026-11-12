@@ -1,9 +1,17 @@
 package server
 
 import (
+	"context"
 	"errors"
+	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
+	"sync"
+	"time"
+
+	"github.com/dbuchs7/orbithek/internal/budget"
+	"github.com/dbuchs7/orbithek/internal/storage"
 
 	"github.com/dbuchs7/orbithek/internal/audit"
 	"github.com/dbuchs7/orbithek/internal/item"
@@ -15,12 +23,28 @@ import (
 // settings (ADR-0197): the process environment, which names the
 // directories administrators may bind and holds the keys of S3 shares.
 type Shares struct {
-	env func(string) string
+	env  func(string) string
+	now  func() time.Time
+	open func(share.Address, string, uint64, share.Env) (share.Source, error)
+	// workers bounds the files runs read at once (ShareWorkers).
+	workers chan struct{}
+
+	mu      sync.Mutex
+	db      *storage.DB
+	log     *slog.Logger
+	running map[string]bool
+	last    map[string]time.Time
+	history map[string][]ShareRun
 }
 
-// NewShares makes the shares' state over an environment.
+// NewShares makes the shares' state over an environment; Routes binds it
+// to the data directory, and the caller runs its Loop.
 func NewShares(env func(string) string) *Shares {
-	return &Shares{env: env}
+	return &Shares{env: env, now: time.Now, open: func(a share.Address, id string, dev uint64, env share.Env) (share.Source, error) {
+		return share.Open(a, id, dev, env)
+	},
+		workers: make(chan struct{}, max(1, budget.Get().ShareWorkers)),
+		running: map[string]bool{}, last: map[string]time.Time{}, history: map[string][]ShareRun{}}
 }
 
 // shareRoutes bind album folders to file shares (ADR-0197). They are for
@@ -33,7 +57,8 @@ func shareRoutes(d Deps) []Route {
 		{Method: http.MethodGet, Pattern: "/api/shares", Summary: "The file shares album folders show, with the directories the operator allows and whether each S3 share's keys are set (administrators)", Handler: http.HandlerFunc(h.shares)},
 		{Method: http.MethodPost, Pattern: "/api/shares", Summary: "Bind an album folder to a file share: ID, name, address (a directory of the server or s3://bucket/folder?endpoint=…&region=…), folder, link template, schedule (administrators)", Handler: http.HandlerFunc(h.addShare)},
 		{Method: http.MethodPut, Pattern: "/api/shares/{id}", Summary: "Change a file share's name, address, link template or schedule; its ID and folder stay (administrators)", Handler: http.HandlerFunc(h.setShare)},
-		{Method: http.MethodDelete, Pattern: "/api/shares/{id}", Summary: "Remove a file share; the folder stays (administrators)", Handler: http.HandlerFunc(h.removeShare)},
+		{Method: http.MethodDelete, Pattern: "/api/shares/{id}", Summary: "Remove a file share with its entries and their previews; the folder stays (administrators)", Handler: http.HandlerFunc(h.removeShare)},
+		{Method: http.MethodPost, Pattern: "/api/shares/{id}/run", Summary: "Read a file share now, in the background; dryRun reads no file and records nothing; confirm makes withdrawals a run holds back (administrators)", Handler: http.HandlerFunc(h.runShare)},
 	}
 }
 
@@ -48,6 +73,11 @@ type shareJSON struct {
 	SecretKeyVar string `json:"secretKeyVar,omitempty"`
 	KeysSet      bool   `json:"keysSet,omitempty"`
 	FolderTitle  string `json:"folderTitle"`
+	// Entries counts the share's entries in its folder, Withdrawn those
+	// whose file is gone for now.
+	Entries   int         `json:"entries"`
+	Withdrawn int         `json:"withdrawn"`
+	Status    ShareStatus `json:"status"`
 }
 
 func (h authHandlers) shareJSON(sh site.Share) shareJSON {
@@ -60,8 +90,17 @@ func (h authHandlers) shareJSON(sh site.Share) shareJSON {
 	h.d.DB.Read(func(s *item.Store) {
 		if it, err := s.Get(item.ID(sh.Folder)); err == nil {
 			out.FolderTitle = it.Title
+			for _, a := range it.Attachments {
+				if !a.Deleted && a.Linked() && a.Share.Share == sh.ID {
+					out.Entries++
+					if a.Withdrawn() {
+						out.Withdrawn++
+					}
+				}
+			}
 		}
 	})
+	out.Status = h.d.Shares.Status(sh.ID)
 	return out
 }
 
@@ -112,7 +151,11 @@ func (h authHandlers) checkShare(w http.ResponseWriter, actor string, sh *site.S
 	}
 	var msg string
 	h.d.DB.Read(func(s *item.Store) {
-		it, err := s.As(actor).Get(item.ID(sh.Folder))
+		// The folder may be named by its key, as people see it.
+		it, err := resolveItem(s.As(actor), sh.Folder)
+		if err == nil {
+			sh.Folder = string(it.ID)
+		}
 		switch {
 		case err != nil || it.Type != item.FolderType:
 			msg = "the share fills an album folder; this is none"
@@ -209,11 +252,35 @@ func (h authHandlers) removeShare(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "no such share")
 		return
 	}
+	if h.d.Shares.Running(sh.ID) {
+		writeError(w, http.StatusConflict, ErrShareBusy.Error())
+		return
+	}
+	// Its entries go first, with their previews and what was set on
+	// them; the folder stays (ADR-0197).
+	removed := 0
+	var gone []item.ID
+	h.d.DB.Read(func(s *item.Store) {
+		if it, err := s.Get(item.ID(sh.Folder)); err == nil {
+			for _, a := range it.Attachments {
+				if !a.Deleted && a.Linked() && a.Share.Share == sh.ID {
+					gone = append(gone, a.ID)
+				}
+			}
+		}
+	})
+	for _, id := range gone {
+		if err := h.d.DB.Write(func(s *item.Store) error { return s.DeleteAttachment(actor, item.ID(sh.Folder), id) }); err != nil {
+			writeError(w, http.StatusInternalServerError, "the share's entries were not all removed; try again")
+			return
+		}
+		removed++
+	}
 	if err := h.d.DB.Site.RemoveShare(actor, sh.ID); err != nil {
 		writeError(w, http.StatusInternalServerError, "share not removed")
 		return
 	}
-	h.record(audit.Entry{Event: audit.ShareRemoved, Actor: actor, Addr: clientAddr(r), Detail: map[string]string{"share": sh.ID, "folder": sh.Folder}})
+	h.record(audit.Entry{Event: audit.ShareRemoved, Actor: actor, Addr: clientAddr(r), Detail: map[string]string{"share": sh.ID, "folder": sh.Folder, "entries": strconv.Itoa(removed)}})
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -226,4 +293,38 @@ func boundFolder(w http.ResponseWriter, d Deps, id item.ID) bool {
 		return false
 	}
 	return true
+}
+
+// runShare reads a share now, in the background (ADR-0197).
+func (h authHandlers) runShare(w http.ResponseWriter, r *http.Request) {
+	actor, ok := h.adminOnly(w, r)
+	if !ok {
+		return
+	}
+	var req struct {
+		DryRun  bool `json:"dryRun"`
+		Confirm bool `json:"confirm"`
+	}
+	if err := readJSON(w, r, &req); err != nil {
+		badRequest(w, err)
+		return
+	}
+	sh, exists := h.d.DB.Site.Share(r.PathValue("id"))
+	if !exists {
+		writeError(w, http.StatusNotFound, "no such share")
+		return
+	}
+	if h.d.Shares.Running(sh.ID) {
+		writeError(w, http.StatusConflict, ErrShareBusy.Error())
+		return
+	}
+	if req.Confirm && !req.DryRun {
+		h.record(audit.Entry{Event: audit.ShareConfirmed, Actor: actor, Addr: clientAddr(r), Detail: map[string]string{"share": sh.ID}})
+	}
+	go func() {
+		if _, err := h.d.Shares.Run(context.Background(), sh.ID, req.DryRun, req.Confirm); err != nil && !errors.Is(err, ErrShareBusy) {
+			h.d.Log.Warn("file share not read", "share", sh.ID, "err", err)
+		}
+	}()
+	w.WriteHeader(http.StatusAccepted)
 }

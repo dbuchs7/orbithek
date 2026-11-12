@@ -365,6 +365,21 @@ Faces are found in your browser; nothing is sent elsewhere. If an administrator 
 
 With recognition on, a person's album also shows **Is this Ada?**: faces on other pictures you may edit that resemble Ada more than anyone else named, most alike first. Click the faces that show Ada, or **Choose all** and click away the wrong ones, then **Confirm chosen**. The faces not chosen stay unnamed and are suggested again later. Only pictures whose faces were searched while recognition was on can be suggested.
 
+### Folders that show a file share
+
+An administrator can bind an album folder to a file share: a directory of the server, such as a mounted Samba share, or an S3 bucket.
+The folder then shows the pictures of the share, read again on a schedule.
+The share stays the master: the wiki keeps a preview of each picture, and the original stays where it lies.
+
+Such a picture is marked **On a file share**.
+**Open original** opens it where it lies, with your own access to the share; the share decides whether it opens.
+You label it, name the people on it, set its place and time and mark it as a favourite as for any picture.
+You do not rename, move or delete it, and you add no pictures to such a folder: change the files on the share, and the next reading follows.
+A file moved on the share keeps what was set on it, as far as its content is unchanged.
+A file gone from the share disappears from the album; if it comes back within 30 days, it returns with its labels and names.
+Copying such a picture, or exporting it, takes its preview.
+A picture of a format the server shows no picture of has a symbol instead of a preview.
+
 ### Moving a folder
 
 **Move folder** in an open folder moves it with its folders, pictures and videos into another folder or to the top level of a room. Choose the place under **Move to…** and click **Move**; the path then leads to the folder where it went. A folder can also be dragged onto a folder listed beside it or onto a folder above it in the path; dragged onto **All pictures**, it goes to the top level of its room. Moved into another room, the folder is asked about first: afterwards that room decides who may see and change it. A folder is moved only by someone who may change it and everything in it and may create where it goes; it cannot go into itself or a folder below it.
@@ -542,7 +557,9 @@ Administrators find under **Administration**:
 - **Rooms**: create rooms, open their settings, move a room to the trash and restore or delete it for good;
 - **Item types**: create and change types in a form — name, text, fields with their kind and options, workflow with states and transitions (or simply *open → done*) and start text — for the whole installation or for one room; the type as JSON stays under **Advanced**. Types are also made from the ready-made templates;
 - **Backup** (also on a schedule to a directory, WebDAV, S3, FTPS or SFTP) and **Storage**;
-- **Calendars of other services**, **Album: older versions**, **Connectors** and **Process engines**;
+- **Calendars of other services**, **Album: older versions**, **File shares**, **Connectors** and **Process engines**.
+  Under **File shares** an album folder is bound to a directory the operator allows or to an S3 bucket, read now (**Read now**, **Dry run**) or on its schedule.
+  Whoever may read the folder sees every picture the server can read on the share; a run that would withdraw more than half of a share's pictures withdraws none until **Confirm withdrawals**;
 - **Appearance (corporate design)**: logo, colours, background, fonts, and a ready-made theme, among them *Capacity*, a quiet look for notes in light and dark;
 - **Word templates**, **Data protection regulations**, **Import** and the **Audit trail**.
 

@@ -255,6 +255,17 @@ export function sorts(name, type = "") {
 // isVideo reports whether a picture of the album is a video.
 export const isVideo = (p) => Boolean(p?.video) || VIDEO_TYPES.includes(p?.attachment?.type);
 
+// onShare says a picture is an entry of a file share (ADR-0197): the share
+// is the master, so it is not renamed, moved or deleted here.
+export const onShare = (p) => Boolean(p?.attachment?.share);
+
+// shareLink is the address that opens an entry's original where it lies,
+// "" when its share names none; only https: and smb: addresses are taken.
+export const shareLink = (p) => {
+  const link = p?.attachment?.share?.link || "";
+  return /^(https|smb):\/\//i.test(link) ? link : "";
+};
+
 // durationText writes how long a video plays: "0:12", "4:05", "1:02:03".
 export function durationText(seconds) {
   if (!(seconds > 0)) return "";

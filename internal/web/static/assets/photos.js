@@ -287,6 +287,7 @@ export async function copyTo(p, folder) {
 // where it is; the error says why.
 export async function moveTo(p, folder) {
   if (!p.editable) throw new Error(t("photos.moveNotEditable"));
+  if (p.attachment?.share) throw new Error(t("album.shareFixed"));
   if (p.used) throw new Error(t("photos.moveUsed"));
   await post(`${fileURL(p)}/move`, { to: folder });
 }
