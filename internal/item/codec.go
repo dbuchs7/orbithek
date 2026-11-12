@@ -157,7 +157,10 @@ import (
 //   - 54: photo data may carry TakenManual, a time set by hand, and the
 //     kind AttachmentTakenSet with attachment, sealed (ADR-0198). Versions
 //     1 to 53 are still read; their times are the files' own.
-const CodecVersion = 54
+//   - 58: an anchor may name a highlight in a PDF, with File, Version,
+//     Page, Rects and Color, sealed with the rest of it (ADR-0208).
+//     Versions 1 to 57 are still read; their comments are on no PDF.
+const CodecVersion = 58
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

@@ -130,8 +130,10 @@ func (s *Store) veiled(principal string, it *Item) *Item {
 	}
 	c := it.clone()
 	c.Body = veil(c.Body, hide)
-	// Nor are the files of protected blocks counted (ADR-0160).
+	// Nor are the files of protected blocks counted (ADR-0160), nor the
+	// comments on them (ADR-0208).
 	c.Attachments = s.veilFiles(principal, it)
+	c.Comments = s.visibleComments(principal, it)
 	return &c
 }
 

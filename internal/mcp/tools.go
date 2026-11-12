@@ -155,6 +155,14 @@ var (
 // photo was taken by hand (ADR-0198) is not offered either: it changes
 // every file of the picture given out, and an agent that cannot list the
 // album would date pictures it never saw.
+//
+// Highlights in a PDF (ADR-0208) are comments: agents read them with
+// list_comments and make them with add_comment, naming the PDF, a page
+// and the quote, which the reader finds on the page. The reader's own
+// route, the versions of a PDF for drawing it, is not offered: it serves
+// a browser that draws the pages. No tool lists an item's files, so an
+// agent names a PDF whose file it was given or read in a highlight; a
+// tool for the files is an open question of ADR-0208.
 var tools = []tool{
 	{Name: "list_spaces", Description: "List the spaces the caller holds a role in.", Method: "GET", Path: "/api/spaces"},
 	{Name: "get_own_roles", Description: "The caller's own roles: the system roles held, and every space role granted to the caller, directly or through a group (via), one entry per grant.",
@@ -262,7 +270,9 @@ var tools = []tool{
 		Method: "POST", Path: "/api/items/{ref}/comments", Params: []param{refParam,
 			{"text", str, inBody, true, "The comment, plain text."},
 			{"anchor", object, inBody, false, "The passage commented on: {\"quote\": text of one body block, \"prefix\" and \"suffix\": up to 32 characters before and after it, to tell apart passages of the same text}; " +
-				"or an element of a whiteboard: {\"drawing\": the whiteboard's file, \"element\": the element's ID as get_whiteboard lists it, \"quote\": its text}."},
+				"or an element of a whiteboard: {\"drawing\": the whiteboard's file, \"element\": the element's ID as get_whiteboard lists it, \"quote\": its text}; " +
+				"or a highlight in a PDF file of the item: {\"file\": the PDF's file (any version), \"page\": the page number from 1, \"quote\": text on that page, " +
+				"\"color\": yellow, green, blue, pink or purple, or absent for yellow}."},
 			{"reply", str, inBody, false, "The ID of the comment answered; the answer joins its thread."},
 		}},
 	{Name: "create_whiteboard", Description: "Make a whiteboard in an item the caller may edit: an empty drawing at the end of its body, which people and agents edit live. Answers its file, which names it in the other whiteboard tools.",

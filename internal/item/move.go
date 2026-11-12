@@ -69,7 +69,10 @@ func (x *Session) planMove(from, file, to ID) (*Item, *Item, []Attachment, error
 		records = append(records, a)
 	}
 	for _, c := range it.Comments {
-		if !c.Deleted && c.Anchor != nil && c.Anchor.Drawing != "" && slices.ContainsFunc(records, func(a Attachment) bool { return a.ID == c.Anchor.Drawing }) {
+		if f := anchorFile(c.Anchor); !c.Deleted && f != "" && slices.ContainsFunc(records, func(a Attachment) bool { return a.ID == f }) {
+			if c.Anchor.File != "" {
+				return nil, nil, nil, referenced("highlights of %s are in the PDF; it stays with them", it.Key)
+			}
 			return nil, nil, nil, referenced("comments of %s are on the drawing; it stays with them", it.Key)
 		}
 	}
