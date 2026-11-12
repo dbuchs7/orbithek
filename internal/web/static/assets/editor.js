@@ -1200,10 +1200,25 @@ function imageView(node, view, getPos, files) {
   };
 }
 
+// playsElsewhere reports whether another block of the text plays the same
+// sound file.
+function playsElsewhere(doc, ref, pos) {
+  let found = false;
+  doc.descendants((n, at) => {
+    if (at !== pos && n.type === schema.nodes.audio && n.attrs.ref === ref) found = true;
+    return !found;
+  });
+  return found;
+}
+
 // audioView plays a sound file of the item with the browser's own controls
 // (ADR-draft-sound-in-the-text); an editor edits its caption and removes
-// it. The player keeps its clicks, so playing does not select the block.
-function audioView(node, view, getPos, files) {
+// it. Removing the last block that plays a file offers to delete the file
+// too, so a recording does not stay behind unseen; that removal cannot be
+// undone, as the text could otherwise get back a file that is gone. report
+// shows what failed. The player keeps its clicks, so playing does not
+// select the block.
+function audioView(node, view, getPos, files, report = () => {}) {
   const player = h("audio", { class: "pm-audio-player", controls: true, preload: "metadata" });
   const caption = h("figcaption");
   const dom = h("figure", { class: "pm-audio", contenteditable: "false" }, player, caption);
@@ -1228,11 +1243,27 @@ function audioView(node, view, getPos, files) {
     input.addEventListener("change", () => {
       if (!change({ text: input.value.replace(/[\r\n]+/g, " ") })) render(shown = null);
     });
+    const take = (deleteFile) => {
+      const pos = getPos();
+      if (pos === undefined || dom.classList.contains("pm-locked")) return;
+      const ref = node.attrs.ref;
+      const tr = view.state.tr.delete(pos, pos + node.nodeSize);
+      if (deleteFile) tr.setMeta("addToHistory", false);
+      view.dispatch(tr);
+      view.focus();
+      if (deleteFile) files.remove(ref).catch((err) => report(t("editor.audioNotDeleted", { problem: err.message })));
+    };
     const remove = h("button", { type: "button", class: "link pm-audio-remove", text: t("editor.audioRemove"), onclick: () => {
       const pos = getPos();
       if (pos === undefined || dom.classList.contains("pm-locked")) return;
-      view.dispatch(view.state.tr.delete(pos, pos + node.nodeSize));
-      view.focus();
+      if (!files?.remove || playsElsewhere(view.state.doc, node.attrs.ref, pos)) return take(false);
+      // The last block that plays the file: keep it or delete it too.
+      caption.replaceChildren(h("span", { class: "pm-audio-ask", role: "group", "aria-label": t("editor.audioOrphan") },
+        h("span", { text: t("editor.audioOrphan") }), " ",
+        h("button", { type: "button", class: "danger pm-audio-delete-file", text: t("editor.audioDeleteFile"), onclick: () => take(true) }), " ",
+        h("button", { type: "button", class: "secondary pm-audio-keep-file", text: t("editor.audioKeepFile"), onclick: () => take(false) }), " ",
+        h("button", { type: "button", class: "link pm-audio-cancel", text: t("common.cancel"), onclick: () => render(shown = null) })));
+      caption.querySelector(".pm-audio-keep-file").focus();
     } });
     caption.replaceChildren(input, " ", remove);
   };
@@ -1298,7 +1329,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
       children: (node) => childrenView(node, childPages),
       image: (node, v, getPos) => imageView(node, v, getPos, files),
       video: (node, v, getPos) => imageView(node, v, getPos, files),
-      audio: (node, v, getPos) => audioView(node, v, getPos, files),
+      audio: (node, v, getPos) => audioView(node, v, getPos, files, (problem) => { status.textContent = problem; }),
       bpmn: (node, v, getPos) => diagramView(node, v, getPos, files),
       process: (node, v, getPos) => diagramView(node, v, getPos, files),
       form: (node, v, getPos) => formView(node, v, getPos),

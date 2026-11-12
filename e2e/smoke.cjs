@@ -6411,6 +6411,21 @@ function webSource() {
       return a.currentTime;
     });
     check(soundPlayed > 0, "the sound plays in the text");
+    // Removing the last block that plays it offers to delete the recording too.
+    const soundRef = await page.getAttribute("#daily-note figure.pm-audio", "data-ref");
+    await page.click("#daily-note figure.pm-audio .pm-audio-remove");
+    await page.click("#daily-note .pm-audio-delete-file");
+    await page.waitForSelector("#daily-note figure.pm-audio", { state: "detached" });
+    let recordingGone = false;
+    for (let i = 0; i < 30 && !recordingGone; i++) {
+      recordingGone = await page.evaluate(async ([key, ref]) => {
+        const it = (await (await fetch(`/api/items/${encodeURIComponent(key)}`)).json()).item;
+        const files = (await (await fetch(`/api/items/${encodeURIComponent(key)}/attachments`)).json()).attachments;
+        return !it.body.some((b) => b.kind === "audio") && !files.some((a) => a.id === ref && !a.deleted);
+      }, [dailyKey, soundRef]);
+      if (!recordingGone) await page.waitForTimeout(500);
+    }
+    check(recordingGone, "the recording is out of the text and its file is deleted");
 
     check(problems.length === 0, problems.join("; "));
     console.log("ok");

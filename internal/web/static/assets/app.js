@@ -666,6 +666,12 @@ const filesOf = (item, attachments = [], canEdit = false) => {
       return a;
     },
     isDrawing: (id) => isDrawing(known.get(id)?.name),
+    // remove deletes a file of the item, as its file list does: a
+    // recording the text no longer plays (ADR-draft-sound-in-the-text).
+    remove: async (id) => {
+      await del(`/api/items/${item.id}/attachments/${id}`);
+      known.delete(id);
+    },
     // A drawing opens as a live whiteboard, or alone in the drawing editor
     // for one who may edit (ADR-0172); live says how many people work on
     // it now with a browser (an agent does not keep anyone from it), asked

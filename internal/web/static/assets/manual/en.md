@@ -102,7 +102,7 @@ The menu **Insert…** adds blocks after the cursor:
 
 Pictures can be placed left or right with text beside them, centred, and resized by dragging; a caption numbers them in the list of figures.
 
-A sound plays in the text with the browser's own player and a caption, such as a recording spoken into a page, a task or **Today**'s daily note. **Sound file** uploads one (WebM, Ogg, M4A, MP3 or WAV); **Record sound** opens a window that records at once, and **Stop and attach** puts the recording into the text where the cursor is, while **Cancel** throws it away. The recording is also a file of the item. **Remove** takes the sound out of the text; the file stays in the item's files until it is deleted there. A Word file names the sound, a page printed as PDF plays it, and Markdown links it by its name. Nothing is transcribed.
+A sound plays in the text with the browser's own player and a caption, such as a recording spoken into a page, a task or **Today**'s daily note. **Sound file** uploads one (WebM, Ogg, M4A, MP3 or WAV); **Record sound** opens a window that records at once, and **Stop and attach** puts the recording into the text where the cursor is, while **Cancel** throws it away. The recording is also a file of the item. **Remove** takes the sound out of the text. If no other place in the text plays it, the editor asks whether to delete its file too, so that no recording stays behind unseen: **Remove and delete the file** destroys it and cannot be undone, **Remove, keep the file** leaves it in the item's files, **Cancel** keeps the sound in the text. A Word file names the sound, a page printed as PDF plays it, and Markdown links it by its name. Nothing is transcribed.
 
 ### Tables
 

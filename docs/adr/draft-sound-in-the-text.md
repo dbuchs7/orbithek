@@ -3,8 +3,8 @@
 - **Status:** Proposed
 - **Implementation:** Partial
 - **Date:** 2026-11-12
-- **Deciders:** Project initiators. Request of 2026-11-12: implement the audio block in the text, the next step ADR-0219 proposed. The rest are defaults proposed with the implementation, to be confirmed by the requester.
-- **Open question:** whether a sound should have a width or a place beside the text, as pictures and videos have; whether removing the last block that plays a recording should offer to delete its file; whether the daily view should offer recording without opening the editor, as ADR-0220 proposes for dictation
+- **Deciders:** Project initiators. Requests of 2026-11-12: implement the audio block in the text, the next step ADR-0219 proposed; then remove recordings left behind when their block is removed. The rest are defaults proposed with the implementation, to be confirmed by the requester.
+- **Open question:** whether a sound should have a width or a place beside the text, as pictures and videos have; whether sound files that no text plays any longer, removed before this record or by an agent, should be offered for deletion in the file list; whether the daily view should offer recording without opening the editor, as ADR-0220 proposes for dictation
 - **Question checked:** 2026-11
 
 ## Context and problem statement
@@ -41,7 +41,13 @@ Chosen option: **1, a block kind `audio`**, because it plays sound where the tex
   Codec version 61.
 - **In the editor:** *Insert…* offers **Sound file**, which uploads a file and places it after the cursor, and, where the browser can record (ADR-0219), **Record sound**: a dialog records at once with the recorder of ADR-0219, **Stop and attach** uploads the recording and places it, **Cancel** or leaving discards it.
   The block plays with the browser's own player, which keeps its clicks; while editing, its caption is edited in place and **Remove** takes the block out of the text.
-  The file stays a file of the item until it is deleted from the file list.
+- **No recording left behind:** when **Remove** takes out the last block of the text that plays a file, the editor asks whether to delete the file too: **Remove and delete the file**, **Remove, keep the file** or **Cancel**.
+  A recording is personal data, and one that no text plays stays unseen in the file list and the backups; asking at the moment it is left behind is the one point where the person knows what it is.
+  - Deleting is the file list's deletion (`DELETE /api/items/{ref}/attachments/{id}`, ADR-0045): the file is destroyed, rights and protections as there.
+  - That removal is kept out of the editor's undo history, so undoing cannot bring back a block whose file is gone, which the server would refuse to save (ADR-0045).
+  - A file that another block of the text still plays is not offered; nor is anything where the editor has no file list's rights.
+  - Earlier versions of the body (ADR-0043) keep naming the deleted file and no longer play it; restoring such a version without the block's file is refused, as for any deleted file. A deleted recording is meant to be gone.
+  - If the deletion fails, the block is out of the text and the editor says the file is still in the item's files.
 - **In the daily view:** today's note is edited in the same editor in its live session (ADR-0010, ADR-0205), so a sound is recorded into it and played there; it is the note's file and as private as the note.
 - **Elsewhere:**
   - a copy of an item points its sounds at their copies (ADR-0055);
@@ -57,7 +63,8 @@ Chosen option: **1, a block kind `audio`**, because it plays sound where the tex
 - **Positive:** the daily view gets sound without a view of its own.
 - **Negative / trade-offs accepted:**
   - an older build cannot read a log that has an `audio` block (codec version 61);
-  - removing a block leaves its file in the item, as removing a picture does; files are deleted from the file list;
+  - removing a block whose file is deleted cannot be undone; one that keeps the file leaves it in the item, as removing a picture does;
+  - a sound removed from the text before this record, or by an agent over the API, is not offered for deletion; the file list deletes it;
   - a sound has no width and no place beside the text.
 - **Follow-ups / risks to watch:** the open questions above; transcription as ADR-0220 proposes would place its text after such a block.
 
