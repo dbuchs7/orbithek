@@ -5501,11 +5501,11 @@ function webSource() {
     step("web links: a pasted address is saved as a web link item, shown as a card in the text; its page is read again (ADR-0206)");
     // A room of its own, and a page to write in.
     await page.request.post(base + "/api/spaces", { data: { key: "LINKS", name: "Links" } });
-    if (!(await (await page.request.get(base + "/api/types")).json()).types.some((ty) => ty.name === "page")) {
-      await page.request.post(base + "/api/types", { data: { name: "page", body: true, fields: [{ name: "owner", kind: "user" }] } });
-    }
-    const readingList = (await (await page.request.post(base + "/api/items", { data: { space: "LINKS", type: "page", title: "Reading list",
-      body: [{ kind: "paragraph", text: "To read:" }] } })).json()).item;
+    await page.request.post(base + "/api/types", { data: { name: "reading", body: true } });
+    const readingMade = await page.request.post(base + "/api/items", { data: { space: "LINKS", type: "reading", title: "Reading list",
+      body: [{ kind: "paragraph", text: "To read:" }] } });
+    check(readingMade.status() === 201, "the reading list is made: " + readingMade.status() + " " + await readingMade.text());
+    const readingList = (await readingMade.json()).item;
     const linkPreviews = (await (await page.request.get(base + "/api/linkpreview")).json()).enabled;
     const storyURL = web.url + "/story";
     await page.goto(base + "/#/item/" + readingList.key + "?edit");
@@ -5596,7 +5596,7 @@ function webSource() {
     await page.goto(base + "/#/capture?" + new URLSearchParams({ title: "A thought", text: "Worth remembering." }));
     await page.waitForSelector("#capture-form");
     check(await page.locator("#capture-target-weblink").count() === 0 && await page.isChecked("#capture-target-item"), "no web link without an address");
-    await page.selectOption("#capture-type", "page");
+    await page.selectOption("#capture-type", "reading");
     await page.selectOption("#capture-item-space", "LINKS");
     await page.click("#capture-save");
     await page.waitForSelector("#capture-saved");
