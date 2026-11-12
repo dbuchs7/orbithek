@@ -1272,6 +1272,8 @@ export default {
   "home.notesUnread": {"one": "{n} ungelesene Änderung", "other": "{n} ungelesene Änderungen"},
   "home.notesNone": "Nichts Neues",
   "home.starmapText": "Ihre Räume als Karte der Zusammenhänge",
+  "home.today": "Mein Tag",
+  "home.todayText": "Ihre Tagesnotiz für {date}",
   "home.albumText": "Bilder und Zeichnungen",
   "home.whiteboardsText": "Gemeinsam und live auf einer Fläche arbeiten",
   "home.whiteboardsLive": {"one": "{n} Whiteboard gerade in Verwendung", "other": "{n} Whiteboards gerade in Verwendung"},
