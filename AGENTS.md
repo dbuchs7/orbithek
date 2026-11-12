@@ -50,6 +50,9 @@ a copy uploaded as given is accepted (`Attachment.AsGiven`), and a video keeps i
 HEIC is not taken.
 Videos (MP4, WebM, QuickTime) are taken into the album and handled as its pictures, up to the budget `VideoBytes` with `VideoTransferSeconds` to upload or download (`video=1`): `photo.VideoType` tells them by their bytes, `photo.ReadVideo` reads time, place, duration (`Photo.Duration`, codec version 50), size and camera from the movie header by seeking, the browser takes a poster when it uploads one, sealed beside the video as `<id>.poster` (`PUT …/poster`, `storage.StorePoster`), moved, backed up and removed with it and served as its thumbnail, and a place is removed or kept private by reading its texts as zeros (`photo.VideoWithoutPlace`), streamed;
 videos are not exported as pictures (ADR-0189).
+Whoever may edit an item records sound into its files from the file list (`assets/recorder.js`, `assets/recorderparts.js`: `MediaRecorder`, Opus in WebM or Ogg, AAC in MP4, at most 30 minutes, nothing kept in the browser);
+a file of sound alone is told by its tracks (`photo.AudioType`: WebM tracks, MP4 handlers, Ogg's first packet), so it is no video and not in the album, and files of `item.AudioTypes` are sent inline in parts and played in the file list;
+nothing is transcribed (proposed, ADR-0219).
 A video is a slide that plays from the presentation's state (`playing`), with sound in the presentation window only and neither zoom nor laser;
 Google Photos (`=dv`, poster `=w1600-h1600`) and shared iCloud albums (largest video derivative, poster frame as poster) bring videos within `VideoBytes` (ADR-0192).
 A collection is deleted from the album alone, into the trash (ADR-0193).

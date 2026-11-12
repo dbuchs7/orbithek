@@ -49,6 +49,18 @@ func (h itemHandlers) videoType(id item.ID, a item.Attachment) string {
 	return photo.VideoType(head[:n])
 }
 
+// audioType tells a stored file's type when it is sound alone in a
+// container the standard detection names a video or leaves unnamed: WebM,
+// MP4 or Ogg; "" otherwise.
+func (h itemHandlers) audioType(id item.ID, a item.Attachment) string {
+	c, err := h.d.DB.OpenAttachment(id, a.ID)
+	if err != nil {
+		return ""
+	}
+	defer c.Close()
+	return photo.AudioType(c)
+}
+
 // readVideo reads what a stored video tells about itself, nil when it
 // tells nothing the model takes.
 func (h itemHandlers) readVideo(id item.ID, a item.Attachment) *item.Photo {
