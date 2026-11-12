@@ -5499,7 +5499,8 @@ function webSource() {
     await page.waitForSelector("#body.reading");
 
     step("web links: a pasted address is saved as a web link item, shown as a card in the text; its page is read again (ADR-0206)");
-    // A room of its own, and a page to write in.
+    // The administrator, in a room of their own, with a page to write in.
+    check((await page.request.post(base + "/api/login", { data: { username: "admin", password: adminPassword } })).ok(), "admin signs in again");
     await page.request.post(base + "/api/spaces", { data: { key: "LINKS", name: "Links" } });
     await page.request.post(base + "/api/types", { data: { name: "reading", body: true } });
     const readingMade = await page.request.post(base + "/api/items", { data: { space: "LINKS", type: "reading", title: "Reading list",
