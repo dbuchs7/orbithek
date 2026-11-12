@@ -32,7 +32,7 @@ import { askTime } from "./phototime.js";
 import { photoMap } from "./photomap.js";
 import { pickPlace, placeInput } from "./places.js";
 import { startPresentation } from "./present.js";
-import { personCover, scanAll } from "./faces.js";
+import { personCover, personSuggestions, scanAll } from "./faces.js";
 import { renameInPlace } from "./rename.js";
 import { askCleanup, groupTitle, loadDuplicates } from "./duplicates.js";
 import { cleanupPlan } from "./duplicateparts.js";
@@ -1107,7 +1107,8 @@ export function albumBrowser({ pick, pickText } = {}) {
     if (person) {
       peopleBox.replaceChildren(h("div", { class: "album-person-head" },
         h("button", { type: "button", class: "link", id: "album-people-back", text: t("faces.allPeople"), onclick: () => { person = ""; open(); } }),
-        h("h2", { class: "album-person-name", id: "album-person-name", text: person })));
+        h("h2", { class: "album-person-name", id: "album-person-name", text: person })),
+        personSuggestions({ person, space: space.value, tell: say, changed: () => refresh() }));
       return;
     }
     peopleBox.replaceChildren(h("p", { class: "muted", text: t("faces.loading") }));

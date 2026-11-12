@@ -251,9 +251,11 @@ The view **Duplicates** shows groups of pictures that are the same file or look 
 
 When you open a picture you may edit, the browser looks for faces on it; **Find faces** in the viewer looks again. Under **People in the picture** each face has a field for the name: type a name, or choose one of the names given before. **Remove** takes a face away. Everyone who may read the picture sees the names, and a frame on each face.
 
-The view **People** lists everyone named, with their face and how many pictures show them; a click opens that person's album, which can be presented as slides. **Find faces in all pictures** looks for faces on every picture shown that you may edit and that was never searched. Faces are looked for on uploaded pictures too, after the upload.
+The view **People** lists everyone named, with their face and how many pictures show them; a click opens that person's album, which can be presented as slides. **Find faces in all pictures** looks for faces on every picture shown that you may edit and that was never searched or, while recognition is on, is not recognised yet. Faces are looked for on uploaded pictures too, after the upload.
 
-Faces are found in your browser; nothing is sent elsewhere. If an administrator turned on **Recognise faces again**, the browser also computes numbers from each face that let the album suggest a name, such as *Ada?*, for a face that resembles faces already named. These numbers are biometric data: turn this on only if the people shown agree. Turning it off forgets them all; the names stay.
+Faces are found in your browser; nothing is sent elsewhere. If an administrator turned on **Recognise faces again**, the browser also computes numbers from each face that let the album suggest a name, such as *Ada?*, for a face that resembles faces already named. These numbers are biometric data: turn this on only if the people shown agree. Turning it off forgets them all; the names stay. Pictures searched before recognition was turned on are not recognised until they are searched again: after turning it on, administrators are pointed to **Find faces in all pictures**, and a picture opened in the viewer is searched again on its own.
+
+With recognition on, a person's album also shows **Is this Ada?**: faces on other pictures you may edit that resemble Ada more than anyone else named, most alike first. Click the faces that show Ada, or **Choose all** and click away the wrong ones, then **Confirm chosen**. The faces not chosen stay unnamed and are suggested again later. Only pictures whose faces were searched while recognition was on can be suggested.
 
 ### Deleting a folder
 
