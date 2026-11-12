@@ -507,8 +507,16 @@ Update this section whenever a top-level directory is added.
 
 ## Parallel pull requests and merge conflicts
 
-Several agents work on this repository at once, so conflicts between pull requests are the normal case.
-These rules keep them small and keep two sessions from resolving the same one:
+Several agents work on this repository, and pull requests that run side by side conflict in the files they share: the catalogues, the manuals, the ADR index, `style.css` and `e2e/smoke.cjs`.
+Pull requests are therefore opened one at a time.
+This is the maintainer's decision of 2026-11-12.
+
+- **Open a pull request only when no other is open.** Before opening one, list the repository's open pull requests; every open pull request counts, whoever opened it.
+  While any is open, keep the work on its branch, committed and pushed, and open the pull request once the others are merged or closed, after merging the then current `main` into the branch.
+  Two exceptions: a pull request that repairs a broken `main`, and one the person asking for the work explicitly wants opened alongside another.
+  A pull request opened under an exception follows the rules below.
+
+Where pull requests overlap all the same, these rules keep conflicts small and keep two sessions from resolving the same one:
 
 - **One session owns a pull request.** The session that opened it brings it up to date with `main` and resolves its conflicts.
   Another session pushes to its branch only when the person who asked for the work hands it over;
