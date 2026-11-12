@@ -93,7 +93,7 @@ Strongest form: no new field; one label vocabulary everywhere.
 
 - amends [ADR-0054](0054-an-album-of-readable-pictures-inserted-by-copy.md) (the album)
 - amended by [ADR-0190](0190-a-folder-is-deleted-from-the-album.md) (a folder is deleted from the album, into the trash)
-- amended by [ADR-0200](0200-a-folder-is-moved-from-the-album.md) (a folder is moved from the album, proposed)
+- amended by [ADR-0200](0200-a-folder-is-moved-from-the-album.md) (a folder is moved from the album)
 - amended by [ADR-0175](0175-a-collection-in-the-album-gathers-labelled-pictures-of-every-room.md) (collections that gather labelled pictures of every room)
 - amended by [ADR-0197](0197-album-folders-that-show-a-file-share.md) (a folder bound to a file share, proposed)
 - relates to ADR-0022 (permissions), ADR-0040 (governance), ADR-0044 (labels), ADR-0045 (attachments), ADR-0060 and ADR-0087 (kanbans and label boards)

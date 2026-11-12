@@ -1,9 +1,9 @@
 # ADR-0200: A folder is moved from the album, with what it holds
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-12
-- **Deciders:** Project initiators. Request of 2026-11-12: folders in the album can be moved. The requester chose the same day both a button with a choice of places and dragging, and that a folder may go into another room after a warning.
+- **Deciders:** Project initiators. Request of 2026-11-12: folders in the album can be moved. The requester chose the same day both a button with a choice of places and dragging, and that a folder may go into another room after a warning. Accepted 2026-11-12.
 - **Open question:** whether collections should be moved from the album the same way; whether the choice of places should reach folders deeper than four levels
 - **Question checked:** 2026-11
 
