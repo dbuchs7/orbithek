@@ -362,3 +362,60 @@ func (h authHandlers) runShare(w http.ResponseWriter, r *http.Request) {
 	}()
 	w.WriteHeader(http.StatusAccepted)
 }
+
+// signedLinkTTL is how long a signed link to an original holds.
+const signedLinkTTL = 15 * time.Minute
+
+// originalRoutes open an S3 share's originals through links the server
+// signs when they are followed, where an administrator turned that on for
+// the share (ADR-0223). Not offered to agents:
+// the route hands out an original to a browser.
+func originalRoutes(h itemHandlers) []Route {
+	return []Route{
+		{Method: http.MethodGet, Pattern: "/api/items/{ref}/attachments/{id}/original", Summary: "Open the original of an entry of an S3 file share that signs links: a redirect to the object, signed for 15 minutes, for whoever reads the entry", Handler: http.HandlerFunc(h.openOriginal)},
+	}
+}
+
+// signsLinks reports whether a share's entries open through signed links:
+// an S3 share that signs them, with its keys set.
+func (sh *Shares) signsLinks(s site.Share) bool {
+	if !s.SignedLinks || s.Kind() != share.S3 {
+		return false
+	}
+	av, sv := share.KeyVars(s.ID)
+	return strings.TrimSpace(sh.env(av)) != "" && strings.TrimSpace(sh.env(sv)) != ""
+}
+
+func (h itemHandlers) openOriginal(w http.ResponseWriter, r *http.Request) {
+	var a item.Attachment
+	var check error
+	h.d.DB.Read(func(s *item.Store) {
+		x := s.As(who(r))
+		it, err := resolveItem(x, r.PathValue("ref"))
+		if err == nil {
+			a, err = x.Attachment(it.ID, item.ID(r.PathValue("id")))
+		}
+		check = err
+	})
+	if check != nil {
+		h.fail(w, check)
+		return
+	}
+	sh, ok := h.d.DB.Site.Share("")
+	if a.Linked() && !a.Withdrawn() {
+		sh, ok = h.d.DB.Site.Share(a.Share.Share)
+	}
+	if !ok || !h.d.Shares.signsLinks(sh) {
+		writeError(w, http.StatusNotFound, "no original to open here: the file share does not sign links")
+		return
+	}
+	addr, _ := share.ParseAddress(sh.Address)
+	link, err := share.SignedLink(addr, sh.ID, a.Share.Path, h.d.Shares.env, signedLinkTTL)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "no original to open here: "+err.Error())
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Referrer-Policy", "no-referrer")
+	http.Redirect(w, r, link, http.StatusFound)
+}

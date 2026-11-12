@@ -62,7 +62,7 @@ Strongest form: one could drag from the timeline, the favourites or the memories
 
 ## Links
 
-- amended by [ADR-0223](0223-pictures-dropped-onto-a-folder-are-moved-or-copied-as-a-menu-asks.md) (a menu asks to move or copy)
+- amended by [ADR-0224](0224-pictures-dropped-onto-a-folder-are-moved-or-copied-as-a-menu-asks.md) (a menu asks to move or copy)
 - amends [ADR-0177](0177-photo-management-in-the-album.md) (moving chosen pictures to a folder)
 - amended by [ADR-0188](0188-a-moved-file-keeps-its-identity.md) (a moved file keeps its identity)
 - relates to ADR-0054 and ADR-0055 (copies with their source), ADR-0090 (folders), ADR-0091 (rules every view follows), ADR-0103 (stacks of versions), ADR-0175 (collections)

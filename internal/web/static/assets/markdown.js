@@ -10,6 +10,8 @@
 // The module does not touch the DOM, so it is tested in Node.js
 // (internal/web/jstest).
 
+import { cleanCell, joinCells } from "./tableparts.js";
+
 // --- recognising Markdown ------------------------------------------------------
 
 // Constructs that only Markdown writes: a code fence that is closed again
@@ -415,15 +417,26 @@ function emit(nodes, out, quote, ctx) {
   }
 }
 
-// table makes a table block of plain cells (ADR-0042): a cell may carry
-// formats (ADR-0214), but whether pasted ones are kept is open, so
-// formatting is dropped and a link keeps its address in parentheses. Rows
-// are filled to the widest; a row wider than the header widens the table
+// table makes a table block whose cells keep their formats (ADR-0214):
+// bold, italic, strike-through, code and links, each within its cell. A
+// line break in a cell becomes a space, as a cell holds one line. Rows are
+// filled to the widest; a row wider than the header widens the table
 // rather than lose cells.
 function table(rows, ctx) {
-  const text = rows.map((r) => r.map((c) => plain(parseInline(c, ctx.defs), ctx.isSafe, ctx.stats).replace(/[\t\n]/g, " ").trim()));
-  const width = Math.max(...text.map((r) => r.length));
-  return { kind: "table", text: text.map((r) => [...r, ...Array(width - r.length).fill("")].join("\t")).join("\n") };
+  const cells = rows.map((r) => r.map((c) => cellOf(withMarks(parseInline(c, ctx.defs), ctx.isSafe, ctx.stats))));
+  const width = Math.max(...cells.map((r) => r.length));
+  const { text, marks } = joinCells(cells.map((r) => [...r, ...Array.from({ length: width - r.length }, () => ({ text: "", marks: [] }))]));
+  return marks.length ? { kind: "table", text, marks } : { kind: "table", text };
+}
+
+// cellOf is a cell's text on one line, without surrounding spaces, its
+// marks kept on what remains.
+function cellOf({ text, marks }) {
+  const flat = cleanCell({ text, marks });
+  const lead = cps(flat.text) - cps(flat.text.trimStart());
+  const trimmed = flat.text.trim();
+  const n = cps(trimmed);
+  return { text: trimmed, marks: flat.marks.map((m) => ({ ...m, start: Math.max(m.start - lead, 0), end: Math.min(m.end - lead, n) })).filter((m) => m.end > m.start) };
 }
 
 // --- inline text -----------------------------------------------------------------
@@ -880,26 +893,6 @@ function withMarks(root, isSafe, stats) {
   };
   walk(root, false);
   return { text, marks: mergeMarks(marks) };
-}
-
-// plain flattens a tree into text alone, for a table cell: a link keeps its
-// address in parentheses unless its text is the address.
-function plain(root, isSafe, stats) {
-  const walk = (parent, inLink) => {
-    let s = "";
-    for (let n = parent.first; n; n = n.next) {
-      if (n.t === "link" || n.t === "img") {
-        const safe = isSafe(n.href);
-        if (n.t === "img") stats.pictures++;
-        if (!safe && n.href) stats.dropped++;
-        const label = n.t === "img" ? plainOf(n) : walk(n, true);
-        s += safe && !inLink && label !== n.href ? (label ? `${label} (${n.href})` : n.href) : label;
-      } else if (n.first) s += walk(n, inLink);
-      else s += plainOf(n);
-    }
-    return s;
-  };
-  return walk(root, false);
 }
 
 // mergeMarks joins marks of one kind (and target) that overlap or touch,

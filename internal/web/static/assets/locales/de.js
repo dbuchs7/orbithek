@@ -2980,5 +2980,8 @@ export default {
   "shares.interval": "Alle … Stunden lesen",
   "shares.enabled": "Nach diesem Zeitplan lesen",
   "shares.formHelp": "Der Ordner muss beim ersten Binden leer sein. Die Schlüssel eines S3-Buckets kommen aus der Umgebung des Servers, nie aus diesem Formular.",
-  "shares.saved": "{name} ist gespeichert."
+  "shares.saved": "{name} ist gespeichert.",
+  "shares.signedLinks": "Originale über signierte Links öffnen (nur S3)",
+  "shares.signedHelp": "Leserinnen und Leser des Ordners öffnen dann jedes Original über einen Link, den der Server beim Anklicken für 15 Minuten signiert: Sie erhalten das Original, unabhängig von den Berechtigungen des Shares, und ein weitergegebener Link funktioniert während dieser Minuten.",
+  "shares.signedChip": "Signierte Links"
 };

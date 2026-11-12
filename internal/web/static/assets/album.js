@@ -778,7 +778,7 @@ export function albumBrowser({ pick, pickText } = {}) {
   };
 
   // dropChoice asks, where pictures were dropped onto a folder, whether to
-  // move or copy them there (ADR-0223). Move has the focus; Escape, a
+  // move or copy them there (ADR-0224). Move has the focus; Escape, a
   // click elsewhere or Cancel answers null.
   const dropChoice = (x, y, folder, n) => new Promise((resolve) => {
     let done = false;
@@ -818,7 +818,7 @@ export function albumBrowser({ pick, pickText } = {}) {
   // moves them there as "Move" does for chosen pictures, each with all its
   // versions, keeping what it is (ADR-0184, ADR-0188), or copies them, as
   // the menu shown where they are dropped asks; Ctrl or Alt copies and
-  // Shift moves without it (ADR-0223). A picture already in the folder
+  // Shift moves without it (ADR-0224). A picture already in the folder
   // stays. It also takes a folder dragged onto it, which goes into it with
   // what it holds; the top (folder null) takes only a folder, which goes to
   // the top of its room (ADR-0200).

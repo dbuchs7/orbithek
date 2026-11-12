@@ -1026,7 +1026,7 @@ dialog.drawing::backdrop { background: rgba(20, 22, 26, .45); }
 /* A folder being dragged goes into another folder or up the trail (ADR-0200). */
 .album.dragging-folder .album-folder:not(.album-collection), .album.dragging-folder .album-trail button { outline: 1px dashed var(--accent); outline-offset: 2px; }
 .album .drop-target, .album.dragging-pictures .drop-target { outline: 2px solid var(--accent); outline-offset: 2px; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
-/* Move or copy pictures dropped onto a folder (ADR-0223). */
+/* Move or copy pictures dropped onto a folder (ADR-0224). */
 .album-drop-menu { position: fixed; z-index: 50; display: flex; flex-direction: column; min-width: 12rem; padding: 4px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); box-shadow: 0 6px 24px rgba(0, 0, 0, .18); }
 .album-drop-menu button { text-align: left; padding: 6px 10px; border-radius: 6px; }
 .album-drop-menu button:focus-visible, .album-drop-menu button:hover { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
