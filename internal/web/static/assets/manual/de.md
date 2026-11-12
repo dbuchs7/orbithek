@@ -287,6 +287,8 @@ Karten werden mit **Neue Karte** hinzugefügt, für ihre Details geöffnet und m
 
 Die **Roadmap** zeigt Einträge mit Datumsfeldern auf einer Zeitachse: als **Roadmap nach Label** in Bahnen oder als **Gantt-Diagramm** mit einer Zeile je Eintrag. Man wählt Raum, Typen, die Felder **Beginn** und **Ende**, die Labels und den **Massstab** (Wochen, Monate, Quartale). Einträge, die auf unerledigte Einträge warten, sind markiert.
 
+**Exportieren** speichert das Diagramm als Bild, als **PNG** oder **JPEG**, mit allen Zeilen und der ganzen Zeitachse, auch dem, was ausserhalb des sichtbaren Bereichs liegt. Das Bild zeigt, was man sieht, im aktuellen Erscheinungsbild, und ist nach der Ansicht und dem Tag benannt, etwa *Gantt-Diagramm PLAT 2026-11-12.png*. Ein Diagramm, das für ein Bild zu gross ist, das der Browser zeichnen kann, wird mit einem Hinweis abgelehnt; man schränkt es nach Labels, Typ oder Raum ein oder wählt einen gröberen Massstab.
+
 ### Kalender
 
 Der **Kalender** zeigt Einträge mit Datumsfeldern als **Monat**, **Woche** oder **Agenda**. **Filter** wählt Raum, Typ, Zuständigkeit, Status, Wörter des Textes und Labels; ein Satz über dem Kalender beschreibt, was gezeigt wird. Unter **Erweitert** wählt man die Datumsfelder und eine zusätzliche Abfrage.

@@ -2418,6 +2418,12 @@ dialog.note-dialog { max-height: calc(100dvh - 32px); overflow: auto; }
 .tl-milestone.tl-done::before { background: var(--success-soft); border-color: var(--success); }
 .tl-milestone.tl-waiting::before, .tl-inverted::before { background: var(--surface); border-style: dashed; border-color: var(--warning); }
 .tl-legend { font-size: 12px; }
+.tl-actions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-4); }
+.tl-actions + .tl-scroll { margin-top: var(--space-2); }
+/* Rows out of sight are neither laid out nor painted until they scroll
+   near; a row's height is fixed, so the scroll bar stays true. */
+.tl-body .tl-row { content-visibility: auto; contain-intrinsic-block-size: auto var(--tl-row); }
+.tl-actions .export-list { left: 0; right: auto; }
 .tl-unscheduled ul { margin: var(--space-2) 0; padding-left: var(--space-5); }
 @media (max-width: 640px) { .tl { --tl-head: 8rem; } }
 /* Calendar of the items' dates (ADR-0166): a month in whole weeks, a week,
