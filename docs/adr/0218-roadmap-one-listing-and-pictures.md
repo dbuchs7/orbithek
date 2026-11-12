@@ -1,9 +1,9 @@
 # ADR-0218: The roadmap and the Gantt chart read their items in one listing and export as PNG and JPEG
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-12
-- **Deciders:** Project initiators (request of 2026-11-12: the roadmap and the Gantt chart build up slowly, their loading time is to be shortened, and both are to be exported as PNG or JPEG)
+- **Deciders:** Project initiators (request of 2026-11-12: the roadmap and the Gantt chart build up slowly, their loading time is to be shortened, and both are to be exported as PNG or JPEG). Accepted 2026-11-12.
 - **Open question:** whether the picture should always be drawn in the light look, whatever look the reader uses, and whether a chart too large for one picture should be split into several pages instead of being refused
 - **Question checked:** 2026-11
 
@@ -85,7 +85,7 @@ Measured on the same data and machine after the change: about 105 ms to the firs
 - **Negative / trade-offs accepted:** for up to five minutes in the view, the chart can show an item as it was when the view was entered; leaving the view or reloading shows the current state.
 - **Negative / trade-offs accepted:** the picture is a raster image; text in it cannot be selected, and the links of the bars are lost.
 - **Negative / trade-offs accepted:** a Gantt chart of many hundreds of rows does not fit in one readable picture and is refused.
-- **Follow-ups / risks to watch:** an SVG export drawn from the same layout; reading the page size from the server's budgets instead of assuming 500. The implementation is partial until the decision is accepted and these follow-ups are settled or dropped.
+- **Follow-ups / risks to watch:** an SVG export drawn from the same layout; reading the page size from the server's budgets instead of assuming 500.
 
 ## Pros and cons of the options
 

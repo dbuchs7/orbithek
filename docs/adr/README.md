@@ -230,4 +230,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0215](0215-pictures-on-the-starmap-of-all-rooms.md) | Pictures and drawings on the starmap of all rooms, joined to the items that use them | Accepted | Landed |
 | [0216](0216-adr-numbers-assigned-by-the-pull-requests-last-commit.md) | ADR numbers are assigned by the pull request's last commit | Proposed | Partial |
 | [0217](0217-golden-files-of-the-current-format-carry-no-version-number.md) | Golden files of the current format carry no version number | Proposed | Partial |
-| [0218](0218-roadmap-one-listing-and-pictures.md) | The roadmap and the Gantt chart read their items in one listing and export as PNG and JPEG | Proposed | Partial |
+| [0218](0218-roadmap-one-listing-and-pictures.md) | The roadmap and the Gantt chart read their items in one listing and export as PNG and JPEG | Accepted | Landed |
