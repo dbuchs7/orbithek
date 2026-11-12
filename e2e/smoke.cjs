@@ -6431,7 +6431,7 @@ function webSource() {
     await page.waitForSelector("#record-sound:not([hidden])");
     check(await page.locator("#attachments li").count() === filesBefore + 1, "a discarded recording is not attached");
 
-    step("sound in the text: recorded into today's note from the editor and played there (ADR-0223)");
+    step("sound in the text: recorded into today's note from the editor and played there (ADR-draft-sound-in-the-text)");
     await page.goto(base + "/#/daily");
     await page.waitForSelector("#daily-note.editing .ProseMirror");
     await page.locator("#daily-note .ProseMirror").click();

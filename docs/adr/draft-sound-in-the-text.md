@@ -1,4 +1,4 @@
-# ADR-0223: Sound in the text
+# ADR-DRAFT: Sound in the text
 
 - **Status:** Proposed
 - **Implementation:** Partial

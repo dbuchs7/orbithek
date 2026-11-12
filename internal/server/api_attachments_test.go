@@ -623,7 +623,7 @@ func TestRecordingsPlayFromTheFileList(t *testing.T) {
 // TestSoundPlaysInTheText: a block of the kind audio plays a sound file of
 // its item, refuses a video or a picture and a file before the item exists,
 // and a copy of the item plays its own copy of the sound
-// (ADR-0223).
+// (ADR-draft-sound-in-the-text).
 func TestSoundPlaysInTheText(t *testing.T) {
 	w := newWorld(t)
 	it := w.bert.expect("POST", "/api/items", `{"space":"PLAT","type":"task","title":"Call","properties":{"priority":"low"}}`, http.StatusCreated)

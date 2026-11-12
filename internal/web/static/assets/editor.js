@@ -92,7 +92,7 @@ export const schema = new Schema({
     // A video plays in the text, sized and placed like a picture (ADR-0097).
     video: { group: "block", atom: true, selectable: true, attrs: { ...bid, ref: {}, text: { default: "" }, width: { default: 0 }, align: { default: "" } }, toDOM: (n) => ["figure", { class: "pm-image pm-video" }, ["figcaption", n.attrs.text]] },
     // A sound plays in the text with a plain caption, such as a recording
-    // (ADR-0223); it has neither a width nor a place.
+    // (ADR-draft-sound-in-the-text); it has neither a width nor a place.
     audio: { group: "block", atom: true, selectable: true, attrs: { ...bid, ref: {}, text: { default: "" } }, toDOM: (n) => ["figure", { class: "pm-audio" }, ["figcaption", n.attrs.text]] },
     // A BPMN diagram (ADR-0129): a model kept as a file of the item, or the
     // newest version of a process of a process engine; with a plain caption.
@@ -1212,7 +1212,7 @@ function playsElsewhere(doc, ref, pos) {
 }
 
 // audioView plays a sound file of the item with the browser's own controls
-// (ADR-0223); an editor edits its caption and removes
+// (ADR-draft-sound-in-the-text); an editor edits its caption and removes
 // it. Removing the last block that plays a file offers to delete the file
 // too, so a recording does not stay behind unseen; that removal cannot be
 // undone, as the text could otherwise get back a file that is gone. report
@@ -1425,7 +1425,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     }
   });
   // A sound is uploaded as an attachment of the item, then played in the
-  // text (ADR-0223); the server reads its format from
+  // text (ADR-draft-sound-in-the-text); the server reads its format from
   // its bytes (ADR-0219).
   const placeSound = async (file) => {
     status.textContent = t("editor.uploading");

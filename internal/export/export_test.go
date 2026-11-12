@@ -313,7 +313,7 @@ func TestDiagramsAreNamedInDocuments(t *testing.T) {
 
 // TestSoundIsPlayedOrNamed: a sound in the text plays in the page printed
 // as PDF, is named in a Word file and linked by its name in Markdown
-// (ADR-0223).
+// (ADR-draft-sound-in-the-text).
 func TestSoundIsPlayedOrNamed(t *testing.T) {
 	page := Page{ID: "p", Title: "Call", Body: []item.Block{
 		{Kind: item.Audio, Ref: "s", Text: "The <call>"},
