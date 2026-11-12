@@ -145,6 +145,14 @@ func (h itemHandlers) markCopyAsGiven(r *http.Request, id item.ID, a *item.Attac
 		// download does.
 		src, _ = x.Attachment(a.Source.Item, a.Source.Attachment)
 	})
+	// A copy of an entry of a file share is its preview as given
+	// (ADR-0197), never the original, which is not here.
+	if src.Linked() {
+		if sum, err := h.givenSHA(hidden, a.Source.Item, src); err == nil && sum == a.SHA256 {
+			a.FromPreview = true
+		}
+		return
+	}
 	if src.ID == "" || src.SHA256 == a.SHA256 || (!hidden && !timeWritten(src)) {
 		return
 	}

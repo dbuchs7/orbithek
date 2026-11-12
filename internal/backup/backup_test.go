@@ -302,3 +302,59 @@ func TestBackupsHoldAttachments(t *testing.T) {
 		t.Fatalf("restored attachment %q, %v", got, err)
 	}
 }
+
+// TestBackupsHoldPostersAndPreviews: a video's poster and the preview of
+// an entry of a file share, which has no file of its own here, are backed
+// up and restored (ADR-0189, ADR-0197).
+func TestBackupsHoldPostersAndPreviews(t *testing.T) {
+	src := openDB(t, t.TempDir())
+	defer src.Close()
+	populate(t, src)
+	var page item.ID
+	src.Read(func(s *item.Store) { page = s.Find(item.Query{Space: "PLAT"})[0].ID })
+	video, err := src.StoreAttachment(page, strings.NewReader("a video"), 1<<20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	video.Name = "clip.mp4"
+	if err := src.Write(func(s *item.Store) error { video, err = s.AddAttachment("admin", page, video); return err }); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := src.StorePoster(page, video.ID, strings.NewReader("its poster"), 1<<20); err != nil {
+		t.Fatal(err)
+	}
+	const entry = "0123456789abcdef0123456789abc197"
+	if _, err := src.StorePreview(page, entry, strings.NewReader("a preview"), 1<<20); err != nil {
+		t.Fatal(err)
+	}
+	if err := src.Write(func(s *item.Store) error {
+		_, err := s.LinkFile("sync:share:nas", page, item.Attachment{ID: entry, Name: "lake.jpg", Type: "image/jpeg", Size: 9, SHA256: strings.Repeat("ab", 32),
+			Share: &item.ShareFile{Share: "nas", Path: "lake.jpg"}})
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	dir := filepath.Join(t.TempDir(), "restored")
+	if _, err := Restore(bytes.NewReader(backupOf(t, src)), testPass, dir); err != nil {
+		t.Fatal(err)
+	}
+	dst := openDB(t, dir)
+	defer dst.Close()
+	for what, open := range map[string]func() (io.ReadSeekCloser, error){
+		"its poster": func() (io.ReadSeekCloser, error) { return dst.OpenPoster(page, video.ID) },
+		"a preview":  func() (io.ReadSeekCloser, error) { return dst.OpenPreview(page, entry) },
+	} {
+		r, err := open()
+		if err != nil {
+			t.Fatalf("%s: %v", what, err)
+		}
+		got, _ := io.ReadAll(r)
+		r.Close()
+		if string(got) != what {
+			t.Errorf("restored %q, want %q", got, what)
+		}
+	}
+	if storage.BackedUpPath("attachments/" + string(page) + "/" + string(video.ID) + storage.FacesSuffix) {
+		t.Error("what was computed of faces may be in a backup")
+	}
+}

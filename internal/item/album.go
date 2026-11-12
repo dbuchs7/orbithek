@@ -186,6 +186,9 @@ func (x *Session) RenameFile(id, attachment ID, name string) error {
 		return invalid("%s is %s", it.Key, it.Presence)
 	}
 	a, _ := it.attachment(attachment)
+	if err := onShare(a); err != nil {
+		return err
+	}
 	suffix := nameSuffix(a.Name)
 	base := strings.TrimSpace(name)
 	if suffix != "" && len(base) >= len(suffix) && strings.EqualFold(base[len(base)-len(suffix):], suffix) {

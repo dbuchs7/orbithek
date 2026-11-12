@@ -1,7 +1,7 @@
 # ADR-0197: Album folders that show a file share, as previews, with the share as master
 
 - **Status:** Proposed
-- **Implementation:** Not started
+- **Implementation:** Partial
 - **Date:** 2026-11-11
 - **Deciders:** Project initiators (request of 2026-11-11 to name file shares — S3 and Samba — for album folders, so that photos are shown only as previews while they stay stored on the share; the four choices below were answered the same day)
 - **Open question:** whether the link to open an original may, for S3, be a presigned address the server signs, which would hand out the original to every reader of the folder; whether pictures the server cannot scale (HEIC, RAW, WebP) should get a preview by other means; whether a share should be read for what changed (S3 event notifications, SMB change notifications) rather than listed on a schedule; whether a native SMB client should replace the mount
@@ -62,9 +62,16 @@ Chosen option: **1**.
 
 ### Entries
 
-- **A record per file:** `AttachmentLinked` records, on the folder that holds the file's directory, an attachment with no content of its own and a `Source`: the share's ID, the path below its address, the size, the ETag (S3) or modification time (`dir`), the SHA-256 of the content, the media type and the photo data (ADR-0177). The path and the name are content, sealed with the item's key and erased with it (ADR-0026). The new kinds raise the codec version (to 55, as `main` stands on 2026-11-11).
+- **A record per file:** `AttachmentLinked` records, on the folder that holds the file's directory, an attachment with no content of its own and a `Share`: the share's ID, the path below its address and a tag (the ETag of S3, the modification time of a directory), besides the size, the SHA-256 of the content, the media type and the photo data (ADR-0177).
+  The path and the name are content, sealed with the item's key and erased with it (ADR-0026).
+  `AttachmentRelinked` records new content or a new path, `AttachmentWithdrawn` (the attachment's ID only, unsealed) a file gone from the share, `AttachmentRestored` its return.
+  Only a share's run records them, as the trusted store; the kinds raise the codec to version 60.
 - **The preview:** the server reads the original once, scales it to 1600 pixels on its longer edge, turned upright, as JPEG (PNG with transparency), and seals it with the item's key beside the record as `<id>.preview`, as a poster is kept (ADR-0189). It is backed up, moved with the record between the share's folders, and removed with it. The album's 400-pixel thumbnails are made from it on demand, as today. Reading the original for the hash and the preview are one pass.
 - **What the album hands out is the preview:** the viewer, the slides (ADR-0176), the export (ADR-0173), the ZIP download (ADR-0177), the clipboard (ADR-0108) and *Insert → From the album* (ADR-0054) all use the preview. Inserting copies the preview into the edited item as an ordinary attachment, with the entry as its source (ADR-0055). No route serves the original.
+  Storage gives out an entry's preview wherever an attachment's content is read, since only such an entry has one.
+- **Copies and exports** (the requester's choice of 2026-11-12): copying an entry into another item, alone or with its whole item (ADR-0067), and exporting it, take its preview as an ordinary file, with the entry as its source and no link to the share.
+  The item model accepts such a copy only with the preview as its content, which the server marks (`FromPreview`).
+  A restore of single items from a backup leaves the entries out; the share's next run links them again.
 - **Pictures the server cannot scale** (HEIC, RAW, WebP, pictures beyond `ThumbnailPixels`) and videos are listed with a symbol, their name, the link and what `internal/photo` can read of them, without a preview. A video's photo data are read through ranges, as an upload's are (ADR-0189). The run's report counts them by format.
 
 ### The link to open

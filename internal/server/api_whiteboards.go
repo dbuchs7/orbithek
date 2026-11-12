@@ -242,6 +242,9 @@ func (h itemHandlers) createWhiteboard(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, check)
 		return
 	}
+	if !boundFolder(w, h.d, id) {
+		return
+	}
 	if h.d.Collab != nil && h.d.Collab.Busy(id) {
 		writeError(w, http.StatusConflict, "someone is editing this item's text in a live session; add the whiteboard when they are done")
 		return
