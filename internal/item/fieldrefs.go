@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-// Room types (ADR-0199) and the field kinds that refer to items and files
-// (ADR-0200).
+// Room types (ADR-0201) and the field kinds that refer to items and files
+// (ADR-0202).
 
 // usable returns the latest version of a type when items of it may live
 // in space: an installation type everywhere, a room type in its room only.
@@ -45,7 +45,7 @@ func (s *Store) checkTypeDef(td TypeDef) error {
 // on the item self (nil for a new item): a referenced item exists, is live
 // unless the item already refers to it there, is not the item itself and
 // is of a type the field allows; a file is one of the item's own, not
-// deleted (ADR-0200).
+// deleted (ADR-0202).
 func (s *Store) checkRefs(td TypeDef, self *Item, props Props) error {
 	for _, name := range slices.Sorted(maps.Keys(props)) {
 		f, ok := td.field(name)
@@ -120,13 +120,13 @@ func (s *Store) relateFields(it *Item, old Props, seq int, touch func(...ID)) {
 }
 
 // Field names the item field a relation is derived from, or is empty for
-// a relation made by hand or derived from a body (ADR-0200).
+// a relation made by hand or derived from a body (ADR-0202).
 func (r Relation) Field() string { return r.field }
 
 // --- sessions ---------------------------------------------------------------
 
 // MayDefineTypes reports whether the principal may define types of a
-// space: its administrators may, and the installation's (ADR-0199). For
+// space: its administrators may, and the installation's (ADR-0201). For
 // the empty space, only the installation's administrators may.
 func (x *Session) MayDefineTypes(space string) bool {
 	if space == "" {
@@ -136,7 +136,7 @@ func (x *Session) MayDefineTypes(space string) bool {
 }
 
 // DefineType defines a room type, or a new version of one, for its
-// space's administrators (ADR-0199). A type of the whole installation is
+// space's administrators (ADR-0201). A type of the whole installation is
 // defined by the installation's administrators through the trusted
 // command, as before (ADR-0028).
 func (x *Session) DefineType(td TypeDef) (TypeDef, error) {
@@ -156,7 +156,7 @@ func (x *Session) DefineType(td TypeDef) (TypeDef, error) {
 }
 
 // RemoveType takes a room type out of use, for its space's administrators,
-// when nothing uses it (ADR-0094, ADR-0199). An installation type is
+// when nothing uses it (ADR-0094, ADR-0201). An installation type is
 // removed by the installation's administrators through the trusted
 // command.
 func (x *Session) RemoveType(name string) error {
@@ -175,7 +175,7 @@ func (x *Session) RemoveType(name string) error {
 
 // Types lists the latest version of the types the principal sees, ordered
 // by name: those of the whole installation and those of the spaces it
-// holds a role in (ADR-0199). With a space, only the types items there may
+// holds a role in (ADR-0201). With a space, only the types items there may
 // have: the installation's and that space's own.
 func (x *Session) Types(space string) []TypeDef {
 	var out []TypeDef

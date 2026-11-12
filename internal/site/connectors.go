@@ -48,7 +48,7 @@ type Connector struct {
 }
 
 // HighlightsSource is an account at a reading service whose highlights
-// become items, one per book or article (ADR-0210): the service's
+// become items, one per book or article (ADR-0212): the service's
 // address, the language of the page's own words, and how often a full
 // run reads everything again, as a run otherwise reads only what changed.
 // The account is the one whose token the environment holds.
@@ -61,7 +61,7 @@ type HighlightsSource struct {
 }
 
 // HighlightsValues are the values a reading service gives of each book or
-// article (ADR-0210): its author, category, cover picture's address,
+// article (ADR-0212): its author, category, cover picture's address,
 // where it was read, its address, its page at the service and its tags.
 var HighlightsValues = []string{"author", "category", "cover", "link", "source", "tags", "url"}
 
@@ -253,7 +253,7 @@ const (
 	KindAtlassian = "atlassian"
 	KindGit       = "git"
 	// KindHighlights reads one's highlights from a reading service
-	// (ADR-0210).
+	// (ADR-0212).
 	KindHighlights = "highlights"
 )
 
@@ -286,7 +286,7 @@ func ConnectorTemplates() []Connector {
 		URL: "https://", ID: "id", Title: "title", Values: map[string]string{}, Language: "de", Spec: "https://",
 	}}, {Name: "Git", Kind: KindGit, IntervalHours: 1, Git: &GitSource{URL: "https://", Language: "de"}},
 		// A reading service's highlights, its export API at its address.
-		{Name: "Readwise", Kind: KindHighlights, IntervalHours: 24, Highlights: &HighlightsSource{URL: "https://readwise.io", Language: "de", FullDays: 7}}} // ADR-0210
+		{Name: "Readwise", Kind: KindHighlights, IntervalHours: 24, Highlights: &HighlightsSource{URL: "https://readwise.io", Language: "de", FullDays: 7}}} // ADR-0212
 }
 
 var connectorIDRE = regexp.MustCompile(`^[a-z0-9][a-z0-9.-]{0,39}$`)

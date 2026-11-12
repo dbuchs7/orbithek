@@ -485,7 +485,7 @@ func (x *Session) PlaceCard(space string, kanban, card ID, column, before ID) er
 // state to start from. Administrators may, as they define types.
 func (x *Session) AddTransition(typeName, from, to string) (TypeDef, error) {
 	td, ok := x.s.latest(typeName)
-	// A room type is changed by its room's administrators too (ADR-0199).
+	// A room type is changed by its room's administrators too (ADR-0201).
 	if !x.MayDefineTypes("") && (!ok || td.Space == "" || !x.MayDefineTypes(td.Space)) {
 		return TypeDef{}, forbidden("%s may not change types", x.who)
 	}

@@ -1,5 +1,5 @@
 // Unit tests of the parts of the command palette (paletteparts.js,
-// ADR-0205): how what is typed matches names, their order, the recently
+// ADR-0207): how what is typed matches names, their order, the recently
 // opened items and the keys that open it. They run in Node.js without a
 // browser and without dependencies:
 //

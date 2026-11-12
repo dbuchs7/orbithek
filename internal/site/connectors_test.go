@@ -376,7 +376,7 @@ func TestSinceIsChecked(t *testing.T) {
 }
 
 // A connector of highlights names its service's address; a full run
-// comes every week unless set otherwise (ADR-0210).
+// comes every week unless set otherwise (ADR-0212).
 func TestHighlightsConnectorsAreChecked(t *testing.T) {
 	s, _ := New(nil, func([]byte) error { return nil })
 	c := ConnectorTemplates()[slices.IndexFunc(ConnectorTemplates(), func(c Connector) bool { return c.Kind == KindHighlights })]

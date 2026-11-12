@@ -1,4 +1,4 @@
-# ADR-0210: Highlights from a reading service as a connector
+# ADR-0212: Highlights from a reading service as a connector
 
 - **Status:** Proposed
 - **Implementation:** Partial
@@ -26,7 +26,7 @@ Connectors already read sources on a schedule into a room, with a dry run, a rep
 1. **A connector kind `highlights`** whose reader reads the service's export API, each book an entry with labels; its page is the highlights above a line, and a run keeps what is below the line.
 2. **Highlights as comments** on the book's item, which people do not edit and runs add to.
 3. **A page per highlight**, below a page per book.
-4. **An import of the service's CSV export** through the import of notes (ADR-0209).
+4. **An import of the service's CSV export** through the import of notes (ADR-0211).
 
 ## Decision outcome
 
@@ -82,7 +82,7 @@ Strongest form: each highlight an item could be labelled, related and embedded o
 
 ### Option 4: the CSV export through the import of notes
 
-Strongest form: the service exports CSV; ADR-0209 already turns a CSV into items, with no token in the server at all.
+Strongest form: the service exports CSV; ADR-0211 already turns a CSV into items, with no token in the server at all.
 
 - Good: no credential and no outbound call.
 - Bad: a person would download and upload again after every reading session; nothing would stay current, which is the point of the request.
@@ -91,4 +91,4 @@ Strongest form: the service exports CSV; ADR-0209 already turns a CSV into items
 
 - builds on [ADR-0077](0077-connectors-keep-catalogs-in-step-with-their-sources.md) (connectors, credentials from the environment), [ADR-0127](0127-connectors-read-any-json-source-into-a-type-of-ones-own.md) (a type and fields, public addresses only), [ADR-0140](0140-a-json-source-is-read-for-what-changed.md) (what changed, full runs)
 - relates to [ADR-0080](0080-one-page-per-data-set-written-from-the-source.md) and [ADR-0138](0138-markdown-from-git-repositories.md) (pages written from the source, replaced or written when it changed; here a part of the page stays people's), [ADR-0023](0023-import-and-sync-from-jira-and-confluence.md) (origin), [ADR-0026](0026-crypto-shredding-of-item-content.md) (the kept book sealed), [ADR-0044](0044-labels.md) (labels), [ADR-0151](0151-user-tasks-of-an-engine-become-linked-tasks.md) (people connecting their own accounts)
-- relates to [ADR-0209](0209-importing-a-folder-of-markdown-notes-and-exported-note-workspaces.md) (the other import of notes)
+- relates to [ADR-0211](0211-importing-a-folder-of-markdown-notes-and-exported-note-workspaces.md) (the other import of notes)

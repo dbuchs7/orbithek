@@ -127,7 +127,7 @@ const (
 	// (ADR-0123).
 	ChainBroken = "audit.chain.broken"
 	// NotesImported records a run of an import of notes into a room, a
-	// tree of pages written at once (ADR-0209); a dry run is not recorded.
+	// tree of pages written at once (ADR-0211); a dry run is not recorded.
 	NotesImported = "notes.import"
 	// PartialRestore is a restore of spaces from a backup into a running
 	// installation's data (ADR-0124).

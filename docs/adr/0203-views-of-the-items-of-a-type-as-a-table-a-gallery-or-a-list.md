@@ -1,4 +1,4 @@
-# ADR-0201: Views of the items of a type as a table, a gallery or a list, grouped by a field, also placed in a text
+# ADR-0203: Views of the items of a type as a table, a gallery or a list, grouped by a field, also placed in a text
 
 - **Status:** Proposed
 - **Implementation:** Partial
@@ -40,7 +40,7 @@ Chosen option: **1**, because it keeps nothing that can go stale or leak, follow
 - **Editing in place.** Where the reader may edit in the item's room, a cell of the title, of a field of a kind the item page edits, or of the state offers its input: the item page's own input of the field (`propertyInput`), one `PUT …/properties/{field}` per change, or a choice of the transitions that leave the state, `POST …/transitions`. The server decides again on every change.
 - **Fields by kind.** Values are written by `fieldText` (`assets/itemviews.js`) and drawn by `renderField` (`assets/itemview.js`): a person by name, yes or no, a date, a point in time where the reader is, a list joined, a rating as stars, an object by its title, name, key or ID, and any other kind as its text. These two functions are the one place to point at a shared renderer of fields once one exists.
 - **In a text.** A block of the kind `view` keeps `Layout`, `ItemType`, `Space`, `Query`, `Group`, `Columns` and `Sort`, and no text, mention or reference (D4). The server checks the layout, the room's key, the names, a query that parses, at most `MaxViewColumns` columns each once, and a sort by a column. The block is part of the sealed body (ADR-0026). The editor inserts it with **View of items…**, changes it with **Change the view…**, and every reader's browser computes it from the listing as they read it (D10). Exports name the view (`export.ViewName`) as they name a diagram.
-- **Format.** Codec version 56 adds the block kind `view` and its fields; earlier versions are still read (shared with ADR-0202).
+- **Format.** Codec version 56 adds the block kind `view` and its fields; earlier versions are still read (shared with ADR-0204).
 - **MCP** (ADR-0012): no tool is added for the view itself; an agent reads the same items with `query_items`, and writes a view block with `commit_body`, whose description of blocks names the kind.
 
 ### Consequences
@@ -74,4 +74,4 @@ Strongest form: items are the one model (D1); a view as an item would be found, 
 
 ## Links
 
-- relates to ADR-0012 (MCP), ADR-0025 (codec), ADR-0026 (sealed content), ADR-0036 (boards), ADR-0044 (labels), ADR-0060 (kanbans), ADR-0114 (task lists in a text), ADR-0136 (query language), ADR-0164 (roadmap), ADR-0166 (calendar), ADR-0202 (a label's page and its order)
+- relates to ADR-0012 (MCP), ADR-0025 (codec), ADR-0026 (sealed content), ADR-0036 (boards), ADR-0044 (labels), ADR-0060 (kanbans), ADR-0114 (task lists in a text), ADR-0136 (query language), ADR-0164 (roadmap), ADR-0166 (calendar), ADR-0204 (a label's page and its order)

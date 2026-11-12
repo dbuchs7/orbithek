@@ -40,7 +40,7 @@ func decoded(t *testing.T, body []byte) map[string]any {
 
 // A room administrator rehearses an import of notes and runs it; others
 // may not, and what is not an archive, too large or of a type without a
-// text is refused (ADR-0209).
+// text is refused (ADR-0211).
 func TestImportingNotesThroughTheAPI(t *testing.T) {
 	w := newWorld(t)
 	w.admin.expect("POST", "/api/types", `{"name":"page","body":true}`, http.StatusCreated)

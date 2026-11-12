@@ -54,7 +54,7 @@ type Entry struct {
 
 	// The fields below serve sources whose entries carry labels, are read
 	// for what changed, and have a text people continue below the
-	// source's: a reading service's highlights (ADR-0210).
+	// source's: a reading service's highlights (ADR-0212).
 
 	// Labels are labels the source gives the entry; a run adds them to the
 	// item's and never takes one away.

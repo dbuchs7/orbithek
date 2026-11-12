@@ -83,11 +83,11 @@ func TestContentIsNeverWrittenInPlaintext(t *testing.T) {
 	other, err := db.Store.Create("anna", item.NewItem{Space: "PLAT", Type: it.Type, Title: "Archive"})
 	noErr(t, err)
 	noErr(t, db.Store.As("anna").MoveFile(it.ID, pic, other.ID, []item.ID{pic}))
-	// What a view in a text shows is part of the sealed body (ADR-0201).
+	// What a view in a text shows is part of the sealed body (ADR-0203).
 	noErr(t, db.Store.As("anna").CommitBody(other.ID, item.Doc{Blocks: []item.Block{{Kind: item.ItemsView, Layout: item.ViewTable,
 		ItemType: "kind " + secret, Query: `title ~ "` + secret + `"`, Group: "field:" + secret, Columns: []string{"field:" + secret}}}}))
 	// A highlight in a PDF names the quote, its place on the page and its
-	// colour, all content (ADR-0208).
+	// colour, all content (ADR-0210).
 	const pdf, place = "0123456789abcdef0123456789abcde1", 0.1234567
 	_, err = db.Store.AddAttachment("anna", it.ID, item.Attachment{ID: pdf, Name: "report.pdf", Type: "application/pdf", Size: 3, SHA256: strings.Repeat("ef", 32)})
 	noErr(t, err)

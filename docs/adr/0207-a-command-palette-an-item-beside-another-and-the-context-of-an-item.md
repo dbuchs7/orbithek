@@ -1,4 +1,4 @@
-# ADR-0205: A command palette, an item beside another, and the context of an item
+# ADR-0207: A command palette, an item beside another, and the context of an item
 
 - **Status:** Proposed
 - **Implementation:** Partial
@@ -13,7 +13,7 @@ Three things slow people down in a knowledge base that grows:
 
 - **Getting somewhere.** Items are found with the search field, modules with the nine dots, rooms with the start page, and actions with their buttons. Each needs the mouse or several steps; nothing reaches all of them from the keyboard.
 - **Reading two things at once.** Writing a page while consulting another means two browser tabs, or going back and forth and losing one's place.
-- **Seeing what refers to an item.** Relations show the item's typed relations and, marked "from the text", derived mentions, without the sentence they stand in. Links in texts to the item's address are not relations and are not shown. What shares its labels is a click away on each label. Nothing shows the daily notes (ADR-0203) that name it.
+- **Seeing what refers to an item.** Relations show the item's typed relations and, marked "from the text", derived mentions, without the sentence they stand in. Links in texts to the item's address are not relations and are not shown. What shares its labels is a click away on each label. Nothing shows the daily notes (ADR-0205) that name it.
 
 How are these met without new stored objects, without revealing what a reader may not read, and within bounded work per request?
 
@@ -48,7 +48,7 @@ Chosen option: **1**, because each part reuses what exists (search, the item API
 ### An item beside another
 
 - **Opening:** Shift+click on a link to an item on an item's page or a daily note, or **Beside** in the context. The address keeps it (`?beside=KEY`), so the pair can be shared and the browser's history brings it back. A text being edited keeps Shift+click for its selection.
-- **The pane (`assets/beside.js`):** the item's title (a link to it), key, type, state, filled fields, labels and text, read through the item API like any view (an unreadable item is not found). Where the reader may edit its text, **Edit** joins its live session in the pane, with the same writing aids, creating from a mention included (ADR-0204); **Done** leaves it. Fields, comments and the rest are on its own page (**Open on its own**). Escape (outside a text or field) or × closes the pane.
+- **The pane (`assets/beside.js`):** the item's title (a link to it), key, type, state, filled fields, labels and text, read through the item API like any view (an unreadable item is not found). Where the reader may edit its text, **Edit** joins its live session in the pane, with the same writing aids, creating from a mention included (ADR-0206); **Done** leaves it. Fields, comments and the rest are on its own page (**Open on its own**). Escape (outside a text or field) or × closes the pane.
 - **Layout:** the page's main column and the pane side by side, the item's side column then below its text; the pane stays in view while the page scrolls. Below 900 px the pane follows the page (ADR-0116).
 
 ### The context of an item
@@ -56,7 +56,7 @@ Chosen option: **1**, because each part reuses what exists (search, the item API
 - **Route:** `GET /api/items/{ref}/context`, derived per request by `Session.Context` from the live state as the reader sees it; MCP `get_context` (a read).
 - **Referred to by:** readable live items that relate to the item by hand (by the relation's type), embed it, mention it (with the first sentence the mention stands in), or link to its address in their text: an http or https address ending in `#/item/` and the item's ID or one of its keys, current or former (D2), with the sentence the link stands in. Sentences are taken from the text as the reader reads it (`veiled`), so a protected passage shows its placeholder; a mention only in protected blocks the reader may not read is not told at all (ADR-0160). One entry per item and kind, with how often; newest change first; daily notes are listed in their own part instead.
 - **Sharing labels:** readable live items that carry the item's labels, the most shared first; the label `daily-note` is left out, as notes are not related by being notes.
-- **In daily notes:** the reader's readable daily notes (ADR-0203) that mention or link it, newest day first, with the sentence.
+- **In daily notes:** the reader's readable daily notes (ADR-0205) that mention or link it, newest day first, with the sentence.
 - **Bounds:** each list holds at most the new budget `ContextEntries` (50) and says when more were left out. The work is a scan of the readable items' bodies, like the search (ADR-0033) and the starmap (ADR-0157).
 - **UI (`assets/context.js`):** a section **Context** in the item's side column, each entry a link to its item and a button to open it beside.
 
@@ -100,4 +100,4 @@ Strongest form: the browser already has the incoming relations, the labels and t
 
 ## Links
 
-- relates to ADR-0033 (search), ADR-0081 (reads side by side and the sizes the store is built for), ADR-0088 and ADR-0160 (protected passages and blocks), ADR-0096 (writing aids, Ctrl+K), ADR-0101 (reading mode), ADR-0116 (phones), ADR-0157 (starmap), ADR-0159 (impact), ADR-0203 (daily notes), ADR-0204 (creating from a mention)
+- relates to ADR-0033 (search), ADR-0081 (reads side by side and the sizes the store is built for), ADR-0088 and ADR-0160 (protected passages and blocks), ADR-0096 (writing aids, Ctrl+K), ADR-0101 (reading mode), ADR-0116 (phones), ADR-0157 (starmap), ADR-0159 (impact), ADR-0205 (daily notes), ADR-0206 (creating from a mention)

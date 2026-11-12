@@ -3,7 +3,7 @@ package auth
 import "fmt"
 
 // DailyRoom returns the key of the space a user's daily notes go to, or
-// empty when they have not chosen one (ADR-0203). Whether they may still
+// empty when they have not chosen one (ADR-0205). Whether they may still
 // create items there is the caller's concern.
 func (a *Accounts) DailyRoom(id UserID) string {
 	a.mu.Lock()

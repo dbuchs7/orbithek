@@ -2,8 +2,8 @@ package item
 
 import "testing"
 
-// fieldKindsLog defines a room type (ADR-0199) with a field of every kind
-// of ADR-0200 and sets their values, so the golden files pin Space,
+// fieldKindsLog defines a room type (ADR-0201) with a field of every kind
+// of ADR-0202 and sets their values, so the golden files pin Space,
 // Targets, references and lists.
 func fieldKindsLog(t *testing.T) []Event {
 	s := setup(t)

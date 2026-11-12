@@ -305,7 +305,7 @@ func TestLinkCheckConfiguration(t *testing.T) {
 
 // TestLinkPreviewsConfiguration: the server reads web pages only when
 // OT_LINK_PREVIEWS is on, the own network only when allowed besides
-// (ADR-0206); an unusable value stops it.
+// (ADR-0208); an unusable value stops it.
 func TestLinkPreviewsConfiguration(t *testing.T) {
 	t.Setenv("OT_ADMIN_PASSWORD", "a given password!")
 	for _, c := range []struct{ previews, private, want string }{

@@ -71,7 +71,7 @@ func diagramName(bl item.Block, files map[item.ID]Image) string {
 	return "BPMN: " + files[bl.Ref].Name
 }
 
-// ViewName names a view of items in a document (ADR-0201): a document
+// ViewName names a view of items in a document (ADR-0203): a document
 // does not compute the view, it says what the view shows.
 func ViewName(bl item.Block) string {
 	name := "View: " + cmp.Or(bl.Layout, item.ViewTable) + " of " + cmp.Or(bl.ItemType, "every type") + " in " + cmp.Or(bl.Space, "every room")

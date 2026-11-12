@@ -1,6 +1,6 @@
 package item
 
-// WebLinkType is the name of the ready-made type of web links (ADR-0206):
+// WebLinkType is the name of the ready-made type of web links (ADR-0208):
 // an item for a page of the web, with what the page says about itself in
 // its fields and one's own notes in its body.
 const WebLinkType = "weblink"
@@ -31,7 +31,7 @@ func TemplateType(name string) (TypeDef, bool) {
 // CreateFromTemplate creates an item where the principal may create, as
 // Create does. When no type of the item's type name is defined and a
 // ready-made type of that name exists, the type is defined from it in the
-// same batch as the item (ADR-0206), as the task of an access request
+// same batch as the item (ADR-0208), as the task of an access request
 // defines the task type (ADR-0162): one who may create in a room saves a
 // web link before an administrator has added the type. A refused item
 // leaves no type behind.

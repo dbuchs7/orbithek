@@ -54,7 +54,7 @@ func TestNoMarkupFromStrings(t *testing.T) {
 		// bpmn-js (ADR-0129), which renders diagrams as SVG it builds itself,
 		// and form-js and dmn-js (ADR-0144), which render forms and decision
 		// tables with Preact and Inferno and sanitize the Markdown of a form.
-		// pdf.js (ADR-0208) draws pages on canvases and lays their text out
+		// pdf.js (ADR-0210) draws pages on canvases and lays their text out
 		// in elements it makes itself.
 		if strings.HasPrefix(path, "vendor/") {
 			return nil

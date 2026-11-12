@@ -7,12 +7,12 @@ import (
 	"github.com/dbuchs7/orbithek/internal/item"
 )
 
-// pdfRoutes serve the PDF reader (ADR-0208). The reader draws a PDF in the
+// pdfRoutes serve the PDF reader (ADR-0210). The reader draws a PDF in the
 // browser from the file's ordinary download; its highlights are comments
 // anchored in the PDF (commentRoutes).
 func pdfRoutes(h itemHandlers) []Route {
 	return []Route{
-		{Method: http.MethodGet, Pattern: "/api/items/{ref}/pdfs/{file}", Summary: "A PDF file of the item, named by any of its versions, for the PDF reader (ADR-0208): its first version, by which highlights name it, its newest version and its versions, oldest first; a file that is no PDF is not found", Handler: http.HandlerFunc(h.pdf)},
+		{Method: http.MethodGet, Pattern: "/api/items/{ref}/pdfs/{file}", Summary: "A PDF file of the item, named by any of its versions, for the PDF reader (ADR-0210): its first version, by which highlights name it, its newest version and its versions, oldest first; a file that is no PDF is not found", Handler: http.HandlerFunc(h.pdf)},
 	}
 }
 

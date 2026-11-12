@@ -1648,7 +1648,7 @@ func fingerprintLog(t *testing.T) []Event {
 // itemViewsLog places a view of items in a text, describes a label by a
 // page and orders the page's items by hand, then forgets the order, so
 // the golden files pin the block kind view and the kind ItemsOrdered
-// (ADR-0201, ADR-0202).
+// (ADR-0203, ADR-0204).
 func itemViewsLog(t *testing.T) []Event {
 	s := setup(t)
 	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))
@@ -2152,7 +2152,7 @@ func drawingCommentLog(t *testing.T) []Event {
 }
 
 // pdfHighlightLog highlights a passage of a PDF in two versions and
-// answers it (ADR-0208).
+// answers it (ADR-0210).
 func pdfHighlightLog(t *testing.T) []Event {
 	s := setup(t)
 	page := mustItem(t)(s.Create("anna", NewItem{Space: "PLAT", Type: "page", Title: "Annual report"}))

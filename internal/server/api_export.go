@@ -70,7 +70,7 @@ func fileName(key, title, ext string) string {
 
 // propertyText writes a property's value for a reader: user IDs as names,
 // a point in time as RFC 3339 in UTC, the values of a multi field joined
-// by ", " (ADR-0200).
+// by ", " (ADR-0202).
 func propertyText(v any, kind item.FieldKind, names map[auth.UserID]string) string {
 	switch {
 	case v == nil:
@@ -96,7 +96,7 @@ func propertyText(v any, kind item.FieldKind, names map[auth.UserID]string) stri
 }
 
 // shownValue is the value of a field of the new kinds as an export names
-// it (ADR-0200): a referenced item by its key, and in a document by its key
+// it (ADR-0202): a referenced item by its key, and in a document by its key
 // and title; a file by its name; a rating in a document as a number of
 // five. The item was read through the reader's session, so an item field
 // whose target the reader may not read is empty already (D10). Other

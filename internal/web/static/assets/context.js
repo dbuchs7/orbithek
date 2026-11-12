@@ -1,6 +1,6 @@
-// The context of an item (ADR-0205), a section of the item's side column:
+// The context of an item (ADR-0207), a section of the item's side column:
 // what refers to it, each with the sentence it stands in; the items that
-// share its labels; and the daily notes that name it (ADR-0203). The
+// share its labels; and the daily notes that name it (ADR-0205). The
 // server derives it for the reader on every request, so it names only
 // what they may read (D10), within the budget ContextEntries. Each entry
 // opens its item, or opens it beside the current one (Shift+click, or its

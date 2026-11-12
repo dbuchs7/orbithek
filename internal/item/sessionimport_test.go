@@ -9,7 +9,7 @@ func notesOrigin(id string) Origin {
 	return Origin{System: ImportSystemPrefix + "notes", Instance: "PLAT/vault", ExternalID: id, Raw: "# A"}
 }
 
-// A room administrator imports pages through their session (ADR-0209):
+// A room administrator imports pages through their session (ADR-0211):
 // others may not, a page imported before is updated where people moved
 // it, and an import never takes over an item of another source.
 func TestImportAsARoomAdministrator(t *testing.T) {

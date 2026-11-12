@@ -643,7 +643,7 @@ type literal struct {
 	isBool bool
 	users  []string
 	// ref is the item a value names by its key or ID, for an item field
-	// (ADR-0200); the key of an item the principal may not read names
+	// (ADR-0202); the key of an item the principal may not read names
 	// the key as typed, which no item field holds (D10).
 	ref ID
 }
@@ -787,7 +787,7 @@ func (c *compiler) property(cl *query.Clause, op query.Op) (pred, error) {
 func compareValue(f FieldDef, v any, l literal) (int, bool) {
 	switch f.Kind {
 	case KindMulti:
-		// = holds when the item holds the value among others (ADR-0200).
+		// = holds when the item holds the value among others (ADR-0202).
 		list, _ := v.([]string)
 		if l.fn || enumIndex(f, l.text) < 0 {
 			return 0, false

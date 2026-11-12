@@ -2624,8 +2624,8 @@ button.link.album-notes-edit:hover { color: var(--accent); }
 .album-head .album-rename-input { flex: 1; min-width: 0; width: 100%; box-sizing: border-box; font: inherit; font-weight: 600; }
 /* Renaming a file in place of its name in an item's file list (ADR-0182). */
 .attachments .att-rename-input { font: inherit; min-width: 12rem; max-width: 100%; }
-/* Views of items: a table, a gallery or a list, grouped (ADR-0201), and
-   the order set by hand of a label's page (ADR-0202). */
+/* Views of items: a table, a gallery or a list, grouped (ADR-0203), and
+   the order set by hand of a label's page (ADR-0204). */
 .iv-controls .tabs button { font: inherit; }
 .iv-query-row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
 .iv-query-row .field { flex: 1; min-width: 16rem; }
@@ -2664,7 +2664,7 @@ button.link.album-notes-edit:hover { color: var(--accent); }
 .iv-controls .form-row .field { flex: 1 1 12rem; min-width: 0; }
 .iv-controls .form-row select { width: 100%; }
 
-/* The PDF reader (ADR-0208): a bar of tools over a side panel and the
+/* The PDF reader (ADR-0210): a bar of tools over a side panel and the
    pages, which scroll on their own. A page holds its canvas, the text
    layer pdf.js lays over it (transparent, selectable; its rules follow
    pdf.js's viewer stylesheet, Apache-2.0) and the highlights above both. */
@@ -2738,7 +2738,7 @@ span.pdf-swatch { width: .9rem; height: .9rem; cursor: default; }
 .textLayer br::selection { background: transparent; }
 .textLayer .endOfContent { display: block; position: absolute; inset: 100% 0 0; z-index: 0; cursor: default; user-select: none; }
 
-/* A web link as a card of its page (ADR-0206): its picture beside its
+/* A web link as a card of its page (ADR-0208): its picture beside its
    site, title and description; in a text, an embed shows it so. */
 .weblink-card { display: flex; gap: var(--space-4); align-items: flex-start; background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); padding: var(--space-3); margin: var(--space-3) 0; max-width: 760px; }
@@ -2754,7 +2754,7 @@ span.pdf-swatch { width: .9rem; height: .9rem; cursor: default; }
   .weblink-picture { width: 100%; max-height: 200px; }
 }
 
-/* The capture view (ADR-0207): one column that fits a phone. */
+/* The capture view (ADR-0209): one column that fits a phone. */
 .capture { max-width: 720px; }
 .capture-form textarea { width: 100%; }
 .capture-targets { border: 0; padding: 0; margin: var(--space-3) 0; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
@@ -2764,8 +2764,8 @@ span.pdf-swatch { width: .9rem; height: .9rem; cursor: default; }
 .bookmarklet { cursor: grab; }
 #bookmarklet-code { width: 100%; font-family: var(--font-mono); font-size: 12px; }
 
-/* Inputs and views of the field kinds item, multi, rating and file (ADR-0200),
-   and the type editor (ADR-0199). */
+/* Inputs and views of the field kinds item, multi, rating and file (ADR-0202),
+   and the type editor (ADR-0201). */
 .field-kind { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
 .field-kind-multi .check { margin-right: var(--space-3); white-space: nowrap; }
 .field-kind .stars { display: inline-flex; }
@@ -2788,7 +2788,7 @@ span.pdf-swatch { width: .9rem; height: .9rem; cursor: default; }
 .type-json textarea { width: 100%; font-family: var(--mono, monospace); }
 .type-editor .actions, #room-types .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
 /* Daily notes, the command palette, an item beside another and the context
-   of an item (ADR-0203, ADR-0204, ADR-0205). */
+   of an item (ADR-0205, ADR-0206, ADR-0207). */
 .nav-today { white-space: nowrap; }
 #nav .nav-today { padding: 6px 12px; }
 /* Where the top bar would wrap into another row, Today is in the modules. */

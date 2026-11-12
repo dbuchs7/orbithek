@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// A label's page and its order set by hand (ADR-0202). Labels are
+// A label's page and its order set by hand (ADR-0204). Labels are
 // strings on their items (ADR-0044); a label may have a page that says
 // what it is about: an item of a type with a body and a text field label
 // that names the label, the ready-made type topic. The label's view shows

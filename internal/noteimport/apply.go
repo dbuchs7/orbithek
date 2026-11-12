@@ -20,7 +20,7 @@ import (
 )
 
 // System names the source in the origin of every page a notes import
-// writes; the import's name and room are its instance (ADR-0209).
+// writes; the import's name and room are its instance (ADR-0211).
 const System = item.ImportSystemPrefix + "notes"
 
 // maxPictures bounds how many pictures one page keeps, as for a page

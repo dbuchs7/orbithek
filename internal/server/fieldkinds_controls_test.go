@@ -9,7 +9,7 @@ import (
 // TestControlsAndExportsNameTheNewKinds: a Word template's controls and
 // the page exports name a referenced item by its key and title, a file by
 // its name, the values of a multi field joined and a rating of five
-// (ADR-0200); a CSV row names the item by its key.
+// (ADR-0202); a CSV row names the item by its key.
 func TestControlsAndExportsNameTheNewKinds(t *testing.T) {
 	s := item.NewStore()
 	if err := s.CreateSpace("root", "PLAT", "Platform"); err != nil {

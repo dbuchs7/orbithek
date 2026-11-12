@@ -49,7 +49,7 @@ const app = document.getElementById("app");
 const nav = document.getElementById("nav");
 let me = null; // the signed-in principal, from GET /api/me
 
-// The views of items (ADR-0201) draw themselves with the item page's
+// The views of items (ADR-0203) draw themselves with the item page's
 // inputs of fields, its names of people and its listing, wherever they
 // are shown; whether one may edit in a room is read once in a while.
 let viewRoles = null, viewRolesAt = 0;
@@ -284,7 +284,7 @@ async function commentsView(tab = "") {
             link("#/item/" + encodeURIComponent(e.key), `${e.key} ${e.title}`),
             h("span", { class: "muted", text: " · " + when(c.created) })),
           c.anchor ? h("blockquote", { class: "comment-quote", text: c.anchor.quote }) : "",
-          // A highlight in a PDF leads to its place in the reader (ADR-0208).
+          // A highlight in a PDF leads to its place in the reader (ADR-0210).
           onPdf(c) ? h("p", {}, link(readerHref(e.key, c.anchor.file, { comment: c.reply || c.id }), t("pdf.showInPdf"), "pdf-show")) : "",
           h("p", { class: "comment-text", text: c.text }),
           h("div", { class: "comment-entry-why" },
@@ -465,7 +465,7 @@ function labelsLine(path, item, live) {
 
 // labelView lists the readable items that carry a label, below the
 // label's page when one reads one, or with a button that makes it
-// (ADR-0202).
+// (ADR-0204).
 async function labelView(label) {
   const show = screen();
   // The items of a label are paged, so the server filters them (ADR-0098).
@@ -518,7 +518,7 @@ function excerptOf(body, n = 3) {
     .slice(0, n).map((b) => h("p", { class: b.kind === "heading" ? "topic-heading" : null, text: b.text }));
 }
 
-// topicCard shows the page of a label on top of its items (ADR-0202): its
+// topicCard shows the page of a label on top of its items (ADR-0204): its
 // title, the beginning of its text and a link to it; without one, where
 // one may create, a button that describes the label in a chosen room.
 function topicCard(label, page, spaces) {
@@ -545,8 +545,8 @@ function topicCard(label, page, spaces) {
 }
 
 // topicItems shows, on a label's page, the items that carry its label as
-// a view (ADR-0201), its layout, grouping and sort in the page's address;
-// whoever may edit the page orders them by hand (ADR-0202).
+// a view (ADR-0203), its layout, grouping and sort in the page's address;
+// whoever may edit the page orders them by hand (ADR-0204).
 async function topicItems(item, label, params, status) {
   const { order, orderable } = await get(`/api/items/${item.id}/order`).catch(() => ({ order: [], orderable: false }));
   const state = { layout: ["table", "gallery", "list"].includes(params.get("layout")) ? params.get("layout") : "list", group: params.get("group") || "",
@@ -563,7 +563,7 @@ async function topicItems(item, label, params, status) {
     await labelItems(label, { state, order, topic: item, orderable, change }));
 }
 
-// topicLabelOf is the label an item of a label's page names (ADR-0202):
+// topicLabelOf is the label an item of a label's page names (ADR-0204):
 // a type with a text and a text field label; empty for other items.
 function topicLabelOf(item, type) {
   if (!type.body || !(type.fields || []).some((f) => f.name === "label" && f.kind === "text")) return "";
@@ -572,7 +572,7 @@ function topicLabelOf(item, type) {
 }
 
 // addToCollection gives an item the label of a label's page the reader
-// chooses: it then stands among that page's items (ADR-0202).
+// chooses: it then stands among that page's items (ADR-0204).
 async function addToCollection(item, path, status) {
   const { items } = await get("/api/items?type=topic&limit=500").catch(() => ({ items: [] }));
   const seen = new Set(item.labels);
@@ -708,7 +708,7 @@ function embedLoader(chain) {
     await learnNames((item.secrets || []).map((sc) => sc.by).filter((p) => !p.startsWith("@"))).catch(() => {});
     const resolve = async (r) => (await get("/api/items/" + encodeURIComponent(r))).item;
     const props = Object.entries(item.properties || {}).filter(([, v]) => v !== null && v !== "" && !(Array.isArray(v) && !v.length));
-    // An embedded web link is a link card (ADR-0206).
+    // An embedded web link is a link card (ADR-0208).
     const card = isWebLink(item) ? webLinkCard(item, (await get(`/api/items/${encodeURIComponent(ref)}/attachments`).catch(() => ({ attachments: [] }))).attachments) : null;
     return h("div", { class: "pm-embed-content", "data-embedded": item.key },
       h("p", { class: "muted pm-embed-meta" }, t("item.meta", { type: item.type, presence: item.presence }), item.state ? t("item.state", { state: item.state }) : ""),
@@ -939,7 +939,7 @@ function attachmentsSection(path, files, live) {
       : t("att.copyOfUnknown"),
     a.origin.newer ? [" ", h("span", { class: "chip", text: t("att.originChanged") })] : null) : null,
     isDrawing(a.name) ? [" · ", link(whiteboardHref(path, a.id), t("wb.open"), "wb-open")] : null,
-    // A PDF opens in the reader (ADR-0208).
+    // A PDF opens in the reader (ADR-0210).
     isPdf(a) ? [" · ", h("a", { href: readerHref(decodeURIComponent(path.split("/").pop()), a.id), class: "pdf-read", text: t("pdf.read"),
       "aria-label": t("pdf.readLabel", { name: a.name }) })] : null,
     // Renaming keeps the file type and renames every version (ADR-0182).
@@ -1063,7 +1063,7 @@ const modules = [
   { id: "spaces", name: "nav.spaces", href: "#/", match: ["", "space", "item", "board", "links", "search", "query", "label"], icon: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" },
   { id: "new", name: "nav.new", href: "#/new", match: ["new"], icon: "M12 8v8M8 12h8M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" },
   { id: "tasks", name: "nav.tasks", href: "#/tasks", match: ["tasks", "kanbans", "kanban", "roadmap", "calendar"], icon: "M9 11l3 3 8-8M20 12v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h11" },
-  // Today's daily note (ADR-0203); on a phone, where the top bar has no
+  // Today's daily note (ADR-0205); on a phone, where the top bar has no
   // room for its button, it is reached here.
   { id: "daily", name: "daily.today", href: "#/daily", match: ["daily"], icon: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4M9 15l2 2 4-4" },
   { id: "comments", name: "nav.comments", href: "#/comments", match: ["comments"], icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" },
@@ -1384,7 +1384,7 @@ function renderNav() {
   mount(nav,
     search,
     newButton(),
-    // Today's daily note (ADR-0203).
+    // Today's daily note (ADR-0205).
     h("button", { type: "button", id: "nav-today", class: "nav-today", title: t("daily.todayHint"), text: t("daily.today"), onclick: () => { location.hash = "#/daily"; } }),
     bell,
     lookToggles(),
@@ -1744,7 +1744,7 @@ async function route() {
     // included, which returns to the start page (ADR-0068).
     if (!me) {
       // So does a capture shared to the app or sent by the bookmarklet
-      // (ADR-0207).
+      // (ADR-0209).
       if (section === "oauth" || section === "capture") try { sessionStorage.setItem("ot-after-login", location.hash); } catch { /* not kept */ }
       return loginView();
     }
@@ -1877,7 +1877,7 @@ if (topBar && "ResizeObserver" in window) {
   new ResizeObserver(() => document.documentElement.style.setProperty("--top-offset", topBar.offsetHeight + "px")).observe(topBar);
 }
 // The command palette, an item beside another and today's note
-// (ADR-0203, ADR-0205).
+// (ADR-0205, ADR-0207).
 installPalette(paletteCommands);
 installBeside();
 installDailyKeys();
@@ -2585,7 +2585,7 @@ async function newView(params) {
   show(
     h("h1", { text: t("new.title") }),
     pageCard,
-    // Capturing a note, a quote or a web page (ADR-0207).
+    // Capturing a note, a quote or a web page (ADR-0209).
     h("section", { class: "card", id: "new-capture" }, h("h2", { text: t("capture.heading") }), h("p", { text: t("capture.newText") }),
       link(captureAddress({}), t("capture.open"), "button secondary", "new-capture-open")),
     h("section", { class: "card" }, h("h2", { text: t("new.withAssistant") }), h("p", { text: t("new.withAssistantText") }),
@@ -2677,7 +2677,7 @@ async function spaceView(key) {
   const boards = types.filter((ty) => ty.workflow)
     .map((ty) => link(`#/board/${encodeURIComponent(key)}/${encodeURIComponent(ty.name)}`, t("space.board", { type: ty.name })));
   // The room's items as a table, a gallery or a list, of every type or of
-  // one chosen (ADR-0201).
+  // one chosen (ADR-0203).
   const viewOf = (type) => `#/view?space=${encodeURIComponent(key)}${type ? "&type=" + encodeURIComponent(type) : ""}`;
   const views = [link(viewOf(""), t("views.tab"), null, "space-view"),
     h("select", { id: "space-view-type", "aria-label": t("views.ofTypeChoice"), onchange: (ev) => { if (ev.target.value) location.hash = viewOf(ev.target.value); } },
@@ -3781,7 +3781,7 @@ function cardChip(name, f, v, done) {
   const chip = (...content) => h("span", { class: "card-chip", title: `${name}: ${v}` }, h("span", { class: "visually-hidden", text: `${name}: ` }), ...content);
   if (f?.kind === "bool") return chip(`✓ ${name}`);
   if (!f || f.kind === "enum") return chip(String(v));
-  // A rating as stars, a multi field's values joined (ADR-0200); an item
+  // A rating as stars, a multi field's values joined (ADR-0202); an item
   // field by its target's key and title, once read.
   if (f.kind === "item") return chip(h("span", { class: "card-chip-name", "aria-hidden": "true", text: name }), " ", fieldView(f, v));
   if (isRich(f)) return chip(h("span", { class: "card-chip-name", "aria-hidden": "true", text: name }), " ", valueText(f, v));
@@ -4013,7 +4013,7 @@ async function roadmapScreen(params) {
 }
 
 // viewRoute shows the items of a type as a table, a gallery or a list,
-// grouped by a field (ADR-0201); its state is the address.
+// grouped by a field (ADR-0203); its state is the address.
 async function viewRoute(params) {
   const section = h("section", { id: "view" });
   const space = params.get("space");
@@ -4039,7 +4039,7 @@ async function calendarScreen(params) {
   await calendarView(section, params, { readAll, favouritesFirst, propertyInput, readProperty });
 }
 
-// dailyScreen shows one's daily note of a day (ADR-0203).
+// dailyScreen shows one's daily note of a day (ADR-0205).
 async function dailyScreen(arg, params) {
   await dailyView(screen(), arg || "", params, { ...textTools(), favouritesFirst, reload: () => route() });
 }
@@ -4056,7 +4056,7 @@ function textTools() {
     create: (item) => mentionCreator(item, storagePaused), onLeave };
 }
 
-// paletteCommands are the commands the palette offers now (ADR-0205): a
+// paletteCommands are the commands the palette offers now (ADR-0207): a
 // new item where one is, today's note, the modules and rooms, the views
 // and the look.
 async function paletteCommands() {
@@ -4153,7 +4153,7 @@ async function whiteboardView(ref, file) {
 }
 
 // pdfScreen shows a PDF file of an item in the reader, with its
-// highlights (ADR-0208).
+// highlights (ADR-0210).
 async function pdfScreen(ref, file, params) {
   await pdfView(ref, file, params, { show: screen(), person, nameOf: (id) => names.get(id) ?? person(id), learnNames, onLeave, here, errorBox, user: me.user.id });
 }
@@ -4398,7 +4398,7 @@ async function linksView(key) {
 
 // propertyInput is the input for a field of a type; it reads back with
 // readProperty. The kinds item, multi, rating and file are fields.js's;
-// ctx gives it the item and its files (ADR-0200).
+// ctx gives it the item and its files (ADR-0202).
 function propertyInput(f, value, ctx = {}) {
   const name = "p:" + f.name;
   if (isRich(f)) return fieldInput(f, value, ctx);
@@ -4602,7 +4602,7 @@ function newItemForm({ space, spaces = null, types, parent = null, heading = t("
   }
   const fields = h("div");
   const typeSelect = h("select", { name: "type" });
-  // A room's own types are offered in that room only (ADR-0199).
+  // A room's own types are offered in that room only (ADR-0201).
   const offerTypes = () => {
     const here = usableIn(types, spaceSelect ? spaceSelect.value : space);
     const keep = typeSelect.value || type;
@@ -4642,7 +4642,7 @@ function newItemForm({ space, spaces = null, types, parent = null, heading = t("
 }
 
 // webLinkPanel shows an item whose url field holds a web address as a
-// card of its page (ADR-0206). Who may edit it reads the page again, or
+// card of its page (ADR-0208). Who may edit it reads the page again, or
 // takes the page's text below the body, where the server reads pages.
 function webLinkPanel(item, attachments, type, canEdit, status) {
   if (!isWebLink(item) || !type.fields.some((f) => f.name === "url" && f.kind === "url")) return null;
@@ -4674,7 +4674,7 @@ function webLinkPanel(item, attachments, type, canEdit, status) {
 }
 
 // weblinkTools save a page a link in the text leads to as a web link item
-// (ADR-0206), below the item or in another room, and answer it, or null
+// (ADR-0208), below the item or in another room, and answer it, or null
 // when cancelled. The text then shows it as a card, an embed.
 function weblinkTools(item) {
   const save = async (address) => {
@@ -4715,7 +4715,7 @@ function weblinkTools(item) {
   return { save };
 }
 
-// --- capturing (ADR-0207) -------------------------------------------------------
+// --- capturing (ADR-0209) -------------------------------------------------------
 
 // captureScreen shows what a share, the bookmarklet or a link passed on,
 // to be saved as a web link, a new item or at the end of an item.
@@ -4763,7 +4763,7 @@ async function itemView(ref, params = new URLSearchParams()) {
   const show = screen();
   const { item, editable, may = {} } = await get("/api/items/" + encodeURIComponent(ref));
   const path = "/api/items/" + item.id;
-  // The palette offers the items opened recently (ADR-0205).
+  // The palette offers the items opened recently (ADR-0207).
   rememberItem(item);
   const [{ types }, history, out, inc, embeds, comments, { attachments }, { watches }, { spaces }, myNotes] = await Promise.all([
     get("/api/types"),
@@ -4994,7 +4994,7 @@ async function itemView(ref, params = new URLSearchParams()) {
     h("p", { class: "muted" }, t("item.meta", { type: item.type, presence: item.presence }), item.state ? t("item.state", { state: item.state }) : "", t("item.version", { n: item.version })),
     // An item mirrored from another system says where it is kept, the
     // system of record (ADR-0023, ADR-0074).
-    // A web link shows its page as a card (ADR-0206).
+    // A web link shows its page as a card (ADR-0208).
     webLinkPanel(item, attachments, type, canEdit, status),
     item.origin?.system === "git:file" ? fileOrigin(item, path, canEdit, status) : item.origin ? h("p", { class: "notice origin", id: "item-origin" },
       t("item.origin", { system: item.origin.system }), " ",
@@ -5005,7 +5005,7 @@ async function itemView(ref, params = new URLSearchParams()) {
       // The text has the main column to itself; the owner and details
       // lead the column beside it (ADR-0102).
       h("div", { class: "item-main" }, protecting, body || h("p", { class: "muted", text: t("item.noBody") }),
-        // A label's page shows the items that carry its label (ADR-0202).
+        // A label's page shows the items that carry its label (ADR-0204).
         live && !editing && topicLabelOf(item, type) ? await topicItems(item, topicLabelOf(item, type), params, status) : null),
       h("aside", { class: "item-side", "aria-label": t("item.side") },
         columnToggle("side"),
@@ -5020,10 +5020,10 @@ async function itemView(ref, params = new URLSearchParams()) {
         await accessSection(path, item, canEdit, spaceAdmin),
         historySection(path, history.events, canEdit, readsAll),
         // What refers to it, shares its labels, names it in a daily note
-        // (ADR-0205).
+        // (ADR-0207).
         contextSection(item, openBeside),
         more)),
-    // An item beside this one, kept in the address (ADR-0205).
+    // An item beside this one, kept in the address (ADR-0207).
     besidePane(params, textTools()),
   ));
 }
@@ -5102,7 +5102,7 @@ function bodySection(item, embeds, editing, threads, attachments, protect, edit,
     const open = (ev) => {
       if (ev.target.closest?.("button")) return;
       // A link in the text to a PDF of the item opens it in the reader
-      // (ADR-0208); other files download as before.
+      // (ADR-0210); other files download as before.
       const a = ev.type === "click" ? ev.target.closest?.("a[href]") : null;
       const target = a ? attachmentLink(a.href, location.origin) : null;
       if (target && [item.id, item.key].includes(target.item) && isPdf(attachments.find((x) => x.id === target.file))) {
@@ -5544,7 +5544,7 @@ function commentThreads(path, page, live, files = [], key = "") {
   const replies = new Map();
   for (const c of page.comments.filter((c) => c.reply)) replies.set(c.reply, [...(replies.get(c.reply) || []), c]);
   // A comment on an element of a whiteboard (ADR-0171) or a highlight in a
-  // PDF (ADR-0208) is on no passage of the body.
+  // PDF (ADR-0210) is on no passage of the body.
   const anchored = roots.filter((c) => c.anchor && !c.anchor.element && !onPdf(c) && !c.deleted && !c.resolved);
   const threadEls = new Map(); // root id -> its element
 
@@ -5719,7 +5719,7 @@ async function accountView() {
     contactsCard(contacts),
     // One's connections to process engines (ADR-0151).
     connectionsCard(),
-    // Capturing from any page of the web (ADR-0207).
+    // Capturing from any page of the web (ADR-0209).
     bookmarkletCard(),
     form({ class: "card", id: "language" }, [
       field(t("account.language"), h("select", { name: "language", onchange: (ev) => ev.target.form.requestSubmit() },
@@ -6143,7 +6143,7 @@ async function adminView() {
       h("button", { type: "submit", text: t("admin.createSpace") }),
     ], async (d) => { await post("/api/spaces", { key: d.get("key"), name: d.get("name") }); route(); }));
 
-  // Types are edited in a form (ADR-0199); hand-written JSON stays in it,
+  // Types are edited in a form (ADR-0201); hand-written JSON stays in it,
   // folded away. A room's own type says so, and its room's administrators
   // edit it too.
   const typeEditorBox = h("div", { id: "type-editor-box" });
@@ -6845,7 +6845,7 @@ function connectorEditor(c, data, spaces, users, list, reopen) {
   const k = c.ckan || { formats: [], organizations: [], baseURL: "", portalURL: "", language: "de" };
   const j = c.json;
   const g = c.git;
-  // A reading service's highlights (ADR-0210).
+  // A reading service's highlights (ADR-0212).
   const hl = c.highlights;
   // An Atlassian import names its spaces, types and fields itself
   // (ADR-0128): it has no space, type or steward of its own.
@@ -7026,7 +7026,7 @@ function connectorEditor(c, data, spaces, users, list, reopen) {
     h("p", { class: "muted", text: t("git.languageHelp") }),
   ];
   // The service whose highlights become items, and how often a run reads
-  // them all instead of what changed (ADR-0210).
+  // them all instead of what changed (ADR-0212).
   const highlightsSource = () => [
     field(t("highlights.url"), h("input", { name: "url", type: "url", required: true, value: hl.url, maxlength: 512 })),
     h("p", { class: "muted", text: t("highlights.urlHelp") }),
@@ -7416,7 +7416,7 @@ async function designCard() {
 const itemLink = (key, text) => link("#/item/" + encodeURIComponent(key), text);
 
 // importView imports a ZIP archive of notes into a room, for its
-// administrators (ADR-0209).
+// administrators (ADR-0211).
 async function importView(key) {
   const show = screen();
   const [{ spaces }, { types }] = await Promise.all([get("/api/spaces"), get("/api/types")]);
@@ -7465,7 +7465,7 @@ async function membersView(key) {
     status,
     sp.role === "space-admin" ? spaceNameCard(sp, key) : null,
     sp.role === "space-admin" ? spaceIconCard(sp, status) : null,
-    // The room's own types (ADR-0199).
+    // The room's own types (ADR-0201).
     sp.role === "space-admin" ? roomTypesCard({ space: key, types, templates: typeTemplates, onChange: () => route() }) : null,
     h("h2", { text: t("members.roles") }),
     roles.length ? filtered(h("table", { id: "members" }, roles.map(row)), { id: "members", label: t("members.roles"),

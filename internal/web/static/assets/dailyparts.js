@@ -1,4 +1,4 @@
-// The parts of a person's daily notes (ADR-0203) that need no browser:
+// The parts of a person's daily notes (ADR-0205) that need no browser:
 // which day an address names, the days around it, the month drawn beside
 // the note, and the query that reads what was made or changed on a day.
 // daily.js draws the view; these are plain functions, tested by

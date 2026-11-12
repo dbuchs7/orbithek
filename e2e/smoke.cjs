@@ -7,7 +7,7 @@
 //
 // With OT_LINK_PREVIEWS=on and OT_LINK_PREVIEWS_ALLOW_PRIVATE=on on the
 // server, the web link steps also read the pages of a local site
-// (ADR-0206); without, they save links without reading them.
+// (ADR-0208); without, they save links without reading them.
 const { chromium } = require("playwright");
 
 const base = process.env.BASE_URL || "http://127.0.0.1:8080";
@@ -73,7 +73,7 @@ function pageState() {
 }
 
 // makePdf writes a PDF of pages of lines in Helvetica, with a table of
-// contents naming each page "Chapter n", for the PDF reader (ADR-0208).
+// contents naming each page "Chapter n", for the PDF reader (ADR-0210).
 function makePdf(pages) {
   const objs = [];
   const add = (s) => { objs.push(s); return objs.length; };
@@ -709,7 +709,7 @@ function gitSource() {
   return server;
 }
 
-// webSource serves pages of the web for the web link steps (ADR-0206): a
+// webSource serves pages of the web for the web link steps (ADR-0208): a
 // story that names itself, its picture and its text, with a description
 // a step changes. The server reads it only with OT_LINK_PREVIEWS=on and
 // OT_LINK_PREVIEWS_ALLOW_PRIVATE=on, as it is local.
@@ -863,7 +863,7 @@ function webSource() {
     await page.fill("#new-space [name=name]", "Platform");
     await page.click("#new-space button[type=submit]");
     await page.waitForSelector("#grant option[value=PLAT]", { state: "attached" });
-    // A type is defined in the type editor (ADR-0199); hand-written JSON
+    // A type is defined in the type editor (ADR-0201); hand-written JSON
     // stays in it, folded away, and is applied to the form.
     await page.click("#new-type");
     await page.click("#type-editor details.type-json summary");
@@ -3858,7 +3858,7 @@ function webSource() {
     await page.waitForSelector("#design-dark:has-text('The dark scheme is off')");
     check((await (await page.request.get(base + "/branding.css")).text()).includes("/* The theme comic"), "the theme is in the design's stylesheet");
     check((await (await page.request.get(base + "/branding.json")).json()).theme === "comic", "the theme is kept");
-    // The Capacity theme has a light and a dark scheme (ADR-0211).
+    // The Capacity theme has a light and a dark scheme (ADR-0213).
     await page.click("#design-themes label.theme-capacity");
     await page.click("#design button[type=submit]");
     await page.waitForSelector("#design-dark:has-text('stays on')");
@@ -5558,12 +5558,15 @@ function webSource() {
     await page.click("#edit-done");
     await page.waitForSelector("#body.reading");
 
-    step("views: a type's items as a table, a gallery and a list, grouped, sorted and changed in place (ADR-0201)");
+    step("views: a type's items as a table, a gallery and a list, grouped, sorted and changed in place (ADR-0203)");
     const viewAPI = async (method, path, data) => {
       const r = await page.request.fetch(base + path, { method, data });
       check(r.ok(), `${method} ${path}: ${r.status()} ${await r.text()}`);
       return r.status() === 204 ? null : r.json();
     };
+    // The steps before leave another person signed in; the administrator
+    // makes the room and its type.
+    check((await page.request.post(base + "/api/login", { data: { username: "admin", password: adminPassword } })).ok(), "admin signs in again");
     await viewAPI("POST", "/api/spaces", { key: "VIEWS", name: "Views" });
     await viewAPI("POST", "/api/types", { name: "story", body: true, fields: [{ name: "size", kind: "enum", values: ["S", "M", "L"] }, { name: "points", kind: "number" }],
       workflow: { initial: "todo", states: ["todo", "doing", "done"], transitions: [{ name: "begin", from: ["todo"], to: "doing" }, { name: "close", from: ["todo", "doing"], to: "done" }] } });
@@ -5626,7 +5629,7 @@ function webSource() {
     await page.waitForSelector("#view-error");
     expectedConsole = null;
 
-    step("views: a view placed in a text shows the items each reader may read (ADR-0201)");
+    step("views: a view placed in a text shows the items each reader may read (ADR-0203)");
     const { item: overview } = await viewAPI("POST", "/api/items", { space: "VIEWS", type: "story", title: "Overview", properties: {} });
     await page.goto(base + `/#/item/${overview.key}?edit`);
     await page.waitForSelector("#body .ProseMirror[contenteditable=true]");
@@ -5642,7 +5645,7 @@ function webSource() {
     const viewBlock = (await viewAPI("GET", "/api/items/" + overview.id)).item.body.find((b) => b.kind === "view");
     check(viewBlock && viewBlock.layout === "gallery" && viewBlock.itemType === "story" && viewBlock.group === "state", "the text keeps what the view shows: " + JSON.stringify(viewBlock));
 
-    step("label pages: a label is described by a page that shows its items, ordered by hand (ADR-0202)");
+    step("label pages: a label is described by a page that shows its items, ordered by hand (ADR-0204)");
     await page.goto(base + "/#/label/first-week");
     await page.click("#label-describe");
     await page.selectOption("#describe-space", "VIEWS");
@@ -5674,7 +5677,7 @@ function webSource() {
     check(page.url().includes("layout=gallery"), "the page's address keeps the layout of its items");
 
 
-    step("import of notes: a room administrator rehearses a ZIP archive of notes and imports it; links between notes become mentions, a re-run makes nothing twice (ADR-0209)");
+    step("import of notes: a room administrator rehearses a ZIP archive of notes and imports it; links between notes become mentions, a re-run makes nothing twice (ADR-0211)");
     // A ZIP archive of stored files, written here without a library.
     const crcTable = Array.from({ length: 256 }, (_, n) => {
       let c = n;
@@ -5737,7 +5740,7 @@ function webSource() {
     await page.click("#note-import-run");
     await page.waitForSelector("#note-import-report[data-dry=false]:has-text('0 new'):has-text('3 unchanged')");
 
-    step("connectors: the highlights of a reading service become items, their quotes above a line people write below (ADR-0210)");
+    step("connectors: the highlights of a reading service become items, their quotes above a line people write below (ADR-0212)");
     // The service's export, which the server under test reads with
     // OT_CONNECTOR_READING_TOKEN=e2e-reading-token; without that variable
     // the run fails and names it.
@@ -5777,7 +5780,7 @@ function webSource() {
     } finally {
       reading.close();
     }
-    step("a PDF of an item opens in the reader: pages with their text, contents, search, zoom (ADR-0208)");
+    step("a PDF of an item opens in the reader: pages with their text, contents, search, zoom (ADR-0210)");
     const report = (await (await page.request.post(base + "/api/items", { data: { space: "PLAT", type: "page", title: "Annual report" } })).json()).item;
     const reportPdf = makePdf([
       ["Annual report 2025", "The revenue grew by four percent.", "Costs grew by two percent."],
@@ -5821,7 +5824,7 @@ function webSource() {
     await page.click(".pdf-thumb[data-page='1'] button");
     await page.waitForFunction(() => document.querySelector("#pdf-page").value === "1");
 
-    step("highlights in a PDF: a colour, a note, drawn over the page, listed and exported as Markdown (ADR-0208)");
+    step("highlights in a PDF: a colour, a note, drawn over the page, listed and exported as Markdown (ADR-0210)");
     await selectInPdf(page, 1, "revenue grew");
     await page.click("#pdf-selbar:not([hidden]) [data-color=green]");
     await page.waitForSelector(".pdf-page[data-page='1'] .pdf-mark.hl-green");
@@ -5861,7 +5864,7 @@ function webSource() {
     await page.click("#pdf-highlights li:has-text('steady year') .pdf-goto");
     await page.waitForSelector(".pdf-page[data-page='3'] .pdf-mark.hl-yellow");
 
-    step("a highlight is a comment: shown on the item, it leads to its place in the PDF (ADR-0208)");
+    step("a highlight is a comment: shown on the item, it leads to its place in the PDF (ADR-0210)");
     await page.click("#pdf-back");
     await page.waitForSelector("#comments .comment-pdf");
     check((await page.locator("#comments .comment-pdf").count()) === 3, "the item's comments show the highlights");
@@ -5873,7 +5876,7 @@ function webSource() {
     await page.click("#pdf-highlights li:has-text('Lower than planned') button:has-text('Resolve')");
     await page.waitForSelector("#pdf-highlights li.resolved:has-text('Lower than planned')");
     await page.waitForSelector(".pdf-mark.hl-purple.resolved");
-    step("web links: a pasted address is saved as a web link item, shown as a card in the text; its page is read again (ADR-0206)");
+    step("web links: a pasted address is saved as a web link item, shown as a card in the text; its page is read again (ADR-0208)");
     // The administrator, in a room of their own, with a page to write in.
     check((await page.request.post(base + "/api/login", { data: { username: "admin", password: adminPassword } })).ok(), "admin signs in again");
     await page.request.post(base + "/api/spaces", { data: { key: "LINKS", name: "Links" } });
@@ -5940,7 +5943,7 @@ function webSource() {
       await page.waitForSelector("#body.reading .ProseMirror p:has-text('Some words.')");
     }
 
-    step("capture: a share to the installed app, the capture view's targets and the bookmarklet (ADR-0207)");
+    step("capture: a share to the installed app, the capture view's targets and the bookmarklet (ADR-0209)");
     const appManifest = await (await page.request.get(base + "/manifest.webmanifest")).json();
     check(appManifest.share_target.action === "/capture" && appManifest.display === "standalone" && appManifest.icons.length === 3, "the app's manifest: " + JSON.stringify(appManifest));
     check(await page.locator("link[rel=manifest]").count() === 1, "the page names its manifest");
@@ -5995,7 +5998,7 @@ function webSource() {
     await page.click("#new-capture-open");
     await page.waitForSelector("#capture-form");
 
-    step("room types and the field kinds item, multi, rating and file: a room's administrator defines a type of the room in the type editor; an item of it refers to another, chooses several values and gives stars; the referenced item lists it as a relation and cannot be trashed (ADR-0199, ADR-0200)");
+    step("room types and the field kinds item, multi, rating and file: a room's administrator defines a type of the room in the type editor; an item of it refers to another, chooses several values and gives stars; the referenced item lists it as a relation and cannot be trashed (ADR-0201, ADR-0202)");
     {
       // As the administrator, who administers every room, in a window of
       // its own.
@@ -6070,7 +6073,7 @@ function webSource() {
       check(!elsewhere.includes("incident"), "a room's type is not offered elsewhere");
       await rtCtx.close();
     }
-    step("daily notes: Today opens one's own note for the day, made in the room one chose, written in place (ADR-0203)");
+    step("daily notes: Today opens one's own note for the day, made in the room one chose, written in place (ADR-0205)");
     await page.goto(base + "/#/");
     await page.click("#nav-today");
     await page.waitForSelector("#daily-title");
@@ -6099,7 +6102,7 @@ function webSource() {
     await page.waitForSelector("#daily-calendar ul, #daily-calendar p.muted");
     await page.waitForSelector("#daily-activity ul, #daily-activity p.muted");
 
-    step("create from a mention: a title that matches nothing is created where it is mentioned (ADR-0204)");
+    step("create from a mention: a title that matches nothing is created where it is mentioned (ADR-0206)");
     await page.locator("#daily-note .ProseMirror").click();
     await page.keyboard.press("End");
     await page.keyboard.type(" @Brandnewtopic");
@@ -6129,13 +6132,13 @@ function webSource() {
     await page.waitForSelector("dialog#mention-create", { state: "detached" });
     check(!(await (await page.request.get(base + "/api/items?q=Another%20fresh%20topic")).json()).items.length, "nothing is created when cancelled");
 
-    step("context: an item names what refers to it, with its sentence, and the daily notes that name it (ADR-0205)");
+    step("context: an item names what refers to it, with its sentence, and the daily notes that name it (ADR-0207)");
     await page.goto(base + "/#/item/" + fromMention.key);
     await page.waitForSelector("#context-daily .context-entry");
     check((await page.textContent("#context-daily")).includes(dailyKey), "today's note names the item");
     check((await page.textContent("#context-daily .context-sentence")).includes("Brandnewtopic"), "with the sentence it stands in");
 
-    step("an item beside another: Shift+click opens it in a pane kept in the address; Esc closes it (ADR-0205)");
+    step("an item beside another: Shift+click opens it in a pane kept in the address; Esc closes it (ADR-0207)");
     await page.click(`#context-daily a[href='#/item/${dailyKey}']`, { modifiers: ["Shift"] });
     await page.waitForSelector("#beside-pane .beside-title");
     check(page.url().includes("beside=" + dailyKey), "the item beside is kept in the address");
@@ -6154,7 +6157,7 @@ function webSource() {
     await page.click("#beside-close");
     await page.waitForSelector("#beside-pane", { state: "detached" });
 
-    step("command palette: Ctrl+K outside the editor and Ctrl+Shift+P find items, recent ones and commands (ADR-0205)");
+    step("command palette: Ctrl+K outside the editor and Ctrl+Shift+P find items, recent ones and commands (ADR-0207)");
     await page.locator("#context h2").click();
     await page.keyboard.press("Control+k");
     await page.waitForSelector("dialog#palette[open] #palette-input:focus");

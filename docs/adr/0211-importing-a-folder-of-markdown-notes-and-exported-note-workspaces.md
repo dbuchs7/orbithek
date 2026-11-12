@@ -1,4 +1,4 @@
-# ADR-0209: Importing a folder of Markdown notes and exported note workspaces
+# ADR-0211: Importing a folder of Markdown notes and exported note workspaces
 
 - **Status:** Proposed
 - **Implementation:** Partial
@@ -118,4 +118,4 @@ Strongest form: the command of ADR-0023 exists; an operator copies the archive t
 
 - builds on [ADR-0023](0023-import-and-sync-from-jira-and-confluence.md) (origin, upsert, dry run, report), [ADR-0138](0138-markdown-from-git-repositories.md) (`internal/markdown`, the title rule, pictures)
 - relates to [ADR-0133](0133-markdown-is-pasted-into-the-editor-and-converted-in-the-browser.md) (pasted Markdown), [ADR-0014](0014-closed-renderer-for-user-content.md) (one renderer), [ADR-0015](0015-resource-budgets-and-paged-listings.md) (budgets), [ADR-0022](0022-permission-model.md) (sessions), [ADR-0026](0026-crypto-shredding-of-item-content.md) (the raw note sealed), [ADR-0044](0044-labels.md) (labels), [ADR-0045](0045-attachments-encrypted-files-beside-the-log.md) (pictures), [ADR-0163](0163-at-critical-storage-nothing-new-is-created.md) (nothing new at critical storage)
-- relates to [ADR-0210](0210-highlights-from-a-reading-service-as-a-connector.md) (highlights from a reading service, the other import of notes)
+- relates to [ADR-0212](0212-highlights-from-a-reading-service-as-a-connector.md) (highlights from a reading service, the other import of notes)

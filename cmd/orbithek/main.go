@@ -203,7 +203,7 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 	}
 
 	// Reading what web pages say about themselves is an outgoing call,
-	// off until an operator switches it on (ADR-0206); pages in the
+	// off until an operator switches it on (ADR-0208); pages in the
 	// server's own network are read only when allowed besides.
 	var previews *server.LinkPreviews
 	switch v := os.Getenv("OT_LINK_PREVIEWS"); v {

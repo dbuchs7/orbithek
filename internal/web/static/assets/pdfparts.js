@@ -1,4 +1,4 @@
-// The parts of the PDF reader (ADR-0208) that need no browser: which files
+// The parts of the PDF reader (ADR-0210) that need no browser: which files
 // are PDFs, the reader's address, the rectangles a selection makes on a
 // page, finding a highlight's quote again on a page, the list of a
 // document's highlights and its export as Markdown. pdfview.js draws the

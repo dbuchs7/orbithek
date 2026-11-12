@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// A daily note per person and day (ADR-0203). A daily note is an item
+// A daily note per person and day (ADR-0205). A daily note is an item
 // like any other (D1): of a type that holds notes, labelled DailyLabel,
 // its date in the date field DailyField, and made by its author. Who made
 // it, the label and the date tell it, not a stored index and not the

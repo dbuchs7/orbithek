@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// storyType has a field of every kind of ADR-0200.
+// storyType has a field of every kind of ADR-0202.
 func storyType() TypeDef {
 	return TypeDef{Name: "story", Body: true, Fields: []FieldDef{
 		{Name: "epic", Kind: KindItem, Targets: []string{"page", "story"}},

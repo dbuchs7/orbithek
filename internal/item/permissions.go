@@ -439,7 +439,7 @@ func (x *Session) History(id ID) ([]Event, error) {
 		}
 		if visible {
 			// A reference to an item the principal may not read is not
-			// revealed, not even by its ID (D10, ADR-0200).
+			// revealed, not even by its ID (D10, ADR-0202).
 			out = append(out, x.s.hideEventRefs(x.who, e))
 		}
 	}

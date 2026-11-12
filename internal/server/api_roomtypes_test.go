@@ -16,7 +16,7 @@ func typeNamesOf(answer map[string]any) []string {
 }
 
 // TestRoomTypesThroughTheAPI: a space's administrators define, list and
-// remove its own types through POST and DELETE /api/types (ADR-0199).
+// remove its own types through POST and DELETE /api/types (ADR-0201).
 func TestRoomTypesThroughTheAPI(t *testing.T) {
 	w := newWorld(t)
 	w.admin.expect("POST", "/api/spaces", `{"key":"OPS","name":"Operations"}`, http.StatusCreated)
@@ -66,7 +66,7 @@ func TestRoomTypesThroughTheAPI(t *testing.T) {
 
 // TestTheNewFieldKindsThroughTheAPI: item, multi, rating and file fields
 // take their values as JSON, an item by its key too, and read back as the
-// caller may read them (ADR-0200).
+// caller may read them (ADR-0202).
 func TestTheNewFieldKindsThroughTheAPI(t *testing.T) {
 	w := newWorld(t)
 	w.admin.expect("POST", "/api/types", `{"name":"story","body":true,"fields":[

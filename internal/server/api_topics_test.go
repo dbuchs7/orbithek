@@ -9,7 +9,7 @@ import (
 // TestALabelsPageAndItsOrderThroughTheAPI: a label is described by a page
 // in a room; the label's page names it with the places of the items set
 // by hand that the caller reads; an editor of the page moves them
-// (ADR-0202).
+// (ADR-0204).
 func TestALabelsPageAndItsOrderThroughTheAPI(t *testing.T) {
 	w := newWorld(t)
 	page := w.vera.expect("GET", "/api/labels/onboarding/page", "", http.StatusOK)
@@ -82,7 +82,7 @@ func TestALabelsPageAndItsOrderThroughTheAPI(t *testing.T) {
 }
 
 // TestListingsTellWhenItemsChanged: a listing gives each item's last
-// change, for the column updated of a view (ADR-0201).
+// change, for the column updated of a view (ADR-0203).
 func TestListingsTellWhenItemsChanged(t *testing.T) {
 	w := newWorld(t)
 	w.bert.expect("POST", "/api/items", `{"space":"PLAT","type":"task","title":"A","properties":{"priority":"low"}}`, http.StatusCreated)
@@ -93,7 +93,7 @@ func TestListingsTellWhenItemsChanged(t *testing.T) {
 }
 
 // TestAViewBlockIsWrittenAndReadThroughTheAPI: a view in a text keeps
-// what it shows (ADR-0201).
+// what it shows (ADR-0203).
 func TestAViewBlockIsWrittenAndReadThroughTheAPI(t *testing.T) {
 	w := newWorld(t)
 	id := field(w.bert.expect("POST", "/api/items", `{"space":"PLAT","type":"task","title":"Overview","properties":{"priority":"low"}}`, http.StatusCreated), "item", "id").(string)

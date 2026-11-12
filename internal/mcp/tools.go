@@ -73,7 +73,7 @@ const blockFormat = "A body is a list of blocks, each an object with kind and te
 	"\"marks\":[{\"type\":\"bold\",\"start\":0,\"end\":4}]},{\"kind\":\"bullet\",\"text\":\"db1\"},{\"kind\":\"bullet\",\"text\":\"db2\"}]."
 
 // fieldValues describes the values of the field kinds to agents (ADR-0166,
-// ADR-0200).
+// ADR-0202).
 const fieldValues = "By kind: text, url, enum and user (a user ID) as strings; number as a number; bool as true or false; date as 2026-10-01; " +
 	"datetime as RFC 3339 with an offset; item as the ID or key of a readable item, of the field's targets if it names any; " +
 	"multi as a list of the field's values, e.g. [\"web\", \"ios\"]; rating as a whole number from 1 to 5; " +
@@ -104,7 +104,7 @@ var (
 // resolving comment threads (they
 // change who sees what, or destroy content, and are a person's decision;
 // ADR-0035); administration of types — of the installation and of a
-// space alike (ADR-0199): defining a type shapes what every person of a
+// space alike (ADR-0201): defining a type shapes what every person of a
 // space works with, and is a person's decision —,
 // spaces, roles, groups, users and backups; and everything about
 // credentials. An agent with an administrator's token still cannot reach
@@ -148,11 +148,11 @@ var (
 // the checkpoints are a browser's, and starting or ending a vote, the
 // timer and a presentation are a person's (ADR-0170).
 //
-// Of a label's page (ADR-0202), reading it is offered: it tells an agent
+// Of a label's page (ADR-0204), reading it is offered: it tells an agent
 // what a label is about and the order its items were put in by hand.
 // Describing a label is creating an item, which create_item does with the
 // type topic; ordering the items by hand is a person's arrangement and
-// is not offered, nor is forgetting it. The views of ADR-0201 are the
+// is not offered, nor is forgetting it. The views of ADR-0203 are the
 // browser's: an agent reads the same items with query_items, and a view
 // placed in a text is a block that commit_body writes.
 //
@@ -177,31 +177,31 @@ var (
 // every file of the picture given out, and an agent that cannot list the
 // album would date pictures it never saw.
 //
-// The import of notes (ADR-0209) is not offered: its body is a ZIP
+// The import of notes (ADR-0211) is not offered: its body is a ZIP
 // archive a person uploads, which no tool argument carries, and it
 // writes a whole tree of pages into a room as a room administrator's
 // decision. An agent writes pages one at a time with create_item and
 // commit_body, converting the Markdown itself. Connectors, the one to a
-// reading service (ADR-0210) included, are administration.
-// Highlights in a PDF (ADR-0208) are comments: agents read them with
+// reading service (ADR-0212) included, are administration.
+// Highlights in a PDF (ADR-0210) are comments: agents read them with
 // list_comments and make them with add_comment, naming the PDF, a page
 // and the quote, which the reader finds on the page. The reader's own
 // route, the versions of a PDF for drawing it, is not offered: it serves
 // a browser that draws the pages. No tool lists an item's files, so an
 // agent names a PDF whose file it was given or read in a highlight; a
-// tool for the files is an open question of ADR-0208.
-// Web links (ADR-0206) are offered as items: saving a page as a web link
+// tool for the files is an open question of ADR-0210.
+// Web links (ADR-0208) are offered as items: saving a page as a web link
 // item and reading its page again, which act on items an agent may
 // change. What a page says about itself without keeping it
 // (/api/linkpreview) is not offered: an agent reads the web itself, and
 // would only borrow the server's address to read it.
-// A person's daily notes (ADR-0203) are offered as opening one's note of
+// A person's daily notes (ADR-0205) are offered as opening one's note of
 // a day, which makes it when it is missing and is never destructive; the
 // text is then changed with commit_body, as any item's. Choosing the room
 // the notes go to is a person's own setting, like watching, and is not
 // offered; nor are the days listed or a paragraph appended, which
 // get_item, query_items by the label daily-note and commit_body cover. The
-// context of an item (ADR-0205) is offered as a read.
+// context of an item (ADR-0207) is offered as a read.
 var tools = []tool{
 	{Name: "list_spaces", Description: "List the spaces the caller holds a role in.", Method: "GET", Path: "/api/spaces"},
 	{Name: "get_own_roles", Description: "The caller's own roles: the system roles held, and every space role granted to the caller, directly or through a group (via), one entry per grant.",
@@ -288,11 +288,11 @@ var tools = []tool{
 			{"direction", str, inQuery, false, "affected (default) or dependson."},
 			{"depth", str, inQuery, false, "1 (default) to 5 hops, or all."},
 			{"picture", str, inQuery, false, "An attachment ID of the item's picture, to start at that picture instead."}}},
-	{Name: "get_context", Description: "The context of an item (ADR-0205): the items that refer to it (references: relations made by hand, mentions, embeds and links in their texts, " +
+	{Name: "get_context", Description: "The context of an item (ADR-0207): the items that refer to it (references: relations made by hand, mentions, embeds and links in their texts, " +
 		"each with kind, count and the sentence it stands in where it stands in a text), the items that share its labels (shared, the most labels in common first), " +
 		"and the daily notes that mention or link it (daily, newest day first). Only items your caller may read; more says a list was cut at the server's budget.",
 		Method: "GET", Path: "/api/items/{ref}/context", Params: []param{refParam}},
-	{Name: "open_daily_note", Description: "Open your caller's daily note of a day (ADR-0203): the note when there is one, else it is made in the room they chose for their daily notes, " +
+	{Name: "open_daily_note", Description: "Open your caller's daily note of a day (ADR-0205): the note when there is one, else it is made in the room they chose for their daily notes, " +
 		"readable and editable by them alone, and created is true. Opening twice gives the same note. Without a chosen room a note is not made (409, needsRoom); " +
 		"add to it with commit_body.",
 		Method: "POST", Path: "/api/daily/{date}", Params: []param{

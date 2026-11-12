@@ -1,4 +1,4 @@
-// Package linkpreview reads what a web page says about itself (ADR-0206):
+// Package linkpreview reads what a web page says about itself (ADR-0208):
 // its title, description, site name, picture, canonical address, author
 // and date of publication, from its HTML head, and, when asked, its main
 // text as blocks of a body.

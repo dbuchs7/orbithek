@@ -44,7 +44,7 @@ type commentJSON struct {
 
 // An anchor names a passage of the body by its quote, or an element of a
 // drawing (ADR-0171): the drawing by any of its versions, answered as its
-// first, and the element's ID; or a highlight in a PDF (ADR-0208): the PDF
+// first, and the element's ID; or a highlight in a PDF (ADR-0210): the PDF
 // by the version it is made on, answered as its first with that version,
 // a page, the quote, rectangles on the page and a colour.
 type anchorJSON struct {
@@ -61,7 +61,7 @@ type anchorJSON struct {
 }
 
 // rectJSON is a rectangle on a page of a PDF, in fractions of the page
-// from its top left corner (ADR-0208).
+// from its top left corner (ADR-0210).
 type rectJSON struct {
 	X float64 `json:"x"`
 	Y float64 `json:"y"`
@@ -165,7 +165,7 @@ func (h itemHandlers) addComment(w http.ResponseWriter, r *http.Request) {
 		}
 		if n.Anchor != nil && n.Anchor.File != "" {
 			// A PDF is named by its first version, the highlight by the
-			// version it is made on (ADR-0208).
+			// version it is made on (ADR-0210).
 			d, err := x.Drawing(it.ID, n.Anchor.File)
 			if err != nil {
 				return nil, fmt.Errorf("%w: no file %s on %s", item.ErrValidation, n.Anchor.File, it.Key)

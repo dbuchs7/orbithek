@@ -116,7 +116,7 @@ const (
 	// caption. The body holds no copy of the form (ADR-0148).
 	StartForm BlockKind = "startform"
 	// ItemsView shows the items of a type the reader may read as a table,
-	// a gallery or a list, grouped by a field (ADR-0201): Layout, ItemType,
+	// a gallery or a list, grouped by a field (ADR-0203): Layout, ItemType,
 	// Space, Query, Group, Columns and Sort name what it shows. Like a
 	// task list it is computed when shown and holds no item.
 	ItemsView BlockKind = "view"
@@ -245,7 +245,7 @@ type Block struct {
 	// tasks by, in place of a label (ADR-0136, ADR-0151).
 	Query string `json:",omitempty"`
 	// Layout, ItemType, Space, Group, Columns and Sort name what a view
-	// shows (ADR-0201): a table, a gallery or a list; the items of a type
+	// shows (ADR-0203): a table, a gallery or a list; the items of a type
 	// (none for every type) in a room (none for every room the reader
 	// reads), narrowed by Query; grouped by the state, the labels or a
 	// field; the columns shown, in their order (none for the default);
@@ -354,7 +354,7 @@ type Item struct {
 	// not read; it only sorts what a reader reads.
 	PictureOrder []ID
 	// ItemOrder is the order of the items that carry the label of a
-	// label's page, set by hand (ADR-0202). It may name items that no
+	// label's page, set by hand (ADR-0204). It may name items that no
 	// longer carry the label or that a reader does not read; it only
 	// sorts what a reader reads.
 	ItemOrder []ID
@@ -401,7 +401,7 @@ type Relation struct {
 	// block anyone reads implies it. It follows from the body (D4).
 	secrets []ID
 	// field names the item field a derived relation follows from; empty
-	// for one derived from a body (ADR-0200). It follows from the
+	// for one derived from a body (ADR-0202). It follows from the
 	// property (D4) and is never persisted.
 	field string
 }
@@ -530,7 +530,7 @@ const (
 	// versions of the stacks in their order (ADR-0195).
 	PicturesOrdered EventKind = "PicturesOrdered"
 	// ItemsOrdered sets the order of the items of a label's page by hand,
-	// or clears it: Order names the items in their order (ADR-0202).
+	// or clears it: Order names the items in their order (ADR-0204).
 	ItemsOrdered EventKind = "ItemsOrdered"
 )
 
@@ -572,7 +572,7 @@ type Event struct {
 	// Space) after an ItemMoved that placed the item (ADR-0041); nil keeps
 	// the order. After KanbanCardPlaced it is the column's cards; after
 	// PicturesOrdered the slides of a folder or collection (ADR-0195);
-	// after ItemsOrdered the items of a label's page (ADR-0202).
+	// after ItemsOrdered the items of a label's page (ADR-0204).
 	Order      []ID
 	Title      string // ItemCreated, TitleSet
 	Props      Props  // ItemCreated

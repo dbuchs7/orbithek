@@ -1,4 +1,4 @@
-// The parts of the type editor that need no browser (ADR-0199, ADR-0200):
+// The parts of the type editor that need no browser (ADR-0201, ADR-0202):
 // a draft of a type as the form holds it, the definition the server takes
 // from it and back, what is wrong with it before it is sent, and how a
 // value of the new field kinds reads.

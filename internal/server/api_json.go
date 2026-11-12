@@ -21,7 +21,7 @@ type fieldJSON struct {
 	// Unique and Recommended are rules of the catalog (ADR-0074).
 	Unique      bool `json:"unique,omitempty"`
 	Recommended bool `json:"recommended,omitempty"`
-	// Targets are the types an item field refers to (ADR-0200).
+	// Targets are the types an item field refers to (ADR-0202).
 	Targets []string `json:"targets,omitempty"`
 }
 
@@ -59,7 +59,7 @@ type typeJSON struct {
 	Start         []blockJSON `json:"start,omitempty"`
 	StartMarkdown string      `json:"startMarkdown,omitempty"`
 	// Space is the room a room type belongs to, empty for a type of the
-	// whole installation (ADR-0199).
+	// whole installation (ADR-0201).
 	Space string `json:"space,omitempty"`
 	// Editable says, in answers, that the caller may redefine and remove
 	// the type; it is ignored in requests.
@@ -173,7 +173,7 @@ type blockJSON struct {
 	// (ADR-0151).
 	Query string `json:"query,omitempty"`
 	// Layout, ItemType, Space, Group, Columns and Sort name what a view
-	// shows (ADR-0201).
+	// shows (ADR-0203).
 	Layout   string   `json:"layout,omitempty"`
 	ItemType string   `json:"itemType,omitempty"`
 	Space    string   `json:"space,omitempty"`
@@ -225,7 +225,7 @@ func toDoc(blocks []blockJSON, kept func(text string) bool) (item.Doc, error) {
 			Form: b.Form, Decision: b.Decision, Application: b.Application, Release: b.Release, Link: b.Link, Query: b.Query, Secret: b.Secret,
 			Layout: b.Layout, ItemType: b.ItemType, Space: b.Space, Group: b.Group, Sort: b.Sort}
 		if len(b.Columns) > 0 {
-			// An empty list is the view's default, as none is (ADR-0201).
+			// An empty list is the view's default, as none is (ADR-0203).
 			blk.Columns = b.Columns
 		}
 		if len(b.Layers) > 0 {
@@ -311,7 +311,7 @@ type itemJSON struct {
 	RelationCount int `json:"relationCount,omitempty"`
 	WaitingOn     int `json:"waitingOn,omitempty"`
 	// Updated is when the item last changed itself, as the query
-	// language's field updated reads it; set in listings (ADR-0201).
+	// language's field updated reads it; set in listings (ADR-0203).
 	Updated *time.Time `json:"updated,omitempty"`
 	// Template is the version of its type's Word template the item is
 	// made with (ADR-0167).

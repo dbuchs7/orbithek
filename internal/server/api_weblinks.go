@@ -17,7 +17,7 @@ import (
 )
 
 // LinkPreviews reads what web pages say about themselves for editors and
-// web link items (ADR-0206). A nil *LinkPreviews means the server reads
+// web link items (ADR-0208). A nil *LinkPreviews means the server reads
 // no pages: OT_LINK_PREVIEWS is off, as every outgoing call of the server
 // is until an operator switches it on.
 type LinkPreviews struct {
@@ -36,7 +36,7 @@ func previewTimeout() time.Duration {
 }
 
 // The fields a page fills, by name and kind, in any type that has them
-// (ADR-0206). The url field names the page; the others are what the page
+// (ADR-0208). The url field names the page; the others are what the page
 // says about itself.
 const (
 	urlField         = "url"
@@ -49,14 +49,14 @@ const (
 
 func webLinkRoutes(h itemHandlers) []Route {
 	return []Route{
-		{Method: http.MethodGet, Pattern: "/api/linkpreview", Summary: "Whether the server reads what web pages say about themselves (OT_LINK_PREVIEWS, ADR-0206)", Handler: http.HandlerFunc(h.previewsOn)},
+		{Method: http.MethodGet, Pattern: "/api/linkpreview", Summary: "Whether the server reads what web pages say about themselves (OT_LINK_PREVIEWS, ADR-0208)", Handler: http.HandlerFunc(h.previewsOn)},
 		{Method: http.MethodPost, Pattern: "/api/linkpreview", Summary: "What the web page at url says about itself: title, description, site, picture, canonical address, author, day of publication; " +
 			"only public addresses, nothing is kept (off unless OT_LINK_PREVIEWS=on)", Handler: http.HandlerFunc(h.preview)},
 		{Method: http.MethodPost, Pattern: "/api/weblinks", Summary: "Save a web page as a web link item in space, below parent: url, title (else the page's), quote (the text one keeps, as quotes of its body) and text " +
-			"(the page's main text into its body); with OT_LINK_PREVIEWS=on its fields and picture come from the page; the ready-made type weblink is defined when there is none (ADR-0206)", Handler: http.HandlerFunc(h.saveWebLink)},
+			"(the page's main text into its body); with OT_LINK_PREVIEWS=on its fields and picture come from the page; the ready-made type weblink is defined when there is none (ADR-0208)", Handler: http.HandlerFunc(h.saveWebLink)},
 		{Method: http.MethodPost, Pattern: "/api/items/{ref}/weblink", Summary: "Read the page of the item's url field again: its fields site, description, author and published, where the type has them, and its picture, " +
 			"a new version when it changed; text takes the page's main text below the body (off unless OT_LINK_PREVIEWS=on)", Handler: http.HandlerFunc(h.readWebLinkAgain)},
-		{Method: http.MethodPost, Pattern: "/api/items/{ref}/body/blocks", Summary: "Add blocks at the end of the body, as one reads it, in one step; refused while people edit it in a live session (ADR-0207)", Handler: http.HandlerFunc(h.appendBlocks)},
+		{Method: http.MethodPost, Pattern: "/api/items/{ref}/body/blocks", Summary: "Add blocks at the end of the body, as one reads it, in one step; refused while people edit it in a live session (ADR-0209)", Handler: http.HandlerFunc(h.appendBlocks)},
 	}
 }
 
@@ -392,7 +392,7 @@ func (h itemHandlers) readWebLinkAgain(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, res)
 }
 
-// appendBlocks adds blocks at the end of a body in one step (ADR-0207):
+// appendBlocks adds blocks at the end of a body in one step (ADR-0209):
 // the body as the caller reads it, extended, is committed under the
 // store's lock, so nothing written in between is lost. Who does not read
 // every protected passage cannot change the text (ADR-0088).

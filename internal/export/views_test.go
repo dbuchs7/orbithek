@@ -11,7 +11,7 @@ import (
 )
 
 // A view of items in a text is named in every document, as a diagram is:
-// a document does not compute it (ADR-0201).
+// a document does not compute it (ADR-0203).
 func TestViewsAreNamedInDocuments(t *testing.T) {
 	page := Page{ID: "p", Title: "Overview", Body: []item.Block{
 		{Kind: item.ItemsView, Layout: item.ViewGallery, ItemType: "task", Space: "PLAT", Query: "state = open"},

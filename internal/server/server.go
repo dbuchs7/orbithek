@@ -95,7 +95,7 @@ type Deps struct {
 	// LinkCheck runs link checks (ADR-0039); nil means link checking is
 	// switched off.
 	LinkCheck *LinkChecks
-	// LinkPreviews reads what web pages say about themselves (ADR-0206);
+	// LinkPreviews reads what web pages say about themselves (ADR-0208);
 	// nil means the server reads no pages.
 	LinkPreviews *LinkPreviews
 	// Messages sends messages to people (ADR-0064); Routes creates one

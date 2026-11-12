@@ -128,7 +128,7 @@ func (h itemHandlers) copyOne(r *http.Request, space string, t copyTask) (item.I
 		title = src.Title
 	}
 	// A file field names a file of the copy, set once its files are
-	// copied (ADR-0200).
+	// copied (ADR-0202).
 	props, fileFields := item.Props{}, item.Props{}
 	var srcType item.TypeDef
 	h.d.DB.Read(func(s *item.Store) { srcType, _ = s.TypeAt(src.Type, src.TypeVersion) })

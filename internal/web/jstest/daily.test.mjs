@@ -1,5 +1,5 @@
 // Unit tests of the parts of a person's daily notes (dailyparts.js,
-// ADR-0203): the day an address names, the month beside a note, the
+// ADR-0205): the day an address names, the month beside a note, the
 // bounds of a day where the reader is and the query of what was made or
 // changed on it, and the names of days and months. They run in Node.js
 // without a browser and without dependencies:

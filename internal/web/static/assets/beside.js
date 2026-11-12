@@ -1,4 +1,4 @@
-// An item beside another (ADR-0205): a pane at the right of the item or
+// An item beside another (ADR-0207): a pane at the right of the item or
 // daily note shown, holding a second item to read, and to edit where the
 // reader may, as on its own page. Its item is kept in the address
 // (?beside=KEY), so a link and the browser's back button bring the pair

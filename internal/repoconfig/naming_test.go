@@ -12,8 +12,8 @@ import (
 )
 
 // otherProducts are the products imports read from: the import engine
-// (ADR-0023), the import of notes (ADR-0209) and the connector to a
-// reading service (ADR-0210). Notion and Obsidian are matched as written,
+// (ADR-0023), the import of notes (ADR-0211) and the connector to a
+// reading service (ADR-0212). Notion and Obsidian are matched as written,
 // since "notion" is also an English word.
 var otherProducts = regexp.MustCompile(`(?i:confluence|jira|readwise)|Notion|Obsidian`)
 
@@ -35,24 +35,24 @@ func namingAllowed(path, line, heading string) bool {
 		path == "cmd/orbithek/import.go", path == "cmd/orbithek/import_test.go",
 		// The connector that runs the import (ADR-0128).
 		strings.HasPrefix(path, "internal/connector/atlassian"),
-		// The import of notes (ADR-0209) and the connector to a reading
-		// service (ADR-0210).
+		// The import of notes (ADR-0211) and the connector to a reading
+		// service (ADR-0212).
 		strings.HasPrefix(path, "internal/noteimport/"),
 		strings.HasPrefix(path, "internal/connector/readwise"):
 		return true
-	// A manual's section about importing (ADR-0209, ADR-0210).
+	// A manual's section about importing (ADR-0211, ADR-0212).
 	case strings.HasPrefix(path, manualDir) && importHeading.MatchString(heading):
 		return true
 	// The import record itself, and ADRs accepted before the rule
 	// (2026-10-19), which keep their wording.
-	case strings.HasPrefix(path, "docs/adr/0023-"), strings.HasPrefix(path, "docs/adr/0209-"), strings.HasPrefix(path, "docs/adr/0210-"):
+	case strings.HasPrefix(path, "docs/adr/0023-"), strings.HasPrefix(path, "docs/adr/0211-"), strings.HasPrefix(path, "docs/adr/0212-"):
 		return true
 	case strings.HasPrefix(path, "docs/adr/00") && path < "docs/adr/0035":
 		return true
 	}
 	// A line about import: it refers to an import record, or builds an
 	// imported item's origin.
-	return strings.Contains(line, "0023") || strings.Contains(line, "0209") || strings.Contains(line, "0210") || strings.Contains(line, "Origin{")
+	return strings.Contains(line, "0023") || strings.Contains(line, "0211") || strings.Contains(line, "0212") || strings.Contains(line, "Origin{")
 }
 
 // importHeading is a manual's heading of a section about importing, in
@@ -124,9 +124,9 @@ func TestNamingAllowed(t *testing.T) {
 		{"internal/noteimport/plan.go", "a Notion export", "", true},
 		{"internal/connector/readwise.go", "the Readwise export", "", true},
 		{"internal/connector/sync.go", "like Readwise", "", false},
-		{"docs/adr/0209-importing-notes.md", "an Obsidian vault", "", true},
-		{"docs/adr/0211-a-theme.md", "like Obsidian", "", false},
-		{"internal/site/connectors.go", `KindReadwise = "readwise" // ADR-0210`, "", true},
+		{"docs/adr/0211-importing-notes.md", "an Obsidian vault", "", true},
+		{"docs/adr/0213-a-theme.md", "like Obsidian", "", false},
+		{"internal/site/connectors.go", `KindReadwise = "readwise" // ADR-0212`, "", true},
 		{"internal/web/static/assets/manual/en.md", "a Notion export", "### Importing notes", true},
 		{"internal/web/static/assets/manual/de.md", "ein Notion-Export", "### Notizen importieren", true},
 		{"internal/web/static/assets/manual/en.md", "as in Notion", "### Reading an item", false},

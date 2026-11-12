@@ -77,7 +77,7 @@ Chosen option: **1**, because it starts the process from the page as anyone with
   - A pasted link the credential cannot place in a process is not checked for a wizard before it is sent; a wizard started from it waits for a pass nobody holds until its time runs out.
   - Each view of a form of a process reads the process list, the model and the form; a start form reads the form and, with its process, the list and the model; a start reads them again for the wizard. There is no cache.
 - **Follow-ups / risks to watch:**
-  - **Internal start forms** for signed-in readers or certain groups, with the reader as initiator, need the engine to accept the reader's identity: per-person credentials (atlas ADR-0200 binds its OAuth tokens to its MCP endpoint today) or a start on behalf of a named person from a trusted system. That is option 4, with the engine's side decided first.
+  - **Internal start forms** for signed-in readers or certain groups, with the reader as initiator, need the engine to accept the reader's identity: per-person credentials (atlas ADR-0202 binds its OAuth tokens to its MCP endpoint today) or a start on behalf of a named person from a trusted system. That is option 4, with the engine's side decided first.
   - **User tasks** (use 3): a list of the tasks a filter selects, opened in a dialog, and tasks as cards of a kanban, need the engine's tasks as a reader may see them, which atlas filters per viewer; a credential's account would show its own tasks to everyone. A record of its own.
   - The wizard's first step could be shown here if the engine offered to hand its pass to the page that started it.
 

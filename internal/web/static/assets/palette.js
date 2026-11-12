@@ -1,4 +1,4 @@
-// The command palette (ADR-0205): one field that finds items, the items
+// The command palette (ADR-0207): one field that finds items, the items
 // opened recently in this browser, and the commands of the interface, and
 // goes there with the keyboard alone. It opens with Ctrl+K where no text
 // is being edited (the editor keeps Ctrl+K for links, ADR-0096) and with

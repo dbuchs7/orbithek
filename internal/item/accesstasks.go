@@ -133,9 +133,9 @@ func MentionParagraph(before string, item ID, label, after string) Block {
 // (types are data, ADR-0001): the UI offers them to administrators, a
 // request's task is of the first of them that can hold one when the
 // installation has no such type yet (ADR-0162), a label's page is of
-// the type topic (ADR-0202), a web link is saved as an item of the
-// weblink type, defined when it is first needed (ADR-0206), and a person's
-// first daily note defines the daily note type when it is missing (ADR-0203).
+// the type topic (ADR-0204), a web link is saved as an item of the
+// weblink type, defined when it is first needed (ADR-0208), and a person's
+// first daily note defines the daily note type when it is missing (ADR-0205).
 func TypeTemplates() []TypeDef {
 	return []TypeDef{
 		{Name: "page", Body: true, Fields: []FieldDef{{Name: "owner", Kind: KindUser}}},
@@ -149,10 +149,10 @@ func TypeTemplates() []TypeDef {
 			Workflow: &Workflow{Initial: "proposed", States: []string{"proposed", "accepted", "rejected"}, Transitions: []Transition{
 				{Name: "accept", From: []string{"proposed"}, To: "accepted"},
 				{Name: "reject", From: []string{"proposed"}, To: "rejected"}}}},
-		// The page of a label (ADR-0202).
+		// The page of a label (ADR-0204).
 		topicType(),
 		webLinkTemplate(),
-		// A daily note per person and day (ADR-0203).
+		// A daily note per person and day (ADR-0205).
 		dailyTemplate(),
 	}
 }
@@ -218,7 +218,7 @@ func (s *Store) requestType(space string) (td TypeDef, define, ok bool) {
 	// fields and states, then by name.
 	best, score := TypeDef{}, -1
 	for _, t := range s.Types() {
-		// A type of another room cannot hold a task here (ADR-0199).
+		// A type of another room cannot hold a task here (ADR-0201).
 		if n := likeness(t, tmpl); holdsRequests(t) && t.UsableIn(space) && n > score {
 			best, score = t, n
 		}

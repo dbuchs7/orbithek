@@ -19,7 +19,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/storage"
 )
 
-// noteImportRoutes import ZIP archives of notes into a room (ADR-0209):
+// noteImportRoutes import ZIP archives of notes into a room (ADR-0211):
 // for its administrators, through their session.
 func noteImportRoutes(h itemHandlers) []Route {
 	return []Route{

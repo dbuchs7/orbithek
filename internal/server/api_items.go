@@ -37,7 +37,7 @@ func itemRoutes(d Deps) []Route {
 	get, post, put, del := http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete
 	routes := []Route{
 		{Method: get, Pattern: "/api/types", Summary: "List the item types one sees: the installation's and those of one's spaces; space narrows to those its items may have", Handler: http.HandlerFunc(h.listTypes)},
-		{Method: get, Pattern: "/api/types/templates", Summary: "The ready-made types an installation starts from: page, task, decision, topic (ADR-0202), weblink (ADR-0206) and daily note (ADR-0203); a request to read protected content makes its task of the task type when no type can hold it (ADR-0162)", Handler: http.HandlerFunc(h.typeTemplates)},
+		{Method: get, Pattern: "/api/types/templates", Summary: "The ready-made types an installation starts from: page, task, decision, topic (ADR-0204), weblink (ADR-0208) and daily note (ADR-0205); a request to read protected content makes its task of the task type when no type can hold it (ADR-0162)", Handler: http.HandlerFunc(h.typeTemplates)},
 		{Method: post, Pattern: "/api/types", Summary: "Define a type or a new version of it: of the whole installation (administrators), or with space a room type of that space (its space administrators)", Handler: http.HandlerFunc(h.defineType)},
 		{Method: del, Pattern: "/api/types/{name}", Summary: "Remove a type that no item and no kanban uses (administrators; a room type also its space administrators)", Handler: http.HandlerFunc(h.removeType)},
 		{Method: get, Pattern: "/api/spaces", Summary: "List the spaces one holds a role in", Handler: http.HandlerFunc(h.listSpaces)},
@@ -243,7 +243,7 @@ func (h itemHandlers) isAdmin(s *item.Store, r *http.Request) error {
 
 // listTypes lists the types the caller sees: the installation's and those
 // of the spaces they hold a role in; with space, only those items there
-// may have (ADR-0199). Each says whether the caller may change it.
+// may have (ADR-0201). Each says whether the caller may change it.
 func (h itemHandlers) listTypes(w http.ResponseWriter, r *http.Request) {
 	space := r.URL.Query().Get("space")
 	h.read(w, r, func(x *item.Session) (any, error) {
@@ -280,7 +280,7 @@ func (h itemHandlers) defineType(w http.ResponseWriter, r *http.Request) {
 			return nil, fmt.Errorf("%w: there is no Word template %q", item.ErrValidation, td.Template)
 		}
 		// A room type is its space's administrators' to define, through
-		// their session (ADR-0199).
+		// their session (ADR-0201).
 		if req.Space != "" {
 			td, err := x.DefineType(td)
 			if err != nil {
@@ -306,7 +306,7 @@ func (h itemHandlers) defineType(w http.ResponseWriter, r *http.Request) {
 func (h itemHandlers) removeType(w http.ResponseWriter, r *http.Request) {
 	h.write(w, r, http.StatusNoContent, func(x *item.Session, s *item.Store) (any, error) {
 		name := r.PathValue("name")
-		// A room type is removed by its space's administrators (ADR-0199);
+		// A room type is removed by its space's administrators (ADR-0201);
 		// one of a space deleted since, by the installation's.
 		if sp := s.Type(name).Space; sp != "" && s.HasSpace(sp) {
 			return nil, x.RemoveType(name)
@@ -657,7 +657,7 @@ func (h itemHandlers) findItems(w http.ResponseWriter, r *http.Request) {
 		// What each item is related to, as far as the caller may read it
 		// (ADR-0137, D10).
 		related := x.RelationSummaries(ids)
-		// When each changed, for a view's column updated (ADR-0201).
+		// When each changed, for a view's column updated (ADR-0203).
 		changed := x.LastChanges(ids)
 		for i, it := range page {
 			out[i] = toItemJSON(it)
@@ -1512,7 +1512,7 @@ func coerceValue(td item.TypeDef, field string, raw json.RawMessage) (any, error
 		return norm, nil
 	case item.KindItem:
 		// An item is named by its ID or key; itemRefs resolves a key as
-		// the caller reads it (ADR-0200).
+		// the caller reads it (ADR-0202).
 		if s, ok := v.(string); ok {
 			return item.ID(s), nil
 		}
@@ -1548,7 +1548,7 @@ func coerceValue(td item.TypeDef, field string, raw json.RawMessage) (any, error
 // itemRefs resolves the values of item fields named by a key to the IDs of
 // the items, as the caller reads them: a key of an item the caller may not
 // read stays as typed, and the store answers that no such item exists
-// (D10, ADR-0200).
+// (D10, ADR-0202).
 func itemRefs(x *item.Session, td item.TypeDef, props item.Props) {
 	for _, f := range td.Fields {
 		if id, ok := props[f.Name].(item.ID); ok && f.Kind == item.KindItem {

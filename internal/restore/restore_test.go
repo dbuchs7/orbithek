@@ -390,7 +390,7 @@ func TestADiagramComesBackWithItsFile(t *testing.T) {
 
 // TestItemAndFileFieldsComeBack: an item field's target comes back with
 // the item that refers to it, from another space too, and a file field
-// names the restored file (ADR-0200).
+// names the restored file (ADR-0202).
 func TestItemAndFileFieldsComeBack(t *testing.T) {
 	b := newBackup(t)
 	noErr(t, b.s.DefineType("root", item.TypeDef{Name: "card", Fields: []item.FieldDef{

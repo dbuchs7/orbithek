@@ -1,4 +1,4 @@
-# ADR-0204: An item is created where it is mentioned
+# ADR-0206: An item is created where it is mentioned
 
 - **Status:** Proposed
 - **Implementation:** Partial
@@ -33,14 +33,14 @@ How does the editor turn a title that matches nothing into an item and a mention
 Chosen option: **1**, because it keeps the person in control of what is made and where, uses the one route every client creates with, and changes nothing in the model.
 
 - **Offer:** when "@" is followed by a query and no item found has that title (letter case aside), the list ends with *Create «title» as …*; the link dialog offers the same below its results when what is typed is no web address. Enter or a click opens the dialog; Escape keeps the text as typed. The query after "@" holds no space (ADR-0096), so the dialog's title field is editable and takes the whole title.
-- **Dialog (`assets/mentioncreate.js`):** the title, the type (default: the room's page type — one named `page`, else the first type with a text and no workflow) and the room (default: the edited item's room), among the rooms where one holds Editor or higher. Only types that require no field are offered; the daily note type (ADR-0203) is made from its day, never from a mention. A sentence says where the item goes: an item of a type with a text, made in the edited item's room, goes below the edited item, as a child page; anything else at the top of the chosen room. A child inherits its parent's restriction (D9), so the sentence says so when the edited item is restricted, and nothing goes below a daily note (ADR-0203), which is its author's alone: from a note, the item goes to the top of the room.
+- **Dialog (`assets/mentioncreate.js`):** the title, the type (default: the room's page type — one named `page`, else the first type with a text and no workflow) and the room (default: the edited item's room), among the rooms where one holds Editor or higher. Only types that require no field are offered; the daily note type (ADR-0205) is made from its day, never from a mention. A sentence says where the item goes: an item of a type with a text, made in the edited item's room, goes below the edited item, as a child page; anything else at the top of the chosen room. A child inherits its parent's restriction (D9), so the sentence says so when the edited item is restricted, and nothing goes below a daily note (ADR-0205), which is its author's alone: from a note, the item goes to the top of the room.
 - **Creating:** `POST /api/items` as the person. The server decides as for any item; a refusal (no right, 507 at critical storage, a validation error) is shown in the dialog and nothing is inserted. While the storage is at its critical level the dialog says so and offers no button (ADR-0163).
 - **Inserting:** the new item's mention replaces what was typed after "@" if it is still there, else it goes where the cursor is; from the link dialog, it becomes a mention with the text to show (as linking an existing item does). In a live session (ADR-0010) the mention is an ordinary edit of the block, saved when the block is released.
-- **Where it applies:** every editor with writing aids: an item's text, a daily note (ADR-0203) and an item beside another (ADR-0205). `createEditor` and `liveBody` take `create(title)`, which the shell gives them.
+- **Where it applies:** every editor with writing aids: an item's text, a daily note (ADR-0205) and an item beside another (ADR-0207). `createEditor` and `liveBody` take `create(title)`, which the shell gives them.
 
 ### Consequences
 
-- **Positive:** linking what does not exist yet is as quick as linking what does; the context of the new item (ADR-0205) names the text it was created from at once.
+- **Positive:** linking what does not exist yet is as quick as linking what does; the context of the new item (ADR-0207) names the text it was created from at once.
 - **Negative / trade-offs accepted:** the item and the mention are two changes: when the session's save of the mention fails, the item stays without it, as an item made with **+ New** would. Types with required fields are not offered. The default page type is found by name and shape, a guess an administrator cannot change.
 - **Follow-ups / risks to watch:** offering required fields in the dialog; a room's default type chosen by its administrators.
 
@@ -71,4 +71,4 @@ Strongest form: one batch makes the item and commits the host's body with the me
 
 ## Links
 
-- relates to ADR-0096 (writing aids), ADR-0010 (live editing), ADR-0020 (inline items), ADR-0022 (permissions), ADR-0163 (nothing new at critical storage), ADR-0203 (daily notes), ADR-0205 (the context of an item)
+- relates to ADR-0096 (writing aids), ADR-0010 (live editing), ADR-0020 (inline items), ADR-0022 (permissions), ADR-0163 (nothing new at critical storage), ADR-0205 (daily notes), ADR-0207 (the context of an item)

@@ -1,4 +1,4 @@
-# ADR-0199: Types of a room, defined by its administrators in a type editor
+# ADR-0201: Types of a room, defined by its administrators in a type editor
 
 - **Status:** Proposed
 - **Implementation:** Partial
@@ -31,7 +31,7 @@ Types are data (ADR-0001), but only the installation's administrators define the
 
 Chosen option: **1**, with a form-based type editor for every type.
 
-- **Model:** `TypeDef.Space` names the room a type belongs to, empty for a type of the whole installation (codec version 55, together with ADR-0200; versions 1 to 54 are still read). A type keeps its room across its versions: redefining it in another room, or as an installation type, is refused, and so is a name any live type has, whichever room it belongs to. A removed name is free again, for any room.
+- **Model:** `TypeDef.Space` names the room a type belongs to, empty for a type of the whole installation (codec version 55, together with ADR-0202; versions 1 to 54 are still read). A type keeps its room across its versions: redefining it in another room, or as an installation type, is refused, and so is a name any live type has, whichever room it belongs to. A removed name is free again, for any room.
 - **Use:** an item of a room type is made, imported or synchronised only in its room (`Store.usable`); it does not move to another room, nor does a subtree that holds one; a kanban of another room cannot show it; linked tasks of another room cannot be of it; the task of an access request is of a type usable in the requested item's room (ADR-0162). A copy into another room is refused by the same rule.
 - **Who:** `Session.DefineType`, `Session.RemoveType` and `Session.MayDefineTypes`: a room's administrators and the installation's (who are room administrators everywhere) define, redefine and remove a room's types; one who sees nothing of the room is told it does not exist. A room's administrators also add a transition to a room type from a kanban (ADR-0076). Installation types are still defined by installation administrators through the trusted command (ADR-0028). Removal of a room type follows ADR-0094: refused while a live or trashed item or a kanban uses it.
 - **API:** `POST /api/types` with `space` defines a room type through the caller's session; `DELETE /api/types/{name}` removes a room type the same way. `GET /api/types` lists the types one sees — the installation's and those of the rooms one holds a role in — and with `space` only those that room's items may have; each answer says whether the caller may change the type (`editable`).
@@ -74,4 +74,4 @@ Strongest form: least change; the form already removes the JSON burden, and inst
 ## Links
 
 - amends [ADR-0001](0001-unified-item-data-model.md) (types are data) and [ADR-0028](0028-item-api.md) (who defines types)
-- relates to ADR-0022 (permissions), ADR-0025 (codec versions), ADR-0060 and ADR-0076 (kanbans), ADR-0074 (catalog rules), ADR-0094 (removing a type), ADR-0136 (query language), ADR-0162 (templates, access request tasks), ADR-0167 (start text, Word templates), ADR-0200 (field kinds)
+- relates to ADR-0022 (permissions), ADR-0025 (codec versions), ADR-0060 and ADR-0076 (kanbans), ADR-0074 (catalog rules), ADR-0094 (removing a type), ADR-0136 (query language), ADR-0162 (templates, access request tasks), ADR-0167 (start text, Word templates), ADR-0202 (field kinds)

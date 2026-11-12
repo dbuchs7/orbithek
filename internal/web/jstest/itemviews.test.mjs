@@ -1,5 +1,5 @@
-// Unit tests of the views of the items of a type (itemviews.js, ADR-0201)
-// and the order of a label's page set by hand (ADR-0202): the address and
+// Unit tests of the views of the items of a type (itemviews.js, ADR-0203)
+// and the order of a label's page set by hand (ADR-0204): the address and
 // the block, the columns, the groupings and groups, the sort, the cover of
 // a card and the text of a value of any kind. They run in Node.js without
 // a browser and without dependencies:

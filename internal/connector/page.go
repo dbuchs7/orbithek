@@ -28,7 +28,7 @@ type labels struct {
 	// fromHighlights heads the highlights of a book or article, and below
 	// is the line under which people write what a run keeps; source,
 	// cover, page, location, position and at name what the highlights
-	// tell (ADR-0210).
+	// tell (ADR-0212).
 	fromHighlights, below, source, cover, onPage, location, position, at string
 }
 
@@ -45,7 +45,7 @@ var pageLabels = map[string]labels{
 		page: "Data set in the source", landing: "Landing page", relation: "Related", entry: "Entry in the source",
 		withdrawn: "The source no longer publishes this entry. The page stays, with what was added here; it is no longer kept in step.",
 		fromGit:   "This page is written from %s whenever it changes there. Add notes as comments: they stay.",
-		// The highlights of a reading service (ADR-0210).
+		// The highlights of a reading service (ADR-0212).
 		fromHighlights: "These highlights are written from %s by every sync and replaced when they change there.",
 		below:          "Write your own notes below this line: a sync keeps them.",
 		source:         "Source", cover: "Cover", onPage: "Page", location: "Location", position: "Position", at: "At",
@@ -62,7 +62,7 @@ var pageLabels = map[string]labels{
 		page: "Datensatz in der Quelle", landing: "Einstiegsseite", relation: "Verwandt", entry: "Eintrag in der Quelle",
 		withdrawn: "Die Quelle publiziert diesen Eintrag nicht mehr. Die Seite bleibt mit allem, was hier ergänzt wurde, wird aber nicht mehr abgeglichen.",
 		fromGit:   "Diese Seite wird bei jeder Änderung aus %s geschrieben. Anmerkungen bitte als Kommentar: Kommentare bleiben erhalten.",
-		// The highlights of a reading service (ADR-0210).
+		// The highlights of a reading service (ADR-0212).
 		fromHighlights: "Diese Markierungen werden bei jedem Abgleich aus %s geschrieben und ersetzt, wenn sie sich dort ändern.",
 		below:          "Eigene Notizen bitte unter diese Linie schreiben: Ein Abgleich behält sie.",
 		source:         "Quelle", cover: "Cover", onPage: "Seite", location: "Stelle", position: "Position", at: "Bei",

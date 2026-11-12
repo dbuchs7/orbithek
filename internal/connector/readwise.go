@@ -20,7 +20,7 @@ import (
 )
 
 // The connector of the kind highlights reads one's highlights from
-// Readwise (ADR-0210) through its export API, version 2: GET
+// Readwise (ADR-0212) through its export API, version 2: GET
 // <address>/api/v2/export/ with the account's token from
 // OT_CONNECTOR_<ID>_TOKEN, sent as "Authorization: Token <token>", page
 // by page by nextPageCursor, and, but for a full run, with updatedAfter
@@ -266,7 +266,7 @@ func place(h rwHighlight) float64 {
 }
 
 // isBelowLine finds the line under which people write what a run keeps,
-// in any language of the pages (ADR-0210).
+// in any language of the pages (ADR-0212).
 func isBelowLine(b item.Block) bool {
 	if b.Kind != item.Panel || b.Tone != "note" {
 		return false

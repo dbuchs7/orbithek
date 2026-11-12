@@ -131,8 +131,8 @@ jobs:
           # here that the server trusts (ADR-0174). The album's map draws no
           # tiles and places are not searched: the smoke test reaches no
           # service outside the runner (ADR-0179, ADR-0181). Web links read the
-          # pages of the smoke test's own site (ADR-0206), and the connector of
-          # highlights reads its fake reading service with a token (ADR-0210).
+          # pages of the smoke test's own site (ADR-0208), and the connector of
+          # highlights reads its fake reading service with a token (ADR-0212).
           mkdir -p "$RUNNER_TEMP/autobackup" "$RUNNER_TEMP/calendar-ca"
           openssl req -x509 -newkey rsa:2048 -nodes -days 2 -subj "/CN=127.0.0.1" -addext "subjectAltName=IP:127.0.0.1" \
             -keyout "$RUNNER_TEMP/calendar-key.pem" -out "$RUNNER_TEMP/calendar-ca/calendar-cert.pem" 2>/dev/null

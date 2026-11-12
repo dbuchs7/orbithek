@@ -1,4 +1,4 @@
-// Unit tests of the PDF reader's parts (pdfparts.js, ADR-0208): which
+// Unit tests of the PDF reader's parts (pdfparts.js, ADR-0210): which
 // files are PDFs, the reader's address, the rectangles of a selection, how
 // a highlight's quote is found again on a page, the list of a document's
 // highlights and its export as Markdown. They run in Node.js without a

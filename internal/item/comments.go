@@ -49,7 +49,7 @@ type Comment struct {
 // is the drawing's first version, Element the element's ID in its scene,
 // and Quote the element's text, which may be empty.
 //
-// Or it names a highlight in a PDF file of the item (ADR-0208): File is
+// Or it names a highlight in a PDF file of the item (ADR-0210): File is
 // the PDF's first version, which outlives every new version; Version the
 // version the highlight was made on, whose Rects place it on Page (from
 // 1); Quote, Prefix and Suffix the text it marks, by which a reader finds
@@ -71,13 +71,13 @@ type Anchor struct {
 
 // Rect is a rectangle on a page of a PDF, in fractions of the page's width
 // and height from its top left corner, the page shown as its own rotation
-// turns it (ADR-0208).
+// turns it (ADR-0210).
 type Rect struct {
 	X, Y, W, H float64
 }
 
 // HighlightColors are the colours a highlight in a PDF may have; the
-// first is the one an anchor without a colour has (ADR-0208).
+// first is the one an anchor without a colour has (ADR-0210).
 var HighlightColors = []string{"yellow", "green", "blue", "pink", "purple"}
 
 // IsPDF reports whether a file is a PDF: told so by its bytes when it was
@@ -86,7 +86,7 @@ func IsPDF(a Attachment) bool {
 	return a.Type == "application/pdf" || strings.EqualFold(path.Ext(a.Name), ".pdf")
 }
 
-// checkHighlight checks a highlight in a PDF of an item (ADR-0208).
+// checkHighlight checks a highlight in a PDF of an item (ADR-0210).
 func checkHighlight(it *Item, a Anchor) error {
 	if a.Drawing != "" || a.Element != "" {
 		return invalid("a comment is on a PDF or on a drawing, not on both")
@@ -164,7 +164,7 @@ func (s *Store) Comment(actor string, id ID, n NewComment) (Comment, error) {
 	if err != nil {
 		return Comment{}, err
 	}
-	// A highlight in a PDF needs no note (ADR-0208); every other comment
+	// A highlight in a PDF needs no note (ADR-0210); every other comment
 	// says something.
 	if strings.TrimSpace(n.Text) == "" && (n.Anchor == nil || n.Anchor.File == "") {
 		return Comment{}, invalid("comment is empty")
@@ -329,7 +329,7 @@ func (x *Session) Comments(id ID) ([]Comment, error) {
 
 // commentsOnHiddenFiles returns the comments of an item that are on a
 // file the principal may not have — a highlight in a protected PDF
-// (ADR-0208), a comment on an element of a protected drawing (ADR-0171) —
+// (ADR-0210), a comment on an element of a protected drawing (ADR-0171) —
 // with the replies in their threads: the file's protection keeps them to
 // its readers, and from everyone else that they exist (ADR-0160). It is
 // nil when there are none.

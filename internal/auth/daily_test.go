@@ -7,7 +7,7 @@ import (
 
 // TestTheDailyRoomIsKeptPerUserAndSurvivesReload: choosing the room of
 // one's daily notes is recorded once, cleared by an empty key, and a
-// reload of the journal gives it back (ADR-0203).
+// reload of the journal gives it back (ADR-0205).
 func TestTheDailyRoomIsKeptPerUserAndSurvivesReload(t *testing.T) {
 	a, j, _ := newAccounts(t)
 	u, err := a.CreateUser("anna", "anna's password")

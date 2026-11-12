@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// TestTheWebLinkTemplate: the ready-made type of web links (ADR-0206) has
+// TestTheWebLinkTemplate: the ready-made type of web links (ADR-0208) has
 // a body for one's notes and the fields a page says about itself, the
 // address of kind url; it holds no access requests, so their tasks keep
 // the task type.

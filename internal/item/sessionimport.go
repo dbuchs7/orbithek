@@ -3,14 +3,14 @@ package item
 import "strings"
 
 // ImportSystemPrefix starts the origin's system of every item a person
-// imports through their session (ADR-0209), e.g. "import:notes". No
+// imports through their session (ADR-0211), e.g. "import:notes". No
 // connector's ID holds a colon, so such an item never shares an origin
 // with a connector's, a migration's or a mirrored file's, and a session
 // cannot take one of theirs over.
 const ImportSystemPrefix = "import:"
 
 // Import makes or updates, as the principal, an item imported from an
-// archive a person uploads (ADR-0209), matched by its origin as every
+// archive a person uploads (ADR-0211), matched by its origin as every
 // import is (ADR-0023). Only a room administrator imports into a room. A
 // new item goes below u.Parent, which the principal must be allowed to
 // edit, or at the top of the room; an item imported before must be one

@@ -7,7 +7,7 @@
 # dmn-viewer.js with their stylesheets in form/ and dmn/, the viewers of
 # forms and decisions (ADR-0144), and pdf.js and pdf.worker.js with their
 # fonts, character maps and image decoders in pdfjs/, the PDF reader
-# (ADR-0208).
+# (ADR-0210).
 # Their license files name the packages each bundle takes code from
 # (bundled.mjs). Run after changing a version in package.json:
 #
@@ -168,7 +168,7 @@ cp "$dmn/dmn-font/font/dmn.woff2" "$dmn/dmn-font/font/dmn.woff" "$out/dmn/dmn-fo
 } > "$out/dmn.LICENSE.txt"
 rm dmn-meta.json
 
-# The PDF reader (ADR-0208): pdf.js, its worker and what the worker loads
+# The PDF reader (ADR-0210): pdf.js, its worker and what the worker loads
 # when a document needs it, taken unchanged from pdfjs-dist's prebuilt
 # modules, renamed to .js. Of its directories: standard_fonts/ without the
 # Liberation fonts, whose license is the GPL version 2 with a font

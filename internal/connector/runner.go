@@ -298,7 +298,7 @@ func fingerprint(c site.Connector) string {
 // sinceDays is how many days may pass between full runs of a connector
 // that reads what changed since its last run, 0 for one that always
 // reads in full: a JSON source asked so (ADR-0140), and a reading
-// service's highlights (ADR-0210).
+// service's highlights (ADR-0212).
 func sinceDays(c site.Connector) int {
 	switch {
 	case c.JSON != nil && c.JSON.Since != nil:

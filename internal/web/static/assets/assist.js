@@ -3,7 +3,7 @@
 // as they are typed or pasted, "@" that suggests people and items, a bubble
 // on a link to open, edit or remove it, and a dialog to embed an item.
 // Where "@" or the link dialog finds no item of the title typed, they
-// offer to create one and mention it (ADR-0204).
+// offer to create one and mention it (ADR-0206).
 import { Plugin } from "../vendor/prosemirror.js";
 import { get } from "./api.js";
 import { h } from "./dom.js";
@@ -56,9 +56,9 @@ const markdownFileRE = /^https?:\/\/[^\s]+\/(blob|raw|src|browse|-\/blob|-\/raw)
 // assist makes the aids for a schema; isSafe decides which link targets
 // the model keeps (ADR-0014). showFile(href), if given, shows a Markdown
 // file a link leads to instead of the link (ADR-0138); saveLink(href)
-// saves the web page a link leads to as a web link item (ADR-0206).
+// saves the web page a link leads to as a web link item (ADR-0208).
 // create(title), if given, makes an item of a title that matches nothing
-// and returns it, or null when it was not made (ADR-0204).
+// and returns it, or null when it was not made (ADR-0206).
 export function assist(schema, isSafe, { showFile, saveLink, create } = {}) {
   const link = schema.marks.link;
 
@@ -348,7 +348,7 @@ export function assist(schema, isSafe, { showFile, saveLink, create } = {}) {
         if (o.make) {
           // The item is created first; the mention replaces what was
           // typed after "@" if it is still there, else it goes where the
-          // cursor is (ADR-0204).
+          // cursor is (ADR-0206).
           hide();
           create(o.make).then((made) => {
             view.focus();

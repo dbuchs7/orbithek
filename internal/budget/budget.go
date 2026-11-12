@@ -106,7 +106,7 @@ type Budgets struct {
 	// walk keeps the nearest nodes and says it was cut.
 	ImpactNodes int
 	// NoteImportBytes, NoteImportFiles and NoteUnpackedBytes bound one
-	// import of notes (ADR-0209): the uploaded ZIP archive, which the
+	// import of notes (ADR-0211): the uploaded ZIP archive, which the
 	// server holds while it reads it, the files it may hold, and the bytes
 	// all files read from it may hold unpacked, together, so a small
 	// archive cannot unpack into much.
@@ -160,10 +160,10 @@ type Budgets struct {
 	VideoBytes           int64
 	VideoTransferSeconds int
 	// HighlightRects bounds the rectangles one highlight in a PDF draws on
-	// its page (ADR-0208): a selection over many lines makes one per line.
+	// its page (ADR-0210): a selection over many lines makes one per line.
 	HighlightRects int
 	// LinkPreviewPageBytes bounds what the server reads of one web page
-	// whose metadata or text it takes (ADR-0206), LinkPreviewImageBytes
+	// whose metadata or text it takes (ADR-0208), LinkPreviewImageBytes
 	// the picture a page names, kept as a file of its item, and
 	// LinkPreviewSeconds each of those requests, redirects included.
 	// LinkPreviewsAtOnce bounds the pages and pictures read at once,
@@ -174,12 +174,12 @@ type Budgets struct {
 	LinkPreviewSeconds    int
 	LinkPreviewsAtOnce    int
 	LinkPreviewBlocks     int
-	// ContextEntries bounds each list of an item's context (ADR-0205):
+	// ContextEntries bounds each list of an item's context (ADR-0207):
 	// what refers to it, what shares its labels, and the daily notes that
 	// name it. Beyond it a list keeps the first and says it was cut.
 	ContextEntries int
 	// DailyNoteDays bounds the days one listing of a person's daily notes
-	// covers (ADR-0203), a year and a little more by default.
+	// covers (ADR-0205), a year and a little more by default.
 	DailyNoteDays int
 }
 

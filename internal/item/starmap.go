@@ -271,7 +271,7 @@ func (s *Store) sortedRelations() []*Relation {
 
 // relationEdge is the edge of a relation: StarRelation with its type for
 // one made by hand or derived from an item field (its type is the field's
-// name, ADR-0200), the derived type (mentions, embeds) for one derived
+// name, ADR-0202), the derived type (mentions, embeds) for one derived
 // from a body.
 func relationEdge(r *Relation) StarEdge {
 	if r.Derived && r.field == "" {

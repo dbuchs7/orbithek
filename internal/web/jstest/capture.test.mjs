@@ -1,5 +1,5 @@
-// Unit tests of capturing from anywhere (capture.js, ADR-0207) and of the
-// parts of a web link's card (weblink.js, ADR-0206): what a share passes
+// Unit tests of capturing from anywhere (capture.js, ADR-0209) and of the
+// parts of a web link's card (weblink.js, ADR-0208): what a share passes
 // on, the blocks a capture adds, the targets it may go to, the
 // bookmarklet, and what a card shows. They run in Node.js without a
 // browser and without dependencies:

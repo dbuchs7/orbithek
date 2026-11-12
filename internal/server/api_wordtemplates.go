@@ -100,7 +100,7 @@ func (h itemHandlers) templateRef(it item.Item, td item.TypeDef) *item.TemplateR
 // controls are the texts a template's content controls show of an item:
 // its title, key, type, state, room, labels and properties, by name in
 // lower case, as a reader reads them: a referenced item by its key and
-// title, a file by its name (ADR-0200).
+// title, a file by its name (ADR-0202).
 func controls(s *item.Store, it item.Item, td item.TypeDef, spaceName string, names map[auth.UserID]string) map[string]string {
 	out := map[string]string{
 		"title": it.Title, "key": it.Key, "type": it.Type, "state": it.State, "space": spaceName,

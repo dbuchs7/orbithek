@@ -10,7 +10,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/budget"
 )
 
-// The installable web app (ADR-0207): a manifest, so a browser installs
+// The installable web app (ADR-0209): a manifest, so a browser installs
 // the UI as an app of its own, and a share target, so sharing a page or a
 // text to the installed app opens the capture view. No service worker is
 // served: the browsers that offer installing and sharing need none, and
@@ -30,14 +30,14 @@ func webAppRoutes(d Deps) []Route {
 	return []Route{
 		// A browser fetches the manifest without the session cookie; it
 		// holds the installation's name and the product's icons only.
-		{Method: http.MethodGet, Pattern: ManifestPath, Summary: "The web app's manifest: name, icons, start address and share target, so the UI is installed as an app (ADR-0207)",
+		{Method: http.MethodGet, Pattern: ManifestPath, Summary: "The web app's manifest: name, icons, start address and share target, so the UI is installed as an app (ADR-0209)",
 			Access: Public, Handler: manifest(d)},
 		// What is shared is passed on to the capture view in the address's
 		// fragment, which the browser keeps to itself; the capture view
 		// then asks to sign in where needed.
-		{Method: http.MethodGet, Pattern: CapturePath, Summary: "Open the capture view with title, text and url, as a share to the installed app or a link does (ADR-0207)",
+		{Method: http.MethodGet, Pattern: CapturePath, Summary: "Open the capture view with title, text and url, as a share to the installed app or a link does (ADR-0209)",
 			Access: Public, Handler: http.HandlerFunc(capture)},
-		{Method: http.MethodPost, Pattern: CapturePath, Summary: "The share target of the installed app: title, text and url as a form, passed on to the capture view (ADR-0207)",
+		{Method: http.MethodPost, Pattern: CapturePath, Summary: "The share target of the installed app: title, text and url as a form, passed on to the capture view (ADR-0209)",
 			Access: Public, Handler: http.HandlerFunc(capture)},
 	}
 }

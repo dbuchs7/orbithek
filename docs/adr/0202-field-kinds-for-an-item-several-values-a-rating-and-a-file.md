@@ -1,4 +1,4 @@
-# ADR-0200: Field kinds for an item, several values, a rating and a file
+# ADR-0202: Field kinds for an item, several values, a rating and a file
 
 - **Status:** Proposed
 - **Implementation:** Partial
@@ -31,7 +31,7 @@ Chosen option: **1**.
 
 - **Kinds:** `item` holds an `item.ID`, optionally limited to target types (`FieldDef.Targets`); `multi` holds a `[]string` of the field's `Values`, in the order of the values, an empty choice unsetting it; `rating` an `int` from 1 to 5; `file` the attachment ID of one file of the same item. A multi field needs values; only enum and multi fields have values, only item fields targets.
 - **Validation:** a reference names an existing, live item other than the item itself, of a target type if the field names any; a value the item already holds may stay when its target was trashed or the targets changed. A file is one of the item's own, not deleted; a new item has no files, so a file field is set after it is made. Through a session, a reference must name an item the caller reads: one it may not read does not exist for it (D10).
-- **Persistence:** codec version 55 (together with ADR-0199): `FieldDef.Targets`, and the value types `r` (a reference) and `l` (a list of strings, as JSON). A version below 55 holding either is refused. Values stay in the sealed part of the event, like every property.
+- **Persistence:** codec version 55 (together with ADR-0201): `FieldDef.Targets`, and the value types `r` (a reference) and `l` (a list of strings, as JSON). A version below 55 holding either is refused. Values stay in the sealed part of the event, like every property.
 - **Relations:** every reference derives a relation from the item to its target whose type is the field's name (`Relation.Field()` names the field). It is derived in `apply` from the property, live and on replay (D4), changes only with the property — not with the body — and goes with a purged item. So it counts everywhere references count: the relations panel shows it among the incoming and outgoing relations, the starmap and the impact view draw it as a relation named by the field (ADR-0157, ADR-0159), and trashing its target is refused while it points there (D8). A restore brings back an item field's target with the item that refers to it and writes item and file fields once targets and files are there (ADR-0124); a copy sets a file field to the copy's file.
 - **Reading:** a reference to an item the reader may not read is left out of the item, of listings, query results and the history, not even its ID shown (D10); sorting counts it as empty.
 - **Query language:** an item field compares by an item's key or ID (`epic = PLAT-3`), a multi field holds `= x` when it holds x among others and takes `IN`, `!=` and `NOT IN`, a rating compares and sorts as a number; `ORDER BY` an item field sorts by the target's key.
@@ -66,4 +66,4 @@ Strongest form: no codec change for references; a reference reads like any text 
 ## Links
 
 - amends [ADR-0001](0001-unified-item-data-model.md) (field kinds)
-- relates to ADR-0021 (deletion only when unreferenced), ADR-0025 and ADR-0026 (codec and sealing), ADR-0055 (file versions), ADR-0071 and ADR-0131 (exports), ADR-0124 (restore), ADR-0136 (query language), ADR-0157 and ADR-0159 (starmap, impact), ADR-0166 (datetime), ADR-0167 (Word templates), ADR-0199 (room types and the type editor)
+- relates to ADR-0021 (deletion only when unreferenced), ADR-0025 and ADR-0026 (codec and sealing), ADR-0055 (file versions), ADR-0071 and ADR-0131 (exports), ADR-0124 (restore), ADR-0136 (query language), ADR-0157 and ADR-0159 (starmap, impact), ADR-0166 (datetime), ADR-0167 (Word templates), ADR-0201 (room types and the type editor)

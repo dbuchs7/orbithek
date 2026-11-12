@@ -30,15 +30,15 @@ const (
 	KindDateTime FieldKind = "datetime"
 	// KindItem refers to another item by its immutable ID (D2), held as a
 	// value of the type ID; the reference is a relation derived from the
-	// property and named by the field (D4, ADR-0200).
+	// property and named by the field (D4, ADR-0202).
 	KindItem FieldKind = "item"
 	// KindMulti holds several of the field's Values, as a []string in the
-	// order of Values (ADR-0200).
+	// order of Values (ADR-0202).
 	KindMulti FieldKind = "multi"
-	// KindRating is a whole number from 1 to MaxRating (ADR-0200).
+	// KindRating is a whole number from 1 to MaxRating (ADR-0202).
 	KindRating FieldKind = "rating"
 	// KindFile names one file of the same item by its attachment ID, such
-	// as a cover picture (ADR-0200).
+	// as a cover picture (ADR-0202).
 	KindFile FieldKind = "file"
 )
 
@@ -63,7 +63,7 @@ type FieldDef struct {
 	// lists items where it is empty (ADR-0074).
 	Recommended bool
 	// Targets limits an item field to items of these types; empty allows
-	// every type (ADR-0200).
+	// every type (ADR-0202).
 	Targets []string `json:",omitempty"`
 }
 
@@ -116,7 +116,7 @@ type TypeDef struct {
 	Start    *Doc   `json:",omitempty"`
 	// Space, if set, makes this a room type: only items of that space are
 	// of it, and that space's administrators define, redefine and remove
-	// it (ADR-0199). Empty for a type of the whole installation. A type
+	// it (ADR-0201). Empty for a type of the whole installation. A type
 	// keeps its space across its versions; names stay unique across every
 	// space.
 	Space string `json:",omitempty"`
@@ -154,7 +154,7 @@ func checkStart(d *Doc) error {
 }
 
 // UsableIn reports whether items of the type may live in a space: an
-// installation type everywhere, a room type in its room only (ADR-0199).
+// installation type everywhere, a room type in its room only (ADR-0201).
 func (t TypeDef) UsableIn(space string) bool { return t.Space == "" || t.Space == space }
 
 // reservedFields are intrinsic to every item and cannot be declared as

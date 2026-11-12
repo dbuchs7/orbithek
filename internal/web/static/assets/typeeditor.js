@@ -1,4 +1,4 @@
-// The type editor (ADR-0199): a form for a type's name, whether its items
+// The type editor (ADR-0201): a form for a type's name, whether its items
 // have a text, its fields with their kinds and options, its workflow and
 // the text a new item begins with. Hand-written JSON stays, folded away,
 // for what the form does not offer. Administrators use it under
@@ -216,7 +216,7 @@ export function typeEditor({ type = null, template = null, space = "", spaces = 
 }
 
 // roomTypesCard is the card of a room's own types in the room's settings,
-// for its administrators (ADR-0199): each with Edit and Remove, a new type,
+// for its administrators (ADR-0201): each with Edit and Remove, a new type,
 // and the ready-made templates to add as types of the room. types are the
 // types the room's items may have; onChange shows the page again.
 export function roomTypesCard({ space, types, templates = [], onChange }) {

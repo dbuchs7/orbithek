@@ -1,4 +1,4 @@
-// Importing a ZIP archive of notes into a room (ADR-0209): a folder of
+// Importing a ZIP archive of notes into a room (ADR-0211): a folder of
 // Markdown notes or a workspace export of Markdown and CSV, rehearsed by a
 // dry run, run under a name that a re-run repeats to update what it made.
 import { h } from "./dom.js";

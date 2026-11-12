@@ -12,14 +12,14 @@ import (
 	"github.com/dbuchs7/orbithek/internal/item"
 )
 
-// dailyRoutes are a person's daily notes (ADR-0203): the room they go to,
+// dailyRoutes are a person's daily notes (ADR-0205): the room they go to,
 // kept with the account, the days one has a note on, and one note by its
 // day, read, opened (made when missing) or added to. Every route acts on
 // the caller's own notes only.
 func dailyRoutes(h itemHandlers) []Route {
 	get, post, put := http.MethodGet, http.MethodPost, http.MethodPut
 	return []Route{
-		{Method: get, Pattern: "/api/daily", Summary: "The room one's daily notes go to, whether one may still create there, and the days from from to to (YYYY-MM-DD) one has a daily note on (ADR-0203)", Handler: http.HandlerFunc(h.dailyDays)},
+		{Method: get, Pattern: "/api/daily", Summary: "The room one's daily notes go to, whether one may still create there, and the days from from to to (YYYY-MM-DD) one has a daily note on (ADR-0205)", Handler: http.HandlerFunc(h.dailyDays)},
 		{Method: put, Pattern: "/api/daily/room", Summary: "Choose the room one's daily notes go to, one where one may create items; empty clears the choice", Handler: http.HandlerFunc(h.setDailyRoom)},
 		{Method: get, Pattern: "/api/daily/{date}", Summary: "One's daily note of a day (YYYY-MM-DD), if there is one", Handler: http.HandlerFunc(h.getDailyNote)},
 		{Method: post, Pattern: "/api/daily/{date}", Summary: "Open one's daily note of a day: the note, made in one's daily room when there is none (created), restricted to oneself in the same step; title names a new note", Handler: http.HandlerFunc(h.openDailyNote)},

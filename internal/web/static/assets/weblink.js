@@ -1,4 +1,4 @@
-// A web link shown as a card (ADR-0206): the picture its page names, its
+// A web link shown as a card (ADR-0208): the picture its page names, its
 // title linked to the page, the site, author and day, and the page's
 // description. A web link is an item; the card is how a page or an embed
 // shows any item whose url field holds a web address, so a link card in a

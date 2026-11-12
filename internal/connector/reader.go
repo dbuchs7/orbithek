@@ -44,7 +44,7 @@ var readers = map[string]Reader{
 	site.KindJSON:      jsonReader{},
 	site.KindAtlassian: atlassianReader{},
 	site.KindGit:       gitReader{},
-	// A reading service's highlights (ADR-0210).
+	// A reading service's highlights (ADR-0212).
 	site.KindHighlights: highlightsReader{},
 }
 

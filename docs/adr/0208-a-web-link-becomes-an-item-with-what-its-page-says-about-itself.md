@@ -1,4 +1,4 @@
-# ADR-0206: A web link becomes an item with what its page says about itself
+# ADR-0208: A web link becomes an item with what its page says about itself
 
 - **Status:** Proposed
 - **Implementation:** Partial
@@ -78,4 +78,4 @@ Strongest form: every address in every text is previewed without anyone asking, 
 
 ## Links
 
-- relates to ADR-0001, ADR-0009, ADR-0014, ADR-0015, ADR-0026, ADR-0039, ADR-0045, ADR-0047, ADR-0055, ADR-0074, ADR-0103, ADR-0106, ADR-0107, ADR-0162, ADR-0163, ADR-0207
+- relates to ADR-0001, ADR-0009, ADR-0014, ADR-0015, ADR-0026, ADR-0039, ADR-0045, ADR-0047, ADR-0055, ADR-0074, ADR-0103, ADR-0106, ADR-0107, ADR-0162, ADR-0163, ADR-0209

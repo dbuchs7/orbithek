@@ -1,4 +1,4 @@
-// The parts of the command palette (ADR-0205) that need no browser: how
+// The parts of the command palette (ADR-0207) that need no browser: how
 // well what is typed matches a name, the order of the matches, the list of
 // recently opened items, and which keys open the palette. palette.js draws
 // it; these are plain functions, tested by

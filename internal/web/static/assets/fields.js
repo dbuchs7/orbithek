@@ -1,5 +1,5 @@
 // Inputs and views of the field kinds item, multi, rating and file
-// (ADR-0200), for every place that shows or edits a field by its kind: the
+// (ADR-0202), for every place that shows or edits a field by its kind: the
 // item page, the form that makes an item, and any table, gallery or card.
 //
 //   fieldInput(f, value, ctx) is an input: a fieldset named "p:<field>"

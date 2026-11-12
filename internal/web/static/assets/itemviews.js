@@ -1,8 +1,8 @@
-// The views of the items of a type (ADR-0201) without a browser: the
+// The views of the items of a type (ADR-0203) without a browser: the
 // view's state as an address and as a block of a text, the columns a type
 // offers and shows by default, what a view may be grouped by, the groups
 // of items with their counts, the order of the items by a column or by
-// hand (ADR-0202), the cover picture of a card, and the text of a value
+// hand (ADR-0204), the cover picture of a card, and the text of a value
 // of any field kind, a kind this module does not know read as text.
 //
 // Plain functions over plain data, so node --test runs them

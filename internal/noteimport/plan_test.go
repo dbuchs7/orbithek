@@ -86,7 +86,7 @@ func hasProblem(p Plan, part string) bool {
 // A vault: folders become pages, wiki links and relative links between
 // notes the addresses of their pages, front matter and tags labels,
 // fields and a table, pictures files to attach; what cannot be converted
-// is reported (ADR-0209).
+// is reported (ADR-0211).
 func TestAVaultBecomesATreeOfPages(t *testing.T) {
 	a := open(t, zipOf(t,
 		"Vault/Home.md", "---\ntitle: Start here\ntags: [a, project/x]\naliases: Start\ndue: 2026-01-05\nrating: 3\nstatus: draft\nowner: anna\n---\n"+
@@ -187,7 +187,7 @@ const (
 
 // A Notion export: IDs in the names are stripped and identify the pages,
 // links name pages by them, and a database's CSV makes items of the
-// rows' type with fields and states from its columns (ADR-0209).
+// rows' type with fields and states from its columns (ADR-0211).
 func TestANotionExportBecomesPagesAndItems(t *testing.T) {
 	csvText := "\xef\xbb\xbfName,Status,Estimate,Tags,Owner\nFirst,Done,3,\"x, y\",anna\nSecond,Open,many,,\n,,,,\n"
 	a := open(t, zipOf(t,

@@ -8,12 +8,12 @@ import (
 	"github.com/dbuchs7/orbithek/internal/item"
 )
 
-// contextRoutes are the context of an item (ADR-0205): what refers to it,
+// contextRoutes are the context of an item (ADR-0207): what refers to it,
 // with the sentence it stands in, what shares its labels, and the daily
 // notes that name it, each list within the budget ContextEntries.
 func contextRoutes(h itemHandlers) []Route {
 	return []Route{
-		{Method: http.MethodGet, Pattern: "/api/items/{ref}/context", Summary: "The context of an item: the readable items that refer to it by relations, mentions, embeds or links, each with the sentence it stands in; those that share its labels; and the daily notes that name it; each list truncated beyond the budget ContextEntries (ADR-0205)", Handler: http.HandlerFunc(h.itemContext)},
+		{Method: http.MethodGet, Pattern: "/api/items/{ref}/context", Summary: "The context of an item: the readable items that refer to it by relations, mentions, embeds or links, each with the sentence it stands in; those that share its labels; and the daily notes that name it; each list truncated beyond the budget ContextEntries (ADR-0207)", Handler: http.HandlerFunc(h.itemContext)},
 	}
 }
 

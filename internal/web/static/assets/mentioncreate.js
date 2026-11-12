@@ -1,4 +1,4 @@
-// An item is created where it is mentioned (ADR-0204): when "@" or the
+// An item is created where it is mentioned (ADR-0206): when "@" or the
 // link dialog finds no item of the title typed, the editor offers to
 // create one. A dialog asks for its type, the room's page type by default,
 // and its room, the edited item's by default; an item of a type with a
@@ -19,14 +19,14 @@ export function pageType(types) {
 
 // creatable are the types an item can be made of from a title alone: no
 // field it requires. Those that need more are made with New. A daily note
-// is made from its day, never from a mention (ADR-0203).
+// is made from its day, never from a mention (ADR-0205).
 export function creatable(types) {
   return types.filter((ty) => ty.name !== "daily-note" && !(ty.fields || []).some((f) => f.required));
 }
 
 // placeOf is where the new item goes: below the edited item when its type
 // has a text and it is made in the edited item's room, else at the top of
-// the room chosen. Never below a daily note (ADR-0203): a child inherits
+// the room chosen. Never below a daily note (ADR-0205): a child inherits
 // its parent's restriction (D9), and a note is its author's alone.
 export function placeOf(host, type, space) {
   const note = (host?.labels || []).includes("daily-note");

@@ -249,7 +249,7 @@ func (p *plan) blocked(t *item.Store, it item.Item) string {
 }
 
 // refs are the items an item needs or points at: its parent, the items its
-// body shows or mentions, the items its item fields refer to (ADR-0200),
+// body shows or mentions, the items its item fields refer to (ADR-0202),
 // and the targets of its relations.
 func (p *plan) refs(it item.Item) []item.ID {
 	var out []item.ID
@@ -369,7 +369,7 @@ func (w *writer) item(t *item.Store, id item.ID) {
 		}
 	}
 	// Item and file fields are written with the content, once every
-	// restored item and file exists (ADR-0200).
+	// restored item and file exists (ADR-0202).
 	props := item.Props{}
 	for name, v := range it.Properties {
 		// A reference to an item that is here already is written at once,

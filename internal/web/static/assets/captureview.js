@@ -1,7 +1,7 @@
-// The capture view (ADR-0207): what a share to the installed app, the
+// The capture view (ADR-0209): what a share to the installed app, the
 // bookmarklet or a link passed on, shown to be saved into the wiki. A
 // capture goes to one of its targets: a new web link item when it names a
-// page (ADR-0206), a new item of a chosen type in a chosen room, or the
+// page (ADR-0208), a new item of a chosen type in a chosen room, or the
 // end of an item found by searching. Nothing is saved before the person
 // chooses and saves; every change goes through the API with their rights.
 //
@@ -49,7 +49,7 @@ export const TARGET_VIEWS = {
     run: (c, v) => post("/api/weblinks", { url: c.url, title: c.title, quote: c.text, space: v.space, parent: v.parent, text: v.text }),
   },
   // Today's daily note, made when missing in the room chosen for daily
-  // notes; without that room the server says so (ADR-0203).
+  // notes; without that room the server says so (ADR-0205).
   daily: {
     label: () => t("capture.toDaily"),
     fields: () => ({ elements: [], values: () => ({}) }),

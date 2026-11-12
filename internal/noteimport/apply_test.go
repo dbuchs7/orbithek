@@ -74,7 +74,7 @@ func byOrigin(t *testing.T, db *storage.DB, id string) item.Item {
 // A dry run writes nothing and says what a run would make; the run makes
 // it, with mentions between the pages, pictures attached and labels and
 // fields set; a re-run changes nothing; a changed archive changes what
-// changed, keeps what people wrote and never deletes (ADR-0209).
+// changed, keeps what people wrote and never deletes (ADR-0211).
 func TestAnImportIsRehearsedRunAndRepeated(t *testing.T) {
 	db := openDB(t)
 	a := vault(t, homeNote, "Vault/Zeta.md", "Last.\n")

@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// roomType is a type of the space PLAT (ADR-0199).
+// roomType is a type of the space PLAT (ADR-0201).
 func roomType() TypeDef {
 	return TypeDef{Name: "incident", Space: "PLAT", Body: true,
 		Fields:   []FieldDef{{Name: "severity", Kind: KindEnum, Values: []string{"low", "high"}}},

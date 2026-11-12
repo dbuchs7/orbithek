@@ -9,7 +9,7 @@ import (
 	"unicode"
 )
 
-// The context of an item (ADR-0205): what refers to it, which items share
+// The context of an item (ADR-0207): what refers to it, which items share
 // its labels, and the daily notes that name it, as one reader may see
 // them. It is derived on every request from the live state, like the
 // starmap (ADR-0157), and holds nothing of its own. Nothing in it names an
@@ -45,7 +45,7 @@ type ContextShared struct {
 	Labels []string
 }
 
-// ContextDaily is a daily note (ADR-0203) that mentions or links the item.
+// ContextDaily is a daily note (ADR-0205) that mentions or links the item.
 type ContextDaily struct {
 	Item     Item
 	Day      time.Time

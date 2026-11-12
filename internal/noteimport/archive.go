@@ -1,5 +1,5 @@
 // Package noteimport imports a ZIP archive of notes into a room
-// (ADR-0209): a folder of Markdown files, such as an Obsidian vault or the
+// (ADR-0211): a folder of Markdown files, such as an Obsidian vault or the
 // Markdown export of another notes application, or a Notion workspace
 // export of Markdown and CSV files. Folders become a tree of pages, links
 // between notes become mentions of the imported pages, pictures become

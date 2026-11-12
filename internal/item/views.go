@@ -9,7 +9,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/query"
 )
 
-// Views of the items of a type (ADR-0201): a table, a gallery or a list,
+// Views of the items of a type (ADR-0203): a table, a gallery or a list,
 // grouped by a field, computed when shown from the items the reader may
 // read. A view of its own is an address of the UI and keeps nothing; a
 // view placed in a text is a block of the kind view that names what it
@@ -75,7 +75,7 @@ func validViewGroup(g string) bool {
 	return g == "" || slices.Contains(ViewGroups, g)
 }
 
-// checkViewBlock validates a view block (ADR-0201).
+// checkViewBlock validates a view block (ADR-0203).
 func checkViewBlock(b Block) error {
 	switch {
 	case b.Text != "" || len(b.Marks) > 0 || len(b.Mentions) > 0:

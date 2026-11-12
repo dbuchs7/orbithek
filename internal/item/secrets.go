@@ -125,7 +125,7 @@ func (s *Store) hidden(principal string, it *Item) map[ID]bool {
 // item itself.
 func (s *Store) veiled(principal string, it *Item) *Item {
 	// An item field that refers to an item the principal may not read is
-	// read as empty (D10, ADR-0200).
+	// read as empty (D10, ADR-0202).
 	if refs := s.unreadableRefs(principal, it.Properties); refs != nil {
 		c := it.clone()
 		for _, name := range refs {
@@ -140,7 +140,7 @@ func (s *Store) veiled(principal string, it *Item) *Item {
 	c := it.clone()
 	c.Body = veil(c.Body, hide)
 	// Nor are the files of protected blocks counted (ADR-0160), nor the
-	// comments on them (ADR-0208).
+	// comments on them (ADR-0210).
 	c.Attachments = s.veilFiles(principal, it)
 	c.Comments = s.visibleComments(principal, it)
 	return &c

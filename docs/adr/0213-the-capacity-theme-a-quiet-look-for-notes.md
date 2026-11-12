@@ -1,4 +1,4 @@
-# ADR-0211: The Capacity theme, a quiet look for notes in light and dark
+# ADR-0213: The Capacity theme, a quiet look for notes in light and dark
 
 - **Status:** Proposed
 - **Implementation:** Partial

@@ -1,7 +1,7 @@
 {
   "name": "orbithek-vendor",
   "private": true,
-  "description": "Builds the vendored editor (ADR-0032), drawing (ADR-0053), BPMN (ADR-0129), form and DMN (ADR-0144) bundles and the PDF reader (ADR-0208) in ../static/vendor. Needed only to update them; go build never runs it.",
+  "description": "Builds the vendored editor (ADR-0032), drawing (ADR-0053), BPMN (ADR-0129), form and DMN (ADR-0144) bundles and the PDF reader (ADR-0210) in ../static/vendor. Needed only to update them; go build never runs it.",
   "license": "AGPL-3.0-only",
   "scripts": {
     "build": "sh build.sh"

@@ -154,7 +154,7 @@ type user struct {
 	// favourites (ADR-0177).
 	pictures map[PictureRef]bool
 	// dailyRoom is the key of the space the user's daily notes go to, or
-	// empty (ADR-0203).
+	// empty (ADR-0205).
 	dailyRoom string
 }
 
@@ -243,7 +243,7 @@ type event struct {
 	// is now a favourite (ADR-0177).
 	Picture *PictureRef `json:"picture,omitempty"`
 	On      bool        `json:"on,omitempty"`
-	// Room is the space of a DailyRoomSet, empty to clear it (ADR-0203).
+	// Room is the space of a DailyRoomSet, empty to clear it (ADR-0205).
 	Room string `json:"room,omitempty"`
 }
 
@@ -285,7 +285,7 @@ const (
 	// a user, or unmarks it (ADR-0177).
 	pictureFavouriteSet = "PictureFavouriteSet"
 	// dailyRoomSet records the space a user's daily notes go to
-	// (ADR-0203).
+	// (ADR-0205).
 	dailyRoomSet = "DailyRoomSet"
 )
 

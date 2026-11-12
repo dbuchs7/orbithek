@@ -16,7 +16,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/site"
 )
 
-// fakeReadwise answers the export of Readwise's API v2 (ADR-0210): the
+// fakeReadwise answers the export of Readwise's API v2 (ADR-0212): the
 // full export in two pages, or with updatedAfter the books whose
 // highlights changed; it asks the first request to wait once.
 type fakeReadwise struct {
@@ -140,7 +140,7 @@ func texts(it item.Item) []string {
 // Each book becomes an item of the chosen type with its fields and tags;
 // its highlights are quotes with their notes and places above a line;
 // a later run reads what changed, merges it and keeps what people wrote
-// below the line (ADR-0210).
+// below the line (ADR-0212).
 func TestHighlightsBecomeItems(t *testing.T) {
 	f, src, _ := readingSetup(t)
 	ctx := context.Background()

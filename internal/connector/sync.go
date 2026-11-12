@@ -437,7 +437,7 @@ func withLabels(have, add []string) []string {
 }
 
 // keepBelow continues the source's blocks with what people wrote below
-// the line that ends the source's part of the old page (ADR-0210). Where
+// the line that ends the source's part of the old page (ADR-0212). Where
 // the line is gone, the whole old page is kept below the new one, as
 // nothing people wrote is dropped; kept reports whether the line was
 // found.

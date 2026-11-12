@@ -1,4 +1,4 @@
-# ADR-0208: A PDF reader with highlights anchored as comments
+# ADR-0210: A PDF reader with highlights anchored as comments
 
 - **Status:** Proposed
 - **Implementation:** Partial

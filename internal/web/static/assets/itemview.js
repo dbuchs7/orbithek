@@ -1,10 +1,10 @@
-// The views of the items of a type (ADR-0201): a table, a gallery of
+// The views of the items of a type (ADR-0203): a table, a gallery of
 // cards or a compact list of the items one may read, grouped by a field
 // under headers that fold, with their counts. A view at #/view keeps its
 // whole state in the address, as the roadmap and the calendar do; a view
 // in a text is a block of the kind view; a label's page shows the items
 // that carry its label so, ordered by hand by whoever may edit the page
-// (ADR-0202). Nothing is kept for a view: it is computed from the item
+// (ADR-0204). Nothing is kept for a view: it is computed from the item
 // listing, so a reader sees only what they read (D10).
 //
 // Cells change in place where one may edit: the title, the fields the
@@ -62,7 +62,7 @@ function valueText(it, column, type, helpers) {
 export function renderField(field, value, helpers) {
   const kind = field?.kind || "text";
   // References, choices of several values and ratings are drawn as the
-  // item page draws them (ADR-0200); a file field needs the item's files,
+  // item page draws them (ADR-0202); a file field needs the item's files,
   // which a listing does not carry, and stays text.
   if (isRich(field) && kind !== "file") return h("span", { class: "iv-value", "data-kind": kind }, fieldView(field, value));
   const text = fieldText(field, value, { person: helpers.person, yes: t("views.yes"), no: t("views.no"), moment });
@@ -131,7 +131,7 @@ function cellBody(it, column, type, o) {
 
 // orderTools make an item a place in the order set by hand: it is dragged
 // before another, or moved up and down by its buttons and by Alt with an
-// arrow key (ADR-0202).
+// arrow key (ADR-0204).
 function orderTools(el, it, o) {
   if (!o.ordering) return null;
   el.draggable = true;
@@ -233,7 +233,7 @@ function groupName(group, key, type, helpers) {
 // whether one may change it; refresh() shows the view again after a
 // change; onSort(sort) chooses a sort, or none for headings that do not
 // sort; order, the IDs set by hand, and place(moved, before) to change
-// them, when one may (ADR-0202).
+// them, when one may (ADR-0204).
 export function itemsView(state, items, type, o) {
   const cols = shownColumns(state, type);
   const text = (it, c) => valueText(it, c, type, o.helpers);
@@ -375,7 +375,7 @@ export async function pickView(initial, helpers = shared) {
 // labelItems draws the items that carry a label as a view whose layout
 // and grouping are chosen on the spot and kept in the address of the
 // label's page (topic), which is not one of them; order is the order set
-// by hand on the page, which orderable lets the reader change (ADR-0202).
+// by hand on the page, which orderable lets the reader change (ADR-0204).
 export async function labelItems(label, { state, order = [], topic, orderable = false, helpers = shared, change }) {
   const [found, { types }] = await Promise.all([helpers.readAll(listURL({}, label)), get("/api/types"), helpers.loadRoles()]);
   const items = found.items.filter((it) => it.id !== topic.id);

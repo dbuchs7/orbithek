@@ -1,4 +1,4 @@
-# ADR-0202: A label's page, and collections ordered by hand
+# ADR-0204: A label's page, and collections ordered by hand
 
 - **Status:** Proposed
 - **Implementation:** Partial
@@ -34,12 +34,12 @@ Chosen option: **1**.
 
 - **The type.** `item.TypeTemplates` gains `topic`: a body and a required, unique text field `label` (unique per room, ADR-0074). Any type with a body and a text field `label` can hold a label's page. **Describe this label** on a label's view makes one in a room the person may create in (`POST /api/labels/{label}/page`, `Session.DescribeLabel`), titled by the label unless given a title; the type is defined from its template on first use, as the album defines its collection's type (ADR-0175), and a type of that name that cannot hold a page is not taken over. While nothing new may be made (ADR-0163), neither the type nor the page is made.
 - **Finding it.** `GET /api/labels/{label}/page` answers the page of the label the caller reads: among the live items whose type holds a page and whose field names the label (normalised as labels are), the one made first (`Session.TopicOf`). A label with pages in several rooms shows each reader the oldest they read. The label's view shows it on top, its title, the beginning of its text and **Read the page**.
-- **Its items.** A label's page shows the live items carrying its label, other than itself, with the views of ADR-0201 (table, gallery or list, grouped and sorted; the layout, grouping and sort in the page's address).
+- **Its items.** A label's page shows the live items carrying its label, other than itself, with the views of ADR-0203 (table, gallery or list, grouped and sorted; the layout, grouping and sort in the page's address).
 - **The order.** Whoever may edit the page moves items before another or to the end (`PUT /api/items/{ref}/order` with `items` and `before`, `Session.PlaceItems`), by dragging or with the arrows and Alt+↑ and Alt+↓; `DELETE` forgets it. The page keeps the order as `Item.ItemOrder`, the IDs of the items in their order, recorded as the event `ItemsOrdered` in the field `order`. As with the slides of ADR-0195, a move writes the whole order: what it named and still carries the label, then the items the mover reads and it did not name in the order they were made, then the moved ones take their place; items the mover does not read keep theirs. Items without a place come after the ordered ones, in the order they were made.
 - **Sealing.** The order is not sealed: it names items by ID only, no content (ADR-0026), like `PicturesOrdered` (codec version 52). It is no reference (D8): an item that loses the label, is trashed or purged is passed over and forgotten with the next move.
 - **What a reader learns.** `GET /api/items/{ref}/order` and the label's page answer only the IDs of items the caller reads, in their order (`Session.ItemOrder`); the history does not show the order. A reader who does not read an item sees neither it nor a gap.
 - **Collections.** A label's page with its order is a collection. **Add to collection…** on an item lists the readable pages of the type `topic` and gives the item the chosen page's label (`PUT /api/items/{ref}/labels`), so labels remain the one mechanism.
-- **Format.** Codec version 56 adds the kind `ItemsOrdered` (shared with ADR-0201); earlier versions are still read and have no order.
+- **Format.** Codec version 56 adds the kind `ItemsOrdered` (shared with ADR-0203); earlier versions are still read and have no order.
 - **MCP** (ADR-0012): `get_label_page` reads a label's page with its order; describing a label is `create_item` with the type `topic`; ordering by hand is a person's arrangement and is not offered.
 
 ### Consequences
@@ -73,4 +73,4 @@ Strongest form: a number on each item (its place in a collection) is queryable, 
 
 ## Links
 
-- relates to ADR-0012 (MCP), ADR-0022 (permissions), ADR-0025 (codec), ADR-0026 (sealed content), ADR-0044 (labels), ADR-0074 (unique fields), ADR-0162 (ready-made types), ADR-0163 (nothing new at critical storage), ADR-0175 (collections in the album), ADR-0195 (slides ordered by hand), ADR-0201 (views of items)
+- relates to ADR-0012 (MCP), ADR-0022 (permissions), ADR-0025 (codec), ADR-0026 (sealed content), ADR-0044 (labels), ADR-0074 (unique fields), ADR-0162 (ready-made types), ADR-0163 (nothing new at critical storage), ADR-0175 (collections in the album), ADR-0195 (slides ordered by hand), ADR-0203 (views of items)

@@ -1,5 +1,5 @@
-// Unit tests of the type editor's parts (typeparts.js, ADR-0199,
-// ADR-0200): drafts and definitions, what is wrong with a draft, start
+// Unit tests of the type editor's parts (typeparts.js, ADR-0201,
+// ADR-0202): drafts and definitions, what is wrong with a draft, start
 // texts as Markdown and how values of the new field kinds read. They run in Node.js
 // without a browser and without dependencies:
 //

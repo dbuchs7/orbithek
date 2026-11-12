@@ -1,4 +1,4 @@
-// A daily note per person and day (ADR-0203): the view #/daily/<date>
+// A daily note per person and day (ADR-0205): the view #/daily/<date>
 // shows one's own note of a day with its text editable in place, the days
 // before and after, a month marking the days one has a note on, the items
 // made or changed that day that one may read, and the items the calendar

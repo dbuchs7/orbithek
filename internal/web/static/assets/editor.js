@@ -71,7 +71,7 @@ export const schema = new Schema({
     children: { group: "block", atom: true, selectable: true, attrs: bid, toDOM: () => ["div", { class: "pm-children" }] },
     // The tasks that carry a label, computed when shown (ADR-0114).
     tasklist: { group: "block", atom: true, selectable: true, attrs: { ...bid, label: { default: "" }, query: { default: "" } }, toDOM: (n) => ["div", { class: "pm-tasklist", "data-label": n.attrs.label, ...(n.attrs.query ? { "data-query": n.attrs.query } : {}) }] },
-    // The items of a type as a table, a gallery or a list (ADR-0201),
+    // The items of a type as a table, a gallery or a list (ADR-0203),
     // computed when shown; the block keeps what it shows.
     itemview: { group: "block", atom: true, selectable: true, attrs: { ...bid, layout: { default: "table" }, itemType: { default: "" }, space: { default: "" }, query: { default: "" },
       group: { default: "" }, columns: { default: null }, sort: { default: "" } }, toDOM: (n) => ["div", { class: "pm-itemview", "data-layout": n.attrs.layout }] },
@@ -658,7 +658,7 @@ function taskListView(node, tasks) {
     update: (n) => n.type === node.type && n.attrs.label === label && n.attrs.query === query };
 }
 
-// itemViewView shows the items a view block names (ADR-0201), as far as
+// itemViewView shows the items a view block names (ADR-0203), as far as
 // the reader reads them; while editing, a button changes what it shows.
 function itemViewView(node, v, getPos) {
   const attrs = node.attrs;
@@ -918,7 +918,7 @@ function imageView(node, view, getPos, files) {
 // a page from a Markdown file of a repository below the item and returns
 // it, or null when cancelled (ADR-0138). weblinks.save(address), if given,
 // saves the page a link leads to as a web link item and returns {item,
-// problem}, or null when cancelled (ADR-0206).
+// problem}, or null when cancelled (ADR-0208).
 export function createEditor({ blocks, embeds, editable, resolve, childPages, files, extra = [], viewProps = {}, comment, protect, note, actions = [], embedContent, tasks, markdown, weblinks, create }) {
   const mount = h("div", { class: "pm-editor" });
   const tocs = new Set();
@@ -1272,7 +1272,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     }
   };
   // The page a link leads to becomes a web link item, which the text
-  // shows as its card (ADR-0206), in place of a paragraph that holds the
+  // shows as its card (ADR-0208), in place of a paragraph that holds the
   // link alone.
   saveLink = async (address) => {
     status.textContent = "";
@@ -1294,7 +1294,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     if (!spec) return view.focus();
     insertBlock(schema.nodes.tasklist.create(spec));
   };
-  // A view of items (ADR-0201): what it shows is chosen as at #/view.
+  // A view of items (ADR-0203): what it shows is chosen as at #/view.
   const itemView = async () => {
     status.textContent = "";
     try {

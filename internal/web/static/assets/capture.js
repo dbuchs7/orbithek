@@ -1,4 +1,4 @@
-// Capturing into the wiki from anywhere (ADR-0207) without a browser:
+// Capturing into the wiki from anywhere (ADR-0209) without a browser:
 // reading what a share, a bookmarklet or a link passed on, the blocks a
 // capture adds to a body, the targets it may go to, and the bookmarklet
 // itself.
@@ -82,9 +82,9 @@ export function captureBlocks(capture, sourceLabel) {
 // action (captureview.js). Another target, such as one's note of the day,
 // is one more entry here and there.
 export const TARGETS = [
-  // A page of the web becomes a web link item (ADR-0206).
+  // A page of the web becomes a web link item (ADR-0208).
   { id: "weblink", takes: (c) => Boolean(c.url) },
-  // Paragraphs added to one's daily note of today (ADR-0203).
+  // Paragraphs added to one's daily note of today (ADR-0205).
   { id: "daily", takes: (c) => Boolean(c.title || c.text || c.url) },
   // A new item of a chosen type in a chosen room, the capture its text.
   { id: "item", takes: (c) => Boolean(c.title || c.text || c.url) },

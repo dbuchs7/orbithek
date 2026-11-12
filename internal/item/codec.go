@@ -158,20 +158,20 @@ import (
 //   - 54: photo data may carry TakenManual, a time set by hand, and the
 //     kind AttachmentTakenSet with attachment, sealed (ADR-0198). Versions
 //     1 to 53 are still read; their times are the files' own.
-//   - 55: a type may carry Space, the room it belongs to (ADR-0199); a
+//   - 55: a type may carry Space, the room it belongs to (ADR-0201); a
 //     field may carry Targets and be of the kinds item, multi, rating and
 //     file, and a value may be a reference (t "r", an ID) or a list of
-//     strings (t "l", as JSON) (ADR-0200). Versions 1 to 54 are still
+//     strings (t "l", as JSON) (ADR-0202). Versions 1 to 54 are still
 //     read; they hold no room type, no such field and no such value.
 //   - 56: the block kind view, with the block fields Layout, ItemType,
 //     Space, Group, Columns and Sort and its Query, sealed with the body
-//     (ADR-0201); and the kind ItemsOrdered with order, the items of a
+//     (ADR-0203); and the kind ItemsOrdered with order, the items of a
 //     label's page in the order set by hand, not sealed, as it names items
-//     by ID only (ADR-0202). Versions 1 to 55 are still read; their bodies
+//     by ID only (ADR-0204). Versions 1 to 55 are still read; their bodies
 //     hold no view and their pages no order.
 //   - 57: not used; no log was written with it.
 //   - 58: an anchor may name a highlight in a PDF, with File, Version,
-//     Page, Rects and Color, sealed with the rest of it (ADR-0208).
+//     Page, Rects and Color, sealed with the rest of it (ADR-0210).
 //     Versions 1 to 57 are still read; their comments are on no PDF.
 const CodecVersion = 58
 
@@ -576,7 +576,7 @@ func fromWire(w wireEvent) (Event, error) {
 			return e, fmt.Errorf("unknown role %q", w.Role)
 		}
 	}
-	// References and lists came with version 55 (ADR-0200); an older
+	// References and lists came with version 55 (ADR-0202); an older
 	// event holding one was not written by this program.
 	newer := func(wv *wireValue) bool { return wv != nil && (wv.T == "r" || wv.T == "l") && w.V < 55 }
 	if newer(w.Value) || slices.ContainsFunc(slices.Collect(maps.Values(w.Props)), newer) {

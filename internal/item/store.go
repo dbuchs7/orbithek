@@ -307,7 +307,7 @@ func (s *Store) firstBody(created Event, d Doc) (Event, error) {
 }
 
 // firstBodyOf is firstBody for an item of the type td, which a batch may
-// define together with the item (ADR-0203, ADR-0206).
+// define together with the item (ADR-0205, ADR-0208).
 func (s *Store) firstBodyOf(td TypeDef, created Event, d Doc) (Event, error) {
 	if !td.Body {
 		return Event{}, invalid("type %q has no body", td.Name)
@@ -377,7 +377,7 @@ func (s *Store) prepareCreate(n NewItem) (Event, error) {
 }
 
 // prepareCreateOf is prepareCreate for an item of td, a type that may be
-// defined in the same batch (ADR-0206).
+// defined in the same batch (ADR-0208).
 func (s *Store) prepareCreateOf(n NewItem, td TypeDef) (Event, error) {
 	if !s.HasSpace(n.Space) {
 		return Event{}, notFound("space %q", n.Space)
@@ -717,7 +717,7 @@ func (s *Store) checkMove(id ID, toSpace string, newParent ID) error {
 			return invalid("cannot move an item below itself")
 		}
 	}
-	// An item of a room type stays in its room (ADR-0199).
+	// An item of a room type stays in its room (ADR-0201).
 	for _, m := range s.subtree(id) {
 		it := s.items[m]
 		if td, ok := s.latest(it.Type); ok && it.Presence == Live && !td.UsableIn(toSpace) {
@@ -1015,7 +1015,7 @@ func (s *Store) apply(e Event) {
 		touch(it.ID)
 		for id, r := range s.rels {
 			// The relations of item fields follow the properties, not the
-			// body (ADR-0200).
+			// body (ADR-0202).
 			if r.Derived && r.From == it.ID && r.field == "" {
 				touch(r.To)
 				delete(s.rels, id)

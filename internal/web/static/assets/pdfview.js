@@ -1,4 +1,4 @@
-// The PDF reader (ADR-0208): a PDF file of an item drawn in the browser by
+// The PDF reader (ADR-0210): a PDF file of an item drawn in the browser by
 // pdf.js (vendored, run from this server), page by page as they come into
 // view, each with its text laid over it so it can be selected and
 // searched. A side panel shows the pages as thumbnails, the document's

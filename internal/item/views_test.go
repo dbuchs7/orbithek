@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// A view block names what it shows and how; it holds no items (ADR-0201).
+// A view block names what it shows and how; it holds no items (ADR-0203).
 func TestAViewBlockNamesItsLayoutTypeRoomQueryGroupAndColumns(t *testing.T) {
 	good := []Block{
 		{Kind: ItemsView, Layout: ViewTable},
