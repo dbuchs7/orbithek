@@ -167,6 +167,8 @@ A room offers several views: its page tree, **All items**, a **Board** per type 
 
 The module **Tasks** lists open work across your rooms: items of the type *task* and of every type with a workflow and an *assignee* or *due* field. The tabs show **Assigned to me**, **Unassigned** and **All open**; filters narrow by room, state, person, due date and labels. **Take over** assigns a task to you, **Give back** releases it. Overdue tasks are marked.
 
+The ready-made type *task* has a *start* date beside its *due* date. The calendar and the roadmap show a task with both as a bar from its start to its due date. A start date is not a deadline: on a kanban a past start date is not marked as overdue. Types created before gain the field when an administrator adds the ready-made types' new fields on the start page.
+
 ### Boards and kanbans
 
 A **board** shows the items of one type in a room as columns of their workflow states. Dragging a card to another column carries out the workflow's transition.

@@ -132,12 +132,15 @@ func MentionParagraph(before string, item ID, label, after string) Block {
 // TypeTemplates are the ready-made types an installation starts from
 // (types are data, ADR-0001): the UI offers them to administrators, and a
 // request's task is of the first of them that can hold one when the
-// installation has no such type yet (ADR-0162).
+// installation has no such type yet (ADR-0162). A task has a start date
+// beside its due date, named so the calendar and the roadmap read it as
+// the beginning of a bar; an installation defined before gains it when an
+// administrator adds the template's new fields.
 func TypeTemplates() []TypeDef {
 	return []TypeDef{
 		{Name: "page", Body: true, Fields: []FieldDef{{Name: "owner", Kind: KindUser}}},
 		{Name: "task", Body: true,
-			Fields: []FieldDef{{Name: "assignee", Kind: KindUser}, {Name: "due", Kind: KindDate}, {Name: "priority", Kind: KindEnum, Values: []string{"low", "normal", "high"}}},
+			Fields: []FieldDef{{Name: "assignee", Kind: KindUser}, {Name: "start", Kind: KindDate}, {Name: "due", Kind: KindDate}, {Name: "priority", Kind: KindEnum, Values: []string{"low", "normal", "high"}}},
 			Workflow: &Workflow{Initial: "open", States: []string{"open", "in progress", "done"}, Transitions: []Transition{
 				{Name: "start", From: []string{"open"}, To: "in progress"},
 				{Name: "finish", From: []string{"open", "in progress"}, To: "done"},

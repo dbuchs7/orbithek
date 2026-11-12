@@ -17,6 +17,7 @@ import { renameInPlace } from "./rename.js";
 import { presenterView, audienceView } from "./present.js";
 import { starmapView } from "./starmap.js";
 import { roadmapView } from "./roadmap.js";
+import { isStartName } from "./timeline.js";
 import { calendarView } from "./calendarview.js";
 import { WEEKDAYS, parseRule, ruleText } from "./recurrence.js";
 import { address as calendarAddress, tasksTab } from "./calendar.js";
@@ -3267,10 +3268,11 @@ async function cardBoard(o) {
     openDetail(it);
   };
   // dueOf sorts a card for the filter by its dates: overdue, within a
-  // week, or without a date; a finished card is none of the first two.
+  // week, or without a date; a finished card is none of the first two. A
+  // start date is no deadline and does not count.
   const dueOf = (it) => {
     const type = typeOf(it);
-    const days = type.fields.filter((f) => (f.kind === "date" || f.kind === "datetime") && it.properties[f.name])
+    const days = type.fields.filter((f) => (f.kind === "date" || f.kind === "datetime") && !isStartName(f.name) && it.properties[f.name])
       .map((f) => daysFromToday(dayOfValue(f, it.properties[f.name]))).filter((d) => d !== null);
     if (!days.length) return "none";
     if (finished(type.workflow, it.state)) return "";
@@ -3628,10 +3630,11 @@ function moveRefused(status, err, type, it, state, move) {
 // value of an enumeration or a state as it is, a date by how far off it
 // is, a yes by the field's name, and text, numbers and links after a
 // muted name, since alone they say little. done tells whether the card's
-// state is finished.
+// state is finished; a start date that has passed is not overdue.
 function cardChip(name, f, v, done) {
-  if (f?.kind === "date") return dateChip(name, String(v).slice(0, 10), done);
-  if (f?.kind === "datetime") return dateChip(name, localDay(String(v)), done, timeText(v));
+  const passes = done || isStartName(name);
+  if (f?.kind === "date") return dateChip(name, String(v).slice(0, 10), passes);
+  if (f?.kind === "datetime") return dateChip(name, localDay(String(v)), passes, timeText(v));
   const chip = (...content) => h("span", { class: "card-chip", title: `${name}: ${v}` }, h("span", { class: "visually-hidden", text: `${name}: ` }), ...content);
   if (f?.kind === "bool") return chip(`✓ ${name}`);
   if (!f || f.kind === "enum") return chip(String(v));

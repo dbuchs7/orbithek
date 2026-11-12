@@ -374,3 +374,30 @@ func TestPlainAccessTexts(t *testing.T) {
 		t.Fatalf("%q %+v", title, body)
 	}
 }
+
+// The ready-made task type carries a start date next to its due date, so
+// a task is planned from a day to a day and the calendar and the roadmap
+// place it as a bar without being told which fields to read. The start is
+// optional: the type still holds a request's task.
+func TestTheTaskTemplateHasAStartDate(t *testing.T) {
+	var task TypeDef
+	for _, td := range TypeTemplates() {
+		if td.Name == "task" {
+			task = td
+		}
+	}
+	start, ok := task.field("start")
+	if !ok || start.Kind != KindDate || start.Required {
+		t.Fatalf("start %+v, %v", start, ok)
+	}
+	names := make([]string, len(task.Fields))
+	for i, f := range task.Fields {
+		names[i] = f.Name
+	}
+	if !slices.Equal(names, []string{"assignee", "start", "due", "priority"}) {
+		t.Fatalf("fields %v", names)
+	}
+	if !holdsRequests(task) {
+		t.Fatal("the task template no longer holds a request's task")
+	}
+}
