@@ -15,12 +15,16 @@ const StarGroup = "group"
 // StarmapAll returns the starmap of every space the principal reads
 // (ADR-0191): their readable live items, with containment, relations and
 // the labels at least two of them carry, as a space's starmap shows them
-// (ADR-0157), pictures left out. With label, only the items that carry it
-// are on the map. When the items are more than maxNodes, the map shows a
-// node per space and type instead (StarGroup, Count the items it stands
-// for) and an edge between two such nodes for the containment and
-// relations between their items (Count how many); Grouped is set then.
-// Nothing on it names or counts an item the principal may not read (D10).
+// (ADR-0157). The pictures and drawings of those items fill what the
+// budget leaves, each joined to its item and a copy to its original
+// (ADR-0215): first those a text shows, each copy's original after it,
+// then the labels, then the other pictures. With label, only the items
+// that carry it, and their pictures, are on the map. When the items are
+// more than maxNodes, the map shows a node per space and type instead
+// (StarGroup, Count the items it stands for), no pictures, and an edge
+// between two such nodes for the containment and relations between their
+// items (Count how many); Grouped is set then. Nothing on it names or
+// counts an item or a file the principal may not read (D10).
 func (x *Session) StarmapAll(label string, maxNodes int) Starmap {
 	label = strings.ToLower(strings.TrimSpace(label))
 	var items []*Item
@@ -63,8 +67,14 @@ func (x *Session) StarmapAll(label string, maxNodes int) Starmap {
 		for _, it := range items {
 			b.add(itemNode(it, false))
 		}
-		for _, l := range links {
-			b.edge(l.edge)
+		pictures := x.allStarPictures(in)
+		for _, p := range pictures {
+			if p.used {
+				b.add(p.node)
+				if p.src != nil {
+					b.add(pictureNodeFor(p.src, p.srcTop))
+				}
+			}
 		}
 		carriers := map[string][]string{}
 		for _, it := range items {
@@ -86,6 +96,18 @@ func (x *Session) StarmapAll(label string, maxNodes int) Starmap {
 			b.add(StarNode{ID: id, Kind: StarLabel, Name: l})
 			for _, it := range carriers[l] {
 				b.edge(StarEdge{From: id, To: it, Kind: StarLabelled})
+			}
+		}
+		for _, p := range pictures {
+			b.add(p.node)
+		}
+		for _, l := range links {
+			b.edge(l.edge)
+		}
+		for _, p := range pictures {
+			b.edge(p.ownerEdge())
+			if e, ok := p.copyEdge(); ok {
+				b.edge(e)
 			}
 		}
 		return Starmap{Nodes: b.nodes, Edges: b.edges, Truncated: b.truncated, Items: len(items)}
@@ -135,4 +157,26 @@ func (x *Session) StarmapAll(label string, maxNodes int) Starmap {
 		b.edge(StarEdge{From: k.a, To: k.b, Kind: StarGroup, Count: between[k]})
 	}
 	return Starmap{Nodes: b.nodes, Edges: b.edges, Truncated: b.truncated, Grouped: true, Items: len(items)}
+}
+
+// allStarPictures are the picture nodes of the items on the starmap of all
+// spaces (ADR-0215), newest first; the original of a copy is kept only
+// when its item is on the map too.
+func (x *Session) allStarPictures(on map[ID]*Item) []starPicture {
+	var out []starPicture
+	for _, p := range x.starPictures("") {
+		if on[p.node.Item] == nil {
+			continue
+		}
+		if p.src != nil && on[p.src.ID] == nil {
+			p.src, p.srcTop = nil, nil
+		}
+		out = append(out, p)
+	}
+	return out
+}
+
+// pictureNodeFor is the node of the newest version of a file of an item.
+func pictureNodeFor(it *Item, top *Attachment) StarNode {
+	return StarNode{ID: pictureNodeID(it.ID, top.ID), Kind: StarPicture, Space: it.Space, Item: it.ID, Name: top.Name}
 }
