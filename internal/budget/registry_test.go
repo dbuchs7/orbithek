@@ -82,6 +82,7 @@ var classified = map[string]string{
 	"internal/item.maxSecretReaders":                   "the shape of a protected passage (ADR-0088): how many people and groups it names, like the lists of a restriction",
 	"internal/item.maxPictureLabels":                   "the shape of a picture (ADR-0090): how many labels it carries, a list a person types, not a memory setting",
 	"internal/item.MaxFaces":                           "the shape of a picture (ADR-0194): how many faces it shows, like the labels it carries, not a memory setting",
+	"internal/item.MaxRating":                          "the scale of a rating field (ADR-0200): one to five stars, a property of the field kind, not memory a caller claims",
 	"internal/item.maxPersonRunes":                     "the shape of a face (ADR-0194): the length of a person's name, like the length of a title",
 	"internal/server.maxKeptVectors":                   "a bound of the face vectors kept in memory for suggestions (ADR-0194), at most a few hundred bytes a picture; past it they are read again, so nothing a caller claims grows with it",
 	"internal/storage.maxFaceVectorBytes":              "the size of a file of face vectors (ADR-0194), fixed by MaxFaces and the 128 numbers of a face; written by this server, not a caller's upload",
