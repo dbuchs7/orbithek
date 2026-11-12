@@ -38,15 +38,21 @@ func noteImportRoutes(h itemHandlers) []Route {
 const importTime = 15 * time.Minute
 
 func (h itemHandlers) noteImports(w http.ResponseWriter, r *http.Request) {
-	h.read(w, r, func(x *item.Session) (any, error) {
-		var out []noteimport.Import
-		space := r.PathValue("space")
-		if !x.MayAdminister(space) {
-			return nil, fmt.Errorf("%w: room administrators only", item.ErrForbidden)
+	space := r.PathValue("space")
+	var out []noteimport.Import
+	var err error
+	h.d.DB.Read(func(s *item.Store) {
+		if !s.As(who(r)).MayAdminister(space) {
+			err = fmt.Errorf("%w: room administrators only", item.ErrForbidden)
+			return
 		}
-		h.d.DB.Read(func(s *item.Store) { out = noteimport.Imports(s, who(r), space) })
-		return map[string]any{"imports": out}, nil
+		out = noteimport.Imports(s, who(r), space)
 	})
+	if err != nil {
+		h.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"imports": out})
 }
 
 func (h itemHandlers) importNotes(w http.ResponseWriter, r *http.Request) {
