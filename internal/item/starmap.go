@@ -285,6 +285,8 @@ type starPicture struct {
 	node   StarNode
 	src    *Item
 	srcTop *Attachment
+	// used says that the text of its item shows a version of it.
+	used bool
 }
 
 // ownerEdge joins a picture to its item.
@@ -304,19 +306,21 @@ func (p starPicture) copyEdge() (StarEdge, bool) {
 // starPictures are the picture nodes of the readable live items of a
 // space, or of every space for "": the newest version of each file, as
 // the album shows it (ADR-0054, ADR-0103), newest first, each with the
-// original of a copy when the principal may read it.
+// original of a copy when the principal may read it, and whether the
+// text of its item shows one of its versions.
 func (x *Session) starPictures(space string) []starPicture {
 	type stackKey struct{ item, first ID }
-	seen := map[stackKey]bool{}
+	at := map[stackKey]int{}
 	var out []starPicture
 	for _, p := range x.Pictures(space, IsPicture) {
 		k := stackKey{p.Item.ID, p.First}
-		if seen[k] {
-			continue // an older version of a stack listed already
+		if i, ok := at[k]; ok {
+			out[i].used = out[i].used || p.Used // an older version of a stack listed already
+			continue
 		}
-		seen[k] = true
+		at[k] = len(out)
 		it := x.s.items[p.Item.ID]
-		sp := starPicture{node: StarNode{ID: pictureNodeID(it.ID, p.Attachment.ID), Kind: StarPicture, Space: it.Space, Item: it.ID, Name: p.Attachment.Name}}
+		sp := starPicture{node: StarNode{ID: pictureNodeID(it.ID, p.Attachment.ID), Kind: StarPicture, Space: it.Space, Item: it.ID, Name: p.Attachment.Name}, used: p.Used}
 		sp.src, sp.srcTop = x.copyOrigin(it, p.First)
 		out = append(out, sp)
 	}
