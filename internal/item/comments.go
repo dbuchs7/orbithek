@@ -163,7 +163,9 @@ func (s *Store) Comment(actor string, id ID, n NewComment) (Comment, error) {
 	if err != nil {
 		return Comment{}, err
 	}
-	if strings.TrimSpace(n.Text) == "" {
+	// A highlight in a PDF needs no note (ADR-0208); every other comment
+	// says something.
+	if strings.TrimSpace(n.Text) == "" && (n.Anchor == nil || n.Anchor.File == "") {
 		return Comment{}, invalid("comment is empty")
 	}
 	if n.Anchor != nil && n.Reply != "" {

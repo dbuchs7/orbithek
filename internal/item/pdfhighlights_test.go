@@ -49,7 +49,14 @@ func TestAHighlightIsACommentOnAPassageOfAPDF(t *testing.T) {
 	}
 	noErr(t, s.ResolveComment("anna", page.ID, c.ID, true))
 	// An agent names the page and the quote only; the reader finds it.
-	bare := mustComment(t)(s.Comment("anna", page.ID, NewComment{Text: "?", Anchor: &Anchor{Quote: "outlook", File: pdfV1, Page: 1}}))
+	// The note is optional: a highlight may say nothing but what it marks.
+	bare := mustComment(t)(s.Comment("anna", page.ID, NewComment{Text: "", Anchor: &Anchor{Quote: "outlook", File: pdfV1, Page: 1}}))
+	if _, err := s.Comment("anna", page.ID, NewComment{Text: " ", Anchor: &Anchor{Quote: "outlook"}}); !errors.Is(err, ErrValidation) {
+		t.Errorf("an empty comment on a passage of the body: %v", err)
+	}
+	if _, err := s.Comment("anna", page.ID, NewComment{Text: "", Reply: c.ID}); !errors.Is(err, ErrValidation) {
+		t.Errorf("an empty reply: %v", err)
+	}
 	if bare.Anchor.Version != "" || bare.Anchor.Rects != nil || bare.Anchor.Color != "" {
 		t.Errorf("bare anchor = %+v", bare.Anchor)
 	}
