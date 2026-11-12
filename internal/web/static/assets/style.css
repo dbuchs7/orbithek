@@ -2624,3 +2624,42 @@ button.link.album-notes-edit:hover { color: var(--accent); }
 .album-head .album-rename-input { flex: 1; min-width: 0; width: 100%; box-sizing: border-box; font: inherit; font-weight: 600; }
 /* Renaming a file in place of its name in an item's file list (ADR-0182). */
 .attachments .att-rename-input { font: inherit; min-width: 12rem; max-width: 100%; }
+/* Views of items: a table, a gallery or a list, grouped (ADR-0201), and
+   the order set by hand of a label's page (ADR-0202). */
+.iv-controls .tabs button { font: inherit; }
+.iv-query-row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+.iv-query-row .field { flex: 1; min-width: 16rem; }
+.iv-query-row textarea { width: 100%; box-sizing: border-box; font-family: var(--mono, monospace); }
+.iv-column-choice { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.iv-group { margin: 12px 0; }
+.iv-group > summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+.iv-table td .iv-edit, .iv-field .iv-edit { visibility: hidden; margin-left: 4px; }
+.iv-table td:hover .iv-edit, .iv-field:hover .iv-edit, .iv-edit:focus-visible { visibility: visible; }
+.iv-input { font: inherit; max-width: 100%; }
+.iv-status { margin-left: 6px; color: var(--muted); font-size: 0.85em; }
+.iv-labels { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.iv-gallery { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 12px; }
+.iv-card { border: 1px solid var(--border); border-radius: var(--radius-sm, 6px); background: var(--surface); overflow: hidden; display: flex; flex-direction: column; }
+.iv-cover { display: block; aspect-ratio: 4 / 3; background: var(--surface-2); }
+.iv-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.iv-cover-none { display: grid; place-items: center; height: 100%; font-size: 2rem; color: var(--muted); }
+.iv-card-body { padding: 8px 10px; }
+.iv-card-title { margin: 0 0 6px; font-weight: 600; }
+.iv-fields { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; margin: 0; font-size: 0.9em; }
+.iv-fields dt { color: var(--muted); }
+.iv-fields dd { margin: 0; }
+.iv-list { list-style: none; margin: 0; padding: 0; }
+.iv-row { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; padding: 4px 0; border-bottom: 1px solid var(--border); }
+.iv-row-rest { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; font-size: 0.9em; }
+.iv-orderable { cursor: grab; }
+.iv-dragging { opacity: 0.5; }
+.iv-drop { outline: 2px dashed var(--accent); outline-offset: -2px; }
+.iv-move { display: inline-flex; gap: 2px; }
+.iv-block-head { margin: 0 0 6px; }
+.label-topic h2 { margin-top: 0; }
+.topic-items { margin-top: 24px; }
+.topic-items-head { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.iv-label-bar { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 8px; }
+.iv-controls .form-row { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.iv-controls .form-row .field { flex: 1 1 12rem; min-width: 0; }
+.iv-controls .form-row select { width: 100%; }

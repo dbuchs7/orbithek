@@ -60,6 +60,10 @@ func TestALabelsPageAndItsOrderThroughTheAPI(t *testing.T) {
 	if !slices.Equal(placed, []string{ids[2], ids[0], ids[1]}) || got["orderable"] != true {
 		t.Fatalf("bert reads %v", got)
 	}
+	if got := w.vera.expect("GET", order, "", http.StatusOK); len(got["order"].([]any)) != 3 || got["orderable"] != false {
+		t.Errorf("the order as vera reads it %v", got)
+	}
+	w.bert.expect("GET", "/api/items/NOPE-1/order", "", http.StatusNotFound)
 	w.vera.expect("DELETE", order, "", http.StatusForbidden)
 	w.bert.expect("DELETE", order, "", http.StatusOK)
 	if got := w.bert.expect("GET", "/api/labels/onboarding/page", "", http.StatusOK); len(got["order"].([]any)) != 0 {

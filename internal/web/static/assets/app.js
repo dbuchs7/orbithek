@@ -29,10 +29,26 @@ import { freshNotice, taskDialog, taskPanel } from "./taskdialog.js";
 import { finishing } from "./taskparts.js";
 import { documentView, upgradeTemplate, wordTemplatesCard } from "./wordtemplates.js";
 import { manualBlocks, manualLanguage, manualLanguages, manualPath } from "./manual.js";
+import { configureViews, labelItems, viewScreen } from "./itemview.js";
 
 const app = document.getElementById("app");
 const nav = document.getElementById("nav");
 let me = null; // the signed-in principal, from GET /api/me
+
+// The views of items (ADR-0201) draw themselves with the item page's
+// inputs of fields, its names of people and its listing, wherever they
+// are shown; whether one may edit in a room is read once in a while.
+let viewRoles = null, viewRolesAt = 0;
+configureViews({
+  readAll, favouritesFirst, propertyInput, readProperty, person, learnNames, formDialog, route,
+  loadRoles: async () => {
+    if (viewRoles && Date.now() - viewRolesAt < 30000) return;
+    const { spaces } = await get("/api/spaces");
+    viewRoles = new Map(spaces.map((s) => [s.key, s.role]));
+    viewRolesAt = Date.now();
+  },
+  mayEditSpace: (key) => mayEdit(viewRoles?.get(key)),
+});
 
 // --- shared pieces -------------------------------------------------------
 
@@ -431,11 +447,14 @@ function labelsLine(path, item, live) {
   return h("div", { class: "labels", id: "labels" }, chips, add, status);
 }
 
-// labelView lists the readable items that carry a label.
+// labelView lists the readable items that carry a label, below the
+// label's page when one reads one, or with a button that makes it
+// (ADR-0202).
 async function labelView(label) {
   const show = screen();
   // The items of a label are paged, so the server filters them (ADR-0098).
-  const [{ spaces }, { types }] = await Promise.all([get("/api/spaces"), get("/api/types")]);
+  const [{ spaces }, { types }, topic] = await Promise.all([get("/api/spaces"), get("/api/types"),
+    get("/api/labels/" + encodeURIComponent(label) + "/page").catch(() => ({ page: null }))]);
   const filter = serverFilter({ id: "labelled", label: t("label.heading"),
     choices: [
       { key: "space", label: t("col.space"), options: favouritesFirst(spaces).map((s) => [s.key, `${s.name} (${s.key})`]) },
@@ -470,9 +489,89 @@ async function labelView(label) {
         link(`#/roadmap?labels=${encodeURIComponent(label)}`, t("roadmap.open"), "button secondary", "label-roadmap"),
         link(`#/calendar?labels=${encodeURIComponent(label)}`, t("calendar.open"), "button secondary", "label-calendar"),
         link(`#/labelmap?labels=${encodeURIComponent(label)}`, t("labelmap.openFromLabel"), "button secondary", "label-labelmap"), csv)),
+    topicCard(label, topic.page, spaces),
     filter.el,
     table, none, more,
   );
+}
+
+// textOf is the plain text of a body's first blocks of text, for a short
+// excerpt.
+function excerptOf(body, n = 3) {
+  return (body || []).filter((b) => ["paragraph", "heading", "bullet", "ordered", "quote", "panel"].includes(b.kind) && b.text && !b.secret)
+    .slice(0, n).map((b) => h("p", { class: b.kind === "heading" ? "topic-heading" : null, text: b.text }));
+}
+
+// topicCard shows the page of a label on top of its items (ADR-0202): its
+// title, the beginning of its text and a link to it; without one, where
+// one may create, a button that describes the label in a chosen room.
+function topicCard(label, page, spaces) {
+  if (page) {
+    const href = "#/item/" + encodeURIComponent(page.key);
+    return h("section", { class: "card label-topic", id: "label-topic" },
+      h("h2", {}, link(href, page.title || page.key, null, "label-topic-link")),
+      ...excerptOf(page.body),
+      h("p", { class: "actions-row" }, link(href, t("topic.read"), "button secondary", "label-topic-open")));
+  }
+  const rooms = favouritesFirst(spaces.filter((s) => mayEdit(s.role)));
+  if (!rooms.length) return null;
+  const describe = async () => {
+    const room = h("select", { name: "space", id: "describe-space" }, rooms.map((s) => h("option", { value: s.key, text: `${s.name} (${s.key})` })));
+    const title = h("input", { name: "title", id: "describe-title", value: label, maxlength: 200 });
+    const made = await formDialog(t("topic.describe"), "describe-dialog", [
+      field(t("col.space"), room), field(t("col.title"), title), h("p", { class: "muted", text: t("topic.describeHint", { label }) }),
+    ], async () => (await post("/api/labels/" + encodeURIComponent(label) + "/page", { space: room.value, title: title.value.trim() })).item);
+    if (made) location.hash = "#/item/" + encodeURIComponent(made.key) + "?edit";
+  };
+  return h("section", { class: "card label-topic label-topic-none", id: "label-topic" },
+    h("p", { class: "muted", text: t("topic.none") }),
+    h("button", { type: "button", class: "secondary", id: "label-describe", text: t("topic.describe"), onclick: describe }));
+}
+
+// topicItems shows, on a label's page, the items that carry its label as
+// a view (ADR-0201), its layout, grouping and sort in the page's address;
+// whoever may edit the page orders them by hand (ADR-0202).
+async function topicItems(item, label, params, status) {
+  const { order, orderable } = await get(`/api/items/${item.id}/order`).catch(() => ({ order: [], orderable: false }));
+  const state = { layout: ["table", "gallery", "list"].includes(params.get("layout")) ? params.get("layout") : "list", group: params.get("group") || "",
+    sort: params.get("sort") || "", columns: [], space: "", type: "", query: "" };
+  const change = (patch) => {
+    const p = new URLSearchParams(params);
+    for (const [k, v] of Object.entries(patch)) if (v) p.set(k, v); else p.delete(k);
+    location.hash = "#/item/" + encodeURIComponent(item.key) + (p.toString() ? "?" + p : "");
+  };
+  return h("section", { class: "topic-items", id: "topic-items" },
+    h("div", { class: "topic-items-head" }, h("h2", {}, t("topic.items") + " ", labelChip(label)),
+      orderable && order.length ? h("button", { type: "button", class: "link", id: "topic-order-clear", text: t("topic.clearOrder"),
+        onclick: () => action(async () => { await del(`/api/items/${item.id}/order`); route(); }, status) }) : null),
+    await labelItems(label, { state, order, topic: item, orderable, change }));
+}
+
+// topicLabelOf is the label an item of a label's page names (ADR-0202):
+// a type with a text and a text field label; empty for other items.
+function topicLabelOf(item, type) {
+  if (!type.body || !(type.fields || []).some((f) => f.name === "label" && f.kind === "text")) return "";
+  const l = normalLabel(String(item.properties.label || ""));
+  return labelRule.test(l) ? l : "";
+}
+
+// addToCollection gives an item the label of a label's page the reader
+// chooses: it then stands among that page's items (ADR-0202).
+async function addToCollection(item, path, status) {
+  const { items } = await get("/api/items?type=topic&limit=500").catch(() => ({ items: [] }));
+  const seen = new Set(item.labels);
+  const topics = [];
+  for (const it of items) {
+    const l = normalLabel(String(it.properties?.label || ""));
+    if (labelRule.test(l) && !seen.has(l)) {
+      seen.add(l);
+      topics.push({ label: l, title: it.title });
+    }
+  }
+  if (!topics.length) return status.replaceChildren(h("p", { class: "muted", id: "collect-none", text: t("topic.noCollections") }));
+  const choice = h("select", { name: "label", id: "collect-label" }, topics.map((x) => h("option", { value: x.label, text: `${x.title} (${x.label})` })));
+  const label = await formDialog(t("topic.addTo"), "collect-dialog", [field(t("topic.collection"), choice)], async () => choice.value, t("topic.add"));
+  if (label) await action(async () => { await put(path + "/labels", { labels: [...item.labels, label] }); route(); }, status);
 }
 
 // withTree lays a space's page tree beside a view's content.
@@ -1638,6 +1737,7 @@ async function route() {
       case "labelboard": return await labelBoardView(arg, params.get("space") || "");
       case "roadmap": return await roadmapScreen(params);
       case "calendar": return await calendarScreen(params);
+      case "view": return await viewRoute(params);
       case "space": return await spaceView(arg);
       case "board": return await boardView(arg, arg2);
       case "links": return await linksView(arg);
@@ -2536,6 +2636,12 @@ async function spaceView(key) {
   addRows(first);
   const boards = types.filter((ty) => ty.workflow)
     .map((ty) => link(`#/board/${encodeURIComponent(key)}/${encodeURIComponent(ty.name)}`, t("space.board", { type: ty.name })));
+  // The room's items as a table, a gallery or a list, of every type or of
+  // one chosen (ADR-0201).
+  const viewOf = (type) => `#/view?space=${encodeURIComponent(key)}${type ? "&type=" + encodeURIComponent(type) : ""}`;
+  const views = [link(viewOf(""), t("views.tab"), null, "space-view"),
+    h("select", { id: "space-view-type", "aria-label": t("views.ofTypeChoice"), onchange: (ev) => { if (ev.target.value) location.hash = viewOf(ev.target.value); } },
+      h("option", { value: "", text: t("views.ofTypeChoice") }), types.map((ty) => h("option", { value: ty.name, text: t("views.ofType", { type: ty.name }) })))];
   const tree = pageTree({ space: key, taskTypes: new Set(types.filter(isTaskType).map((ty) => ty.name)), onMoved: () => route(), onError: (err) => status.replaceChildren(errorBox(err)) });
   show(withTree(tree,
     h("p", {}, link("#/", t("nav.spaces")), " / " + key),
@@ -2546,7 +2652,7 @@ async function spaceView(key) {
         create && types.length ? h("button", { class: "primary", id: "space-new-page", text: t("space.newPage"), onclick: toForm }) : null,
         csv,
         watchButton("/api/spaces/" + encodeURIComponent(key), watches.some((w) => !w.item && w.space === key), status))),
-    h("nav", { class: "subnav", "aria-label": t("space.views") }, [...boards, link(`#/roadmap?space=${encodeURIComponent(key)}`, t("roadmap.tab")), link(`#/calendar?space=${encodeURIComponent(key)}`, t("calendar.tab")), link(`#/links/${encodeURIComponent(key)}`, t("space.linkCheck")), link(`#/governance/${encodeURIComponent(key)}`, t("nav.governance")),
+    h("nav", { class: "subnav", "aria-label": t("space.views") }, [...boards, ...views, link(`#/roadmap?space=${encodeURIComponent(key)}`, t("roadmap.tab")), link(`#/calendar?space=${encodeURIComponent(key)}`, t("calendar.tab")), link(`#/links/${encodeURIComponent(key)}`, t("space.linkCheck")), link(`#/governance/${encodeURIComponent(key)}`, t("nav.governance")),
       sp.role === "space-admin" ? link(`#/members/${encodeURIComponent(key)}`, t("members.title")) : null].filter(Boolean)),
     status,
     home,
@@ -3861,6 +3967,19 @@ async function roadmapScreen(params) {
   await roadmapView(section, params, { readAll, favouritesFirst });
 }
 
+// viewRoute shows the items of a type as a table, a gallery or a list,
+// grouped by a field (ADR-0201); its state is the address.
+async function viewRoute(params) {
+  const section = h("section", { id: "view" });
+  const space = params.get("space");
+  screen()(
+    h("p", {}, link("#/", t("nav.spaces")), space ? [" / ", link("#/space/" + encodeURIComponent(space), space)] : null, " / " + t("views.tab")),
+    h("div", { class: "page-head" }, h("h1", { text: params.get("type") ? t("views.titleOf", { type: params.get("type") }) : t("views.title") })),
+    h("p", { class: "muted", text: t("views.intro") }),
+    section);
+  await viewScreen(section, params);
+}
+
 // calendarScreen shows readable items with dates on the days of a month,
 // a week or an agenda (ADR-0166); its state is the address.
 async function calendarScreen(params) {
@@ -4646,6 +4765,7 @@ async function itemView(ref, params = new URLSearchParams()) {
   const relocateButtons = live ? [
     h("button", { type: "button", id: "item-copy", text: t("copy.open"), onclick: () => relocateForm(relocate, item, "copy", spaces, status) }),
     canEdit ? h("button", { type: "button", id: "item-move", text: t("move.open"), onclick: () => relocateForm(relocate, item, "move", spaces, status) }) : null,
+    canEdit ? h("button", { type: "button", id: "item-collect", text: t("topic.addTo"), onclick: () => addToCollection(item, path, status) }) : null,
   ] : [];
   const more = reorder.length || actions.length || relocateButtons.length
     ? card("item-actions", h("p", { class: "actions-row" }, reorder, relocateButtons, actions), relocate) : null;
@@ -4667,7 +4787,9 @@ async function itemView(ref, params = new URLSearchParams()) {
     h("div", { class: "item-layout" },
       // The text has the main column to itself; the owner and details
       // lead the column beside it (ADR-0102).
-      h("div", { class: "item-main" }, protecting, body || h("p", { class: "muted", text: t("item.noBody") })),
+      h("div", { class: "item-main" }, protecting, body || h("p", { class: "muted", text: t("item.noBody") }),
+        // A label's page shows the items that carry its label (ADR-0202).
+        live && !editing && topicLabelOf(item, type) ? await topicItems(item, topicLabelOf(item, type), params, status) : null),
       h("aside", { class: "item-side", "aria-label": t("item.side") },
         columnToggle("side"),
         engineTask,

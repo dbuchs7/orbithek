@@ -13,6 +13,7 @@ func topicRoutes(h itemHandlers) []Route {
 	return []Route{
 		{Method: http.MethodGet, Pattern: "/api/labels/{label}/page", Summary: "The page of a label: the first readable item of the type topic whose field label names it, in every room, by the order they were made (page, null without one); order lists the items carrying the label that the caller reads, in the order set by hand on the page, as far as it names them; orderable says whether the caller may change it (ADR-0202)", Handler: http.HandlerFunc(h.labelPage)},
 		{Method: http.MethodPost, Pattern: "/api/labels/{label}/page", Summary: "Describe a label: make its page in a room (space; title, the label without one), an item of the type topic, which is defined from its template on first use; who may create in the room may (ADR-0202)", Handler: http.HandlerFunc(h.describeLabel)},
+		{Method: http.MethodGet, Pattern: "/api/items/{ref}/order", Summary: "The order set by hand of a label's page ({ref}, of the type topic): order lists the items carrying its label that the caller reads, in that order, as far as it names them; orderable says whether the caller may change it (ADR-0202)", Handler: http.HandlerFunc(h.itemOrder)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/order", Summary: "Move items within the order set by hand of a label's page ({ref}, of the type topic): items (IDs, in the order they are to have) go right before before, or to the end without it; each must carry the page's label and be readable; items the caller does not read keep their places; who may edit the page may (ADR-0202)", Handler: http.HandlerFunc(h.placeItems)},
 		{Method: http.MethodDelete, Pattern: "/api/items/{ref}/order", Summary: "Forget the order set by hand of a label's page: its items are listed in the order they were made again; who may edit the page may (ADR-0202)", Handler: http.HandlerFunc(h.clearItemOrder)},
 	}
@@ -58,6 +59,22 @@ func (h itemHandlers) describeLabel(w http.ResponseWriter, r *http.Request) {
 			return nil, err
 		}
 		return map[string]itemJSON{"item": toItemJSON(it)}, nil
+	})
+}
+
+// itemOrder answers the order set by hand of a label's page, as far as
+// the caller reads its items (D10).
+func (h itemHandlers) itemOrder(w http.ResponseWriter, r *http.Request) {
+	h.read(w, r, func(x *item.Session) (any, error) {
+		it, err := resolveItem(x, r.PathValue("ref"))
+		if err != nil {
+			return nil, err
+		}
+		order, err := x.ItemOrder(it.ID)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"order": nonNilSlice(order), "orderable": x.MayEdit(it.ID)}, nil
 	})
 }
 

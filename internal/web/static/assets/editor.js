@@ -22,6 +22,7 @@ import { pickFromAlbum, pictureFile, captionOf, copiedPicture, clipMark } from "
 import { VIDEO_TYPES } from "./photoparts.js";
 import { assist } from "./assist.js";
 import { markdownToBlocks, pastesAsMarkdown } from "./markdown.js";
+import { viewBlock, pickView, viewsReady } from "./itemview.js";
 
 // Every block carries bid, its ID in a live session (ADR-0010); it is not
 // stored. Text blocks keep the mentions they had without a mention mark
@@ -70,6 +71,10 @@ export const schema = new Schema({
     children: { group: "block", atom: true, selectable: true, attrs: bid, toDOM: () => ["div", { class: "pm-children" }] },
     // The tasks that carry a label, computed when shown (ADR-0114).
     tasklist: { group: "block", atom: true, selectable: true, attrs: { ...bid, label: { default: "" }, query: { default: "" } }, toDOM: (n) => ["div", { class: "pm-tasklist", "data-label": n.attrs.label, ...(n.attrs.query ? { "data-query": n.attrs.query } : {}) }] },
+    // The items of a type as a table, a gallery or a list (ADR-0201),
+    // computed when shown; the block keeps what it shows.
+    itemview: { group: "block", atom: true, selectable: true, attrs: { ...bid, layout: { default: "table" }, itemType: { default: "" }, space: { default: "" }, query: { default: "" },
+      group: { default: "" }, columns: { default: null }, sort: { default: "" } }, toDOM: (n) => ["div", { class: "pm-itemview", "data-layout": n.attrs.layout }] },
     // An image attachment of the item (ADR-0045), with a plain caption.
     // width is percent of the column, 0 for the picture's own size (ADR-0056).
     // align is left or right (the text flows beside it) or center (ADR-0059).
@@ -229,6 +234,8 @@ function plainNode(b, embeds) {
   if (b.kind === "table") return schema.nodes.table.create({ bid: id, text: b.text || "" });
   if (["toc", "figures", "tables", "children", "divider"].includes(b.kind)) return schema.nodes[b.kind].create({ bid: id });
   if (b.kind === "tasklist") return schema.nodes.tasklist.create({ bid: id, label: b.text || "", query: b.query || "" });
+  if (b.kind === "view") return schema.nodes.itemview.create({ bid: id, layout: b.layout || "table", itemType: b.itemType || "", space: b.space || "", query: b.query || "",
+    group: b.group || "", columns: b.columns?.length ? [...b.columns] : null, sort: b.sort || "" });
   if (b.kind === "image" || b.kind === "video") return schema.nodes[b.kind].create({ bid: id, ref: b.ref, text: b.text || "", width: b.width || 0, align: b.align || "" });
   if (b.kind === "bpmn") return schema.nodes.bpmn.create({ bid: id, ref: b.ref, text: b.text || "", view: b.view || "" });
   if (b.kind === "process") return schema.nodes.process.create({ bid: id, engine: b.engine, process: b.process, text: b.text || "", view: b.view || "" });
@@ -304,6 +311,13 @@ function plainBlock(node) {
   if (node.type === schema.nodes.table) return { kind: "table", text: node.attrs.text };
   if (["toc", "figures", "tables", "children", "divider"].includes(node.type.name)) return { kind: node.type.name };
   if (node.type === schema.nodes.tasklist) return node.attrs.query ? { kind: "tasklist", query: node.attrs.query } : { kind: "tasklist", text: node.attrs.label };
+  if (node.type === schema.nodes.itemview) {
+    const a = node.attrs;
+    const b = { kind: "view", layout: a.layout };
+    for (const k of ["itemType", "space", "query", "group", "sort"]) if (a[k]) b[k] = a[k];
+    if (a.columns?.length) b.columns = [...a.columns];
+    return b;
+  }
   if (node.type === schema.nodes.bpmn) return { kind: "bpmn", text: node.attrs.text, ref: node.attrs.ref, ...(node.attrs.view ? { view: node.attrs.view } : {}) };
   if (node.type === schema.nodes.process) return { kind: "process", text: node.attrs.text, engine: node.attrs.engine, process: node.attrs.process, ...(node.attrs.view ? { view: node.attrs.view } : {}) };
   if (node.type === schema.nodes.form) {
@@ -644,6 +658,32 @@ function taskListView(node, tasks) {
     update: (n) => n.type === node.type && n.attrs.label === label && n.attrs.query === query };
 }
 
+// itemViewView shows the items a view block names (ADR-0201), as far as
+// the reader reads them; while editing, a button changes what it shows.
+function itemViewView(node, v, getPos) {
+  const attrs = node.attrs;
+  const dom = h("section", { class: "pm-itemview", contenteditable: "false", "data-layout": attrs.layout });
+  const body = h("div", { "aria-busy": "true" }, h("p", { class: "muted", text: "…" }));
+  const block = blockFromNode(node);
+  if (v.editable && viewsReady()) {
+    dom.append(h("p", { class: "pm-box-title" }, h("button", { type: "button", class: "link pm-itemview-edit", text: t("views.change"), onclick: async () => {
+      const next = await pickView({ layout: block.layout, type: block.itemType || "", space: block.space || "", query: block.query || "", group: block.group || "",
+        columns: block.columns || [], sort: block.sort || "" });
+      const pos = getPos();
+      if (!next || typeof pos !== "number") return;
+      v.dispatch(v.state.tr.setNodeMarkup(pos, null, { ...node.attrs, layout: next.layout, itemType: next.itemType || "", space: next.space || "", query: next.query || "",
+        group: next.group || "", columns: next.columns?.length ? next.columns : null, sort: next.sort || "" }));
+    } })));
+  }
+  dom.append(body);
+  Promise.resolve(viewsReady() ? viewBlock(block) : null)
+    .then((el) => body.replaceChildren(el || h("p", { class: "muted", text: t("views.none") })))
+    .catch(() => body.replaceChildren(h("p", { class: "muted", text: t("embed.failed") })))
+    .finally(() => body.removeAttribute("aria-busy"));
+  return { dom, ignoreMutation: () => true, stopEvent: (ev) => dom.contains(ev.target),
+    update: (n) => n.type === node.type && JSON.stringify(n.attrs) === JSON.stringify(attrs) };
+}
+
 // childrenView lists the child pages of the item, from childPages().
 function childrenView(node, childPages) {
   const dom = h("nav", { class: "pm-children", contenteditable: "false", "aria-label": t("editor.children") },
@@ -921,6 +961,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
       architecture: (node, v, getPos) => architectureView(node, v, getPos),
       embed: (node) => embedView(node, embedContent),
       tasklist: (node) => taskListView(node, tasks),
+      itemview: (node, v, getPos) => itemViewView(node, v, getPos),
       veiled: (node) => ({ dom: h("div", { class: "pm-veiled", "data-secret": node.attrs.secret, contenteditable: "false" },
         h("span", { class: "pm-veiled-bar", "aria-hidden": "true", text: "▒▒▒▒▒▒▒▒" }), veiledContent(node.attrs.secret)), ...selectable }),
     },
@@ -962,9 +1003,10 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     else if (kind === "markdown") markdownDialog();
     else if (kind === "newtask") newTask();
     else if (kind === "tasklist") taskList();
+    else if (kind === "itemview") itemView();
     else if (kind === "markdownfile") markdownFile("");
     else if (kind) insertBlock(schema.nodes[kind].create());
-  } }, [["", t("editor.insert")], ["embed", t("assist.embedItem")], ["markdown", t("editor.markdown")], markdown ? ["markdownfile", t("editor.markdownFile")] : null, tasks?.create ? ["newtask", t("editor.newTask")] : null, tasks?.pickLabel ? ["tasklist", t("editor.taskList")] : null, ["table", t("editor.table")], ["divider", t("editor.divider")], ["toc", t("editor.toc")], ["figures", t("editor.figures")], ["tables", t("editor.tables")], ["children", t("editor.children")],
+  } }, [["", t("editor.insert")], ["embed", t("assist.embedItem")], ["markdown", t("editor.markdown")], markdown ? ["markdownfile", t("editor.markdownFile")] : null, tasks?.create ? ["newtask", t("editor.newTask")] : null, tasks?.pickLabel ? ["tasklist", t("editor.taskList")] : null, viewsReady() ? ["itemview", t("views.insert")] : null, ["table", t("editor.table")], ["divider", t("editor.divider")], ["toc", t("editor.toc")], ["figures", t("editor.figures")], ["tables", t("editor.tables")], ["children", t("editor.children")],
     files ? ["image", t("editor.image")] : null, files ? ["video", t("editor.video")] : null, files ? ["drawing", t("draw.insert")] : null, files ? ["album", t("album.fromAlbum")] : null, files ? ["clip", t("editor.copiedPicture")] : null,
     files ? ["bpmnnew", t("bpmn.insertNew")] : null, files ? ["bpmnfile", t("bpmn.insertFile")] : null, ["process", t("bpmn.insertProcess")],
     ["form", t("form.insert")], ["startform", t("start.insert")], ["decision", t("decision.insert")], ["architecture", t("arch.insert")]].filter(Boolean)
@@ -1229,6 +1271,18 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     const spec = await tasks.pickLabel();
     if (!spec) return view.focus();
     insertBlock(schema.nodes.tasklist.create(spec));
+  };
+  // A view of items (ADR-0201): what it shows is chosen as at #/view.
+  const itemView = async () => {
+    status.textContent = "";
+    try {
+      const spec = await pickView({});
+      if (!spec) return view.focus();
+      insertBlock(schema.nodes.itemview.create({ layout: spec.layout, itemType: spec.itemType || "", space: spec.space || "", query: spec.query || "",
+        group: spec.group || "", columns: spec.columns?.length ? spec.columns : null, sort: spec.sort || "" }));
+    } catch (err) {
+      status.textContent = err.message;
+    }
   };
   // Commenting on a passage works while reading too (ADR-0047).
   const commentButton = comment ? h("button", { type: "button", id: "comment-selection", text: t("editor.comment"), onclick: () => {
