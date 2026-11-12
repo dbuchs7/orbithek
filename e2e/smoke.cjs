@@ -6277,6 +6277,11 @@ function webSource() {
     check(!(await dailyPhone.isVisible("#nav-today")), "the top bar of a phone keeps its rows: Today is in the modules");
     await dailyPhone.click("#app-switcher");
     await dailyPhone.click("#drawer-apps a:has-text('Today')");
+    await dailyPhone.waitForSelector("#daily-title");
+    // bert chooses the room of the daily notes once, as the administrator did.
+    if (await dailyPhone.locator("#daily-note.daily-empty").count()) {
+      await dailyPhone.selectOption("#daily-room", "PLAT");
+    }
     await dailyPhone.waitForSelector("#daily-note.editing .ProseMirror");
     await dailyPhone.goto(base + "/#/item/" + fromMention.key + "?beside=" + dailyKey);
     await dailyPhone.waitForSelector("#beside-pane .beside-title");
