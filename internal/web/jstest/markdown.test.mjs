@@ -52,7 +52,12 @@ function validBlock(b) {
   if ((b.level !== undefined) !== (b.kind === "heading") || (b.level !== undefined && (b.level < 1 || b.level > 3))) return "level";
   if (b.checked !== undefined && (b.kind !== "task" || b.checked !== true)) return "checked";
   if ((b.kind === "panel") !== ["info", "note", "warning", "tip", "error"].includes(b.tone)) return "tone";
-  if (b.marks && ["code", "table", "divider"].includes(b.kind)) return "marks on " + b.kind;
+  if (b.marks && ["code", "divider"].includes(b.kind)) return "marks on " + b.kind;
+  if (b.kind === "table") {
+    // A table's marks lie inside one cell each (ADR-0214).
+    const chars = Array.from(b.text);
+    for (const m of b.marks || []) if (chars.slice(m.start, m.end).some((c) => c === "\t" || c === "\n")) return "mark across cells";
+  }
   const n = cps(b.text || "");
   for (const m of b.marks || []) {
     if (!(m.start >= 0 && m.end > m.start && m.end <= n)) return `mark ${JSON.stringify(m)} outside ${n}`;
@@ -214,12 +219,25 @@ test("15 tables with several columns", () => {
   assert.deepEqual(blocks("Intro\n| a | b |\n|:-:|---|\n| 1 | 2 |"), [p("Intro"), { kind: "table", text: "a\tb\n1\t2" }]);
 });
 
-test("16 incomplete table rows are filled; nothing in a cell is lost", () => {
+test("16 incomplete table rows are filled; nothing in a cell is lost, its formats kept (ADR-0214)", () => {
   assert.deepEqual(blocks("| A | B | C |\n|---|---|---|\n| 1 |\n| 1 | 2 | 3 | 4 |"), [{ kind: "table", text: "A\tB\tC\t\n1\t\t\t\n1\t2\t3\t4" }]);
-  assert.deepEqual(blocks("| a \\| b | c |\n|---|---|\n| `x\\|y` | **z** |"), [{ kind: "table", text: "a | b\tc\nx|y\tz" }]);
-  assert.deepEqual(blocks("| [Docs](https://x.ch) | [https://y.ch](https://y.ch) |\n|---|---|"), [{ kind: "table", text: "Docs (https://x.ch)\thttps://y.ch" }]);
+  assert.deepEqual(blocks("| a \\| b | c |\n|---|---|\n| `x\\|y` | **z** |"),
+    [{ kind: "table", text: "a | b\tc\nx|y\tz", marks: [{ type: "code", start: 8, end: 11 }, { type: "bold", start: 12, end: 13 }] }]);
+  assert.deepEqual(blocks("| [Docs](https://x.ch) | [https://y.ch](https://y.ch) |\n|---|---|"),
+    [{ kind: "table", text: "Docs\thttps://y.ch", marks: [{ type: "link", start: 0, end: 4, href: "https://x.ch" }, { type: "link", start: 5, end: 17, href: "https://y.ch" }] }]);
   assert.deepEqual(blocks("| a | b |\n|---|\n| 1 | 2 |").map((b) => b.kind), ["paragraph"], "a delimiter row of another width is no table");
   assert.deepEqual(blocks("| tab\there |\n|---|"), [{ kind: "table", text: "tab here" }]);
+});
+
+test("16b a table's cells keep their formats, each within its cell, on one line (ADR-0214)", () => {
+  assert.deepEqual(blocks("| **Host** | *Rolle* |\n|---|---|\n|  ~~db0~~ db1  | primär, siehe [Doku](https://doku.example.org) |"), [{
+    kind: "table", text: "Host\tRolle\ndb0 db1\tprimär, siehe Doku",
+    marks: [{ type: "bold", start: 0, end: 4 }, { type: "italic", start: 5, end: 10 }, { type: "strike", start: 11, end: 14 },
+      { type: "link", start: 33, end: 37, href: "https://doku.example.org" }],
+  }]);
+  assert.deepEqual(blocks("| a<br>b | `c` |\n|---|---|"), [{ kind: "table", text: "a<br>b\tc", marks: [{ type: "code", start: 7, end: 8 }] }],
+    "HTML stays text; code keeps its mark");
+  assert.deepEqual(blocks("| [x](javascript:alert(1)) |\n|---|"), [{ kind: "table", text: "x" }], "an unsafe link keeps its text alone");
 });
 
 test("17 Unicode and emoji: marks count code points", () => {

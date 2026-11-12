@@ -83,7 +83,7 @@ Choose **Edit** to edit the text and **Done** to finish. Changes are saved conti
 - **Mention** (@): a person or an item;
 - **Undo** and **Redo**.
 
-Markdown that you paste becomes formatted text. Ctrl+Shift+V pastes plain text instead.
+Markdown that you paste becomes formatted text; a table keeps the formatting of its cells. Ctrl+Shift+V pastes plain text instead.
 
 If no item has the title you type after @ or as the address of a link, the list offers *Create «title» as …*. The dialog **Create and mention** asks for the type (the room's page type unless you choose another) and the room (the room of the text you edit unless you choose another); a page made in the same room goes below the page you edit, and is protected as that page is; from a daily note, it goes to the top of the room. The new item is mentioned where you typed. Types that require fields are made with **+ New** instead. When you may not create in a room, or the storage is almost full, the dialog says so and nothing is created.
 
