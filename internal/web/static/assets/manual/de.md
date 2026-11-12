@@ -102,6 +102,12 @@ Bilder lassen sich links oder rechts mit Text daneben oder zentriert platzieren 
 
 **Dateien** werden mit **Dateien hochladen** angehängt. Wer den Eintrag bearbeiten darf, benennt eine Datei in der Liste mit **Umbenennen** um: Alle Versionen erhalten den neuen Namen, der Dateityp bleibt. Bilder und Zeichnungen aller Einträge erscheinen zudem im Album.
 
+### PDF-Dateien lesen
+
+Eine PDF-Datei eines Eintrags öffnet sich im PDF-Leser mit **Lesen** in der Dateiliste oder mit einem Klick auf einen Link zu ihr im Text des Eintrags. Der Leser zeigt die Seiten mit ihrem Text, der sich markieren und kopieren lässt. Die Leiste darüber blättert von Seite zu Seite, vergrössert und verkleinert oder passt auf **Seitenbreite** an, durchsucht das Dokument (Enter für den nächsten Treffer) und bietet **Herunterladen**. Seitlich zeigt *Seiten* kleine Bilder der Seiten, *Inhalt* das Inhaltsverzeichnis des Dokuments, falls es eines hat, und *Markierungen* die darin gesetzten Markierungen. Die Adresse nennt die Seite, sodass ein Link andere zur selben Seite führt.
+
+Wer den Eintrag kommentieren darf, markiert Text: Man wählt ihn auf einer Seite aus und wählt dann eine Farbe, um ihn sofort zu markieren, oder **Mit Notiz markieren**, wählt eine Farbe, schreibt die Notiz und wählt **Markierung speichern**. Eine Markierung ist ein Kommentar zum Eintrag: Sie erscheint unter den Kommentaren des Eintrags mit Datei, Seite und Zitat, und **Im PDF zeigen** führt zu ihr. Markierungen werden in der Liste des Lesers wie in den Kommentaren beantwortet, erledigt und gelöscht; **In den Kommentaren öffnen** führt zum Eintrag. Wird eine neuere Version der Datei hochgeladen, zeigt der Leser die neueste Version und findet jede Markierung an ihrem Text wieder; eine Markierung, deren Text nicht mehr in der Datei steht, sagt das. **Als Markdown exportieren** speichert die Markierungen mit Zitat, Seite und Notiz. Ein PDF mit Markierungen bleibt in seinem Eintrag: Es lässt sich nicht in einen anderen verschieben.
+
 ### Verschieben, kopieren und löschen
 
 - **Verschieben …** setzt eine Seite mit ihren Unterseiten unter eine andere Seite oder auf die oberste Ebene des Raums. Innerhalb eines Raums ändern **Nach oben** und **Nach unten** die Reihenfolge.

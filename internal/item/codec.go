@@ -163,7 +163,10 @@ import (
 //     label's page in the order set by hand, not sealed, as it names items
 //     by ID only (ADR-0202). Versions 1 to 55 are still read; their bodies
 //     hold no view and their pages no order.
-const CodecVersion = 56
+//   - 58: an anchor may name a highlight in a PDF, with File, Version,
+//     Page, Rects and Color, sealed with the rest of it (ADR-0208).
+//     Versions 1 to 57 are still read; their comments are on no PDF.
+const CodecVersion = 58
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

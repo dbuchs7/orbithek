@@ -48,8 +48,9 @@ func (x *Session) CommentFeedWhere(username, only string, offset, limit int, kee
 		}
 		_, watchesItem := watches[watchKey(it.ID, "")]
 		_, watchesSpace := watches[watchKey("", it.Space)]
+		hide := x.s.commentsOnHiddenFiles(x.who, it)
 		for _, c := range it.Comments {
-			if c.Deleted {
+			if c.Deleted || hide[c.ID] {
 				continue
 			}
 			var why []string

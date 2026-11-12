@@ -102,6 +102,12 @@ Pictures can be placed left or right with text beside them, centred, and resized
 
 **Files** are attached with **Upload files**. Whoever may edit the item renames a file in the list with **Rename**: every version takes the new name, and the file type stays. Pictures and drawings of every item also appear in the album.
 
+### Reading PDF files
+
+A PDF file of an item opens in the reader with **Read** in the file list, or with a click on a link to it in the item's text. The reader shows the pages with their text, which can be selected and copied. The bar above them moves from page to page, zooms in and out or to **Fit width**, searches the document (Enter for the next match) and offers **Download**. At the side, *Pages* shows small pictures of the pages, *Contents* the document's table of contents when it has one, and *Highlights* the highlights made in it. The address names the page, so a link leads others to the same page.
+
+Whoever may comment on the item highlights text: select it on one page, then choose a colour to highlight it at once, or **Highlight with a note**, choose a colour, write the note and **Save highlight**. A highlight is a comment on the item: it appears among the item's comments with its file, page and quote, and **Show in the PDF** leads to it. Highlights are answered, resolved and deleted in the reader's list as in the comments; **Open in the comments** leads to the item. When a newer version of the file is uploaded, the reader shows the newest version and finds each highlight again by its text; a highlight whose text is no longer in the file says so. **Export as Markdown** saves the highlights with their quote, page and note. A PDF with highlights stays in its item: it cannot be moved to another one.
+
 ### Moving, copying and deleting
 
 - **Move…** puts a page with its child pages below another page or at the top of the room. Within a room, **Move up** and **Move down** change the order.

@@ -159,6 +159,9 @@ type Budgets struct {
 	// may take, beyond the server's usual minute.
 	VideoBytes           int64
 	VideoTransferSeconds int
+	// HighlightRects bounds the rectangles one highlight in a PDF draws on
+	// its page (ADR-0208): a selection over many lines makes one per line.
+	HighlightRects int
 }
 
 // Default returns the budgets the server uses unless configured otherwise.
@@ -214,6 +217,7 @@ func Default() Budgets {
 		PhotoImports:           200,
 		VideoBytes:             2 << 30,
 		VideoTransferSeconds:   3600,
+		HighlightRects:         200,
 	}
 }
 

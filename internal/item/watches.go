@@ -284,9 +284,10 @@ func (x *Session) mentioned(e Event) bool {
 		}
 		return true
 	}
+	hide := x.s.commentsOnHiddenFiles(x.who, it)
 	for _, c := range it.Comments {
 		if c.ID == e.Comment {
-			return !c.Deleted && Mentions(c.Text, x.name)
+			return !c.Deleted && !hide[c.ID] && Mentions(c.Text, x.name)
 		}
 	}
 	return false

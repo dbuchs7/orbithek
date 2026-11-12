@@ -1,10 +1,14 @@
 package item
 
 import (
+	"math"
+	"path"
 	"regexp"
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/dbuchs7/orbithek/internal/budget"
 )
 
 // Comment is one comment on an item (ADR-0035). It is part of its item:
@@ -29,6 +33,10 @@ type Comment struct {
 	Resolved   bool
 	ResolvedBy string
 	ResolvedAt time.Time
+	// file is the file the comment is on (a PDF or a drawing), kept when
+	// the comment is deleted, so its thread stays with the file's readers
+	// (commentsOnHiddenFiles).
+	file ID
 }
 
 // Anchor names a passage of a body by its text (ADR-0047): the quoted
@@ -40,12 +48,96 @@ type Comment struct {
 // An anchor may name an element of a drawing instead (ADR-0171): Drawing
 // is the drawing's first version, Element the element's ID in its scene,
 // and Quote the element's text, which may be empty.
+//
+// Or it names a highlight in a PDF file of the item (ADR-0208): File is
+// the PDF's first version, which outlives every new version; Version the
+// version the highlight was made on, whose Rects place it on Page (from
+// 1); Quote, Prefix and Suffix the text it marks, by which a reader finds
+// it again on another version; Color its colour, one of
+// HighlightColors, or empty for the first. Agents name a page and a
+// quote only.
 type Anchor struct {
 	Quote   string
 	Prefix  string `json:",omitempty"`
 	Suffix  string `json:",omitempty"`
 	Drawing ID     `json:",omitempty"`
 	Element string `json:",omitempty"`
+	File    ID     `json:",omitempty"`
+	Version ID     `json:",omitempty"`
+	Page    int    `json:",omitempty"`
+	Rects   []Rect `json:",omitempty"`
+	Color   string `json:",omitempty"`
+}
+
+// Rect is a rectangle on a page of a PDF, in fractions of the page's width
+// and height from its top left corner, the page shown as its own rotation
+// turns it (ADR-0208).
+type Rect struct {
+	X, Y, W, H float64
+}
+
+// HighlightColors are the colours a highlight in a PDF may have; the
+// first is the one an anchor without a colour has (ADR-0208).
+var HighlightColors = []string{"yellow", "green", "blue", "pink", "purple"}
+
+// IsPDF reports whether a file is a PDF: told so by its bytes when it was
+// stored, or named so.
+func IsPDF(a Attachment) bool {
+	return a.Type == "application/pdf" || strings.EqualFold(path.Ext(a.Name), ".pdf")
+}
+
+// checkHighlight checks a highlight in a PDF of an item (ADR-0208).
+func checkHighlight(it *Item, a Anchor) error {
+	if a.Drawing != "" || a.Element != "" {
+		return invalid("a comment is on a PDF or on a drawing, not on both")
+	}
+	d, ok := drawing(it, a.File)
+	if !ok || d.First != a.File {
+		return invalid("item %s has no file %s; a highlight names a PDF by its first version", it.Key, a.File)
+	}
+	v := a.Version
+	if v == "" {
+		v = a.File
+	}
+	f, ok := it.attachment(v)
+	if !ok || f.Deleted || !slices.Contains(d.Versions, v) {
+		return invalid("%s is no version of the file %s", v, a.File)
+	}
+	if !IsPDF(*f) {
+		return invalid("the file %s is no PDF", f.Name)
+	}
+	if a.Page < 1 {
+		return invalid("a highlight is on a page, counted from 1")
+	}
+	if n := budget.Get().HighlightRects; len(a.Rects) > n { // ADR-0015
+		return invalid("a highlight draws at most %d rectangles", n)
+	}
+	const slack = 1e-6
+	for _, r := range a.Rects {
+		sum := r.X + r.Y + r.W + r.H
+		if math.IsNaN(sum) || math.IsInf(sum, 0) || r.X < 0 || r.Y < 0 || r.W <= 0 || r.H <= 0 || r.X+r.W > 1+slack || r.Y+r.H > 1+slack {
+			return invalid("a rectangle of a highlight lies on its page, in fractions of it")
+		}
+	}
+	if a.Color != "" && !slices.Contains(HighlightColors, a.Color) {
+		return invalid("colour %q: a highlight is %s", a.Color, strings.Join(HighlightColors, ", "))
+	}
+	if strings.TrimSpace(a.Quote) == "" && len(a.Rects) == 0 {
+		return invalid("a highlight needs the text it marks or its place on the page")
+	}
+	return nil
+}
+
+// anchorFile is the file an anchor is on, or empty for a passage of the
+// body.
+func anchorFile(a *Anchor) ID {
+	switch {
+	case a == nil:
+		return ""
+	case a.File != "":
+		return a.File
+	}
+	return a.Drawing
 }
 
 // elementIDRE is the form of an element's ID in a drawing's scene
@@ -72,18 +164,29 @@ func (s *Store) Comment(actor string, id ID, n NewComment) (Comment, error) {
 	if err != nil {
 		return Comment{}, err
 	}
-	if strings.TrimSpace(n.Text) == "" {
+	// A highlight in a PDF needs no note (ADR-0208); every other comment
+	// says something.
+	if strings.TrimSpace(n.Text) == "" && (n.Anchor == nil || n.Anchor.File == "") {
 		return Comment{}, invalid("comment is empty")
 	}
 	if n.Anchor != nil && n.Reply != "" {
 		return Comment{}, invalid("a reply is on its thread's passage, not on its own")
 	}
 	if n.Anchor != nil {
-		if td, _ := s.latest(it.Type); !td.Body {
+		a := *n.Anchor
+		if a.File == "" && (a.Version != "" || a.Page != 0 || len(a.Rects) > 0 || a.Color != "") {
+			return Comment{}, invalid("only a highlight in a PDF has a version, a page, rectangles and a colour")
+		}
+		if td, _ := s.latest(it.Type); !td.Body && a.File == "" {
 			return Comment{}, invalid("type %q has no body to comment on", it.Type)
 		}
-		a := *n.Anchor
 		switch {
+		case a.File != "":
+			// A PDF is a file of any item, with a body or without.
+			if err := checkHighlight(it, a); err != nil {
+				return Comment{}, err
+			}
+			a.Rects = slices.Clone(a.Rects)
 		case a.Element != "" || a.Drawing != "":
 			if !elementIDRE.MatchString(a.Element) {
 				return Comment{}, invalid("element %q of a drawing", a.Element)
@@ -189,7 +292,7 @@ func (s *Store) applyComment(e Event, touch func(...ID)) {
 	touch(it.ID)
 	switch e.Kind {
 	case CommentAdded:
-		it.Comments = append(it.Comments, Comment{ID: e.Comment, Author: e.Actor, Created: e.At, Text: e.Text, Anchor: e.Anchor, Reply: e.Reply})
+		it.Comments = append(it.Comments, Comment{ID: e.Comment, Author: e.Actor, Created: e.At, Text: e.Text, Anchor: e.Anchor, Reply: e.Reply, file: anchorFile(e.Anchor)})
 	case CommentEdited:
 		if c, ok := it.comment(e.Comment); ok {
 			c.Text, c.Edited = e.Text, e.At
@@ -217,11 +320,45 @@ func (x *Session) Comments(id ID) ([]Comment, error) {
 	if err != nil {
 		return nil, err
 	}
-	out := slices.Clone(it.Comments)
+	out := x.s.visibleComments(x.who, it)
 	for i := range out {
 		out[i].Anchor = x.veilAnchor(it, out[i].Anchor)
 	}
 	return out, nil
+}
+
+// commentsOnHiddenFiles returns the comments of an item that are on a
+// file the principal may not have — a highlight in a protected PDF
+// (ADR-0208), a comment on an element of a protected drawing (ADR-0171) —
+// with the replies in their threads: the file's protection keeps them to
+// its readers, and from everyone else that they exist (ADR-0160). It is
+// nil when there are none.
+func (s *Store) commentsOnHiddenFiles(principal string, it *Item) map[ID]bool {
+	if len(it.secretFiles) == 0 {
+		return nil
+	}
+	var out map[ID]bool
+	for _, c := range it.Comments {
+		if c.file != "" && c.Reply == "" && !s.readsFile(principal, it, c.file) {
+			if out == nil {
+				out = map[ID]bool{}
+			}
+			out[c.ID] = true
+		}
+	}
+	for _, c := range it.Comments {
+		if out != nil && c.Reply != "" && out[c.Reply] {
+			out[c.ID] = true
+		}
+	}
+	return out
+}
+
+// visibleComments returns a copy of the comments of an item the principal
+// sees: all but those on files they may not have.
+func (s *Store) visibleComments(principal string, it *Item) []Comment {
+	hide := s.commentsOnHiddenFiles(principal, it)
+	return slices.DeleteFunc(slices.Clone(it.Comments), func(c Comment) bool { return hide[c.ID] })
 }
 
 // AddComment comments on an item the principal may edit.

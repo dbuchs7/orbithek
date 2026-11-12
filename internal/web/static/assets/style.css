@@ -2663,3 +2663,77 @@ button.link.album-notes-edit:hover { color: var(--accent); }
 .iv-controls .form-row { display: flex; flex-wrap: wrap; gap: 8px 16px; }
 .iv-controls .form-row .field { flex: 1 1 12rem; min-width: 0; }
 .iv-controls .form-row select { width: 100%; }
+
+/* The PDF reader (ADR-0208): a bar of tools over a side panel and the
+   pages, which scroll on their own. A page holds its canvas, the text
+   layer pdf.js lays over it (transparent, selectable; its rules follow
+   pdf.js's viewer stylesheet, Apache-2.0) and the highlights above both. */
+.pdf-reader { display: flex; flex-direction: column; height: calc(100dvh - 7rem); min-height: 28rem; gap: 6px; }
+.pdf-head { display: flex; gap: 1rem; align-items: baseline; flex-wrap: wrap; }
+.pdf-title { font-size: 18px; margin: 0; overflow-wrap: anywhere; }
+.pdf-toolbar { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.pdf-group { display: inline-flex; gap: 4px; align-items: center; }
+.pdf-tool { min-width: 2.2rem; padding: 4px 8px; }
+.pdf-page-input { width: 4.5rem; }
+.pdf-zoom-text { min-width: 3.5rem; text-align: center; font-variant-numeric: tabular-nums; }
+.pdf-search input { width: 14rem; max-width: 50vw; }
+.pdf-download { margin-left: auto; }
+.pdf-body { flex: 1; display: grid; grid-template-columns: minmax(12rem, 18rem) 1fr; gap: 10px; min-height: 0; }
+.pdf-side { display: flex; flex-direction: column; min-height: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px; }
+.pdf-tabs { margin: 0 0 6px; }
+.pdf-tabs .tab { background: none; color: inherit; cursor: pointer; font: inherit; }
+.pdf-tabs .tab.active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.pdf-panel { overflow: auto; flex: 1; min-height: 0; }
+.pdf-stage { position: relative; min-height: 0; min-width: 0; }
+.pdf-pages { position: absolute; inset: 0; overflow: auto; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; outline: none; }
+.pdf-page { position: relative; margin: 0 auto 16px; background: #fff; box-shadow: var(--shadow-lg); }
+.pdf-canvas { position: absolute; left: 0; top: 0; }
+.pdf-marks { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.pdf-mark { position: absolute; pointer-events: auto; cursor: pointer; mix-blend-mode: multiply; border-radius: 2px; }
+.pdf-mark.resolved { opacity: .45; }
+.pdf-mark.focus, .pdf-highlight.focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pdf-hit { position: absolute; background: rgba(255, 120, 0, .35); outline: 2px solid rgba(255, 120, 0, .9); border-radius: 2px; }
+.hl-yellow { --hl: rgba(255, 213, 0, .45); }
+.hl-green { --hl: rgba(60, 200, 90, .4); }
+.hl-blue { --hl: rgba(70, 150, 255, .4); }
+.hl-pink { --hl: rgba(255, 105, 180, .4); }
+.hl-purple { --hl: rgba(150, 90, 230, .4); }
+.pdf-mark, .pdf-swatch { background: var(--hl, rgba(255, 213, 0, .45)); }
+.comment-pdf { border-left-color: var(--hl, #f5b400); }
+.pdf-swatch { display: inline-block; width: 1.4rem; height: 1.4rem; min-height: 0; padding: 0; border: 1px solid var(--border-strong); border-radius: 50%; vertical-align: middle; cursor: pointer; }
+span.pdf-swatch { width: .9rem; height: .9rem; cursor: default; }
+.pdf-swatch.chosen { outline: 2px solid var(--accent); outline-offset: 1px; }
+.pdf-selbar { position: absolute; z-index: 5; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; max-width: 24rem; padding: 6px 8px;
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); }
+.pdf-selbar[hidden] { display: none; }
+.pdf-note-form { display: grid; gap: 6px; width: 20rem; max-width: 100%; }
+.pdf-colors { display: flex; gap: 6px; }
+.pdf-thumbs { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; justify-items: center; }
+.pdf-thumb button { display: grid; justify-items: center; gap: 2px; padding: 4px; border-radius: var(--radius-sm); }
+.pdf-thumb.current button { background: var(--accent-soft); }
+.pdf-thumb-canvas { width: 120px; min-height: 60px; background: #fff; box-shadow: var(--shadow); }
+.pdf-outline { list-style: none; margin: 0; padding-left: 0; }
+.pdf-outline ul { padding-left: 12px; list-style: none; }
+.pdf-outline li { margin: 2px 0; }
+.pdf-outline .link { text-align: left; }
+.pdf-highlights { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.pdf-highlight { border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+.pdf-highlight.resolved { opacity: .75; }
+.pdf-highlight-head { display: flex; gap: 6px; align-items: center; }
+.pdf-highlight .comment-quote .link { text-align: left; }
+.pdf-by { font-size: 12px; margin: 2px 0; }
+@media (max-width: 760px) {
+  .pdf-body { grid-template-columns: 1fr; grid-template-rows: 12rem 1fr; }
+}
+.textLayer { position: absolute; text-align: initial; inset: 0; overflow: clip; opacity: 1; line-height: 1; letter-spacing: normal; word-spacing: normal;
+  text-size-adjust: none; forced-color-adjust: none; transform-origin: 0 0; caret-color: CanvasText; z-index: 1;
+  --min-font-size: 1; --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size)); --min-font-size-inv: calc(1 / var(--min-font-size)); }
+.textLayer :is(span, br) { color: transparent; position: absolute; white-space: pre; cursor: text; transform-origin: 0% 0%; user-select: text; }
+.textLayer > :not(.markedContent), .textLayer .markedContent span:not(.markedContent) { z-index: 1; --font-height: 0;
+  font-size: calc(var(--text-scale-factor) * var(--font-height)); --scale-x: 1; --rotate: 0deg;
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv)); }
+.textLayer .markedContent { display: contents; }
+.textLayer span[role="img"] { user-select: none; cursor: default; }
+.textLayer ::selection { background: color-mix(in srgb, AccentColor, transparent 60%); color: transparent; }
+.textLayer br::selection { background: transparent; }
+.textLayer .endOfContent { display: block; position: absolute; inset: 100% 0 0; z-index: 0; cursor: default; user-select: none; }

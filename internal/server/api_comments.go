@@ -44,13 +44,47 @@ type commentJSON struct {
 
 // An anchor names a passage of the body by its quote, or an element of a
 // drawing (ADR-0171): the drawing by any of its versions, answered as its
-// first, and the element's ID.
+// first, and the element's ID; or a highlight in a PDF (ADR-0208): the PDF
+// by the version it is made on, answered as its first with that version,
+// a page, the quote, rectangles on the page and a colour.
 type anchorJSON struct {
-	Quote   string  `json:"quote"`
-	Prefix  string  `json:"prefix,omitempty"`
-	Suffix  string  `json:"suffix,omitempty"`
-	Drawing item.ID `json:"drawing,omitempty"`
-	Element string  `json:"element,omitempty"`
+	Quote   string     `json:"quote"`
+	Prefix  string     `json:"prefix,omitempty"`
+	Suffix  string     `json:"suffix,omitempty"`
+	Drawing item.ID    `json:"drawing,omitempty"`
+	Element string     `json:"element,omitempty"`
+	File    item.ID    `json:"file,omitempty"`
+	Version item.ID    `json:"version,omitempty"`
+	Page    int        `json:"page,omitempty"`
+	Rects   []rectJSON `json:"rects,omitempty"`
+	Color   string     `json:"color,omitempty"`
+}
+
+// rectJSON is a rectangle on a page of a PDF, in fractions of the page
+// from its top left corner (ADR-0208).
+type rectJSON struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+	W float64 `json:"w"`
+	H float64 `json:"h"`
+}
+
+func toAnchorJSON(a item.Anchor) *anchorJSON {
+	j := &anchorJSON{Quote: a.Quote, Prefix: a.Prefix, Suffix: a.Suffix, Drawing: a.Drawing, Element: a.Element,
+		File: a.File, Version: a.Version, Page: a.Page, Color: a.Color}
+	for _, r := range a.Rects {
+		j.Rects = append(j.Rects, rectJSON{X: r.X, Y: r.Y, W: r.W, H: r.H})
+	}
+	return j
+}
+
+func (j anchorJSON) anchor() *item.Anchor {
+	a := &item.Anchor{Quote: j.Quote, Prefix: j.Prefix, Suffix: j.Suffix, Drawing: j.Drawing, Element: j.Element,
+		File: j.File, Version: j.Version, Page: j.Page, Color: j.Color}
+	for _, r := range j.Rects {
+		a.Rects = append(a.Rects, item.Rect{X: r.X, Y: r.Y, W: r.W, H: r.H})
+	}
+	return a
 }
 
 func toCommentJSON(c item.Comment) commentJSON {
@@ -60,7 +94,7 @@ func toCommentJSON(c item.Comment) commentJSON {
 		j.Edited = &c.Edited
 	}
 	if c.Anchor != nil {
-		j.Anchor = &anchorJSON{Quote: c.Anchor.Quote, Prefix: c.Anchor.Prefix, Suffix: c.Anchor.Suffix, Drawing: c.Anchor.Drawing, Element: c.Anchor.Element}
+		j.Anchor = toAnchorJSON(*c.Anchor)
 	}
 	if !c.ResolvedAt.IsZero() {
 		j.ResolvedAt = &c.ResolvedAt
@@ -113,7 +147,7 @@ func (h itemHandlers) addComment(w http.ResponseWriter, r *http.Request) {
 	}
 	n := item.NewComment{Text: req.Text, Reply: req.Reply}
 	if req.Anchor != nil {
-		n.Anchor = &item.Anchor{Quote: req.Anchor.Quote, Prefix: req.Anchor.Prefix, Suffix: req.Anchor.Suffix, Drawing: req.Anchor.Drawing, Element: req.Anchor.Element}
+		n.Anchor = req.Anchor.anchor()
 	}
 	h.write(w, r, http.StatusCreated, func(x *item.Session, _ *item.Store) (any, error) {
 		it, err := resolveItem(x, r.PathValue("ref"))
@@ -128,6 +162,18 @@ func (h itemHandlers) addComment(w http.ResponseWriter, r *http.Request) {
 				return nil, fmt.Errorf("%w: no drawing %s on %s", item.ErrValidation, n.Anchor.Drawing, it.Key)
 			}
 			n.Anchor.Drawing = d.First
+		}
+		if n.Anchor != nil && n.Anchor.File != "" {
+			// A PDF is named by its first version, the highlight by the
+			// version it is made on (ADR-0208).
+			d, err := x.Drawing(it.ID, n.Anchor.File)
+			if err != nil {
+				return nil, fmt.Errorf("%w: no file %s on %s", item.ErrValidation, n.Anchor.File, it.Key)
+			}
+			if n.Anchor.Version == "" {
+				n.Anchor.Version = n.Anchor.File
+			}
+			n.Anchor.File = d.First
 		}
 		c, err := x.Comment(it.ID, n)
 		if err != nil {
