@@ -4,7 +4,7 @@
 //   node --test "internal/web/jstest/*.test.mjs"
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { boxOf, overlap, mergeFaces, facesBody, coverCut, personNames, nameFaces } from "../static/assets/faceparts.js";
+import { boxOf, overlap, mergeFaces, facesBody, coverCut, personNames, nameFaces, needsSearch } from "../static/assets/faceparts.js";
 
 test("a box in pixels becomes fractions within the picture", () => {
   assert.deepEqual(boxOf({ x: 100, y: 50, width: 200, height: 100 }, 1000, 500), { x: 0.1, y: 0.1, w: 0.2, h: 0.2 });
@@ -56,4 +56,15 @@ test("faces chosen from the suggestions are named, and no name is changed", () =
   assert.deepEqual(named.map((f) => f.person), ["Anna", "Ben", undefined]);
   assert.equal(faces[0].person, undefined, "the faces given are not changed");
   assert.deepEqual(nameFaces(null, [0], "Anna"), []);
+});
+
+test("a picture is searched on its own when never searched, or not recognised yet", () => {
+  const pic = (over = {}, att = {}) => ({ editable: true, ...over, attachment: { type: "image/jpeg", facesSeen: true, ...att } });
+  assert.equal(needsSearch(pic({}, { facesSeen: false })), true, "never searched");
+  assert.equal(needsSearch(pic()), false, "searched and recognised");
+  assert.equal(needsSearch(pic({ facesUnrecognised: true })), true, "searched before recognition was on");
+  assert.equal(needsSearch(pic({ editable: false, facesUnrecognised: true })), false, "not one's to edit");
+  assert.equal(needsSearch(pic({ video: true }, { facesSeen: false, type: "video/mp4" })), false, "a video");
+  assert.equal(needsSearch(pic({}, { facesSeen: false, type: "application/pdf" })), false, "no image");
+  assert.equal(needsSearch(null), false);
 });

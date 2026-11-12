@@ -84,3 +84,11 @@ export function nameFaces(faces, indices, name) {
   const chosen = new Set(indices);
   return (faces || []).map((f, i) => (chosen.has(i) && !f.person ? { ...f, person: name } : { ...f }));
 }
+
+// needsSearch says whether a picture of the album is searched for faces
+// on its own: one may edit it, it is an image, and it was never searched
+// or, while recognition is on, a face of it has nothing computed to
+// recognise it, as the server marks it (ADR-0194, ADR-0199).
+export function needsSearch(p) {
+  return !!(p && p.editable && !p.video && /^image\//.test(p.attachment?.type || "") && (!p.attachment.facesSeen || p.facesUnrecognised));
+}

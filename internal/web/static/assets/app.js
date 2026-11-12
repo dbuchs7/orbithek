@@ -6070,8 +6070,13 @@ async function facesCard() {
       const on = d.get("recognition") === "on";
       if (s.recognition && !on && !confirm(t("faces.adminOffConfirm"))) return draw(s);
       const r = await put("/api/settings/faces", { recognition: on });
+      const turnedOn = on && !s.recognition;
       draw(r);
-      done.replaceChildren(h("p", { class: "notice", text: on ? t("faces.adminOn") : t("faces.adminOff", { n: r.forgotten || 0 }) }));
+      // Pictures searched before have nothing to recognise them by until
+      // they are searched again (ADR-0199).
+      done.replaceChildren(h("p", { class: "notice", id: "faces-notice", text: on ? t("faces.adminOn") : t("faces.adminOff", { n: r.forgotten || 0 }) }),
+        ...(turnedOn ? [h("p", { class: "muted", id: "faces-search-hint" }, t("faces.adminOnSearch") + " ",
+          h("a", { href: "#/album?view=people", id: "faces-search-link", text: t("faces.adminOnLink") }))] : []));
     }),
     done);
   draw(await get("/api/settings/faces"));

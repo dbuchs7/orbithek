@@ -6,6 +6,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -74,45 +75,57 @@ func (h itemHandlers) album(w http.ResponseWriter, r *http.Request) {
 		}
 		limit = n
 	}
-	h.read(w, r, func(x *item.Session) (any, error) {
-		// A collection gathers by its rule from every room (ADR-0175); the
-		// other filters narrow what it gathers.
-		if err := withCollection(x, &f, q.Get("collection")); err != nil {
-			return nil, err
+	out := []albumPicture{}
+	var page any
+	h.d.DB.Read(func(s *item.Store) { page, err = h.albumPage(s.As(who(r)), &f, q, offset, limit, &out) })
+	if err != nil {
+		h.fail(w, err)
+		return
+	}
+	// The vectors are files of storage, read once the store is free.
+	h.markUnrecognised(out)
+	writeJSON(w, http.StatusOK, page)
+}
+
+// albumPage is one page of the album's stacks for the filters f; out
+// receives its pictures.
+func (h itemHandlers) albumPage(x *item.Session, f *albumFilter, q url.Values, offset, limit int, out *[]albumPicture) (any, error) {
+	// A collection gathers by its rule from every room (ADR-0175); the
+	// other filters narrow what it gathers.
+	if err := withCollection(x, f, q.Get("collection")); err != nil {
+		return nil, err
+	}
+	// Ordered as slides: by the order set by hand (ADR-0195).
+	ordered, orderable := withSlideRanks(x, f)
+	// The versions of one file form a stack (ADR-0103), newest on top.
+	all := albumStacks(x, *f)
+	for _, st := range all[min(offset, len(all)):min(offset+limit, len(all))] {
+		top := h.albumPictureOf(st[0])
+		top.Notes = st[0].Notes
+		taken := takenOf(st[0].Attachment)
+		top.Taken = &taken
+		top.Favourite = f.favourites[st[0].First]
+		if r := st[0].Retention; r != nil {
+			rule := ruleJSON(*r)
+			top.Retention = &rule
 		}
-		// Ordered as slides: by the order set by hand (ADR-0195).
-		ordered, orderable := withSlideRanks(x, &f)
-		// The versions of one file form a stack (ADR-0103), newest on top.
-		all := albumStacks(x, f)
-		out := []albumPicture{}
-		for _, st := range all[min(offset, len(all)):min(offset+limit, len(all))] {
-			top := h.albumPictureOf(st[0])
-			top.Notes = st[0].Notes
-			taken := takenOf(st[0].Attachment)
-			top.Taken = &taken
-			top.Favourite = f.favourites[st[0].First]
-			if r := st[0].Retention; r != nil {
-				rule := ruleJSON(*r)
-				top.Retention = &rule
-			}
-			for _, p := range st[1:] {
-				top.Versions = append(top.Versions, h.albumPictureOf(p))
-			}
-			out = append(out, top)
+		for _, p := range st[1:] {
+			top.Versions = append(top.Versions, h.albumPictureOf(p))
 		}
-		next := 0
-		if offset+limit < len(all) {
-			next = offset + limit
-		}
-		page := map[string]any{"pictures": out, "total": len(all), "next": next}
-		if ordered {
-			page["ordered"] = true
-		}
-		if orderable {
-			page["orderable"] = true
-		}
-		return page, nil
-	})
+		*out = append(*out, top)
+	}
+	next := 0
+	if offset+limit < len(all) {
+		next = offset + limit
+	}
+	page := map[string]any{"pictures": *out, "total": len(all), "next": next}
+	if ordered {
+		page["ordered"] = true
+	}
+	if orderable {
+		page["orderable"] = true
+	}
+	return page, nil
 }
 
 // albumItemRef names a picture's item in the album's listings.
@@ -152,6 +165,10 @@ type albumPicture struct {
 	// Notes are the stack's speaker's notes, for showing it as a
 	// slide (ADR-0176); absent without notes.
 	Notes string `json:"notes,omitempty"`
+	// FacesUnrecognised: recognition is on, the caller may edit the
+	// picture, and a face of it has nothing computed to recognise it,
+	// so it is searched again (ADR-0199). The vectors never leave.
+	FacesUnrecognised bool `json:"facesUnrecognised,omitempty"`
 }
 
 // albumPictureOf is a picture as the album lists it, without the parts

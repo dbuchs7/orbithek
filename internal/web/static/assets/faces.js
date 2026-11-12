@@ -11,7 +11,7 @@
 import { h } from "./dom.js";
 import { t } from "./i18n.js";
 import { get, put } from "./api.js";
-import { boxOf, mergeFaces, facesBody, coverCut, nameFaces } from "./faceparts.js";
+import { boxOf, mergeFaces, facesBody, coverCut, nameFaces, needsSearch } from "./faceparts.js";
 
 const MODELS = "/vendor/face-models";
 const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
@@ -81,6 +81,8 @@ export async function scan(p, image, keep = () => true) {
   const r = await put(`${fileURL(p)}/faces`, facesBody(faces));
   p.attachment.faces = r.faces || [];
   p.attachment.facesSeen = true;
+  // Searched with recognition, it is not searched again on its own.
+  if (recognise) p.facesUnrecognised = false;
   return p.attachment.faces;
 }
 
@@ -99,11 +101,12 @@ export async function scanFile(p, blob) {
 }
 
 // scanAll looks for faces on every picture of list one may edit that was
-// not searched yet, one after another; progress is told each step and
-// cancelled is asked before each. It answers how many were searched and
-// how many faces were found.
+// not searched yet or, while recognition is on, whose faces have nothing
+// computed to recognise them (ADR-0199), one after another; progress is
+// told each step and cancelled is asked before each. It answers how many
+// were searched and how many faces were found.
 export async function scanAll(list, progress = () => {}, cancelled = () => false) {
-  const todo = list.filter((p) => p.editable && !p.attachment.facesSeen && !p.video && /^image\//.test(p.attachment.type || ""));
+  const todo = list.filter(needsSearch);
   let done = 0, faces = 0;
   for (const p of todo) {
     if (cancelled()) break;
@@ -122,9 +125,10 @@ const learn = (name) => { if (people && name) people.then((list) => { if (!list.
 // facesPanel shows the faces of a picture in the viewer: their boxes over
 // the image in layer, and below the facts a row per face with its name.
 // Whoever may edit the picture looks for faces, names them, takes names
-// from suggestions and removes faces. A picture never searched is
-// searched when it is shown to one who may edit it. still says whether
-// the picture is still the one shown.
+// from suggestions and removes faces. A picture never searched, or not
+// recognised yet while recognition is on, is searched when it is shown to
+// one who may edit it. still says whether the picture is still the one
+// shown.
 export function facesPanel({ p, image, layer, still, changed = () => {} }) {
   const box = h("div", { class: "photo-faces", id: "photo-faces" });
   let faces = p.attachment.faces || [];
@@ -230,7 +234,7 @@ export function facesPanel({ p, image, layer, still, changed = () => {} }) {
   resize?.observe(layer.parentElement);
   render();
   suggest().then(render);
-  if (p.editable && !p.attachment.facesSeen && !p.video) find();
+  if (needsSearch(p)) find();
   return { element: box, stop: () => { resize?.disconnect(); image.removeEventListener("load", place); layer.replaceChildren(); } };
 }
 

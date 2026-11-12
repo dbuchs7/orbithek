@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 
@@ -190,5 +191,61 @@ func TestFacesSuggestedForAPerson(t *testing.T) {
 	}
 	if v, err := w.db.FaceVectors(item.ID(w.folder), item.ID(town["id"].(string))); err != nil || len(v) != 3 || len(v[0]) != 128 {
 		t.Errorf("vectors after confirming %d %v", len(v), err)
+	}
+}
+
+// TestPicturesWithoutVectorsAreMarked: while recognition is on, the album
+// marks the pictures one may edit whose faces have nothing computed to
+// recognise them, so that the browser searches them again: searched
+// before recognition was on, or after it was turned off and on (ADR-0199).
+func TestPicturesWithoutVectorsAreMarked(t *testing.T) {
+	w := newPhotoWorld(t)
+	lake := w.put(t, "lake.jpg", exifJPEG(t, "2024:05:01 13:22:10", 0, 0, 64))
+	town := w.put(t, "town.jpg", exifJPEG(t, "2024:05:02 13:22:10", 0, 0, 66))
+	w.put(t, "empty.jpg", exifJPEG(t, "2024:05:03 13:22:10", 0, 0, 68))
+	faces := func(pic map[string]any) string {
+		return "/api/items/" + w.folder + "/attachments/" + pic["id"].(string) + "/faces"
+	}
+	marked := func(c *client) []string {
+		t.Helper()
+		var out []string
+		for _, p := range field(c.expect("GET", "/api/album?folder="+w.folder, "", http.StatusOK), "pictures").([]any) {
+			if p := p.(map[string]any); p["facesUnrecognised"] == true {
+				out = append(out, p["attachment"].(map[string]any)["name"].(string))
+			}
+		}
+		slices.Sort(out)
+		return out
+	}
+	// Searched while recognition is off: nothing is computed, nothing marked.
+	w.bert.expect("PUT", faces(lake), `{"faces":[{"x":0.1,"y":0.1,"w":0.2,"h":0.2,"person":"Anna"}]}`, http.StatusOK)
+	w.bert.expect("PUT", faces(town), `{"faces":[{"x":0.1,"y":0.1,"w":0.2,"h":0.2},{"x":0.5,"y":0.1,"w":0.2,"h":0.2}]}`, http.StatusOK)
+	if got := marked(w.bert); len(got) != 0 {
+		t.Fatalf("marked without recognition %v", got)
+	}
+	// Turned on, the pictures with faces are marked for whoever may edit them.
+	w.admin.expect("PUT", "/api/settings/faces", `{"recognition":true}`, http.StatusOK)
+	if got := marked(w.bert); !slices.Equal(got, []string{"lake.jpg", "town.jpg"}) {
+		t.Fatalf("marked after turning on %v", got)
+	}
+	if got := marked(w.vera); len(got) != 0 {
+		t.Errorf("marked for a reader %v", got)
+	}
+	// Searched again: a picture whose every face has a vector is no longer
+	// marked; one with a face still without one stays marked.
+	w.bert.expect("PUT", faces(lake), `{"faces":[{"x":0.1,"y":0.1,"w":0.2,"h":0.2,"person":"Anna","vector":`+faceVector(0.1)+`}]}`, http.StatusOK)
+	w.bert.expect("PUT", faces(town), `{"faces":[{"x":0.1,"y":0.1,"w":0.2,"h":0.2,"vector":`+faceVector(0.5)+`},{"x":0.5,"y":0.1,"w":0.2,"h":0.2}]}`, http.StatusOK)
+	if got := marked(w.bert); !slices.Equal(got, []string{"town.jpg"}) {
+		t.Fatalf("marked after searching again %v", got)
+	}
+	// Turned off and on again, every vector is gone and every picture with
+	// faces is marked again.
+	w.admin.expect("PUT", "/api/settings/faces", `{"recognition":false}`, http.StatusOK)
+	if got := marked(w.bert); len(got) != 0 {
+		t.Errorf("marked after turning off %v", got)
+	}
+	w.admin.expect("PUT", "/api/settings/faces", `{"recognition":true}`, http.StatusOK)
+	if got := marked(w.bert); !slices.Equal(got, []string{"lake.jpg", "town.jpg"}) {
+		t.Errorf("marked after turning on again %v", got)
 	}
 }

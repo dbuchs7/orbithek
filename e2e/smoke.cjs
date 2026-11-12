@@ -2235,7 +2235,17 @@ function gitSource() {
 
     step("faces suggested for a person: with recognition on, a person's album offers the unnamed faces that resemble them, and those chosen are named together (ADR-0199)");
     {
-      check((await page.request.put(base + "/api/settings/faces", { data: { recognition: true } })).status() === 200, "recognition turned on");
+      // Administrators turn recognition on and are told that pictures
+      // searched before are recognised once searched again.
+      const back = page.url();
+      await page.goto(base + "/#/admin");
+      await page.waitForSelector("#faces-recognition", { state: "attached" });
+      check(!(await page.isChecked("#faces-recognition")), "recognition is off until administrators turn it on");
+      await page.check("#faces-recognition");
+      await page.click("#faces-form button[type=submit]");
+      await page.waitForSelector("#faces-search-hint a#faces-search-link[href='#/album?view=people']");
+      await page.goto(back);
+      await page.waitForSelector("#album .album-card .album-name:text-is('2 Plan')");
       const pics = await page.evaluate(async () => (await (await fetch("/api/album")).json()).pictures);
       const plan = pics.find((p) => p.attachment.name === "2 Plan.png");
       const other = pics.find((p) => p.attachment.id !== plan.attachment.id && /^image\//.test(p.attachment.type) && !p.video && p.editable);

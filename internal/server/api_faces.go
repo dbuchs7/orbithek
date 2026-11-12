@@ -134,6 +134,24 @@ func (h itemHandlers) keepVectors(id, picture item.ID, before, kept []item.Face,
 	}
 }
 
+// markUnrecognised marks the pictures of the album one may edit whose
+// faces lack what recognises them while recognition is on (ADR-0199):
+// searched before recognition was turned on, or after it was turned off
+// and on again. It reads files of storage, so it runs outside the store.
+func (h itemHandlers) markUnrecognised(pics []albumPicture) {
+	if !h.recognition() {
+		return
+	}
+	for i := range pics {
+		p := &pics[i]
+		if !p.Editable || p.Video || len(p.Attachment.Faces) == 0 {
+			continue
+		}
+		v := h.vectorsOf(p.Item.ID, p.Attachment.ID)
+		p.FacesUnrecognised = len(v) < len(p.Attachment.Faces) || slices.ContainsFunc(v[:len(p.Attachment.Faces)], func(x []float32) bool { return len(x) == 0 })
+	}
+}
+
 func sameBox(a, b item.Face) bool { return a.X == b.X && a.Y == b.Y && a.W == b.W && a.H == b.H }
 
 // forgetVectors drops what is kept in memory of a picture's vectors, or

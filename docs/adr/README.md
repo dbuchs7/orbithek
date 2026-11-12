@@ -211,4 +211,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0196](0196-duplicates-in-the-album.md) | Duplicates in the album, found by the file and by how a picture looks | Proposed | Partial |
 | [0197](0197-album-folders-that-show-a-file-share.md) | Album folders that show a file share, as previews, with the share as master | Proposed | Not started |
 | [0198](0198-a-photos-time-set-by-hand-and-written-into-the-files-given-out.md) | A photo's time set by hand, and written into the files given out | Proposed | Partial |
-| [0199](0199-faces-suggested-for-a-person-across-the-album.md) | Faces suggested for a person across the album, confirmed together | Proposed | Partial |
+| [0199](0199-faces-searched-again-and-suggested-for-a-person.md) | Faces searched again until they can be recognised, and suggested for a person across the album | Proposed | Partial |
