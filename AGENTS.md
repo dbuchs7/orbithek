@@ -84,7 +84,7 @@ it uploads each slide named by its place and title and sets its notes as the pic
 the presentation file never reaches the server, and nothing on the server is new (proposed, ADR-0186).
 Pictures are added where one is: files chosen, dropped or pasted go into the open folder, or, in a collection or at the top, into a folder chosen each time (the folder listing says which are `editable`), each with the collection's labels;
 **Add from the album…** copies pictures into a folder or gives them a collection's labels;
-a change shows the album again as far as it was shown (`assets/album.js`, ADR-0187). A collection keeps the folder its new pictures go into, for everyone who adds to it: an optional `folder` item field its type gains as its next version when first set (`PUT /api/album/collections/{ref}/folder`, proposed, ADR-0221).
+a change shows the album again as far as it was shown (`assets/album.js`, ADR-0187). A collection keeps the folder its new pictures go into, for everyone who adds to it: an optional `folder` item field its type gains as its next version when first set (`PUT /api/album/collections/{ref}/folder`, ADR-0221).
 Administrators set the corporate design (logo, colours, background, fonts, own stylesheet), kept in `site.wal` (`internal/site`, ADR-0052).
 Full-text search scans the in-memory state through the permission check (ADR-0033).
 Every item carries comments, held as events on the item and erased with it (ADR-0035).
