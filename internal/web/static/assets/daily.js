@@ -27,6 +27,16 @@ export function openToday() {
   location.hash = "#/daily";
 }
 
+// appendToDailyNote adds text, a paragraph per line, at the end of one's
+// daily note of a day (today, where the browser is, when no day is given),
+// making the note first: what a quick capture adds to today's note. It
+// resolves with { item, created, editable }; without a room chosen for
+// daily notes it rejects with an ApiError of status 409 (needsRoom), and
+// at critical storage, when the note must be made, with status 507.
+export function appendToDailyNote(text, day = dayOfAddress("")) {
+  return post("/api/daily/" + dayString(day) + "/paragraphs", { text, title: noteTitle(day, language()) });
+}
+
 // dailyView draws the daily note of the day the address names into show.
 // tools are the item page's helpers for a text (see beside.js), with
 // favouritesFirst(spaces), onLeave(fn) and reload(), which draws the view
