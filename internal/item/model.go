@@ -244,6 +244,29 @@ type Block struct {
 	// block in its place. The blocks of one Secret may be several, a
 	// section; a file the block shows is protected with it.
 	Secret ID `json:",omitempty"`
+	// Columns and Rows are a table's column widths and row heights in CSS
+	// pixels, one per column and row, 0 for the width or height its text
+	// takes; none when every one is 0. A height is the least a row takes:
+	// text that does not fit wraps and makes the row taller. Cells are the
+	// table's coloured cells (ADR-0200).
+	Columns []int  `json:",omitempty"`
+	Rows    []int  `json:",omitempty"`
+	Cells   []Cell `json:",omitempty"`
+}
+
+// TableTones are the tones a table's cell is filled or bordered with
+// (ADR-0200): named, so a page reads alike in a light and a dark theme and
+// in an export whose policy refuses styles of its own.
+var TableTones = []string{"blue", "green", "yellow", "orange", "red", "purple", "teal", "gray"}
+
+// Cell colours one cell of a table, counted from 0 with the header row:
+// Fill fills it and Border draws its border, each one of TableTones or
+// empty (ADR-0200).
+type Cell struct {
+	Row    int
+	Col    int
+	Fill   string `json:",omitempty"`
+	Border string `json:",omitempty"`
 }
 
 // The views of a bpmn or a process block besides its diagram alone
@@ -656,6 +679,9 @@ func (d Doc) clone() Doc {
 		b.Marks = slices.Clone(b.Marks)
 		b.Layers = slices.Clone(b.Layers)
 		b.Prefill = slices.Clone(b.Prefill)
+		b.Columns = slices.Clone(b.Columns)
+		b.Rows = slices.Clone(b.Rows)
+		b.Cells = slices.Clone(b.Cells)
 		blocks[i] = b
 	}
 	return Doc{Blocks: blocks}

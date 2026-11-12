@@ -157,7 +157,11 @@ import (
 //   - 54: photo data may carry TakenManual, a time set by hand, and the
 //     kind AttachmentTakenSet with attachment, sealed (ADR-0198). Versions
 //     1 to 53 are still read; their times are the files' own.
-const CodecVersion = 54
+//   - 55: a table block may carry marks inside its cells and the block
+//     fields Columns, Rows and Cells, its column widths, row heights and
+//     coloured cells, sealed with the body (ADR-0200). Versions 1 to 54
+//     are still read; their tables are plain and sized by their text.
+const CodecVersion = 55
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

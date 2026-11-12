@@ -161,6 +161,27 @@ type blockJSON struct {
 	Query string `json:"query,omitempty"`
 	// Secret names the protection of the whole block (ADR-0160).
 	Secret item.ID `json:"secret,omitempty"`
+	// Columns, Rows and Cells are a table's column widths, row heights
+	// and coloured cells (ADR-0200).
+	Columns []int      `json:"columns,omitempty"`
+	Rows    []int      `json:"rows,omitempty"`
+	Cells   []cellJSON `json:"cells,omitempty"`
+}
+
+type cellJSON struct {
+	Row    int    `json:"row"`
+	Col    int    `json:"col"`
+	Fill   string `json:"fill,omitempty"`
+	Border string `json:"border,omitempty"`
+}
+
+// sizes is a table's column widths or row heights as the model holds
+// them: none when every one is 0 (ADR-0200).
+func sizes(v []int) []int {
+	if !slices.ContainsFunc(v, func(n int) bool { return n != 0 }) {
+		return nil
+	}
+	return v
 }
 
 type prefillJSON struct {
@@ -176,6 +197,10 @@ func toBlockJSON(b item.Block) blockJSON {
 	}
 	for _, p := range b.Prefill {
 		j.Prefill = append(j.Prefill, prefillJSON{Field: p.Field, From: p.From})
+	}
+	j.Columns, j.Rows = b.Columns, b.Rows
+	for _, c := range b.Cells {
+		j.Cells = append(j.Cells, cellJSON{Row: c.Row, Col: c.Col, Fill: c.Fill, Border: c.Border})
 	}
 	return j
 }
@@ -208,6 +233,11 @@ func toDoc(blocks []blockJSON, kept func(text string) bool) (item.Doc, error) {
 		for _, p := range b.Prefill {
 			// An empty list fills in nothing, as none does.
 			blk.Prefill = append(blk.Prefill, item.Prefill{Field: p.Field, From: p.From})
+		}
+		blk.Columns, blk.Rows = sizes(b.Columns), sizes(b.Rows)
+		for _, c := range b.Cells {
+			// An empty list colours nothing, as none does.
+			blk.Cells = append(blk.Cells, item.Cell{Row: c.Row, Col: c.Col, Fill: c.Fill, Border: c.Border})
 		}
 		for _, m := range b.Marks {
 			blk.Marks = append(blk.Marks, item.Mark{Type: m.Type, Start: m.Start, End: m.End, Href: m.Href, Ref: m.Ref})

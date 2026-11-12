@@ -126,23 +126,7 @@ func (h *htmlBuilder) block(bl item.Block, p Page, base int) {
 		}
 		h.printf(`<div class="panel tone-%s"><p>%s</p></div>`, tone, text)
 	case item.Table:
-		rows := TableRows(bl.Text)
-		if len(rows) == 0 {
-			return
-		}
-		h.out.WriteString("<table><thead><tr>")
-		for _, c := range rows[0] {
-			h.printf("<th>%s</th>", html.EscapeString(c))
-		}
-		h.out.WriteString("</tr></thead><tbody>")
-		for _, r := range rows[1:] {
-			h.out.WriteString("<tr>")
-			for _, c := range r {
-				h.printf("<td>%s</td>", html.EscapeString(c))
-			}
-			h.out.WriteString("</tr>")
-		}
-		h.out.WriteString("</tbody></table>")
+		h.table(bl)
 	case item.Divider:
 		h.out.WriteString("<hr>")
 	case item.Image:
@@ -215,6 +199,67 @@ func imageClass(bl item.Block) string {
 		cls += " align-" + bl.Align
 	}
 	return cls
+}
+
+// table writes a table with its formatted cells, its column widths and
+// row heights as attributes and its colours as classes of the export's
+// stylesheet, since the export's policy refuses styles of the page's own
+// (ADR-0042, ADR-0200).
+func (h *htmlBuilder) table(bl item.Block) {
+	rows := styledRows(bl)
+	if len(rows) == 0 {
+		return
+	}
+	h.out.WriteString("<table>")
+	if bl.Columns != nil {
+		h.out.WriteString("<colgroup>")
+		for i := range rows[0] {
+			if w := sizeAt(bl.Columns, i); w > 0 {
+				h.printf(`<col width="%d">`, w)
+			} else {
+				h.out.WriteString("<col>")
+			}
+		}
+		h.out.WriteString("</colgroup>")
+	}
+	for i, r := range rows {
+		if i == 0 {
+			h.out.WriteString("<thead>")
+		} else if i == 1 {
+			h.out.WriteString("<tbody>")
+		}
+		if ht := sizeAt(bl.Rows, i); ht > 0 {
+			h.printf(`<tr height="%d">`, ht)
+		} else {
+			h.out.WriteString("<tr>")
+		}
+		tag := "td"
+		if i == 0 {
+			tag = "th"
+		}
+		for _, c := range r {
+			var cls []string
+			if c.Fill != "" {
+				cls = append(cls, "fill-"+c.Fill)
+			}
+			if c.Border != "" {
+				cls = append(cls, "border-"+c.Border)
+			}
+			if len(cls) > 0 {
+				h.printf(`<%s class="%s">%s</%s>`, tag, strings.Join(cls, " "), inline(c.Text, c.Marks), tag)
+			} else {
+				h.printf("<%s>%s</%s>", tag, inline(c.Text, c.Marks), tag)
+			}
+		}
+		h.out.WriteString("</tr>")
+		if i == 0 {
+			h.out.WriteString("</thead>")
+		}
+	}
+	if len(rows) > 1 {
+		h.out.WriteString("</tbody>")
+	}
+	h.out.WriteString("</table>")
 }
 
 // inline writes a text with its marks as HTML, escaped.

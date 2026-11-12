@@ -184,15 +184,17 @@ export function assist(schema, isSafe, { showFile } = {}) {
     const shown = state.doc.textBetween(from, to, " ", " ");
     const text = h("input", { name: "text", value: shown, autocomplete: "off" });
     const address = h("input", { name: "address", value: existing?.mark.attrs.href || "", autocomplete: "off",
-      placeholder: t("assist.addressHint"), required: true });
+      placeholder: schema.nodes.mention ? t("assist.addressHint") : t("assist.addressHintWeb"), required: true });
     let chosen = null;
-    const { list } = results(address, (it) => {
+    // A page is offered only where the schema can mention one; a table's
+    // cell links web addresses alone (ADR-0200).
+    const { list } = schema.nodes.mention ? results(address, (it) => {
       chosen = it;
       address.value = `${it.key} · ${it.title}`;
       if (!text.value.trim()) text.value = it.title || it.key;
       list.replaceChildren();
       address.focus();
-    });
+    }) : { list: null };
     address.addEventListener("input", () => { chosen = null; });
     const remove = existing ? h("button", { type: "button", class: "link danger", id: "pm-link-remove", text: t("assist.removeLink"), onclick: () => {
       view.dispatch(view.state.tr.removeMark(existing.from, existing.to, link));
@@ -201,7 +203,7 @@ export function assist(schema, isSafe, { showFile } = {}) {
     const result = dialog(existing ? t("assist.editLink") : t("assist.insertLink"), [
       h("label", { class: "field" }, h("span", { text: t("assist.textToShow") }), text),
       h("label", { class: "field" }, h("span", { text: t("assist.address") }), address),
-      list,
+      ...(list ? [list] : []),
     ], {
       extra: remove ? [remove] : [],
       submit: () => {

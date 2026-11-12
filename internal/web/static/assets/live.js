@@ -162,8 +162,19 @@ export function liveBody({ ref, embeds, resolve, childPages, files, extra = [], 
     if (!status.classList.contains("error")) say(now ? t("live.saving") : t("live.allSaved"));
   }
 
+  // cursorBlock is the block one writes in: the one the selection is in,
+  // or the one whose own editor has the focus, such as a table's cell
+  // (ADR-0200).
   function cursorBlock() {
-    return view && view.hasFocus() ? blockAt(view.state.doc, view.state.selection.from) : null;
+    if (!view) return null;
+    if (view.hasFocus()) return blockAt(view.state.doc, view.state.selection.from);
+    const active = view.root.activeElement;
+    if (!active || active === view.dom || !view.dom.contains(active)) return null;
+    let at = null;
+    view.state.doc.forEach((node, offset) => {
+      if (!at && view.nodeDOM(offset)?.contains(active)) at = node.attrs.bid;
+    });
+    return at;
   }
 
   function cursorMoved() {
@@ -302,6 +313,10 @@ export function liveBody({ ref, embeds, resolve, childPages, files, extra = [], 
     if (b.kind === "decision") return { kind: "decision", text: b.text ?? "", engine: b.engine, decision: b.decision };
     if (b.kind === "architecture") {
       return { kind: "architecture", text: b.text ?? "", engine: b.engine, application: b.application, ...(b.release ? { release: b.release } : {}), ...(b.layers?.length ? { layers: b.layers } : {}) };
+    }
+    if (b.kind === "table") {
+      return { kind: "table", text: b.text ?? "", ...(b.marks?.length ? { marks: b.marks } : {}), ...(b.columns ? { columns: b.columns } : {}),
+        ...(b.rows ? { rows: b.rows } : {}), ...(b.cells ? { cells: b.cells } : {}) };
     }
     if (b.kind === "image" || b.kind === "video") {
       const img = { kind: b.kind, text: b.text ?? "", ref: b.ref };

@@ -93,6 +93,18 @@ Das Menü **Einfügen…** fügt Blöcke nach dem Cursor ein:
 
 Bilder lassen sich links oder rechts mit Text daneben oder zentriert platzieren und durch Ziehen in der Grösse ändern; eine Bildunterschrift nummeriert sie im Bildverzeichnis.
 
+### Tabellen
+
+Eine Tabelle wird direkt bearbeitet. Ein Klick in eine Zelle öffnet sie zum Schreiben; Text, der nicht hineinpasst, bricht innerhalb der Zelle um. Tab und Shift+Tab wechseln zur nächsten und zur vorherigen Zelle, Enter zur Zelle darunter, Escape verlässt die Tabelle.
+
+- *Formatieren:* Die Tasten des Textes wirken auch in einer Zelle (Ctrl+B, Ctrl+I, Ctrl+U und die übrigen), ebenso die Schaltflächen über der Tabelle; **Link** (Ctrl+K) verlinkt den markierten Text mit einer Webadresse.
+- *Zellen wählen:* Eine Zelle anklicken, dann mit gedrückter Shift-Taste eine weitere: Die Zellen dazwischen sind gewählt. Die Schaltflächen formatieren dann jede gewählte Zelle ganz.
+- *Farben:* **Füllung** füllt die gewählten Zellen, **Rand** färbt ihre Ränder, jeweils in einem von acht Farbtönen; **Keine** entfernt die Farbe. Die Farbtöne sind im hellen und im dunklen Design gut lesbar.
+- *Grössen:* Den rechten Rand einer Zelle ziehen, um ihre Spalte breiter oder schmaler zu machen, den unteren Rand, um ihre Zeile höher zu machen. Eine Tabelle, die breiter als der Text ist, lässt sich seitwärts scrollen. **Grössen zurücksetzen** überlässt die Grössen wieder dem Text.
+- *Zeilen und Spalten:* **+ Zeile** fügt unter der gewählten Zelle eine Zeile ein, **+ Spalte** rechts davon eine Spalte; **− Zeile** und **− Spalte** entfernen die Zeile bzw. Spalte der gewählten Zelle.
+
+Formatierung, Farben und Grössen bleiben im Word- und PDF-Export erhalten; ein Markdown-Export behält die Formatierung.
+
 ### Labels, Beziehungen und Dateien
 
 **Labels** sind kurze Begriffe, die Einträge über Räume hinweg gruppieren, etwa `release-2` oder `security`. Man fügt sie in der Seitenleiste hinzu; ein Klick auf ein Label listet alle Einträge damit auf und bietet es **Als Board** an.

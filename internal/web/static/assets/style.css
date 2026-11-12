@@ -514,12 +514,41 @@ span.tree-toggle { cursor: default; }
 .pm-panel[data-tone="warning"] + .pm-panel[data-tone="warning"],
 .pm-panel[data-tone="tip"] + .pm-panel[data-tone="tip"],
 .pm-panel[data-tone="error"] + .pm-panel[data-tone="error"] { margin-top: -8px; border-top-left-radius: 0; border-top-right-radius: 0; }
-.pm-table { margin: 8px 0; overflow-x: auto; }
+.pm-table { margin: 8px 0; }
+.pm-table-scroll { overflow-x: auto; padding: 2px 2px 6px; } /* room for the outer borders and the lower edge a row is sized by */
 .pm-table table { border-collapse: collapse; min-width: 50%; }
-.pm-table th, .pm-table td { border: 1px solid var(--border-strong); padding: 4px 8px; text-align: left; vertical-align: top; }
+.pm-table th, .pm-table td { position: relative; border: 1px solid var(--border-strong); padding: 4px 8px; text-align: left; vertical-align: top; }
 .pm-table th { background: var(--bg); font-weight: 600; }
-.pm-table input { width: 100%; min-width: 6em; border: 0; padding: 2px; background: transparent; font: inherit; color: inherit; }
+/* Text that does not fit wraps within its cell (ADR-0200). */
+.pm-cell-text, .pm-cell-editor { white-space: pre-wrap; overflow-wrap: anywhere; min-height: 1.4em; }
+.pm-cell-editor { outline: none; }
+.pm-cell-editable { cursor: text; }
+.pm-cell-editable:focus-within { outline: 2px solid var(--accent); outline-offset: -2px; }
+.pm-table td.pm-cell-chosen, .pm-table th.pm-cell-chosen { box-shadow: inset 0 0 0 9999px color-mix(in srgb, var(--accent) 16%, transparent); }
+/* A sized table keeps the widths it is given, wider than the column if so. */
+.pm-table table.pm-table-sized { table-layout: fixed; min-width: 0; }
+.pm-table table.pm-table-sized th, .pm-table table.pm-table-sized td { min-width: 0; max-width: none; }
+/* The edges a column and a row are sized by. */
+.pm-col-handle, .pm-row-handle { position: absolute; z-index: 1; touch-action: none; }
+.pm-col-handle { top: 0; right: -4px; width: 8px; height: 100%; cursor: col-resize; }
+.pm-row-handle { left: 0; bottom: -4px; width: 100%; height: 8px; cursor: row-resize; }
+.pm-col-handle:hover, .pm-row-handle:hover { background: color-mix(in srgb, var(--accent) 45%, transparent); }
+/* Coloured cells: a fill mixes its tone into the surface, so the theme's
+   text stays readable on it in a light and a dark theme; a border is the
+   tone itself. */
+.pm-fill-blue { --cell-fill: #2f6fde; }
+.pm-fill-green { --cell-fill: #1f9d55; } .pm-fill-yellow { --cell-fill: #d4a106; } .pm-fill-orange { --cell-fill: #e8710a; }
+.pm-fill-red { --cell-fill: #d93636; } .pm-fill-purple { --cell-fill: #8a4fd8; } .pm-fill-teal { --cell-fill: #0f9b9b; } .pm-fill-gray { --cell-fill: #7a8394; }
+.pm-border-blue { --cell-border: #2f6fde; } .pm-border-green { --cell-border: #1f9d55; } .pm-border-yellow { --cell-border: #d4a106; }
+.pm-border-orange { --cell-border: #e8710a; } .pm-border-red { --cell-border: #d93636; } .pm-border-purple { --cell-border: #8a4fd8; }
+.pm-border-teal { --cell-border: #0f9b9b; } .pm-border-gray { --cell-border: #7a8394; }
+.pm-table th.pm-cell-fill, .pm-table td.pm-cell-fill { background: color-mix(in srgb, var(--cell-fill) 22%, var(--surface)); }
+.pm-table th.pm-cell-border, .pm-table td.pm-cell-border { border: 2px solid var(--cell-border); }
+.pm-table-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-bottom: 4px; font-size: 12px; }
 .pm-table-tools button.link { margin-right: 10px; font-size: 12px; }
+.pm-table-tools .pm-table-format { min-width: 26px; padding: 2px 6px; font-size: 12px; }
+.pm-table-tone { display: inline-flex; align-items: center; gap: 4px; }
+.pm-table-tone select { font-size: 12px; padding: 1px 4px; }
 .pm-toc, .pm-figures, .pm-tables, .pm-children { margin: 8px 0; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
 .pm-box-title { margin: 0 0 4px; font-weight: 600; }
 .pm-toc ul, .pm-figures ul, .pm-tables ul, .pm-children ul { margin: 0; padding-left: 18px; }
@@ -1996,13 +2025,12 @@ dialog.note-dialog { max-height: calc(100dvh - 32px); overflow: auto; }
    shadow at the edge that has more. */
 .pm-table th, .pm-table td { min-width: 7rem; max-width: 22rem; overflow-wrap: anywhere; }
 .pm-table th { overflow-wrap: normal; hyphens: auto; }
-.pm-table, .pm-tasklist .tasklist-box .filtered, .table-scroll {
+.pm-table-scroll, .pm-tasklist .tasklist-box .filtered, .table-scroll {
   background: linear-gradient(to right, var(--surface) 30%, transparent) left / 24px 100% no-repeat local,
     linear-gradient(to left, var(--surface) 30%, transparent) right / 24px 100% no-repeat local,
     radial-gradient(farthest-side at 0 50%, rgba(0, 0, 0, .18), transparent) left / 10px 100% no-repeat scroll,
     radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, .18), transparent) right / 10px 100% no-repeat scroll;
 }
-.pm-table input { min-width: 7rem; }
 @media (max-width: 640px) {
   dialog.drawing { inset: 0; width: 100vw; height: 100vh; height: 100dvh; max-height: none; margin: 0; border: 0; border-radius: 0; }
   dialog.note-dialog { width: calc(100vw - 16px); }
