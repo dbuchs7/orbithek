@@ -786,16 +786,24 @@ function gitSource() {
     await page.fill("#new-space [name=name]", "Platform");
     await page.click("#new-space button[type=submit]");
     await page.waitForSelector("#grant option[value=PLAT]", { state: "attached" });
-    await page.fill("#new-type [name=type]", JSON.stringify({
+    // A type is defined in the type editor (ADR-0199); hand-written JSON
+    // stays in it, folded away, and is applied to the form.
+    await page.click("#new-type");
+    await page.click("#type-editor details.type-json summary");
+    await page.fill("#type-json", JSON.stringify({
       name: "task", body: true,
       fields: [{ name: "priority", kind: "enum", required: true, values: ["low", "high"] }, { name: "estimate", kind: "number" }],
       workflow: { initial: "open", states: ["open", "done"], transitions: [{ name: "finish", from: ["open"], to: "done" }] },
     }));
-    await page.click("#new-type button[type=submit]");
+    await page.click("#type-json-apply");
+    check(await page.inputValue("#type-name") === "task" && await page.locator("#type-editor .type-field").count() === 2,
+      "JSON applied to the form fills the name and the fields");
+    await page.click("#type-save");
     await page.waitForSelector("text=task v1");
     // A type nothing uses is removed (ADR-0094).
-    await page.fill("#new-type [name=type]", JSON.stringify({ name: "scratch", body: true }));
-    await page.click("#new-type button[type=submit]");
+    await page.click("#new-type");
+    await page.fill("#type-name", "scratch");
+    await page.click("#type-save");
     await page.waitForSelector("text=scratch v1");
     answer = true;
     await page.click("#types tr:has-text('scratch v1') button:has-text('Remove')");
@@ -5467,6 +5475,73 @@ function gitSource() {
     await page.click("dialog.drawing button:has-text('Cancel')");
     await page.click("#edit-done");
     await page.waitForSelector("#body.reading");
+
+    step("room types and the field kinds item, multi, rating and file: a room's administrator defines a type of the room in the type editor; an item of it refers to another, chooses several values and gives stars; the referenced item lists it as a relation and cannot be trashed (ADR-0199, ADR-0200)");
+    {
+      const me = await page.evaluate(async () => (await (await fetch("/api/me")).json()));
+      check(me.admin, "the room types' steps run as the administrator");
+      const epic = await page.evaluate(async () => (await (await fetch("/api/items", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ space: "PLAT", type: "task", title: "Epic for room types", properties: { priority: "low" } }) })).json()).item);
+      await page.goto(base + "/#/members/PLAT");
+      await page.waitForSelector("#room-types");
+      await page.click("#room-new-type");
+      check(await page.textContent("#type-belongs") === "Type of the room PLAT", "a room's new type belongs to the room");
+      await page.fill("#type-name", "incident");
+      for (const [name, kind] of [["about", "item"], ["platforms", "multi"], ["stars", "rating"], ["cover", "file"]]) {
+        await page.click("#type-add-field");
+        const row = page.locator("#type-editor .type-field").last();
+        await row.locator("[name=field-name]").fill(name);
+        await row.locator("[name=field-kind]").selectOption(kind);
+      }
+      await page.locator("#type-editor .type-field").nth(1).locator("[name=field-values]").fill("web\nios\nandroid");
+      // An empty multi field is refused before anything is sent.
+      await page.locator("#type-editor .type-field").nth(1).locator("[name=field-values]").fill("");
+      await page.click("#type-save");
+      await page.waitForSelector("#type-editor .error:has-text('needs at least one value')");
+      await page.locator("#type-editor .type-field").nth(1).locator("[name=field-values]").fill("web\nios\nandroid");
+      await page.check("#type-workflow");
+      check(await page.locator("#type-editor .type-state").count() === 2, "the simple workflow open → done is preset");
+      await page.fill("#type-start", "## Impact\n\nWho is affected?");
+      await page.click("#type-save");
+      await page.waitForSelector("#room-type-list:has-text('incident')");
+      const types = await page.evaluate(async () => (await (await fetch("/api/types?space=PLAT")).json()).types);
+      const incident = types.find((ty) => ty.name === "incident");
+      check(incident && incident.space === "PLAT" && incident.editable && incident.workflow.states.join() === "open,done" && incident.start?.length === 2,
+        "the room type is defined with its fields, workflow and start text: " + JSON.stringify(incident));
+
+      await page.goto(base + "/#/new?space=PLAT&type=incident");
+      await page.waitForSelector("#new-item fieldset[name='p:platforms']");
+      await page.fill("#new-item [name=title]", "Outage of the login");
+      await page.check("#new-item fieldset[name='p:platforms'] input[value=ios]");
+      await page.check("#new-item fieldset[name='p:platforms'] input[value=web]");
+      await page.click("#new-item fieldset[name='p:stars'] .star >> nth=3");
+      await page.fill("#new-item fieldset[name='p:about'] input[type=search]", "Epic for room");
+      await page.click(`#new-item .item-suggestions li button:has-text('${epic.key}')`);
+      await page.waitForSelector(`#new-item fieldset[name='p:about'] a.field-ref:has-text('${epic.key}')`);
+      check((await page.textContent("#new-item fieldset[name='p:cover']")).includes("once the item has files"), "a file is chosen once the item has files");
+      await page.click("#new-item button[type=submit]");
+      await page.waitForSelector("tr[data-field=stars]");
+      const made = await page.evaluate(async () => (await (await fetch("/api/items/" + location.hash.split("/")[2].split("?")[0])).json()).item);
+      check(made.properties.about === epic.id && made.properties.platforms.join() === "web,ios" && made.properties.stars === 4 && made.body.length === 2,
+        "the item holds the reference by ID, the values in their order, four stars and the start text: " + JSON.stringify(made.properties));
+      // The stars change on the item page, saved at once.
+      await page.goto(base + "/#/item/" + made.key);
+      await page.waitForSelector("tr[data-field=stars] .star");
+      await page.click("tr[data-field=stars] .star >> nth=1");
+      await page.waitForSelector("tr[data-field=stars] .saved");
+      check((await page.evaluate(async (k) => (await (await fetch("/api/items/" + k)).json()).item.properties.stars, made.key)) === 2, "two stars are saved");
+      // The referenced item lists it among its relations and is protected
+      // from deletion while it does (D8).
+      const incoming = await page.evaluate(async (id) => (await (await fetch(`/api/items/${id}/relations?direction=incoming`)).json()).relations, epic.id);
+      check(incoming.some((r) => r.type === "about" && r.from === made.id && r.derived), "the item field is a relation of its target: " + JSON.stringify(incoming));
+      const trash = await page.evaluate(async (id) => (await fetch(`/api/items/${id}/trash`, { method: "POST" })).status, epic.id);
+      check(trash === 409, "a referenced item is not trashed: " + trash);
+      const found = await page.evaluate(async () => (await (await fetch("/api/items?query=" + encodeURIComponent("platforms = ios AND stars >= 2"))).json()).items);
+      check(found.length === 1 && found[0].id === made.id, "the query finds the item by one of its values and its stars");
+      // The type is not offered in another room.
+      const elsewhere = await page.evaluate(async () => (await (await fetch("/api/types?space=OTHER")).json()).types.map((ty) => ty.name));
+      check(!elsewhere.includes("incident"), "a room's type is not offered elsewhere");
+    }
 
     check(problems.length === 0, problems.join("; "));
     console.log("ok");
