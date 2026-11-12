@@ -2,6 +2,7 @@ package item
 
 import (
 	"errors"
+	"slices"
 	"testing"
 )
 
@@ -34,8 +35,12 @@ func TestTheWebLinkTemplate(t *testing.T) {
 	if _, ok := TemplateType("nothing"); ok {
 		t.Error("a name without a template has none")
 	}
-	if all := TypeTemplates(); all[0].Name != "page" || all[1].Name != "task" || all[len(all)-1].Name != WebLinkType {
-		t.Error("the templates keep their order; the web link comes last")
+	var names []string
+	for _, td := range TypeTemplates() {
+		names = append(names, td.Name)
+	}
+	if want := []string{"page", "task", "decision", "topic", WebLinkType, "daily-note"}; !slices.Equal(names, want) {
+		t.Errorf("the templates keep their order: %v, want %v", names, want)
 	}
 }
 
