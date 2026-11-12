@@ -69,4 +69,5 @@ Strongest form: access never changes by a move from the album; who may see the p
 ## Links
 
 - amends [ADR-0090](0090-album-folders-uploads-and-picture-labels.md) (folders are moved on their page)
+- amended by [ADR-draft-a-folder-lies-only-in-a-folder-or-at-the-top-of-a-room](draft-a-folder-lies-only-in-a-folder-or-at-the-top-of-a-room.md) (a folder lies only in a folder or at the top of a room, proposed)
 - relates to ADR-0041 (page tree and sibling order), ADR-0184 (pictures are moved by dragging them onto a folder), ADR-0190 (a folder is deleted from the album), ADR-0022 (permissions)
