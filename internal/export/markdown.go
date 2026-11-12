@@ -269,7 +269,7 @@ func (m *mdBuilder) block(bl item.Block, p Page, base int) []string {
 			out = append(out, label)
 		}
 		return append(out, captionPart()...)
-	case item.BPMN, item.Process, item.Form, item.Decision, item.Architecture, item.StartForm:
+	case item.BPMN, item.Process, item.Form, item.Decision, item.Architecture, item.StartForm, item.ItemsView:
 		// A diagram is named as in Word and PDF (ADR-0071): its file, linked
 		// where it is reachable, or its process, form, decision, sketch or
 		// start form and engine (ADR-0144, ADR-0146, ADR-0148).
@@ -319,7 +319,7 @@ func (m *mdBuilder) block(bl item.Block, p Page, base int) []string {
 }
 
 // styledMarkdownTable writes a table whose cells keep their formatting
-// (ADR-0200); Markdown has no colours or sizes, so those are left out.
+// (ADR-0214); Markdown has no colours or sizes, so those are left out.
 func styledMarkdownTable(rows [][]tableCell) []string {
 	if len(rows) == 0 {
 		return nil

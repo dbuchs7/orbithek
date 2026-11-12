@@ -115,6 +115,11 @@ const (
 	// beforehand with what this site knows of the reader, and Text the
 	// caption. The body holds no copy of the form (ADR-0148).
 	StartForm BlockKind = "startform"
+	// ItemsView shows the items of a type the reader may read as a table,
+	// a gallery or a list, grouped by a field (ADR-0203): Layout, ItemType,
+	// Space, Query, Group, Columns and Sort name what it shows. Like a
+	// task list it is computed when shown and holds no item.
+	ItemsView BlockKind = "view"
 )
 
 // PrefillSources are what a start form's field may be filled in with
@@ -239,29 +244,41 @@ type Block struct {
 	// Query is the query of the query language a task list selects its
 	// tasks by, in place of a label (ADR-0136, ADR-0151).
 	Query string `json:",omitempty"`
+	// Layout, ItemType, Space, Group, Columns and Sort name what a view
+	// shows (ADR-0203): a table, a gallery or a list; the items of a type
+	// (none for every type) in a room (none for every room the reader
+	// reads), narrowed by Query; grouped by the state, the labels or a
+	// field; the columns shown, in their order (none for the default);
+	// and the column it is sorted by, - before it for the other way.
+	Layout   string   `json:",omitempty"`
+	ItemType string   `json:",omitempty"`
+	Space    string   `json:",omitempty"`
+	Group    string   `json:",omitempty"`
+	Columns  []string `json:",omitempty"`
+	Sort     string   `json:",omitempty"`
 	// Secret names the item's Secret that protects the whole block
 	// (ADR-0160): its readers read it, everyone else reads a placeholder
 	// block in its place. The blocks of one Secret may be several, a
 	// section; a file the block shows is protected with it.
 	Secret ID `json:",omitempty"`
-	// Columns and Rows are a table's column widths and row heights in CSS
-	// pixels, one per column and row, 0 for the width or height its text
-	// takes; none when every one is 0. A height is the least a row takes:
-	// text that does not fit wraps and makes the row taller. Cells are the
-	// table's coloured cells (ADR-0200).
-	Columns []int  `json:",omitempty"`
-	Rows    []int  `json:",omitempty"`
+	// Widths and Heights are a table's column widths and row heights in
+	// CSS pixels, one per column and row, 0 for the width or height its
+	// text takes; none when every one is 0. A height is the least a row
+	// takes: text that does not fit wraps and makes the row taller. Cells
+	// are the table's coloured cells (ADR-0214).
+	Widths  []int  `json:",omitempty"`
+	Heights []int  `json:",omitempty"`
 	Cells   []Cell `json:",omitempty"`
 }
 
 // TableTones are the tones a table's cell is filled or bordered with
-// (ADR-0200): named, so a page reads alike in a light and a dark theme and
+// (ADR-0214): named, so a page reads alike in a light and a dark theme and
 // in an export whose policy refuses styles of its own.
 var TableTones = []string{"blue", "green", "yellow", "orange", "red", "purple", "teal", "gray"}
 
 // Cell colours one cell of a table, counted from 0 with the header row:
 // Fill fills it and Border draws its border, each one of TableTones or
-// empty (ADR-0200).
+// empty (ADR-0214).
 type Cell struct {
 	Row    int
 	Col    int
@@ -359,6 +376,11 @@ type Item struct {
 	// (ADR-0195). It may name files that are gone or that a reader does
 	// not read; it only sorts what a reader reads.
 	PictureOrder []ID
+	// ItemOrder is the order of the items that carry the label of a
+	// label's page, set by hand (ADR-0204). It may name items that no
+	// longer carry the label or that a reader does not read; it only
+	// sorts what a reader reads.
+	ItemOrder []ID
 
 	created int // sequence number of the creating event; orders items
 	// erasedBefore withholds the versions of the body before it: they may
@@ -401,6 +423,10 @@ type Relation struct {
 	// only those who read one of them learn of the relation. Empty when a
 	// block anyone reads implies it. It follows from the body (D4).
 	secrets []ID
+	// field names the item field a derived relation follows from; empty
+	// for one derived from a body (ADR-0202). It follows from the
+	// property (D4) and is never persisted.
+	field string
 }
 
 // Direction selects relations by end.
@@ -526,6 +552,9 @@ const (
 	// collection of the album by hand, or clears it: Order names the first
 	// versions of the stacks in their order (ADR-0195).
 	PicturesOrdered EventKind = "PicturesOrdered"
+	// ItemsOrdered sets the order of the items of a label's page by hand,
+	// or clears it: Order names the items in their order (ADR-0204).
+	ItemsOrdered EventKind = "ItemsOrdered"
 )
 
 // TemplateRef names a version of a Word template (ADR-0167).
@@ -565,7 +594,8 @@ type Event struct {
 	// Order is the new order of the children of Parent (or the top of
 	// Space) after an ItemMoved that placed the item (ADR-0041); nil keeps
 	// the order. After KanbanCardPlaced it is the column's cards; after
-	// PicturesOrdered the slides of a folder or collection (ADR-0195).
+	// PicturesOrdered the slides of a folder or collection (ADR-0195);
+	// after ItemsOrdered the items of a label's page (ADR-0204).
 	Order      []ID
 	Title      string // ItemCreated, TitleSet
 	Props      Props  // ItemCreated
@@ -655,6 +685,7 @@ func (it *Item) clone() Item {
 	c.LinkedFields = slices.Clone(it.LinkedFields)
 	c.Attachments = slices.Clone(it.Attachments)
 	c.PictureOrder = slices.Clone(it.PictureOrder)
+	c.ItemOrder = slices.Clone(it.ItemOrder)
 	c.ErasedSecrets = slices.Clone(it.ErasedSecrets)
 	c.secretFiles = maps.Clone(it.secretFiles)
 	c.Secrets = make([]Secret, len(it.Secrets))
@@ -679,8 +710,8 @@ func (d Doc) clone() Doc {
 		b.Marks = slices.Clone(b.Marks)
 		b.Layers = slices.Clone(b.Layers)
 		b.Prefill = slices.Clone(b.Prefill)
-		b.Columns = slices.Clone(b.Columns)
-		b.Rows = slices.Clone(b.Rows)
+		b.Widths = slices.Clone(b.Widths)
+		b.Heights = slices.Clone(b.Heights)
 		b.Cells = slices.Clone(b.Cells)
 		blocks[i] = b
 	}

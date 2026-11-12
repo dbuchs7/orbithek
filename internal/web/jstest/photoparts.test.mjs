@@ -1,7 +1,8 @@
 // Unit tests of the album's photo management that need no browser
 // (photoparts.js, zipread.js, ADR-0177): the map's projection, tiles,
 // clusters and zoom, the timeline's groups, choosing a range, what a
-// picture dragged onto a folder takes with it, where pictures dropped
+// picture dragged onto a folder takes with it, where a folder may be moved
+// (ADR-0200), where pictures dropped
 // among others go in the order of slides (ADR-0195), which files the album takes, the times set by hand (ADR-0198), and reading ZIP archives exported from photo apps.
 // They run in Node.js without a browser and without dependencies:
 //
@@ -12,7 +13,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { deflateRawSync } from "node:zlib";
 import {
-  TILE, project, unproject, fit, tiles, cluster, pan, zoomAt, radius, hit, groups, yearsAgo, range, dragged, orderDrop, moveWithin, durationText, posterTime, isVideo,
+  TILE, project, unproject, fit, tiles, cluster, pan, zoomAt, radius, hit, groups, yearsAgo, range, dragged, folderTargets, folderDrop, orderDrop, moveWithin, durationText, posterTime, isVideo,
   sorts, typeOf, baseName, hidden, exposureText, placeText, OFFSETS, takenValue, shiftMinutes, shiftTaken,
 } from "../static/assets/photoparts.js";
 import { entries, read } from "../static/assets/zipread.js";
@@ -86,6 +87,47 @@ test("the timeline groups by month and day in the order given", () => {
   assert.deepEqual(g.map((m) => m.month), ["2024-05", "2023-12", "2022-01"]);
   assert.deepEqual(g[0].days.map((d) => [d.day, d.pictures.length]), [["2024-05-02", 2], ["2024-05-01", 1]]);
   assert.equal(yearsAgo("2023-11-10", "2026-11-10"), 3);
+});
+
+// A room A with folders Trips › 2024 › Rome and Prints, a room B with
+// Archive, the way allFolders lists them; Prints may not be filled.
+const roomsAB = [{ key: "A", name: "Alpha" }, { key: "B", name: "Beta" }];
+const foldersAB = [
+  { id: "t", space: "A", parent: "", path: "A › Trips" },
+  { id: "y", space: "A", parent: "t", path: "A › Trips › 2024" },
+  { id: "r", space: "A", parent: "y", path: "A › Trips › 2024 › Rome" },
+  { id: "p", space: "A", parent: "", path: "A › Prints", editable: false },
+  { id: "x", space: "B", parent: "", path: "B › Archive" },
+];
+
+test("a folder is offered every room's top and every folder it may go into, by room", () => {
+  const out = folderTargets({ id: "y", space: "A", parent: "t" }, foldersAB, roomsAB, "top");
+  assert.deepEqual(out.map((o) => [o.space, o.parent, o.text]), [
+    ["A", "", "A Alpha › top"],
+    ["B", "", "B Beta › top"],
+    ["B", "x", "B › Archive"],
+  ]);
+});
+
+test("a folder is not offered itself, a folder below it, where it is or a folder one may not fill", () => {
+  const out = folderTargets({ id: "t", space: "A", parent: "" }, foldersAB, roomsAB, "top");
+  assert.deepEqual(out.map((o) => o.parent || o.space), ["B", "x"]);
+  const rome = folderTargets({ id: "r", space: "A", parent: "y" }, foldersAB, roomsAB, "top");
+  assert.deepEqual(rome.map((o) => o.parent || o.space), ["A", "t", "B", "x"]);
+});
+
+test("a folder of a room the album does not list is still offered", () => {
+  const out = folderTargets({ id: "x", space: "B", parent: "" }, [...foldersAB, { id: "c", space: "C", parent: "", path: "C › Club" }], roomsAB, "top");
+  assert.deepEqual(out.map((o) => o.parent || o.space), ["A", "t", "y", "r", "c"]);
+});
+
+test("a folder dropped onto a folder goes into it, onto the top to its room's top, and nowhere it is", () => {
+  const f = { id: "y", space: "A", parent: "t" };
+  assert.deepEqual(folderDrop(f, { id: "x", space: "B" }), { space: "B", parent: "x" });
+  assert.deepEqual(folderDrop(f, null), { space: "A", parent: "" });
+  assert.equal(folderDrop(f, { id: "y", space: "A" }), null);
+  assert.equal(folderDrop(f, { id: "t", space: "A" }), null);
+  assert.equal(folderDrop({ id: "t", space: "A", parent: "" }, null), null);
 });
 
 test("a dragged picture takes the chosen ones with it only when it is chosen", () => {

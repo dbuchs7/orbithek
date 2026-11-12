@@ -1,4 +1,4 @@
-// The parts of a table block that hold no DOM (ADR-0042, ADR-0200): its
+// The parts of a table block that hold no DOM (ADR-0042, ADR-0214): its
 // cells with their formats, split from and joined into the block's text
 // and marks; rows and columns added and removed with their sizes and
 // colours; colours set on a range of cells; and the sizes a resize gives.
@@ -72,15 +72,15 @@ export function normalMarks(marks) {
   return out.sort((a, b) => a.start - b.start || a.type.localeCompare(b.type));
 }
 
-// A layout is a table's { columns, rows, cells } as the model holds them:
-// columns and rows a size per column and row or null, cells the coloured
-// ones { row, col, fill, border } in the order of rows and columns, or
-// null.
+// A layout is a table's { widths, heights, cells } as the model holds
+// them: widths and heights a size per column and row or null, cells the
+// coloured ones { row, col, fill, border } in the order of rows and
+// columns, or null.
 
 // normalLayout is a layout as the model accepts it for a table of nRows
 // and nCols: sizes within their bounds or 0, none when every one is 0,
 // cells inside the table, each once, in order, each with a tone.
-export function normalLayout({ columns, rows, cells } = {}, nRows, nCols) {
+export function normalLayout({ widths, heights, cells } = {}, nRows, nCols) {
   const sizes = (v, n, { min, max }) => {
     if (!Array.isArray(v)) return null;
     const out = Array.from({ length: n }, (_, i) => {
@@ -99,7 +99,7 @@ export function normalLayout({ columns, rows, cells } = {}, nRows, nCols) {
     else seen.delete(key);
   }
   const list = [...seen.entries()].sort((a, b) => a[0] - b[0]).map(([, c]) => c);
-  return { columns: sizes(columns, nCols, COLUMN), rows: sizes(rows, nRows, ROW), cells: list.length ? list : null };
+  return { widths: sizes(widths, nCols, COLUMN), heights: sizes(heights, nRows, ROW), cells: list.length ? list : null };
 }
 
 // colourOf is the colours of the cell at row r and column c.
@@ -153,18 +153,18 @@ const empty = () => ({ text: "", marks: [] });
 export function insertRow(rows, layout, at) {
   const nCols = rows[0].length;
   const next = [...rows.slice(0, at + 1), Array.from({ length: nCols }, empty), ...rows.slice(at + 1)];
-  const sizes = layout.rows ? [...layout.rows.slice(0, at + 1), 0, ...layout.rows.slice(at + 1)] : null;
+  const heights = layout.heights ? [...layout.heights.slice(0, at + 1), 0, ...layout.heights.slice(at + 1)] : null;
   const cells = (layout.cells || []).map((c) => (c.row > at ? { ...c, row: c.row + 1 } : c));
-  return { rows: next, layout: normalLayout({ ...layout, rows: sizes, cells }, next.length, nCols) };
+  return { rows: next, layout: normalLayout({ ...layout, heights, cells }, next.length, nCols) };
 }
 
 // insertColumn adds an empty column after column at; a new column of a
 // table with widths takes the width of the column at.
 export function insertColumn(rows, layout, at) {
   const next = rows.map((row) => [...row.slice(0, at + 1), empty(), ...row.slice(at + 1)]);
-  const columns = layout.columns ? [...layout.columns.slice(0, at + 1), layout.columns[at] || 0, ...layout.columns.slice(at + 1)] : null;
+  const widths = layout.widths ? [...layout.widths.slice(0, at + 1), layout.widths[at] || 0, ...layout.widths.slice(at + 1)] : null;
   const cells = (layout.cells || []).map((c) => (c.col > at ? { ...c, col: c.col + 1 } : c));
-  return { rows: next, layout: normalLayout({ ...layout, columns, cells }, next.length, next[0].length) };
+  return { rows: next, layout: normalLayout({ ...layout, widths, cells }, next.length, next[0].length) };
 }
 
 // removeRow takes row at away with its size and colours; the last row
@@ -172,9 +172,9 @@ export function insertColumn(rows, layout, at) {
 export function removeRow(rows, layout, at) {
   if (rows.length < 2) return { rows, layout };
   const next = rows.filter((_, i) => i !== at);
-  const sizes = layout.rows ? layout.rows.filter((_, i) => i !== at) : null;
+  const heights = layout.heights ? layout.heights.filter((_, i) => i !== at) : null;
   const cells = (layout.cells || []).filter((c) => c.row !== at).map((c) => (c.row > at ? { ...c, row: c.row - 1 } : c));
-  return { rows: next, layout: normalLayout({ ...layout, rows: sizes, cells }, next.length, next[0].length) };
+  return { rows: next, layout: normalLayout({ ...layout, heights, cells }, next.length, next[0].length) };
 }
 
 // removeColumn takes column at away with its width and colours; the last
@@ -182,18 +182,18 @@ export function removeRow(rows, layout, at) {
 export function removeColumn(rows, layout, at) {
   if (rows[0].length < 2) return { rows, layout };
   const next = rows.map((row) => row.filter((_, i) => i !== at));
-  const columns = layout.columns ? layout.columns.filter((_, i) => i !== at) : null;
+  const widths = layout.widths ? layout.widths.filter((_, i) => i !== at) : null;
   const cells = (layout.cells || []).filter((c) => c.col !== at).map((c) => (c.col > at ? { ...c, col: c.col - 1 } : c));
-  return { rows: next, layout: normalLayout({ ...layout, columns, cells }, next.length, next[0].length) };
+  return { rows: next, layout: normalLayout({ ...layout, widths, cells }, next.length, next[0].length) };
 }
 
-// resized is the layout after column (what "columns") or row (what "rows")
-// i was dragged to size px. A column dragged in a table without widths
+// resized is the layout after column (what "widths") or row (what
+// "heights") i was dragged to size px. A column dragged in a table without widths
 // fixes every column at the width it is shown with, measured, so that the
 // others keep theirs; a row keeps the others as they are.
 export function resized(layout, what, i, px, measured) {
-  const bounds = what === "columns" ? COLUMN : ROW;
-  const base = what === "columns" && !layout.columns ? measured.map((w) => Math.round(w)) : [...(layout[what] || measured.map(() => 0))];
+  const bounds = what === "widths" ? COLUMN : ROW;
+  const base = what === "widths" && !layout.widths ? measured.map((w) => Math.round(w)) : [...(layout[what] || measured.map(() => 0))];
   base[i] = Math.min(bounds.max, Math.max(bounds.min, Math.round(px)));
   return { ...layout, [what]: base };
 }

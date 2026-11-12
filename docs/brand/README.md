@@ -35,7 +35,7 @@ Each artwork is named `orbithek-<artwork>` and comes as `-black` (on light groun
 
 ## Where the product uses it
 
-The web UI embeds copies (ADR-0009): `internal/web/static/favicon.ico`, and in `internal/web/static/assets/brand/` the horizontal logo in black and white for the top bar, `favicon.svg` and `apple-touch-icon.png`. The start page's illustration, `welcome.svg`, is a space station in orbit, seen in perspective: a drum holding a page, with docked modules for conversations, tasks, pictures, protection and processes, solar wings, the people on board and the ringed planet of the mark; it holds the horizontal logo too, inline. After a change here, copy them again and draw `welcome.svg` anew with `source/welcome.py`, which builds the station as a small 3D model, projects it in perspective and takes the logo from `svg/`.
+The web UI embeds copies (ADR-0009): `internal/web/static/favicon.ico`, and in `internal/web/static/assets/brand/` the horizontal logo in black and white for the top bar, `favicon.svg`, `apple-touch-icon.png`, and `icon-192.png`, `icon-512.png` and `icon-maskable-512.png`, which the web app's manifest names (ADR-0209). The start page's illustration, `welcome.svg`, is a space station in orbit, seen in perspective: a drum holding a page, with docked modules for conversations, tasks, pictures, protection and processes, solar wings, the people on board and the ringed planet of the mark; it holds the horizontal logo too, inline. After a change here, copy them again and draw `welcome.svg` anew with `source/welcome.py`, which builds the station as a small 3D model, projects it in perspective and takes the logo from `svg/`.
 
 ## Regenerate
 

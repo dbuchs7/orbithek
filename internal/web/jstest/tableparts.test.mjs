@@ -1,4 +1,4 @@
-// Unit tests of the parts of a table block (tableparts.js, ADR-0200): its
+// Unit tests of the parts of a table block (tableparts.js, ADR-0214): its
 // cells with their formats split from and joined into the block's text
 // and marks, rows and columns added and removed with their sizes and
 // colours, colours and formats set on a range of cells, and the sizes a
@@ -46,9 +46,9 @@ test("marks of one kind and target that touch are joined", () => {
 });
 
 test("a layout is held as the model accepts it", () => {
-  assert.deepEqual(normalLayout({ columns: [0, 0], rows: [0, 0], cells: [] }, 2, 2), { columns: null, rows: null, cells: null });
-  assert.deepEqual(normalLayout({ columns: [3, 5000], rows: [12.6, 0] }, 2, 2), { columns: [24, 2000], rows: [16, 0], cells: null });
-  assert.deepEqual(normalLayout({ columns: [100] }, 1, 3).columns, [100, 0, 0], "a missing width is 0");
+  assert.deepEqual(normalLayout({ widths: [0, 0], heights: [0, 0], cells: [] }, 2, 2), { widths: null, heights: null, cells: null });
+  assert.deepEqual(normalLayout({ widths: [3, 5000], heights: [12.6, 0] }, 2, 2), { widths: [24, 2000], heights: [16, 0], cells: null });
+  assert.deepEqual(normalLayout({ widths: [100] }, 1, 3).widths, [100, 0, 0], "a missing width is 0");
   assert.deepEqual(normalLayout({ cells: [{ row: 1, col: 0, fill: "red" }, { row: 0, col: 1, border: "blue" }, { row: 5, col: 0, fill: "red" },
     { row: 0, col: 0, fill: "pink" }, { row: 1, col: 0, fill: "teal" }] }, 2, 2).cells,
   [{ row: 0, col: 1, border: "blue" }, { row: 1, col: 0, fill: "teal" }], "in order, once each, inside the table, with a tone");
@@ -58,7 +58,7 @@ test("colours are painted on a range of cells and taken off", () => {
   const rg = rangeOf({ r: 1, c: 1 }, { r: 0, c: 0 });
   assert.deepEqual(rg, { r0: 0, c0: 0, r1: 1, c1: 1 });
   assert.ok(inRange(rg, 1, 0) && !inRange(rg, 2, 0) && !inRange(null, 0, 0));
-  let l = paint({ columns: null, rows: null, cells: null }, 3, 2, rg, "fill", "yellow");
+  let l = paint({ widths: null, heights: null, cells: null }, 3, 2, rg, "fill", "yellow");
   assert.equal(l.cells.length, 4);
   l = paint(l, 3, 2, { r0: 1, c0: 1, r1: 1, c1: 1 }, "border", "red");
   assert.deepEqual(colourOf(l, 1, 1), { fill: "yellow", border: "red" });
@@ -77,29 +77,29 @@ test("a format is turned on in every chosen cell, and off where all have it", ()
 
 test("rows and columns are added and removed with their sizes and colours", () => {
   const rows = cellsOf("a\tb\nc\td");
-  const layout = { columns: [100, 200], rows: [0, 40], cells: [{ row: 1, col: 1, fill: "red" }] };
+  const layout = { widths: [100, 200], heights: [0, 40], cells: [{ row: 1, col: 1, fill: "red" }] };
   let x = insertRow(rows, layout, 0);
   assert.deepEqual(joinCells(x.rows).text, "a\tb\n\t\nc\td");
-  assert.deepEqual(x.layout.rows, [0, 0, 40]);
+  assert.deepEqual(x.layout.heights, [0, 0, 40]);
   assert.deepEqual(x.layout.cells, [{ row: 2, col: 1, fill: "red" }]);
   x = insertColumn(rows, layout, 0);
   assert.deepEqual(joinCells(x.rows).text, "a\t\tb\nc\t\td");
-  assert.deepEqual(x.layout.columns, [100, 100, 200]);
+  assert.deepEqual(x.layout.widths, [100, 100, 200]);
   assert.deepEqual(x.layout.cells, [{ row: 1, col: 2, fill: "red" }]);
   x = removeRow(rows, layout, 1);
   assert.deepEqual(joinCells(x.rows).text, "a\tb");
-  assert.deepEqual(x.layout, { columns: [100, 200], rows: null, cells: null });
+  assert.deepEqual(x.layout, { widths: [100, 200], heights: null, cells: null });
   x = removeColumn(rows, layout, 0);
   assert.deepEqual(joinCells(x.rows).text, "b\nd");
-  assert.deepEqual(x.layout, { columns: [200], rows: [0, 40], cells: [{ row: 1, col: 0, fill: "red" }] });
+  assert.deepEqual(x.layout, { widths: [200], heights: [0, 40], cells: [{ row: 1, col: 0, fill: "red" }] });
   assert.equal(removeRow(cellsOf("a"), {}, 0).rows.length, 1, "the last row stays");
   assert.equal(removeColumn(cellsOf("a"), {}, 0).rows[0].length, 1, "the last column stays");
 });
 
 test("a dragged column fixes every column at its shown width; a dragged row only itself", () => {
-  const l = { columns: null, rows: null, cells: null };
-  assert.deepEqual(resized(l, "columns", 1, 260.4, [120.2, 180, 90]).columns, [120, 260, 90]);
-  assert.deepEqual(resized({ ...l, columns: [100, 0] }, "columns", 0, 10, [100, 300]).columns, [24, 0]);
-  assert.deepEqual(resized(l, "rows", 2, 55, [30, 30, 30]).rows, [0, 0, 55]);
-  assert.deepEqual(resized({ ...l, rows: [40, 0] }, "rows", 1, 5000, [40, 30]).rows, [40, 1000]);
+  const l = { widths: null, heights: null, cells: null };
+  assert.deepEqual(resized(l, "widths", 1, 260.4, [120.2, 180, 90]).widths, [120, 260, 90]);
+  assert.deepEqual(resized({ ...l, widths: [100, 0] }, "widths", 0, 10, [100, 300]).widths, [24, 0]);
+  assert.deepEqual(resized(l, "heights", 2, 55, [30, 30, 30]).heights, [0, 0, 55]);
+  assert.deepEqual(resized({ ...l, heights: [40, 0] }, "heights", 1, 5000, [40, 30]).heights, [40, 1000]);
 });

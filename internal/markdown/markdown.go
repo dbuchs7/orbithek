@@ -454,7 +454,7 @@ func (c *converter) table(t *extast.Table) {
 }
 
 // cellText is the text of a table cell, written plain: a cell may carry
-// formats (ADR-0200), but whether Markdown's are kept is open, so a link
+// formats (ADR-0214), but whether Markdown's are kept is open, so a link
 // keeps its address in parentheses, as pasted Markdown does (ADR-0133).
 func cellText(r *run) string {
 	runes := []rune(r.text.String())

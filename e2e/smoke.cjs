@@ -4,6 +4,10 @@
 // user content ran as code (ADR-0014).
 //
 //   BASE_URL=http://127.0.0.1:8080 ADMIN_PASSWORD=... node smoke.cjs
+//
+// With OT_LINK_PREVIEWS=on and OT_LINK_PREVIEWS_ALLOW_PRIVATE=on on the
+// server, the web link steps also read the pages of a local site
+// (ADR-0208); without, they save links without reading them.
 const { chromium } = require("playwright");
 
 const base = process.env.BASE_URL || "http://127.0.0.1:8080";
@@ -66,6 +70,60 @@ function pageState() {
     })),
     liveStatusSeen: window.__liveStatus || [],
   };
+}
+
+// makePdf writes a PDF of pages of lines in Helvetica, with a table of
+// contents naming each page "Chapter n", for the PDF reader (ADR-0210).
+function makePdf(pages) {
+  const objs = [];
+  const add = (s) => { objs.push(s); return objs.length; };
+  const catalog = add(null), tree = add(null), outlines = add(null), font = add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+  const pageRefs = [];
+  for (const lines of pages) {
+    const esc = (s) => s.replace(/[\\()]/g, (c) => "\\" + c);
+    const body = "BT /F1 14 Tf 72 720 Td 18 TL " + lines.map((l) => `(${esc(l)}) '`).join(" ") + " ET";
+    const content = add(`<< /Length ${body.length} >>\nstream\n${body}\nendstream`);
+    pageRefs.push(add(`<< /Type /Page /Parent ${tree} 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 ${font} 0 R >> >> /Contents ${content} 0 R >>`));
+  }
+  const items = pageRefs.map(() => add(null));
+  items.forEach((id, i) => {
+    objs[id - 1] = `<< /Title (Chapter ${i + 1}) /Parent ${outlines} 0 R /Dest [${pageRefs[i]} 0 R /XYZ 0 792 0]` +
+      (i ? ` /Prev ${items[i - 1]} 0 R` : "") + (i + 1 < items.length ? ` /Next ${items[i + 1]} 0 R` : "") + " >>";
+  });
+  objs[catalog - 1] = `<< /Type /Catalog /Pages ${tree} 0 R /Outlines ${outlines} 0 R >>`;
+  objs[tree - 1] = `<< /Type /Pages /Kids [${pageRefs.map((r) => r + " 0 R").join(" ")}] /Count ${pageRefs.length} >>`;
+  objs[outlines - 1] = `<< /Type /Outlines /First ${items[0]} 0 R /Last ${items.at(-1)} 0 R /Count ${items.length} >>`;
+  let out = "%PDF-1.4\n";
+  const offsets = [];
+  objs.forEach((o, i) => { offsets.push(out.length); out += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+  const xref = out.length;
+  out += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n` + offsets.map((o) => String(o).padStart(10, "0") + " 00000 n \n").join("");
+  out += `trailer\n<< /Size ${objs.length + 1} /Root ${catalog} 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  return Buffer.from(out, "latin1");
+}
+
+// selectInPdf selects a text on a page of the PDF reader, as a person
+// would by dragging, and lets the reader see the selection end.
+async function selectInPdf(p, pageNo, text) {
+  await p.waitForSelector(`.pdf-page[data-page='${pageNo}'][data-rendered='1'] .textLayer span`);
+  await p.evaluate(([n, words]) => {
+    const layer = document.querySelector(`.pdf-page[data-page='${n}'] .textLayer`);
+    const span = [...layer.querySelectorAll("span")].find((s) => s.textContent.includes(words));
+    const node = span.firstChild, at = node.data.indexOf(words);
+    const r = document.createRange();
+    r.setStart(node, at);
+    r.setEnd(node, at + words.length);
+    getSelection().removeAllRanges();
+    getSelection().addRange(r);
+  }, [pageNo, text]);
+  // Scrolling hides the bar of a selection; a scroll still under way after
+  // going to a page may hide it again at once, so the mouse is let go
+  // until the bar stays.
+  for (let i = 0; i < 20; i++) {
+    await p.dispatchEvent("#pdf-pages", "mouseup");
+    await p.waitForTimeout(150);
+    if (await p.locator("#pdf-selbar:not([hidden])").count()) return;
+  }
 }
 
 // mailSink is a mail server that keeps every message, for the server under
@@ -658,8 +716,34 @@ function gitSource() {
   return server;
 }
 
+// webSource serves pages of the web for the web link steps (ADR-0208): a
+// story that names itself, its picture and its text, with a description
+// a step changes. The server reads it only with OT_LINK_PREVIEWS=on and
+// OT_LINK_PREVIEWS_ALLOW_PRIVATE=on, as it is local.
+function webSource() {
+  // A 1×1 PNG.
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64");
+  const web = { description: "What it is about", url: "" };
+  const server = require("http").createServer((req, res) => {
+    if (req.url === "/card.png") {
+      res.writeHead(200, { "Content-Type": "image/png" });
+      return res.end(png);
+    }
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    res.end(`<!doctype html><html><head><title>The story</title><meta property="og:site_name" content="Example News">
+<meta property="og:description" content="${web.description}"><meta property="og:image" content="/card.png">
+<script>window.parent && alert("never runs")</script></head>
+<body><nav>Menu</nav><article><h2>Part one</h2><p>Some <b>words</b>.</p><p><img src=x onerror="alert('xss')">Safe.</p></article></body></html>`);
+  });
+  server.listen(0, "127.0.0.1");
+  server.on("listening", () => { web.url = "http://127.0.0.1:" + server.address().port; });
+  web.close = () => server.close();
+  return web;
+}
+
 (async () => {
   const sink = mailSink(process.env.SMTP_SINK_PORT);
+  const web = webSource();
   const atlassian = atlassianSource();
   const ckan = ckanSource();
   const engine = engineSource();
@@ -786,16 +870,27 @@ function gitSource() {
     await page.fill("#new-space [name=name]", "Platform");
     await page.click("#new-space button[type=submit]");
     await page.waitForSelector("#grant option[value=PLAT]", { state: "attached" });
-    await page.fill("#new-type [name=type]", JSON.stringify({
+    // A type is defined in the type editor (ADR-0201); hand-written JSON
+    // stays in it, folded away, and is applied to the form.
+    await page.click("#new-type");
+    await page.click("#type-editor details.type-json summary");
+    // Opening the fold writes the form's definition into the field when its
+    // toggle event comes, which is after the click; fill it only then.
+    await page.waitForFunction(() => document.querySelector("#type-json")?.value.trim().startsWith("{"));
+    await page.fill("#type-json", JSON.stringify({
       name: "task", body: true,
       fields: [{ name: "priority", kind: "enum", required: true, values: ["low", "high"] }, { name: "estimate", kind: "number" }],
       workflow: { initial: "open", states: ["open", "done"], transitions: [{ name: "finish", from: ["open"], to: "done" }] },
     }));
-    await page.click("#new-type button[type=submit]");
+    await page.click("#type-json-apply");
+    check(await page.inputValue("#type-name") === "task" && await page.locator("#type-editor .type-field").count() === 2,
+      "JSON applied to the form fills the name and the fields");
+    await page.click("#type-save");
     await page.waitForSelector("text=task v1");
     // A type nothing uses is removed (ADR-0094).
-    await page.fill("#new-type [name=type]", JSON.stringify({ name: "scratch", body: true }));
-    await page.click("#new-type button[type=submit]");
+    await page.click("#new-type");
+    await page.fill("#type-name", "scratch");
+    await page.click("#type-save");
     await page.waitForSelector("text=scratch v1");
     answer = true;
     await page.click("#types tr:has-text('scratch v1') button:has-text('Remove')");
@@ -1147,7 +1242,7 @@ function gitSource() {
     await page.click("#app-switcher");
     await page.waitForSelector("#drawer:not([hidden])");
     const modules = (await page.locator("#drawer-apps a").allTextContents()).join(",");
-    check(modules === "Rooms,Create,Tasks,Comments,Album,Whiteboards,Starmap,AI access,Governance,Account,Administration", "the modules of an administrator: " + modules);
+    check(modules === "Rooms,Create,Tasks,Today,Comments,Album,Whiteboards,Starmap,AI access,Governance,Account,Administration", "the modules of an administrator: " + modules);
     await page.keyboard.press("Escape");
     await page.waitForSelector("#drawer", { state: "hidden" });
     await page.click("#app-switcher");
@@ -1348,7 +1443,7 @@ function gitSource() {
     await page.selectOption("#body .pm-toolbar select >> nth=1", "table");
     // A cell is edited in place, formatted, coloured, and its column and
     // row sized by dragging their edges; text that does not fit wraps
-    // (ADR-0200).
+    // (ADR-0214).
     await page.click("#body .pm-table tr:nth-child(2) td:first-child");
     await page.waitForSelector("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-editor");
     await page.keyboard.type("db1, the primary database server of the cluster in the main data centre");
@@ -2022,7 +2117,7 @@ function gitSource() {
     await page.click("#album .album-new-folder button[type=submit]");
     const prints = "#album .album-folder:has-text('Prints')";
     await page.waitForSelector(prints);
-    check((await page.getAttribute(prints, "title")) === "Drop pictures here to move them into Prints.", "a folder says that it takes dropped pictures");
+    check((await page.getAttribute(prints, "title")) === "Drop pictures or a folder here to move them into Prints.", "a folder says that it takes dropped pictures and folders");
     await page.locator(holiday).dragTo(page.locator(prints));
     await page.waitForSelector(holiday, { state: "detached" });
     check((await page.textContent("#album .status")).includes("1 picture moved with its versions"), "the dragged picture is moved into the folder it is dropped onto");
@@ -2069,6 +2164,33 @@ function gitSource() {
     await page.waitForSelector("dialog.photo-viewer[open] video.photo-viewer-video[src]");
     await page.click("#photo-viewer-close");
     await page.selectOption("#album select[aria-label=Kind]", "");
+    // A folder is moved with what it holds: by Move folder into a folder
+    // chosen, up by dragging it onto the trail, and down by dragging it
+    // onto a folder beside it (ADR-0200).
+    await page.click("#album-new-folder");
+    await page.fill("#album-folder-name", "Sub");
+    await page.click("#album .album-new-folder button[type=submit]");
+    const sub = "#album .album-folder:has-text('Sub')";
+    await page.click(sub);
+    await page.click("#album-folder-move");
+    await page.waitForFunction(() => [...document.querySelectorAll("#album-folder-move-target option")].some((o) => o.textContent.endsWith("› Prints")));
+    const intoPrints = await page.evaluate(() => [...document.querySelectorAll("#album-folder-move-target option")].find((o) => o.textContent.endsWith("› Prints")).value);
+    check(await page.evaluate(() => ![...document.querySelectorAll("#album-folder-move-target option")].some((o) => o.textContent.endsWith("› Sub"))), "a folder is not offered to move into itself");
+    await page.selectOption("#album-folder-move-target", intoPrints);
+    await page.click("#album-folder-move-form button[type=submit]");
+    await page.waitForSelector("#album .album-trail button:has-text('Prints')");
+    check((await page.textContent("#album .status")).includes('"Sub" moved with everything in it.'), "a folder moved by Move folder says so");
+    check((await page.textContent("#album .album-trail strong")) === "Sub", "the trail leads to the folder where it went");
+    await page.click("#album .album-trail button:has-text('Prints')");
+    await page.waitForSelector(sub);
+    await page.locator(sub).dragTo(page.locator("#album .album-trail button:has-text('Logos')"));
+    await page.waitForSelector(sub, { state: "detached" });
+    check((await page.textContent("#album .status")).includes('"Sub" moved with everything in it.'), "a folder dropped onto the trail goes up");
+    await page.click("#album .album-trail button:has-text('Logos')");
+    await page.waitForSelector(sub);
+    await page.locator(sub).dragTo(page.locator(prints));
+    await page.waitForSelector(sub, { state: "detached" });
+    check(await page.locator(prints).count() === 1, "a folder dropped onto a folder beside it goes into it");
     // A folder is deleted from the album, into the trash with what is in
     // it, and its page restores it (ADR-0190).
     await page.click(prints);
@@ -3848,6 +3970,11 @@ function gitSource() {
     await page.waitForSelector("#design-dark:has-text('The dark scheme is off')");
     check((await (await page.request.get(base + "/branding.css")).text()).includes("/* The theme comic"), "the theme is in the design's stylesheet");
     check((await (await page.request.get(base + "/branding.json")).json()).theme === "comic", "the theme is kept");
+    // The Capacity theme has a light and a dark scheme (ADR-0213).
+    await page.click("#design-themes label.theme-capacity");
+    await page.click("#design button[type=submit]");
+    await page.waitForSelector("#design-dark:has-text('stays on')");
+    check((await (await page.request.get(base + "/branding.css")).text()).includes("/* The theme capacity"), "the Capacity theme is in the design's stylesheet");
     await page.click("#design-themes label.theme-none");
     await page.click("#design button[type=submit]");
     await page.waitForSelector("#design-dark:has-text('stays on')");
@@ -5543,6 +5670,664 @@ function gitSource() {
     await page.click("#edit-done");
     await page.waitForSelector("#body.reading");
 
+    step("views: a type's items as a table, a gallery and a list, grouped, sorted and changed in place (ADR-0203)");
+    const viewAPI = async (method, path, data) => {
+      const r = await page.request.fetch(base + path, { method, data });
+      check(r.ok(), `${method} ${path}: ${r.status()} ${await r.text()}`);
+      return r.status() === 204 ? null : r.json();
+    };
+    // The steps before leave another person signed in; the administrator
+    // makes the room and its type.
+    check((await page.request.post(base + "/api/login", { data: { username: "admin", password: adminPassword } })).ok(), "admin signs in again");
+    await viewAPI("POST", "/api/spaces", { key: "VIEWS", name: "Views" });
+    await viewAPI("POST", "/api/types", { name: "story", body: true, fields: [{ name: "size", kind: "enum", values: ["S", "M", "L"] }, { name: "points", kind: "number" }],
+      workflow: { initial: "todo", states: ["todo", "doing", "done"], transitions: [{ name: "begin", from: ["todo"], to: "doing" }, { name: "close", from: ["todo", "doing"], to: "done" }] } });
+    const story = async (title, size, points, labels) => {
+      const { item } = await viewAPI("POST", "/api/items", { space: "VIEWS", type: "story", title, properties: { size, points } });
+      if (labels) await viewAPI("PUT", `/api/items/${item.id}/labels`, { labels });
+      return item;
+    };
+    const signIn = await story("Sign in", "S", 3, ["first-week"]);
+    const profile = await story("Profile", "L", 8, ["first-week"]);
+    const billing = await story("Billing", "M", 5);
+    await page.goto(base + "/#/space/VIEWS");
+    await page.click("#space-view");
+    await page.waitForSelector("#view .iv-table");
+    await page.selectOption("#view-type", "story");
+    await page.waitForSelector("#view .iv-table th[data-col='field:size']");
+    check(await page.locator("#view .iv-table tbody tr").count() === 3, "the view shows the room's three stories");
+    await page.selectOption("#view-group", "field:size");
+    await page.waitForSelector("#view details.iv-group[data-group=S] summary:has-text('1 item')");
+    check((await page.$$eval("#view details.iv-group", (els) => els.map((e) => e.dataset.group))).join() === "S,M,L", "groups follow the enum's values");
+    await page.click("#view details.iv-group[data-group=S] summary");
+    check(!(await page.$eval("#view details.iv-group[data-group=S]", (d) => d.open)), "a group folds");
+    await page.selectOption("#view-group", "");
+    await page.waitForSelector("#view .iv-table:not(details .iv-table)");
+    await page.click("#view th[data-col='field:points'] button");
+    await page.waitForFunction(() => location.hash.includes("sort=field%3Apoints"));
+    await page.click("#view th[data-col='field:points'] button");
+    await page.waitForFunction(() => location.hash.includes("sort=-field%3Apoints"));
+    await page.waitForSelector("#view th[data-col='field:points'][aria-sort=descending]");
+    check((await page.$$eval("#view .iv-table tbody tr", (rows) => rows.map((r) => r.dataset.key))).join() === [profile.key, billing.key, signIn.key].join(),
+      "a heading sorts by its column, a second click the other way");
+    const pointsCell = `#view tr[data-key='${billing.key}'] td[data-col='field:points']`;
+    await page.hover(pointsCell);
+    await page.click(pointsCell + " .iv-edit");
+    await page.fill(pointsCell + " input", "13");
+    await page.press(pointsCell + " input", "Tab");
+    await page.waitForSelector(pointsCell + ":has-text('13')");
+    check((await viewAPI("GET", "/api/items/" + billing.id)).item.properties.points === 13, "a cell changed in place is saved as a change of the field");
+    const stateCell = `#view tr[data-key='${signIn.key}'] td[data-col='state']`;
+    await page.hover(stateCell);
+    await page.click(stateCell + " .iv-edit");
+    await page.selectOption(stateCell + " select", "begin");
+    await page.waitForSelector(stateCell + " .chip:text-is('doing')");
+    await page.click("#view-layout-gallery");
+    await page.waitForSelector("#view .iv-gallery .iv-card");
+    check(await page.locator("#view .iv-card").count() === 3, "the gallery shows a card per story");
+    const titleField = `#view .iv-card[data-key='${billing.key}'] .iv-field[data-col=title]`;
+    await page.hover(titleField);
+    await page.click(titleField + " .iv-edit");
+    await page.fill(titleField + " input", "Billing and invoices");
+    await page.press(titleField + " input", "Tab");
+    await page.waitForSelector(`#view .iv-card[data-key='${billing.key}'] .iv-title:text-is('Billing and invoices')`);
+    await page.click("#view-layout-list");
+    await page.waitForSelector("#view .iv-list .iv-row");
+    check(page.url().includes("layout=list"), "the address keeps the layout");
+    // A query with a mistake is refused, saying where.
+    expectedConsole = /status of 400/;
+    await page.fill("#view-query", "points >");
+    await page.click("#view-query-apply");
+    await page.waitForSelector("#view-error");
+    expectedConsole = null;
+
+    step("views: a view placed in a text shows the items each reader may read (ADR-0203)");
+    const { item: overview } = await viewAPI("POST", "/api/items", { space: "VIEWS", type: "story", title: "Overview", properties: {} });
+    await page.goto(base + `/#/item/${overview.key}?edit`);
+    await page.waitForSelector("#body .ProseMirror[contenteditable=true]");
+    await page.selectOption("select[aria-label='Insert…']", "itemview");
+    await page.waitForSelector("#view-dialog");
+    await page.selectOption("#view-pick-type", "story");
+    await page.click("#view-pick-layout-gallery");
+    await page.selectOption("#view-pick-group", "state");
+    await page.click("#view-dialog-ok");
+    await page.waitForSelector("#body .pm-itemview .iv-gallery .iv-card");
+    await page.click("#edit-done");
+    await page.waitForSelector("#body.reading .pm-itemview details.iv-group[data-group=doing] .iv-card");
+    const viewBlock = (await viewAPI("GET", "/api/items/" + overview.id)).item.body.find((b) => b.kind === "view");
+    check(viewBlock && viewBlock.layout === "gallery" && viewBlock.itemType === "story" && viewBlock.group === "state", "the text keeps what the view shows: " + JSON.stringify(viewBlock));
+
+    step("label pages: a label is described by a page that shows its items, ordered by hand (ADR-0204)");
+    await page.goto(base + "/#/label/first-week");
+    await page.click("#label-describe");
+    await page.selectOption("#describe-space", "VIEWS");
+    await page.fill("#describe-title", "First week");
+    await page.click("#describe-dialog-ok");
+    await page.waitForFunction(() => location.hash.endsWith("?edit"));
+    await page.click("#edit-done");
+    await page.waitForSelector("#topic-items .iv-row");
+    const topicRows = () => page.$$eval("#topic-items .iv-row", (rows) => rows.map((r) => r.dataset.key));
+    check((await topicRows()).join() === [signIn.key, profile.key].join(), "the page lists the items carrying its label");
+    await page.click(`#topic-items .iv-row[data-key='${profile.key}'] .iv-up`);
+    await page.waitForFunction((key) => document.querySelector("#topic-items .iv-row")?.dataset.key === key, profile.key);
+    const topicKey = page.url().split("#/item/")[1].split("?")[0];
+    check((await viewAPI("GET", `/api/items/${topicKey}/order`)).order.join() === [profile.id, signIn.id].join(), "the order set by hand is kept on the page");
+    await page.goto(base + "/#/label/first-week");
+    await page.waitForSelector("#label-topic #label-topic-link:text-is('First week')");
+    await page.goto(base + `/#/item/${billing.key}`);
+    await page.click("#item-collect");
+    await page.selectOption("#collect-label", "first-week");
+    await page.click("#collect-dialog-ok");
+    await page.waitForSelector("#labels .label:has-text('first-week')");
+    await page.goto(base + `/#/item/${topicKey}`);
+    await page.waitForSelector(`#topic-items .iv-row[data-key='${billing.key}']`);
+    check((await topicRows()).join() === [profile.key, signIn.key, billing.key].join(), "an item added later comes after the ordered ones");
+    await page.dragAndDrop(`#topic-items .iv-row[data-key='${billing.key}']`, `#topic-items .iv-row[data-key='${profile.key}']`);
+    await page.waitForFunction((key) => document.querySelector("#topic-items .iv-row")?.dataset.key === key, billing.key);
+    await page.click("#label-layout-gallery");
+    await page.waitForSelector("#topic-items .iv-gallery .iv-card");
+    check(page.url().includes("layout=gallery"), "the page's address keeps the layout of its items");
+
+
+    step("import of notes: a room administrator rehearses a ZIP archive of notes and imports it; links between notes become mentions, a re-run makes nothing twice (ADR-0211)");
+    // A ZIP archive of stored files, written here without a library.
+    const crcTable = Array.from({ length: 256 }, (_, n) => {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+      return c >>> 0;
+    });
+    const crc32 = (buf) => {
+      let c = 0xffffffff;
+      for (const b of buf) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8);
+      return (c ^ 0xffffffff) >>> 0;
+    };
+    const zipOf = (files) => {
+      const parts = [], central = [];
+      let offset = 0;
+      for (const [name, text] of Object.entries(files)) {
+        const nameBuf = Buffer.from(name), data = Buffer.from(text), crc = crc32(data);
+        const local = Buffer.alloc(30);
+        local.writeUInt32LE(0x04034b50, 0); local.writeUInt16LE(20, 4); local.writeUInt16LE(0x0800, 6);
+        local.writeUInt32LE(crc, 14); local.writeUInt32LE(data.length, 18); local.writeUInt32LE(data.length, 22); local.writeUInt16LE(nameBuf.length, 26);
+        const entry = Buffer.alloc(46);
+        entry.writeUInt32LE(0x02014b50, 0); entry.writeUInt16LE(20, 4); entry.writeUInt16LE(20, 6); entry.writeUInt16LE(0x0800, 8);
+        entry.writeUInt32LE(crc, 16); entry.writeUInt32LE(data.length, 20); entry.writeUInt32LE(data.length, 24); entry.writeUInt16LE(nameBuf.length, 28);
+        entry.writeUInt32LE(offset, 42);
+        parts.push(local, nameBuf, data);
+        central.push(entry, nameBuf);
+        offset += 30 + nameBuf.length + data.length;
+      }
+      const dir = Buffer.concat(central), end = Buffer.alloc(22);
+      end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(central.length / 2, 8); end.writeUInt16LE(central.length / 2, 10);
+      end.writeUInt32LE(dir.length, 12); end.writeUInt32LE(offset, 16);
+      return Buffer.concat([...parts, dir, end]);
+    };
+    const vaultZip = zipOf({
+      "Vault/Home.md": "---\ntags: [smoke]\n---\n# Home of the vault\n\nRead [[Other note|the other note]] first. `" + hostile + "`\n",
+      "Vault/Notes/Other note.md": "The other note links [[Home]] and [[Nowhere]].\n",
+    });
+    await page.goto(base + "/#/space/PLAT");
+    await page.click("#space-import");
+    await page.waitForSelector("#note-import-file");
+    await page.setInputFiles("#note-import-file", { name: "Vault.zip", mimeType: "application/zip", buffer: vaultZip });
+    check(await page.inputValue("#note-import-name") === "Vault", "the import is named after its archive");
+    await page.click("#note-import-dry-run");
+    await page.waitForSelector("#note-import-report[data-dry=true]:has-text('3 new')");
+    await page.waitForSelector("#note-import-report .note-import-problems li:has-text('[[Nowhere]]')");
+    check(!(await (await page.request.get(base + "/api/items?space=PLAT&q=Home%20of%20the%20vault")).json()).items.length, "the dry run wrote nothing");
+    await page.click("#note-import-run");
+    await page.waitForSelector("#note-import-report[data-dry=false]:has-text('3 new')");
+    await page.waitForSelector("#note-import-earlier:has-text('Vault (3)')");
+    await page.click("#note-import-report a:has-text('Home of the vault')");
+    await page.waitForSelector(".item-main a.pm-mention:has-text('the other note')");
+    await page.waitForSelector(".item-main :text('" + hostile.slice(0, 8) + "')");
+    await page.click(".item-main a.pm-mention:has-text('the other note')");
+    await page.waitForSelector(".item-main a.pm-mention:has-text('Home')");
+    // The same archive again makes nothing twice; the form is also in the
+    // administration.
+    await page.goto(base + "/#/admin");
+    await page.waitForSelector("#note-import-space");
+    await page.selectOption("#note-import-space", "PLAT");
+    await page.setInputFiles("#note-import-file", { name: "Vault.zip", mimeType: "application/zip", buffer: vaultZip });
+    await page.click("#note-import-run");
+    await page.waitForSelector("#note-import-report[data-dry=false]:has-text('0 new'):has-text('3 unchanged')");
+
+    step("connectors: the highlights of a reading service become items, their quotes above a line people write below (ADR-0212)");
+    // The service's export, which the server under test reads with
+    // OT_CONNECTOR_READING_TOKEN=e2e-reading-token; without that variable
+    // the run fails and names it.
+    const reading = require("http").createServer((req, res) => {
+      const ok = req.headers.authorization === "Token e2e-reading-token" && req.url.startsWith("/api/v2/export/");
+      res.writeHead(ok ? 200 : 401, { "Content-Type": "application/json" });
+      res.end(ok ? JSON.stringify({ count: 1, nextPageCursor: null, results: [{ user_book_id: 7, title: "Walden", readable_title: "Walden", author: "H. D. Thoreau",
+        book_tags: [{ id: 1, name: "nature" }], source_url: "https://books.example/walden",
+        highlights: [{ id: 1, text: "Simplify, simplify.", note: hostile, location: 12, location_type: "page" }] }] }) : '{"detail":"no"}');
+    });
+    await new Promise((resolve) => reading.listen(0, "127.0.0.1", resolve));
+    try {
+      await page.goto(base + "/#/admin");
+      await page.click("#connector-new-highlights");
+      await page.waitForSelector("#connector-settings [name=fullDays]");
+      await page.fill("#connector-settings [name=id]", "reading");
+      await page.fill("#connector-settings [name=name]", "Reading");
+      await page.selectOption("#connector-settings [name=space]", "PLAT");
+      await page.fill("#connector-settings [name=url]", `http://127.0.0.1:${reading.address().port}`);
+      await page.selectOption("#connector-settings [name=language]", "en");
+      await page.click("#connector-settings button[type=submit]");
+      await page.waitForSelector("#connector-list tr[data-connector='reading']");
+      await page.waitForSelector("#connector-run-full");
+      const tokenSet = (await page.textContent("#connector-credential")).includes("OT_CONNECTOR_READING_TOKEN is set");
+      await page.click("#connector-dry-run");
+      if (tokenSet) {
+        await page.waitForSelector("#connector-history .catalog-run:has-text('Dry run'):has-text('1 new')");
+        await page.click("#connector-run-now");
+        await page.waitForSelector("#connector-history .catalog-run:has-text('Sync'):has-text('1 new') a");
+        await page.click("#connector-history .catalog-run a:has-text('Walden')");
+        await page.waitForSelector(".item-main blockquote:has-text('Simplify, simplify.')");
+        await page.waitForSelector(".item-main :text('" + hostile.slice(0, 8) + "')");
+        await page.waitForSelector(".item-main :text('Write your own notes below this line')");
+      } else {
+        await page.waitForSelector("#connector-history .catalog-run .error:has-text('OT_CONNECTOR_READING_TOKEN')");
+      }
+    } finally {
+      reading.close();
+    }
+    step("a PDF of an item opens in the reader: pages with their text, contents, search, zoom (ADR-0210)");
+    const report = (await (await page.request.post(base + "/api/items", { data: { space: "PLAT", type: "page", title: "Annual report" } })).json()).item;
+    const reportPdf = makePdf([
+      ["Annual report 2025", "The revenue grew by four percent.", "Costs grew by two percent."],
+      ["Outlook", "The revenue grew again in the first quarter.", "We expect a steady year."],
+      ["Appendix", "Tables and figures."],
+    ]);
+    const pdfFile = (await (await page.request.post(base + `/api/items/${report.id}/attachments?name=report.pdf`,
+      { headers: { "Content-Type": "application/octet-stream" }, data: reportPdf })).json()).attachment;
+    check(pdfFile.type === "application/pdf", "the server tells a PDF by its bytes: " + pdfFile.type);
+    // The text links to the PDF; a click on the link reads it.
+    check((await page.request.put(base + `/api/items/${report.id}/body`, { data: { blocks: [{ kind: "paragraph", text: "See the report.",
+      marks: [{ type: "link", start: 8, end: 14, href: `${base}/api/items/${report.id}/attachments/${pdfFile.id}` }] }] } })).ok(), "a text links to the PDF");
+    await page.goto(base + "/#/item/" + report.key);
+    await page.click("#body.reading a:has-text('report')");
+    await page.waitForSelector("#pdf-pages[data-ready='1']");
+    check(page.url().includes(`#/pdf/${report.key}/${pdfFile.id}`), "a link in a text to a PDF of the item opens the reader: " + page.url());
+    await page.goto(base + "/#/item/" + report.key);
+    await page.click(`#attachments a.pdf-read[aria-label*='report.pdf']`);
+    await page.waitForSelector("#pdf-pages[data-ready='1'] .pdf-page[data-page='1'][data-rendered='1'] .textLayer span");
+    check((await page.textContent("#pdf-page-count")).includes("3"), "the reader counts the pages");
+    check((await page.locator(".pdf-page").count()) === 3, "a frame per page");
+    check(await page.getAttribute("#pdf-download", "href") === `/api/items/${report.id}/attachments/${pdfFile.id}`, "the file downloads from its item");
+    await page.click("#pdf-tab-outline");
+    await page.click(".pdf-outline button:has-text('Chapter 3')");
+    await page.waitForFunction(() => document.querySelector("#pdf-page").value === "3");
+    check(page.url().endsWith("?page=3"), "the address follows the page: " + page.url());
+    await page.click("#pdf-prev");
+    await page.waitForFunction(() => document.querySelector("#pdf-page").value === "2");
+    await page.fill("#pdf-search", "revenue grew");
+    await page.press("#pdf-search", "Enter");
+    await page.waitForSelector(".pdf-hit");
+    await page.waitForFunction(() => document.querySelector("#pdf-search-count").textContent.includes("2"));
+    check((await page.textContent("#pdf-search-count")).trim() === "1 of 2", "the search finds the words on two pages: " + await page.textContent("#pdf-search-count"));
+    await page.click("#pdf-search-next");
+    await page.waitForFunction(() => document.querySelector("#pdf-search-count").textContent.trim() === "2 of 2");
+    await page.click("#pdf-zoom-in");
+    check((await page.textContent("#pdf-zoom")).trim() === "125 %", "zoom by steps");
+    await page.click("#pdf-fit");
+    await page.click("#pdf-tab-pages");
+    await page.waitForSelector(".pdf-thumb[data-page='3']");
+    await page.click(".pdf-thumb[data-page='1'] button");
+    await page.waitForFunction(() => document.querySelector("#pdf-page").value === "1");
+
+    step("highlights in a PDF: a colour, a note, drawn over the page, listed and exported as Markdown (ADR-0210)");
+    await selectInPdf(page, 1, "revenue grew");
+    await page.click("#pdf-selbar:not([hidden]) [data-color=green]");
+    await page.waitForSelector(".pdf-page[data-page='1'] .pdf-mark.hl-green");
+    await page.waitForSelector("#pdf-highlights li");
+    await selectInPdf(page, 1, "Costs grew");
+    await page.click("#pdf-with-note");
+    await page.fill("#pdf-note", "Lower than planned? " + hostile);
+    await page.click("#pdf-selbar .pdf-colors [aria-label='purple']");
+    await page.click("#pdf-note-save");
+    await page.waitForSelector(".pdf-page[data-page='1'] .pdf-mark.hl-purple");
+    check((await page.locator("#pdf-highlights li").count()) === 2, "both highlights are listed");
+    check((await page.textContent("#pdf-highlights")).includes(hostile), "a note is shown as text");
+    const [mdFile] = await Promise.all([page.waitForEvent("download"), page.click("#pdf-export")]);
+    check(mdFile.suggestedFilename() === "report-highlights.md", "the export is named after the PDF: " + mdFile.suggestedFilename());
+    const md = require("fs").readFileSync(await mdFile.path(), "utf8");
+    check(md.startsWith("# Highlights in report.pdf") && md.includes("## Page 1") && md.includes("> revenue grew") && md.includes("Lower than planned?"),
+      "the Markdown holds quote, page and note: " + md);
+    // An agent's highlight names a page and a quote; the reader finds it.
+    check((await page.request.post(base + `/api/items/${report.id}/comments`, { data: { text: "", anchor: { file: pdfFile.id, page: 2, quote: "steady year" } } })).status() === 201,
+      "a highlight without rectangles and without a note");
+    // A new version moves the text to another page; the highlight follows
+    // its quote.
+    const pdfV2 = (await (await page.request.post(base + `/api/items/${report.id}/attachments?name=report.pdf&sourceItem=${report.id}&sourceAttachment=${pdfFile.id}`,
+      { headers: { "Content-Type": "application/octet-stream" }, data: makePdf([["Preface"], ["Annual report 2025", "The revenue grew by four percent.", "Costs grew by two percent."],
+        ["Outlook", "We expect a steady year."]]) })).json()).attachment;
+    await page.goto(base + "/#/item/" + report.key);
+    await page.waitForSelector("#attachments");
+    await page.goto(base + `/#/pdf/${report.key}/${pdfFile.id}`);
+    // Named by its first version, the reader shows the newest.
+    await page.waitForSelector(`#pdf-download[href='/api/items/${report.id}/attachments/${pdfV2.id}']`);
+    await page.waitForSelector("#pdf-pages[data-ready='1']");
+    await page.click("#pdf-tab-highlights");
+    check((await page.locator("#pdf-highlights li").count()) === 3, "three highlights");
+    await page.click("#pdf-highlights li:has-text('revenue grew') .pdf-goto");
+    await page.waitForSelector(".pdf-page[data-page='2'] .pdf-mark.hl-green");
+    await page.waitForSelector("#pdf-highlights li:has-text('revenue grew'):has-text('earlier version')");
+    await page.click("#pdf-highlights li:has-text('steady year') .pdf-goto");
+    await page.waitForSelector(".pdf-page[data-page='3'] .pdf-mark.hl-yellow");
+
+    step("a highlight is a comment: shown on the item, it leads to its place in the PDF (ADR-0210)");
+    await page.click("#pdf-back");
+    await page.waitForSelector("#comments .comment-pdf");
+    check((await page.locator("#comments .comment-pdf").count()) === 3, "the item's comments show the highlights");
+    check((await page.textContent("#comments .comment-pdf >> nth=0")).includes("report.pdf"), "a highlight names its PDF");
+    await page.click("#comments .thread:has-text('Lower than planned') a.pdf-show");
+    await page.waitForSelector(".pdf-highlight.focus:has-text('Lower than planned')");
+    await page.waitForSelector(".pdf-mark.hl-purple.focus");
+    // Resolved in the reader, the highlight stays, paler.
+    await page.click("#pdf-highlights li:has-text('Lower than planned') button:has-text('Resolve')");
+    await page.waitForSelector("#pdf-highlights li.resolved:has-text('Lower than planned')");
+    await page.waitForSelector(".pdf-mark.hl-purple.resolved");
+    step("web links: a pasted address is saved as a web link item, shown as a card in the text; its page is read again (ADR-0208)");
+    // The administrator, in a room of their own, with a page to write in.
+    check((await page.request.post(base + "/api/login", { data: { username: "admin", password: adminPassword } })).ok(), "admin signs in again");
+    await page.request.post(base + "/api/spaces", { data: { key: "LINKS", name: "Links" } });
+    await page.request.post(base + "/api/types", { data: { name: "reading", body: true } });
+    const readingMade = await page.request.post(base + "/api/items", { data: { space: "LINKS", type: "reading", title: "Reading list",
+      body: [{ kind: "paragraph", text: "To read:" }] } });
+    check(readingMade.status() === 201, "the reading list is made: " + readingMade.status() + " " + await readingMade.text());
+    const readingList = (await readingMade.json()).item;
+    const linkPreviews = (await (await page.request.get(base + "/api/linkpreview")).json()).enabled;
+    const storyURL = web.url + "/story";
+    await page.goto(base + "/#/item/" + readingList.key + "?edit");
+    await page.waitForSelector("#body .ProseMirror[contenteditable=true]");
+    // The live session may draw its editor anew once it joined; the
+    // cursor is placed after "To read:" in the editor that stays.
+    for (let i = 0; i < 20; i++) {
+      await page.click("#body .ProseMirror p:has-text('To read:')");
+      await page.keyboard.press("End");
+      await painted(page);
+      if (await page.evaluate(() => getSelection().anchorNode?.textContent === "To read:" && document.activeElement?.classList.contains("ProseMirror"))) break;
+      await page.waitForTimeout(200);
+    }
+    await page.keyboard.press("Enter");
+    await painted(page);
+    // Pasting an address alone links it and offers to save its page.
+    await page.evaluate((url) => {
+      const dt = new DataTransfer();
+      dt.setData("text/plain", url);
+      document.querySelector("#body .ProseMirror").dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+    }, storyURL);
+    await page.waitForSelector("#pm-link-bubble:not([hidden]) #pm-link-save:not([hidden])");
+    await page.dispatchEvent("#pm-link-save", "mousedown");
+    await page.waitForSelector("dialog #weblink-dialog-ok");
+    check(await page.isChecked("#weblink-below"), "a web link goes below the page by default");
+    if (linkPreviews) await page.waitForSelector("#weblink-found:has-text('Example News')");
+    await page.click("#weblink-dialog-ok");
+    // The paragraph that held the address alone is the link's card now.
+    await page.waitForSelector("#body .pm-embed .weblink-card");
+    await page.waitForFunction((url) => ![...document.querySelectorAll("#body .ProseMirror p")].some((p) => p.textContent.includes(url)), storyURL)
+      .catch(async () => { throw new Error("the address alone became the card: " + await page.textContent("#body .ProseMirror")); });
+    await page.click("#edit-done");
+    await page.waitForSelector("#body.reading .pm-embed .weblink-card");
+    const linkItems = (await (await page.request.get(base + "/api/items?space=LINKS&type=weblink")).json()).items.filter((it) => it.parent === readingList.id);
+    check(linkItems.length === 1, "the web link item lives below the page: " + JSON.stringify(linkItems));
+    const linkItem = (await (await page.request.get(base + "/api/items/" + linkItems[0].key)).json()).item;
+    if (linkPreviews) {
+      check(linkItem.title === "The story" && linkItem.properties.site === "Example News" && linkItem.properties.description === "What it is about", "the page named itself: " + JSON.stringify(linkItem));
+      await page.waitForSelector("#body.reading .weblink-card img.weblink-picture");
+      check(await page.locator("#body.reading .weblink-card .weblink-description:has-text('What it is about')").count() === 1, "the card shows the description");
+    } else {
+      check(linkItem.properties.url === storyURL, "the link keeps its address");
+    }
+    // The item itself shows its page as a card; its page is read again.
+    await page.goto(base + "/#/item/" + linkItem.key);
+    await page.waitForSelector("#weblink-card a.weblink-title[target=_blank]");
+    check(await page.getAttribute("#weblink-card a.weblink-title", "href") === storyURL, "the card leads to the page");
+    if (linkPreviews) {
+      web.description = "Read again";
+      await page.click("#weblink-refresh");
+      await page.waitForSelector("#weblink-card .weblink-description:has-text('Read again')");
+      // The page's text goes below the body, to be annotated; its markup
+      // stays text and nothing of it runs.
+      await page.click("#weblink-text");
+      await page.waitForSelector("#body.reading .ProseMirror h3:has-text('Part one')");
+      await page.waitForSelector("#body.reading .ProseMirror p:has-text('Some words.')");
+    }
+
+    step("capture: a share to the installed app, the capture view's targets and the bookmarklet (ADR-0209)");
+    const appManifest = await (await page.request.get(base + "/manifest.webmanifest")).json();
+    check(appManifest.share_target.action === "/capture" && appManifest.display === "standalone" && appManifest.icons.length === 3, "the app's manifest: " + JSON.stringify(appManifest));
+    check(await page.locator("link[rel=manifest]").count() === 1, "the page names its manifest");
+    // A share to the app arrives as a form; it opens the capture view.
+    await page.goto(base + "/");
+    await page.evaluate(({ url }) => {
+      const f = document.createElement("form");
+      f.method = "POST";
+      f.action = "/capture";
+      for (const [k, v] of Object.entries({ title: "Shared page", text: "A quote worth keeping.\n\nAnd a second one.", url })) {
+        const i = document.createElement("textarea"); // an input would drop the line breaks
+        i.name = k;
+        i.value = v;
+        f.append(i);
+      }
+      document.body.append(f);
+      f.submit();
+    }, { url: web.url + "/shared" });
+    await page.waitForSelector("#capture-form");
+    check(page.url().includes("#/capture?") && (await page.inputValue("#capture-title")) === "Shared page", "the share fills the capture view: " + page.url());
+    check(await page.isChecked("#capture-target-weblink"), "a share with an address becomes a web link");
+    await page.selectOption("#capture-weblink-space", "LINKS");
+    await page.click("#capture-save");
+    await page.waitForSelector("#capture-saved a#capture-open");
+    const sharedLink = (await (await page.request.get(base + "/api/items/" + (await page.textContent("#capture-open")).split(" ")[0])).json()).item;
+    check(sharedLink.type === "weblink" && sharedLink.space === "LINKS" && sharedLink.body.filter((b) => b.kind === "quote").length === 2,
+      "the shared text became quotes of the web link: " + JSON.stringify(sharedLink.body));
+    // Without an address, a thought becomes a new item, or is added to one.
+    await page.goto(base + "/#/capture?" + new URLSearchParams({ title: "A thought", text: "Worth remembering." }));
+    await page.waitForSelector("#capture-form");
+    // Today's daily note comes first then (ADR-0205); a new item is chosen.
+    check(await page.locator("#capture-target-weblink").count() === 0 && await page.isChecked("#capture-target-daily"), "no web link without an address, today's note first");
+    await page.check("#capture-target-item");
+    await page.selectOption("#capture-type", "reading");
+    await page.selectOption("#capture-item-space", "LINKS");
+    await page.click("#capture-save");
+    await page.waitForSelector("#capture-saved");
+    await page.goto(base + "/#/capture?" + new URLSearchParams({ text: "Added from elsewhere.", url: web.url + "/elsewhere" }));
+    await page.waitForSelector("#capture-form");
+    await page.check("#capture-target-append");
+    await page.fill("#capture-search", readingList.key);
+    await page.check(`#capture-results input[value="${readingList.id}"]`);
+    await page.click("#capture-save");
+    await page.waitForSelector("#capture-saved");
+    const readingAfter = (await (await page.request.get(base + "/api/items/" + readingList.key)).json()).item;
+    const lastBlock = readingAfter.body[readingAfter.body.length - 1];
+    check(readingAfter.body.some((b) => b.kind === "quote" && b.text === "Added from elsewhere.") && lastBlock.marks?.[0]?.href === web.url + "/elsewhere",
+      "the capture was added at the end with its source: " + JSON.stringify(readingAfter.body));
+    // The account page offers the bookmarklet; New leads to the capture view.
+    await page.goto(base + "/#/account");
+    await page.waitForSelector("#capture-bookmarklet #bookmarklet");
+    check((await page.getAttribute("#bookmarklet", "href")).startsWith("javascript:") && (await page.inputValue("#bookmarklet-code")).includes(base + "/#/capture?"), "the bookmarklet opens this site's capture view");
+    await page.goto(base + "/#/new");
+    await page.click("#new-capture-open");
+    await page.waitForSelector("#capture-form");
+
+    step("room types and the field kinds item, multi, rating and file: a room's administrator defines a type of the room in the type editor; an item of it refers to another, chooses several values and gives stars; the referenced item lists it as a relation and cannot be trashed (ADR-0201, ADR-0202)");
+    {
+      // As the administrator, who administers every room, in a window of
+      // its own.
+      const rtCtx = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
+      const rt = await rtCtx.newPage();
+      rt.on("dialog", (d) => d.accept());
+      await rt.goto(base + "/");
+      await rt.fill("#login [name=username]", "admin");
+      await rt.fill("#login [name=password]", adminPassword);
+      await rt.click("#login button[type=submit]");
+      await rt.waitForSelector("#nav a");
+      const epic = await rt.evaluate(async () => (await (await fetch("/api/items", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ space: "PLAT", type: "task", title: "Epic for room types", properties: { priority: "low" } }) })).json()).item);
+      await rt.goto(base + "/#/members/PLAT");
+      await rt.waitForSelector("#room-types");
+      await rt.click("#room-new-type");
+      check(await rt.textContent("#type-belongs") === "Type of the room PLAT", "a room's new type belongs to the room");
+      await rt.fill("#type-name", "incident");
+      for (const [name, kind] of [["about", "item"], ["platforms", "multi"], ["stars", "rating"], ["cover", "file"]]) {
+        await rt.click("#type-add-field");
+        const row = rt.locator("#type-editor .type-field").last();
+        await row.locator("[name=field-name]").fill(name);
+        await row.locator("[name=field-kind]").selectOption(kind);
+      }
+      await rt.locator("#type-editor .type-field").nth(1).locator("[name=field-values]").fill("web\nios\nandroid");
+      // An empty multi field is refused before anything is sent.
+      await rt.locator("#type-editor .type-field").nth(1).locator("[name=field-values]").fill("");
+      await rt.click("#type-save");
+      await rt.waitForSelector("#type-editor .error:has-text('needs at least one value')");
+      await rt.locator("#type-editor .type-field").nth(1).locator("[name=field-values]").fill("web\nios\nandroid");
+      await rt.check("#type-workflow");
+      check(await rt.locator("#type-editor .type-state").count() === 2, "the simple workflow open → done is preset");
+      await rt.fill("#type-start", "## Impact\n\nWho is affected?");
+      await rt.click("#type-save");
+      await rt.waitForSelector("#room-type-list:has-text('incident')");
+      const types = await rt.evaluate(async () => (await (await fetch("/api/types?space=PLAT")).json()).types);
+      const incident = types.find((ty) => ty.name === "incident");
+      check(incident && incident.space === "PLAT" && incident.editable && incident.workflow.states.join() === "open,done" && incident.start?.length === 2,
+        "the room type is defined with its fields, workflow and start text: " + JSON.stringify(incident));
+
+      await rt.goto(base + "/#/new?space=PLAT&type=incident");
+      await rt.waitForSelector("#new-item fieldset[name='p:platforms']");
+      await rt.fill("#new-item [name=title]", "Outage of the login");
+      await rt.check("#new-item fieldset[name='p:platforms'] input[value=ios]");
+      await rt.check("#new-item fieldset[name='p:platforms'] input[value=web]");
+      await rt.click("#new-item fieldset[name='p:stars'] .star >> nth=3");
+      await rt.fill("#new-item fieldset[name='p:about'] input[type=search]", "Epic for room");
+      await rt.click(`#new-item .item-suggestions li button:has-text('${epic.key}')`);
+      await rt.waitForSelector(`#new-item fieldset[name='p:about'] a.field-ref:has-text('${epic.key}')`);
+      check((await rt.textContent("#new-item fieldset[name='p:cover']")).includes("once the item has files"), "a file is chosen once the item has files");
+      await rt.click("#new-item button[type=submit]");
+      await rt.waitForSelector("tr[data-field=stars]");
+      const made = await rt.evaluate(async () => (await (await fetch("/api/items/" + location.hash.split("/")[2].split("?")[0])).json()).item);
+      check(made.properties.about === epic.id && made.properties.platforms.join() === "web,ios" && made.properties.stars === 4 && made.body.length === 2,
+        "the item holds the reference by ID, the values in their order, four stars and the start text: " + JSON.stringify(made.properties));
+      // The stars change on the item page, saved at once.
+      await rt.goto(base + "/#/item/" + made.key);
+      await rt.waitForSelector("tr[data-field=stars] .star");
+      await rt.click("tr[data-field=stars] .star >> nth=1");
+      await rt.waitForSelector("tr[data-field=stars] .saved");
+      check((await rt.evaluate(async (k) => (await (await fetch("/api/items/" + k)).json()).item.properties.stars, made.key)) === 2, "two stars are saved");
+      // The referenced item lists it among its relations and is protected
+      // from deletion while it does (D8).
+      const incoming = await rt.evaluate(async (id) => (await (await fetch(`/api/items/${id}/relations?direction=incoming`)).json()).relations, epic.id);
+      check(incoming.some((r) => r.type === "about" && r.from === made.id && r.derived), "the item field is a relation of its target: " + JSON.stringify(incoming));
+      const trash = await rt.evaluate(async (id) => (await fetch(`/api/items/${id}/trash`, { method: "POST" })).status, epic.id);
+      check(trash === 409, "a referenced item is not trashed: " + trash);
+      const found = await rt.evaluate(async () => (await (await fetch("/api/items?query=" + encodeURIComponent("platforms = ios AND stars >= 2"))).json()).items);
+      check(found.length === 1 && found[0].id === made.id, "the query finds the item by one of its values and its stars");
+      // The type is not offered in another room.
+      const elsewhere = await rt.evaluate(async () => (await (await fetch("/api/types?space=OTHER")).json()).types.map((ty) => ty.name));
+      check(!elsewhere.includes("incident"), "a room's type is not offered elsewhere");
+      await rtCtx.close();
+    }
+    step("daily notes: Today opens one's own note for the day, made in the room one chose, written in place (ADR-0205)");
+    await page.goto(base + "/#/");
+    await page.click("#nav-today");
+    await page.waitForSelector("#daily-title");
+    if (await page.locator("#daily-note.daily-empty").count()) {
+      // The room is chosen once; the note is made then.
+      await page.selectOption("#daily-room", "PLAT");
+      await page.waitForSelector("#daily-note.editing .ProseMirror");
+    }
+    await page.waitForSelector("#daily-note.editing .ProseMirror");
+    check(await page.inputValue("#daily-room") === "PLAT", "the room of the daily notes is kept");
+    const dailyKey = (await page.getAttribute("#daily-item", "href")).replace("#/item/", "");
+    const dailyNote = (await (await page.request.get(base + "/api/items/" + dailyKey)).json()).item;
+    check(dailyNote.labels.includes("daily-note") && dailyNote.restriction.read.length === 1, "the note is labelled and restricted to its author");
+    await page.locator("#daily-note .ProseMirror").click();
+    await page.keyboard.type("Planned the day. ");
+    await page.waitForSelector("#daily-month .daily-day.today.noted.shown");
+    // Another day's note is made only when one starts it.
+    await page.click("#daily-prev");
+    await page.waitForSelector("#daily-note.daily-empty #daily-start");
+    check(await page.locator("#daily-today").count() === 1, "a day before today offers to go back to today");
+    await page.click("#daily-start");
+    await page.waitForSelector("#daily-note.editing .ProseMirror");
+    await page.waitForSelector("#daily-month .daily-day.shown.noted");
+    await page.click("#daily-next");
+    await page.waitForSelector("#daily-note.editing .ProseMirror");
+    await page.waitForSelector("#daily-calendar ul, #daily-calendar p.muted");
+    await page.waitForSelector("#daily-activity ul, #daily-activity p.muted");
+
+    step("create from a mention: a title that matches nothing is created where it is mentioned (ADR-0206)");
+    await page.locator("#daily-note .ProseMirror").click();
+    await page.keyboard.press("End");
+    await page.keyboard.type(" @Brandnewtopic");
+    await page.waitForSelector("#pm-at:not([hidden]) .pm-at-create");
+    await page.keyboard.press("ArrowUp"); // the offer to create comes last
+    await page.keyboard.press("Enter");
+    await page.waitForSelector("dialog#mention-create[open]");
+    check(await page.inputValue("#mention-create-title") === "Brandnewtopic", "the title typed is proposed");
+    check(await page.inputValue("#mention-create-space") === "PLAT", "the edited item's room is proposed");
+    await page.click("#mention-create-ok");
+    await page.waitForSelector("dialog#mention-create", { state: "detached" });
+    await page.waitForSelector("#daily-note .ProseMirror .pm-mention:has-text('Brandnewtopic')");
+    await page.click("#daily-title"); // leaving the editor saves the text
+    await page.waitForSelector("#daily-note .live[data-pending='0']");
+    const fromMention = (await (await page.request.get(base + "/api/items?q=Brandnewtopic")).json()).items[0];
+    check(fromMention && fromMention.space === "PLAT", "the mentioned item was created in the room");
+    // The link dialog offers it as well.
+    await page.locator("#daily-note .ProseMirror").click();
+    await page.keyboard.press("End");
+    await page.keyboard.press("Control+k");
+    await page.fill("dialog.pm-dialog [name=address]", "Another fresh topic");
+    await page.waitForSelector("dialog.pm-dialog #pm-link-create");
+    await page.click("dialog.pm-dialog #pm-link-create");
+    await page.waitForSelector("dialog#mention-create[open]");
+    check(await page.inputValue("#mention-create-title") === "Another fresh topic", "the link dialog proposes the address typed as the title");
+    await page.click("dialog#mention-create button:has-text('Cancel')");
+    await page.waitForSelector("dialog#mention-create", { state: "detached" });
+    check(!(await (await page.request.get(base + "/api/items?q=Another%20fresh%20topic")).json()).items.length, "nothing is created when cancelled");
+
+    step("context: an item names what refers to it, with its sentence, and the daily notes that name it (ADR-0207)");
+    await page.goto(base + "/#/item/" + fromMention.key);
+    await page.waitForSelector("#context-daily .context-entry");
+    check((await page.textContent("#context-daily")).includes(dailyKey), "today's note names the item");
+    check((await page.textContent("#context-daily .context-sentence")).includes("Brandnewtopic"), "with the sentence it stands in");
+
+    step("an item beside another: Shift+click opens it in a pane kept in the address; Esc closes it (ADR-0207)");
+    await page.click(`#context-daily a[href='#/item/${dailyKey}']`, { modifiers: ["Shift"] });
+    await page.waitForSelector("#beside-pane .beside-title");
+    check(page.url().includes("beside=" + dailyKey), "the item beside is kept in the address");
+    check((await page.textContent("#beside-pane .beside-title")) === dailyNote.title, "the pane shows the item");
+    await page.waitForSelector("#beside-pane .beside-text .ProseMirror");
+    await page.click("#beside-edit");
+    await page.waitForSelector("#beside-pane .beside-text.editing .ProseMirror[contenteditable=true]");
+    await page.click("#beside-edit");
+    await page.waitForSelector("#beside-pane .beside-text.reading");
+    await page.locator("#context h2").click();
+    await page.keyboard.press("Escape");
+    await page.waitForSelector("#beside-pane", { state: "detached" });
+    check(!page.url().includes("beside="), "Esc closes the pane and the address forgets it");
+    await page.click(`#context-daily .context-beside`);
+    await page.waitForSelector("#beside-pane .beside-title");
+    await page.click("#beside-close");
+    await page.waitForSelector("#beside-pane", { state: "detached" });
+
+    step("command palette: Ctrl+K outside the editor and Ctrl+Shift+P find items, recent ones and commands (ADR-0207)");
+    await page.locator("#context h2").click();
+    await page.keyboard.press("Control+k");
+    await page.waitForSelector("dialog#palette[open] #palette-input:focus");
+    check(await page.getAttribute("#palette-input", "role") === "combobox" && await page.getAttribute("#palette-list", "role") === "listbox", "a combobox and a listbox");
+    check(await page.locator("#palette-group-recent").count() === 1, "recently opened items are offered");
+    await page.keyboard.type("Brandnew");
+    await page.waitForSelector(`#palette-list .palette-option:has-text('${fromMention.key}')`);
+    await page.keyboard.press("Escape");
+    await page.waitForSelector("dialog#palette", { state: "detached" });
+    await page.keyboard.press("Control+Shift+P");
+    await page.waitForSelector("dialog#palette[open]");
+    await page.keyboard.type("today");
+    await page.waitForSelector("#palette-list .palette-command[aria-selected=true]:has-text(\"Today's daily note\")");
+    await page.keyboard.press("Enter");
+    await page.waitForSelector("#daily-title");
+    check(/#\/daily$/.test(page.url()), "the command opened today's note");
+    // In a text being edited, Ctrl+K stays the link dialog.
+    await page.waitForSelector("#daily-note.editing .ProseMirror");
+    await page.locator("#daily-note .ProseMirror").click();
+    await page.keyboard.press("Control+k");
+    await page.waitForSelector("dialog.pm-dialog[open]");
+    check(await page.locator("dialog#palette").count() === 0, "the palette does not open in the editor");
+    await page.click("dialog.pm-dialog button:has-text('Cancel')");
+    await page.keyboard.press("Alt+Shift+D");
+    await page.waitForSelector("#daily-title");
+    // On a phone, Today is in the modules and the view fits the screen (ADR-0116).
+    const dailyPhoneCtx = await browser.newContext({ viewport: { width: 375, height: 700 }, isMobile: true, hasTouch: true });
+    const dailyPhone = await dailyPhoneCtx.newPage();
+    dailyPhone.on("pageerror", (e) => problems.push("phone page error: " + e.message));
+    await dailyPhone.goto(base + "/");
+    await dailyPhone.fill("#login [name=username]", "bert");
+    await dailyPhone.fill("#login [name=password]", "bert's password");
+    await dailyPhone.press("#login [name=password]", "Enter");
+    await dailyPhone.waitForSelector("#account-button");
+    check(!(await dailyPhone.isVisible("#nav-today")), "the top bar of a phone keeps its rows: Today is in the modules");
+    await dailyPhone.click("#app-switcher");
+    await dailyPhone.click("#drawer-apps a:has-text('Today')");
+    await dailyPhone.waitForSelector("#daily-title");
+    // bert chooses the room of the daily notes once, as the administrator did.
+    if (await dailyPhone.locator("#daily-note.daily-empty").count()) {
+      await dailyPhone.selectOption("#daily-room", "PLAT");
+    }
+    await dailyPhone.waitForSelector("#daily-note.editing .ProseMirror");
+    // A daily note is its author's alone: bert's own stands beside the item.
+    const bertDailyKey = (await dailyPhone.getAttribute("#daily-item", "href")).replace("#/item/", "");
+    check(bertDailyKey !== dailyKey, "bert has a daily note of their own");
+    await dailyPhone.goto(base + "/#/item/" + fromMention.key + "?beside=" + bertDailyKey);
+    await dailyPhone.waitForSelector("#beside-pane .beside-title");
+    for (const view of ["#/daily", "#/item/" + fromMention.key + "?beside=" + bertDailyKey]) {
+      await dailyPhone.goto(base + "/" + view);
+      await dailyPhone.waitForTimeout(400);
+      const wide = await dailyPhone.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      check(wide <= 0, `${view} is ${wide}px wider than a phone's screen`);
+    }
+    await dailyPhoneCtx.close();
+
     check(problems.length === 0, problems.join("; "));
     console.log("ok");
   } catch (err) {
@@ -5562,5 +6347,6 @@ function gitSource() {
     feed.close();
     atlassian.close();
     repo.close();
+    web.close();
   }
 })();

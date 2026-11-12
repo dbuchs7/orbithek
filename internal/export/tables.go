@@ -7,7 +7,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/item"
 )
 
-// tone is a tone of item.TableTones as a document writes it (ADR-0200):
+// tone is a tone of item.TableTones as a document writes it (ADR-0214):
 // strong for a border, soft for a fill, so that text on a filled cell
 // stays readable. The values match the tones of the web UI.
 type tone struct{ strong, soft string }
@@ -31,7 +31,7 @@ type tableCell struct {
 }
 
 // styledRows are a table block's rows of cells with their marks and
-// colours, every row as wide as the first (ADR-0042, ADR-0200).
+// colours, every row as wide as the first (ADR-0042, ADR-0214).
 func styledRows(bl item.Block) [][]tableCell {
 	if strings.TrimSpace(bl.Text) == "" {
 		return nil

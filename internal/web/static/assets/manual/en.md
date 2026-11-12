@@ -9,7 +9,7 @@ This manual explains how to work with Orbithek: reading and writing pages, keepi
 
 ### Rooms, items and types
 
-Everything people write in Orbithek is an **item**: a wiki page, a task, a decision, a meeting note. What an item consists of is set by its **type**. A type defines the item's fields (for example *assignee*, *due* or *priority*), whether it has a text, and whether it moves through a **workflow** of states such as *open* and *done*. Pages and tasks are therefore not separate systems, but items of different types.
+Everything people write in Orbithek is an **item**: a wiki page, a task, a decision, a meeting note. What an item consists of is set by its **type**. A type defines the item's fields (for example *assignee*, *due* or *priority*), whether it has a text, and whether it moves through a **workflow** of states such as *open* and *done*. Pages and tasks are therefore not separate systems, but items of different types. A type belongs to the whole installation or to one room: a room's own types are used only for items in that room.
 
 Items live in **rooms**. A room holds the work of a team, a project or a topic. Every room has a short **key** in capitals, such as `PLAT`; every item in it has a key made of the room's key and a number, such as `PLAT-12`. Pages form a tree: every item has at most one parent page.
 
@@ -35,11 +35,12 @@ Sign in with your username and password, or with single sign-on if your organisa
 
 The bar at the top of every page holds, from left to right:
 
-- **Nine dots** (Modules): opens the module switcher with Rooms, Create, Tasks, Comments, Album, Whiteboards, Starmap, AI access, Governance, Account and, for administrators, Administration.
+- **Nine dots** (Modules): opens the module switcher with Rooms, Create, Tasks, Today, Comments, Album, Whiteboards, Starmap, AI access, Governance, Account and, for administrators, Administration.
 - **Start page**, **Back** and **Forward**.
 - The **logo**, which also leads to the start page.
 - The **search** field.
 - **+ New**: creates a page or item where you are.
+- **Today**: your daily note of today (Alt+Shift+D); see *Daily notes*. On a narrow screen it is in the module switcher.
 - The **bell**: your notifications, with the number of unread ones.
 - **DE** and **EN**: the language of the interface.
 - The **light and dark mode** switch.
@@ -48,13 +49,13 @@ The bar at the top of every page holds, from left to right:
 
 ### The start page
 
-The start page greets you, shows counts of pages, tasks and pictures, and offers quick access to your tasks, notifications, personal notes, the starmap, the album, the whiteboards and AI access. Below it lists your rooms, as tiles or as a list; a star marks a room as a favourite. If there are no rooms yet, administrators find the first steps there: create a room, add types from the ready-made templates (page, task, decision), and give people a role.
+The start page greets you, shows counts of pages, tasks and pictures, and offers quick access to your tasks, notifications, personal notes, the starmap, the album, the whiteboards and AI access. Below it lists your rooms, as tiles or as a list; a star marks a room as a favourite. If there are no rooms yet, administrators find the first steps there: create a room, add types from the ready-made templates (page, task, decision, daily note), and give people a role.
 
 ## Pages and items
 
 ### Creating a page or item
 
-Choose **+ New** in the top bar or **New page** in a room. The creation view asks for the room, the type and the title, and places the new item below the page you came from. On a page, **New child page** creates a page below it. If a type has a start text, a new item begins with it.
+Choose **+ New** in the top bar or **New page** in a room. The creation view asks for the room, the type and the title, and places the new item below the page you came from. On a page, **New child page** creates a page below it. If a type has a start text, a new item begins with it. A room's own types are offered only when that room is chosen.
 
 ### Reading an item
 
@@ -68,6 +69,10 @@ An item shows its title, its key, type and state, and its text. The panel **Abou
 
 Above the text, **Export** and **Watch** are available; the comments follow below the text.
 
+The section **Context** at the side lists what belongs to the item without being in it: under **Referred to by** the items that mention it, embed it, link to it or relate to it, each with the sentence the mention or link stands in; under **Sharing labels** the items that carry its labels, most labels in common first; and under **In daily notes** your daily notes that name it. Only items you may read are listed, and each list shows its first entries.
+
+Shift+click on a link to another item, or **Beside** next to an entry of the context, opens that item in a pane beside the current one: you read it there, and edit its text with **Edit** if you may. The address keeps the item beside, so the pair can be shared and comes back with **Back**. **Open on its own** shows it as a page; Esc or the × closes the pane. On a phone, the pane follows below the page.
+
 ### Editing a text
 
 Choose **Edit** to edit the text and **Done** to finish. Changes are saved continuously; the status line shows *Saving…* and then *All changes saved.* The toolbar offers:
@@ -80,6 +85,8 @@ Choose **Edit** to edit the text and **Done** to finish. Changes are saved conti
 
 Markdown that you paste becomes formatted text. Ctrl+Shift+V pastes plain text instead.
 
+If no item has the title you type after @ or as the address of a link, the list offers *Create «title» as …*. The dialog **Create and mention** asks for the type (the room's page type unless you choose another) and the room (the room of the text you edit unless you choose another); a page made in the same room goes below the page you edit, and is protected as that page is; from a daily note, it goes to the top of the room. The new item is mentioned where you typed. Types that require fields are made with **+ New** instead. When you may not create in a room, or the storage is almost full, the dialog says so and nothing is created.
+
 ### Inserting content
 
 The menu **Insert…** adds blocks after the cursor:
@@ -88,6 +95,7 @@ The menu **Insert…** adds blocks after the cursor:
 - **Image**, **Video**, **Drawing**, a picture **From the album** or a **Copied picture**;
 - **Embed an item…**: shows another item whole inside the text;
 - **New task…** (created below the page and shown as a link or whole) and **Task list…** (every task with a label, or the result of a query);
+- **View of items…**: the items of a type as a table, a gallery or a list, grouped by a field (see *Views of items*);
 - **Paste Markdown…** and **Markdown file from a repository…** (if enabled);
 - BPMN diagrams, and processes, forms, decisions, start forms and architecture sketches of a process engine (see *Process engines*).
 
@@ -107,11 +115,25 @@ Formatting, colours and sizes are kept in Word and PDF exports; a Markdown expor
 
 ### Labels, relations and files
 
-**Labels** are short words that group items across rooms, such as `release-2` or `security`. Add them in the panel at the side; a click on a label lists every item carrying it and offers it **As a board**.
+**Labels** are short words that group items across rooms, such as `release-2` or `security`. Add them in the panel at the side; a click on a label lists every item carrying it and offers it **As a board**. A label may have a page that describes it (see *Label pages and collections*).
 
 **Relations** link an item to another with a named type, for example *blocks* or *depends on*: enter the relation and the other item's key and choose **Relate**. Links and mentions in the text are shown as relations too.
 
 **Files** are attached with **Upload files**. Whoever may edit the item renames a file in the list with **Rename**: every version takes the new name, and the file type stays. Pictures and drawings of every item also appear in the album.
+
+### Reading PDF files
+
+A PDF file of an item opens in the reader with **Read** in the file list, or with a click on a link to it in the item's text. The reader shows the pages with their text, which can be selected and copied. The bar above them moves from page to page, zooms in and out or to **Fit width**, searches the document (Enter for the next match) and offers **Download**. At the side, *Pages* shows small pictures of the pages, *Contents* the document's table of contents when it has one, and *Highlights* the highlights made in it. The address names the page, so a link leads others to the same page.
+
+Whoever may comment on the item highlights text: select it on one page, then choose a colour to highlight it at once, or **Highlight with a note**, choose a colour, write the note and **Save highlight**. A highlight is a comment on the item: it appears among the item's comments with its file, page and quote, and **Show in the PDF** leads to it. Highlights are answered, resolved and deleted in the reader's list as in the comments; **Open in the comments** leads to the item. When a newer version of the file is uploaded, the reader shows the newest version and finds each highlight again by its text; a highlight whose text is no longer in the file says so. **Export as Markdown** saves the highlights with their quote, page and note. A PDF with highlights stays in its item: it cannot be moved to another one.
+### Fields of an item
+
+The fields of an item stand in the panel at the side and are saved as soon as they change. Besides text, numbers, dates, people and lists, a field can be:
+
+- **Item**: a reference to another item, chosen by typing a few letters of its key or title. It is shown by key and title and counts as a relation: the other item lists it among its relations, the starmap and the impact view show it, and the other item cannot be deleted while it is referred to. An item you may not read is not shown.
+- **Several of a list**: any of the field's values, ticked.
+- **Rating**: one to five stars.
+- **File**: one of the item's own files, such as a cover picture, shown as a small picture. Upload the file first, then choose it.
 
 ### Moving, copying and deleting
 
@@ -122,6 +144,49 @@ Formatting, colours and sizes are kept in Word and PDF exports; a Markdown expor
 ### History and versions
 
 **History** lists every change of an item, who made it and when. A version of the text shows its **Changes**; **Restore this version** brings an earlier text back as a new version. Nothing is lost by restoring.
+
+### Importing notes
+
+Room administrators bring notes written elsewhere into their room with **Import notes** in the room's views; administrators find the same form under **Administration → Import**. You upload a ZIP archive of one of these:
+
+- a folder of Markdown notes, such as an Obsidian vault zipped as it is, or the Markdown export of any notes application that writes Markdown files with front matter;
+- a Notion workspace export in the format *Markdown & CSV*.
+
+What the import makes of it:
+
+- every folder that holds notes becomes a page, every note a page below its folder's page; a note named like its folder, `index.md` or `README.md` is the folder page's own text;
+- the title is the front matter's `title`, else the first heading, else the file name; in a Notion export the ID at the end of each name is dropped and identifies the page;
+- links between notes — `[[Note]]`, `[[Note|text]]`, `[[Note#Heading]]` and relative Markdown links — become mentions of the imported pages; a note embedded with `![[Note]]` becomes a mention too;
+- pictures in the archive (`![[picture.png]]` or a relative picture link) are attached and shown; pictures on the web stay links;
+- `tags` in the front matter and inline `#tags` become labels (a tag `a/b` becomes the label `a.b`); a front matter key named like a field of the **Type of the pages** fills that field, a `status` the type's workflow knows sets the state, and everything else is kept in a small table at the top of the page;
+- each database of a Notion export (a CSV file) becomes a page that lists its rows, and each row an item of the **Type of the rows of databases**, its columns filling fields by name.
+
+Always start with **Dry run**: it writes nothing and lists how many pages would be made or changed and everything that cannot be converted, such as a link to a note the archive does not hold or an embedded PDF. **Import** then writes the pages.
+
+The **Name of the import** identifies it. Import a newer archive under the same name to bring changes over: nothing is made twice, a page whose note did not change keeps what was written in it here, a changed note replaces its page's text (the history keeps the old one), labels are only added, and a page whose note is no longer in the archive is kept, never deleted.
+
+### Importing highlights
+
+An administrator can set up a connector of the kind Readwise under **Administration → Connectors**. It reads your highlights from Readwise on its schedule, with a dry run first like every connector: each book or article becomes an item of the chosen type, with its title, author, source address and cover, labels from its tags, and its highlights as quotes with their notes and locations. A run reads only what changed since the last one. The highlights stand above a line in the item's text; what you write below that line stays when the highlights are brought up to date.
+## Web links and capturing
+
+### Saving a web link
+
+A page of the web can be kept as an item of its own, a *web link*: its address, and what the page says about itself, such as its site, description, author and day of publication, in its fields; its picture as a file; and your own notes in its text, where comments and personal notes work as on any page.
+
+While editing a text, paste an address on its own line. The bubble below the link offers **Save as web link item**: the item goes below the page you are writing, or into another room, and the line with the address becomes a card of the page, with its picture, title, site and description. A web link item shows the same card at its top, and so does every text that embeds it.
+
+If your server reads web pages (an administrator decides), a web link's fields and picture are filled from the page. On the web link item, **Read the page again** brings them up to date, keeping an earlier picture as an earlier version; **Take over the page's text** adds the page's main text below the item's text, to comment on it and annotate it with personal notes. Without this, a web link keeps its address, and you fill in its fields yourself.
+
+### Capturing from anywhere
+
+**Capture** saves a page of the web, a quote or a thought from wherever you are. It opens:
+
+- from **New**, with the card **Capture**;
+- from any page of the web, with the bookmark offered under **Account and password** in the account menu: drag the button **Capture** to your browser's bookmarks, or use **Copy the bookmark**. On a page, it opens the capture view with the page's title, its address and the text you selected;
+- on a phone, by sharing a page or a text to Orbithek once you installed it as an app from the browser's menu.
+
+The capture view shows the title, the address and the text, which you may change, and asks where to save them: as **a web link** (when there is an address), into **today's daily note** (in the room you chose for your daily notes), as **a new item** of a type and in a room you choose, or as **an addition to an item** that you find by searching. The text becomes quotes, and the address follows as their source. Nothing is saved before you choose **Save**. Signing in first keeps what was shared.
 
 ## Working together
 
@@ -139,6 +204,12 @@ The module **Comments** gathers comments on the items you watch, your own and th
 
 Select a passage while reading and choose **Note** to keep a note on it that only you see. **My notes** on the start page lists all your notes with the passages they belong to.
 
+### Daily notes
+
+A daily note is a page of your own for one day: only you read and edit it. **Today** in the top bar, Alt+Shift+D or the command palette opens today's note; it is made the first time you open it, in the **Room for daily notes** you choose once, among the rooms where you may create pages. You can change the room at any time; notes already made stay where they are.
+
+The note's text is edited in place. **Previous day** and **Next day** move between days, and the month beside marks the days that have a note; a day without one offers **Start this day's note**. Beside the note, **In the calendar this day** lists the items whose dates fall on that day, and **Created or changed this day** the items you may read that were created that day or last changed on it. **Open as a page** shows the note as an item, with its comments, history and fields. Daily notes carry the label `daily-note`, so a query by that label lists them all.
+
 ### Editing at the same time
 
 Several people can edit a text at once. Each block someone is working on is locked for the others; the line above the text names who is in the text right now and who is editing which block. If the connection is lost, the editor reconnects on its own.
@@ -149,6 +220,10 @@ Several people can edit a text at once. Each block someone is working on is lock
 
 Type words of a title, a text or a comment, or a key such as `PLAT-12`, into the search field. Suggestions appear while you type; **Enter** shows all results, ordered by relevance (one to five stars). The search finds only what you may read.
 
+### Command palette
+
+Ctrl+K (when you are not editing a text, where Ctrl+K inserts a link) or Ctrl+Shift+P opens the **Command palette**. Type part of a title, a key or a command: it finds items, offers your **Recently opened** items (remembered in this browser) and **Commands** such as a new item, today's daily note, a module or room, the query, the calendar, the light or dark look, reading mode and the manual. The letters you type need only appear in order, so `tdn` finds *Today's daily note*. Arrow keys choose, Enter opens, Esc closes.
+
 ### Queries
 
 A **query** selects items by their fields. Open it from the search results (**Query the fields of the items instead**). Conditions are joined with AND, OR and NOT; parentheses group them:
@@ -157,6 +232,7 @@ A **query** selects items by their fields. Open it from the search results (**Qu
 - `IS EMPTY` and `IS NOT EMPTY` find items without or with a value.
 - Dates are written `2026-10-01`; `-7d`, `2w`, `+12h` and `-1y` count from now; `now()`, `startOfWeek()` and similar functions are available.
 - `currentUser()` stands for you.
+- An item field takes an item's key, such as `epic = PLAT-3`; `platforms = web` finds items that have *web* among several values; a rating compares as a number, such as `rating >= 4`.
 - `ORDER BY` sorts, `ASC` or `DESC`.
 
 Examples:
@@ -171,7 +247,21 @@ Ctrl+Enter runs a query. The results can be exported as CSV.
 
 ### Views of a room
 
-A room offers several views: its page tree, **All items**, a **Board** per type with a workflow, the **Calendar**, the **Roadmap** and, depending on your role, **Governance** and **Link check**. **Watch** on a room tells you of everything that happens in it.
+A room offers several views: its page tree, **All items**, a **Board** per type with a workflow, **Views** of its items, the **Calendar**, the **Roadmap** and, depending on your role, **Governance** and **Link check**. **Watch** on a room tells you of everything that happens in it.
+
+### Views of items
+
+**Views** in a room, or **View of a type…** beside it, shows the items you may read as a **Table**, a **Gallery** of cards or a **List** of compact rows. Choose the **Room** (or all rooms), the **Type** and, if you like, a **Query** in the query language, then **Apply**. **Group by** puts the items under headers with their counts: by state, by label, or by a field that holds a choice, a person or yes and no; a click on a header folds the group. **Sort** orders them by a column, as does a click on a column's heading, a second click the other way. **Columns** chooses what the table shows; the cards of a gallery show the first picture of the text, or a file field's file, with the title and the chosen fields.
+
+Where you may edit an item, the pencil beside a cell changes it in place: the title, a field, or the state, by one of the workflow's transitions. The address keeps the whole view, so a link shows it to others as far as they may read the items.
+
+In a text, **Insert…** → **View of items…** places such a view; **Change the view…** changes it while editing, and **Open as a view** shows it on a page of its own. Every reader sees only the items they may read.
+
+### Label pages and collections
+
+A label can have a page that says what it is about. On a label's list of items, **Describe this label** makes that page, of the type *topic*, in a room you choose; afterwards the label's list shows it on top with **Read the page**. If several rooms have a page for the same label, you see the oldest one you may read.
+
+A label's page shows the items carrying its label as a view: **Table**, **Gallery** or **List**, grouped and sorted as you choose. With **Order set by hand**, whoever may edit the page drags an item before another or moves it with the arrows (Alt+↑ and Alt+↓); items added later come after the ordered ones, and items you may not read keep their places without being shown. **Forget the order set by hand** lists them in the order they were made again. Such a page with its order is a collection: **Add to collection…** on an item gives it the label of a page you choose.
 
 ## Tasks
 
@@ -268,6 +358,10 @@ The view **People** lists everyone named, with their face and how many pictures 
 Faces are found in your browser; nothing is sent elsewhere. If an administrator turned on **Recognise faces again**, the browser also computes numbers from each face that let the album suggest a name, such as *Ada?*, for a face that resembles faces already named. These numbers are biometric data: turn this on only if the people shown agree. Turning it off forgets them all; the names stay. Pictures searched before recognition was turned on are not recognised until they are searched again: after turning it on, administrators are pointed to **Find faces in all pictures**, and a picture opened in the viewer is searched again on its own.
 
 With recognition on, a person's album also shows **Is this Ada?**: faces on other pictures you may edit that resemble Ada more than anyone else named, most alike first. Click the faces that show Ada, or **Choose all** and click away the wrong ones, then **Confirm chosen**. The faces not chosen stay unnamed and are suggested again later. Only pictures whose faces were searched while recognition was on can be suggested.
+
+### Moving a folder
+
+**Move folder** in an open folder moves it with its folders, pictures and videos into another folder or to the top level of a room. Choose the place under **Move to…** and click **Move**; the path then leads to the folder where it went. A folder can also be dragged onto a folder listed beside it or onto a folder above it in the path; dragged onto **All pictures**, it goes to the top level of its room. Moved into another room, the folder is asked about first: afterwards that room decides who may see and change it. A folder is moved only by someone who may change it and everything in it and may create where it goes; it cannot go into itself or a folder below it.
 
 ### Deleting a folder
 
@@ -440,13 +534,13 @@ Administrators find under **Administration**:
 
 - **Account requests**, **Users and system roles**, **Groups** and **Grant a room role**;
 - **Rooms**: create rooms, open their settings, move a room to the trash and restore or delete it for good;
-- **Item types**: create types from the ready-made templates or as JSON, with fields, workflow, Word template and start text;
+- **Item types**: create and change types in a form — name, text, fields with their kind and options, workflow with states and transitions (or simply *open → done*) and start text — for the whole installation or for one room; the type as JSON stays under **Advanced**. Types are also made from the ready-made templates;
 - **Backup** (also on a schedule to a directory, WebDAV, S3, FTPS or SFTP) and **Storage**;
 - **Calendars of other services**, **Album: older versions**, **Connectors** and **Process engines**;
-- **Appearance (corporate design)**: logo, colours, background, fonts;
+- **Appearance (corporate design)**: logo, colours, background, fonts, and a ready-made theme, among them *Capacity*, a quiet look for notes in light and dark;
 - **Word templates**, **Data protection regulations**, **Import** and the **Audit trail**.
 
-Room administrators manage members and roles of their room under the room's **Settings**.
+Room administrators manage members and roles of their room under the room's **Settings**. There, under **Item types of this room**, they also define, change and remove the room's own types with the same form, or start from a ready-made template. A type is removed only when no item and no kanban uses it.
 
 ## Keyboard shortcuts
 
@@ -455,7 +549,10 @@ Room administrators manage members and roles of their room under the room's **Se
 | Ctrl+B, Ctrl+I, Ctrl+U | Bold, italic, underline |
 | Ctrl+Shift+X, Ctrl+Shift+H | Strike through, highlight |
 | Ctrl+Shift+L, E, R, J | Align left, centre, right, justify |
-| Ctrl+K | Insert or edit a link |
+| Ctrl+K | Insert or edit a link; outside a text, open the command palette |
+| Ctrl+Shift+P | Open the command palette |
+| Alt+Shift+D | Open today's daily note |
+| Shift+click | Open a linked item beside the current one; Esc closes it |
 | @ | Mention a person or an item |
 | Ctrl+Z, Ctrl+Y | Undo, redo |
 | Ctrl+Shift+V | Paste as plain text |

@@ -51,7 +51,7 @@ type tool struct {
 const blockFormat = "A body is a list of blocks, each an object with kind and text. Kinds: paragraph, " +
 	"heading (level 1-3), bullet and ordered (one block per list item), task (checked true or false), quote, code, " +
 	"panel (tone info, note, warning, tip or error), table (text holds rows separated by \\n and cells by \\t; the first row " +
-	"is the header; marks format text inside one cell each; columns: a width in pixels per column, 24-2000 or 0 for what its text takes; rows: a least height in pixels per row, 16-1000 or 0; " +
+	"is the header; marks format text inside one cell each; widths: a width in pixels per column, 24-2000 or 0 for what its text takes; heights: a least height in pixels per row, 16-1000 or 0; " +
 	"cells: a list of {\"row\": 0, \"col\": 1, \"fill\": a tone, \"border\": a tone} in the order of rows and columns, counted from 0 with the header row, " +
 	"each tone one of blue, green, yellow, orange, red, purple, teal, gray; text that does not fit wraps), toc, children and divider (no text: a table of contents, a list of child pages, a horizontal rule), embed (ref: an item ID), " +
 	"image (ref: an attachment ID of the item, text the caption, width 10-100 percent of the column or absent for its own size, align left or right to let text flow beside it, or center), " +
@@ -63,6 +63,9 @@ const blockFormat = "A body is a list of blocks, each an object with kind and te
 	"startform (engine: a process engine's ID, link: the token of a public start link there, 32-128 lower-case hexadecimal digits, process: the BPMN ID of the process it starts, or absent, " +
 	"prefill: a list of {\"field\": a field's key, \"from\": username, email, page or url} filled in beforehand with what this site knows of the reader, or absent, text the caption; " +
 	"shows the link's form, which a reader fills in and sends to start the process); " +
+	"view (layout table, gallery or list; itemType: a type name, or absent for every type; space: a space key, or absent for every space the reader reads; query: a query, or absent; " +
+	"group: state, labels or field:<name>, or absent; columns: a list of key, title, state, labels, space, type, updated and field:<name>, or absent for the default; sort: a column, - before it for descending, or absent; " +
+	"shows the items the reader may read, computed when shown); " +
 	"a bpmn or process block may have view both (the diagram and below it the description of its tasks and decisions) or text (the description only), or none for the diagram alone; " +
 	"a form block alike, with the list of its fields as its description. " +
 	"Paragraphs, headings, quotes and panels may have align center, right or justify. " +
@@ -70,6 +73,13 @@ const blockFormat = "A body is a list of blocks, each an object with kind and te
 	"{\"type\": \"bold\"|\"italic\"|\"underline\"|\"strike\"|\"highlight\"|\"code\"|\"link\" (with href)|\"mention\" (with ref, an item ID), \"start\": 0, \"end\": 5}. " +
 	"Example: [{\"kind\":\"heading\",\"level\":1,\"text\":\"Runbook\"},{\"kind\":\"paragraph\",\"text\":\"Stop the writers first.\"," +
 	"\"marks\":[{\"type\":\"bold\",\"start\":0,\"end\":4}]},{\"kind\":\"bullet\",\"text\":\"db1\"},{\"kind\":\"bullet\",\"text\":\"db2\"}]."
+
+// fieldValues describes the values of the field kinds to agents (ADR-0166,
+// ADR-0202).
+const fieldValues = "By kind: text, url, enum and user (a user ID) as strings; number as a number; bool as true or false; date as 2026-10-01; " +
+	"datetime as RFC 3339 with an offset; item as the ID or key of a readable item, of the field's targets if it names any; " +
+	"multi as a list of the field's values, e.g. [\"web\", \"ios\"]; rating as a whole number from 1 to 5; " +
+	"file as the attachment ID of one of the item's own files, as the links of get_item_markdown name them."
 
 // queryLanguage describes the query language (ADR-0136) to agents.
 const queryLanguage = "A query is conditions joined with AND, OR, NOT and parentheses, then optionally ORDER BY field [ASC|DESC], further fields after commas. " +
@@ -79,7 +89,8 @@ const queryLanguage = "A query is conditions joined with AND, OR, NOT and parent
 	"quote a name with spaces, or a property whose name is also a built-in field's, e.g. \"due date\". Values with spaces or commas are quoted. " +
 	"Dates are 2026-10-01, a time is RFC 3339, -7d, 2w, +12h and -1y count from now; functions: now(), startOfDay(), endOfDay(), startOfWeek(), endOfWeek(), " +
 	"startOfMonth(), endOfMonth(), startOfYear(), endOfYear(), each with an optional offset such as -1, and currentUser(), your caller. " +
-	"A user field takes a username or a user ID. != and NOT IN also hold for items without the field. A mistake is answered with the character where it is."
+	"A user field takes a username or a user ID; an item field an item's key or ID; a multi field = value holds when the item has that value among others; " +
+	"a rating compares as a number. != and NOT IN also hold for items without the field. A mistake is answered with the character where it is."
 
 var (
 	refParam = param{"ref", str, inPath, true, "The item's ID or key, e.g. PLAT-12."}
@@ -94,7 +105,9 @@ var (
 // restrictions, removing relations, editing or deleting comments and
 // resolving comment threads (they
 // change who sees what, or destroy content, and are a person's decision;
-// ADR-0035); administration of types,
+// ADR-0035); administration of types — of the installation and of a
+// space alike (ADR-0201): defining a type shapes what every person of a
+// space works with, and is a person's decision —,
 // spaces, roles, groups, users and backups; and everything about
 // credentials. An agent with an administrator's token still cannot reach
 // them through this adapter.
@@ -137,6 +150,14 @@ var (
 // the checkpoints are a browser's, and starting or ending a vote, the
 // timer and a presentation are a person's (ADR-0170).
 //
+// Of a label's page (ADR-0204), reading it is offered: it tells an agent
+// what a label is about and the order its items were put in by hand.
+// Describing a label is creating an item, which create_item does with the
+// type topic; ordering the items by hand is a person's arrangement and
+// is not offered, nor is forgetting it. The views of ADR-0203 are the
+// browser's: an agent reads the same items with query_items, and a view
+// placed in a text is a block that commit_body writes.
+//
 // The album (ADR-0054) is not offered, and with it neither the speaker's
 // notes of its pictures (ADR-0176): an agent that cannot list the
 // pictures would write notes for slides it never saw; whether agents
@@ -157,6 +178,32 @@ var (
 // photo was taken by hand (ADR-0198) is not offered either: it changes
 // every file of the picture given out, and an agent that cannot list the
 // album would date pictures it never saw.
+//
+// The import of notes (ADR-0211) is not offered: its body is a ZIP
+// archive a person uploads, which no tool argument carries, and it
+// writes a whole tree of pages into a room as a room administrator's
+// decision. An agent writes pages one at a time with create_item and
+// commit_body, converting the Markdown itself. Connectors, the one to a
+// reading service (ADR-0212) included, are administration.
+// Highlights in a PDF (ADR-0210) are comments: agents read them with
+// list_comments and make them with add_comment, naming the PDF, a page
+// and the quote, which the reader finds on the page. The reader's own
+// route, the versions of a PDF for drawing it, is not offered: it serves
+// a browser that draws the pages. No tool lists an item's files, so an
+// agent names a PDF whose file it was given or read in a highlight; a
+// tool for the files is an open question of ADR-0210.
+// Web links (ADR-0208) are offered as items: saving a page as a web link
+// item and reading its page again, which act on items an agent may
+// change. What a page says about itself without keeping it
+// (/api/linkpreview) is not offered: an agent reads the web itself, and
+// would only borrow the server's address to read it.
+// A person's daily notes (ADR-0205) are offered as opening one's note of
+// a day, which makes it when it is missing and is never destructive; the
+// text is then changed with commit_body, as any item's. Choosing the room
+// the notes go to is a person's own setting, like watching, and is not
+// offered; nor are the days listed or a paragraph appended, which
+// get_item, query_items by the label daily-note and commit_body cover. The
+// context of an item (ADR-0207) is offered as a read.
 var tools = []tool{
 	{Name: "list_spaces", Description: "List the spaces the caller holds a role in.", Method: "GET", Path: "/api/spaces"},
 	{Name: "get_own_roles", Description: "The caller's own roles: the system roles held, and every space role granted to the caller, directly or through a group (via), one entry per grant.",
@@ -167,8 +214,9 @@ var tools = []tool{
 			{"after", integer, inQuery, false, "The last of the previous answer; absent to start from now."},
 			{"limit", integer, inQuery, false, "Entries per page, 1 to the server's budget; 100 if absent."},
 		}},
-	{Name: "list_types", Description: "List the item types with their fields and workflows; read it before creating an item or setting a property.",
-		Method: "GET", Path: "/api/types"},
+	{Name: "list_types", Description: "List the item types with their fields and workflows; read it before creating an item or setting a property. " +
+		"A type with a space belongs to that space: its items live only there. With space, only the types an item of that space may have.",
+		Method: "GET", Path: "/api/types", Params: []param{{"space", str, inQuery, false, "A space key, e.g. PLAT, to list only the types its items may have."}}},
 	{Name: "find_items", Description: "Find readable items by space, type, state, parent, label or a property's value, paged. The answer's total says whether it is exact. " +
 		"To keep a catalog in step with another system, find an item by the identifier it has there with where, before creating it.",
 		Method: "GET", Path: "/api/items", Params: append([]param{
@@ -183,6 +231,11 @@ var tools = []tool{
 		Method: "GET", Path: "/api/items", Params: append([]param{
 			{"query", str, inQuery, true, "The query, e.g. type = task AND assignee = currentUser() AND state != done ORDER BY due."},
 		}, paging...)},
+	{Name: "get_label_page", Description: "The page of a label: the first item of the type topic your caller reads that describes it, with the items carrying the label in the order set by hand on it (order, IDs of items your caller reads; the others come after, in the order they were made). " +
+		"page is null when the label has no page; find the items carrying it with find_items by label.",
+		Method: "GET", Path: "/api/labels/{label}/page", Params: []param{
+			{"label", str, inPath, true, "The label, e.g. onboarding."},
+		}},
 	{Name: "get_governance", Description: "The governance check of a space: sensitive data, stale items, implausible values and empty recommended fields, and items due for review, " +
 		"each with the person responsible. Fix what can be fixed, e.g. a missing contact; a review is a person's decision.",
 		Method: "GET", Path: "/api/spaces/{space}/governance", Params: []param{
@@ -214,7 +267,7 @@ var tools = []tool{
 			{"type", str, inBody, true, "The type name, e.g. page."},
 			{"title", str, inBody, true, "The title."},
 			{"parent", str, inBody, false, "The ID of the item to place it under, e.g. a parent page."},
-			{"properties", object, inBody, false, "Field values by field name."},
+			{"properties", object, inBody, false, "Field values by field name. " + fieldValues},
 			{"body", array, inBody, false, "The item's first body, as blocks; only for types with a body."},
 		}},
 	{Name: "get_tree", Description: "The pages of a space in their order, one level at a time: the top of the space, or the children of parent. " +
@@ -237,6 +290,16 @@ var tools = []tool{
 			{"direction", str, inQuery, false, "affected (default) or dependson."},
 			{"depth", str, inQuery, false, "1 (default) to 5 hops, or all."},
 			{"picture", str, inQuery, false, "An attachment ID of the item's picture, to start at that picture instead."}}},
+	{Name: "get_context", Description: "The context of an item (ADR-0207): the items that refer to it (references: relations made by hand, mentions, embeds and links in their texts, " +
+		"each with kind, count and the sentence it stands in where it stands in a text), the items that share its labels (shared, the most labels in common first), " +
+		"and the daily notes that mention or link it (daily, newest day first). Only items your caller may read; more says a list was cut at the server's budget.",
+		Method: "GET", Path: "/api/items/{ref}/context", Params: []param{refParam}},
+	{Name: "open_daily_note", Description: "Open your caller's daily note of a day (ADR-0205): the note when there is one, else it is made in the room they chose for their daily notes, " +
+		"readable and editable by them alone, and created is true. Opening twice gives the same note. Without a chosen room a note is not made (409, needsRoom); " +
+		"add to it with commit_body.",
+		Method: "POST", Path: "/api/daily/{date}", Params: []param{
+			{"date", str, inPath, true, "The day, YYYY-MM-DD, in your caller's calendar."},
+			{"title", str, inBody, false, "The title of a new note; its day, as 2026-11-12, if absent."}}},
 	{Name: "set_labels", Description: "Replace an item's labels, e.g. [\"runbook\", \"ops\"]: lower case words, digits and dashes.",
 		Method: "PUT", Path: "/api/items/{ref}/labels", Params: []param{refParam, {"labels", array, inBody, true, "All labels the item carries afterwards."}}},
 	{Name: "set_title", Description: "Change an item's title.", Method: "PUT", Path: "/api/items/{ref}/title",
@@ -245,13 +308,29 @@ var tools = []tool{
 		Method: "PUT", Path: "/api/items/{ref}/properties/{field}", Params: []param{
 			refParam,
 			{"field", str, inPath, true, "The field name."},
-			{"value", anyJSON, inBody, true, "The new value, of the field's kind, or null."},
+			{"value", anyJSON, inBody, true, "The new value, of the field's kind, or null. " + fieldValues},
 		}},
 	{Name: "transition", Description: "Perform a workflow transition, e.g. finish.", Method: "POST", Path: "/api/items/{ref}/transitions",
 		Params: []param{refParam, {"name", str, inBody, true, "The transition's name."}}},
 	{Name: "commit_body", Description: "Replace the item's body with a new version; the earlier one stays in the history. " +
-		"Refused while people edit it in a live session, and when it holds protected passages your caller may not read. To add to a body, read it with get_item and send it back extended. " + blockFormat,
+		"Refused while people edit it in a live session, and when it holds protected passages your caller may not read. To add to the end of a body, use append_to_body. " + blockFormat,
 		Method: "PUT", Path: "/api/items/{ref}/body", Params: []param{refParam, {"blocks", array, inBody, true, "The body's blocks."}}},
+	{Name: "append_to_body", Description: "Add blocks at the end of an item's body in one step, without sending the body back; the earlier version stays in the history. " +
+		"Refused while people edit it in a live session, and when it holds protected passages your caller may not read. " + blockFormat,
+		Method: "POST", Path: "/api/items/{ref}/body/blocks", Params: []param{refParam, {"blocks", array, inBody, true, "The blocks to add."}}},
+	{Name: "save_web_link", Description: "Save a web page as a web link item (type weblink, defined when there is none): its address in the field url, " +
+		"and, where the server reads web pages, the page's title, site, description, author, day of publication and picture. The answer names a problem when the page could not be read; the link is saved all the same.",
+		Method: "POST", Path: "/api/weblinks", Params: []param{
+			{"url", str, inBody, true, "The page's address, http or https."},
+			{"space", str, inBody, true, "The space's key."},
+			{"parent", str, inBody, false, "The ID of the item it goes below."},
+			{"title", str, inBody, false, "Its title; the page's own when absent."},
+			{"quote", str, inBody, false, "Text kept from the page, plain; each paragraph becomes a quote of the body."},
+			{"text", boolean, inBody, false, "true takes the page's main text into the body."},
+		}},
+	{Name: "read_web_link_again", Description: "Read the page of an item's url field again, where the server reads web pages: its fields site, description, author and published, where its type has them, " +
+		"and its picture, a new version when it changed; text true also takes the page's main text below the body.",
+		Method: "POST", Path: "/api/items/{ref}/weblink", Params: []param{refParam, {"text", boolean, inBody, false, "true takes the page's main text below the body."}}},
 	{Name: "add_relation", Description: "Relate two items with a typed relation, e.g. blocks or implements.",
 		Method: "POST", Path: "/api/relations", Params: []param{
 			{"type", str, inBody, true, "The relation type."},
@@ -264,7 +343,9 @@ var tools = []tool{
 		Method: "POST", Path: "/api/items/{ref}/comments", Params: []param{refParam,
 			{"text", str, inBody, true, "The comment, plain text."},
 			{"anchor", object, inBody, false, "The passage commented on: {\"quote\": text of one body block, \"prefix\" and \"suffix\": up to 32 characters before and after it, to tell apart passages of the same text}; " +
-				"or an element of a whiteboard: {\"drawing\": the whiteboard's file, \"element\": the element's ID as get_whiteboard lists it, \"quote\": its text}."},
+				"or an element of a whiteboard: {\"drawing\": the whiteboard's file, \"element\": the element's ID as get_whiteboard lists it, \"quote\": its text}; " +
+				"or a highlight in a PDF file of the item: {\"file\": the PDF's file (any version), \"page\": the page number from 1, \"quote\": text on that page, " +
+				"\"color\": yellow, green, blue, pink or purple, or absent for yellow}."},
 			{"reply", str, inBody, false, "The ID of the comment answered; the answer joins its thread."},
 		}},
 	{Name: "create_whiteboard", Description: "Make a whiteboard in an item the caller may edit: an empty drawing at the end of its body, which people and agents edit live. Answers its file, which names it in the other whiteboard tools.",

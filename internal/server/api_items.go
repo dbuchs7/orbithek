@@ -36,10 +36,10 @@ func itemRoutes(d Deps) []Route {
 	}
 	get, post, put, del := http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete
 	routes := []Route{
-		{Method: get, Pattern: "/api/types", Summary: "List item types", Handler: http.HandlerFunc(h.listTypes)},
-		{Method: get, Pattern: "/api/types/templates", Summary: "The ready-made types an installation starts from: page, task and decision; a request to read protected content makes its task of the task type when no type can hold it (ADR-0162)", Handler: http.HandlerFunc(h.typeTemplates)},
-		{Method: post, Pattern: "/api/types", Summary: "Define a type or a new version of it (administrators)", Handler: http.HandlerFunc(h.defineType)},
-		{Method: del, Pattern: "/api/types/{name}", Summary: "Remove a type that no item and no kanban uses (administrators)", Handler: http.HandlerFunc(h.removeType)},
+		{Method: get, Pattern: "/api/types", Summary: "List the item types one sees: the installation's and those of one's spaces; space narrows to those its items may have", Handler: http.HandlerFunc(h.listTypes)},
+		{Method: get, Pattern: "/api/types/templates", Summary: "The ready-made types an installation starts from: page, task, decision, topic (ADR-0204), weblink (ADR-0208) and daily note (ADR-0205); a request to read protected content makes its task of the task type when no type can hold it (ADR-0162)", Handler: http.HandlerFunc(h.typeTemplates)},
+		{Method: post, Pattern: "/api/types", Summary: "Define a type or a new version of it: of the whole installation (administrators), or with space a room type of that space (its space administrators)", Handler: http.HandlerFunc(h.defineType)},
+		{Method: del, Pattern: "/api/types/{name}", Summary: "Remove a type that no item and no kanban uses (administrators; a room type also its space administrators)", Handler: http.HandlerFunc(h.removeType)},
 		{Method: get, Pattern: "/api/spaces", Summary: "List the spaces one holds a role in", Handler: http.HandlerFunc(h.listSpaces)},
 		{Method: post, Pattern: "/api/spaces", Summary: "Create a space (administrators)", Handler: http.HandlerFunc(h.createSpace)},
 		{Method: put, Pattern: "/api/spaces/{space}/favourite", Summary: "Mark a space one holds a role in as one's favourite; favourites come first on the start page", Handler: http.HandlerFunc(h.markFavourite)},
@@ -87,22 +87,28 @@ func itemRoutes(d Deps) []Route {
 		{Method: del, Pattern: "/api/relations/{id}", Summary: "Remove a relation", Handler: http.HandlerFunc(h.removeRelation)},
 	}
 	routes = append(routes, commentRoutes(h)...)
+	routes = append(routes, pdfRoutes(h)...)
 	routes = append(routes, copyRoutes(h)...)
 	routes = append(routes, spaceTrashRoutes(h)...)
 	routes = append(routes, secretRoutes(h)...)
 	routes = append(routes, exportRoutes(h)...)
 	routes = append(routes, linkCheckRoutes(h)...)
 	routes = append(routes, gitFileRoutes(h)...)
+	routes = append(routes, webLinkRoutes(h)...)
 	routes = append(routes, governanceRoutes(h)...)
 	routes = append(routes, kanbanRoutes(h)...)
 	routes = append(routes, attachmentRoutes(h)...)
+	routes = append(routes, topicRoutes(h)...)
 	routes = append(routes, faceRoutes(h)...)
 	routes = append(routes, photoRoutes(h)...)
 	routes = append(routes, duplicateRoutes(h)...)
 	routes = append(routes, retentionRoutes(h)...)
 	routes = append(routes, noteRoutes(h)...)
+	routes = append(routes, noteImportRoutes(h)...)
 	routes = append(routes, watchRoutes(h)...)
 	routes = append(routes, changeRoutes(h)...)
+	routes = append(routes, dailyRoutes(h)...)
+	routes = append(routes, contextRoutes(h)...)
 	routes = append(routes, whiteboardRoutes(h)...)
 	return append(routes, liveRoutes(h)...)
 }
@@ -235,14 +241,20 @@ func (h itemHandlers) isAdmin(s *item.Store, r *http.Request) error {
 
 // --- types, spaces, roles ---------------------------------------------------
 
+// listTypes lists the types the caller sees: the installation's and those
+// of the spaces they hold a role in; with space, only those items there
+// may have (ADR-0201). Each says whether the caller may change it.
 func (h itemHandlers) listTypes(w http.ResponseWriter, r *http.Request) {
-	var out []typeJSON
-	h.d.DB.Read(func(s *item.Store) {
-		for _, td := range s.Types() {
-			out = append(out, toTypeJSON(td))
+	space := r.URL.Query().Get("space")
+	h.read(w, r, func(x *item.Session) (any, error) {
+		out := []typeJSON{}
+		for _, td := range x.Types(space) {
+			j := toTypeJSON(td)
+			j.Editable = x.MayDefineTypes(td.Space)
+			out = append(out, j)
 		}
+		return map[string]any{"types": out}, nil
 	})
-	writeJSON(w, http.StatusOK, map[string]any{"types": nonNilSlice(out)})
 }
 
 func (h itemHandlers) typeTemplates(w http.ResponseWriter, r *http.Request) {
@@ -258,10 +270,7 @@ func (h itemHandlers) defineType(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	h.write(w, r, http.StatusCreated, func(_ *item.Session, s *item.Store) (any, error) {
-		if err := h.isAdmin(s, r); err != nil {
-			return nil, err
-		}
+	h.write(w, r, http.StatusCreated, func(x *item.Session, s *item.Store) (any, error) {
 		td, err := req.toTypeDef()
 		if err != nil {
 			return nil, err
@@ -270,20 +279,42 @@ func (h itemHandlers) defineType(w http.ResponseWriter, r *http.Request) {
 		if td.Template != "" && h.d.DB.Site.NewestWordTemplate(td.Template) == 0 {
 			return nil, fmt.Errorf("%w: there is no Word template %q", item.ErrValidation, td.Template)
 		}
+		// A room type is its space's administrators' to define, through
+		// their session (ADR-0201).
+		if req.Space != "" {
+			td, err := x.DefineType(td)
+			if err != nil {
+				return nil, err
+			}
+			j := toTypeJSON(td)
+			j.Editable = true
+			return map[string]typeJSON{"type": j}, nil
+		}
+		if err := h.isAdmin(s, r); err != nil {
+			return nil, err
+		}
 		if err := s.DefineType(who(r), td); err != nil {
 			return nil, err
 		}
-		return map[string]typeJSON{"type": toTypeJSON(s.Type(req.Name))}, nil
+		j := toTypeJSON(s.Type(req.Name))
+		j.Editable = true
+		return map[string]typeJSON{"type": j}, nil
 	})
 }
 
 // removeType takes a type out of use (ADR-0094).
 func (h itemHandlers) removeType(w http.ResponseWriter, r *http.Request) {
-	h.write(w, r, http.StatusNoContent, func(_ *item.Session, s *item.Store) (any, error) {
+	h.write(w, r, http.StatusNoContent, func(x *item.Session, s *item.Store) (any, error) {
+		name := r.PathValue("name")
+		// A room type is removed by its space's administrators (ADR-0201);
+		// one of a space deleted since, by the installation's.
+		if sp := s.Type(name).Space; sp != "" && s.HasSpace(sp) {
+			return nil, x.RemoveType(name)
+		}
 		if err := h.isAdmin(s, r); err != nil {
 			return nil, err
 		}
-		return nil, s.RemoveType(who(r), r.PathValue("name"))
+		return nil, s.RemoveType(who(r), name)
 	})
 }
 
@@ -626,9 +657,14 @@ func (h itemHandlers) findItems(w http.ResponseWriter, r *http.Request) {
 		// What each item is related to, as far as the caller may read it
 		// (ADR-0137, D10).
 		related := x.RelationSummaries(ids)
+		// When each changed, for a view's column updated (ADR-0203).
+		changed := x.LastChanges(ids)
 		for i, it := range page {
 			out[i] = toItemJSON(it)
 			out[i].RelationCount, out[i].WaitingOn = related[it.ID][0], related[it.ID][1]
+			if at, ok := changed[it.ID]; ok {
+				out[i].Updated = &at
+			}
 		}
 		res["items"] = out
 		return res, nil
@@ -809,6 +845,7 @@ func (h itemHandlers) createItem(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return nil, err
 		}
+		itemRefs(x, s.Type(n.Type), n.Properties)
 		it, err := x.Create(n)
 		if err != nil {
 			return nil, err
@@ -882,7 +919,9 @@ func (h itemHandlers) setProperty(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return err
 		}
-		return x.SetProperty(it.ID, field, v)
+		props := item.Props{field: v}
+		itemRefs(x, td, props)
+		return x.SetProperty(it.ID, field, props[field])
 	})
 }
 
@@ -1175,6 +1214,7 @@ func (h itemHandlers) createEmbedded(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return nil, err
 		}
+		itemRefs(x, s.Type(n.Type), n.Properties)
 		it, err := x.CreateEmbedded(host.ID, n)
 		if err != nil {
 			return nil, err
@@ -1470,8 +1510,53 @@ func coerceValue(td item.TypeDef, field string, raw json.RawMessage) (any, error
 			return nil, badInput("field %q: %v", field, err)
 		}
 		return norm, nil
+	case item.KindItem:
+		// An item is named by its ID or key; itemRefs resolves a key as
+		// the caller reads it (ADR-0202).
+		if s, ok := v.(string); ok {
+			return item.ID(s), nil
+		}
+	case item.KindRating:
+		if n, ok := v.(json.Number); ok {
+			if i, err := strconv.Atoi(n.String()); err == nil {
+				return i, nil
+			}
+		}
+	case item.KindMulti:
+		// Several values, or one alone; none unsets the field.
+		switch x := v.(type) {
+		case string:
+			return []string{x}, nil
+		case []any:
+			list := make([]string, 0, len(x))
+			for _, e := range x {
+				s, ok := e.(string)
+				if !ok {
+					return nil, badInput("field %q: a multi field holds a list of texts", field)
+				}
+				list = append(list, s)
+			}
+			if len(list) == 0 {
+				return nil, nil
+			}
+			return list, nil
+		}
 	}
 	return v, nil
+}
+
+// itemRefs resolves the values of item fields named by a key to the IDs of
+// the items, as the caller reads them: a key of an item the caller may not
+// read stays as typed, and the store answers that no such item exists
+// (D10, ADR-0202).
+func itemRefs(x *item.Session, td item.TypeDef, props item.Props) {
+	for _, f := range td.Fields {
+		if id, ok := props[f.Name].(item.ID); ok && f.Kind == item.KindItem {
+			if it, err := resolveItem(x, string(id)); err == nil {
+				props[f.Name] = it.ID
+			}
+		}
+	}
 }
 
 func nonNilSlice[T any](s []T) []T {

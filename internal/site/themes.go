@@ -13,7 +13,7 @@ import (
 var themeFiles embed.FS
 
 // Themes are the IDs of the ready-made themes, in the order offered.
-var Themes = []string{"ocean", "forest", "sunset", "berry", "swiss", "night", "comic", "sketch"}
+var Themes = []string{"ocean", "forest", "sunset", "berry", "swiss", "night", "comic", "sketch", "capacity"}
 
 // ThemeOfficial reports whether a theme carries the look of an authority:
 // the Swiss theme is that of the Confederation's sites, so choosing it is

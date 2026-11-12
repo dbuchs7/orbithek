@@ -147,7 +147,7 @@ func (h *htmlBuilder) block(bl item.Block, p Page, base int) {
 			h.printf("<figcaption>%s</figcaption>", html.EscapeString(bl.Text))
 		}
 		h.out.WriteString("</figure>")
-	case item.BPMN, item.Process, item.Form, item.Decision, item.Architecture, item.StartForm:
+	case item.BPMN, item.Process, item.Form, item.Decision, item.Architecture, item.StartForm, item.ItemsView:
 		// A printed page does not draw a diagram, a form, a decision or a
 		// sketch; it names the file, the process, the form, the decision,
 		// the sketch or the start form (ADR-0129, ADR-0144, ADR-0146,
@@ -204,17 +204,17 @@ func imageClass(bl item.Block) string {
 // table writes a table with its formatted cells, its column widths and
 // row heights as attributes and its colours as classes of the export's
 // stylesheet, since the export's policy refuses styles of the page's own
-// (ADR-0042, ADR-0200).
+// (ADR-0042, ADR-0214).
 func (h *htmlBuilder) table(bl item.Block) {
 	rows := styledRows(bl)
 	if len(rows) == 0 {
 		return
 	}
 	h.out.WriteString("<table>")
-	if bl.Columns != nil {
+	if bl.Widths != nil {
 		h.out.WriteString("<colgroup>")
 		for i := range rows[0] {
-			if w := sizeAt(bl.Columns, i); w > 0 {
+			if w := sizeAt(bl.Widths, i); w > 0 {
 				h.printf(`<col width="%d">`, w)
 			} else {
 				h.out.WriteString("<col>")
@@ -228,7 +228,7 @@ func (h *htmlBuilder) table(bl item.Block) {
 		} else if i == 1 {
 			h.out.WriteString("<tbody>")
 		}
-		if ht := sizeAt(bl.Rows, i); ht > 0 {
+		if ht := sizeAt(bl.Heights, i); ht > 0 {
 			h.printf(`<tr height="%d">`, ht)
 		} else {
 			h.out.WriteString("<tr>")

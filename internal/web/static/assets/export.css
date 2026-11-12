@@ -40,7 +40,7 @@ figcaption { font-size: 9pt; color: #6b7280; font-style: italic; }
 .embed { margin: .8em 0; padding: 4px 0 4px 12px; border-left: 2px dotted #bfbfbf; }
 .embed-title { font-weight: 600; color: #404040; margin: .2em 0; }
 .embed.restricted .embed-title { color: #9ca3af; font-weight: normal; }
-/* Coloured cells of a table (ADR-0200): a fill is the tone's soft shade,
+/* Coloured cells of a table (ADR-0214): a fill is the tone's soft shade,
    a border the tone itself; the values match the tones of the web UI. */
 table:not(.facts) .fill-blue { background: #d5e2f8; } table:not(.facts) .border-blue { border: 2px solid #2f6fde; }
 table:not(.facts) .fill-green { background: #d2eddd; } table:not(.facts) .border-green { border: 2px solid #1f9d55; }

@@ -387,3 +387,30 @@ func TestADiagramComesBackWithItsFile(t *testing.T) {
 		t.Fatalf("process %+v", p)
 	}
 }
+
+// TestItemAndFileFieldsComeBack: an item field's target comes back with
+// the item that refers to it, from another space too, and a file field
+// names the restored file (ADR-0202).
+func TestItemAndFileFieldsComeBack(t *testing.T) {
+	b := newBackup(t)
+	noErr(t, b.s.DefineType("root", item.TypeDef{Name: "card", Fields: []item.FieldDef{
+		{Name: "about", Kind: item.KindItem}, {Name: "cover", Kind: item.KindFile}, {Name: "tags", Kind: item.KindMulti, Values: []string{"x", "y"}},
+	}}))
+	card := must[item.Item](t)(b.s.Create("anna", item.NewItem{Space: "A", Type: "card", Title: "Card",
+		Properties: item.Props{"about": b.other.ID, "tags": []string{"y"}}}))
+	sum := sha256.Sum256(b.files[pic])
+	must[item.Attachment](t)(b.s.AddAttachment("anna", card.ID, item.Attachment{ID: pic, Name: "cover.png", Type: "image/png",
+		Size: int64(len(b.files[pic])), SHA256: hex.EncodeToString(sum[:])}))
+	noErr(t, b.s.SetProperty("anna", card.ID, "cover", pic))
+
+	target := item.NewStore()
+	_, err := Run(dry{target}, b.source(), Options{Spaces: []string{"A"}, Actor: "restore"})
+	noErr(t, err)
+	got := get(t, target, card.ID)
+	if got.Properties["about"] != b.other.ID || got.Properties["cover"] != string(got.Attachments[0].ID) || got.Properties["cover"] == pic {
+		t.Fatalf("card %#v, files %+v", got.Properties, got.Attachments)
+	}
+	if other := get(t, target, b.other.ID); other.Presence != item.Live {
+		t.Fatalf("the referred item did not come back: %+v", other)
+	}
+}

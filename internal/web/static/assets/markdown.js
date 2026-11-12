@@ -416,7 +416,7 @@ function emit(nodes, out, quote, ctx) {
 }
 
 // table makes a table block of plain cells (ADR-0042): a cell may carry
-// formats (ADR-0200), but whether pasted ones are kept is open, so
+// formats (ADR-0214), but whether pasted ones are kept is open, so
 // formatting is dropped and a link keeps its address in parentheses. Rows
 // are filled to the widest; a row wider than the header widens the table
 // rather than lose cells.
