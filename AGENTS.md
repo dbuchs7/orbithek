@@ -171,7 +171,7 @@ nothing on it names an item the reader may not read, not even as a count (`Sessi
 The starmap of all rooms (`#/starmap/*`, `GET /api/starmap`, `Session.StarmapAll`) holds every readable item of every room within the same budget, and beyond it a bubble per room and type as big as its items with edges counting the links between them;
 a label (`?label=`) narrows it to the items that carry it (ADR-0191).
 Within the budget the pictures and drawings of its items fill what the items leave, each joined to its item and a copy to its original when that item is on the map: first those a text shows, each copy's original after it, then the shared labels, then the other pictures;
-in bubbles there are none (`allStarPictures`, proposed, ADR-0215).
+in bubbles there are none (`allStarPictures`, ADR-0215).
 The map moves under a live force simulation that cools to rest (Barnes–Hut above a few dozen nodes, settled at once for reduced motion);
 a dragged node pulls its neighbours, pointing lights a neighbourhood, captions fade with the zoom, and a double-click separates a node with its neighbourhood at a depth of one to three, with a drill path in the address that Escape steps back (`assets/starmap-sim.js`, ADR-0158).
 From a node's panel, an impact view shows what depends on an item or picture, or what it depends on — children on their parent, a relation's source on its target, mentions and embeds, pictures on their item, copies on their original, never shared labels — walked by the server across rooms, breadth first to a depth of one to five or all, within the budget `ImpactNodes`, never through an unreadable item;
