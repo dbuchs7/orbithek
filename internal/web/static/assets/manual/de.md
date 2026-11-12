@@ -111,6 +111,30 @@ Bilder lassen sich links oder rechts mit Text daneben oder zentriert platzieren 
 
 Der **Verlauf** listet jede Änderung eines Eintrags mit Person und Zeitpunkt auf. Eine Fassung des Textes zeigt ihre **Änderungen**; **Diese Fassung wiederherstellen** holt einen früheren Text als neue Version zurück. Durch das Wiederherstellen geht nichts verloren.
 
+### Notizen importieren
+
+Raumadministratorinnen und Raumadministratoren holen anderswo geschriebene Notizen mit **Notizen importieren** in den Ansichten des Raums in ihren Raum; die Administration findet dasselbe Formular unter **Administration → Import**. Hochgeladen wird ein ZIP-Archiv mit einem der folgenden Inhalte:
+
+- ein Ordner mit Markdown-Notizen, etwa ein Obsidian-Vault, so wie er ist gezippt, oder der Markdown-Export einer beliebigen Notiz-App, die Markdown-Dateien mit Front Matter schreibt;
+- ein Notion-Workspace-Export im Format *Markdown & CSV*.
+
+Was der Import daraus macht:
+
+- jeder Ordner mit Notizen wird zu einer Seite, jede Notiz zu einer Seite unter der Seite ihres Ordners; eine Notiz mit dem Namen des Ordners, `index.md` oder `README.md` ist der eigene Text der Ordnerseite;
+- der Titel ist der `title` des Front Matter, sonst die erste Überschrift, sonst der Dateiname; in einem Notion-Export fällt die ID am Ende jedes Namens weg und bezeichnet die Seite;
+- Links zwischen Notizen — `[[Notiz]]`, `[[Notiz|Text]]`, `[[Notiz#Überschrift]]` und relative Markdown-Links — werden zu Erwähnungen der importierten Seiten; eine mit `![[Notiz]]` eingebettete Notiz wird ebenfalls zur Erwähnung;
+- Bilder im Archiv (`![[bild.png]]` oder ein relativer Bildlink) werden angehängt und angezeigt; Bilder im Web bleiben Links;
+- `tags` im Front Matter und Inline-`#tags` werden zu Labels (ein Tag `a/b` wird zum Label `a.b`); ein Front-Matter-Schlüssel mit dem Namen eines Felds des **Typ der Seiten** füllt dieses Feld, ein `status`, den der Workflow des Typs kennt, setzt den Zustand, und alles Übrige bleibt in einer kleinen Tabelle oben auf der Seite erhalten;
+- jede Datenbank eines Notion-Exports (eine CSV-Datei) wird zu einer Seite, die ihre Zeilen auflistet, und jede Zeile zu einem Eintrag des **Typ der Zeilen von Datenbanken**, dessen Felder die Spalten nach ihrem Namen füllen.
+
+Beginnen Sie immer mit dem **Probelauf**: Er schreibt nichts und listet auf, wie viele Seiten erstellt oder geändert würden und was sich nicht umwandeln lässt, etwa ein Link auf eine Notiz, die das Archiv nicht enthält, oder ein eingebettetes PDF. **Importieren** schreibt dann die Seiten.
+
+Der **Name des Imports** bezeichnet ihn. Importieren Sie ein neueres Archiv unter demselben Namen, um Änderungen zu übernehmen: Nichts wird doppelt erstellt, eine Seite, deren Notiz sich nicht geändert hat, behält, was hier darin geschrieben wurde, eine geänderte Notiz ersetzt den Text ihrer Seite (der Verlauf behält den alten), Labels kommen nur hinzu, und eine Seite, deren Notiz nicht mehr im Archiv liegt, bleibt erhalten und wird nie gelöscht.
+
+### Markierungen importieren
+
+Die Administration kann unter **Administration → Konnektoren** einen Konnektor der Art Readwise einrichten. Er liest Ihre Markierungen aus Readwise nach seinem Zeitplan, wie jeder Konnektor zuerst mit einem Probelauf: Jedes Buch und jeder Artikel wird zu einem Eintrag des gewählten Typs mit Titel, Autorin oder Autor, Quelladresse und Cover, Labels aus seinen Tags und seinen Markierungen als Zitate mit ihren Notizen und Fundstellen. Ein Lauf liest nur, was sich seit dem letzten geändert hat. Die Markierungen stehen über einer Linie im Text des Eintrags; was Sie unter diese Linie schreiben, bleibt erhalten, wenn die Markierungen aktualisiert werden.
+
 ## Zusammenarbeiten
 
 ### Kommentare

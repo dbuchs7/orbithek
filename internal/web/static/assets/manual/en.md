@@ -111,6 +111,30 @@ Pictures can be placed left or right with text beside them, centred, and resized
 
 **History** lists every change of an item, who made it and when. A version of the text shows its **Changes**; **Restore this version** brings an earlier text back as a new version. Nothing is lost by restoring.
 
+### Importing notes
+
+Room administrators bring notes written elsewhere into their room with **Import notes** in the room's views; administrators find the same form under **Administration → Import**. You upload a ZIP archive of one of these:
+
+- a folder of Markdown notes, such as an Obsidian vault zipped as it is, or the Markdown export of any notes application that writes Markdown files with front matter;
+- a Notion workspace export in the format *Markdown & CSV*.
+
+What the import makes of it:
+
+- every folder that holds notes becomes a page, every note a page below its folder's page; a note named like its folder, `index.md` or `README.md` is the folder page's own text;
+- the title is the front matter's `title`, else the first heading, else the file name; in a Notion export the ID at the end of each name is dropped and identifies the page;
+- links between notes — `[[Note]]`, `[[Note|text]]`, `[[Note#Heading]]` and relative Markdown links — become mentions of the imported pages; a note embedded with `![[Note]]` becomes a mention too;
+- pictures in the archive (`![[picture.png]]` or a relative picture link) are attached and shown; pictures on the web stay links;
+- `tags` in the front matter and inline `#tags` become labels (a tag `a/b` becomes the label `a.b`); a front matter key named like a field of the **Type of the pages** fills that field, a `status` the type's workflow knows sets the state, and everything else is kept in a small table at the top of the page;
+- each database of a Notion export (a CSV file) becomes a page that lists its rows, and each row an item of the **Type of the rows of databases**, its columns filling fields by name.
+
+Always start with **Dry run**: it writes nothing and lists how many pages would be made or changed and everything that cannot be converted, such as a link to a note the archive does not hold or an embedded PDF. **Import** then writes the pages.
+
+The **Name of the import** identifies it. Import a newer archive under the same name to bring changes over: nothing is made twice, a page whose note did not change keeps what was written in it here, a changed note replaces its page's text (the history keeps the old one), labels are only added, and a page whose note is no longer in the archive is kept, never deleted.
+
+### Importing highlights
+
+An administrator can set up a connector of the kind Readwise under **Administration → Connectors**. It reads your highlights from Readwise on its schedule, with a dry run first like every connector: each book or article becomes an item of the chosen type, with its title, author, source address and cover, labels from its tags, and its highlights as quotes with their notes and locations. A run reads only what changed since the last one. The highlights stand above a line in the item's text; what you write below that line stays when the highlights are brought up to date.
+
 ## Working together
 
 ### Comments

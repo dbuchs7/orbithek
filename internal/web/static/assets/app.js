@@ -27,6 +27,7 @@ import { taskLinksCard } from "./tasklinks.js";
 import { connectionsCard, silentConnect } from "./engineconn.js";
 import { freshNotice, taskDialog, taskPanel } from "./taskdialog.js";
 import { finishing } from "./taskparts.js";
+import { noteImportCard } from "./noteimport.js";
 import { documentView, upgradeTemplate, wordTemplatesCard } from "./wordtemplates.js";
 import { manualBlocks, manualLanguage, manualLanguages, manualPath } from "./manual.js";
 
@@ -1662,6 +1663,7 @@ async function route() {
       case "oauth": return await oauthView(params);
       case "admin": return await adminView();
       case "members": return await membersView(arg);
+      case "import": return await importView(arg);
       default: return await homeView();
     }
   } catch (err) {
@@ -2547,7 +2549,8 @@ async function spaceView(key) {
         csv,
         watchButton("/api/spaces/" + encodeURIComponent(key), watches.some((w) => !w.item && w.space === key), status))),
     h("nav", { class: "subnav", "aria-label": t("space.views") }, [...boards, link(`#/roadmap?space=${encodeURIComponent(key)}`, t("roadmap.tab")), link(`#/calendar?space=${encodeURIComponent(key)}`, t("calendar.tab")), link(`#/links/${encodeURIComponent(key)}`, t("space.linkCheck")), link(`#/governance/${encodeURIComponent(key)}`, t("nav.governance")),
-      sp.role === "space-admin" ? link(`#/members/${encodeURIComponent(key)}`, t("members.title")) : null].filter(Boolean)),
+      sp.role === "space-admin" ? link(`#/members/${encodeURIComponent(key)}`, t("members.title")) : null,
+      sp.role === "space-admin" ? link(`#/import/${encodeURIComponent(key)}`, t("notesImport.title"), null, "space-import") : null].filter(Boolean)),
     status,
     home,
     labels.length ? h("section", { id: "space-labels" }, h("h2", { text: t("label.title") }),
@@ -5948,6 +5951,9 @@ async function adminView() {
   const regulationsSection = section("regulations", t("dp.adminTitle"), await regulationsCard());
 
   const importSection = section("import", t("admin.import"),
+    h("h3", { text: t("notesImport.title") }),
+    noteImportCard({ spaces: favouritesFirst(spaces), types: types.filter((ty) => ty.body), lang: language(), keyLink: itemLink }),
+    h("h3", { text: t("notesImport.otherWiki") }),
     h("p", { text: t("admin.importText") }),
     h("pre", { class: "snippet", text: "orbithek import -help" }));
 
@@ -7040,6 +7046,23 @@ async function designCard() {
       st.replaceChildren(h("p", { class: "notice", text: t("design.saved") }));
     }),
     status);
+}
+
+// itemLink links an item by its key.
+const itemLink = (key, text) => link("#/item/" + encodeURIComponent(key), text);
+
+// importView imports a ZIP archive of notes into a room, for its
+// administrators (ADR-0209).
+async function importView(key) {
+  const show = screen();
+  const [{ spaces }, { types }] = await Promise.all([get("/api/spaces"), get("/api/types")]);
+  here.space = key;
+  const sp = spaces.find((s) => s.key === key) || { name: key };
+  show(
+    h("p", {}, link("#/", t("nav.spaces")), " / ", link("#/space/" + encodeURIComponent(key), key), " / " + t("notesImport.title")),
+    h("h1", { text: t("notesImport.heading", { space: sp.name }) }),
+    noteImportCard({ space: key, types: types.filter((ty) => ty.body), lang: language(), keyLink: itemLink }),
+  );
 }
 
 // membersView lists who holds which role in a space, for its
