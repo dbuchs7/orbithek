@@ -143,7 +143,9 @@ func (w *videoWalk) children(path string, from, to int64, depth int) {
 		}
 		w.at(p, b)
 		switch kind {
-		case "moov", "trak", "udta":
+		case "moov", "trak", "udta", "mdia":
+			// mdia holds a track's handler, which tells sound from
+			// pictures (AudioType).
 			w.children(p, b.start, b.start+b.len, depth+1)
 		case "meta":
 			// QuickTime's meta holds its children at once; ISO's has a

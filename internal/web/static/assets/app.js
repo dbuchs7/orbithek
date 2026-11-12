@@ -13,6 +13,8 @@ import { isDrawing } from "./drawing.js";
 import { albumBrowser, retentionCard, captionOf } from "./album.js";
 import { forgetRecognition } from "./faces.js";
 import { sorts } from "./photoparts.js";
+import { recorderControl } from "./recorder.js";
+import { isAudio } from "./recorderparts.js";
 import { renameInPlace } from "./rename.js";
 import { presenterView, audienceView } from "./present.js";
 import { starmapView } from "./starmap.js";
@@ -932,7 +934,8 @@ function sizeText(n) {
 // can be uploaded and files deleted.
 function attachmentsSection(path, files, live) {
   const status = h("div", { class: "status" });
-  const kindOf = (a) => a.type?.startsWith("image/") ? t("att.kindImage") : a.type?.startsWith("video/") ? t("att.kindVideo") : t("att.kindOther");
+  const kindOf = (a) => a.type?.startsWith("image/") ? t("att.kindImage") : a.type?.startsWith("video/") ? t("att.kindVideo")
+    : isAudio(a) ? t("att.kindAudio") : t("att.kindOther");
   const row = (a) => h("li", { class: "attachment", "data-f-kind": kindOf(a) },
     h("a", { href: `${path}/attachments/${a.id}`, text: a.name, download: a.inline ? null : a.name, target: a.inline ? "_blank" : null, rel: "noopener" }),
     h("span", { class: "muted", text: ` · ${sizeText(a.size)} · ${person(a.author)} · ${when(a.created)}` }),
@@ -941,6 +944,9 @@ function attachmentsSection(path, files, live) {
       : t("att.copyOfUnknown"),
     a.origin.newer ? [" ", h("span", { class: "chip", text: t("att.originChanged") })] : null) : null,
     isDrawing(a.name) ? [" · ", link(whiteboardHref(path, a.id), t("wb.open"), "wb-open")] : null,
+    // Sound plays in the list (ADR-draft-recording-sound-into-an-items-files).
+    isAudio(a) ? h("audio", { class: "att-audio", controls: true, preload: "none", src: `${path}/attachments/${a.id}`,
+      "aria-label": t("att.playOf", { name: a.name }) }) : null,
     // A PDF opens in the reader (ADR-0210).
     isPdf(a) ? [" · ", h("a", { href: readerHref(decodeURIComponent(path.split("/").pop()), a.id), class: "pdf-read", text: t("pdf.read"),
       "aria-label": t("pdf.readLabel", { name: a.name }) })] : null,
@@ -968,11 +974,15 @@ function attachmentsSection(path, files, live) {
       for (const file of picker.files) await upload(path, file);
     }, status));
   }
+  // Sound recorded here becomes a file of the item
+  // (ADR-draft-recording-sound-into-an-items-files).
+  const recorder = live ? recorderControl((file) => action(() => upload(path, file), status), status) : null;
   return h("section", { id: "attachments" },
     h("h2", { text: t("att.title", { n: files.length }) }),
     files.length ? filtered(h("ul", { class: "attachments" }, files.map(row)), { id: "files", label: t("att.title", { n: files.length }),
       choices: [{ key: "kind", label: t("filter.kind") }] }) : empty(t("att.none")),
     picker ? h("label", { class: "upload" }, h("span", { text: t("att.upload") }), picker) : null,
+    recorder,
     board ? h("p", {}, board) : null,
     status);
 }
