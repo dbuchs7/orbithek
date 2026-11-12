@@ -1,10 +1,10 @@
-# ADR-DRAFT: Recording sound into an item's files
+# ADR-0219: Recording sound into an item's files
 
 - **Status:** Proposed
 - **Implementation:** Partial
 - **Date:** 2026-11-12
 - **Deciders:** Project initiators. Request of 2026-11-12: for now only recording sound, attached as a file of the page or task and played from it where possible; no transcription for the time being. The rest are defaults proposed with the implementation, to be confirmed by the requester.
-- **Open question:** whether a recording should also be placed in the text as a block of its own, so that the daily view (ADR-0205), which shows no file list, plays it too; whether the longest recording should follow the installation's size of a file instead of a fixed 30 minutes; whether recordings should be transcribed later (ADR-draft-voice-recordings-become-text-in-the-browser)
+- **Open question:** whether a recording should also be placed in the text as a block of its own, so that the daily view (ADR-0205), which shows no file list, plays it too; whether the longest recording should follow the installation's size of a file instead of a fixed 30 minutes; whether recordings should be transcribed later (ADR-0220)
 - **Question checked:** 2026-11
 
 ## Context and problem statement
@@ -66,7 +66,7 @@ Chosen option: **1**, because it records and plays sound where files already are
   - recording needs HTTPS; an installation served over plain HTTP shows no button;
   - whether Safari's MP4 recording has the handler `soun` is assumed from the format, not tested on a device: should it not, it stays `video/mp4` as before;
   - an installation whose `AttachmentBytes` is below about 14 MB refuses its longest recordings when they are attached.
-- **Follow-ups / risks to watch:** a block kind `audio` in the text (option 2) as the next step; transcription as proposed in ADR-draft-voice-recordings-become-text-in-the-browser.
+- **Follow-ups / risks to watch:** a block kind `audio` in the text (option 2) as the next step; transcription as proposed in ADR-0220.
 
 **Implementation:** everything above is built, tested in Go and Node.js, and tried in Chromium with a simulated microphone. Not built: option 2.
 
@@ -103,4 +103,4 @@ Strongest form: the recorder knows it recorded sound, and the name it gives ends
 ## Links
 
 - amends [ADR-0045](0045-attachments-encrypted-files-beside-the-log.md) (sound is sent inline) and [ADR-0189](0189-videos-in-the-album.md) (a file of sound alone is no video)
-- relates to [ADR-0097](0097-videos-in-the-text-the-instance-in-the-tab-done-beside-the-text.md) (serving in parts), [ADR-0205](0205-a-daily-note-per-person-and-day.md) (the daily view), ADR-0014 (files run nothing), ADR-draft-voice-recordings-become-text-in-the-browser (transcription, a later step)
+- relates to [ADR-0097](0097-videos-in-the-text-the-instance-in-the-tab-done-beside-the-text.md) (serving in parts), [ADR-0205](0205-a-daily-note-per-person-and-day.md) (the daily view), ADR-0014 (files run nothing), ADR-0220 (transcription, a later step)

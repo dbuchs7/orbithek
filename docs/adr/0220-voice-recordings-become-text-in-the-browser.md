@@ -1,4 +1,4 @@
-# ADR-DRAFT: Voice recordings become text in the browser, the recording kept only on request
+# ADR-0220: Voice recordings become text in the browser, the recording kept only on request
 
 - **Status:** Proposed
 - **Implementation:** Not started

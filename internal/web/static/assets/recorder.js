@@ -1,5 +1,5 @@
 // Recording sound into an item's files
-// (ADR-draft-recording-sound-into-an-items-files): the browser records from
+// (ADR-0219): the browser records from
 // the microphone and the recording is uploaded as a file of the item, which
 // its file list then plays. Nothing is transcribed, and nothing is kept in
 // the browser: a recording not attached is discarded.

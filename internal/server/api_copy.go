@@ -187,7 +187,7 @@ func (h itemHandlers) copyOne(r *http.Request, space string, t copyTask) (item.I
 		// A copy of an entry of a file share is its preview (ADR-0197).
 		a.FromPreview = f.Linked()
 		// A copy looks as its original does (ADR-0196), and sound stays
-		// sound (ADR-draft-recording-sound-into-an-items-files).
+		// sound (ADR-0219).
 		a.Fingerprint = f.Fingerprint
 		if at := h.audioType(made.ID, a); at != "" {
 			a.Type = at

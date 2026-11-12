@@ -750,7 +750,7 @@ function webSource() {
   const feed = feedSource();
   const repo = gitSource();
   // A simulated microphone, allowed without asking, records sound into
-  // an item's files (ADR-draft-recording-sound-into-an-items-files).
+  // an item's files (ADR-0219).
   const browser = await chromium.launch({ ...(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {}),
     args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"] });
   const page = await browser.newPage();
@@ -6359,7 +6359,7 @@ function webSource() {
     }
     await dailyPhoneCtx.close();
 
-    step("sound: recorded into an item's files, told as sound, played in the list and kept out of the album (ADR-draft-recording-sound-into-an-items-files)");
+    step("sound: recorded into an item's files, told as sound, played in the list and kept out of the album (ADR-0219)");
     await page.goto(base + "/#/item/" + dailyKey);
     await page.waitForSelector("#attachments #record-sound");
     const filesBefore = await page.locator("#attachments li").count();

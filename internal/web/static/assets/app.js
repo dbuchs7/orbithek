@@ -944,7 +944,7 @@ function attachmentsSection(path, files, live) {
       : t("att.copyOfUnknown"),
     a.origin.newer ? [" ", h("span", { class: "chip", text: t("att.originChanged") })] : null) : null,
     isDrawing(a.name) ? [" · ", link(whiteboardHref(path, a.id), t("wb.open"), "wb-open")] : null,
-    // Sound plays in the list (ADR-draft-recording-sound-into-an-items-files).
+    // Sound plays in the list (ADR-0219).
     isAudio(a) ? h("audio", { class: "att-audio", controls: true, preload: "none", src: `${path}/attachments/${a.id}`,
       "aria-label": t("att.playOf", { name: a.name }) }) : null,
     // A PDF opens in the reader (ADR-0210).
@@ -975,7 +975,7 @@ function attachmentsSection(path, files, live) {
     }, status));
   }
   // Sound recorded here becomes a file of the item
-  // (ADR-draft-recording-sound-into-an-items-files).
+  // (ADR-0219).
   const recorder = live ? recorderControl((file) => action(() => upload(path, file), status), status) : null;
   return h("section", { id: "attachments" },
     h("h2", { text: t("att.title", { n: files.length }) }),

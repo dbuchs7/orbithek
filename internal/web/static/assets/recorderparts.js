@@ -1,5 +1,5 @@
 // The plain parts of recording sound into an item's files
-// (ADR-draft-recording-sound-into-an-items-files): which format to record,
+// (ADR-0219): which format to record,
 // what the file is called, how long it ran. They run without a browser and
 // are tested by internal/web/jstest/recorder.test.mjs; recorder.js uses
 // them with the microphone.

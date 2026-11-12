@@ -156,7 +156,7 @@ var VideoTypes = []string{"video/mp4", "video/webm", "video/quicktime"}
 // AudioTypes are the formats of sound a browser plays without a plug-in,
 // as read from the file's bytes: what its recorder makes (WebM and Ogg
 // with Opus, MP4 with AAC), MP3 and WAV
-// (ADR-draft-recording-sound-into-an-items-files).
+// (ADR-0219).
 var AudioTypes = []string{"audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/wave"}
 
 // PanelTones are the tones of a panel block.

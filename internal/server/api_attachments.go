@@ -618,7 +618,7 @@ func (h itemHandlers) uploadAttachment(w http.ResponseWriter, r *http.Request) {
 	// A video is told by its own bytes (ADR-0189): QuickTime, and some
 	// MP4 brands, read as an octet stream to the standard detection.
 	// Sound alone is told by its tracks, so a recording in a container
-	// that also holds videos is no video (ADR-draft-recording-sound-into-an-items-files).
+	// that also holds videos is no video (ADR-0219).
 	if at := h.audioType(id, a); at != "" {
 		a.Type = at
 		if video && a.Size > budget.Get().AttachmentBytes {

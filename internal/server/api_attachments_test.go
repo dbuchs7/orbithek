@@ -526,7 +526,7 @@ func TestBPMNDiagramsShowTheirFile(t *testing.T) {
 // TestRecordingsPlayFromTheFileList: sound recorded in the browser is told
 // by its tracks, not taken into the album as a video, and sent inline in
 // parts so that the file list plays it
-// (ADR-draft-recording-sound-into-an-items-files).
+// (ADR-0219).
 func TestRecordingsPlayFromTheFileList(t *testing.T) {
 	w := newWorld(t)
 	it := w.bert.expect("POST", "/api/items", `{"space":"PLAT","type":"task","title":"Call notes","properties":{"priority":"low"}}`, http.StatusCreated)

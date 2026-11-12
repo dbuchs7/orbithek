@@ -595,7 +595,7 @@ ul.attachments { list-style: none; padding: 0; margin: 0 0 8px; }
 li.attachment { padding: 4px 0; border-bottom: 1px solid var(--border); }
 li.attachment button.link { margin-left: 8px; }
 label.upload { display: inline-flex; align-items: center; gap: 8px; }
-/* Sound in the file list and its recorder (ADR-draft-recording-sound-into-an-items-files). */
+/* Sound in the file list and its recorder (ADR-0219). */
 li.attachment audio.att-audio { display: block; width: 100%; max-width: 28rem; margin-top: 6px; }
 .recorder { margin: 8px 0; }
 .recorder-live { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
