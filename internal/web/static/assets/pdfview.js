@@ -191,9 +191,17 @@ export async function pdfView(ref, file, params, { show, person, nameOf, learnNa
   };
 
   let generation = 0;
-  async function render(p) {
-    if (p.rendered) return;
-    p.rendered = true;
+  // render draws a page once; a caller that comes while it is being drawn
+  // waits for that drawing, so that what it then looks for (the marks of a
+  // highlight to reveal) is there.
+  function render(p) {
+    if (!p.rendered) {
+      p.rendered = true;
+      p.drawing = drawPage(p);
+    }
+    return p.drawing;
+  }
+  async function drawPage(p) {
     const gen = generation;
     const page = await doc.getPage(p.n);
     if (gen !== generation) return; // the zoom changed meanwhile
