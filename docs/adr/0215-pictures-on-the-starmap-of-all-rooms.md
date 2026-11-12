@@ -1,9 +1,9 @@
 # ADR-0215: Pictures and drawings on the starmap of all rooms, joined to the items that use them
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-12
-- **Deciders:** Project initiators. Request of 2026-11-12: photos and drawings are shown on the starmap too, together with the pages and tasks where they are used. This answers the open question of ADR-0191 whether pictures belong on the starmap of all rooms. The order of priority, the treatment of copies and the absence of pictures in bubbles are defaults proposed with the implementation.
+- **Deciders:** Project initiators. Request of 2026-11-12: photos and drawings are shown on the starmap too, together with the pages and tasks where they are used. This answers the open question of ADR-0191 whether pictures belong on the starmap of all rooms. The order of priority, the treatment of copies and the absence of pictures in bubbles are defaults proposed with the implementation. Accepted 2026-11-12.
 - **Open question:** whether a label should also bring in the pictures that carry it as an album label (ADR-0090), not only the pictures of the items that carry it; whether a bubble should say how many pictures its items hold; whether a copy's original whose item a label leaves out should come in as an outside node, as on a room's map
 - **Question checked:** 2026-11
 
