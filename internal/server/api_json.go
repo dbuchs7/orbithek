@@ -21,6 +21,8 @@ type fieldJSON struct {
 	// Unique and Recommended are rules of the catalog (ADR-0074).
 	Unique      bool `json:"unique,omitempty"`
 	Recommended bool `json:"recommended,omitempty"`
+	// Targets are the types an item field refers to (ADR-0202).
+	Targets []string `json:"targets,omitempty"`
 }
 
 // reviewJSON is a type's rule for checking its items again (ADR-0074).
@@ -56,10 +58,16 @@ type typeJSON struct {
 	Template      string      `json:"template,omitempty"`
 	Start         []blockJSON `json:"start,omitempty"`
 	StartMarkdown string      `json:"startMarkdown,omitempty"`
+	// Space is the room a room type belongs to, empty for a type of the
+	// whole installation (ADR-0201).
+	Space string `json:"space,omitempty"`
+	// Editable says, in answers, that the caller may redefine and remove
+	// the type; it is ignored in requests.
+	Editable bool `json:"editable,omitempty"`
 }
 
 func toTypeJSON(td item.TypeDef) typeJSON {
-	t := typeJSON{Name: td.Name, Version: td.Version, Body: td.Body, Fields: []fieldJSON{}, Template: td.Template}
+	t := typeJSON{Name: td.Name, Version: td.Version, Body: td.Body, Fields: []fieldJSON{}, Template: td.Template, Space: td.Space}
 	if td.Start != nil {
 		t.Start = []blockJSON{}
 		for _, b := range td.Start.Blocks {
@@ -68,7 +76,7 @@ func toTypeJSON(td item.TypeDef) typeJSON {
 		t.StartMarkdown = startMarkdown(td.Start.Blocks)
 	}
 	for _, f := range td.Fields {
-		t.Fields = append(t.Fields, fieldJSON{Name: f.Name, Kind: f.Kind, Required: f.Required, Values: f.Values, Unique: f.Unique, Recommended: f.Recommended})
+		t.Fields = append(t.Fields, fieldJSON{Name: f.Name, Kind: f.Kind, Required: f.Required, Values: f.Values, Unique: f.Unique, Recommended: f.Recommended, Targets: f.Targets})
 	}
 	if r := td.Review; r != nil {
 		t.Review = &reviewJSON{EveryDays: r.EveryDays, Field: r.Field, Owner: r.Owner}
@@ -83,7 +91,7 @@ func toTypeJSON(td item.TypeDef) typeJSON {
 }
 
 func (t typeJSON) toTypeDef() (item.TypeDef, error) {
-	td := item.TypeDef{Name: t.Name, Body: t.Body, Template: t.Template}
+	td := item.TypeDef{Name: t.Name, Body: t.Body, Template: t.Template, Space: t.Space}
 	switch {
 	case t.Start != nil:
 		d, err := toDoc(t.Start, nil)
@@ -95,7 +103,12 @@ func (t typeJSON) toTypeDef() (item.TypeDef, error) {
 		td.Start = &item.Doc{Blocks: startFromMarkdown(t.StartMarkdown)}
 	}
 	for _, f := range t.Fields {
-		td.Fields = append(td.Fields, item.FieldDef{Name: f.Name, Kind: f.Kind, Required: f.Required, Values: f.Values, Unique: f.Unique, Recommended: f.Recommended})
+		fd := item.FieldDef{Name: f.Name, Kind: f.Kind, Required: f.Required, Values: f.Values, Unique: f.Unique, Recommended: f.Recommended}
+		if len(f.Targets) > 0 {
+			// None and an empty list both allow every type.
+			fd.Targets = f.Targets
+		}
+		td.Fields = append(td.Fields, fd)
 	}
 	if r := t.Review; r != nil {
 		td.Review = &item.Review{EveryDays: r.EveryDays, Field: r.Field, Owner: r.Owner}
@@ -159,6 +172,14 @@ type blockJSON struct {
 	// Query is what a task list selects its tasks by, in place of a label
 	// (ADR-0151).
 	Query string `json:"query,omitempty"`
+	// Layout, ItemType, Space, Group, Columns and Sort name what a view
+	// shows (ADR-0203).
+	Layout   string   `json:"layout,omitempty"`
+	ItemType string   `json:"itemType,omitempty"`
+	Space    string   `json:"space,omitempty"`
+	Group    string   `json:"group,omitempty"`
+	Columns  []string `json:"columns,omitempty"`
+	Sort     string   `json:"sort,omitempty"`
 	// Secret names the protection of the whole block (ADR-0160).
 	Secret item.ID `json:"secret,omitempty"`
 }
@@ -170,7 +191,8 @@ type prefillJSON struct {
 
 func toBlockJSON(b item.Block) blockJSON {
 	j := blockJSON{Kind: b.Kind, Text: b.Text, Level: b.Level, Mentions: b.Mentions, Ref: b.Ref, Checked: b.Checked, Tone: b.Tone, Width: b.Width, Align: b.Align, Engine: b.Engine, Process: b.Process, View: b.View,
-		Form: b.Form, Decision: b.Decision, Application: b.Application, Release: b.Release, Layers: b.Layers, Link: b.Link, Query: b.Query, Secret: b.Secret}
+		Form: b.Form, Decision: b.Decision, Application: b.Application, Release: b.Release, Layers: b.Layers, Link: b.Link, Query: b.Query, Secret: b.Secret,
+		Layout: b.Layout, ItemType: b.ItemType, Space: b.Space, Group: b.Group, Columns: b.Columns, Sort: b.Sort}
 	for _, m := range b.Marks {
 		j.Marks = append(j.Marks, markJSON{Type: m.Type, Start: m.Start, End: m.End, Href: m.Href, Ref: m.Ref})
 	}
@@ -191,16 +213,21 @@ func toDoc(blocks []blockJSON, kept func(text string) bool) (item.Doc, error) {
 		switch b.Kind {
 		case item.Paragraph, item.Heading, item.Embed, item.BulletItem, item.OrderedItem, item.Quote, item.CodeBlock,
 			item.TaskItem, item.Panel, item.Table, item.TOC, item.Children, item.Image, item.Video, item.Divider, item.TaskList, item.Figures, item.Tables, item.BPMN, item.Process, item.Form, item.Decision,
-			item.Architecture, item.StartForm:
+			item.Architecture, item.StartForm, item.ItemsView:
 		case item.Unsupported:
 			if kept == nil || !kept(b.Text) {
 				return d, badInput("block %d: unsupported blocks come only from imports", i+1)
 			}
 		default:
-			return d, badInput("block %d: kind must be paragraph, heading, bullet, ordered, quote, code, task, panel, table, toc, figures, tables, children, divider, image, video, bpmn, process, form, decision, architecture, startform, tasklist or embed", i+1)
+			return d, badInput("block %d: kind must be paragraph, heading, bullet, ordered, quote, code, task, panel, table, toc, figures, tables, children, divider, image, video, bpmn, process, form, decision, architecture, startform, tasklist, view or embed", i+1)
 		}
 		blk := item.Block{Kind: b.Kind, Text: b.Text, Level: b.Level, Mentions: b.Mentions, Ref: b.Ref, Checked: b.Checked, Tone: b.Tone, Width: b.Width, Align: b.Align, Engine: b.Engine, Process: b.Process, View: b.View,
-			Form: b.Form, Decision: b.Decision, Application: b.Application, Release: b.Release, Link: b.Link, Query: b.Query, Secret: b.Secret}
+			Form: b.Form, Decision: b.Decision, Application: b.Application, Release: b.Release, Link: b.Link, Query: b.Query, Secret: b.Secret,
+			Layout: b.Layout, ItemType: b.ItemType, Space: b.Space, Group: b.Group, Sort: b.Sort}
+		if len(b.Columns) > 0 {
+			// An empty list is the view's default, as none is (ADR-0203).
+			blk.Columns = b.Columns
+		}
 		if len(b.Layers) > 0 {
 			// An empty list is the engine's default, as none is.
 			blk.Layers = b.Layers
@@ -283,6 +310,9 @@ type itemJSON struct {
 	// is blocked by; set in listings (ADR-0137).
 	RelationCount int `json:"relationCount,omitempty"`
 	WaitingOn     int `json:"waitingOn,omitempty"`
+	// Updated is when the item last changed itself, as the query
+	// language's field updated reads it; set in listings (ADR-0203).
+	Updated *time.Time `json:"updated,omitempty"`
 	// Template is the version of its type's Word template the item is
 	// made with (ADR-0167).
 	Template *item.TemplateRef `json:"template,omitempty"`

@@ -127,4 +127,4 @@ Strongest form: one value copied once; simple on both sides.
 - extends ADR-0151 (linked tasks: connecting a person, who sees a task, learning what is open) and ADR-0129 (process engines)
 - revisits, for engines that support it, ADR-0077's and ADR-0129's choice of credentials from the environment, which stays the operator's override
 - relates to ADR-0026 (sealing), ADR-0029 (audit), ADR-0034 and ADR-0073 (backups), ADR-0068 (the wiki as an OAuth server for assistants)
-- the engine's side: atlas's decision record on connected systems (github.com/pblumer/atlas, `docs/adr`), building on its ADR-0200 and ADR-0510
+- the engine's side: atlas's decision record on connected systems (github.com/pblumer/atlas, `docs/adr`), building on its ADR-0202 and ADR-0510

@@ -27,7 +27,7 @@ import { get, post, put, del, upload } from "./api.js";
 import { DRAWING } from "./drawing.js";
 import { exportFormats, exportPicture } from "./picexport.js";
 import { allFolders, copyTo, moveTo, dayText, deckText, googleImport, icloudImport, importDeck, importFiles, monthText, openViewer, rememberedAlbum, setFavourite, importPlace, PLACES, summaryText, thumbURL, zipPictures } from "./photos.js";
-import { dragged, durationText, groups, isVideo, orderDrop, range, shiftTaken, yearsAgo } from "./photoparts.js";
+import { dragged, durationText, folderDrop, folderTargets, groups, isVideo, orderDrop, range, shiftTaken, yearsAgo } from "./photoparts.js";
 import { askTime } from "./phototime.js";
 import { photoMap } from "./photomap.js";
 import { pickPlace, placeInput } from "./places.js";
@@ -165,6 +165,9 @@ export function albumBrowser({ pick, pickText } = {}) {
   // dragging holds the pictures being dragged onto a folder (ADR-0184),
   // or among the others to order them as slides (ADR-0195).
   let dragging = null;
+  // draggingFolder is the folder being dragged onto another folder or the
+  // trail, to move it there with what it holds (ADR-0200).
+  let draggingFolder = null;
   // sort is how a folder or collection is shown: newest first, or as its
   // slides; order says whether it has an order set by hand, whether one
   // may change it, and whether every picture is shown (ADR-0195).
@@ -745,21 +748,26 @@ export function albumBrowser({ pick, pickText } = {}) {
   };
 
   // The trail leads back up; a folder above the open one takes pictures
-  // dropped onto it (ADR-0184). The top is no folder and takes none.
+  // dropped onto it (ADR-0184). The top is no folder and takes no
+  // pictures; a folder dropped onto it goes to the top of its room
+  // (ADR-0200).
   const showTrail = () => {
     const step = (name, to) => h("button", { type: "button", class: "link", text: name, onclick: () => { path = path.slice(0, to); open(); } });
-    trail.replaceChildren(step(t("album.top"), 0), ...path.flatMap((f, i) => [" › ", i === path.length - 1 ? h("strong", { text: f.name }) : dropOnto(step(f.name, i + 1), f)]));
+    trail.replaceChildren(dropOnto(step(t("album.top"), 0), null), ...path.flatMap((f, i) => [" › ", i === path.length - 1 ? h("strong", { text: f.name }) : dropOnto(step(f.name, i + 1), f)]));
   };
 
   // dropOnto makes a folder's button take pictures dragged onto it, and
   // moves them there as "Move" does for chosen pictures, each with all its
   // versions, keeping what it is (ADR-0184, ADR-0188). A picture already in
-  // the folder stays.
+  // the folder stays. It also takes a folder dragged onto it, which goes
+  // into it with what it holds; the top (folder null) takes only a folder,
+  // which goes to the top of its room (ADR-0200).
   const dropOnto = (el, folder) => {
     if (pick) return el;
-    el.title = t("photos.dropOnFolder", { name: folder.name });
+    if (folder) el.title = t("photos.dropOnFolder", { name: folder.name });
+    const takes = () => (draggingFolder ? folderDrop(draggingFolder, folder) : folder && dragging ? folder : null);
     const over = (e) => {
-      if (!dragging) return;
+      if (!takes()) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = "move";
       el.classList.add("drop-target");
@@ -769,7 +777,17 @@ export function albumBrowser({ pick, pickText } = {}) {
     el.addEventListener("dragleave", (e) => { if (!el.contains(e.relatedTarget)) el.classList.remove("drop-target"); });
     el.addEventListener("drop", async (e) => {
       el.classList.remove("drop-target");
-      if (!dragging) return;
+      if (draggingFolder) {
+        const f = draggingFolder, to = folderDrop(f, folder);
+        draggingFolder = null;
+        root.classList.remove("dragging-folder");
+        if (!to) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (await moveFolder(f, to)) loadFolders();
+        return;
+      }
+      if (!dragging || !folder) return;
       e.preventDefault();
       e.stopPropagation();
       const list = dragging.filter((p) => p.item.id !== folder.id);
@@ -861,13 +879,16 @@ export function albumBrowser({ pick, pickText } = {}) {
       collect.form.hidden = true;
       loadFolders();
     } });
+    // The open folder is moved with what it holds (ADR-0200).
+    const moving = inFolder() && here().editable !== false ? moveForm() : null;
     // The open folder is changed beside the trail: a folder or collection
-    // made in it, or the folder deleted. replaceChildren, unlike h, writes
-    // null as text.
+    // made in it, the folder moved or deleted. replaceChildren, unlike h,
+    // writes null as text.
     manage.replaceChildren(...[
       h("button", { type: "button", class: "secondary", id: "album-new-folder", text: t("album.newFolder"), onclick: () => {
         make.hidden = !make.hidden;
         collect.form.hidden = true;
+        if (moving) moving.form.hidden = true;
         if (make.hidden) return;
         if (where) fillWhere();
         (where && !where.value ? where : name).focus();
@@ -875,6 +896,7 @@ export function albumBrowser({ pick, pickText } = {}) {
       h("button", { type: "button", class: "secondary", id: "album-new-collection", text: t("album.newCollection"), title: t("album.newCollectionTitle"), onclick: () => {
         collect.form.hidden = !collect.form.hidden;
         make.hidden = true;
+        if (moving) moving.form.hidden = true;
         if (collect.form.hidden) return;
         if (cwhere) {
           cwhere.replaceChildren(h("option", { value: "", text: t("album.collectionSpacePick") }), ...roomOptions());
@@ -882,9 +904,16 @@ export function albumBrowser({ pick, pickText } = {}) {
         }
         collect.first().focus();
       } }),
+      moving ? h("button", { type: "button", class: "secondary", id: "album-folder-move", text: t("album.folderMove"), title: t("album.folderMoveTitle"), onclick: async () => {
+        moving.form.hidden = !moving.form.hidden;
+        make.hidden = collect.form.hidden = true;
+        if (moving.form.hidden) return;
+        await moving.fill();
+        moving.first().focus();
+      } }) : null,
       inFolder() && here().editable !== false ? h("button", { type: "button", class: "danger", id: "album-folder-delete", text: t("album.folderDelete"), onclick: deleteFolder }) : null].filter(Boolean));
     // Below it, pictures are added; the forms open beneath the buttons.
-    tools.replaceChildren(...[make, collect.form,
+    tools.replaceChildren(...[make, collect.form, moving?.form,
       // At the top, the folder is asked for once the pictures are chosen.
       h("button", { type: "button", class: "primary", id: "album-upload", text: t("album.upload"), title: here() ? t("photos.uploadTitle") : t("album.uploadTopTitle"), onclick: () => files.click() }),
       here() ? h("button", { type: "button", class: "secondary", id: "album-add-existing", text: t("album.addExisting"), title: t("album.addExistingFolderTitle"), onclick: addFromAlbum }) : null,
@@ -922,6 +951,78 @@ export function albumBrowser({ pick, pickText } = {}) {
       f.key ? h("a", { href: "#/item/" + encodeURIComponent(f.key), id: "album-folder-restore", text: t("album.folderRestore") }) : null));
   };
 
+  // draggableFolder lets a folder one may edit be dragged onto another
+  // folder or a step of the trail, to move it there (ADR-0200).
+  const draggableFolder = (el, f) => {
+    if (pick || f.editable === false) return el;
+    el.draggable = true;
+    el.addEventListener("dragstart", (e) => {
+      draggingFolder = { ...f, parent: f.parent || "" };
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", f.name);
+      root.classList.add("dragging-folder");
+    });
+    el.addEventListener("dragend", () => {
+      draggingFolder = null;
+      root.classList.remove("dragging-folder");
+      for (const d of root.querySelectorAll(".drop-target")) d.classList.remove("drop-target");
+    });
+    return el;
+  };
+
+  // moveFolder moves a folder with its folders and pictures below another
+  // folder or to the top of a room (ADR-0200), through the move every item
+  // has; the server decides as for any item. Into another room it asks
+  // first, since that room's access holds afterwards.
+  const moveFolder = async (f, to) => {
+    if (to.space !== f.space && !confirm(t("album.folderMoveRoom", { name: f.name, room: to.space }))) return false;
+    try {
+      await post(`/api/items/${encodeURIComponent(f.id)}/move`, { space: to.space, parent: to.parent });
+    } catch (err) {
+      fail(err);
+      return false;
+    }
+    say(t("album.folderMoved", { name: f.name }), "notice");
+    return true;
+  };
+
+  // openParent is the folder the open folder is in, "" at the top of its
+  // room, undefined when the album does not know.
+  const openParent = () => (path.length > 1 ? path[path.length - 2].id : here().parent);
+
+  // moveForm offers where the open folder may go and moves it there; the
+  // trail then leads to it where it went (ADR-0200).
+  const moveForm = () => {
+    const target = h("select", { id: "album-folder-move-target", "aria-label": t("album.folderMoveTo"), required: true },
+      h("option", { value: "", text: t("album.folderMoveTo") }));
+    const form = h("form", { class: "album-move-folder", id: "album-folder-move-form", hidden: true }, target,
+      h("button", { type: "submit", class: "primary", text: t("photos.move") }));
+    let all = [], targets = [];
+    const fill = async () => {
+      const f = here();
+      try { all = await allFolders(); } catch (err) { return fail(err); }
+      targets = folderTargets({ id: f.id, space: f.space, parent: openParent() }, all, rooms, t("album.folderMoveTop"));
+      target.replaceChildren(h("option", { value: "", text: t("album.folderMoveTo") }), ...targets.map((o, i) => h("option", { value: String(i), text: o.text })));
+    };
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const to = targets[+target.value];
+      if (!target.value || !to) return fail(new Error(t("album.folderMoveChoose")));
+      const f = here();
+      if (!(await moveFolder(f, to))) return;
+      // The trail leads from the top of its room through the folders above
+      // it, as far as the album lists them.
+      const byID = new Map(all.map((x) => [x.id, x]));
+      const above = [];
+      for (let at = to.parent, n = 0; at && byID.has(at) && n < 64; at = byID.get(at).parent, n++) above.unshift(byID.get(at));
+      const notice = status.firstChild;
+      path = [...above, { ...f, space: to.space, parent: to.parent }];
+      open();
+      if (notice) status.replaceChildren(notice);
+    });
+    return { form, fill, first: () => target };
+  };
+
   // loadFolders shows the folders and collections right below the open
   // folder; a collection has none.
   const loadFolders = async () => {
@@ -932,8 +1033,8 @@ export function albumBrowser({ pick, pickText } = {}) {
     try {
       const { folders: list, collections = [] } = await get("/api/album/folders?" + q);
       folders.replaceChildren(...list.map((f) => h("li", {},
-        dropOnto(h("button", { type: "button", class: "album-folder", "data-folder": f.id, onclick: () => { path = [...path, f]; open(); } },
-          h("span", { class: "album-folder-icon", "aria-hidden": "true" }), h("span", { text: f.name })), f))),
+        draggableFolder(dropOnto(h("button", { type: "button", class: "album-folder", "data-folder": f.id, onclick: () => { path = [...path, f]; open(); } },
+          h("span", { class: "album-folder-icon", "aria-hidden": "true" }), h("span", { text: f.name })), f), f))),
       ...collections.map((c) => h("li", {},
         h("button", { type: "button", class: "album-folder album-collection", "data-collection": c.id, title: ruleText(c.rule),
           onclick: () => { path = [...path, c]; open(); } },
@@ -1616,7 +1717,7 @@ export function albumBrowser({ pick, pickText } = {}) {
       if (key) {
         try {
           const { item } = await get("/api/items/" + encodeURIComponent(key));
-          path = [{ id: item.id, key: item.key, name: item.title, space: item.space }];
+          path = [{ id: item.id, key: item.key, name: item.title, space: item.space, parent: item.parent || "" }];
         } catch { /* the top */ }
       }
     }

@@ -11,7 +11,7 @@
 
 A knowledge and work tool holds internal documents, decisions and personal data. It is reached by people (browser), machines (CI, integrations) and agents (MCP). The question is **how callers are authenticated, and what is protected by default**.
 
-Adapted from atlas [ADR-0044](https://github.com/pblumer/atlas/blob/main/docs/adr/0044-user-management-and-authentication-boundary.md), [ADR-0195](https://github.com/pblumer/atlas/blob/main/docs/adr/0195-auth-on-by-default.md), [ADR-0194](https://github.com/pblumer/atlas/blob/main/docs/adr/0194-api-tokens.md), [ADR-0210](https://github.com/pblumer/atlas/blob/main/docs/adr/0210-federated-authentication.md) and [ADR-0197](https://github.com/pblumer/atlas/blob/main/docs/adr/0197-login-throttle-and-audit-log.md). Atlas started with authentication off by default and later reversed that (ADR-0195); this project starts where atlas ended.
+Adapted from atlas [ADR-0044](https://github.com/pblumer/atlas/blob/main/docs/adr/0044-user-management-and-authentication-boundary.md), [ADR-0195](https://github.com/pblumer/atlas/blob/main/docs/adr/0195-auth-on-by-default.md), [ADR-0194](https://github.com/pblumer/atlas/blob/main/docs/adr/0194-api-tokens.md), [ADR-0212](https://github.com/pblumer/atlas/blob/main/docs/adr/0212-federated-authentication.md) and [ADR-0197](https://github.com/pblumer/atlas/blob/main/docs/adr/0197-login-throttle-and-audit-log.md). Atlas started with authentication off by default and later reversed that (ADR-0195); this project starts where atlas ended.
 
 ## Decision drivers
 
@@ -69,5 +69,5 @@ Strongest form: reuses whatever single sign-on an organisation already runs, wit
 
 ## Links
 
-- atlas [ADR-0044](https://github.com/pblumer/atlas/blob/main/docs/adr/0044-user-management-and-authentication-boundary.md), [ADR-0195](https://github.com/pblumer/atlas/blob/main/docs/adr/0195-auth-on-by-default.md), [ADR-0194](https://github.com/pblumer/atlas/blob/main/docs/adr/0194-api-tokens.md), [ADR-0210](https://github.com/pblumer/atlas/blob/main/docs/adr/0210-federated-authentication.md), [ADR-0197](https://github.com/pblumer/atlas/blob/main/docs/adr/0197-login-throttle-and-audit-log.md)
+- atlas [ADR-0044](https://github.com/pblumer/atlas/blob/main/docs/adr/0044-user-management-and-authentication-boundary.md), [ADR-0195](https://github.com/pblumer/atlas/blob/main/docs/adr/0195-auth-on-by-default.md), [ADR-0194](https://github.com/pblumer/atlas/blob/main/docs/adr/0194-api-tokens.md), [ADR-0212](https://github.com/pblumer/atlas/blob/main/docs/adr/0212-federated-authentication.md), [ADR-0197](https://github.com/pblumer/atlas/blob/main/docs/adr/0197-login-throttle-and-audit-log.md)
 - relates to ADR-0011, ADR-0012

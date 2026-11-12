@@ -38,7 +38,7 @@ function blockAt(doc, pos) {
 // childPages() lists the item's child pages and files serves and stores
 // its attachments (editor.js); extra adds plugins and comment starts an
 // inline comment (anchors.js).
-export function liveBody({ ref, embeds, resolve, childPages, files, extra = [], comment, actions = [], embedContent, tasks, markdown, onPresence }) {
+export function liveBody({ ref, embeds, resolve, childPages, files, extra = [], comment, actions = [], embedContent, tasks, markdown, weblinks, onPresence, create }) {
   const el = h("div", { class: "live" });
   const presence = h("p", { class: "muted live-presence", "aria-live": "polite" });
   const status = h("p", { class: "status live-status", role: "status" });
@@ -274,7 +274,7 @@ export function liveBody({ ref, embeds, resolve, childPages, files, extra = [], 
     });
     if (blocks.length === 0) blocks.push({ kind: "paragraph", text: "", id: newID() });
     if (!view) {
-      const ed = createEditor({ blocks, embeds, editable: e.editable, resolve, childPages, files, extra: [plugin, ...extra], comment, actions, embedContent, tasks, markdown });
+      const ed = createEditor({ blocks, embeds, editable: e.editable, resolve, childPages, files, extra: [plugin, ...extra], comment, actions, embedContent, tasks, markdown, weblinks, create });
       view = ed.view;
       el.insertBefore(ed.element, status);
       // Leaving the editor releases its blocks, after a moment: a click on
@@ -459,7 +459,14 @@ export function liveBody({ ref, embeds, resolve, childPages, files, extra = [], 
     close();
   }
 
-  return { element: el, close, finish, view: () => view };
+  // dispose closes the session and takes its editor down, so that what
+  // the editor put beside the page (the bubble of a link, the list of a
+  // mention) goes with it when the page is left.
+  function dispose() {
+    close();
+    if (view && !view.isDestroyed) view.destroy();
+  }
+  return { element: el, close, finish, dispose, view: () => view };
 }
 
 // watchLive follows an item's live session as a reader (ADR-0115): it

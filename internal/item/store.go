@@ -224,6 +224,9 @@ func (s *Store) DefineType(actor string, td TypeDef) error {
 	if err := td.validate(); err != nil {
 		return err
 	}
+	if err := s.checkTypeDef(td); err != nil {
+		return err
+	}
 	if err := s.duplicatesAmong(td); err != nil {
 		return err
 	}
@@ -299,7 +302,14 @@ type NewItem struct {
 // firstBody validates the body given with a new item and returns its
 // commit, as CommitBody would for an item without a body.
 func (s *Store) firstBody(created Event, d Doc) (Event, error) {
-	if td, _ := s.latest(created.TypeName); !td.Body {
+	td, _ := s.latest(created.TypeName)
+	return s.firstBodyOf(td, created, d)
+}
+
+// firstBodyOf is firstBody for an item of the type td, which a batch may
+// define together with the item (ADR-0205, ADR-0208).
+func (s *Store) firstBodyOf(td TypeDef, created Event, d Doc) (Event, error) {
+	if !td.Body {
 		return Event{}, invalid("type %q has no body", td.Name)
 	}
 	for i, b := range d.Blocks {
@@ -359,13 +369,23 @@ func (s *Store) prepareCreate(n NewItem) (Event, error) {
 	if !s.HasSpace(n.Space) {
 		return Event{}, notFound("space %q", n.Space)
 	}
-	td, ok := s.latest(n.Type)
-	if !ok {
-		return Event{}, notFound("type %q", n.Type)
+	td, err := s.usable(n.Type, n.Space)
+	if err != nil {
+		return Event{}, err
+	}
+	return s.prepareCreateOf(n, td)
+}
+
+// prepareCreateOf is prepareCreate for an item of td, a type that may be
+// defined in the same batch (ADR-0208).
+func (s *Store) prepareCreateOf(n NewItem, td TypeDef) (Event, error) {
+	if !s.HasSpace(n.Space) {
+		return Event{}, notFound("space %q", n.Space)
 	}
 	if strings.TrimSpace(n.Title) == "" {
 		return Event{}, invalid("title is empty")
 	}
+	n.Properties = normalProps(td, n.Properties)
 	if n.Parent != "" {
 		p, err := s.live(n.Parent)
 		if err != nil {
@@ -382,6 +402,9 @@ func (s *Store) prepareCreate(n NewItem) (Event, error) {
 		if f.Required && n.Properties[f.Name] == nil {
 			return Event{}, invalid("field %q is required", f.Name)
 		}
+	}
+	if err := s.checkRefs(td, nil, n.Properties); err != nil {
+		return Event{}, err
 	}
 	if err := s.duplicate(n.Space, td, "", n.Properties); err != nil {
 		return Event{}, err
@@ -543,10 +566,16 @@ func (s *Store) SetProperty(actor string, id ID, field string, value any) error 
 		return err
 	}
 	td, _ := s.latest(it.Type)
-	if err := checkProps(td, Props{field: value}); err != nil {
+	// An empty choice of a multi field unsets it.
+	value = normalProps(td, Props{field: value})[field]
+	props := Props{field: value}
+	if err := checkProps(td, props); err != nil {
 		return err
 	}
-	if err := s.duplicate(it.Space, td, id, Props{field: value}); err != nil {
+	if err := s.checkRefs(td, it, props); err != nil {
+		return err
+	}
+	if err := s.duplicate(it.Space, td, id, props); err != nil {
 		return err
 	}
 	return s.record(actor, Event{Kind: PropertySet, Item: id, Field: field, Value: value})
@@ -686,6 +715,13 @@ func (s *Store) checkMove(id ID, toSpace string, newParent ID) error {
 		}
 		if slices.Contains(s.subtree(id), newParent) {
 			return invalid("cannot move an item below itself")
+		}
+	}
+	// An item of a room type stays in its room (ADR-0201).
+	for _, m := range s.subtree(id) {
+		it := s.items[m]
+		if td, ok := s.latest(it.Type); ok && it.Presence == Live && !td.UsableIn(toSpace) {
+			return invalid("%s is of the type %s, which belongs to the space %s; it cannot move to %s", it.Key, td.Name, td.Space, toSpace)
 		}
 	}
 	return s.duplicatesMoving(id, toSpace)
@@ -925,6 +961,7 @@ func (s *Store) apply(e Event) {
 		s.items[it.ID] = it
 		s.assignKey(it)
 		touch(it.ID)
+		s.relateFields(it, nil, e.Seq, touch)
 	case TitleSet:
 		it := s.items[e.Item]
 		it.Title = e.Title
@@ -942,13 +979,15 @@ func (s *Store) apply(e Event) {
 		touch(it.ID)
 	case PropertySet:
 		it := s.items[e.Item]
+		touch(it.ID)
+		s.unrelateField(it, e.Field, it.Properties[e.Field], touch)
 		if e.Value == nil {
 			delete(it.Properties, e.Field)
 		} else {
 			it.Properties[e.Field] = e.Value
 		}
 		it.Version++
-		touch(it.ID)
+		s.relateField(it, e.Field, e.Value, e.Seq, touch)
 	case Transitioned:
 		it := s.items[e.Item]
 		it.State, it.StateSince = e.To, e.At
@@ -975,7 +1014,9 @@ func (s *Store) apply(e Event) {
 		it := s.items[e.Item]
 		touch(it.ID)
 		for id, r := range s.rels {
-			if r.Derived && r.From == it.ID {
+			// The relations of item fields follow the properties, not the
+			// body (ADR-0202).
+			if r.Derived && r.From == it.ID && r.field == "" {
 				touch(r.To)
 				delete(s.rels, id)
 			}
@@ -1026,6 +1067,8 @@ func (s *Store) apply(e Event) {
 		s.applyKanban(e)
 	case PicturesOrdered:
 		s.applyPictureOrder(e, touch)
+	case ItemsOrdered:
+		s.applyItemOrder(e, touch)
 	case SpaceTrashed, SpaceRestored, SpacePurged, SpaceRenamed:
 		s.applySpace(e, touch)
 	case SecretSet, SecretRemoved, SecretRequested, SecretGranted, SecretDeclined, SecretErased:
@@ -1466,6 +1509,10 @@ func checkBlock(b Block, self ID) error {
 		case len(b.Marks) > 0 || len(b.Mentions) > 0:
 			return invalid("a start form has a plain caption")
 		}
+	case ItemsView:
+		if err := checkViewBlock(b); err != nil {
+			return err
+		}
 	case Architecture:
 		switch {
 		case !ValidEngineID(b.Engine):
@@ -1497,8 +1544,11 @@ func checkBlock(b Block, self ID) error {
 	if b.Kind != Architecture && (b.Application != "" || b.Release != 0 || b.Layers != nil) {
 		return invalid("only an architecture sketch names an application, a release and layers")
 	}
-	if b.Kind != TaskList && b.Query != "" {
-		return invalid("only a task list has a query")
+	if b.Kind != TaskList && b.Kind != ItemsView && b.Query != "" {
+		return invalid("only a task list or a view has a query")
+	}
+	if b.Kind != ItemsView && (b.Layout != "" || b.ItemType != "" || b.Space != "" || b.Group != "" || b.Columns != nil || b.Sort != "") {
+		return invalid("only a view names a layout, a type, a room, a grouping, columns and a sort")
 	}
 	if b.View != "" && ((b.Kind != BPMN && b.Kind != Process && b.Kind != Form) || !slices.Contains(DiagramViews, b.View)) {
 		return invalid("view %q: a BPMN diagram, a process or a form shows %s, or its diagram or form alone; other blocks have no view", b.View, strings.Join(DiagramViews, ", "))

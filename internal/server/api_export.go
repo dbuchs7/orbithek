@@ -69,11 +69,14 @@ func fileName(key, title, ext string) string {
 }
 
 // propertyText writes a property's value for a reader: user IDs as names,
-// a point in time as RFC 3339 in UTC.
+// a point in time as RFC 3339 in UTC, the values of a multi field joined
+// by ", " (ADR-0202).
 func propertyText(v any, kind item.FieldKind, names map[auth.UserID]string) string {
 	switch {
 	case v == nil:
 		return ""
+	case kind == item.KindMulti:
+		return item.FormatValue(v)
 	case kind == item.KindDateTime:
 		return item.FormatField(item.FieldDef{Kind: kind}, v)
 	case kind == item.KindUser:
@@ -90,6 +93,42 @@ func propertyText(v any, kind item.FieldKind, names map[auth.UserID]string) stri
 		return x.Format("2006-01-02")
 	}
 	return fmt.Sprint(v)
+}
+
+// shownValue is the value of a field of the new kinds as an export names
+// it (ADR-0202): a referenced item by its key, and in a document by its key
+// and title; a file by its name; a rating in a document as a number of
+// five. The item was read through the reader's session, so an item field
+// whose target the reader may not read is empty already (D10). Other
+// values are given back as they are.
+func shownValue(s *item.Store, it item.Item, kind item.FieldKind, v any, document bool) any {
+	switch kind {
+	case item.KindItem:
+		id, ok := v.(item.ID)
+		if !ok || s == nil {
+			return v
+		}
+		target, err := s.Get(id)
+		if err != nil {
+			return nil
+		}
+		if document && target.Title != "" {
+			return target.Key + " " + target.Title
+		}
+		return target.Key
+	case item.KindFile:
+		for _, a := range it.Attachments {
+			if string(a.ID) == fmt.Sprint(v) {
+				return a.Name
+			}
+		}
+		return nil
+	case item.KindRating:
+		if n, ok := v.(int); ok && document {
+			return fmt.Sprintf("%d/%d", n, item.MaxRating)
+		}
+	}
+	return v
 }
 
 // userIDs collects the user IDs among items' user properties.
@@ -190,7 +229,7 @@ func (h itemHandlers) exportDocument(r *http.Request, children, withData bool) (
 			}
 			for _, f := range s.Type(it.Type).Fields {
 				if v, ok := it.Properties[f.Name]; ok && v != nil {
-					p.Facts = append(p.Facts, [2]string{f.Name, propertyText(v, f.Kind, names)})
+					p.Facts = append(p.Facts, [2]string{f.Name, propertyText(shownValue(s, it, f.Kind, v, true), f.Kind, names)})
 				}
 			}
 			if len(it.Labels) > 0 {
@@ -247,7 +286,7 @@ func (h itemHandlers) exportDocument(r *http.Request, children, withData bool) (
 					spaceName = sp.Name
 				}
 			}
-			doc.Controls = controls(root, td, spaceName, names)
+			doc.Controls = controls(s, root, td, spaceName, names)
 		}
 	})
 	if err != nil || !withData {
@@ -431,7 +470,7 @@ func (h itemHandlers) itemRows(s *item.Store, items []item.Item, words map[strin
 			if i := slices.IndexFunc(s.Type(it.Type).Fields, func(g item.FieldDef) bool { return g.Name == f.Name }); i >= 0 {
 				kind = s.Type(it.Type).Fields[i].Kind
 			}
-			row = append(row, propertyText(it.Properties[f.Name], kind, names))
+			row = append(row, propertyText(shownValue(s, it, kind, it.Properties[f.Name], false), kind, names))
 		}
 		rows = append(rows, row)
 	}

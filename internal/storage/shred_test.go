@@ -83,8 +83,22 @@ func TestContentIsNeverWrittenInPlaintext(t *testing.T) {
 	other, err := db.Store.Create("anna", item.NewItem{Space: "PLAT", Type: it.Type, Title: "Archive"})
 	noErr(t, err)
 	noErr(t, db.Store.As("anna").MoveFile(it.ID, pic, other.ID, []item.ID{pic}))
+	// What a view in a text shows is part of the sealed body (ADR-0203).
+	noErr(t, db.Store.As("anna").CommitBody(other.ID, item.Doc{Blocks: []item.Block{{Kind: item.ItemsView, Layout: item.ViewTable,
+		ItemType: "kind " + secret, Query: `title ~ "` + secret + `"`, Group: "field:" + secret, Columns: []string{"field:" + secret}}}}))
+	// A highlight in a PDF names the quote, its place on the page and its
+	// colour, all content (ADR-0210).
+	const pdf, place = "0123456789abcdef0123456789abcde1", 0.1234567
+	_, err = db.Store.AddAttachment("anna", it.ID, item.Attachment{ID: pdf, Name: "report.pdf", Type: "application/pdf", Size: 3, SHA256: strings.Repeat("ef", 32)})
+	noErr(t, err)
+	_, err = db.Store.As("anna").Comment(it.ID, item.NewComment{Text: "Note " + secret, Anchor: &item.Anchor{Quote: "Quote " + secret, File: pdf, Page: 7,
+		Rects: []item.Rect{{X: place, Y: place, W: 0.1, H: 0.1}}, Color: "purple"}})
+	noErr(t, err)
 	noErr(t, db.Close())
 	log := readFile(t, dir, wal.FileName)
+	if bytes.Contains(log, []byte("0.1234567")) || bytes.Contains(log, []byte("purple")) {
+		t.Fatal("the event log holds a highlight's place or colour in plaintext")
+	}
 	if bytes.Contains(log, []byte(secret)) || bytes.Contains(log, []byte(strings.ToLower(secret))) || bytes.Contains(log, []byte(look)) {
 		t.Fatal("the event log holds item content in plaintext")
 	}
