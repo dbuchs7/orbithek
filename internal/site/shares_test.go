@@ -110,3 +110,14 @@ func TestSharesAreBounded(t *testing.T) {
 		t.Errorf("changing one at the bound: %v", err)
 	}
 }
+
+func TestOnlyAnS3ShareSignsLinks(t *testing.T) {
+	s, _ := New(nil, func([]byte) error { return nil })
+	if _, err := s.SetShare("admin", Share{ID: "nas", Name: "NAS", Address: "/mnt/nas", Folder: folderA, SignedLinks: true}); !errors.Is(err, ErrInvalid) {
+		t.Errorf("a directory signs links: %v", err)
+	}
+	sh, err := s.SetShare("admin", Share{ID: "bucket", Name: "Bucket", Address: "s3://photos?endpoint=https://s3.example.com", Folder: folderA, SignedLinks: true})
+	if err != nil || !sh.SignedLinks {
+		t.Fatalf("an S3 share: %+v %v", sh, err)
+	}
+}

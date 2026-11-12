@@ -131,3 +131,48 @@ func CanonicalQuery(q url.Values) string {
 	}
 	return strings.Join(parts, "&")
 }
+
+// Presign answers the address of a GET of key signed in its query
+// (signature version 4), valid for expires from now: whoever holds it may
+// read the object until then, without the keys.
+func (c *Client) Presign(key string, expires time.Duration) (string, error) {
+	if expires <= 0 || expires > 7*24*time.Hour {
+		return "", fmt.Errorf("s3sig: a signed address holds for up to seven days, not %v", expires)
+	}
+	now := time.Now
+	if c.Now != nil {
+		now = c.Now
+	}
+	return presign(c.Endpoint, c.Bucket, key, c.Access, c.Secret, c.Region, now().UTC(), expires), nil
+}
+
+func presign(endpoint *url.URL, bucket, key, access, secret, region string, t time.Time, expires time.Duration) string {
+	u := *endpoint
+	u.Path = strings.TrimSuffix(u.Path, "/")
+	if bucket != "" {
+		u.Path += "/" + bucket
+	}
+	u.Path += "/" + key
+	stamp, day := t.Format("20060102T150405Z"), t.Format("20060102")
+	scope := day + "/" + region + "/s3/aws4_request"
+	q := url.Values{
+		"X-Amz-Algorithm":     {"AWS4-HMAC-SHA256"},
+		"X-Amz-Credential":    {access + "/" + scope},
+		"X-Amz-Date":          {stamp},
+		"X-Amz-Expires":       {fmt.Sprint(int64(expires / time.Second))},
+		"X-Amz-SignedHeaders": {"host"},
+	}
+	path := URIEncode(u.Path, false)
+	query := CanonicalQuery(q)
+	canonical := strings.Join([]string{"GET", path, query, "host:" + u.Host + "\n", "host", "UNSIGNED-PAYLOAD"}, "\n")
+	sum := sha256.Sum256([]byte(canonical))
+	toSign := "AWS4-HMAC-SHA256\n" + stamp + "\n" + scope + "\n" + hex.EncodeToString(sum[:])
+	k := hmacSHA256([]byte("AWS4"+secret), day)
+	k = hmacSHA256(k, region)
+	k = hmacSHA256(k, "s3")
+	k = hmacSHA256(k, "aws4_request")
+	sig := hex.EncodeToString(hmacSHA256(k, toSign))
+	u.RawPath = path
+	u.RawQuery = query + "&X-Amz-Signature=" + sig
+	return u.String()
+}
