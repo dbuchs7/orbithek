@@ -10,6 +10,7 @@
 import { get, post } from "./api.js";
 import { h } from "./dom.js";
 import { t } from "./i18n.js";
+import { startDefaults } from "./timeline.js";
 
 // pageType is the type a room's pages are of: one named page, else the
 // first type with a text and no workflow, else the first with a text.
@@ -100,7 +101,7 @@ function askAndCreate(host, title, types, spaces, paused) {
       if (!titleText || !ty) return;
       ok.disabled = true;
       try {
-        const { item } = await post("/api/items", { space: spaceSelect.value, type: ty.name, parent: placeOf(host, ty, spaceSelect.value), title: titleText, properties: {} });
+        const { item } = await post("/api/items", { space: spaceSelect.value, type: ty.name, parent: placeOf(host, ty, spaceSelect.value), title: titleText, properties: startDefaults(ty.fields) });
         close(item);
       } catch (err) {
         error.textContent = err.message;
