@@ -14,7 +14,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DEPTHS, GROUPS, IMPACT_DEPTHS, IMPACT_DIRECTIONS, around, captionShown, distanceClass, drillBack, drillInto, filter, fitView, groupOf, impactAddress, impactGraph,
-  impactList, impactParams, impactPath, impactSummary, kinds, kindOf, groupRadius, layout, matches, neighbourhood, size, toneOf, visible, zoomBand } from "../static/assets/starmap-graph.js";
+  impactList, impactParams, impactPath, impactSummary, kinds, kindOf, groupRadius, layout, matches, mergeLabelCounts, neighbourhood, size, toneOf, visible, zoomBand } from "../static/assets/starmap-graph.js";
 import { DEFAULTS, chargeExact, chargeTree, quadtree, simulation } from "../static/assets/starmap-sim.js";
 
 const graph = {
@@ -384,4 +384,10 @@ test("a group of the starmap of all rooms is filtered by its type and drawn as b
   assert.ok(groupRadius(3) > groupRadius(1) && groupRadius(100) > groupRadius(10));
   assert.equal(groupRadius(1e6), 64, "a bound keeps a big group on the canvas");
   assert.equal(groupRadius("x"), 11);
+});
+
+test("the labels of items and of pictures are suggested as one list, the most carried first", () => {
+  assert.deepEqual(mergeLabelCounts([{ label: "q4", count: 2 }, { label: "ops", count: 1 }], [{ label: "q4", count: 3 }, { label: "beach", count: 1 }]),
+    [{ label: "q4", count: 5 }, { label: "beach", count: 1 }, { label: "ops", count: 1 }]);
+  assert.deepEqual(mergeLabelCounts([], []), []);
 });

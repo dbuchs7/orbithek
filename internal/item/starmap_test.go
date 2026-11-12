@@ -260,3 +260,37 @@ func TestPicturesAreTheBrowsersImages(t *testing.T) {
 		}
 	}
 }
+
+// A picture's own labels (ADR-0090) join it to the label stars of a
+// space's starmap, as an item's labels do (ADR-draft-album-labels-on-the-starmap).
+func TestAStarmapJoinsPicturesToTheirAlbumLabels(t *testing.T) {
+	f := newStarFixture(t)
+	anna := f.s.As("anna")
+	noErr(t, anna.SetPictureLabels(f.home.ID, f.hp2, []string{"runbook", "logo"}))
+	noErr(t, anna.SetPictureLabels(f.child.ID, f.cp, []string{"logo"}))
+	m, err := anna.Starmap("PLAT", 100)
+	noErr(t, err)
+	pic := func(it Item, a ID) string { return pictureNodeID(it.ID, a) }
+	for _, e := range []StarEdge{
+		{From: "label:runbook", To: pic(f.home, f.hp2), Kind: StarLabelled},
+		{From: "label:logo", To: pic(f.home, f.hp2), Kind: StarLabelled},
+		{From: "label:logo", To: pic(f.child, f.cp), Kind: StarLabelled},
+		{From: "label:runbook", To: string(f.home.ID), Kind: StarLabelled},
+	} {
+		if !hasEdge(m, e) {
+			t.Errorf("no edge %+v", e)
+		}
+	}
+	for _, n := range m.Nodes {
+		if n.ID == pic(f.home, f.hp2) && !slices.Equal(n.Labels, []string{"logo", "runbook"}) {
+			t.Errorf("the picture's labels %v", n.Labels)
+		}
+	}
+	// A label one picture alone carries is no star.
+	noErr(t, anna.SetPictureLabels(f.child.ID, f.cp, nil))
+	m, err = anna.Starmap("PLAT", 100)
+	noErr(t, err)
+	if slices.Contains(starIDs(m), "label:logo") {
+		t.Errorf("a label of one picture is a star: %v", starIDs(m))
+	}
+}

@@ -16,7 +16,7 @@ import { h, mount } from "./dom.js";
 import { t } from "./i18n.js";
 import { get } from "./api.js";
 import { DEPTHS, GROUPS, IMPACT_DEPTHS, distanceClass, drillBack, drillInto, fitView, groupOf, impactAddress, impactGraph, impactList, impactParams, impactPath,
-  groupRadius, impactSummary, kinds, layout, neighbourhood, size, toneOf, visible, zoomBand } from "./starmap-graph.js";
+  groupRadius, impactSummary, kinds, layout, mergeLabelCounts, neighbourhood, size, toneOf, visible, zoomBand } from "./starmap-graph.js";
 import { simulation } from "./starmap-sim.js";
 
 const NS = "http://www.w3.org/2000/svg";
@@ -128,10 +128,13 @@ export async function starmapView(container, space, path = [], params = new URLS
 const ALL = "*";
 
 // labelChooser lets one show a label across every room on the starmap of
-// all rooms, suggesting the labels of the items one reads (ADR-0191).
+// all rooms, suggesting the labels of the items and of the pictures one
+// reads (ADR-0191, ADR-0090).
 function labelChooser(label) {
   const options = h("datalist", { id: "starmap-label-options" });
-  get("/api/labels").then(({ labels }) => options.replaceChildren(...(labels || []).map((l) => h("option", { value: l.label, label: `${l.label} (${l.count})` })))).catch(() => {});
+  const listed = (path) => get(path).then(({ labels }) => labels || []).catch(() => []);
+  Promise.all([listed("/api/labels"), listed("/api/album/labels")]).then((lists) =>
+    options.replaceChildren(...mergeLabelCounts(...lists).map((l) => h("option", { value: l.label, label: `${l.label} (${l.count})` }))));
   const input = h("input", { type: "search", id: "starmap-label", list: "starmap-label-options", value: label, placeholder: t("starmap.labelSearch"), "aria-label": t("starmap.labelSearch") });
   const form = h("form", { class: "starmap-label-form", role: "search", id: "starmap-label-form" }, input, options,
     h("button", { type: "submit", class: "secondary", text: t("starmap.labelShow") }));
@@ -426,11 +429,11 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
     }
     if (node.kind === "label") {
       const carriers = graph.edges.filter((e) => e.kind === "label" && (e.from === node.id || e.to === node.id))
-        .map((e) => byID.get(e.from === node.id ? e.to : e.from)).filter((m) => m && m.kind === "item");
+        .map((e) => byID.get(e.from === node.id ? e.to : e.from)).filter((m) => m && (m.kind === "item" || m.kind === "picture"));
       return h("div", { class: "starmap-label-items" },
         h("h3", { text: t("starmap.labelItems", { n: carriers.length }) }),
         h("ul", { class: "list", id: "starmap-label-list" }, carriers.map((m) => h("li", {},
-          h("button", { type: "button", class: "link", "data-id": m.id, text: `${m.key} ${m.title}`, onclick: () => focus(m.id) })))));
+          h("button", { type: "button", class: "link", "data-id": m.id, text: m.kind === "picture" ? t("starmap.nodePicture", { name: m.name }) : `${m.key} ${m.title}`, onclick: () => focus(m.id) })))));
     }
     if (!preview || node.kind === "group") return null;
     const content = await preview(node.key || node.id);

@@ -190,3 +190,102 @@ func TestTheStarmapOfAllSpacesShowsPicturesWhereTheyAreUsed(t *testing.T) {
 		t.Errorf("groups %+v", m.Nodes)
 	}
 }
+
+// On the starmap of all spaces a picture's own labels (ADR-0090) count
+// as an item's do: a label shows the pictures that carry it with the
+// items that hold them, and the label stars join pictures too
+// (ADR-draft-album-labels-on-the-starmap).
+func TestTheStarmapOfAllSpacesFollowsAlbumLabels(t *testing.T) {
+	s := permFixture(t)
+	noErr(t, s.GrantRole("root", "OPS", "anna", Editor))
+	noErr(t, s.GrantRole("root", "OPS", "ben", Viewer))
+	anna, ben := s.As("anna"), s.As("ben")
+	folder := mustItem(t)(anna.Create(NewItem{Space: "OPS", Type: "page", Title: "Photos"}))
+	page := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Plan"}))
+	task := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "task", Title: "Patch", Properties: Props{"priority": "low"}}))
+	other := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Other"}))
+	secret := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Secret"}))
+	noErr(t, s.Restrict("root", secret.ID, Restriction{Read: []string{"anna"}}))
+	noErr(t, anna.SetLabels(page.ID, []string{"q4"}))
+
+	sum := strings.Repeat("ab", 32)
+	file := func(on, id ID, name string, src *Source) {
+		_, err := anna.AddAttachment(on, Attachment{ID: id, Name: name, Type: "image/png", Size: 3, SHA256: sum, Source: src})
+		noErr(t, err)
+	}
+	const (
+		tagged   ID = "00000000000000000000000000000001" // a photo of the folder labelled q4
+		untagged ID = "00000000000000000000000000000002" // one without labels
+		onPage   ID = "00000000000000000000000000000003" // a picture of the labelled page
+		draw1    ID = "00000000000000000000000000000004" // a drawing labelled q4 on its first version
+		draw2    ID = "00000000000000000000000000000005" // its new version, without
+		elsewise ID = "00000000000000000000000000000006" // a picture of another page
+		hidden   ID = "00000000000000000000000000000007" // a photo labelled q4 on the restricted page
+	)
+	file(folder.ID, tagged, "a.png", nil)
+	file(folder.ID, untagged, "b.png", nil)
+	file(page.ID, onPage, "c.png", nil)
+	file(task.ID, draw1, "d.png", nil)
+	noErr(t, anna.SetPictureLabels(task.ID, draw1, []string{"q4"}))
+	file(task.ID, draw2, "d.png", &Source{Item: task.ID, Attachment: draw1})
+	file(other.ID, elsewise, "e.png", nil)
+	file(secret.ID, hidden, "f.png", nil)
+	noErr(t, anna.SetPictureLabels(folder.ID, tagged, []string{"Q4"}))
+	noErr(t, anna.SetPictureLabels(secret.ID, hidden, []string{"q4"}))
+
+	pic := func(it Item, a ID) string { return pictureNodeID(it.ID, a) }
+	has := func(m Starmap, from, to, kind string) bool {
+		return slices.ContainsFunc(m.Edges, func(e StarEdge) bool { return e.From == from && e.To == to && e.Kind == kind })
+	}
+
+	// A label brings in the pictures that carry it, with the items that
+	// hold them, and every picture of an item that carries it; no other.
+	m := anna.StarmapAll("q4", 100)
+	want := []string{
+		string(folder.ID), string(page.ID), string(task.ID), string(secret.ID), // carriers and holders, by space and as made
+		"label:q4",
+		pic(secret, hidden), pic(task, draw2), pic(page, onPage), pic(folder, tagged), // newest first
+	}
+	if got := starIDs(m); !slices.Equal(got, want) || m.Items != 4 || m.Grouped {
+		t.Fatalf("the map of a label\n got %v (%d items)\nwant %v", got, m.Items, want)
+	}
+	for _, e := range [][3]string{
+		{pic(folder, tagged), string(folder.ID), StarOwner},
+		{pic(task, draw2), string(task.ID), StarOwner},
+		{"label:q4", pic(folder, tagged), StarLabelled},
+		{"label:q4", pic(task, draw2), StarLabelled}, // a label of any version is the picture's
+		{"label:q4", string(page.ID), StarLabelled},
+	} {
+		if !has(m, e[0], e[1], e[2]) {
+			t.Errorf("no edge %v in %v", e, m.Edges)
+		}
+	}
+	if has(m, "label:q4", string(folder.ID), StarLabelled) {
+		t.Errorf("the folder is labelled by its picture: %v", m.Edges)
+	}
+	// ben reads neither the restricted page nor its picture.
+	m = ben.StarmapAll("q4", 100)
+	if got := starIDs(m); slices.Contains(got, string(secret.ID)) || slices.Contains(got, pic(secret, hidden)) || m.Items != 3 {
+		t.Errorf("ben's map of a label %v (%d items)", got, m.Items)
+	}
+	// Beyond the budget, the holders count in their groups.
+	m = anna.StarmapAll("q4", 3)
+	count := map[string]int{}
+	for _, n := range m.Nodes {
+		count[n.ID] = n.Count
+	}
+	if !m.Grouped || count["group:OPS/page"] != 1 || count["group:PLAT/page"] != 2 || count["group:PLAT/task"] != 1 {
+		t.Errorf("groups of a label %v", count)
+	}
+
+	// Without a label the star joins the pictures that carry it.
+	m = anna.StarmapAll("", 100)
+	if !has(m, "label:q4", pic(folder, tagged), StarLabelled) || !has(m, "label:q4", string(page.ID), StarLabelled) || !slices.Contains(starIDs(m), pic(other, elsewise)) {
+		t.Errorf("the map without a label %v, edges %v", starIDs(m), m.Edges)
+	}
+	// A star whose carriers the budget left out but one is dropped.
+	m = anna.StarmapAll("", 6)
+	if got := starIDs(m); slices.Contains(got, "label:q4") || !m.Truncated {
+		t.Errorf("a star with one carrier on the map: %v", got)
+	}
+}
