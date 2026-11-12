@@ -1674,6 +1674,11 @@ func shareFileLog(t *testing.T) []Event {
 	noErr(t, s.WithdrawFile(run, folder.ID, lake))
 	noErr(t, s.RestoreFile(run, folder.ID, lake, ShareFile{Path: "Archiv/lake.jpg", Tag: "1719828000000000001"}))
 	noErr(t, s.DeleteAttachment(run, folder.ID, hut))
+	// The folder of a directory, made by the run, takes the entry whose
+	// file is in that directory.
+	archiv, _, err := s.Upsert(run, Upsert{Origin: Origin{System: "share", Instance: "nas", ExternalID: "Archiv"}, Space: "PLAT", Type: FolderType, Parent: folder.ID, Title: "Archiv"})
+	noErr(t, err)
+	noErr(t, s.MoveLinkedFile(run, folder.ID, lake, archiv.ID))
 	return s.Log()
 }
 

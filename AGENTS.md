@@ -87,8 +87,8 @@ A PowerPoint presentation (`.pptx`, `.ppsx`) chosen under the album's *Upload* o
 it uploads each slide named by its place and title and sets its notes as the picture's speaker's notes;
 the presentation file never reaches the server, and nothing on the server is new (proposed, ADR-0186).
 Pictures are added where one is: files chosen, dropped or pasted go into the open folder, or, in a collection or at the top, into a folder chosen each time (the folder listing says which are `editable`), each with the collection's labels;
-**Add from the album…** copies pictures into a folder or gives them a collection's labels;
-a change shows the album again as far as it was shown (`assets/album.js`, ADR-0187).
+**Add from the album…** copies or moves pictures into a folder, as its dialog's choice says (remembered in the browser, copy by default; proposed, ADR-0222), or gives them a collection's labels;
+a change shows the album again as far as it was shown (`assets/album.js`, ADR-0187). A collection keeps the folder its new pictures go into, for everyone who adds to it: an optional `folder` item field its type gains as its next version when first set (`PUT /api/album/collections/{ref}/folder`, ADR-0221).
 Administrators set the corporate design (logo, colours, background, fonts, own stylesheet), kept in `site.wal` (`internal/site`, ADR-0052).
 Full-text search scans the in-memory state through the permission check (ADR-0033).
 Every item carries comments, held as events on the item and erased with it (ADR-0035).
@@ -511,8 +511,16 @@ Update this section whenever a top-level directory is added.
 
 ## Parallel pull requests and merge conflicts
 
-Several agents work on this repository at once, so conflicts between pull requests are the normal case.
-These rules keep them small and keep two sessions from resolving the same one:
+Several agents work on this repository, and pull requests that run side by side conflict in the files they share: the catalogues, the manuals, the ADR index, `style.css` and `e2e/smoke.cjs`.
+Pull requests are therefore opened one at a time.
+This is the maintainer's decision of 2026-11-12.
+
+- **Open a pull request only when no other is open.** Before opening one, list the repository's open pull requests; every open pull request counts, whoever opened it.
+  While any is open, keep the work on its branch, committed and pushed, and open the pull request once the others are merged or closed, after merging the then current `main` into the branch.
+  Two exceptions: a pull request that repairs a broken `main`, and one the person asking for the work explicitly wants opened alongside another.
+  A pull request opened under an exception follows the rules below.
+
+Where pull requests overlap all the same, these rules keep conflicts small and keep two sessions from resolving the same one:
 
 - **One session owns a pull request.** The session that opened it brings it up to date with `main` and resolves its conflicts.
   Another session pushes to its branch only when the person who asked for the work hands it over;

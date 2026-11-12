@@ -274,7 +274,7 @@ A label's page shows the items carrying its label as a view: **Table**, **Galler
 
 The module **Tasks** lists open work across your rooms: items of the type *task* and of every type with a workflow and an *assignee* or *due* field. The tabs show **Assigned to me**, **Unassigned** and **All open**; filters narrow by room, state, person, due date and labels. **Take over** assigns a task to you, **Give back** releases it. Overdue tasks are marked.
 
-The ready-made type *task* has a *start* date beside its *due* date. The calendar and the roadmap show a task with both as a bar from its start to its due date. A start date is not a deadline: on a kanban a past start date is not marked as overdue. Types created before gain the field when an administrator adds the ready-made types' new fields on the start page.
+The ready-made type *task* has a *start* date beside its *due* date. A new task starts today: when it is created, its start date is filled with the current day, which can be changed or cleared in the form. The same holds for every date field named like a beginning (*start*, *begin*, *kickoff* and the like); a task created in the calendar takes the day chosen there. The calendar and the roadmap show a task with both dates as a bar from its start to its due date. A start date is not a deadline: on a kanban a past start date is not marked as overdue. Types created before gain the field when an administrator adds the ready-made types' new fields on the start page.
 
 ### Boards and kanbans
 
@@ -325,8 +325,8 @@ In the **Folders** view, the path to the open folder stands above its contents, 
 
 Pictures are added where you are, in the **Folders** view:
 
-- *In a folder*, choose **Upload pictures**, drop pictures and ZIP archives onto the album, or paste a picture with Ctrl+V, such as a screenshot. An empty folder shows a large area for this. **Add from the album…** copies pictures that are already in the album into the folder; the original stays where it is.
-- *In a collection*, the same ways work. A collection holds no files of its own, so the album asks which folder the new pictures are kept in, the folder chosen last coming first, or makes a **New folder…**; each picture gets the collection's labels and so shows in the collection. **Add from the album…** gives pictures already in the album the collection's labels, without copying them.
+- *In a folder*, choose **Upload pictures**, drop pictures and ZIP archives onto the album, or paste a picture with Ctrl+V, such as a screenshot. An empty folder shows a large area for this. **Add from the album…** brings pictures that are already in the album into the folder: choose **Copy**, and the original stays where it is, or **Move**, and the picture moves with its versions, unless you may not change it or a text shows it. The album remembers the choice.
+- *In a collection*, the same ways work. A collection holds no files of its own, so the album asks which folder the new pictures are kept in, or makes a **New folder…**. The collection remembers the folder for everyone who adds to it and proposes it next time; only whoever may edit the collection changes it. Each picture gets the collection's labels and so shows in the collection. **Add from the album…** gives pictures already in the album the collection's labels, without copying them.
 - *At the top* of the album, uploading, dropping or pasting asks for the folder as well, and that folder then opens.
 
 A PowerPoint presentation becomes a folder of slides with their notes (see *Importing a PowerPoint presentation*). Pictures exported from photo apps are unpacked in the browser. If enabled, photos also come **From Google Photos** or **From a shared iCloud album**. HEIC photos are not accepted; export them as JPEG first. Videos from Google Photos and shared iCloud albums come in too, with the picture the service keeps of them as their poster.
@@ -367,6 +367,22 @@ The view **People** lists everyone named, with their face and how many pictures 
 Faces are found in your browser; nothing is sent elsewhere. If an administrator turned on **Recognise faces again**, the browser also computes numbers from each face that let the album suggest a name, such as *Ada?*, for a face that resembles faces already named. These numbers are biometric data: turn this on only if the people shown agree. Turning it off forgets them all; the names stay. Pictures searched before recognition was turned on are not recognised until they are searched again: after turning it on, administrators are pointed to **Find faces in all pictures**, and a picture opened in the viewer is searched again on its own.
 
 With recognition on, a person's album also shows **Is this Ada?**: faces on other pictures you may edit that resemble Ada more than anyone else named, most alike first. Click the faces that show Ada, or **Choose all** and click away the wrong ones, then **Confirm chosen**. The faces not chosen stay unnamed and are suggested again later. Only pictures whose faces were searched while recognition was on can be suggested.
+
+### Folders that show a file share
+
+An administrator can bind an album folder to a file share: a directory of the server, such as a mounted Samba share, or an S3 bucket.
+The folder then shows the pictures of the share, read again on a schedule.
+Below it, a folder for each directory of the share holds that directory's pictures; these folders follow the share and are not made, moved or deleted by hand, and a title changed by hand is set back.
+The share stays the master: the wiki keeps a preview of each picture, and the original stays where it lies.
+
+Such a picture is marked **On a file share**.
+**Open original** opens it where it lies, with your own access to the share; the share decides whether it opens.
+You label it, name the people on it, set its place and time and mark it as a favourite as for any picture.
+You do not rename, move or delete it, and you add no pictures to such a folder: change the files on the share, and the next reading follows.
+A file moved on the share keeps what was set on it, as far as its content is unchanged.
+A file gone from the share disappears from the album; if it comes back within 30 days, it returns with its labels and names.
+Copying such a picture, or exporting it, takes its preview.
+A picture of a format the server shows no picture of, such as a phone's HEIC or a camera's RAW, has a symbol instead of a preview; it offers only **Open original**, and so does a video of a share.
 
 ### Moving a folder
 
@@ -545,7 +561,9 @@ Administrators find under **Administration**:
 - **Rooms**: create rooms, open their settings, move a room to the trash and restore or delete it for good;
 - **Item types**: create and change types in a form — name, text, fields with their kind and options, workflow with states and transitions (or simply *open → done*) and start text — for the whole installation or for one room; the type as JSON stays under **Advanced**. Types are also made from the ready-made templates;
 - **Backup** (also on a schedule to a directory, WebDAV, S3, FTPS or SFTP) and **Storage**;
-- **Calendars of other services**, **Album: older versions**, **Connectors** and **Process engines**;
+- **Calendars of other services**, **Album: older versions**, **File shares**, **Connectors** and **Process engines**.
+  Under **File shares** an album folder is bound to a directory the operator allows or to an S3 bucket, read now (**Read now**, **Dry run**) or on its schedule.
+  Whoever may read the folder sees every picture the server can read on the share; a run that would withdraw more than half of a share's pictures withdraws none until **Confirm withdrawals**;
 - **Appearance (corporate design)**: logo, colours, background, fonts, and a ready-made theme, among them *Capacity*, a quiet look for notes in light and dark;
 - **Word templates**, **Data protection regulations**, **Import** and the **Audit trail**.
 

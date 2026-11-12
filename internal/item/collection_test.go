@@ -155,3 +155,76 @@ func TestARuleIsReadFromTheProperties(t *testing.T) {
 		t.Error("a rule without labels gathers")
 	}
 }
+
+// A collection keeps the folder its new pictures go into, for everyone
+// who adds to it; its type gains the field when one is first kept, and a
+// folder a reader may not read is no folder for them (ADR-0221).
+func TestACollectionKeepsTheFolderOfItsNewPictures(t *testing.T) {
+	s := permFixture(t)
+	noErr(t, s.GrantRole("root", "OPS", "anna", Editor))
+	anna, ben := s.As("anna"), s.As("ben")
+	logos := mustItem(t)(anna.CreateFolder("PLAT", "", "Logos"))
+	secret := mustItem(t)(anna.CreateFolder("OPS", "", "Secret"))
+	prints := mustItem(t)(anna.CreateCollection("PLAT", "", "Print", CollectionRule{Labels: []string{"print"}}))
+	folderOf := func(x *Session) ID {
+		t.Helper()
+		for _, c := range x.Collections("PLAT", "") {
+			if c.Item.ID == prints.ID {
+				return c.Folder
+			}
+		}
+		t.Fatalf("the collection is not listed")
+		return ""
+	}
+	if folderOf(anna) != "" {
+		t.Fatalf("a new collection keeps a folder")
+	}
+	before, _ := s.latest(CollectionType)
+	if _, ok := before.field(fieldFolder); ok {
+		t.Fatalf("the first type of collections has the folder field already")
+	}
+
+	if err := ben.SetCollectionFolder(prints.ID, logos.ID); !errors.Is(err, ErrForbidden) {
+		t.Errorf("a viewer kept a folder: %v", err)
+	}
+	if err := anna.SetCollectionFolder(prints.ID, prints.ID); !errors.Is(err, ErrValidation) {
+		t.Errorf("a collection kept itself as its folder: %v", err)
+	}
+	noErr(t, anna.SetCollectionFolder(prints.ID, logos.ID))
+	after, _ := s.latest(CollectionType)
+	if f, ok := after.field(fieldFolder); !ok || after.Version != before.Version+1 || f.Kind != KindItem || f.Required {
+		t.Fatalf("the type gains the folder as its next version: %+v", after)
+	}
+	if !isCollectionType(after) {
+		t.Fatalf("the type with the folder is still the album's collection")
+	}
+	if folderOf(anna) != logos.ID || folderOf(ben) != logos.ID {
+		t.Errorf("everyone who reads the folder sees it kept: %q, %q", folderOf(anna), folderOf(ben))
+	}
+	// Another collection made now uses the type with the folder field.
+	mustItem(t)(anna.CreateCollection("PLAT", "", "Logos", CollectionRule{Labels: []string{"logo"}}))
+	// The same folder again changes nothing; another one replaces it.
+	noErr(t, anna.SetCollectionFolder(prints.ID, logos.ID))
+	noErr(t, anna.SetCollectionFolder(prints.ID, secret.ID))
+	if folderOf(anna) != secret.ID {
+		t.Errorf("anna sees %q", folderOf(anna))
+	}
+	// The kept folder and the type's new version survive a replay.
+	re, err := Replay(s.Log())
+	noErr(t, err)
+	if got := re.As("anna").Collections("PLAT", ""); len(got) != 2 || got[1].Item.ID != prints.ID || got[1].Folder != secret.ID {
+		t.Errorf("after a replay %+v", got)
+	}
+	// Ben may not read OPS: its folder does not exist for him (D10).
+	if folderOf(ben) != "" {
+		t.Errorf("ben sees a folder he may not read: %q", folderOf(ben))
+	}
+	noErr(t, anna.SetCollectionFolder(prints.ID, ""))
+	if folderOf(anna) != "" {
+		t.Errorf("a forgotten folder is still kept")
+	}
+	// A collection whose type lacks the field forgets nothing without
+	// defining a version.
+	other := mustItem(t)(anna.CreateCollection("PLAT", "", "Other", CollectionRule{Labels: []string{"x"}}))
+	noErr(t, anna.SetCollectionFolder(other.ID, ""))
+}

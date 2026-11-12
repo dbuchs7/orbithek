@@ -2,6 +2,7 @@ package item
 
 import (
 	"regexp"
+	"slices"
 	"strings"
 	"unicode/utf8"
 )
@@ -235,4 +236,45 @@ func relinkedPhoto(old, read *Photo) *Photo {
 		return nil
 	}
 	return &p
+}
+
+// MoveLinkedFile moves an entry of a file share to the folder of the
+// directory its file moved to (ADR-0197), keeping its identity and what
+// people set on it, as a person's move does (ADR-0188). Only a share's
+// run calls it, as the trusted store, once the entry's preview is stored
+// for the folder it goes to. An entry has a single version.
+func (s *Store) MoveLinkedFile(actor string, from, file, to ID) error {
+	it, a, err := s.linkedEntry(from, file)
+	if err != nil {
+		return err
+	}
+	dst, err := s.live(to)
+	if err != nil {
+		return err
+	}
+	if dst.ID == it.ID {
+		return invalid("entry %s is in %s already", file, dst.Key)
+	}
+	if a.Withdrawn() {
+		return invalid("entry %s is withdrawn; it is restored before it moves", file)
+	}
+	if dst.Type != FolderType {
+		return invalid("an entry of a file share goes into an album folder, not %s", dst.Key)
+	}
+	if _, dup := dst.attachment(file); dup {
+		return invalid("attachment %s exists in %s", file, dst.Key)
+	}
+	rec := *a
+	rec.Labels, rec.Photo, rec.Faces = slices.Clone(a.Labels), clonePhoto(a.Photo), slices.Clone(a.Faces)
+	f := *a.Share
+	rec.Share = &f
+	if a.Retention != nil {
+		r := *a.Retention
+		rec.Retention = &r
+	}
+	rec.Move = &Move{From: it.ID, Author: a.Author, Created: a.Created}
+	rec.Author, rec.Created, rec.Deleted = "", 0, false
+	return s.recordBatch(actor,
+		Event{Kind: AttachmentMovedIn, Item: dst.ID, Attachment: &rec},
+		Event{Kind: AttachmentMovedOut, Item: it.ID, Attachment: &Attachment{ID: file, Move: &Move{To: dst.ID}}})
 }

@@ -199,3 +199,45 @@ func TestRelinkedPhoto(t *testing.T) {
 		t.Errorf("privacy kept with the file's place: %+v", p)
 	}
 }
+
+// TestALinkedFileMovesToTheFolderOfItsDirectory: a run moves an entry to
+// the folder it made for the entry's directory; the entry keeps its
+// identity and what people set, and the log rebuilds it (ADR-0197).
+func TestALinkedFileMovesToTheFolderOfItsDirectory(t *testing.T) {
+	s := setup(t)
+	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))
+	anna := s.As("anna")
+	folder := mustItem(t)(anna.CreateFolder("PLAT", "", "NAS"))
+	page := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "A page"}))
+	_, err := s.LinkFile(nasRun, folder.ID, linked(lakeID, "lake.jpg", "2024/lake.jpg", "a1"))
+	noErr(t, err)
+	noErr(t, anna.SetPictureLabels(folder.ID, lakeID, []string{"see"}))
+	dir, _, err := s.Upsert(nasRun, Upsert{Origin: Origin{System: "share", Instance: "nas", ExternalID: "2024"}, Space: "PLAT", Type: FolderType, Parent: folder.ID, Title: "2024"})
+	noErr(t, err)
+	if err := s.MoveLinkedFile(nasRun, folder.ID, lakeID, page.ID); !refusedAsInvalid(err) {
+		t.Errorf("into a page: %v", err)
+	}
+	if err := s.MoveLinkedFile(nasRun, folder.ID, lakeID, folder.ID); !refusedAsInvalid(err) {
+		t.Errorf("into its own folder: %v", err)
+	}
+	if err := s.MoveLinkedFile(nasRun, folder.ID, lakeID, "nope"); err == nil {
+		t.Error("into a missing folder")
+	}
+	noErr(t, s.MoveLinkedFile(nasRun, folder.ID, lakeID, dir.ID))
+	moved, _ := s.Get(dir.ID)
+	if len(moved.Attachments) != 1 || moved.Attachments[0].Share.Path != "2024/lake.jpg" || len(moved.Attachments[0].Labels) != 1 || moved.Attachments[0].Author != nasRun {
+		t.Fatalf("moved %+v", moved.Attachments)
+	}
+	if left, _ := s.Get(folder.ID); len(left.Attachments) != 0 {
+		t.Fatalf("left behind %+v", left.Attachments)
+	}
+	again, err := Replay(s.Log())
+	noErr(t, err)
+	if it, _ := again.Get(dir.ID); len(it.Attachments) != 1 || !it.Attachments[0].Linked() {
+		t.Fatalf("replayed %+v", it.Attachments)
+	}
+	noErr(t, s.WithdrawFile(nasRun, dir.ID, lakeID))
+	if err := s.MoveLinkedFile(nasRun, dir.ID, lakeID, folder.ID); !refusedAsInvalid(err) {
+		t.Errorf("a withdrawn entry moved: %v", err)
+	}
+}

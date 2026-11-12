@@ -1453,6 +1453,9 @@ function webSource() {
     // (ADR-0214).
     await page.click("#body .pm-table tr:nth-child(2) td:first-child");
     await page.waitForSelector("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-editor");
+    // The cell being edited keeps the height of a line, not the page's.
+    const editedHeight = await page.locator("#body .pm-table tr:nth-child(2) td:first-child").evaluate((td) => td.getBoundingClientRect().height);
+    if (editedHeight > 80) throw new Error(`the cell being edited is ${editedHeight}px high`);
     await page.keyboard.type("db1, the primary database server of the cluster in the main data centre");
     await page.keyboard.press("Control+a");
     await page.keyboard.press("Control+b");
@@ -1927,10 +1930,17 @@ function webSource() {
     await page.setInputFiles("#album-files", { name: "collected.png", mimeType: "image/png", buffer: own("collected") });
     await page.waitForSelector("dialog#album-target[open] #album-target-folder option:has-text('Logos')", { state: "attached" });
     check((await page.textContent("dialog#album-target")).includes("nothing-here"), "the folder's question names the labels the pictures get");
+    check((await page.textContent("dialog#album-target")).includes("kept for this collection"), "the question says the folder is kept for the collection (ADR-0221)");
     await page.selectOption("#album-target-folder", { label: "PLAT › Logos" });
     await page.click("#album-target-ok");
     const collected = "#album .album-card:has(.album-name:text-is('collected'))";
     await page.waitForSelector(collected + " .album-label:text-is('nothing-here')");
+    // The collection keeps the folder chosen, for everyone who adds to it (ADR-0221).
+    const keptFolder = await page.evaluate(async () => {
+      const r = await (await fetch("/api/album/folders?space=PLAT")).json();
+      return [r.collections.find((c) => c.name === "Print")?.folder, r.folders.find((f) => f.name === "Logos")?.id];
+    });
+    check(keptFolder[0] && keptFolder[0] === keptFolder[1], "the collection keeps the folder chosen: " + JSON.stringify(keptFolder));
     check((await page.textContent("#album .status")).includes("Kept in the folder Logos."), "the album says which folder keeps the pictures");
     // A picture already in the album is added by giving it the collection's labels.
     await page.click("#album-add-existing");
@@ -1965,6 +1975,40 @@ function webSource() {
     await lastCard.locator(".album-labels-input").press("Enter");
     await lastCard.locator(".album-label:text-is('late')").waitFor();
     check(await page.locator("#album .album-grid > li.album-card").count() === 50, "labelling after Show more keeps every picture shown");
+    // Adding from the album to a folder copies or moves, as the dialog's
+    // choice says, which the browser keeps (ADR-0222).
+    await page.click("#album .album-trail button:has-text('All pictures')");
+    await page.click("#album .album-folder:has-text('Logos')");
+    await page.waitForSelector("#album-add-existing");
+    const addPicture = async (name, mode, done) => {
+      await page.click("#album-add-existing");
+      await page.waitForSelector("dialog#album-add[open] #album-add-copy");
+      await page.click(`#album-add-${mode}`);
+      await page.fill("dialog#album-add input[type=search]", name);
+      const card = `dialog#album-add .album-card:has(.album-name:text-is('${name}'))`;
+      await page.click(card + " .album-pick");
+      await page.waitForSelector(`${card} .album-pick:text-is('${done}')`);
+      await page.click("#album-add-done");
+      await page.waitForSelector("dialog#album-add", { state: "detached" });
+    };
+    await addPicture("many-01", "move", "Moved");
+    await addPicture("many-02", "copy", "Added");
+    await page.waitForSelector("#album .album-card:has(.album-name:text-is('many-01'))");
+    await page.waitForSelector("#album .album-card:has(.album-name:text-is('many-02'))");
+    const stayed = await page.evaluate(async (id) => (await (await fetch(`/api/album?folder=${id}&limit=200`)).json()).pictures.map((p) => p.attachment.name), many.id);
+    check(!stayed.includes("many-01.png") && stayed.includes("many-02.png"), "a picture moved leaves its folder, a copy leaves the original: " + stayed.length);
+    await page.click("#album-add-existing");
+    await page.waitForSelector("dialog#album-add[open] #album-add-copy[aria-pressed=true]");
+    await page.click("#album-add-done");
+    // The two pictures added leave again, so later steps count as before.
+    await page.evaluate(async () => {
+      const { folders } = await (await fetch("/api/album/folders?space=PLAT")).json();
+      const logos = folders.find((f) => f.name === "Logos");
+      const { pictures } = await (await fetch(`/api/album?folder=${logos.id}&limit=200`)).json();
+      for (const p of pictures.filter((p) => /^many-0[12]\.png$/.test(p.attachment.name))) {
+        await fetch(`/api/items/${p.item.id}/attachments/${p.attachment.id}`, { method: "DELETE" });
+      }
+    });
     await page.evaluate(async (id) => fetch(`/api/items/${id}/trash`, { method: "POST" }), many.id);
     await page.click("#album .album-trail button:has-text('All pictures')");
     await page.waitForSelector("#album .album-folder:has-text('Logos')");
@@ -6426,6 +6470,59 @@ function webSource() {
       if (!recordingGone) await page.waitForTimeout(500);
     }
     check(recordingGone, "the recording is out of the text and its file is deleted");
+
+    step("file shares: an administrator binds an album folder to a directory; its pictures show as previews that open where they lie (ADR-0197)");
+    // The server may bind directories below SHARE_DIR's parent
+    // (OT_SHARE_ROOTS); without it, as in a local run, the step is left out.
+    if (process.env.SHARE_DIR) {
+      const fs = require("fs");
+      const path = require("path");
+      fs.mkdirSync(path.join(process.env.SHARE_DIR, "2024"), { recursive: true });
+      fs.writeFileSync(path.join(process.env.SHARE_DIR, "2024", "lake.png"),
+        Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64"));
+      // A phone's HEIC, which the server shows no picture of.
+      fs.writeFileSync(path.join(process.env.SHARE_DIR, "phone.heic"), Buffer.concat([Buffer.from("\x00\x00\x00\x18ftypheic\x00\x00\x00\x00mif1heic", "latin1"), Buffer.alloc(64)]));
+      check((await page.request.post(base + "/api/login", { data: { username: "admin", password: adminPassword } })).ok(), "admin signs in for the file shares");
+      const nasMade = await page.request.post(base + "/api/album/folders", { data: { space: "PLAT", name: "Share NAS" } });
+      check(nasMade.status() === 201, "the folder for the share is made: " + nasMade.status());
+      const nasFolder = (await nasMade.json()).item;
+      await page.goto(base + "/#/admin");
+      await page.waitForSelector("#shares-settings h3");
+      check(await page.isVisible("#shares-disclosure"), "the card says that binding a share discloses it");
+      await page.fill("#share-id", "nas");
+      await page.fill("#share-name", "NAS");
+      await page.fill("#share-address", process.env.SHARE_DIR);
+      await page.fill("#share-folder", nasFolder.key);
+      await page.fill("#share-link", "smb://nas/photos/{path}");
+      await page.click("#share-form button[type=submit]");
+      await page.waitForSelector(".share-row[data-share=nas]");
+      await page.click(".share-row[data-share=nas] .share-run");
+      let read = false;
+      for (let i = 0; i < 100 && !read; i++) {
+        const nas = (await (await page.request.get(base + "/api/shares")).json()).shares.find((s) => s.id === "nas");
+        read = nas && !nas.status.running && nas.status.history.length > 0;
+        if (read) check(!nas.status.history[0].error && nas.entries === 2, "the run linked the pictures: " + JSON.stringify(nas.status.history[0]));
+        else await page.waitForTimeout(100);
+      }
+      check(read, "the share was read");
+      await page.goto(base + "/#/album");
+      await page.click("#album .album-trail button:has-text('All pictures')");
+      await page.click("#album .album-folder:has-text('Share NAS')");
+      // The HEIC lies in the bound folder and shows a symbol; the picture
+      // of 2024 lies in the folder of its directory.
+      const heicCard = page.locator("#album .album-card", { has: page.locator(".album-share-symbol") });
+      await heicCard.waitFor();
+      check(await heicCard.locator(".album-copy").count() === 0, "a picture without a preview offers nothing to copy");
+      await page.click("#album .album-folder:has-text('2024')");
+      // The view of all pictures shows the share's picture too, among
+      // others; every check is on its own card.
+      const shareCard = page.locator("#album .album-card", { has: page.locator(".album-share-chip") }).filter({ has: page.locator(".album-thumb img") });
+      await shareCard.waitFor();
+      check(await shareCard.locator(".album-original").getAttribute("href") === "smb://nas/photos/2024/lake.png", "the picture opens where it lies on the share");
+      check(await shareCard.locator(".album-rename, .album-delete").count() === 0, "a picture of a share is not renamed or deleted here");
+      await shareCard.locator(".album-thumb img").evaluate((img) => img.complete && img.naturalWidth > 0
+        ? true : new Promise((resolve, reject) => { img.addEventListener("load", () => resolve(true)); img.addEventListener("error", () => reject(new Error("the preview does not load"))); }));
+    }
 
     check(problems.length === 0, problems.join("; "));
     console.log("ok");

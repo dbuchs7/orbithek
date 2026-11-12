@@ -12,6 +12,8 @@ import (
 // gathers under it the pictures of every room whose labels match, as far
 // as the reader may read them. The rule is a set of properties, written
 // through the type's validated fields (D3, D4); nothing new is persisted.
+// A collection also keeps the folder its new pictures are kept in, for
+// everyone who adds to it (ADR-0221).
 
 // CollectionType names the type of the album's collections.
 const CollectionType = "collection"
@@ -21,6 +23,10 @@ const (
 	fieldRule   = "rule"
 	fieldMatch  = "match"
 	fieldSource = "source"
+	// fieldFolder is the folder a collection's new pictures are kept in
+	// (ADR-0221). The type gains the field when a collection first keeps
+	// a folder, so a type defined earlier needs nothing.
+	fieldFolder = "folder"
 
 	matchAny = "any"
 	matchAll = "all"
@@ -39,6 +45,15 @@ func collectionType() TypeDef {
 	}}
 }
 
+// folderField is the field a collection's type gains, as its next version,
+// when a collection first keeps a folder (ADR-0221).
+func folderField() FieldDef {
+	return FieldDef{Name: fieldFolder, Kind: KindItem, Targets: []string{FolderType}}
+}
+
+// ruleFields are the fields every version of the collection's type has.
+var ruleFields = []string{fieldRule, fieldMatch, fieldSource}
+
 // isCollectionType reports whether a type is the album's collection: no
 // body and no workflow, the fields of a rule in their kinds, and no other
 // field one must fill.
@@ -46,11 +61,18 @@ func isCollectionType(td TypeDef) bool {
 	if td.Body || td.Workflow != nil {
 		return false
 	}
-	for _, want := range collectionType().Fields {
-		f, ok := td.field(want.Name)
+	ours := collectionType()
+	for _, name := range ruleFields {
+		want, _ := ours.field(name)
+		f, ok := td.field(name)
 		if !ok || f.Kind != want.Kind || !slices.Equal(f.Values, want.Values) {
 			return false
 		}
+	}
+	// The folder field, which a type defined before ADR-0221 lacks, refers
+	// to folders where it is.
+	if f, ok := td.field(fieldFolder); ok && (f.Kind != KindItem || !slices.Equal(f.Targets, []string{FolderType})) {
+		return false
 	}
 	return !slices.ContainsFunc(td.Fields, func(f FieldDef) bool {
 		_, ours := collectionType().field(f.Name)
@@ -185,6 +207,62 @@ func (x *Session) Collection(id ID) (Item, CollectionRule, error) {
 	return Item{ID: it.ID, Key: it.Key, Title: it.Title, Space: it.Space, Type: it.Type, Parent: it.Parent}, ruleOfProps(it.Properties), nil
 }
 
+// SetCollectionFolder keeps the folder a collection's new pictures go into,
+// for everyone who adds to it (ADR-0221); an empty folder forgets it. Who
+// may edit the collection may, naming a live folder they may read. A
+// collection's type made before the field existed gains it as its next
+// version.
+func (x *Session) SetCollectionFolder(id, folder ID) error {
+	it, err := x.editable(id)
+	if err != nil {
+		return err
+	}
+	if it.Presence != Live || it.Type != CollectionType {
+		return notFound("collection %s", id)
+	}
+	var value any
+	if folder != "" {
+		f, err := x.readable(folder)
+		if err != nil {
+			return err
+		}
+		if f.Presence != Live || f.Type != FolderType {
+			return invalid("%s is no folder of the album", f.Key)
+		}
+		value = f.ID
+	}
+	if now, _ := it.Properties[fieldFolder].(ID); now == folder {
+		return nil
+	}
+	td, _ := x.s.latest(CollectionType)
+	if _, ok := td.field(fieldFolder); !ok {
+		if value == nil {
+			return nil
+		}
+		next := td
+		next.Fields = append(slices.Clone(td.Fields), folderField())
+		if err := x.s.DefineType(x.who, next); err != nil {
+			return err
+		}
+	}
+	return x.SetProperty(id, fieldFolder, value)
+}
+
+// folderOf is the folder a collection keeps for new pictures, if the
+// principal may read it: a folder they may not read does not exist for
+// them (D10).
+func (x *Session) folderOf(it *Item) ID {
+	f, _ := it.Properties[fieldFolder].(ID)
+	if f == "" {
+		return ""
+	}
+	target, ok := x.s.items[f]
+	if !ok || target.Presence != Live || !x.s.canRead(x.who, target) {
+		return ""
+	}
+	return f
+}
+
 // SetCollectionRule replaces the rule of a collection the principal may
 // edit. Each changed part is written as the property it is (D3).
 func (x *Session) SetCollectionRule(id ID, rule CollectionRule) error {
@@ -217,6 +295,9 @@ type AlbumCollection struct {
 	Item     Item
 	Rule     CollectionRule
 	Editable bool
+	// Folder is the folder new pictures of the collection go into, when
+	// one is kept and the principal may read it (ADR-0221).
+	Folder ID
 }
 
 // Collections lists the album's collections the principal may read in a
@@ -232,6 +313,7 @@ func (x *Session) Collections(space string, parent ID) []AlbumCollection {
 			Item:     Item{ID: it.ID, Key: it.Key, Title: it.Title, Space: it.Space, Type: it.Type, Parent: it.Parent},
 			Rule:     ruleOfProps(it.Properties),
 			Editable: x.s.canEdit(x.who, it) && it.Managed == "",
+			Folder:   x.folderOf(it),
 		})
 	}
 	slices.SortFunc(out, func(a, b AlbumCollection) int {

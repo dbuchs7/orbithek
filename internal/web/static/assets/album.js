@@ -21,13 +21,13 @@
 // a folder chosen each time, where a collection's labels are given to
 // them; pictures already in the album are copied into a folder or given a
 // collection's labels.
-import { h, when } from "./dom.js";
+import { h, shareHref, when } from "./dom.js";
 import { t } from "./i18n.js";
 import { get, post, put, del, upload } from "./api.js";
 import { DRAWING } from "./drawing.js";
 import { exportFormats, exportPicture } from "./picexport.js";
 import { allFolders, copyTo, moveTo, dayText, deckText, googleImport, icloudImport, importDeck, importFiles, monthText, openViewer, rememberedAlbum, setFavourite, importPlace, PLACES, summaryText, thumbURL, zipPictures } from "./photos.js";
-import { dragged, durationText, folderDrop, folderTargets, groups, isVideo, orderDrop, range, shiftTaken, yearsAgo } from "./photoparts.js";
+import { dragged, durationText, folderDrop, folderTargets, groups, isVideo, onShare, orderDrop, range, shareLink, shiftTaken, yearsAgo } from "./photoparts.js";
 import { askTime } from "./phototime.js";
 import { photoMap } from "./photomap.js";
 import { pickPlace, placeInput } from "./places.js";
@@ -346,8 +346,12 @@ export function albumBrowser({ pick, pickText } = {}) {
   // its item's text shows is deleted there, not here; the menu says so.
   const moreMenu = (p, stacked) => {
     const name = captionOf(p.attachment.name);
+    // An entry of a file share is renamed and deleted on the share
+    // (ADR-0197); its order among the slides is still set here.
+    const fixed = onShare(p);
+    if (fixed && !reordering()) return null;
     const m = menu("album-more", h("summary", { class: "album-more-button", "aria-label": t("album.moreOf", { name }), title: t("album.moreTitle") }), [
-      h("button", { type: "button", class: "link album-rename", text: t("album.rename"),
+      fixed ? null : h("button", { type: "button", class: "link album-rename", text: t("album.rename"),
         onclick: () => { m.open = false; rename(p, m.closest(".album-card")?.querySelector(".album-name")); } }),
       stacked ? h("button", { type: "button", class: "link album-retention", text: t("retention.open"),
         onclick: () => { m.open = false; cleanUp(p); } }) : null,
@@ -355,7 +359,7 @@ export function albumBrowser({ pick, pickText } = {}) {
         onclick: () => { m.open = false; stepPicture(p, -1); } }) : null,
       reordering() && !p.versionOf ? h("button", { type: "button", class: "link album-later", text: t("album.moveLater"),
         onclick: () => { m.open = false; stepPicture(p, 1); } }) : null,
-      h("button", { type: "button", class: "link danger album-delete", text: t("album.delete"), disabled: p.used,
+      fixed ? null : h("button", { type: "button", class: "link danger album-delete", text: t("album.delete"), disabled: p.used,
         onclick: async () => {
           m.open = false;
           if (!confirm(t("album.deleteConfirm", { name: p.attachment.name }))) return;
@@ -365,7 +369,7 @@ export function albumBrowser({ pick, pickText } = {}) {
             refresh();
           } catch (err) { fail(err); }
         } }),
-      p.used ? h("p", { class: "muted album-used", text: t("album.used") }) : null,
+      p.used && !fixed ? h("p", { class: "muted album-used", text: t("album.used") }) : null,
     ]);
     return m;
   };
@@ -403,7 +407,18 @@ export function albumBrowser({ pick, pickText } = {}) {
           } else b.disabled = false;
         } catch (err) { b.disabled = false; fail(err); }
       } }));
+    // An entry of a file share opens its original where it lies, with the
+    // reader's own access to the share (ADR-0197).
+    // h() allows http(s) links only; an smb: address is set with shareHref,
+    // which allows https: and smb: alone.
+    const original = shareLink(p);
+    const openOriginal = original ? h("a", { class: "button secondary album-original", target: "_blank", rel: "noopener noreferrer", text: t("album.openOriginal"), title: t("album.openOriginalTitle") }) : null;
+    openOriginal?.setAttribute("href", shareHref(original));
+    // Without a preview (HEIC, RAW, a video of a share) there is nothing
+    // here to copy, export or download; the original opens on the share.
+    if (onShare(p) && !p.attachment.share.preview) return h("div", { class: "album-actions" }, openOriginal);
     return h("div", { class: "album-actions" },
+      openOriginal,
       h("button", { type: "button", class: "secondary album-copy", text: t("album.copy"), title: t("album.copyTitle"), onclick: async () => {
         const system = await copyPicture(p);
         status.replaceChildren(h("p", { class: "notice", role: "status", text: t(system ? "album.copied" : "album.copiedHere", { name: captionOf(p.attachment.name) }) }));
@@ -436,7 +451,12 @@ export function albumBrowser({ pick, pickText } = {}) {
   // is the top of a stack with older versions.
   const card = (p, version, picture, stacked = false) => {
     const name = captionOf(p.attachment.name);
-    const thumb = h("div", { class: "album-thumb" }, picture || (isVideo(p) ? videoThumb(p, name) : h("img", { src: thumbURL(p), alt: name, loading: "lazy", draggable: "false" })));
+    // An entry of a file share without a preview (a format the server
+    // does not scale) shows a symbol (ADR-0197).
+    const noPreview = onShare(p) && !isVideo(p) && !p.attachment.share.preview;
+    const thumb = h("div", { class: "album-thumb" }, picture || (isVideo(p) ? videoThumb(p, name)
+      : noPreview ? h("span", { class: "album-share-symbol", role: "img", "aria-label": t("album.noPreview") })
+        : h("img", { src: thumbURL(p), alt: name, loading: "lazy", draggable: "false" })));
     const li = h("li", { class: "album-card", "data-attachment": p.attachment.id },
       h("figure", {},
         thumb,
@@ -448,6 +468,7 @@ export function albumBrowser({ pick, pickText } = {}) {
           h("span", { class: "album-chips" },
             p.drawing ? h("span", { class: "chip", text: t("album.drawing") }) : null,
             isVideo(p) ? h("span", { class: "chip album-video-chip", text: t("album.video") }) : null,
+            onShare(p) ? h("span", { class: "chip album-share-chip", text: t("album.onShare"), title: p.attachment.share.path }) : null,
             version ? h("span", { class: "chip album-version", text: t("album.version", { n: version }) }) : null,
             stacked && p.retention ? h("span", { class: "chip album-own-rule", text: t("retention.chip") }) : null,
             // In the view of duplicates, how it matches the others (ADR-0196).
@@ -1395,9 +1416,9 @@ export function albumBrowser({ pick, pickText } = {}) {
         try { await zipPictures(list); say(t("photos.zipped", { n: list.length }), "notice"); } catch (err) { fail(err); }
       } }),
       h("button", { type: "button", class: "danger", id: "album-bulk-delete", disabled: !any, text: t("album.delete"), onclick: async () => {
-        const may = list.filter((p) => p.editable && !p.used);
+        const may = list.filter((p) => p.editable && !p.used && !onShare(p));
         if (!confirm(t("photos.deleteConfirm", { n: may.length, kept: list.length - may.length }))) return;
-        await together("photos.deleted", async (p) => { if (!p.editable || p.used) return false; await del(fileURL(p)); return true; });
+        await together("photos.deleted", async (p) => { if (!p.editable || p.used || onShare(p)) return false; await del(fileURL(p)); return true; });
         chosen.clear();
         await loadLabels();
         refresh();
@@ -1432,10 +1453,20 @@ export function albumBrowser({ pick, pickText } = {}) {
     const labels = collection ? collection.rule.labels : [];
     let folder = inFolder() ? here() : null;
     if (!folder) {
+      // A collection proposes the folder it keeps for everyone, and keeps
+      // the one chosen when one may edit it (ADR-0221).
       folder = await chooseFolder(collection
-        ? { title: t("album.targetTitleCollection", { name: collection.name, n: list.length }), hint: t("album.targetHintCollection", { labels: labels.join(", ") }) }
+        ? { title: t("album.targetTitleCollection", { name: collection.name, n: list.length }),
+          hint: t("album.targetHintCollection", { labels: labels.join(", ") }) + (collection.editable ? " " + t("album.targetKeptCollection") : ""),
+          preferred: collection.folder || "" }
         : { title: t("album.targetTitle", { n: list.length }), hint: t("album.targetHint") });
       if (!folder) return;
+      if (collection?.editable && collection.folder !== folder.id) {
+        try {
+          await put(`/api/album/collections/${collection.id}/folder`, { folder: folder.id });
+          collection.folder = folder.id;
+        } catch (err) { fail(err); }
+      }
     }
     const top = !here();
     // Where the pictures went, said once the album shows them; a folder
@@ -1470,10 +1501,11 @@ export function albumBrowser({ pick, pickText } = {}) {
   };
 
   // chooseFolder asks which folder pictures go into: one of the folders
-  // one may add to, the one chosen last first, or a new folder in a room
-  // (ADR-0187). It resolves to the folder, or to null.
+  // one may add to — preferred first, else the one chosen last in this
+  // browser — or a new folder in a room (ADR-0187, ADR-0221). It resolves
+  // to the folder, or to null.
   const LAST_FOLDER = "ot.albumUploadFolder";
-  const chooseFolder = ({ title, hint }) => new Promise((resolve) => {
+  const chooseFolder = ({ title, hint, preferred = "" }) => new Promise((resolve) => {
     const NEW = "new";
     let list = [];
     const select = h("select", { id: "album-target-folder", "aria-label": t("album.targetFolder") }, h("option", { value: NEW, text: t("album.targetNew") }));
@@ -1534,15 +1566,27 @@ export function albumBrowser({ pick, pickText } = {}) {
       let last = "";
       try { last = localStorage.getItem(LAST_FOLDER) || ""; } catch { /* none */ }
       select.prepend(...list.map((f) => h("option", { value: f.id, text: f.path })));
-      select.value = list.some((f) => f.id === last) ? last : list.length ? list[0].id : NEW;
+      const first = [preferred, last].find((id) => id && list.some((f) => f.id === id));
+      select.value = first || (list.length ? list[0].id : NEW);
       sync();
     }).catch((err) => { error.textContent = err.message; error.hidden = false; });
   });
 
   // addFromAlbum adds pictures already in the album where one is
   // (ADR-0187): into a folder as copies with their source, as inserting
-  // does (ADR-0054); to a collection by giving them its labels, without
-  // a copy. The album stays open for one picture after another.
+  // does (ADR-0054), or moved with their versions (ADR-0188), as the
+  // dialog's choice says, which this browser keeps (ADR-0222); to a
+  // collection by giving them its labels, without a copy. The album stays
+  // open for one picture after another.
+  const ADD_MODE = "ot.albumAddMode";
+  const addMode = (value) => {
+    try {
+      if (value) localStorage.setItem(ADD_MODE, value);
+      return localStorage.getItem(ADD_MODE) === "move" ? "move" : "copy";
+    } catch {
+      return value === "move" ? "move" : "copy";
+    }
+  };
   const addFromAlbum = () => {
     const target = here();
     if (!target) return;
@@ -1561,9 +1605,31 @@ export function albumBrowser({ pick, pickText } = {}) {
         return t("album.added");
       }
       if (p.item.id === target.id) return t("album.addedAlready");
+      if (mode === "move") {
+        await moveTo(p, target.id);
+        return t("album.addMoved");
+      }
       await copyTo(p, target.id);
       return t("album.added");
     };
+    // Copy or move, for a folder; a collection takes neither.
+    let mode = addMode();
+    const hint = h("p", { class: "muted album-add-hint" });
+    const showHint = () => {
+      hint.textContent = collection ? t("album.addHintCollection", { labels: labels.join(", ") }) : t(mode === "move" ? "album.addHintMove" : "album.addHintFolder");
+    };
+    const modes = collection ? null : h("div", { class: "segmented album-add-mode", role: "radiogroup", "aria-label": t("album.addMode") },
+      ["copy", "move"].map((m) => h("button", { type: "button", class: "segment", role: "radio", id: "album-add-" + m, "data-mode": m,
+        "aria-checked": String(m === mode), "aria-pressed": String(m === mode), text: t(m === "move" ? "album.addModeMove" : "album.addModeCopy"),
+        onclick: () => {
+          mode = addMode(m);
+          for (const b of modes.querySelectorAll("button")) {
+            b.setAttribute("aria-checked", String(b.dataset.mode === mode));
+            b.setAttribute("aria-pressed", String(b.dataset.mode === mode));
+          }
+          showHint();
+        } })));
+    showHint();
     let closed = false;
     const close = () => {
       if (closed) return;
@@ -1577,7 +1643,7 @@ export function albumBrowser({ pick, pickText } = {}) {
     const dialog = h("dialog", { class: "album-dialog album-add", id: "album-add", "aria-label": title },
       h("div", { class: "drawing-bar" }, h("strong", { text: title }),
         h("button", { type: "button", class: "primary", id: "album-add-done", text: t("album.addDone"), onclick: close })),
-      h("p", { class: "muted album-add-hint", text: collection ? t("album.addHintCollection", { labels: labels.join(", ") }) : t("album.addHintFolder") }),
+      h("div", { class: "album-add-head" }, modes, hint),
       h("div", { class: "album-dialog-body" }, albumBrowser({ pick: add, pickText: t("album.addOne") })));
     dialog.addEventListener("cancel", (e) => { e.preventDefault(); close(); });
     document.body.append(dialog);

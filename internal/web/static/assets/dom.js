@@ -41,6 +41,19 @@ export function safeHref(v) {
   return "#";
 }
 
+// shareHref allows what opens an original where it lies on a file share
+// (ADR-0197): https: and smb: addresses only, as the share's link
+// template is checked on the server. It is set only on the link that
+// opens an original; every other link keeps safeHref's rule. Anything
+// else becomes "#".
+export function shareHref(v) {
+  try {
+    const u = new URL(String(v));
+    if (u.protocol === "https:" || u.protocol === "smb:") return u.href;
+  } catch {}
+  return "#";
+}
+
 // mount replaces the content of a container.
 export function mount(container, ...children) {
   container.replaceChildren();
