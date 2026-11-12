@@ -1,9 +1,9 @@
 # ADR-0203: Views of the items of a type as a table, a gallery or a list, grouped by a field, also placed in a text
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-12
-- **Deciders:** Project initiators (request of 2026-11-12: the items of a type are shown as a table with chosen columns, as a gallery of cards and as a compact list, grouped by a field, editable in place, reachable from a room and placeable in a text)
+- **Deciders:** Project initiators (request of 2026-11-12: the items of a type are shown as a table with chosen columns, as a gallery of cards and as a compact list, grouped by a field, editable in place, reachable from a room and placeable in a text). Accepted by the requester on 2026-11-12, with the defaults proposed with the implementation.
 - **Open question:** whether a person may save a view under a name, as calendar views are saved in the accounts journal, rather than keep it as an address or a block; whether exports of a text should list the items a view shows, as they list a task list's tasks, instead of naming the view; whether the browser should read past the boards' limit, or the server group and count, for a type with many thousands of items
 - **Question checked:** 2026-11
 
@@ -30,7 +30,7 @@ The question is where such a view lives, what it keeps, how its cells change an 
 
 ## Decision outcome
 
-Chosen option: **1**, because it keeps nothing that can go stale or leak, follows what the roadmap and the calendar already do, and needs no new store.
+Chosen option: **1** (defaults proposed with the implementation, confirmed by the requester), because it keeps nothing that can go stale or leak, follows what the roadmap and the calendar already do, and needs no new store.
 
 - **The view.** `#/view?layout=&space=&type=&query=&group=&sort=&col=…` shows the readable items of a type (or of every type) in a room (or every room the reader reads), narrowed by a query of the query language (ADR-0136), as a **table**, a **gallery** or a **list**. It reads `GET /api/items` with those parameters, up to the boards' limit, and says when it stopped there. It is reached from a room's views, as **Views** and **View of a type…**, and its address can be shared.
 - **Columns** are the key, title, state, labels, room, type, when the item last changed, and every field of the type (`field:<name>`). Without a choice, a view shows the key, title, state, the first four fields, labels and the last change. Listings now carry `updated`, the time of the item's last own change as the query language's field `updated` reads it (`Session.LastChanges`).
@@ -47,7 +47,7 @@ Chosen option: **1**, because it keeps nothing that can go stale or leak, follow
 
 - **Positive:** a catalogue, a backlog or a list of decisions has an overview without anything new to keep; a link and a text show each reader what they read; values are corrected where they are seen, with the item page's validation.
 - **Negative / trade-offs accepted:** a view reads at most the boards' limit of items and groups them in the browser; a large type needs a narrowing query. A view in a text reads its items again whenever the text is shown. Whether one may edit a cell is judged by the room role first; a restriction that forbids it is answered by the server's refusal, shown in the cell.
-- **Follow-ups / risks to watch:** saved, named views; exports that list the items; the shared field renderer for new kinds.
+- **Follow-ups / risks to watch:** saved, named views; exports that list the items. The field kinds item, multi and rating are drawn and edited with the shared renderer `assets/fields.js` (ADR-0202); a file field stays text in a listing, which carries no files.
 
 ## Pros and cons of the options
 

@@ -1,9 +1,9 @@
 # ADR-0212: Highlights from a reading service as a connector
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-12
-- **Deciders:** Project initiators (the maintainer asked that one's highlights from Readwise come into the wiki as a connector set up under Administration → Connectors like the others, with a schedule and a dry run, each book or article an item of a chosen type, updated incrementally, never deleting what people added below a marked section, 2026-11-12)
+- **Deciders:** Project initiators (the maintainer asked that one's highlights from Readwise come into the wiki as a connector set up under Administration → Connectors like the others, with a schedule and a dry run, each book or article an item of a chosen type, updated incrementally, never deleting what people added below a marked section, 2026-11-12). Accepted by the requester on 2026-11-12, with the defaults proposed with the implementation.
 - **Open question:** Is one account per connector, the operator's token for it, the right model, or should each person connect their own account, as people connect theirs to a process engine (ADR-0151)?
 - **Question checked:** 2026-11
 
@@ -30,7 +30,7 @@ Connectors already read sources on a schedule into a room, with a dry run, a rep
 
 ## Decision outcome
 
-Chosen option: **1**, because it reuses the connectors' whole machinery and adds only what highlights need: labels from the source, a merge of what changed, and a part of the page that belongs to people.
+Chosen option: **1** (defaults proposed with the implementation, confirmed by the requester), because it reuses the connectors' whole machinery and adds only what highlights need: labels from the source, a merge of what changed, and a part of the page that belongs to people.
 
 ### Reading
 

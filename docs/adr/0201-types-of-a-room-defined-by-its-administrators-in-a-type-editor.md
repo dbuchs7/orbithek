@@ -1,9 +1,9 @@
 # ADR-0201: Types of a room, defined by its administrators in a type editor
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-12
-- **Deciders:** Project initiators (request of 2026-11-12 that room administrators define the types their room needs, with a form instead of hand-written JSON)
+- **Deciders:** Project initiators (request of 2026-11-12 that room administrators define the types their room needs, with a form instead of hand-written JSON). Accepted by the requester on 2026-11-12, with the defaults proposed with the implementation.
 - **Open question:** whether a room type can later be shared with the whole installation (or moved to another room) without redefining it under a new name; whether the installation's administrators should see and remove the types of rooms in the trash or deleted, whose names stay taken; whether the type editor should offer the review rule (ADR-0074) and the Word template (ADR-0167), which it keeps but does not edit
 - **Question checked:** 2026-11
 
@@ -29,7 +29,7 @@ Types are data (ADR-0001), but only the installation's administrators define the
 
 ## Decision outcome
 
-Chosen option: **1**, with a form-based type editor for every type.
+Chosen option: **1** (defaults proposed with the implementation, confirmed by the requester), with a form-based type editor for every type.
 
 - **Model:** `TypeDef.Space` names the room a type belongs to, empty for a type of the whole installation (codec version 55, together with ADR-0202; versions 1 to 54 are still read). A type keeps its room across its versions: redefining it in another room, or as an installation type, is refused, and so is a name any live type has, whichever room it belongs to. A removed name is free again, for any room.
 - **Use:** an item of a room type is made, imported or synchronised only in its room (`Store.usable`); it does not move to another room, nor does a subtree that holds one; a kanban of another room cannot show it; linked tasks of another room cannot be of it; the task of an access request is of a type usable in the requested item's room (ADR-0162). A copy into another room is refused by the same rule.
