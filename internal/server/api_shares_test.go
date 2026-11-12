@@ -2,11 +2,14 @@ package server
 
 import (
 	"bytes"
+	"encoding/json"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/dbuchs7/orbithek/internal/item"
 )
 
 // TestSharesThroughTheAPI: administrators bind an empty album folder to a
@@ -86,5 +89,87 @@ func TestSharesThroughTheAPI(t *testing.T) {
 		if !strings.Contains(audit, e) {
 			t.Errorf("no %s in the audit trail", e)
 		}
+	}
+}
+
+// TestABoundFolderShowsItsShare: a folder bound to a share takes no file
+// of its own; its entries give out their preview, keep what people set on
+// them, are not deleted, renamed or moved by people, and are copied
+// elsewhere as their preview (ADR-0197).
+func TestABoundFolderShowsItsShare(t *testing.T) {
+	roots := t.TempDir()
+	t.Setenv("OT_SHARE_ROOTS", roots)
+	w := newWorld(t)
+	folder := field(w.admin.expect("POST", "/api/album/folders", `{"space":"PLAT","name":"NAS"}`, http.StatusCreated), "item", "id").(string)
+	mine := field(w.admin.expect("POST", "/api/album/folders", `{"space":"PLAT","name":"Mine"}`, http.StatusCreated), "item", "id").(string)
+	png := append([]byte("\x89PNG\r\n\x1a\n"), bytes.Repeat([]byte{7}, 100)...)
+	rec := w.admin.upload("/api/items/"+mine+"/attachments?name=a.png", "application/octet-stream", png)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("upload %d %s", rec.Code, rec.Body)
+	}
+	var up struct {
+		Attachment struct {
+			ID string `json:"id"`
+		} `json:"attachment"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &up); err != nil || up.Attachment.ID == "" {
+		t.Fatalf("upload answer %s", rec.Body)
+	}
+	own := up.Attachment.ID
+	w.admin.expect("POST", "/api/shares", `{"id":"nas","name":"NAS","address":`+jsonOf(roots)+`,"folder":"`+folder+`"}`, http.StatusCreated)
+
+	if rec := w.admin.upload("/api/items/"+folder+"/attachments?name=b.png", "application/octet-stream", png); rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), "file share NAS") {
+		t.Errorf("upload into the bound folder: %d %s", rec.Code, rec.Body)
+	}
+	w.admin.expect("POST", "/api/items/"+mine+"/attachments/"+own+"/move", `{"to":"`+folder+`"}`, http.StatusConflict)
+
+	// A run links a file: its preview first, then the entry.
+	const entry = "0123456789abcdef0123456789abc197"
+	preview := append([]byte("\x89PNG\r\n\x1a\n"), bytes.Repeat([]byte{9}, 40)...)
+	db := w.deps.DB
+	if _, err := db.StorePreview(item.ID(folder), entry, bytes.NewReader(preview), 1<<20); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Write(func(s *item.Store) error {
+		_, err := s.LinkFile("sync:share:nas", item.ID(folder), item.Attachment{ID: entry, Name: "lake.png", Type: "image/png", Size: 5000, SHA256: strings.Repeat("ab", 32),
+			Share: &item.ShareFile{Share: "nas", Path: "2024/lake.png", Tag: "t1"}})
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	base := "/api/items/" + folder + "/attachments/" + entry
+	if got := w.admin.do("GET", base, ""); got.Code != http.StatusOK || !bytes.Equal(got.Body.Bytes(), preview) {
+		t.Fatalf("the entry gives out %d %q, not its preview", got.Code, got.Body.Bytes())
+	}
+	pictures := func() int {
+		return len(field(w.admin.expect("GET", "/api/album?folder="+folder, "", http.StatusOK), "pictures").([]any))
+	}
+	if pictures() != 1 {
+		t.Fatalf("the album shows %d entries", pictures())
+	}
+	w.admin.expect("PUT", base+"/labels", `{"labels":["see"]}`, http.StatusOK)
+	w.admin.expect("DELETE", base, "", http.StatusBadRequest)
+	w.admin.expect("PUT", base+"/name", `{"name":"other"}`, http.StatusBadRequest)
+	w.admin.expect("POST", base+"/move", `{"to":"`+mine+`"}`, http.StatusBadRequest)
+
+	// A copy elsewhere is the preview, an ordinary file.
+	copyURL := "/api/items/" + mine + "/attachments?name=lake.png&sourceItem=" + folder + "&sourceAttachment=" + entry
+	if rec := w.admin.upload(copyURL, "application/octet-stream", png); rec.Code != http.StatusBadRequest {
+		t.Errorf("a copy that is not the preview: %d %s", rec.Code, rec.Body)
+	}
+	rec = w.admin.upload(copyURL, "application/octet-stream", preview)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("copy %d %s", rec.Code, rec.Body)
+	}
+	if strings.Contains(rec.Body.String(), "2024/lake.png") {
+		t.Errorf("the copy names the share: %s", rec.Body)
+	}
+
+	// A withdrawn entry is not in the album.
+	if err := db.Write(func(s *item.Store) error { return s.WithdrawFile("sync:share:nas", item.ID(folder), entry) }); err != nil {
+		t.Fatal(err)
+	}
+	if pictures() != 0 {
+		t.Error("the album shows a withdrawn entry")
 	}
 }

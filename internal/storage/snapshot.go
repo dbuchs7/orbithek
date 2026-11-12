@@ -131,18 +131,21 @@ func (db *DB) Snapshot() (files []SnapshotFile, err error) {
 	for id, list := range live {
 		for _, a := range list {
 			path := attachmentPath(db.dir, id, a)
+			rel := filepath.ToSlash(filepath.Join(AttachmentsDir, string(id), string(a)))
 			fi, err := os.Stat(path)
-			if errors.Is(err, os.ErrNotExist) {
-				continue
-			}
-			if err != nil {
+			switch {
+			case err == nil:
+				files = append(files, SnapshotFile{Name: rel, Size: fi.Size(), R: &lazyFile{path: path, size: fi.Size()}})
+			case !errors.Is(err, os.ErrNotExist):
 				return files, err
 			}
-			rel := filepath.ToSlash(filepath.Join(AttachmentsDir, string(id), string(a)))
-			files = append(files, SnapshotFile{Name: rel, Size: fi.Size(), R: &lazyFile{path: path, size: fi.Size()}})
-			// A video's poster is backed up with it (ADR-0189).
-			if pi, err := os.Stat(path + PosterSuffix); err == nil {
-				files = append(files, SnapshotFile{Name: rel + PosterSuffix, Size: pi.Size(), R: &lazyFile{path: path + PosterSuffix, size: pi.Size()}})
+			// A video's poster is backed up with it (ADR-0189), and an
+			// entry of a file share, which has no file of its own here,
+			// with its preview (ADR-0197).
+			for _, suffix := range backedUpCompanions {
+				if ci, err := os.Stat(path + suffix); err == nil {
+					files = append(files, SnapshotFile{Name: rel + suffix, Size: ci.Size(), R: &lazyFile{path: path + suffix, size: ci.Size()}})
+				}
 			}
 		}
 	}
@@ -177,13 +180,24 @@ func (l *lazyFile) Close() error {
 
 // BackedUpPath reports whether a backup may hold a file under this path
 // (slash-separated, relative to the data directory): one of BackupFiles,
-// or an attachment's file.
+// an attachment's file, or a companion a backup holds (a video's poster,
+// the preview of an entry of a file share).
 func BackedUpPath(name string) bool {
 	if slices.Contains(BackupFiles, name) || slices.Contains(OptionalBackupFiles, name) {
 		return true
 	}
 	parts := strings.Split(name, "/")
-	return len(parts) == 3 && parts[0] == AttachmentsDir && item.ValidItemID(parts[1]) && item.ValidAttachmentID(parts[2])
+	if len(parts) != 3 || parts[0] != AttachmentsDir || !item.ValidItemID(parts[1]) {
+		return false
+	}
+	file := parts[2]
+	for _, suffix := range backedUpCompanions {
+		if base, ok := strings.CutSuffix(file, suffix); ok {
+			file = base
+			break
+		}
+	}
+	return item.ValidAttachmentID(file)
 }
 
 type limitCloser struct {

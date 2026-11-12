@@ -57,6 +57,9 @@ func (x *Session) planMove(from, file, to ID) (*Item, *Item, []Attachment, error
 		if firstVersion(it, a) != first {
 			continue
 		}
+		if err := onShare(&a); err != nil {
+			return nil, nil, nil, err
+		}
 		if !a.Deleted && inBody(it.Body, a.ID) {
 			return nil, nil, nil, referenced("the text of %s shows the file; it stays with the text", it.Key)
 		}

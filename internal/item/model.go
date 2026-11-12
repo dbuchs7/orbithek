@@ -493,6 +493,16 @@ const (
 	// to the time its file tells (ADR-0198): it carries the photo data as
 	// they are afterwards.
 	AttachmentTakenSet EventKind = "AttachmentTakenSet"
+	// AttachmentLinked records a file of a file share as an entry of an
+	// album folder, with no content of its own but a preview (ADR-0197);
+	// AttachmentRelinked records what a run read of it again: new content
+	// or a new path. AttachmentWithdrawn hides an entry whose file is gone
+	// from the share; AttachmentRestored shows it again at the path it
+	// came back to.
+	AttachmentLinked    EventKind = "AttachmentLinked"
+	AttachmentRelinked  EventKind = "AttachmentRelinked"
+	AttachmentWithdrawn EventKind = "AttachmentWithdrawn"
+	AttachmentRestored  EventKind = "AttachmentRestored"
 	// AttachmentRenamed renames every version of a file: Attachment names
 	// the file's first version and carries the new name (ADR-0180).
 	AttachmentRenamed EventKind = "AttachmentRenamed"
@@ -644,7 +654,8 @@ type Event struct {
 func (e Event) HasContent() bool {
 	switch e.Kind {
 	case ItemCreated, TitleSet, PropertySet, BodyCommitted, ItemImported, CommentAdded, CommentEdited, LabelsSet, AttachmentAdded,
-		AttachmentLabelled, AttachmentRetentionSet, AttachmentNotesSet, AttachmentPlaceSet, AttachmentTakenSet, AttachmentRenamed, AttachmentMovedIn, AttachmentFacesSet, HoldSet, HoldReleased:
+		AttachmentLabelled, AttachmentRetentionSet, AttachmentNotesSet, AttachmentPlaceSet, AttachmentTakenSet, AttachmentRenamed, AttachmentMovedIn, AttachmentFacesSet, HoldSet, HoldReleased,
+		AttachmentLinked, AttachmentRelinked, AttachmentRestored:
 		return true
 	}
 	return false
@@ -662,7 +673,8 @@ func (e *Event) erase() {
 		e.Hold = &Hold{Savers: e.Hold.Savers}
 	}
 	if e.Kind == AttachmentAdded || e.Kind == AttachmentLabelled || e.Kind == AttachmentRetentionSet || e.Kind == AttachmentNotesSet || e.Kind == AttachmentPlaceSet ||
-		e.Kind == AttachmentTakenSet || e.Kind == AttachmentRenamed || e.Kind == AttachmentMovedIn || e.Kind == AttachmentFacesSet {
+		e.Kind == AttachmentTakenSet || e.Kind == AttachmentRenamed || e.Kind == AttachmentMovedIn || e.Kind == AttachmentFacesSet ||
+		e.Kind == AttachmentLinked || e.Kind == AttachmentRelinked || e.Kind == AttachmentRestored {
 		e.Attachment = nil
 	}
 	if e.Kind == BodyCommitted {

@@ -56,6 +56,14 @@ type Attachment struct {
 	// (ADR-0198), so the copy's content differs from its source's. It is
 	// never persisted.
 	AsGiven bool `json:"-"`
+	// Share names where the original of an entry of a file share lies
+	// (ADR-0197); nil for every other file. It is content, sealed with
+	// the rest.
+	Share *ShareFile `json:",omitempty"`
+	// FromPreview tells AddAttachment that the server stored the preview
+	// of an entry of a file share as a copy's content (ADR-0197), so the
+	// copy's content differs from its source's. It is never persisted.
+	FromPreview bool `json:"-"`
 	// Move is set on the events of a move only (ADR-0188), never kept
 	// on the file.
 	Move *Move `json:",omitempty"`
@@ -247,6 +255,8 @@ func (s *Store) applyAttachment(e Event, touch func(...ID)) {
 			p := *e.Attachment.Photo
 			a.Photo = &p
 		}
+	case AttachmentLinked, AttachmentRelinked, AttachmentWithdrawn, AttachmentRestored:
+		s.applyShareFile(it, e)
 	case AttachmentRetentionSet:
 		if a, ok := it.attachment(e.Attachment.ID); ok {
 			if r := e.Attachment.Retention; r != nil {
@@ -334,9 +344,21 @@ func (x *Session) AddAttachment(id ID, a Attachment) (Attachment, error) {
 		if !ok || (a.Source.Item != id && from.Deleted) || !x.s.readsFile(x.who, src, a.Source.Attachment) {
 			return Attachment{}, notFound("attachment %s of item %s", a.Source.Attachment, a.Source.Item)
 		}
+		// An entry of a file share gets no new version here: the share is
+		// the master (ADR-0197).
+		if a.Source.Item == id {
+			if err := onShare(from); err != nil {
+				return Attachment{}, err
+			}
+		}
+		// A copy of an entry of a file share is its preview, an ordinary
+		// file, which the server made (ADR-0197).
+		if a.FromPreview != from.Linked() {
+			return Attachment{}, invalid("a copy of %s must have its content", a.Source.Attachment)
+		}
 		// A copy of a photo given to the copier other than as stored has
 		// the content as given, which the server made (ADR-0178, ADR-0198).
-		if a.Source.Item != id && from.SHA256 != a.SHA256 && !(a.AsGiven && fileAsGiven(x.who, *from)) {
+		if a.Source.Item != id && from.SHA256 != a.SHA256 && !(a.AsGiven && fileAsGiven(x.who, *from)) && !a.FromPreview {
 			return Attachment{}, invalid("a copy of %s must have its content", a.Source.Attachment)
 		}
 		// A copy takes over a place set by hand on its original, as far as
@@ -468,6 +490,11 @@ func (x *Session) DeleteAttachment(id, attachment ID) error {
 	if !x.s.readsFile(x.who, it, attachment) {
 		return notFound("attachment %s of item %s", attachment, id)
 	}
+	if a, ok := it.attachment(attachment); ok {
+		if err := onShare(a); err != nil {
+			return err
+		}
+	}
 	return x.s.DeleteAttachment(x.who, id, attachment)
 }
 
@@ -520,7 +547,7 @@ func (x *Session) Pictures(space string, keep func(Attachment) bool) []Picture {
 		}
 		editable := x.s.canEdit(x.who, it) && it.Managed == ""
 		for i, a := range it.Attachments {
-			if !a.Deleted && keep(a) && x.s.readsFile(x.who, it, a.ID) {
+			if !a.Deleted && !a.Withdrawn() && keep(a) && x.s.readsFile(x.who, it, a.ID) {
 				first := firstVersion(it, a)
 				out = append(out, Picture{Item: Item{ID: it.ID, Key: it.Key, Title: it.Title, Space: it.Space, Type: it.Type, Parent: it.Parent, Labels: it.Labels}, Attachment: seenBy(x.who, a),
 					Used: inBody(it.Body, a.ID), Editable: editable, First: first, Retention: ruleOf(it, first), Notes: notesOf(it, first), order: i})

@@ -216,3 +216,14 @@ func (h authHandlers) removeShare(w http.ResponseWriter, r *http.Request) {
 	h.record(audit.Entry{Event: audit.ShareRemoved, Actor: actor, Addr: clientAddr(r), Detail: map[string]string{"share": sh.ID, "folder": sh.Folder}})
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// boundFolder refuses to add a file to a folder that shows a file share:
+// the folder shows its share and nothing else, and the share is the
+// master (ADR-0197). It answers whether the caller may go on.
+func boundFolder(w http.ResponseWriter, d Deps, id item.ID) bool {
+	if sh, ok := d.DB.Site.ShareOfFolder(string(id)); ok {
+		writeError(w, http.StatusConflict, "the folder shows the file share "+sh.Name+"; add the file to the share instead")
+		return false
+	}
+	return true
+}
