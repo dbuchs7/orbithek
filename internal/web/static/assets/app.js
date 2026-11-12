@@ -5133,7 +5133,7 @@ function bodySection(item, embeds, editing, threads, attachments, protect, edit,
   const session = liveBody({ ref: item.id, embeds, resolve, childPages: childPagesOf(item), files: filesOf(item, attachments),
     extra: [threads.plugin], comment: threads.start, actions: edit ? [edit] : [], embedContent: embedLoader([item.id]), tasks: taskTools(item, true), markdown: markdownTools(item), weblinks: weblinkTools(item), onPresence,
     create: mentionCreator(item, storagePaused) });
-  onLeave(session.close);
+  onLeave(session.dispose);
   return { element: h("section", { id: "body", class: "editing" }, session.element), session };
 }
 

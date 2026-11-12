@@ -114,7 +114,7 @@ export async function dailyView(show, arg, params, tools) {
       const resolve = async (ref) => (await get("/api/items/" + encodeURIComponent(ref))).item;
       const session = liveBody({ ref: note.id, embeds, resolve, childPages: tools.childPages(note), files: tools.files(note, attachments, true),
         embedContent: tools.embeds([note.id]), tasks: tools.tasks(note, true), markdown: tools.markdown(note), create: tools.create(note) });
-      tools.onLeave(() => session.finish().catch(() => {}));
+      tools.onLeave(() => session.finish().catch(() => {}).finally(session.dispose));
       main = h("section", { id: "daily-note", class: "editing daily-note" }, session.element);
     } else {
       main = h("section", { id: "daily-note", class: "reading daily-note" },

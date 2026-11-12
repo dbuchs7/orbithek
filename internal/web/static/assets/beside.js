@@ -81,7 +81,7 @@ export function besidePane(params, tools) {
   const head = h("div", { class: "beside-head" }, h("span", { class: "muted", text: t("beside.title") }), close);
   const pane = h("aside", { class: "beside-pane", id: "beside-pane", "aria-label": t("beside.title"), tabindex: "-1" }, head, body);
   let session = null;
-  tools.onLeave(() => { if (session) session.finish().catch(() => {}); });
+  tools.onLeave(() => { if (session) { const s = session; s.finish().catch(() => {}).finally(s.dispose); } });
 
   const draw = async (editing) => {
     const { item, editable } = await get("/api/items/" + encodeURIComponent(key));

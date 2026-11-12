@@ -459,7 +459,14 @@ export function liveBody({ ref, embeds, resolve, childPages, files, extra = [], 
     close();
   }
 
-  return { element: el, close, finish, view: () => view };
+  // dispose closes the session and takes its editor down, so that what
+  // the editor put beside the page (the bubble of a link, the list of a
+  // mention) goes with it when the page is left.
+  function dispose() {
+    close();
+    if (view && !view.isDestroyed) view.destroy();
+  }
+  return { element: el, close, finish, dispose, view: () => view };
 }
 
 // watchLive follows an item's live session as a reader (ADR-0115): it
