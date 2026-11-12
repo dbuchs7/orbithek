@@ -49,7 +49,7 @@ The bar at the top of every page holds, from left to right:
 
 ### The start page
 
-The start page greets you, shows counts of pages, tasks and pictures, and offers quick access to your tasks, notifications, personal notes, the starmap, the album, the whiteboards and AI access. Below it lists your rooms, as tiles or as a list; a star marks a room as a favourite. If there are no rooms yet, administrators find the first steps there: create a room, add types from the ready-made templates (page, task, decision, daily note), and give people a role.
+The start page greets you, shows counts of pages, tasks and pictures, and offers quick access to the starmap, **My day** (today's daily note, with today's date), your tasks, notifications, personal notes, the album, the whiteboards and AI access. Below it lists your rooms, as tiles or as a list; a star marks a room as a favourite. If there are no rooms yet, administrators find the first steps there: create a room, add types from the ready-made templates (page, task, decision, daily note), and give people a role.
 
 ## Pages and items
 
@@ -206,7 +206,7 @@ Select a passage while reading and choose **Note** to keep a note on it that onl
 
 ### Daily notes
 
-A daily note is a page of your own for one day: only you read and edit it. **Today** in the top bar, Alt+Shift+D or the command palette opens today's note; it is made the first time you open it, in the **Room for daily notes** you choose once, among the rooms where you may create pages. You can change the room at any time; notes already made stay where they are.
+A daily note is a page of your own for one day: only you read and edit it. **Today** in the top bar, **My day** on the start page, Alt+Shift+D or the command palette opens today's note; it is made the first time you open it, in the **Room for daily notes** you choose once, among the rooms where you may create pages. You can change the room at any time; notes already made stay where they are.
 
 The note's text is edited in place. **Previous day** and **Next day** move between days, and the month beside marks the days that have a note; a day without one offers **Start this day's note**. Beside the note, **In the calendar this day** lists the items whose dates fall on that day, and **Created or changed this day** the items you may read that were created that day or last changed on it. **Open as a page** shows the note as an item, with its comments, history and fields. Daily notes carry the label `daily-note`, so a query by that label lists them all.
 
