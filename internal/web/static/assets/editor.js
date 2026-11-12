@@ -7,7 +7,7 @@
 // refuses.
 import {
   Schema, EditorState, EditorView, Plugin, Decoration, DecorationSet, keymap, baseKeymap, toggleMark, setBlockType,
-  splitBlockAs, chainCommands, history, undo, redo, inputRules, textblockTypeInputRule,
+  splitBlockAs, chainCommands, history, undo, redo, inputRules, textblockTypeInputRule, TextSelection,
 } from "../vendor/prosemirror.js";
 import { h, safeHref } from "./dom.js";
 import { t } from "./i18n.js";
@@ -22,6 +22,11 @@ import { pickFromAlbum, pictureFile, captionOf, copiedPicture, clipMark } from "
 import { VIDEO_TYPES } from "./photoparts.js";
 import { assist } from "./assist.js";
 import { markdownToBlocks, pastesAsMarkdown } from "./markdown.js";
+import {
+  TONES as TABLE_TONES, MARKS as TABLE_MARKS, cellsOf, joinCells, normalMarks, normalLayout, colourOf, rangeOf, inRange, paint, formatCells,
+  insertRow, insertColumn, removeRow, removeColumn, resized, filledClass, borderClass,
+} from "./tableparts.js";
+import { viewBlock, pickView, viewsReady } from "./itemview.js";
 
 // Every block carries bid, its ID in a live session (ADR-0010); it is not
 // stored. Text blocks keep the mentions they had without a mention mark
@@ -61,7 +66,11 @@ export const schema = new Schema({
     panel: { group: "block", content: "inline*", attrs: { ...alignAttrs, tone: { default: "info" } }, toDOM: (n) => ["div", { class: ["pm-panel", alignClass(n)].filter(Boolean).join(" "), "data-tone": n.attrs.tone }, 0] },
     // A horizontal rule between blocks (ADR-0059).
     divider: { group: "block", atom: true, selectable: true, attrs: bid, parseDOM: [{ tag: "hr" }], toDOM: () => ["hr", { class: "pm-divider" }] },
-    table: { group: "block", atom: true, selectable: true, attrs: { ...bid, text: { default: "\t\n\t" } }, toDOM: (n) => ["pre", { class: "pm-table" }, n.attrs.text] },
+    // A table's cells may be formatted, its columns and rows sized and its
+    // cells coloured (ADR-0214).
+    table: { group: "block", atom: true, selectable: true,
+      attrs: { ...bid, text: { default: "\t\n\t" }, marks: { default: [] }, widths: { default: null }, heights: { default: null }, cells: { default: null } },
+      toDOM: (n) => ["pre", { class: "pm-table" }, n.attrs.text] },
     toc: { group: "block", atom: true, selectable: true, attrs: bid, toDOM: () => ["div", { class: "pm-toc" }] },
     // Lists of the body's pictures and tables (ADR-0119), computed like a
     // table of contents.
@@ -70,6 +79,10 @@ export const schema = new Schema({
     children: { group: "block", atom: true, selectable: true, attrs: bid, toDOM: () => ["div", { class: "pm-children" }] },
     // The tasks that carry a label, computed when shown (ADR-0114).
     tasklist: { group: "block", atom: true, selectable: true, attrs: { ...bid, label: { default: "" }, query: { default: "" } }, toDOM: (n) => ["div", { class: "pm-tasklist", "data-label": n.attrs.label, ...(n.attrs.query ? { "data-query": n.attrs.query } : {}) }] },
+    // The items of a type as a table, a gallery or a list (ADR-0203),
+    // computed when shown; the block keeps what it shows.
+    itemview: { group: "block", atom: true, selectable: true, attrs: { ...bid, layout: { default: "table" }, itemType: { default: "" }, space: { default: "" }, query: { default: "" },
+      group: { default: "" }, columns: { default: null }, sort: { default: "" } }, toDOM: (n) => ["div", { class: "pm-itemview", "data-layout": n.attrs.layout }] },
     // An image attachment of the item (ADR-0045), with a plain caption.
     // width is percent of the column, 0 for the picture's own size (ADR-0056).
     // align is left or right (the text flows beside it) or center (ADR-0059).
@@ -226,9 +239,14 @@ export function nodeFromBlock(b, embeds = []) {
 
 function plainNode(b, embeds) {
   const id = b.id ?? null;
-  if (b.kind === "table") return schema.nodes.table.create({ bid: id, text: b.text || "" });
+  if (b.kind === "table") {
+    return schema.nodes.table.create({ bid: id, text: b.text || "", marks: (b.marks || []).filter((m) => TABLE_MARKS.includes(m.type)),
+      widths: b.widths || null, heights: b.heights || null, cells: b.cells || null });
+  }
   if (["toc", "figures", "tables", "children", "divider"].includes(b.kind)) return schema.nodes[b.kind].create({ bid: id });
   if (b.kind === "tasklist") return schema.nodes.tasklist.create({ bid: id, label: b.text || "", query: b.query || "" });
+  if (b.kind === "view") return schema.nodes.itemview.create({ bid: id, layout: b.layout || "table", itemType: b.itemType || "", space: b.space || "", query: b.query || "",
+    group: b.group || "", columns: b.columns?.length ? [...b.columns] : null, sort: b.sort || "" });
   if (b.kind === "image" || b.kind === "video") return schema.nodes[b.kind].create({ bid: id, ref: b.ref, text: b.text || "", width: b.width || 0, align: b.align || "" });
   if (b.kind === "bpmn") return schema.nodes.bpmn.create({ bid: id, ref: b.ref, text: b.text || "", view: b.view || "" });
   if (b.kind === "process") return schema.nodes.process.create({ bid: id, engine: b.engine, process: b.process, text: b.text || "", view: b.view || "" });
@@ -301,9 +319,20 @@ export function blockFromNode(node) {
 function plainBlock(node) {
   if (node.type === schema.nodes.veiled) return { kind: "paragraph", text: "▒▒▒▒▒▒▒▒" };
   if (node.type === schema.nodes.embed) return { kind: "embed", ref: node.attrs.ref };
-  if (node.type === schema.nodes.table) return { kind: "table", text: node.attrs.text };
+  if (node.type === schema.nodes.table) {
+    const a = node.attrs;
+    return { kind: "table", text: a.text, ...(a.marks?.length ? { marks: a.marks } : {}), ...(a.widths ? { widths: a.widths } : {}),
+      ...(a.heights ? { heights: a.heights } : {}), ...(a.cells ? { cells: a.cells } : {}) };
+  }
   if (["toc", "figures", "tables", "children", "divider"].includes(node.type.name)) return { kind: node.type.name };
   if (node.type === schema.nodes.tasklist) return node.attrs.query ? { kind: "tasklist", query: node.attrs.query } : { kind: "tasklist", text: node.attrs.label };
+  if (node.type === schema.nodes.itemview) {
+    const a = node.attrs;
+    const b = { kind: "view", layout: a.layout };
+    for (const k of ["itemType", "space", "query", "group", "sort"]) if (a[k]) b[k] = a[k];
+    if (a.columns?.length) b.columns = [...a.columns];
+    return b;
+  }
   if (node.type === schema.nodes.bpmn) return { kind: "bpmn", text: node.attrs.text, ref: node.attrs.ref, ...(node.attrs.view ? { view: node.attrs.view } : {}) };
   if (node.type === schema.nodes.process) return { kind: "process", text: node.attrs.text, engine: node.attrs.engine, process: node.attrs.process, ...(node.attrs.view ? { view: node.attrs.view } : {}) };
   if (node.type === schema.nodes.form) {
@@ -515,48 +544,323 @@ function taskView(node, view, getPos) {
   };
 }
 
-const rowsOf = (text) => text.split("\n").map((r) => r.split("\t"));
-const textOf = (rows) => rows.map((r) => r.join("\t")).join("\n");
+// --- tables (ADR-0042, ADR-0214) ------------------------------------------------
 
-// tableView draws a table; an editor edits its cells in place and adds or
-// removes rows and columns. Cells are plain text: tabs and line breaks
-// typed into a cell become spaces.
+// A cell is edited in an editor of its own, one at a time, whose schema
+// holds text with the formats a cell may carry.
+const cellSchema = new Schema({
+  nodes: { doc: { content: "text*" }, text: {} },
+  marks: Object.fromEntries(TABLE_MARKS.map((m) => [m, schema.spec.marks.get(m)])),
+});
+let cellAids = null;
+
+// toneName names a tone of a coloured cell, as a kanban names its tones.
+const toneName = (x) => ({ blue: t("tone.blue"), green: t("tone.green"), yellow: t("tone.yellow"), orange: t("tone.orange"),
+  red: t("tone.red"), purple: t("tone.purple"), teal: t("tone.teal"), gray: t("tone.gray") })[x] || x;
+
+// cellDoc is a cell's editor document; cellOf reads a cell back.
+function cellDoc(cell) {
+  const chars = Array.from(cell.text);
+  const cuts = [...new Set([0, chars.length, ...cell.marks.flatMap((m) => [m.start, m.end])])].sort((x, y) => x - y);
+  const nodes = [];
+  for (let i = 0; i + 1 < cuts.length; i++) {
+    if (cuts[i] >= cuts[i + 1]) continue;
+    const marks = cell.marks.filter((m) => m.start <= cuts[i] && m.end >= cuts[i + 1] && cellSchema.marks[m.type])
+      .map((m) => (m.type === "link" ? cellSchema.marks.link.create({ href: m.href }) : cellSchema.marks[m.type].create()));
+    nodes.push(cellSchema.text(chars.slice(cuts[i], cuts[i + 1]).join(""), marks));
+  }
+  return cellSchema.nodes.doc.create(null, nodes);
+}
+
+function cellOf(doc) {
+  let text = "";
+  const marks = [];
+  doc.forEach((n) => {
+    const start = cp(text);
+    text += n.text;
+    for (const m of n.marks) marks.push({ type: m.type.name, start, end: cp(text), ...(m.type.name === "link" ? { href: m.attrs.href } : {}) });
+  });
+  return { text, marks: normalMarks(marks) };
+}
+
+// cellContent draws a cell's text with its formats, for reading.
+function cellContent(cell) {
+  const chars = Array.from(cell.text);
+  const cuts = [...new Set([0, chars.length, ...cell.marks.flatMap((m) => [m.start, m.end])])].sort((x, y) => x - y);
+  const out = [];
+  for (let i = 0; i + 1 < cuts.length; i++) {
+    if (cuts[i] >= cuts[i + 1]) continue;
+    let el = chars.slice(cuts[i], cuts[i + 1]).join("");
+    for (const m of cell.marks.filter((x) => x.start <= cuts[i] && x.end >= cuts[i + 1])) {
+      const tag = { bold: "strong", italic: "em", underline: "u", strike: "s", highlight: "mark", code: "code" }[m.type];
+      if (tag) el = h(tag, {}, el);
+      else if (m.type === "link" && isSafeLink(m.href)) el = h("a", { href: safeHref(m.href), rel: "noopener noreferrer nofollow", target: "_blank" }, el);
+    }
+    out.push(el);
+  }
+  return out;
+}
+
+// tableView draws a table: its cells with their formats, its column
+// widths and row heights and its coloured cells; the text wraps within
+// a cell. An editor edits a cell in place, formats it, chooses several
+// cells with Shift and a click to colour or format them at once, drags a
+// cell's right or lower edge to size its column or row, and adds and
+// removes rows and columns at the chosen cell.
 function tableView(node, view, getPos) {
   const dom = h("div", { class: "pm-table", contenteditable: "false" });
   let shown = null;
-  const commit = (rows) => {
+  let tds = [];
+  let anchor = null, head = null; // the chosen cells, { r, c }
+  let active = null; // the cell being edited: { r, c, view }
+  let tools = null;
+  const locked = () => dom.classList.contains("pm-locked");
+  const editable = () => view.editable && !locked();
+  const keyOf = (a) => JSON.stringify([a.text, a.marks, a.widths, a.heights, a.cells, view.editable]);
+  const read = () => ({ rows: cellsOf(node.attrs.text, node.attrs.marks),
+    layout: { widths: node.attrs.widths, heights: node.attrs.heights, cells: node.attrs.cells } });
+  const range = () => (anchor ? rangeOf(anchor, head || anchor) : null);
+  // commit writes rows and layout into the block; keep leaves the cell
+  // being edited as it is, since it shows the change already.
+  const commit = (rows, layout, keep) => {
     const pos = getPos();
-    if (pos === undefined || dom.classList.contains("pm-locked")) return render(true);
-    view.dispatch(view.state.tr.setNodeMarkup(pos, null, { ...node.attrs, text: textOf(rows) }));
+    if (pos === undefined || locked()) { render(true); return; }
+    const { text, marks } = joinCells(rows);
+    const l = normalLayout(layout, rows.length, rows[0].length);
+    const attrs = { ...node.attrs, text, marks, widths: l.widths, heights: l.heights, cells: l.cells };
+    if (keep) shown = keyOf(attrs);
+    view.dispatch(view.state.tr.setNodeMarkup(pos, null, attrs));
+  };
+  const close = () => {
+    if (!active) return;
+    const { r, c, view: inner } = active;
+    active = null;
+    inner.destroy();
+    const td = tds[r]?.[c];
+    if (td) td.querySelector(".pm-cell-text").replaceChildren(...cellContent(read().rows[r][c]));
+  };
+  const choose = (r, c, extend) => {
+    if (extend && anchor) head = { r, c };
+    else { anchor = { r, c }; head = null; }
+    const rg = range();
+    tds.forEach((row, i) => row.forEach((td, j) => td.classList.toggle("pm-cell-chosen", inRange(rg, i, j) && Boolean(head))));
+    showTools();
+  };
+  // move edits the cell dr rows and dc columns from the one being edited,
+  // across the end of a row to the next.
+  const move = (dr, dc) => {
+    if (!active) return false;
+    const rows = read().rows;
+    let r = active.r + dr, c = active.c + dc;
+    if (c >= rows[0].length) { c = 0; r++; }
+    if (c < 0) { c = rows[0].length - 1; r--; }
+    if (r < 0 || r >= rows.length) return true;
+    open(r, c);
+    return true;
+  };
+  const format = (type) => () => {
+    if (!editable()) return;
+    if (active && !head) {
+      const inner = active.view;
+      if (type === "link") { (cellAids ||= assist(cellSchema, isSafeLink)).openLink(inner); return; }
+      toggleMark(cellSchema.marks[type])(inner.state, inner.dispatch);
+      inner.focus();
+      return;
+    }
+    const rg = range();
+    if (!rg || type === "link") return;
+    close();
+    const { rows, layout } = read();
+    commit(formatCells(rows, rg, type), layout);
+  };
+  const open = (r, c, ev) => {
+    if (active && active.r === r && active.c === c) return;
+    close();
+    choose(r, c, false);
+    if (!editable()) return;
+    const holder = tds[r][c].querySelector(".pm-cell-text");
+    holder.replaceChildren();
+    const keys = {
+      "Mod-z": undo, "Mod-y": redo, "Shift-Mod-z": redo,
+      "Mod-b": toggleMark(cellSchema.marks.bold), "Mod-i": toggleMark(cellSchema.marks.italic), "Mod-`": toggleMark(cellSchema.marks.code),
+      "Mod-u": toggleMark(cellSchema.marks.underline), "Mod-Shift-x": toggleMark(cellSchema.marks.strike), "Mod-Shift-h": toggleMark(cellSchema.marks.highlight),
+      "Mod-k": () => { format("link")(); return true; },
+      Tab: () => move(0, 1), "Shift-Tab": () => move(0, -1), Enter: () => move(1, 0), "Shift-Enter": () => true,
+      Escape: () => { close(); view.focus(); return true; },
+    };
+    const inner = new EditorView(holder, {
+      state: EditorState.create({ doc: cellDoc(read().rows[r][c]), plugins: [history(), keymap(keys), keymap(baseKeymap)] }),
+      editable,
+      attributes: { class: "pm-cell-editor", "aria-label": t("editor.cell", { row: r + 1, col: c + 1 }) },
+      // Tabs and line breaks would split the cell; pasted text has spaces.
+      transformPastedText: (text) => text.replace(/[\t\r\n]+/g, " "),
+      dispatchTransaction: (tr) => {
+        if (!active || active.view !== inner) return;
+        inner.updateState(inner.state.apply(tr));
+        if (!tr.docChanged) return;
+        const { rows, layout } = read();
+        rows[r][c] = cellOf(inner.state.doc);
+        commit(rows, layout, true);
+      },
+    });
+    active = { r, c, view: inner };
+    inner.focus();
+    const at = ev && inner.posAtCoords({ left: ev.clientX, top: ev.clientY });
+    if (at) inner.dispatch(inner.state.tr.setSelection(TextSelection.create(inner.state.doc, at.pos)));
+  };
+  // A drag of a cell's right or lower edge sizes its column or row; the
+  // table shows the size while it moves and keeps it on release.
+  const resize = (what, i, ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    if (!editable()) return;
+    close();
+    const table = dom.querySelector("table");
+    const cols = [...table.querySelectorAll("col")];
+    const measured = what === "widths" ? tds[0].map((td) => td.getBoundingClientRect().width) : tds.map((row) => row[0].getBoundingClientRect().height);
+    const start = what === "widths" ? ev.clientX : ev.clientY;
+    const from = measured[i];
+    let layout = read().layout;
+    const show = (l) => {
+      if (what === "widths") {
+        const widths = l.widths;
+        cols.forEach((col, j) => { col.style.width = widths[j] ? widths[j] + "px" : ""; });
+        table.classList.add("pm-table-sized");
+        table.style.width = widths.every((w) => w) ? widths.reduce((x, y) => x + y, 0) + "px" : "100%";
+      } else tds[i][0].parentElement.style.height = l.heights[i] + "px";
+    };
+    const onMove = (e) => {
+      layout = resized(read().layout, what, i, from + (what === "widths" ? e.clientX : e.clientY) - start, measured);
+      show(layout);
+    };
+    const onUp = (e) => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      onMove(e);
+      commit(read().rows, layout);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  };
+  // The table's tools act on the chosen cells, or on the cell being
+  // edited: formats, colours, rows and columns.
+  const showTools = () => {
+    if (!tools) return;
+    const rg = range();
+    for (const el of tools.querySelectorAll("[data-needs-cell]")) el.disabled = !rg;
+    const { layout } = read();
+    const here = rg ? colourOf(layout, rg.r0, rg.c0) : { fill: "", border: "" };
+    tools.querySelector(".pm-table-fill").value = here.fill;
+    tools.querySelector(".pm-table-border").value = here.border;
+  };
+  const toolbar = (rows, layout) => {
+    const nRows = rows.length, nCols = rows[0].length;
+    const change = (fn) => () => {
+      close();
+      const rg = range();
+      const at = rg ? { r: rg.r1, c: rg.c1 } : { r: nRows - 1, c: nCols - 1 };
+      const next = fn(read().rows, read().layout, at);
+      anchor = head = null;
+      commit(next.rows, next.layout);
+    };
+    // A button of the tools keeps the cell being edited, so a format
+    // applies to its selection.
+    const keepFocus = (ev) => ev.preventDefault();
+    const button = (label, title, onclick, needsCell, cls) => h("button", { type: "button", class: cls || "link", title, "aria-label": title,
+      onmousedown: keepFocus, onclick, ...(needsCell ? { "data-needs-cell": "" } : {}) }, label);
+    const tone = (cls, label, what) => {
+      const select = h("select", { class: cls, title: label, "aria-label": label, "data-needs-cell": "" },
+        h("option", { value: "", text: t("editor.tableNoColour") }),
+        ...TABLE_TONES.map((x) => h("option", { value: x, text: toneName(x) })));
+      select.addEventListener("change", () => {
+        const rg = range();
+        if (!rg || !editable()) return showTools();
+        close();
+        const { rows: rs, layout: l } = read();
+        commit(rs, paint(l, rs.length, rs[0].length, rg, what, select.value));
+      });
+      return h("label", { class: "pm-table-tone" }, h("span", { text: label }), select);
+    };
+    return h("div", { class: "pm-table-tools" },
+      h("span", { class: "pm-group" },
+        button(h("strong", { text: "B" }), t("editor.bold"), format("bold"), true, "pm-table-format"),
+        button(h("em", { text: "I" }), t("editor.italic"), format("italic"), true, "pm-table-format"),
+        button(h("u", { text: "U" }), t("editor.underline"), format("underline"), true, "pm-table-format"),
+        button(h("s", { text: "S" }), t("editor.strike"), format("strike"), true, "pm-table-format"),
+        button(h("mark", { text: "ab" }), t("editor.highlight"), format("highlight"), true, "pm-table-format"),
+        button("</>", t("editor.code"), format("code"), true, "pm-table-format"),
+        button(t("editor.link"), t("editor.tableLink"), format("link"), true, "pm-table-format")),
+      tone("pm-table-fill", t("editor.tableFill"), "fill"),
+      tone("pm-table-border", t("editor.tableBorder"), "border"),
+      h("span", { class: "pm-group" },
+        button(t("editor.addRow"), t("editor.addRowTitle"), change((rs, l, at) => insertRow(rs, l, at.r))),
+        button(t("editor.addColumn"), t("editor.addColumnTitle"), change((rs, l, at) => insertColumn(rs, l, at.c))),
+        nRows > 1 ? button(t("editor.removeRow"), t("editor.removeRowTitle"), change((rs, l, at) => removeRow(rs, l, at.r))) : null,
+        nCols > 1 ? button(t("editor.removeColumn"), t("editor.removeColumnTitle"), change((rs, l, at) => removeColumn(rs, l, at.c))) : null,
+        layout.widths || layout.heights ? button(t("editor.tableResetSizes"), t("editor.tableResetSizes"),
+          change((rs, l) => ({ rows: rs, layout: { ...l, widths: null, heights: null } }))) : null),
+    );
   };
   const render = (force) => {
+    const key = keyOf(node.attrs);
+    if (!force && shown === key) return;
+    shown = key;
+    close();
     const edit = view.editable;
-    if (!force && shown === node.attrs.text + edit) return;
-    shown = node.attrs.text + edit;
-    const rows = rowsOf(node.attrs.text);
-    const cell = (c, i, j) => {
-      const tag = i === 0 ? "th" : "td";
-      if (!edit) return h(tag, { text: c });
-      const input = h("input", { value: c, "aria-label": t("editor.cell", { row: i + 1, col: j + 1 }) });
-      input.addEventListener("change", () => {
-        const next = rowsOf(node.attrs.text);
-        next[i][j] = input.value.replace(/[\t\r\n]/g, " ");
-        commit(next);
-      });
-      return h(tag, {}, input);
-    };
-    const table = h("table", {}, rows.map((r, i) => h("tr", {}, r.map((c, j) => cell(c, i, j)))));
-    const change = (fn) => () => { const next = rowsOf(node.attrs.text); fn(next); commit(next); };
-    const tools = edit ? h("div", { class: "pm-table-tools" },
-      h("button", { type: "button", class: "link", text: t("editor.addRow"), onclick: change((rs) => rs.push(rs[0].map(() => ""))) }),
-      h("button", { type: "button", class: "link", text: t("editor.addColumn"), onclick: change((rs) => rs.forEach((r) => r.push(""))) }),
-      rows.length > 1 ? h("button", { type: "button", class: "link", text: t("editor.removeRow"), onclick: change((rs) => rs.pop()) }) : null,
-      rows[0].length > 1 ? h("button", { type: "button", class: "link", text: t("editor.removeColumn"), onclick: change((rs) => rs.forEach((r) => r.pop())) }) : null,
-    ) : null;
-    dom.replaceChildren(...[table, tools].filter(Boolean)); // replaceChildren writes a null out as "null"
+    const { rows, layout } = read();
+    if (anchor && (anchor.r >= rows.length || anchor.c >= rows[0].length)) anchor = head = null;
+    if (head && (head.r >= rows.length || head.c >= rows[0].length)) head = null;
+    const colgroup = h("colgroup", {}, rows[0].map(() => h("col")));
+    const table = h("table", {}, colgroup);
+    if (layout.widths) {
+      table.classList.add("pm-table-sized");
+      [...colgroup.children].forEach((col, j) => { if (layout.widths[j]) col.style.width = layout.widths[j] + "px"; });
+      table.style.width = layout.widths.every((w) => w) ? layout.widths.reduce((x, y) => x + y, 0) + "px" : "100%";
+    }
+    tds = rows.map((row, i) => row.map((cell, j) => {
+      const { fill, border } = colourOf(layout, i, j);
+      const td = h(i === 0 ? "th" : "td", { class: [filledClass(fill), borderClass(border)].filter(Boolean).join(" ") || null },
+        h("div", { class: "pm-cell-text" }, ...cellContent(cell)));
+      if (edit) {
+        td.classList.add("pm-cell-editable");
+        td.tabIndex = 0;
+        td.setAttribute("aria-label", t("editor.cell", { row: i + 1, col: j + 1 }));
+        td.append(h("span", { class: "pm-col-handle", title: t("editor.tableDragColumn"), "aria-hidden": "true", onpointerdown: (ev) => resize("widths", j, ev) }),
+          h("span", { class: "pm-row-handle", title: t("editor.tableDragRow"), "aria-hidden": "true", onpointerdown: (ev) => resize("heights", i, ev) }));
+        td.addEventListener("mousedown", (ev) => {
+          if (ev.target.closest(".pm-col-handle, .pm-row-handle")) return;
+          if (ev.shiftKey) { ev.preventDefault(); close(); choose(i, j, true); return; }
+          if (active && active.r === i && active.c === j) return;
+          ev.preventDefault();
+          open(i, j, ev);
+        });
+        td.addEventListener("focus", (ev) => { if (ev.target === td && !(active && active.r === i && active.c === j)) open(i, j); });
+      }
+      return td;
+    }));
+    const body = h("tbody");
+    tds.forEach((row, i) => {
+      const tr = h("tr", {}, ...row);
+      if (layout.heights?.[i]) tr.style.height = layout.heights[i] + "px";
+      body.append(tr);
+    });
+    table.append(body);
+    tools = edit ? toolbar(rows, layout) : null;
+    dom.replaceChildren(...[tools, h("div", { class: "pm-table-scroll" }, table)].filter(Boolean)); // replaceChildren writes a null out as "null"
+    if (anchor) choose(anchor.r, anchor.c, false);
+    if (head) choose(head.r, head.c, true);
+    showTools();
   };
   render();
-  return { dom, ...selectable, update: (n) => { if (n.type !== node.type) return false; node = n; render(); return true; } };
+  return {
+    dom,
+    // Events in the table's own controls and in the cell being edited
+    // are the table's, not the editor's.
+    stopEvent: (ev) => Boolean(ev.target.closest?.("a, button, input, select, .pm-cell-editable")),
+    ignoreMutation: () => true,
+    update: (n) => { if (n.type !== node.type) return false; node = n; render(); return true; },
+    destroy: () => close(),
+  };
 }
 
 // tocView lists the body's headings; a click scrolls to one. tocs holds
@@ -642,6 +946,32 @@ function taskListView(node, tasks) {
     .finally(() => body.removeAttribute("aria-busy"));
   return { dom, ignoreMutation: () => true, stopEvent: (ev) => body.contains(ev.target),
     update: (n) => n.type === node.type && n.attrs.label === label && n.attrs.query === query };
+}
+
+// itemViewView shows the items a view block names (ADR-0203), as far as
+// the reader reads them; while editing, a button changes what it shows.
+function itemViewView(node, v, getPos) {
+  const attrs = node.attrs;
+  const dom = h("section", { class: "pm-itemview", contenteditable: "false", "data-layout": attrs.layout });
+  const body = h("div", { "aria-busy": "true" }, h("p", { class: "muted", text: "…" }));
+  const block = blockFromNode(node);
+  if (v.editable && viewsReady()) {
+    dom.append(h("p", { class: "pm-box-title" }, h("button", { type: "button", class: "link pm-itemview-edit", text: t("views.change"), onclick: async () => {
+      const next = await pickView({ layout: block.layout, type: block.itemType || "", space: block.space || "", query: block.query || "", group: block.group || "",
+        columns: block.columns || [], sort: block.sort || "" });
+      const pos = getPos();
+      if (!next || typeof pos !== "number") return;
+      v.dispatch(v.state.tr.setNodeMarkup(pos, null, { ...node.attrs, layout: next.layout, itemType: next.itemType || "", space: next.space || "", query: next.query || "",
+        group: next.group || "", columns: next.columns?.length ? next.columns : null, sort: next.sort || "" }));
+    } })));
+  }
+  dom.append(body);
+  Promise.resolve(viewsReady() ? viewBlock(block) : null)
+    .then((el) => body.replaceChildren(el || h("p", { class: "muted", text: t("views.none") })))
+    .catch(() => body.replaceChildren(h("p", { class: "muted", text: t("embed.failed") })))
+    .finally(() => body.removeAttribute("aria-busy"));
+  return { dom, ignoreMutation: () => true, stopEvent: (ev) => dom.contains(ev.target),
+    update: (n) => n.type === node.type && JSON.stringify(n.attrs) === JSON.stringify(attrs) };
 }
 
 // childrenView lists the child pages of the item, from childPages().
@@ -876,8 +1206,10 @@ function imageView(node, view, getPos, files) {
 // embedContent(ref), if given, returns the content of an embedded item,
 // shown in its block (ADR-0106). markdown.insert(address), if given, makes
 // a page from a Markdown file of a repository below the item and returns
-// it, or null when cancelled (ADR-0138).
-export function createEditor({ blocks, embeds, editable, resolve, childPages, files, extra = [], viewProps = {}, comment, protect, note, actions = [], embedContent, tasks, markdown }) {
+// it, or null when cancelled (ADR-0138). weblinks.save(address), if given,
+// saves the page a link leads to as a web link item and returns {item,
+// problem}, or null when cancelled (ADR-0208).
+export function createEditor({ blocks, embeds, editable, resolve, childPages, files, extra = [], viewProps = {}, comment, protect, note, actions = [], embedContent, tasks, markdown, weblinks, create }) {
   const mount = h("div", { class: "pm-editor" });
   const tocs = new Set();
   const tocPlugin = new Plugin({ view: () => ({ update: (v, prev) => { if (!v.state.doc.eq(prev.doc)) tocs.forEach((f) => f()); } }) });
@@ -888,7 +1220,8 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
   // Links, "@" and embedding as in a word processor (ADR-0096); a link to
   // a Markdown file offers to show the file instead (ADR-0138).
   let showFile = null;
-  const aids = assist(schema, isSafeLink, { showFile: markdown ? (href) => showFile(href) : null });
+  let saveLink = null;
+  const aids = assist(schema, isSafeLink, { showFile: markdown ? (href) => showFile(href) : null, saveLink: weblinks ? (href) => saveLink(href) : null, create });
   const aidKeys = keymap({ "Mod-k": (state, dispatch, v) => { aids.openLink(v); return true; } });
   // Pictures pasted into the text (ADR-0108): one copied in the album
   // becomes a copy of its original file, any other image an upload.
@@ -921,6 +1254,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
       architecture: (node, v, getPos) => architectureView(node, v, getPos),
       embed: (node) => embedView(node, embedContent),
       tasklist: (node) => taskListView(node, tasks),
+      itemview: (node, v, getPos) => itemViewView(node, v, getPos),
       veiled: (node) => ({ dom: h("div", { class: "pm-veiled", "data-secret": node.attrs.secret, contenteditable: "false" },
         h("span", { class: "pm-veiled-bar", "aria-hidden": "true", text: "▒▒▒▒▒▒▒▒" }), veiledContent(node.attrs.secret)), ...selectable }),
     },
@@ -962,9 +1296,10 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     else if (kind === "markdown") markdownDialog();
     else if (kind === "newtask") newTask();
     else if (kind === "tasklist") taskList();
+    else if (kind === "itemview") itemView();
     else if (kind === "markdownfile") markdownFile("");
     else if (kind) insertBlock(schema.nodes[kind].create());
-  } }, [["", t("editor.insert")], ["embed", t("assist.embedItem")], ["markdown", t("editor.markdown")], markdown ? ["markdownfile", t("editor.markdownFile")] : null, tasks?.create ? ["newtask", t("editor.newTask")] : null, tasks?.pickLabel ? ["tasklist", t("editor.taskList")] : null, ["table", t("editor.table")], ["divider", t("editor.divider")], ["toc", t("editor.toc")], ["figures", t("editor.figures")], ["tables", t("editor.tables")], ["children", t("editor.children")],
+  } }, [["", t("editor.insert")], ["embed", t("assist.embedItem")], ["markdown", t("editor.markdown")], markdown ? ["markdownfile", t("editor.markdownFile")] : null, tasks?.create ? ["newtask", t("editor.newTask")] : null, tasks?.pickLabel ? ["tasklist", t("editor.taskList")] : null, viewsReady() ? ["itemview", t("views.insert")] : null, ["table", t("editor.table")], ["divider", t("editor.divider")], ["toc", t("editor.toc")], ["figures", t("editor.figures")], ["tables", t("editor.tables")], ["children", t("editor.children")],
     files ? ["image", t("editor.image")] : null, files ? ["video", t("editor.video")] : null, files ? ["drawing", t("draw.insert")] : null, files ? ["album", t("album.fromAlbum")] : null, files ? ["clip", t("editor.copiedPicture")] : null,
     files ? ["bpmnnew", t("bpmn.insertNew")] : null, files ? ["bpmnfile", t("bpmn.insertFile")] : null, ["process", t("bpmn.insertProcess")],
     ["form", t("form.insert")], ["startform", t("start.insert")], ["decision", t("decision.insert")], ["architecture", t("arch.insert")]].filter(Boolean)
@@ -1194,6 +1529,25 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
       status.textContent = err.message;
     }
   };
+  // An item made from a link takes the place of a paragraph that holds
+  // the link alone, shown whole; elsewhere it goes after the paragraph.
+  const placeEmbed = (it, address) => {
+    const node = schema.nodes.embed.create({ ref: it.id, label: `${it.key} ${it.title}`, href: "#/item/" + encodeURIComponent(it.key) });
+    const { $from } = view.state.selection;
+    const block = $from.depth >= 1 ? $from.node(1) : null;
+    // The paragraph holds the link alone when all its text but spaces
+    // is the link.
+    let alone = Boolean(address && block?.isTextblock && block.childCount);
+    block?.forEach((n) => {
+      if (!n.isText || (n.text.trim() && !n.marks.some((m) => m.type === schema.marks.link && m.attrs.href === address))) alone = false;
+    });
+    if (alone) {
+      view.dispatch(view.state.tr.replaceWith($from.before(1), $from.after(1), node));
+      view.focus();
+    } else {
+      insertBlock(node);
+    }
+  };
   // A Markdown file of a repository becomes a page below this item, which
   // the text shows whole (ADR-0138). From a link's bubble, it takes the
   // place of a paragraph that holds the link alone.
@@ -1202,21 +1556,21 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     try {
       const it = await markdown.insert(address);
       if (!it) return view.focus();
-      const node = schema.nodes.embed.create({ ref: it.id, label: `${it.key} ${it.title}`, href: "#/item/" + encodeURIComponent(it.key) });
-      const { $from } = view.state.selection;
-      const block = $from.depth >= 1 ? $from.node(1) : null;
-      // The paragraph holds the link alone when all its text but spaces
-      // is the link.
-      let alone = Boolean(address && block?.isTextblock && block.childCount);
-      block?.forEach((n) => {
-        if (!n.isText || (n.text.trim() && !n.marks.some((m) => m.type === schema.marks.link && m.attrs.href === address))) alone = false;
-      });
-      if (alone) {
-        view.dispatch(view.state.tr.replaceWith($from.before(1), $from.after(1), node));
-        view.focus();
-      } else {
-        insertBlock(node);
-      }
+      placeEmbed(it, address);
+    } catch (err) {
+      status.textContent = err.message;
+    }
+  };
+  // The page a link leads to becomes a web link item, which the text
+  // shows as its card (ADR-0208), in place of a paragraph that holds the
+  // link alone.
+  saveLink = async (address) => {
+    status.textContent = "";
+    try {
+      const made = await weblinks.save(address);
+      if (!made) return view.focus();
+      placeEmbed(made.item, address);
+      if (made.problem) status.textContent = made.problem;
     } catch (err) {
       status.textContent = err.message;
     }
@@ -1229,6 +1583,18 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     const spec = await tasks.pickLabel();
     if (!spec) return view.focus();
     insertBlock(schema.nodes.tasklist.create(spec));
+  };
+  // A view of items (ADR-0203): what it shows is chosen as at #/view.
+  const itemView = async () => {
+    status.textContent = "";
+    try {
+      const spec = await pickView({});
+      if (!spec) return view.focus();
+      insertBlock(schema.nodes.itemview.create({ layout: spec.layout, itemType: spec.itemType || "", space: spec.space || "", query: spec.query || "",
+        group: spec.group || "", columns: spec.columns?.length ? spec.columns : null, sort: spec.sort || "" }));
+    } catch (err) {
+      status.textContent = err.message;
+    }
   };
   // Commenting on a passage works while reading too (ADR-0047).
   const commentButton = comment ? h("button", { type: "button", id: "comment-selection", text: t("editor.comment"), onclick: () => {

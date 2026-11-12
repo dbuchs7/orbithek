@@ -212,8 +212,8 @@ func (r *Runner) run(ctx context.Context, c site.Connector, dry bool, actor stri
 	settings := fingerprint(c)
 	r.mu.Lock()
 	env.Seen, env.Force = r.of(c.ID).seen, actor != ""
-	if st := r.of(c.ID); c.JSON != nil && c.JSON.Since != nil && !st.since.IsZero() && st.settings == settings &&
-		start.Sub(st.full) < time.Duration(c.JSON.Since.FullDays)*24*time.Hour {
+	if st := r.of(c.ID); sinceDays(c) > 0 && !st.since.IsZero() && st.settings == settings &&
+		start.Sub(st.full) < time.Duration(sinceDays(c))*24*time.Hour {
 		env.Since = st.since.Add(-sinceOverlap)
 	}
 	r.mu.Unlock()
@@ -291,8 +291,22 @@ func (r *Runner) env(id string) Env {
 // fingerprint is what a run of a connector reads by: its space, type,
 // fields and source. A run after a change reads in full (ADR-0140).
 func fingerprint(c site.Connector) string {
-	b, _ := json.Marshal([]any{c.Space, c.Type, c.Fields, c.JSON, c.CKAN, c.Atlassian})
+	b, _ := json.Marshal([]any{c.Space, c.Type, c.Fields, c.JSON, c.CKAN, c.Atlassian, c.Highlights})
 	return string(b)
+}
+
+// sinceDays is how many days may pass between full runs of a connector
+// that reads what changed since its last run, 0 for one that always
+// reads in full: a JSON source asked so (ADR-0140), and a reading
+// service's highlights (ADR-0212).
+func sinceDays(c site.Connector) int {
+	switch {
+	case c.JSON != nil && c.JSON.Since != nil:
+		return c.JSON.Since.FullDays
+	case c.Highlights != nil:
+		return cmp.Or(c.Highlights.FullDays, 7)
+	}
+	return 0
 }
 
 // ReadInFull has the next run of a connector read its source in full, as

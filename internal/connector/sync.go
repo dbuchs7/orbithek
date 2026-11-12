@@ -34,6 +34,8 @@ func instance(c site.Connector) string {
 		return c.JSON.URL
 	case c.Git != nil:
 		return c.Git.URL
+	case c.Highlights != nil:
+		return c.Highlights.URL
 	}
 	return ""
 }
@@ -275,7 +277,7 @@ func apply(db *storage.DB, cfg site.Connector, entries []Entry, dry, partial boo
 		if !had && e.Parent != "" {
 			u.Parent = ids[e.Parent]
 		}
-		labels := without(old.Labels, WithdrawnLabel)
+		labels := withLabels(without(old.Labels, WithdrawnLabel), e.Labels)
 		newLabels := !slices.Equal(labels, old.Labels)
 		// The page is the source's: every run writes it anew, and only
 		// when it changed (ADR-0080); a source read only when it changed
@@ -286,6 +288,12 @@ func apply(db *storage.DB, cfg site.Connector, entries []Entry, dry, partial boo
 			if !write {
 				u.Origin.Version, u.Origin.Raw = old.Origin.Version, old.Origin.Raw
 				body = old.Body
+			}
+		}
+		if write && had && e.Below != nil {
+			var kept bool
+			if body.Blocks, kept = keepBelow(body.Blocks, old.Body.Blocks, e.Below); !kept {
+				res.problem("%s: the line above what people wrote was gone; the whole text is kept below the source's", e.Title)
 			}
 		}
 		var pending *pendingLinks
@@ -409,8 +417,36 @@ func language(cfg site.Connector) string {
 		return cfg.JSON.Language
 	case cfg.Git != nil && cfg.Git.Language != "":
 		return cfg.Git.Language
+	case cfg.Highlights != nil && cfg.Highlights.Language != "":
+		return cfg.Highlights.Language
 	}
 	return "de"
+}
+
+// withLabels adds the labels a source gives an entry to its item's, as
+// they are stored (ADR-0044); a label that is none is left out.
+func withLabels(have, add []string) []string {
+	out := slices.Clone(have)
+	for _, l := range add {
+		if n, ok := item.NormalLabel(l); ok {
+			out = append(out, n)
+		}
+	}
+	slices.Sort(out)
+	return slices.Compact(out)
+}
+
+// keepBelow continues the source's blocks with what people wrote below
+// the line that ends the source's part of the old page (ADR-0212). Where
+// the line is gone, the whole old page is kept below the new one, as
+// nothing people wrote is dropped; kept reports whether the line was
+// found.
+func keepBelow(blocks, old []item.Block, below func(item.Block) bool) ([]item.Block, bool) {
+	out := slices.Clone(blocks)
+	if i := slices.IndexFunc(old, below); i >= 0 {
+		return append(out, old[i+1:]...), true
+	}
+	return append(out, old...), len(old) == 0
 }
 
 // watch has the connector's steward watch a new page, so they hear of
@@ -560,12 +596,15 @@ func nonEmpty(p item.Props) item.Props {
 // the raw text kept in its origin is still the source's. write reports
 // whether its page is to be written; an entry without Load always is.
 func loadEntry(e Entry, old item.Item, had bool) (Entry, Content, bool, error) {
-	if e.Load == nil {
-		return e, Content{}, true, nil
-	}
 	kept := ""
 	if had && old.Origin != nil {
 		kept = old.Origin.Raw
+	}
+	if update := e.Update; update != nil {
+		e.Load = func() (Content, error) { return update(kept) }
+	}
+	if e.Load == nil {
+		return e, Content{}, true, nil
 	}
 	fresh := !had || slices.Contains(old.Labels, WithdrawnLabel) || kept == ""
 	if !fresh && e.Blob != "" && gitrepo.BlobID([]byte(kept), e.Blob) == e.Blob {

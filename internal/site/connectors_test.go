@@ -308,7 +308,7 @@ func TestPagingIsChecked(t *testing.T) {
 
 func TestGitConnectorsAreChecked(t *testing.T) {
 	s, _ := New(nil, func([]byte) error { return nil })
-	c := ConnectorTemplates()[len(ConnectorTemplates())-1]
+	c := ConnectorTemplates()[slices.IndexFunc(ConnectorTemplates(), func(c Connector) bool { return c.Kind == KindGit })]
 	if c.Kind != KindGit || c.IntervalHours != 1 {
 		t.Fatalf("the Git template runs every hour: %+v", c)
 	}
@@ -369,6 +369,42 @@ func TestSinceIsChecked(t *testing.T) {
 		bad := jsonConnector()
 		bad.JSON.Since = &Since{Param: "since", Format: SinceUnix, FullDays: 1}
 		change(bad.JSON)
+		if _, err := s.SetConnector("admin", bad); !errors.Is(err, ErrInvalid) {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+}
+
+// A connector of highlights names its service's address; a full run
+// comes every week unless set otherwise (ADR-0212).
+func TestHighlightsConnectorsAreChecked(t *testing.T) {
+	s, _ := New(nil, func([]byte) error { return nil })
+	c := ConnectorTemplates()[slices.IndexFunc(ConnectorTemplates(), func(c Connector) bool { return c.Kind == KindHighlights })]
+	c.ID, c.Highlights.URL, c.Highlights.FullDays = "reading", " https://reading.example/ ", 0
+	c.Fields = map[string]string{"source": "url", "cover": "cover"}
+	kept, err := s.SetConnector("admin", c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if kept.Highlights.URL != "https://reading.example" || kept.Highlights.FullDays != 7 || !slices.Equal(kept.Values(), HighlightsValues) {
+		t.Fatalf("normalized %+v", kept.Highlights)
+	}
+	got, _ := s.Connector("reading")
+	got.Highlights.URL = "x"
+	if again, _ := s.Connector("reading"); again.Highlights.URL != kept.Highlights.URL {
+		t.Fatal("a caller changed the settings")
+	}
+	for name, change := range map[string]func(*Connector){
+		"no service":       func(c *Connector) { c.Highlights = nil },
+		"no address":       func(c *Connector) { c.Highlights.URL = "reading.example" },
+		"a language":       func(c *Connector) { c.Highlights.Language = "rm" },
+		"too rarely full":  func(c *Connector) { c.Highlights.FullDays = 400 },
+		"a value it lacks": func(c *Connector) { c.Fields = map[string]string{"source": "isbn"} },
+	} {
+		bad := c
+		h := *c.Highlights
+		bad.Highlights = &h
+		change(&bad)
 		if _, err := s.SetConnector("admin", bad); !errors.Is(err, ErrInvalid) {
 			t.Errorf("%s: %v", name, err)
 		}

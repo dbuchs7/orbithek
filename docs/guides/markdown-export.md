@@ -1,6 +1,6 @@
 # Exporting pages as Markdown
 
-A page leaves the wiki as Markdown, the format of repositories, of editors such as VS Code and Obsidian, and of AI assistants ([ADR-0131](../adr/0131-pages-export-as-markdown-and-agents-read-them-so.md)). The export holds what the Word and PDF exports hold ([ADR-0071](../adr/0071-exporting-pages-and-lists.md)): only what you may read, protected passages you may not read veiled as `▒▒▒▒▒▒▒▒`.
+A page leaves the wiki as Markdown, the format of repositories, of code editors and Markdown notes applications, and of AI assistants ([ADR-0131](../adr/0131-pages-export-as-markdown-and-agents-read-them-so.md)). The export holds what the Word and PDF exports hold ([ADR-0071](../adr/0071-exporting-pages-and-lists.md)): only what you may read, protected passages you may not read veiled as `▒▒▒▒▒▒▒▒`.
 
 ## From a page
 

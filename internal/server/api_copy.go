@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"slices"
 
 	"github.com/dbuchs7/orbithek/internal/budget"
 	"github.com/dbuchs7/orbithek/internal/item"
@@ -126,11 +127,23 @@ func (h itemHandlers) copyOne(r *http.Request, space string, t copyTask) (item.I
 	if title == "" {
 		title = src.Title
 	}
+	// A file field names a file of the copy, set once its files are
+	// copied (ADR-0202).
+	props, fileFields := item.Props{}, item.Props{}
+	var srcType item.TypeDef
+	h.d.DB.Read(func(s *item.Store) { srcType, _ = s.TypeAt(src.Type, src.TypeVersion) })
+	for name, v := range src.Properties {
+		props[name] = v
+		if slices.ContainsFunc(srcType.Fields, func(f item.FieldDef) bool { return f.Name == name && f.Kind == item.KindFile }) {
+			fileFields[name] = v
+			delete(props, name)
+		}
+	}
 	var made item.Item
 	err = h.d.DB.Write(func(s *item.Store) error {
 		x := s.As(who(r))
 		var err error
-		made, err = x.Create(item.NewItem{Space: space, Type: src.Type, Parent: t.parent, Title: title, Properties: src.Properties, Template: src.Template})
+		made, err = x.Create(item.NewItem{Space: space, Type: src.Type, Parent: t.parent, Title: title, Properties: props, Template: src.Template})
 		if err != nil {
 			return err
 		}
@@ -180,6 +193,15 @@ func (h itemHandlers) copyOne(r *http.Request, space string, t copyTask) (item.I
 		})
 		if err != nil {
 			h.d.DB.DiscardAttachment(made.ID, a.ID)
+			return made, err
+		}
+	}
+	for name, v := range fileFields {
+		to, ok := renamed[item.ID(fmt.Sprint(v))]
+		if !ok {
+			continue // its file was deleted: the copy's field stays empty
+		}
+		if err := h.d.DB.Write(func(s *item.Store) error { return s.As(who(r)).SetProperty(made.ID, name, string(to)) }); err != nil {
 			return made, err
 		}
 	}

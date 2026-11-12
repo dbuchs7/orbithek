@@ -245,7 +245,7 @@ func (m *mdBuilder) block(bl item.Block, p Page, base int) []string {
 		}
 		return []string{quote("[!" + alert + "]\n" + inlineMarkdown(bl.Text, bl.Marks))}
 	case item.Table:
-		return markdownTable(TableRows(bl.Text))
+		return styledMarkdownTable(styledRows(bl))
 	case item.Divider:
 		return []string{"---"}
 	case item.Image:
@@ -269,7 +269,7 @@ func (m *mdBuilder) block(bl item.Block, p Page, base int) []string {
 			out = append(out, label)
 		}
 		return append(out, captionPart()...)
-	case item.BPMN, item.Process, item.Form, item.Decision, item.Architecture, item.StartForm:
+	case item.BPMN, item.Process, item.Form, item.Decision, item.Architecture, item.StartForm, item.ItemsView:
 		// A diagram is named as in Word and PDF (ADR-0071): its file, linked
 		// where it is reachable, or its process, form, decision, sketch or
 		// start form and engine (ADR-0144, ADR-0146, ADR-0148).
@@ -318,26 +318,20 @@ func (m *mdBuilder) block(bl item.Block, p Page, base int) []string {
 	}
 }
 
-// markdownTable writes a table with its first row as the header; every row has
-// as many cells as the widest.
-func markdownTable(rows [][]string) []string {
+// styledMarkdownTable writes a table whose cells keep their formatting
+// (ADR-0214); Markdown has no colours or sizes, so those are left out.
+func styledMarkdownTable(rows [][]tableCell) []string {
 	if len(rows) == 0 {
 		return nil
 	}
-	width := 0
-	for _, r := range rows {
-		width = max(width, len(r))
-	}
-	line := func(cells []string) string {
-		out := make([]string, width)
-		for i := range out {
-			if i < len(cells) {
-				out[i] = inlineMarkdown(strings.TrimSpace(cells[i]), nil)
-			}
+	line := func(cells []tableCell) string {
+		out := make([]string, len(cells))
+		for i, c := range cells {
+			out[i] = inlineMarkdown(c.Text, c.Marks)
 		}
 		return "| " + strings.Join(out, " | ") + " |"
 	}
-	lines := []string{line(rows[0]), "|" + strings.Repeat(" --- |", width)}
+	lines := []string{line(rows[0]), "|" + strings.Repeat(" --- |", len(rows[0]))}
 	for _, r := range rows[1:] {
 		lines = append(lines, line(r))
 	}

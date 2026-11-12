@@ -1,0 +1,59 @@
+/* Capacity: a quiet place for notes; white paper, a soft grey side, large
+   titles, airy text and one blue-violet accent; flat bars, pill-shaped
+   search and labels, gentle corners. Light and dark. */
+:root {
+  --bg: #ffffff; --surface: #ffffff; --surface-2: #f7f7f8; --border: #ececef; --border-strong: #d9d9de;
+  --text: #1d1d20; --muted: #74747c;
+  --accent: #4f5fe6; --accent-hover: #3d4bc9; --accent-soft: #eef0fd; --accent-ink: #ffffff;
+  --row-hover: #f4f4f6; --radius: 10px; --radius-sm: 7px;
+  --shadow: 0 1px 2px rgba(20, 20, 30, 0.04);
+  --shadow-lg: 0 10px 30px rgba(20, 20, 30, 0.10), 0 2px 6px rgba(20, 20, 30, 0.04);
+  --cap-chip: #f1f1f4; --cap-chip-ink: #4a4a52; --cap-field: #f2f2f5;
+}
+/* The bars: flat and white, a hairline below, the search a soft grey pill. */
+.top { background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: none; }
+#nav .search input { background-color: var(--cap-field); border-color: transparent; border-radius: 999px; }
+#nav .search input:focus { background-color: var(--surface); border-color: var(--accent); }
+#nav-new { border-radius: 999px; }
+/* Titles large and close-set; the text airy and a little larger. */
+h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.25; }
+h2 { font-size: 17px; font-weight: 650; letter-spacing: -0.01em; }
+.pm-editor, .ProseMirror { font-size: 15px; line-height: 1.7; }
+.pm-editor .ProseMirror > h2 { border-bottom-color: transparent; }
+.pm-editor blockquote, .ProseMirror blockquote { border-left: 3px solid var(--border-strong); color: var(--muted); }
+/* The side panel and the page tree sit on the soft grey, without frames. */
+.item-side > section { background: var(--surface-2); border-color: transparent; box-shadow: none; }
+.item-side .props th { background: none; }
+/* The text reads as a sheet of paper: no frame while reading. */
+#body.reading .pm-wrap { border-color: transparent; box-shadow: none; background: transparent; }
+.tree-box { background: var(--surface-2); border-color: transparent; }
+.tree-row { border-radius: 6px; }
+.tree-row:hover { background: var(--row-hover); }
+/* Cards and tiles: no hard frame, a lift on hover. */
+.card, .welcome, .home-tile, .space-tile, .board-column, .album-card { border-color: var(--border); box-shadow: none; }
+.home-tile:hover, .space-tile:hover, .album-card:hover { box-shadow: var(--shadow-lg); border-color: transparent; }
+/* Labels, chips and badges as soft pills. */
+.badge, .chip, .card-chip { border-radius: 999px; background: var(--cap-chip); color: var(--cap-chip-ink); border-color: transparent; }
+/* Actions: quiet grey by default, the main one in the accent. */
+button, .button { border-radius: var(--radius-sm); box-shadow: none; }
+:is(.page-head, .card, .welcome, dialog, form) :is(button, .button):not(.link):not(.icon-btn):not(.segment):not(.watch-bell):not(.pm-toolbar *):not(.primary):not([type=submit]):not(.danger) {
+  background: var(--cap-field); border-color: transparent; color: var(--text); }
+:is(.page-head, .card, .welcome, dialog, form) :is(button, .button):not(.link):not(.icon-btn):not(.segment):not(.watch-bell):not(.pm-toolbar *):not(.primary):not([type=submit]):not(.danger):hover {
+  background: var(--border); color: var(--text); }
+/* Fields: a soft fill that turns white with the accent on focus. */
+input, select, textarea { border-radius: var(--radius-sm); }
+.pm-toolbar { border-radius: var(--radius); box-shadow: var(--shadow-lg); border-color: transparent; }
+/* Tables: a light head, quiet lines. */
+th { background: var(--surface-2); color: var(--muted); font-weight: 600; }
+.menu, dialog { border-radius: var(--radius); box-shadow: var(--shadow-lg); border-color: var(--border); }
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #18191c; --surface: #1e1f23; --surface-2: #232428; --border: #2e2f35; --border-strong: #3d3e45;
+    --text: #e8e8ec; --muted: #9c9da6;
+    --accent: #8d9bff; --accent-hover: #aab4ff; --accent-soft: #262a46; --accent-ink: #14151a; --row-hover: #26272c;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+    --cap-chip: #2a2b31; --cap-chip-ink: #c9c9d1; --cap-field: #26272c;
+  }
+  .top { background: var(--surface); border-bottom-color: var(--border); }
+}

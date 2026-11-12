@@ -65,8 +65,20 @@ func diagramName(bl item.Block, files map[item.ID]Image) string {
 		return fmt.Sprintf("Architecture sketch: %s v%d (%s)", name, bl.Release, bl.Engine)
 	case item.StartForm:
 		return "Start form: " + cmp.Or(bl.Process, strings.TrimSpace(bl.Text), "public start link") + " (" + bl.Engine + ")"
+	case item.ItemsView:
+		return ViewName(bl)
 	}
 	return "BPMN: " + files[bl.Ref].Name
+}
+
+// ViewName names a view of items in a document (ADR-0203): a document
+// does not compute the view, it says what the view shows.
+func ViewName(bl item.Block) string {
+	name := "View: " + cmp.Or(bl.Layout, item.ViewTable) + " of " + cmp.Or(bl.ItemType, "every type") + " in " + cmp.Or(bl.Space, "every room")
+	if bl.Query != "" {
+		name += " where " + bl.Query
+	}
+	return name
 }
 
 // namedByCaption reports whether a block's name in a document is its
@@ -382,7 +394,7 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int) string {
 		}
 		return paraPr(b.pStyle("Panel")+`<w:shd w:val="clear" w:color="auto" w:fill="`+shade+`"/>`+align(jc), text)
 	case item.Table:
-		return b.table(TableRows(bl.Text), true)
+		return b.styledTable(bl)
 	case item.Divider:
 		return paraPr(`<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="BFBFBF"/></w:pBdr>`, "")
 	case item.Image:
@@ -394,7 +406,7 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int) string {
 			out += para(b.s("Caption"), "", run(bl.Text, ""))
 		}
 		return out
-	case item.BPMN, item.Process, item.Form, item.Decision, item.Architecture, item.StartForm:
+	case item.BPMN, item.Process, item.Form, item.Decision, item.Architecture, item.StartForm, item.ItemsView:
 		// A document does not draw a diagram, a form, a decision or a
 		// sketch; it names the file, the process, the form, the decision,
 		// the sketch or the start form (ADR-0129, ADR-0144, ADR-0146,
@@ -644,6 +656,97 @@ func (b *docxBuilder) table(rows [][]string, header bool) string {
 				cellPr = `<w:tcPr><w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/></w:tcPr>`
 			}
 			out.WriteString("<w:tc>" + cellPr + paraPr("", run(cell, props)) + "</w:tc>")
+		}
+		out.WriteString("</w:tr>")
+	}
+	out.WriteString("</w:tbl>")
+	return out.String()
+}
+
+// twipsPerPixel converts CSS pixels, 96 to the inch, to twentieths of a
+// point.
+const twipsPerPixel = 15
+
+// styledTable writes a table block with its formatted cells, its column
+// widths, its rows' least heights and its coloured cells; the first row
+// is the header (ADR-0042, ADR-0214).
+func (b *docxBuilder) styledTable(bl item.Block) string {
+	rows := styledRows(bl)
+	if len(rows) == 0 {
+		return ""
+	}
+	cols := len(rows[0])
+	page := int(b.width / 635)
+	widths := make([]int, cols)
+	fixed, free := 0, 0
+	for i := range widths {
+		if w := sizeAt(bl.Widths, i); w > 0 {
+			widths[i] = w * twipsPerPixel
+			fixed += widths[i]
+		} else {
+			free++
+		}
+	}
+	for i := range widths {
+		if widths[i] == 0 {
+			widths[i] = max((page-fixed)/free, 720)
+		}
+	}
+	var out strings.Builder
+	out.WriteString(`<w:tbl><w:tblPr><w:tblStyle w:val="` + b.s("TableGrid") + `"/>`)
+	if bl.Widths != nil {
+		total := 0
+		for _, w := range widths {
+			total += w
+		}
+		fmt.Fprintf(&out, `<w:tblW w:w="%d" w:type="dxa"/><w:tblLayout w:type="fixed"/>`, total)
+	} else {
+		out.WriteString(`<w:tblW w:w="5000" w:type="pct"/>`)
+	}
+	out.WriteString(`</w:tblPr><w:tblGrid>`)
+	for _, w := range widths {
+		fmt.Fprintf(&out, `<w:gridCol w:w="%d"/>`, w)
+	}
+	out.WriteString("</w:tblGrid>")
+	for i, r := range rows {
+		head := i == 0
+		out.WriteString("<w:tr>")
+		var trPr string
+		if ht := sizeAt(bl.Heights, i); ht > 0 {
+			trPr += fmt.Sprintf(`<w:trHeight w:val="%d" w:hRule="atLeast"/>`, ht*twipsPerPixel)
+		}
+		if head {
+			trPr += `<w:tblHeader/>`
+		}
+		if trPr != "" {
+			out.WriteString("<w:trPr>" + trPr + "</w:trPr>")
+		}
+		for j, c := range r {
+			// The order of the cell properties is the schema's.
+			tcPr := ""
+			if bl.Widths != nil {
+				tcPr += fmt.Sprintf(`<w:tcW w:w="%d" w:type="dxa"/>`, widths[j])
+			}
+			if t, ok := tableTones[c.Border]; ok {
+				tcPr += "<w:tcBorders>"
+				for _, side := range []string{"top", "left", "bottom", "right"} {
+					tcPr += `<w:` + side + ` w:val="single" w:sz="12" w:space="0" w:color="` + t.strong + `"/>`
+				}
+				tcPr += "</w:tcBorders>"
+			}
+			if t, ok := tableTones[c.Fill]; ok {
+				tcPr += `<w:shd w:val="clear" w:color="auto" w:fill="` + t.soft + `"/>`
+			} else if head {
+				tcPr += `<w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>`
+			}
+			if tcPr != "" {
+				tcPr = "<w:tcPr>" + tcPr + "</w:tcPr>"
+			}
+			marks := c.Marks
+			if head {
+				marks = append(slices.Clone(marks), item.Mark{Type: item.MarkBold, Start: 0, End: utf8.RuneCountInString(c.Text)})
+			}
+			out.WriteString("<w:tc>" + tcPr + paraPr("", runs(b, c.Text, marks)) + "</w:tc>")
 		}
 		out.WriteString("</w:tr>")
 	}

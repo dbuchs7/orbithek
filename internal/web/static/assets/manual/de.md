@@ -9,7 +9,7 @@ Dieses Handbuch erklärt die Arbeit mit Orbithek: Seiten lesen und schreiben, Au
 
 ### Räume, Einträge und Typen
 
-Alles, was in Orbithek geschrieben wird, ist ein **Eintrag**: eine Wiki-Seite, eine Aufgabe, eine Entscheidung, ein Sitzungsprotokoll. Woraus ein Eintrag besteht, legt sein **Typ** fest. Ein Typ bestimmt die Felder des Eintrags (zum Beispiel *assignee*, *due* oder *priority*), ob er einen Text hat und ob er einen **Workflow** mit Status wie *open* und *done* durchläuft. Seiten und Aufgaben sind deshalb keine getrennten Systeme, sondern Einträge unterschiedlicher Typen.
+Alles, was in Orbithek geschrieben wird, ist ein **Eintrag**: eine Wiki-Seite, eine Aufgabe, eine Entscheidung, ein Sitzungsprotokoll. Woraus ein Eintrag besteht, legt sein **Typ** fest. Ein Typ bestimmt die Felder des Eintrags (zum Beispiel *assignee*, *due* oder *priority*), ob er einen Text hat und ob er einen **Workflow** mit Status wie *open* und *done* durchläuft. Seiten und Aufgaben sind deshalb keine getrennten Systeme, sondern Einträge unterschiedlicher Typen. Ein Typ gehört der ganzen Installation oder einem Raum: Die eigenen Typen eines Raums werden nur für Einträge in diesem Raum verwendet.
 
 Einträge liegen in **Räumen**. Ein Raum enthält die Arbeit eines Teams, eines Projekts oder eines Themas. Jeder Raum hat einen kurzen **Schlüssel** in Grossbuchstaben, etwa `PLAT`; jeder Eintrag darin hat einen Schlüssel aus dem Raumschlüssel und einer Nummer, etwa `PLAT-12`. Seiten bilden einen Baum: Jeder Eintrag hat höchstens eine übergeordnete Seite.
 
@@ -35,11 +35,12 @@ Die Anmeldung erfolgt mit Benutzername und Passwort oder per Single Sign-on, sof
 
 Die Leiste oben auf jeder Seite enthält von links nach rechts:
 
-- **Neun Punkte** (Module): öffnet den Modulwechsler mit Räume, Erstellen, Aufgaben, Kommentare, Album, Whiteboards, Sternkarte, KI-Zugang, Governance, Konto und, für die Administration, Administration.
+- **Neun Punkte** (Module): öffnet den Modulwechsler mit Räume, Erstellen, Aufgaben, Heute, Kommentare, Album, Whiteboards, Sternkarte, KI-Zugang, Governance, Konto und, für die Administration, Administration.
 - **Startseite**, **Zurück** und **Vorwärts**.
 - Das **Logo**, das ebenfalls zur Startseite führt.
 - Das **Suchfeld**.
 - **+ Neu**: erstellt eine Seite oder einen Eintrag am aktuellen Ort.
+- **Heute**: die eigene Tagesnotiz von heute (Alt+Shift+D); siehe *Tagesnotizen*. Auf einem schmalen Bildschirm steht es im Modulwechsler.
 - Die **Glocke**: die Benachrichtigungen, mit der Anzahl ungelesener.
 - **DE** und **EN**: die Sprache der Oberfläche.
 - Den Umschalter für **hellen und dunklen Modus**.
@@ -48,13 +49,13 @@ Die Leiste oben auf jeder Seite enthält von links nach rechts:
 
 ### Die Startseite
 
-Die Startseite begrüsst, zeigt die Anzahl Seiten, Aufgaben und Bilder und bietet einen Schnellzugriff auf die eigenen Aufgaben, Benachrichtigungen, persönlichen Notizen, die Sternkarte, das Album, die Whiteboards und den KI-Zugang. Darunter stehen die eigenen Räume, als Kacheln oder als Liste; ein Stern markiert einen Raum als Favorit. Gibt es noch keine Räume, findet die Administration dort die ersten Schritte: einen Raum erstellen, mit den Vorlagen Typen hinzufügen (Seite, Aufgabe, Entscheidung) und Personen eine Rolle geben.
+Die Startseite begrüsst, zeigt die Anzahl Seiten, Aufgaben und Bilder und bietet einen Schnellzugriff auf die eigenen Aufgaben, Benachrichtigungen, persönlichen Notizen, die Sternkarte, das Album, die Whiteboards und den KI-Zugang. Darunter stehen die eigenen Räume, als Kacheln oder als Liste; ein Stern markiert einen Raum als Favorit. Gibt es noch keine Räume, findet die Administration dort die ersten Schritte: einen Raum erstellen, mit den Vorlagen Typen hinzufügen (Seite, Aufgabe, Entscheidung, Tagesnotiz) und Personen eine Rolle geben.
 
 ## Seiten und Einträge
 
 ### Eine Seite oder einen Eintrag erstellen
 
-Man wählt **+ Neu** in der oberen Leiste oder **Neue Seite** in einem Raum. Die Erstellungsansicht fragt nach Raum, Typ und Titel und legt den neuen Eintrag unterhalb der Seite an, von der man kam. Auf einer Seite erstellt **Neue Unterseite** eine Seite darunter. Hat ein Typ einen Starttext, beginnt ein neuer Eintrag damit.
+Man wählt **+ Neu** in der oberen Leiste oder **Neue Seite** in einem Raum. Die Erstellungsansicht fragt nach Raum, Typ und Titel und legt den neuen Eintrag unterhalb der Seite an, von der man kam. Auf einer Seite erstellt **Neue Unterseite** eine Seite darunter. Hat ein Typ einen Starttext, beginnt ein neuer Eintrag damit. Die eigenen Typen eines Raums werden nur angeboten, wenn dieser Raum gewählt ist.
 
 ### Einen Eintrag lesen
 
@@ -68,6 +69,10 @@ Ein Eintrag zeigt Titel, Schlüssel, Typ und Status sowie seinen Text. Die Seite
 
 Über dem Text stehen **Exportieren** und **Beobachten** zur Verfügung; die Kommentare folgen unter dem Text.
 
+Der Abschnitt **Zusammenhang** in der Seitenleiste zeigt, was zum Eintrag gehört, ohne in ihm zu stehen: unter **Verwiesen von** die Einträge, die ihn erwähnen, einbetten, verlinken oder mit ihm in Beziehung stehen, jeweils mit dem Satz, in dem die Erwähnung oder der Link steht; unter **Mit gleichen Labels** die Einträge mit seinen Labels, die mit den meisten gemeinsamen zuerst; und unter **In Tagesnotizen** die eigenen Tagesnotizen, die ihn nennen. Es erscheinen nur Einträge, die man lesen darf, und jede Liste zeigt ihre ersten Einträge.
+
+Shift+Klick auf einen Link zu einem anderen Eintrag, oder **Daneben** bei einem Eintrag des Zusammenhangs, öffnet diesen Eintrag in einem Bereich neben dem aktuellen: Man liest ihn dort und bearbeitet seinen Text mit **Bearbeiten**, wenn man darf. Die Adresse behält den Eintrag daneben, so lässt sich das Paar teilen und kommt mit **Zurück** wieder. **Für sich öffnen** zeigt ihn als Seite; Esc oder das × schliesst den Bereich. Auf dem Telefon folgt der Bereich unter der Seite.
+
 ### Einen Text bearbeiten
 
 Mit **Bearbeiten** wird der Text bearbeitet, mit **Fertig** abgeschlossen. Änderungen werden laufend gespeichert; die Statuszeile zeigt *Wird gespeichert…* und danach *Alle Änderungen gespeichert.* Die Werkzeugleiste bietet:
@@ -80,6 +85,8 @@ Mit **Bearbeiten** wird der Text bearbeitet, mit **Fertig** abgeschlossen. Ände
 
 Eingefügtes Markdown wird zu formatiertem Text. Ctrl+Shift+V fügt stattdessen reinen Text ein.
 
+Hat kein Eintrag den Titel, den man nach @ oder als Adresse eines Links tippt, bietet die Liste *«Titel» erstellen als …* an. Der Dialog **Erstellen und erwähnen** fragt nach dem Typ (dem Seitentyp des Raums, wenn man keinen anderen wählt) und dem Raum (dem Raum des bearbeiteten Texts, wenn man keinen anderen wählt); eine Seite im selben Raum kommt unter die bearbeitete Seite und ist wie diese geschützt; aus einer Tagesnotiz kommt sie zuoberst in den Raum. Der neue Eintrag wird dort erwähnt, wo man getippt hat. Typen mit Pflichtfeldern erstellt man stattdessen mit **+ Neu**. Darf man in einem Raum nichts erstellen oder ist der Speicher fast voll, sagt es der Dialog, und es wird nichts erstellt.
+
 ### Inhalte einfügen
 
 Das Menü **Einfügen…** fügt Blöcke nach dem Cursor ein:
@@ -88,18 +95,45 @@ Das Menü **Einfügen…** fügt Blöcke nach dem Cursor ein:
 - **Bild**, **Video**, **Zeichnung**, ein Bild **Aus dem Album** oder ein **Kopiertes Bild**;
 - **Eintrag einbetten…**: zeigt einen anderen Eintrag vollständig im Text;
 - **Neue Aufgabe…** (wird unter der Seite angelegt und als Link oder vollständig gezeigt) und **Aufgabenliste…** (alle Aufgaben mit einem Label oder das Ergebnis einer Abfrage);
+- **Ansicht von Einträgen…**: die Einträge eines Typs als Tabelle, Galerie oder Liste, gruppiert nach einem Feld (siehe *Ansichten von Einträgen*);
 - **Markdown einfügen…** und **Markdown-Datei aus einem Repository…** (sofern eingeschaltet);
 - BPMN-Diagramme sowie Prozesse, Formulare, Entscheidungen, Startformulare und Architekturskizzen einer Prozess-Engine (siehe *Prozess-Engines*).
 
 Bilder lassen sich links oder rechts mit Text daneben oder zentriert platzieren und durch Ziehen in der Grösse ändern; eine Bildunterschrift nummeriert sie im Bildverzeichnis.
 
+### Tabellen
+
+Eine Tabelle wird direkt bearbeitet. Ein Klick in eine Zelle öffnet sie zum Schreiben; Text, der nicht hineinpasst, bricht innerhalb der Zelle um. Tab und Shift+Tab wechseln zur nächsten und zur vorherigen Zelle, Enter zur Zelle darunter, Escape verlässt die Tabelle.
+
+- *Formatieren:* Die Tasten des Textes wirken auch in einer Zelle (Ctrl+B, Ctrl+I, Ctrl+U und die übrigen), ebenso die Schaltflächen über der Tabelle; **Link** (Ctrl+K) verlinkt den markierten Text mit einer Webadresse.
+- *Zellen wählen:* Eine Zelle anklicken, dann mit gedrückter Shift-Taste eine weitere: Die Zellen dazwischen sind gewählt. Die Schaltflächen formatieren dann jede gewählte Zelle ganz.
+- *Farben:* **Füllung** füllt die gewählten Zellen, **Rand** färbt ihre Ränder, jeweils in einem von acht Farbtönen; **Keine** entfernt die Farbe. Die Farbtöne sind im hellen und im dunklen Design gut lesbar.
+- *Grössen:* Den rechten Rand einer Zelle ziehen, um ihre Spalte breiter oder schmaler zu machen, den unteren Rand, um ihre Zeile höher zu machen. Eine Tabelle, die breiter als der Text ist, lässt sich seitwärts scrollen. **Grössen zurücksetzen** überlässt die Grössen wieder dem Text.
+- *Zeilen und Spalten:* **+ Zeile** fügt unter der gewählten Zelle eine Zeile ein, **+ Spalte** rechts davon eine Spalte; **− Zeile** und **− Spalte** entfernen die Zeile bzw. Spalte der gewählten Zelle.
+
+Formatierung, Farben und Grössen bleiben im Word- und PDF-Export erhalten; ein Markdown-Export behält die Formatierung.
+
 ### Labels, Beziehungen und Dateien
 
-**Labels** sind kurze Begriffe, die Einträge über Räume hinweg gruppieren, etwa `release-2` oder `security`. Man fügt sie in der Seitenleiste hinzu; ein Klick auf ein Label listet alle Einträge damit auf und bietet es **Als Board** an.
+**Labels** sind kurze Begriffe, die Einträge über Räume hinweg gruppieren, etwa `release-2` oder `security`. Man fügt sie in der Seitenleiste hinzu; ein Klick auf ein Label listet alle Einträge damit auf und bietet es **Als Board** an. Ein Label kann eine Seite haben, die es beschreibt (siehe *Seiten von Labels und Sammlungen*).
 
 **Beziehungen** verknüpfen einen Eintrag mit einem anderen unter einem benannten Typ, zum Beispiel *blocks* oder *depends on*: Beziehung und Schlüssel des anderen Eintrags eingeben und **Verknüpfen** wählen. Links und Erwähnungen im Text erscheinen ebenfalls als Beziehungen.
 
 **Dateien** werden mit **Dateien hochladen** angehängt. Wer den Eintrag bearbeiten darf, benennt eine Datei in der Liste mit **Umbenennen** um: Alle Versionen erhalten den neuen Namen, der Dateityp bleibt. Bilder und Zeichnungen aller Einträge erscheinen zudem im Album.
+
+### PDF-Dateien lesen
+
+Eine PDF-Datei eines Eintrags öffnet sich im PDF-Leser mit **Lesen** in der Dateiliste oder mit einem Klick auf einen Link zu ihr im Text des Eintrags. Der Leser zeigt die Seiten mit ihrem Text, der sich markieren und kopieren lässt. Die Leiste darüber blättert von Seite zu Seite, vergrössert und verkleinert oder passt auf **Seitenbreite** an, durchsucht das Dokument (Enter für den nächsten Treffer) und bietet **Herunterladen**. Seitlich zeigt *Seiten* kleine Bilder der Seiten, *Inhalt* das Inhaltsverzeichnis des Dokuments, falls es eines hat, und *Markierungen* die darin gesetzten Markierungen. Die Adresse nennt die Seite, sodass ein Link andere zur selben Seite führt.
+
+Wer den Eintrag kommentieren darf, markiert Text: Man wählt ihn auf einer Seite aus und wählt dann eine Farbe, um ihn sofort zu markieren, oder **Mit Notiz markieren**, wählt eine Farbe, schreibt die Notiz und wählt **Markierung speichern**. Eine Markierung ist ein Kommentar zum Eintrag: Sie erscheint unter den Kommentaren des Eintrags mit Datei, Seite und Zitat, und **Im PDF zeigen** führt zu ihr. Markierungen werden in der Liste des Lesers wie in den Kommentaren beantwortet, erledigt und gelöscht; **In den Kommentaren öffnen** führt zum Eintrag. Wird eine neuere Version der Datei hochgeladen, zeigt der Leser die neueste Version und findet jede Markierung an ihrem Text wieder; eine Markierung, deren Text nicht mehr in der Datei steht, sagt das. **Als Markdown exportieren** speichert die Markierungen mit Zitat, Seite und Notiz. Ein PDF mit Markierungen bleibt in seinem Eintrag: Es lässt sich nicht in einen anderen verschieben.
+### Felder eines Eintrags
+
+Die Felder eines Eintrags stehen in der Spalte an der Seite und werden gespeichert, sobald sie sich ändern. Neben Text, Zahlen, Datum, Personen und Listen kann ein Feld sein:
+
+- **Eintrag**: ein Verweis auf einen anderen Eintrag, gewählt durch Eintippen einiger Buchstaben seines Schlüssels oder Titels. Er wird mit Schlüssel und Titel angezeigt und zählt als Beziehung: Der andere Eintrag führt ihn unter seinen Beziehungen, die Sternkarte und die Auswirkungen zeigen ihn, und der andere Eintrag lässt sich nicht löschen, solange auf ihn verwiesen wird. Ein Eintrag, den man nicht lesen darf, wird nicht angezeigt.
+- **Mehrere aus einer Liste**: beliebige Werte des Felds, angekreuzt.
+- **Bewertung**: ein bis fünf Sterne.
+- **Datei**: eine der eigenen Dateien des Eintrags, etwa ein Titelbild, als kleines Bild gezeigt. Zuerst die Datei hochladen, dann wählen.
 
 ### Verschieben, kopieren und löschen
 
@@ -110,6 +144,49 @@ Bilder lassen sich links oder rechts mit Text daneben oder zentriert platzieren 
 ### Verlauf und Versionen
 
 Der **Verlauf** listet jede Änderung eines Eintrags mit Person und Zeitpunkt auf. Eine Fassung des Textes zeigt ihre **Änderungen**; **Diese Fassung wiederherstellen** holt einen früheren Text als neue Version zurück. Durch das Wiederherstellen geht nichts verloren.
+
+### Notizen importieren
+
+Raumadministratorinnen und Raumadministratoren holen anderswo geschriebene Notizen mit **Notizen importieren** in den Ansichten des Raums in ihren Raum; die Administration findet dasselbe Formular unter **Administration → Import**. Hochgeladen wird ein ZIP-Archiv mit einem der folgenden Inhalte:
+
+- ein Ordner mit Markdown-Notizen, etwa ein Obsidian-Vault, so wie er ist gezippt, oder der Markdown-Export einer beliebigen Notiz-App, die Markdown-Dateien mit Front Matter schreibt;
+- ein Notion-Workspace-Export im Format *Markdown & CSV*.
+
+Was der Import daraus macht:
+
+- jeder Ordner mit Notizen wird zu einer Seite, jede Notiz zu einer Seite unter der Seite ihres Ordners; eine Notiz mit dem Namen des Ordners, `index.md` oder `README.md` ist der eigene Text der Ordnerseite;
+- der Titel ist der `title` des Front Matter, sonst die erste Überschrift, sonst der Dateiname; in einem Notion-Export fällt die ID am Ende jedes Namens weg und bezeichnet die Seite;
+- Links zwischen Notizen — `[[Notiz]]`, `[[Notiz|Text]]`, `[[Notiz#Überschrift]]` und relative Markdown-Links — werden zu Erwähnungen der importierten Seiten; eine mit `![[Notiz]]` eingebettete Notiz wird ebenfalls zur Erwähnung;
+- Bilder im Archiv (`![[bild.png]]` oder ein relativer Bildlink) werden angehängt und angezeigt; Bilder im Web bleiben Links;
+- `tags` im Front Matter und Inline-`#tags` werden zu Labels (ein Tag `a/b` wird zum Label `a.b`); ein Front-Matter-Schlüssel mit dem Namen eines Felds des **Typ der Seiten** füllt dieses Feld, ein `status`, den der Workflow des Typs kennt, setzt den Zustand, und alles Übrige bleibt in einer kleinen Tabelle oben auf der Seite erhalten;
+- jede Datenbank eines Notion-Exports (eine CSV-Datei) wird zu einer Seite, die ihre Zeilen auflistet, und jede Zeile zu einem Eintrag des **Typ der Zeilen von Datenbanken**, dessen Felder die Spalten nach ihrem Namen füllen.
+
+Beginnen Sie immer mit dem **Probelauf**: Er schreibt nichts und listet auf, wie viele Seiten erstellt oder geändert würden und was sich nicht umwandeln lässt, etwa ein Link auf eine Notiz, die das Archiv nicht enthält, oder ein eingebettetes PDF. **Importieren** schreibt dann die Seiten.
+
+Der **Name des Imports** bezeichnet ihn. Importieren Sie ein neueres Archiv unter demselben Namen, um Änderungen zu übernehmen: Nichts wird doppelt erstellt, eine Seite, deren Notiz sich nicht geändert hat, behält, was hier darin geschrieben wurde, eine geänderte Notiz ersetzt den Text ihrer Seite (der Verlauf behält den alten), Labels kommen nur hinzu, und eine Seite, deren Notiz nicht mehr im Archiv liegt, bleibt erhalten und wird nie gelöscht.
+
+### Markierungen importieren
+
+Die Administration kann unter **Administration → Konnektoren** einen Konnektor der Art Readwise einrichten. Er liest Ihre Markierungen aus Readwise nach seinem Zeitplan, wie jeder Konnektor zuerst mit einem Probelauf: Jedes Buch und jeder Artikel wird zu einem Eintrag des gewählten Typs mit Titel, Autorin oder Autor, Quelladresse und Cover, Labels aus seinen Tags und seinen Markierungen als Zitate mit ihren Notizen und Fundstellen. Ein Lauf liest nur, was sich seit dem letzten geändert hat. Die Markierungen stehen über einer Linie im Text des Eintrags; was Sie unter diese Linie schreiben, bleibt erhalten, wenn die Markierungen aktualisiert werden.
+## Weblinks und Erfassen
+
+### Einen Weblink speichern
+
+Eine Seite aus dem Web lässt sich als eigener Eintrag aufbewahren, als *Weblink*: ihre Adresse und was die Seite über sich selbst sagt, etwa Website, Beschreibung, Autorin oder Autor und Erscheinungstag, in seinen Feldern; ihr Bild als Datei; und Ihre eigenen Notizen in seinem Text, wo Kommentare und persönliche Notizen wie auf jeder Seite funktionieren.
+
+Fügen Sie beim Bearbeiten eines Textes eine Adresse auf einer eigenen Zeile ein. Die Blase unter dem Link bietet **Als Weblink-Eintrag speichern** an: Der Eintrag kommt unter die Seite, an der Sie schreiben, oder in einen anderen Raum, und die Zeile mit der Adresse wird zu einer Karte der Seite mit Bild, Titel, Website und Beschreibung. Ein Weblink-Eintrag zeigt dieselbe Karte zuoberst, ebenso jeder Text, der ihn einbettet.
+
+Liest Ihr Server Webseiten (das entscheidet eine Administratorin oder ein Administrator), werden die Felder und das Bild eines Weblinks aus der Seite gefüllt. Auf dem Weblink-Eintrag bringt **Seite neu lesen** sie auf den neuesten Stand und behält ein früheres Bild als frühere Version; **Text der Seite übernehmen** fügt den Haupttext der Seite unter dem Text des Eintrags an, um ihn zu kommentieren und mit persönlichen Notizen zu versehen. Ohne dies behält ein Weblink seine Adresse, und Sie füllen seine Felder selbst aus.
+
+### Von überall erfassen
+
+**Erfassen** speichert eine Seite aus dem Web, ein Zitat oder einen Gedanken, wo immer Sie gerade sind. Es öffnet sich:
+
+- unter **Neu** mit der Karte **Erfassen**;
+- von jeder Seite im Web aus mit dem Lesezeichen, das unter **Konto und Passwort** im Kontomenü angeboten wird: Ziehen Sie die Schaltfläche **Erfassen** in die Lesezeichen Ihres Browsers, oder verwenden Sie **Lesezeichen kopieren**. Auf einer Seite öffnet es die Erfassung mit dem Titel der Seite, ihrer Adresse und dem markierten Text;
+- auf dem Telefon, indem Sie eine Seite oder einen Text mit Orbithek teilen, sobald Sie es über das Menü des Browsers als App installiert haben.
+
+Die Erfassung zeigt Titel, Adresse und Text, die Sie ändern können, und fragt, wo sie gespeichert werden: als **Weblink** (wenn es eine Adresse gibt), in die **heutige Tagesnotiz** (im Raum, den Sie für Ihre Tagesnotizen gewählt haben), als **neuer Eintrag** eines Typs und in einem Raum Ihrer Wahl oder als **Ergänzung eines Eintrags**, den Sie über die Suche finden. Der Text wird zu Zitaten, die Adresse folgt als ihre Quelle. Gespeichert wird erst mit **Speichern**. Wer sich zuerst anmelden muss, verliert das Geteilte nicht.
 
 ## Zusammenarbeiten
 
@@ -127,6 +204,12 @@ Das Modul **Kommentare** sammelt Kommentare zu beobachteten Einträgen, die eige
 
 Beim Lesen markiert man eine Stelle und wählt **Notiz**, um eine Notiz dazu anzulegen, die nur man selbst sieht. **Meine Notizen** auf der Startseite listet alle eigenen Notizen mit den zugehörigen Stellen auf.
 
+### Tagesnotizen
+
+Eine Tagesnotiz ist eine eigene Seite für einen Tag: Nur man selbst liest und bearbeitet sie. **Heute** in der oberen Leiste, Alt+Shift+D oder die Befehlspalette öffnet die Notiz von heute; sie wird beim ersten Öffnen erstellt, im **Raum für Tagesnotizen**, den man einmal wählt, unter den Räumen, in denen man Seiten erstellen darf. Der Raum lässt sich jederzeit ändern; bestehende Notizen bleiben, wo sie sind.
+
+Der Text der Notiz wird an Ort und Stelle bearbeitet. **Vorheriger Tag** und **Nächster Tag** wechseln den Tag, und der Monat daneben markiert die Tage mit Notiz; ein Tag ohne Notiz bietet **Notiz für diesen Tag beginnen** an. Neben der Notiz zeigt **Im Kalender an diesem Tag** die Einträge, deren Daten auf diesen Tag fallen, und **An diesem Tag erstellt oder geändert** die lesbaren Einträge, die an diesem Tag erstellt oder zuletzt geändert wurden. **Als Seite öffnen** zeigt die Notiz als Eintrag, mit Kommentaren, Verlauf und Feldern. Tagesnotizen tragen das Label `daily-note`; eine Abfrage nach diesem Label listet sie alle.
+
 ### Gleichzeitig bearbeiten
 
 Mehrere Personen können einen Text gleichzeitig bearbeiten. Jeder Block, an dem jemand arbeitet, ist für die anderen gesperrt; die Zeile über dem Text nennt, wer gerade im Text ist und wer welchen Block bearbeitet. Bricht die Verbindung ab, stellt der Editor sie selbständig wieder her.
@@ -137,6 +220,10 @@ Mehrere Personen können einen Text gleichzeitig bearbeiten. Jeder Block, an dem
 
 Man gibt Wörter aus Titel, Text oder Kommentar oder einen Schlüssel wie `PLAT-12` in das Suchfeld ein. Während der Eingabe erscheinen Vorschläge; **Enter** zeigt alle Treffer, geordnet nach Relevanz (ein bis fünf Sterne). Die Suche findet nur, was man lesen darf.
 
+### Befehlspalette
+
+Ctrl+K (ausser beim Bearbeiten eines Texts, wo Ctrl+K einen Link einfügt) oder Ctrl+Shift+P öffnet die **Befehlspalette**. Man tippt einen Teil eines Titels, eines Schlüssels oder eines Befehls: Sie findet Einträge, bietet unter **Zuletzt geöffnet** die zuletzt geöffneten Einträge an (in diesem Browser gemerkt) und **Befehle** wie einen neuen Eintrag, die Tagesnotiz von heute, ein Modul oder einen Raum, die Abfrage, den Kalender, die helle oder dunkle Darstellung, den Lesemodus und das Handbuch. Die getippten Buchstaben müssen nur in ihrer Reihenfolge vorkommen, so findet `tvh` die *Tagesnotiz von heute*. Pfeiltasten wählen, Enter öffnet, Esc schliesst.
+
 ### Abfragen
 
 Eine **Abfrage** wählt Einträge nach ihren Feldern aus. Man öffnet sie aus den Suchergebnissen (**Stattdessen die Felder der Einträge abfragen**). Bedingungen werden mit AND, OR und NOT verbunden; Klammern fassen sie zusammen:
@@ -145,6 +232,7 @@ Eine **Abfrage** wählt Einträge nach ihren Feldern aus. Man öffnet sie aus de
 - `IS EMPTY` und `IS NOT EMPTY` finden Einträge ohne bzw. mit Wert.
 - Ein Datum schreibt man `2026-10-01`; `-7d`, `2w`, `+12h` und `-1y` zählen ab jetzt; `now()`, `startOfWeek()` und ähnliche Funktionen stehen zur Verfügung.
 - `currentUser()` steht für die eigene Person.
+- Ein Eintragsfeld nimmt den Schlüssel eines Eintrags, etwa `epic = PLAT-3`; `platforms = web` findet Einträge, die *web* unter mehreren Werten haben; eine Bewertung vergleicht wie eine Zahl, etwa `rating >= 4`.
 - `ORDER BY` sortiert, `ASC` oder `DESC`.
 
 Beispiele:
@@ -159,7 +247,21 @@ Ctrl+Enter führt eine Abfrage aus. Die Ergebnisse lassen sich als CSV exportier
 
 ### Ansichten eines Raums
 
-Ein Raum bietet mehrere Ansichten: seinen Seitenbaum, **Alle Einträge**, ein **Board** je Typ mit Workflow, den **Kalender**, die **Roadmap** und, je nach Rolle, **Governance** und **Linkprüfung**. **Beobachten** in einem Raum meldet alles, was darin geschieht.
+Ein Raum bietet mehrere Ansichten: seinen Seitenbaum, **Alle Einträge**, ein **Board** je Typ mit Workflow, **Ansichten** seiner Einträge, den **Kalender**, die **Roadmap** und, je nach Rolle, **Governance** und **Linkprüfung**. **Beobachten** in einem Raum meldet alles, was darin geschieht.
+
+### Ansichten von Einträgen
+
+**Ansichten** in einem Raum, oder **Ansicht eines Typs…** daneben, zeigt die Einträge, die Sie lesen dürfen, als **Tabelle**, als **Galerie** von Karten oder als **Liste** kompakter Zeilen. Wählen Sie den **Raum** (oder alle Räume), den **Typ** und nach Wunsch eine **Abfrage** in der Abfragesprache, dann **Anwenden**. **Gruppieren nach** ordnet die Einträge unter Überschriften mit ihrer Anzahl: nach Status, nach Label oder nach einem Feld mit einer Auswahl, einer Person oder ja und nein; ein Klick auf eine Überschrift klappt die Gruppe zu. **Sortierung** ordnet sie nach einer Spalte, ebenso ein Klick auf eine Spaltenüberschrift, ein zweiter Klick umgekehrt. **Spalten** wählt, was die Tabelle zeigt; die Karten einer Galerie zeigen das erste Bild des Texts oder die Datei eines Dateifelds, mit dem Titel und den gewählten Feldern.
+
+Wo Sie einen Eintrag bearbeiten dürfen, ändert der Stift neben einer Zelle sie direkt: den Titel, ein Feld oder den Status, über einen Übergang des Workflows. Die Adresse hält die ganze Ansicht fest, so zeigt ein Link sie anderen, so weit sie die Einträge lesen dürfen.
+
+In einem Text fügt **Einfügen…** → **Ansicht von Einträgen…** eine solche Ansicht ein; **Ansicht ändern…** ändert sie beim Bearbeiten, und **Als Ansicht öffnen** zeigt sie auf einer eigenen Seite. Alle sehen nur die Einträge, die sie lesen dürfen.
+
+### Seiten von Labels und Sammlungen
+
+Ein Label kann eine Seite haben, die sagt, worum es geht. In der Liste der Einträge eines Labels erstellt **Dieses Label beschreiben** diese Seite, vom Typ *topic*, in einem Raum Ihrer Wahl; danach zeigt die Liste des Labels sie oben mit **Seite lesen**. Haben mehrere Räume eine Seite zum selben Label, sehen Sie die älteste, die Sie lesen dürfen.
+
+Die Seite eines Labels zeigt die Einträge mit ihrem Label als Ansicht: **Tabelle**, **Galerie** oder **Liste**, gruppiert und sortiert nach Wahl. Mit **Von Hand festgelegte Reihenfolge** zieht, wer die Seite bearbeiten darf, einen Eintrag vor einen anderen oder verschiebt ihn mit den Pfeilen (Alt+↑ und Alt+↓); später hinzugekommene Einträge folgen nach den geordneten, und Einträge, die Sie nicht lesen dürfen, behalten ihren Platz, ohne gezeigt zu werden. **Von Hand festgelegte Reihenfolge vergessen** listet sie wieder in der Reihenfolge ihrer Erstellung. Eine solche Seite mit ihrer Reihenfolge ist eine Sammlung: **Zu Sammlung hinzufügen…** bei einem Eintrag gibt ihm das Label einer Seite Ihrer Wahl.
 
 ## Aufgaben
 
@@ -258,6 +360,10 @@ Die Ansicht **Personen** listet alle benannten Personen mit ihrem Gesicht und de
 Gesichter werden im eigenen Browser gefunden; nichts wird anderswohin gesendet. Hat die Administration **Gesichter wiedererkennen** eingeschaltet, berechnet der Browser zu jedem Gesicht zusätzlich Zahlenwerte, mit denen das Album für ein Gesicht, das bereits benannten Gesichtern ähnelt, einen Namen vorschlägt, etwa *Ada?*. Diese Werte sind biometrische Daten: Man schaltet das nur ein, wenn die abgebildeten Personen einverstanden sind. Beim Ausschalten werden sie alle gelöscht; die Namen bleiben. Bilder, die vor dem Einschalten durchsucht wurden, werden erst erkannt, wenn sie erneut durchsucht werden: Nach dem Einschalten weist die Administration auf **Gesichter in allen Bildern finden** hin, und ein im Betrachter geöffnetes Bild wird von selbst erneut durchsucht.
 
 Ist die Wiedererkennung eingeschaltet, zeigt das Album einer Person zusätzlich **Ist das Ada?**: Gesichter auf anderen Bildern, die man bearbeiten darf und die Ada mehr ähneln als allen anderen benannten Personen, die ähnlichsten zuerst. Man klickt die Gesichter an, die Ada zeigen, oder wählt **Alle wählen** und klickt die falschen wieder ab, dann **Gewählte bestätigen**. Nicht gewählte Gesichter bleiben unbenannt und werden später erneut vorgeschlagen. Vorgeschlagen werden nur Bilder, deren Gesichter bei eingeschalteter Wiedererkennung gesucht wurden.
+
+### Einen Ordner verschieben
+
+**Ordner verschieben** in einem offenen Ordner verschiebt ihn mit seinen Ordnern, Bildern und Videos in einen anderen Ordner oder auf die oberste Ebene eines Raums. Den Ort unter **Verschieben nach…** wählen und **Verschieben** klicken; der Pfad führt danach zum Ordner an seinem neuen Ort. Ein Ordner lässt sich auch auf einen daneben aufgeführten Ordner oder auf einen übergeordneten Ordner im Pfad ziehen; auf **Alle Bilder** gezogen, kommt er auf die oberste Ebene seines Raums. Wird der Ordner in einen anderen Raum verschoben, fragt das Album zuerst nach: Danach entscheidet dieser Raum, wer ihn sehen und ändern darf. Verschieben darf einen Ordner nur, wer ihn und alles darin ändern und am Ziel etwas erstellen darf; in sich selbst oder einen Ordner darunter lässt er sich nicht verschieben.
 
 ### Einen Ordner löschen
 
@@ -430,13 +536,13 @@ Die Administration findet unter **Administration**:
 
 - **Kontoanträge**, **Benutzer und Systemrollen**, **Gruppen** und **Raumrolle vergeben**;
 - **Räume**: Räume erstellen, ihre Einstellungen öffnen, einen Raum in den Papierkorb legen und wiederherstellen oder endgültig löschen;
-- **Typen**: Typen aus den Vorlagen oder als JSON erstellen, mit Feldern, Workflow, Word-Vorlage und Starttext;
+- **Typen**: Typen in einem Formular anlegen und ändern — Name, Text, Felder mit ihrer Art und ihren Optionen, Workflow mit Status und Übergängen (oder einfach *offen → erledigt*) und Starttext — für die ganze Installation oder für einen Raum; der Typ als JSON bleibt unter **Erweitert**. Typen entstehen auch aus den Vorlagen;
 - **Backup** (auch zeitgesteuert in ein Verzeichnis, per WebDAV, S3, FTPS oder SFTP) und **Speicher**;
 - **Kalender anderer Dienste**, **Album: ältere Versionen**, **Konnektoren** und **Prozess-Engines**;
-- **Erscheinungsbild (Corporate Design)**: Logo, Farben, Hintergrund, Schriften;
+- **Erscheinungsbild (Corporate Design)**: Logo, Farben, Hintergrund, Schriften und ein fertiges Theme, darunter *Capacity*, ein ruhiges Erscheinungsbild für Notizen in Hell und Dunkel;
 - **Word-Vorlagen**, **Datenschutz-Regelwerke**, **Import** und das **Audit-Protokoll**.
 
-Die Raumadministration verwaltet Mitglieder und Rollen ihres Raums unter den **Einstellungen** des Raums.
+Die Raumadministration verwaltet Mitglieder und Rollen ihres Raums unter den **Einstellungen** des Raums. Dort legt sie unter **Eintragstypen dieses Raums** mit demselben Formular auch die eigenen Typen des Raums an, ändert und entfernt sie oder beginnt mit einer Vorlage. Entfernt wird ein Typ erst, wenn kein Eintrag und kein Kanban ihn nutzt.
 
 ## Tastenkürzel
 
@@ -445,7 +551,10 @@ Die Raumadministration verwaltet Mitglieder und Rollen ihres Raums unter den **E
 | Ctrl+B, Ctrl+I, Ctrl+U | Fett, kursiv, unterstreichen |
 | Ctrl+Shift+X, Ctrl+Shift+H | Durchstreichen, hervorheben |
 | Ctrl+Shift+L, E, R, J | Linksbündig, zentriert, rechtsbündig, Blocksatz |
-| Ctrl+K | Link einfügen oder bearbeiten |
+| Ctrl+K | Link einfügen oder bearbeiten; ausserhalb eines Texts die Befehlspalette öffnen |
+| Ctrl+Shift+P | Befehlspalette öffnen |
+| Alt+Shift+D | Tagesnotiz von heute öffnen |
+| Shift+Klick | Verlinkten Eintrag neben dem aktuellen öffnen; Esc schliesst ihn |
 | @ | Person oder Eintrag erwähnen |
 | Ctrl+Z, Ctrl+Y | Rückgängig, wiederholen |
 | Ctrl+Shift+V | Als reinen Text einfügen |
