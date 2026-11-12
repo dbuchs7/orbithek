@@ -56,9 +56,11 @@ Chosen option: **1**.
 
 - **Definition:** administrators define shares under *Administration → Album → Shares*, kept in `site.wal` as connectors are: an ID (lower-case letters, digits, dots and hyphens, at most 40, fixed once made), a name, a kind, an address, the folder it fills (by the folder's ID, D2), a link template, whether it runs on its schedule, and its interval (one hour to seven days, six hours by default). A site keeps up to 20 of them, like connectors.
 - **One folder, one share:** a bound folder shows its share and nothing else. Uploading into it, and moving or copying pictures into it, is refused with a message that names the share. Its subfolders follow the share's directories; they are folders of the album like any other, made, renamed and removed by the runs, never by hand. A folder holding pictures of its own cannot be bound.
+  As built so far, every entry lies in the bound folder itself and names its directory in its path; subfolders that follow the share's directories, and moves between them, are still to come.
 - **Kind `dir` (Samba and every mounted file system):** the address is an absolute path of the server. The operator lists the directories administrators may bind in `OT_SHARE_ROOTS` (separated by the system's list separator); a path outside them, inside the data directory, or containing the data directory, is refused. The share is mounted by the operator (CIFS on the host, a volume of the container); its credentials, Kerberos included, stay with the operating system. Files are read through `os.Root`, so no symbolic link or `..` leads out of the bound directory.
 - **Kind `s3`:** the address is `s3://bucket/prefix?endpoint=https://…&region=…`, as for backups. The credentials come from `OT_SHARE_<ID>_ACCESS_KEY` and `OT_SHARE_<ID>_SECRET_KEY`, the ID in capitals with every other character as `_`; the page shows whether they are set and their names, never their values. The signing of `internal/backup/dest` moves into a package both use; the listing learns each object's size, ETag and time, and reading learns ranges. Every request, redirects included, goes to public addresses only (`linkcheck.Public`) unless the operator sets `OT_SHARE_ALLOW_PRIVATE=on`, which a bucket on the own network needs.
 - **What is taken:** files whose leading bytes show a picture or video the album takes (ADR-0177, ADR-0189), told by content, never by name. Names starting with a dot and the directories `@eaDir` and `#recycle` (housekeeping of common NAS systems) are skipped. A share holds at most `ShareFiles` entries; a run that finds more takes the first in path order and reports the rest.
+  As built, the formats the album takes are JPEG, PNG, GIF and WebP pictures and MP4, WebM and QuickTime videos; other files, HEIC and RAW among them, are left out and counted as skipped in the run's report.
 
 ### Entries
 
@@ -73,6 +75,7 @@ Chosen option: **1**.
   The item model accepts such a copy only with the preview as its content, which the server marks (`FromPreview`).
   A restore of single items from a backup leaves the entries out; the share's next run links them again.
 - **Pictures the server cannot scale** (HEIC, RAW, WebP, pictures beyond `ThumbnailPixels`) and videos are listed with a symbol, their name, the link and what `internal/photo` can read of them, without a preview. A video's photo data are read through ranges, as an upload's are (ADR-0189). The run's report counts them by format.
+  As built, a picture the server cannot scale (WebP, one beyond `ThumbnailPixels`) is linked without a preview and shows a symbol; a video is hashed whole, streamed, and its photo data are read through ranges.
 
 ### The link to open
 

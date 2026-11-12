@@ -6326,7 +6326,7 @@ async function adminView() {
 
   const storageSection = section("storage", t("storage.title"), await storageCard());
   const calendarsSection = section("calendars", t("extcal.adminTitle"), await calendarsCard());
-  const albumSection = section("album", t("retention.title"), await retentionCard(), await placesCard(), await facesCard());
+  const albumSection = section("album", t("retention.title"), await retentionCard(), await placesCard(), await facesCard(), await sharesCard());
   const catalogSection = section("connectors", t("connector.title"), connectorsCard(spaces, users));
   const enginesSection = section("engines", t("engine.title"), enginesCard());
   const designSection = section("design", t("design.title"), await designCard());
@@ -6470,6 +6470,105 @@ async function facesCard() {
     }),
     done);
   draw(await get("/api/settings/faces"));
+  return box;
+}
+
+// sharesCard binds album folders to file shares, a directory the operator
+// allows or an S3 bucket, and reads them now or on their schedule
+// (ADR-0197). Binding shows every file the share's credential reads to
+// every reader of the folder; the card says so.
+async function sharesCard() {
+  const box = h("div", { id: "shares-settings" });
+  const done = h("div", { class: "status", role: "status" });
+  const runText = (r) => r.error ? t("shares.runFailed", { error: r.error })
+    : t(r.dryRun ? "shares.runDry" : "shares.runDone", { seen: r.seen, linked: r.linked, changed: r.changed, moved: r.moved, restored: r.restored, withdrawn: r.withdrawn, deleted: r.deleted, read: r.toRead || 0 });
+  const runNow = async (s, body) => {
+    await post(`/api/shares/${encodeURIComponent(s.id)}/run`, body);
+    done.replaceChildren(h("p", { class: "notice", text: t("shares.started", { name: s.name }) }));
+    setTimeout(load, 1500);
+  };
+  const row = (s) => {
+    const last = s.status.history[0];
+    return h("li", { class: "share-row", "data-share": s.id },
+      h("strong", { text: s.name }), " ",
+      h("span", { class: "chip", text: s.kind === "s3" ? "S3" : t("shares.kindDir") }), " ",
+      h("code", { text: s.address }),
+      h("p", { class: "muted" }, t("shares.folder") + " ", h("span", { text: s.folderTitle || s.folder }),
+        " · " + t("shares.entries", { n: s.entries, withdrawn: s.withdrawn }),
+        " · " + (s.enabled ? t("shares.every", { n: s.intervalHours }) : t("shares.off"))),
+      s.kind === "s3" && !s.keysSet ? h("p", { class: "error-text", text: t("shares.keysMissing", { access: s.accessKeyVar, secret: s.secretKeyVar }) }) : null,
+      s.status.running ? h("p", { class: "muted", text: t("shares.running") }) : null,
+      last ? h("p", { class: last.error ? "error-text" : "muted", text: when(last.finished) + " — " + runText(last) }) : h("p", { class: "muted", text: t("shares.never") }),
+      last?.held ? h("p", { class: "error-text", text: t("shares.held", { n: last.held }) }) : null,
+      ...(last?.problems || []).map((p) => h("p", { class: "muted share-problem", text: p })),
+      h("div", { class: "row" },
+        h("button", { type: "button", class: "secondary share-run", text: t("shares.runNow"), disabled: s.status.running, onclick: () => runNow(s, {}).catch(fail) }),
+        h("button", { type: "button", class: "secondary share-dry", text: t("shares.dryRun"), disabled: s.status.running, onclick: () => runNow(s, { dryRun: true }).catch(fail) }),
+        last?.held ? h("button", { type: "button", class: "danger share-confirm", text: t("shares.confirm"), disabled: s.status.running, onclick: () => {
+          if (confirm(t("shares.confirmAsk", { n: last.held, name: s.name }))) runNow(s, { confirm: true }).catch(fail);
+        } }) : null,
+        h("button", { type: "button", class: "link share-edit", text: t("common.edit"), onclick: () => fill(s) }),
+        h("button", { type: "button", class: "link danger share-remove", text: t("shares.remove"), disabled: s.status.running, onclick: async () => {
+          if (!confirm(t("shares.removeConfirm", { name: s.name, n: s.entries }))) return;
+          try { await del(`/api/shares/${encodeURIComponent(s.id)}`); load(); } catch (err) { fail(err); }
+        } })));
+  };
+  const fail = (err) => done.replaceChildren(errorBox(err));
+  let editing = null;
+  const input = (name, attrs = {}) => h("input", { name, id: "share-" + name, ...attrs });
+  const fields = {
+    id: input("id", { required: true, pattern: "[a-z0-9][a-z0-9.\\-]{0,39}" }),
+    name: input("name", { required: true, maxlength: 80 }),
+    address: input("address", { required: true, placeholder: "/mnt/nas/photos" }),
+    folder: input("folder", { required: true, placeholder: "PLAT-12" }),
+    link: input("link", { placeholder: "smb://nas/photos/{path}" }),
+    intervalHours: input("intervalHours", { type: "number", min: 1, max: 168, value: 6 }),
+  };
+  const enabled = h("input", { type: "checkbox", name: "enabled", id: "share-enabled" });
+  const fill = (s) => {
+    editing = s;
+    for (const [k, el] of Object.entries(fields)) el.value = s[k] ?? "";
+    fields.id.readOnly = fields.folder.readOnly = true;
+    enabled.checked = s.enabled;
+    fields.name.focus();
+  };
+  const clear = () => {
+    editing = null;
+    for (const el of Object.values(fields)) { el.value = ""; el.readOnly = false; }
+    fields.intervalHours.value = 6;
+    enabled.checked = false;
+  };
+  const load = async () => {
+    const d = await get("/api/shares");
+    box.replaceChildren(
+      h("h3", { text: t("shares.title") }),
+      h("p", { class: "muted", text: t("shares.lead") }),
+      h("p", { class: "notice", id: "shares-disclosure", text: t("shares.disclosure") }),
+      d.roots.length
+        ? h("p", { class: "muted", id: "shares-roots" }, t("shares.roots") + " ", ...d.roots.map((r) => h("code", { text: r + " " })))
+        : h("p", { class: "muted", id: "shares-roots", text: t("shares.noRoots", { variable: d.rootsVar }) }),
+      d.shares.length ? h("ul", { class: "share-list" }, ...d.shares.map(row)) : h("p", { class: "muted", text: t("shares.none") }),
+      form({ id: "share-form" }, [
+        field(t("shares.id"), fields.id), field(t("shares.name"), fields.name),
+        field(t("shares.address"), fields.address), field(t("shares.folderKey"), fields.folder),
+        field(t("shares.link"), fields.link), field(t("shares.interval"), fields.intervalHours),
+        h("label", { class: "check" }, enabled, t("shares.enabled")),
+        h("p", { class: "muted", text: t("shares.formHelp") }),
+        h("div", { class: "row" },
+          h("button", { type: "submit", text: t("common.save") }),
+          h("button", { type: "button", class: "link", text: t("common.cancel"), onclick: clear })),
+      ], async (f) => {
+        const body = { id: f.get("id"), name: f.get("name"), address: f.get("address"), folder: f.get("folder"), link: f.get("link"),
+          intervalHours: Number(f.get("intervalHours")) || 0, enabled: f.get("enabled") === "on" };
+        if (editing) await put(`/api/shares/${encodeURIComponent(editing.id)}`, body);
+        else await post("/api/shares", body);
+        done.replaceChildren(h("p", { class: "notice", text: t("shares.saved", { name: body.name }) }));
+        clear();
+        await load();
+      }),
+      done);
+  };
+  await load();
   return box;
 }
 

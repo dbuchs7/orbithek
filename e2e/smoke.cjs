@@ -6397,6 +6397,51 @@ function webSource() {
     await page.waitForSelector("#record-sound:not([hidden])");
     check(await page.locator("#attachments li").count() === filesBefore + 1, "a discarded recording is not attached");
 
+    step("file shares: an administrator binds an album folder to a directory; its pictures show as previews that open where they lie (ADR-0197)");
+    // The server may bind directories below SHARE_DIR's parent
+    // (OT_SHARE_ROOTS); without it, as in a local run, the step is left out.
+    if (process.env.SHARE_DIR) {
+      const fs = require("fs");
+      const path = require("path");
+      fs.mkdirSync(path.join(process.env.SHARE_DIR, "2024"), { recursive: true });
+      fs.writeFileSync(path.join(process.env.SHARE_DIR, "2024", "lake.png"),
+        Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64"));
+      check((await page.request.post(base + "/api/login", { data: { username: "admin", password: adminPassword } })).ok(), "admin signs in for the file shares");
+      const nasMade = await page.request.post(base + "/api/album/folders", { data: { space: "PLAT", name: "Share NAS" } });
+      check(nasMade.status() === 201, "the folder for the share is made: " + nasMade.status());
+      const nasFolder = (await nasMade.json()).item;
+      await page.goto(base + "/#/admin");
+      await page.waitForSelector("#shares-settings h3");
+      check(await page.isVisible("#shares-disclosure"), "the card says that binding a share discloses it");
+      await page.fill("#share-id", "nas");
+      await page.fill("#share-name", "NAS");
+      await page.fill("#share-address", process.env.SHARE_DIR);
+      await page.fill("#share-folder", nasFolder.key);
+      await page.fill("#share-link", "smb://nas/photos/{path}");
+      await page.click("#share-form button[type=submit]");
+      await page.waitForSelector(".share-row[data-share=nas]");
+      await page.click(".share-row[data-share=nas] .share-run");
+      let read = false;
+      for (let i = 0; i < 100 && !read; i++) {
+        const nas = (await (await page.request.get(base + "/api/shares")).json()).shares.find((s) => s.id === "nas");
+        read = nas && !nas.status.running && nas.status.history.length > 0;
+        if (read) check(!nas.status.history[0].error && nas.entries === 1, "the run linked the picture: " + JSON.stringify(nas.status.history[0]));
+        else await page.waitForTimeout(100);
+      }
+      check(read, "the share was read");
+      await page.goto(base + "/#/album");
+      await page.click("#album .album-trail button:has-text('All pictures')");
+      await page.click("#album .album-folder:has-text('Share NAS')");
+      // The view of all pictures shows the share's picture too, among
+      // others; every check is on its own card.
+      const shareCard = page.locator("#album .album-card", { has: page.locator(".album-share-chip") });
+      await shareCard.waitFor();
+      check(await shareCard.locator(".album-original").getAttribute("href") === "smb://nas/photos/2024/lake.png", "the picture opens where it lies on the share");
+      check(await shareCard.locator(".album-rename, .album-delete").count() === 0, "a picture of a share is not renamed or deleted here");
+      await shareCard.locator(".album-thumb img").evaluate((img) => img.complete && img.naturalWidth > 0
+        ? true : new Promise((resolve, reject) => { img.addEventListener("load", () => resolve(true)); img.addEventListener("error", () => reject(new Error("the preview does not load"))); }));
+    }
+
     check(problems.length === 0, problems.join("; "));
     console.log("ok");
   } catch (err) {

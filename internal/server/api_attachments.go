@@ -14,6 +14,7 @@ import (
 
 	"github.com/dbuchs7/orbithek/internal/budget"
 	"github.com/dbuchs7/orbithek/internal/item"
+	"github.com/dbuchs7/orbithek/internal/share"
 	"github.com/dbuchs7/orbithek/internal/storage"
 	"github.com/dbuchs7/orbithek/internal/whiteboard"
 )
@@ -178,7 +179,7 @@ type albumPicture struct {
 // that belong to its stack (versions, rule, notes, favourite, taken).
 func (h itemHandlers) albumPictureOf(p item.Picture) albumPicture {
 	return albumPicture{Item: albumItemRef{p.Item.ID, p.Item.Key, p.Item.Title, p.Item.Space, p.Item.Type},
-		Attachment: toAttachmentJSON(p.Attachment), Drawing: albumKind(p.Attachment) == "drawing", Video: albumVideo(p.Attachment),
+		Attachment: h.withShare(p.Item.ID, toAttachmentJSON(p.Attachment)), Drawing: albumKind(p.Attachment) == "drawing", Video: albumVideo(p.Attachment),
 		Poster: albumVideo(p.Attachment) && h.d.DB.HasPoster(p.Item.ID, p.Attachment.ID), Used: p.Used, Editable: p.Editable, First: p.First}
 }
 
@@ -205,6 +206,35 @@ type attachmentJSON struct {
 	// FacesSeen says it was searched for faces (ADR-0194).
 	Faces     []faceJSON `json:"faces,omitempty"`
 	FacesSeen bool       `json:"facesSeen,omitempty"`
+	// Share says where the original of an entry of a file share lies
+	// (ADR-0197); absent for every other file.
+	Share *shareFileJSON `json:"share,omitempty"`
+}
+
+// shareFileJSON is where an entry's original lies: the share, the path
+// below its address, whether the file is gone for now, the link that
+// opens it where it lies (when the share has a link template), and
+// whether the entry has a preview to show.
+type shareFileJSON struct {
+	Share     string `json:"share"`
+	Path      string `json:"path"`
+	Withdrawn bool   `json:"withdrawn,omitempty"`
+	Link      string `json:"link,omitempty"`
+	Preview   bool   `json:"preview"`
+}
+
+// withShare adds an entry's link and whether it has a preview.
+func (h itemHandlers) withShare(id item.ID, a attachmentJSON) attachmentJSON {
+	if a.Share == nil {
+		return a
+	}
+	f := *a.Share
+	if sh, ok := h.d.DB.Site.Share(f.Share); ok && sh.Link != "" {
+		f.Link = share.Link(sh.Link, f.Path)
+	}
+	f.Preview = h.d.DB.HasPreview(id, a.ID)
+	a.Share = &f
+	return a
 }
 
 type copyOriginJSON struct {
@@ -245,7 +275,14 @@ func withOrigin(x *item.Session, id item.ID, a attachmentJSON) attachmentJSON {
 func toAttachmentJSON(a item.Attachment) attachmentJSON {
 	return attachmentJSON{ID: a.ID, Name: a.Name, Type: a.Type, Size: a.Size, SHA256: a.SHA256, Author: a.Author,
 		Created: time.Unix(a.Created, 0).UTC(), Inline: inlineTypes[a.Type], Labels: a.Labels, Photo: a.Photo,
-		Faces: toFacesJSON(a.Faces), FacesSeen: a.FacesSeen}
+		Faces: toFacesJSON(a.Faces), FacesSeen: a.FacesSeen, Share: shareFileOf(a)}
+}
+
+func shareFileOf(a item.Attachment) *shareFileJSON {
+	if !a.Linked() {
+		return nil
+	}
+	return &shareFileJSON{Share: a.Share.Share, Path: a.Share.Path, Withdrawn: a.Withdrawn()}
 }
 
 func (h itemHandlers) setPictureLabels(w http.ResponseWriter, r *http.Request) {
@@ -574,7 +611,7 @@ func (h itemHandlers) listAttachments(w http.ResponseWriter, r *http.Request) {
 		list, err := x.Attachments(it.ID)
 		out := []attachmentJSON{}
 		for _, a := range list {
-			out = append(out, withOrigin(x, it.ID, toAttachmentJSON(a)))
+			out = append(out, h.withShare(it.ID, withOrigin(x, it.ID, toAttachmentJSON(a))))
 		}
 		return map[string]any{"attachments": out}, err
 	})
