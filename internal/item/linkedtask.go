@@ -218,9 +218,9 @@ func (s *Store) TaskReach(space, typeName, completed, cancelled string, owned []
 	if !s.HasSpace(space) {
 		return notFound("space %q", space)
 	}
-	td, ok := s.latest(typeName)
-	if !ok {
-		return notFound("type %q", typeName)
+	td, err := s.usable(typeName, space)
+	if err != nil {
+		return err
 	}
 	for _, f := range td.Fields {
 		if f.Required && !slices.Contains(owned, f.Name) {

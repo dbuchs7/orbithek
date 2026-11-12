@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"maps"
 	"math"
+	"slices"
 	"strconv"
 	"time"
 	"unicode/utf8"
@@ -157,7 +158,12 @@ import (
 //   - 54: photo data may carry TakenManual, a time set by hand, and the
 //     kind AttachmentTakenSet with attachment, sealed (ADR-0198). Versions
 //     1 to 53 are still read; their times are the files' own.
-const CodecVersion = 54
+//   - 55: a type may carry Space, the room it belongs to (ADR-0199); a
+//     field may carry Targets and be of the kinds item, multi, rating and
+//     file, and a value may be a reference (t "r", an ID) or a list of
+//     strings (t "l", as JSON) (ADR-0200). Versions 1 to 54 are still
+//     read; they hold no room type, no such field and no such value.
+const CodecVersion = 55
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,
@@ -490,7 +496,7 @@ func unsealSecrets(w *wireEvent, sl Sealer) error {
 // wireValue is a property value with its Go type, so that a replayed value
 // is identical to the live one: an int stays an int, a date stays a time.
 type wireValue struct {
-	T string `json:"t"` // s(tring), i(nt), f(loat64), b(ool), t(ime)
+	T string `json:"t"` // s(tring), i(nt), f(loat64), b(ool), t(ime), r(eference, an ID), l(ist of strings, as JSON)
 	V string `json:"v"`
 }
 
@@ -560,6 +566,12 @@ func fromWire(w wireEvent) (Event, error) {
 			return e, fmt.Errorf("unknown role %q", w.Role)
 		}
 	}
+	// References and lists came with version 55 (ADR-0200); an older
+	// event holding one was not written by this program.
+	newer := func(wv *wireValue) bool { return wv != nil && (wv.T == "r" || wv.T == "l") && w.V < 55 }
+	if newer(w.Value) || slices.ContainsFunc(slices.Collect(maps.Values(w.Props)), newer) {
+		return e, fmt.Errorf("a reference or a list is not a value of format version %d", w.V)
+	}
 	if w.Props != nil {
 		e.Props = make(Props, len(w.Props))
 		for k, wv := range w.Props {
@@ -595,6 +607,14 @@ func encodeValue(v any) (*wireValue, error) {
 		return &wireValue{"b", strconv.FormatBool(x)}, nil
 	case time.Time:
 		return &wireValue{"t", x.UTC().Format(time.RFC3339Nano)}, nil
+	case ID:
+		return &wireValue{"r", string(x)}, nil
+	case []string:
+		list, err := json.Marshal(x)
+		if err != nil {
+			return nil, err
+		}
+		return &wireValue{"l", string(list)}, nil
 	default:
 		return nil, fmt.Errorf("value of type %T cannot be stored", v)
 	}
@@ -615,6 +635,14 @@ func decodeValue(wv *wireValue) (any, error) {
 		return strconv.ParseBool(wv.V)
 	case "t":
 		return time.Parse(time.RFC3339Nano, wv.V)
+	case "r":
+		return ID(wv.V), nil
+	case "l":
+		var list []string
+		if err := json.Unmarshal([]byte(wv.V), &list); err != nil {
+			return nil, err
+		}
+		return list, nil
 	default:
 		return nil, fmt.Errorf("unknown value type %q", wv.T)
 	}

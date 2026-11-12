@@ -80,13 +80,14 @@ func (s *Store) upsertEvent(u Upsert) (e Event, current Item, changed bool, err 
 	if !s.HasSpace(u.Space) {
 		return Event{}, Item{}, false, notFound("space %q", u.Space)
 	}
-	td, ok := s.latest(u.Type)
-	if !ok {
-		return Event{}, Item{}, false, notFound("type %q", u.Type)
+	td, err := s.usable(u.Type, u.Space)
+	if err != nil {
+		return Event{}, Item{}, false, err
 	}
 	if strings.TrimSpace(u.Title) == "" {
 		return Event{}, Item{}, false, invalid("title is empty")
 	}
+	u.Properties = normalProps(td, u.Properties)
 	if err := checkProps(td, u.Properties); err != nil {
 		return Event{}, Item{}, false, err
 	}
@@ -136,6 +137,9 @@ func (s *Store) upsertEvent(u Upsert) (e Event, current Item, changed bool, err 
 			reflect.DeepEqual(it.Properties, nonNil(u.Properties)) && *it.Origin == origin {
 			return Event{}, it.clone(), false, nil
 		}
+		if err := s.checkRefs(td, it, u.Properties); err != nil {
+			return Event{}, Item{}, false, err
+		}
 		if err := s.duplicate(u.Space, td, id, u.Properties); err != nil {
 			return Event{}, Item{}, false, err
 		}
@@ -150,6 +154,9 @@ func (s *Store) upsertEvent(u Upsert) (e Event, current Item, changed bool, err 
 	}
 	if e.To == "" && td.Workflow != nil {
 		e.To = td.Workflow.Initial
+	}
+	if err := s.checkRefs(td, nil, u.Properties); err != nil {
+		return Event{}, Item{}, false, err
 	}
 	if err := s.duplicate(u.Space, td, "", u.Properties); err != nil {
 		return Event{}, Item{}, false, err
@@ -262,7 +269,9 @@ func (s *Store) applyImport(e Event, touch func(...ID)) {
 		}
 		it.Type, it.TypeVersion = e.TypeName, e.TypeVersion
 		it.Parent, it.Title, it.State = e.Parent, e.Title, e.To
+		old := it.Properties
 		it.Properties = nonNil(maps.Clone(e.Props))
+		s.relateFields(it, old, e.Seq, touch)
 		it.Origin, it.Managed = &origin, e.Managed
 		it.Linked, it.LinkedFields = e.Linked, slices.Clone(e.LinkedFields)
 		it.Version++

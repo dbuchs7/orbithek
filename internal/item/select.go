@@ -642,6 +642,10 @@ type literal struct {
 	truth  bool
 	isBool bool
 	users  []string
+	// ref is the item a value names by its key or ID, for an item field
+	// (ADR-0200); the key of an item the principal may not read names
+	// the key as typed, which no item field holds (D10).
+	ref ID
 }
 
 func (c *compiler) literal(v query.Value) literal {
@@ -660,6 +664,12 @@ func (c *compiler) literal(v query.Value) literal {
 	if l.text == "true" || l.text == "false" {
 		l.truth, l.isBool = l.text == "true", true
 	}
+	l.ref = ID(v.Text)
+	if id, ok := c.keyed(v.Text); ok {
+		if _, err := c.x.readable(id); err == nil {
+			l.ref = id
+		}
+	}
 	l.users = []string{v.Text}
 	if c.env.Users != nil {
 		l.users = append(l.users, c.env.Users(v.Text)...)
@@ -676,7 +686,7 @@ func kindTakes(k FieldKind, op query.Op) bool {
 	case query.Has:
 		return k == KindText || k == KindURL
 	}
-	return k == KindText || k == KindURL || k == KindNumber || k == KindDate || k == KindDateTime || k == KindEnum
+	return k == KindText || k == KindURL || k == KindNumber || k == KindDate || k == KindDateTime || k == KindEnum || k == KindRating
 }
 
 // fits reports whether a value of the query can be a value of the field.
@@ -684,6 +694,10 @@ func fits(f FieldDef, l literal) bool {
 	switch f.Kind {
 	case KindNumber:
 		return l.isNum
+	case KindRating:
+		return l.isNum && l.num == math.Trunc(l.num) && l.num >= 1 && l.num <= MaxRating
+	case KindMulti:
+		return !l.fn && enumIndex(f, l.text) >= 0
 	case KindBool:
 		return l.isBool
 	case KindDate, KindDateTime:
@@ -772,7 +786,22 @@ func (c *compiler) property(cl *query.Clause, op query.Op) (pred, error) {
 // the field's kind; ok is false where the query's value does not fit it.
 func compareValue(f FieldDef, v any, l literal) (int, bool) {
 	switch f.Kind {
-	case KindNumber:
+	case KindMulti:
+		// = holds when the item holds the value among others (ADR-0200).
+		list, _ := v.([]string)
+		if l.fn || enumIndex(f, l.text) < 0 {
+			return 0, false
+		}
+		if slices.ContainsFunc(list, func(x string) bool { return fold(x) == l.text }) {
+			return 0, true
+		}
+		return 1, true
+	case KindItem:
+		if id, ok := v.(ID); ok && !l.fn && id == l.ref {
+			return 0, true
+		}
+		return 1, !l.fn
+	case KindNumber, KindRating:
 		n, isNum := number(v)
 		if !l.isNum || !isNum {
 			return 0, false
@@ -898,8 +927,19 @@ func (c *compiler) order(sorts []query.Sort) ([]sortBy, error) {
 				}
 				k := sortKey{kind: string(f.Kind)}
 				switch f.Kind {
-				case KindNumber:
+				case KindNumber, KindRating:
 					k.num, _ = number(v)
+				case KindItem:
+					// By the referenced item's key, as key orders; one the
+					// principal may not read counts as empty (D10).
+					id, _ := v.(ID)
+					target, ok := s.items[id]
+					if !ok || !s.canRead(c.x.who, target) {
+						return sortKey{empty: true}
+					}
+					at := strings.LastIndexByte(target.Key, '-')
+					n, _ := strconv.Atoi(target.Key[at+1:])
+					k.text, k.num = target.Key[:max(at, 0)], float64(n)
 				case KindBool:
 					if b, _ := v.(bool); b {
 						k.num = 1

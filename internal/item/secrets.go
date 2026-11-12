@@ -124,6 +124,15 @@ func (s *Store) hidden(principal string, it *Item) map[ID]bool {
 // may not read replaced by the placeholder. Without such passages it is the
 // item itself.
 func (s *Store) veiled(principal string, it *Item) *Item {
+	// An item field that refers to an item the principal may not read is
+	// read as empty (D10, ADR-0200).
+	if refs := s.unreadableRefs(principal, it.Properties); refs != nil {
+		c := it.clone()
+		for _, name := range refs {
+			delete(c.Properties, name)
+		}
+		it = &c
+	}
 	hide := s.hidden(principal, it)
 	if hide == nil {
 		return it
