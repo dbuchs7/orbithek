@@ -6283,9 +6283,12 @@ function webSource() {
       await dailyPhone.selectOption("#daily-room", "PLAT");
     }
     await dailyPhone.waitForSelector("#daily-note.editing .ProseMirror");
-    await dailyPhone.goto(base + "/#/item/" + fromMention.key + "?beside=" + dailyKey);
+    // A daily note is its author's alone: bert's own stands beside the item.
+    const bertDailyKey = (await dailyPhone.getAttribute("#daily-item", "href")).replace("#/item/", "");
+    check(bertDailyKey !== dailyKey, "bert has a daily note of their own");
+    await dailyPhone.goto(base + "/#/item/" + fromMention.key + "?beside=" + bertDailyKey);
     await dailyPhone.waitForSelector("#beside-pane .beside-title");
-    for (const view of ["#/daily", "#/item/" + fromMention.key + "?beside=" + dailyKey]) {
+    for (const view of ["#/daily", "#/item/" + fromMention.key + "?beside=" + bertDailyKey]) {
       await dailyPhone.goto(base + "/" + view);
       await dailyPhone.waitForTimeout(400);
       const wide = await dailyPhone.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
