@@ -116,7 +116,14 @@ async function selectInPdf(p, pageNo, text) {
     getSelection().removeAllRanges();
     getSelection().addRange(r);
   }, [pageNo, text]);
-  await p.dispatchEvent("#pdf-pages", "mouseup");
+  // Scrolling hides the bar of a selection; a scroll still under way after
+  // going to a page may hide it again at once, so the mouse is let go
+  // until the bar stays.
+  for (let i = 0; i < 20; i++) {
+    await p.dispatchEvent("#pdf-pages", "mouseup");
+    await p.waitForTimeout(150);
+    if (await p.locator("#pdf-selbar:not([hidden])").count()) return;
+  }
 }
 
 // mailSink is a mail server that keeps every message, for the server under
