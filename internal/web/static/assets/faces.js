@@ -11,16 +11,19 @@
 import { h } from "./dom.js";
 import { t } from "./i18n.js";
 import { get, put } from "./api.js";
-import { boxOf, mergeFaces, facesBody, coverCut } from "./faceparts.js";
+import { boxOf, mergeFaces, facesBody, coverCut, nameFaces, needsSearch } from "./faceparts.js";
 
 const MODELS = "/vendor/face-models";
 const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
 const thumbURL = (p, edge) => `${fileURL(p)}/thumbnail?edge=${edge}`;
 
 // recognition says whether administrators turned recognition on, asked
-// once per page.
+// once and kept; forgetRecognition asks again next time, where the
+// setting may have changed since: when it is changed here, and before a
+// person's suggestions or a search of all pictures (ADR-0199).
 let recognitionAsked = null;
 export const recognition = () => (recognitionAsked ||= get("/api/album/imports").then((r) => !!r.faces).catch(() => false));
+export const forgetRecognition = () => { recognitionAsked = null; };
 
 // The library and its networks are loaded once, when a face is first
 // looked for: about 1.5 MB to find faces, 6.5 MB more to recognise them.
@@ -81,6 +84,8 @@ export async function scan(p, image, keep = () => true) {
   const r = await put(`${fileURL(p)}/faces`, facesBody(faces));
   p.attachment.faces = r.faces || [];
   p.attachment.facesSeen = true;
+  // Searched with recognition, it is not searched again on its own.
+  if (recognise) p.facesUnrecognised = false;
   return p.attachment.faces;
 }
 
@@ -99,11 +104,13 @@ export async function scanFile(p, blob) {
 }
 
 // scanAll looks for faces on every picture of list one may edit that was
-// not searched yet, one after another; progress is told each step and
-// cancelled is asked before each. It answers how many were searched and
-// how many faces were found.
+// not searched yet or, while recognition is on, whose faces have nothing
+// computed to recognise them (ADR-0199), one after another; progress is
+// told each step and cancelled is asked before each. It answers how many
+// were searched and how many faces were found.
 export async function scanAll(list, progress = () => {}, cancelled = () => false) {
-  const todo = list.filter((p) => p.editable && !p.attachment.facesSeen && !p.video && /^image\//.test(p.attachment.type || ""));
+  forgetRecognition();
+  const todo = list.filter(needsSearch);
   let done = 0, faces = 0;
   for (const p of todo) {
     if (cancelled()) break;
@@ -122,9 +129,10 @@ const learn = (name) => { if (people && name) people.then((list) => { if (!list.
 // facesPanel shows the faces of a picture in the viewer: their boxes over
 // the image in layer, and below the facts a row per face with its name.
 // Whoever may edit the picture looks for faces, names them, takes names
-// from suggestions and removes faces. A picture never searched is
-// searched when it is shown to one who may edit it. still says whether
-// the picture is still the one shown.
+// from suggestions and removes faces. A picture never searched, or not
+// recognised yet while recognition is on, is searched when it is shown to
+// one who may edit it. still says whether the picture is still the one
+// shown.
 export function facesPanel({ p, image, layer, still, changed = () => {} }) {
   const box = h("div", { class: "photo-faces", id: "photo-faces" });
   let faces = p.attachment.faces || [];
@@ -230,8 +238,89 @@ export function facesPanel({ p, image, layer, still, changed = () => {} }) {
   resize?.observe(layer.parentElement);
   render();
   suggest().then(render);
-  if (p.editable && !p.attachment.facesSeen && !p.video) find();
+  if (needsSearch(p)) find();
   return { element: box, stop: () => { resize?.disconnect(); image.removeEventListener("load", place); layer.replaceChildren(); } };
+}
+
+// personSuggestions shows, in a person's album, the unnamed faces of
+// other pictures that resemble the person, most alike first (ADR-0199).
+// Whoever may edit those pictures chooses the faces that show the person
+// and confirms them at once; the others stay unnamed. Nothing is shown
+// while recognition is off or nothing resembles the person. tell shows
+// what was done, outside the panel, which may be gone afterwards; changed
+// is told once faces were named.
+export function personSuggestions({ person, space = "", tell = () => {}, changed = () => {} }) {
+  const box = h("section", { class: "album-suggested", id: "album-suggested", hidden: true });
+  let chosen = new Set();
+  let list = [];
+  const key = (s, i) => `${s.attachment.id}:${i}`;
+  const render = (total) => {
+    if (!list.length) { box.hidden = true; box.replaceChildren(); return; }
+    box.hidden = false;
+    const confirm = h("button", { type: "button", class: "primary", id: "album-suggested-confirm", disabled: chosen.size === 0,
+      text: t("faces.suggestedConfirm", { n: chosen.size }), onclick: () => save() });
+    const tiles = [];
+    for (const s of list) {
+      for (const m of s.matches) {
+        const k = key(s, m.index);
+        const tile = h("button", { type: "button", class: "album-suggested-face", "data-face": k, "aria-pressed": String(chosen.has(k)),
+          "aria-label": t("faces.suggestedFace", { picture: s.attachment.name }), title: s.attachment.name,
+          onclick: () => {
+            if (chosen.has(k)) chosen.delete(k); else chosen.add(k);
+            tile.setAttribute("aria-pressed", String(chosen.has(k)));
+            confirm.disabled = chosen.size === 0;
+            confirm.textContent = t("faces.suggestedConfirm", { n: chosen.size });
+          } }, personCover({ cover: { item: s.item, attachment: s.attachment }, face: s.faces[m.index] }, 72));
+        tiles.push(h("li", {}, tile));
+      }
+    }
+    const all = h("button", { type: "button", class: "secondary", id: "album-suggested-all", text: t("faces.suggestedAll"), onclick: () => {
+      for (const s of list) for (const m of s.matches) chosen.add(key(s, m.index));
+      render(total);
+    } });
+    // replaceChildren would show a null as text, so none is passed.
+    box.replaceChildren(...[
+      h("h3", { class: "album-suggested-title", text: t("faces.suggestedTitle", { name: person }) }),
+      h("p", { class: "muted", text: t("faces.suggestedHelp", { name: person }) }),
+      h("ul", { class: "album-suggested-grid" }, ...tiles),
+      total > list.length ? h("p", { class: "muted", id: "album-suggested-more", text: t("faces.suggestedMore", { n: list.length, total }) }) : null,
+      h("div", { class: "actions-row" }, all, confirm)].filter(Boolean));
+  };
+
+  const load = async () => {
+    forgetRecognition();
+    if (!(await recognition())) return;
+    const q = new URLSearchParams({ person });
+    if (space) q.set("space", space);
+    try {
+      const r = await get("/api/album/people/suggestions?" + q);
+      list = r.suggestions || [];
+      chosen = new Set([...chosen].filter((k) => list.some((s) => s.matches.some((m) => key(s, m.index) === k))));
+      render(r.total || 0);
+    } catch { list = []; render(0); }
+  };
+
+  // save names the faces chosen, one picture after another; a picture that
+  // fails keeps its faces and the next is named.
+  const save = async () => {
+    let named = 0, failed = "";
+    box.querySelectorAll("button").forEach((b) => { b.disabled = true; });
+    for (const s of list) {
+      const indices = s.matches.map((m) => m.index).filter((i) => chosen.has(key(s, i)));
+      if (!indices.length) continue;
+      try {
+        await put(`/api/items/${s.item.id}/attachments/${s.attachment.id}/faces`, facesBody(nameFaces(s.faces, indices, person)));
+        named += indices.length;
+        indices.forEach((i) => chosen.delete(key(s, i)));
+      } catch (err) { failed = err.message; }
+    }
+    tell(failed ? t("faces.failed", { reason: failed }) : t("faces.suggestedDone", { n: named, name: person }), failed ? "error" : "notice");
+    // changed shows the album again, and with it what is still suggested.
+    if (named) changed(); else await load();
+  };
+
+  load();
+  return box;
 }
 
 // personCover is a square picture of a person's face, cut from the

@@ -159,3 +159,17 @@ func newestVersions(pics []Picture) []Picture {
 func (a Attachment) Shows(person string) bool {
 	return slices.ContainsFunc(a.Faces, func(f Face) bool { return f.Person != "" && strings.EqualFold(f.Person, person) })
 }
+
+// UnnamedFaces lists the pictures in space (every space when empty) whose
+// faces a name can be given to across the album (ADR-0199): of each stack
+// its newest version, as the album shows it, that the principal may edit
+// and that has a face no one named yet.
+func (x *Session) UnnamedFaces(space string) []Picture {
+	var out []Picture
+	for _, p := range newestVersions(x.Pictures(space, func(Attachment) bool { return true })) {
+		if p.Editable && slices.ContainsFunc(p.Attachment.Faces, func(f Face) bool { return f.Person == "" }) {
+			out = append(out, p)
+		}
+	}
+	return out
+}

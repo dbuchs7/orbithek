@@ -167,6 +167,44 @@ export function dragged(p, chosen, key) {
   return chosen.has(key(p)) ? [...chosen.values()] : [p];
 }
 
+// folderTargets lists where a folder of the album may be moved (ADR-0200):
+// the top of every room and every folder one may fill, each room's after
+// its top, but neither the folder itself, a folder below it nor where it
+// is now. moving is the folder, with id, space and parent; folders are as
+// allFolders lists them, with id, space, parent, path and editable; rooms
+// as the album lists them, with key and name; top names a room's top.
+// Folders of a room not listed follow at the end. Each target names its
+// room, its parent ("" for the top) and its text. The server decides
+// whether the move is allowed.
+export function folderTargets(moving, folders, rooms, top) {
+  const parentOf = new Map(folders.map((f) => [f.id, f.parent || ""]));
+  const below = (id) => {
+    for (let at = id, n = 0; at && n < 64; at = parentOf.get(at), n++) {
+      if (at === moving.id) return true;
+    }
+    return false;
+  };
+  const into = (f) => f.editable !== false && f.id !== (moving.parent || "") && !below(f.id);
+  const out = [];
+  const keys = new Set(rooms.map((r) => r.key));
+  for (const r of rooms) {
+    if (r.key !== moving.space || moving.parent) out.push({ space: r.key, parent: "", text: `${r.key} ${r.name} › ${top}` });
+    for (const f of folders) if (f.space === r.key && into(f)) out.push({ space: f.space, parent: f.id, text: f.path });
+  }
+  for (const f of folders) if (!keys.has(f.space) && into(f)) out.push({ space: f.space, parent: f.id, text: f.path });
+  return out;
+}
+
+// folderDrop says where a folder dropped onto another goes (ADR-0200):
+// into the folder it is dropped onto, or, dropped onto the album's top
+// (onto null), to the top of its own room; null when that is where it is
+// or the folder itself.
+export function folderDrop(moving, onto) {
+  const to = onto ? { space: onto.space, parent: onto.id } : { space: moving.space, parent: "" };
+  if (to.parent === moving.id || (to.space === moving.space && to.parent === (moving.parent || ""))) return null;
+  return to;
+}
+
 // orderDrop says where pictures dropped onto a picture of a list go in
 // the order of slides set by hand (ADR-0195). firsts are the first
 // versions of the pictures listed, in their order; moved those of the

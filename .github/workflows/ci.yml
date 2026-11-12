@@ -107,11 +107,27 @@ jobs:
       - name: JavaScript unit tests
         run: node --test "internal/web/jstest/*.test.mjs"
 
+      # Chromium's system packages (fonts, libraries) come from the runner's
+      # apt mirrors. A mirror out of reach for a moment is tried again; if
+      # it stays out of reach (on 2026-11-11 the runners could not resolve
+      # azure.archive.ubuntu.com for hours), Chromium is installed alone,
+      # since the runner image holds what it needs to start, and the job
+      # warns. The smoke test still decides whether the UI works.
       - name: Install Playwright and Chromium
         working-directory: e2e
         run: |
-          npm ci --no-audit --no-fund
-          npx playwright install --with-deps chromium
+          set -uo pipefail
+          npm ci --no-audit --no-fund || exit 1
+          for attempt in 1 2 3; do
+            npx playwright install --with-deps chromium && exit 0
+            echo "::warning::Installing Chromium with its system packages failed (attempt $attempt of 3)."
+            if [ "$attempt" -lt 3 ]; then
+              sleep $((attempt * 30))
+              sudo apt-get update || true
+            fi
+          done
+          echo "::warning::Chromium's system packages could not be installed; Chromium is installed alone. Fonts may be missing from what the browser draws."
+          npx playwright install chromium
 
       - name: Run the UI smoke test against the binary
         run: |

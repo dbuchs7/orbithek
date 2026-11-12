@@ -2075,7 +2075,7 @@ function webSource() {
     await page.click("#album .album-new-folder button[type=submit]");
     const prints = "#album .album-folder:has-text('Prints')";
     await page.waitForSelector(prints);
-    check((await page.getAttribute(prints, "title")) === "Drop pictures here to move them into Prints.", "a folder says that it takes dropped pictures");
+    check((await page.getAttribute(prints, "title")) === "Drop pictures or a folder here to move them into Prints.", "a folder says that it takes dropped pictures and folders");
     await page.locator(holiday).dragTo(page.locator(prints));
     await page.waitForSelector(holiday, { state: "detached" });
     check((await page.textContent("#album .status")).includes("1 picture moved with its versions"), "the dragged picture is moved into the folder it is dropped onto");
@@ -2122,6 +2122,33 @@ function webSource() {
     await page.waitForSelector("dialog.photo-viewer[open] video.photo-viewer-video[src]");
     await page.click("#photo-viewer-close");
     await page.selectOption("#album select[aria-label=Kind]", "");
+    // A folder is moved with what it holds: by Move folder into a folder
+    // chosen, up by dragging it onto the trail, and down by dragging it
+    // onto a folder beside it (ADR-0200).
+    await page.click("#album-new-folder");
+    await page.fill("#album-folder-name", "Sub");
+    await page.click("#album .album-new-folder button[type=submit]");
+    const sub = "#album .album-folder:has-text('Sub')";
+    await page.click(sub);
+    await page.click("#album-folder-move");
+    await page.waitForFunction(() => [...document.querySelectorAll("#album-folder-move-target option")].some((o) => o.textContent.endsWith("› Prints")));
+    const intoPrints = await page.evaluate(() => [...document.querySelectorAll("#album-folder-move-target option")].find((o) => o.textContent.endsWith("› Prints")).value);
+    check(await page.evaluate(() => ![...document.querySelectorAll("#album-folder-move-target option")].some((o) => o.textContent.endsWith("› Sub"))), "a folder is not offered to move into itself");
+    await page.selectOption("#album-folder-move-target", intoPrints);
+    await page.click("#album-folder-move-form button[type=submit]");
+    await page.waitForSelector("#album .album-trail button:has-text('Prints')");
+    check((await page.textContent("#album .status")).includes('"Sub" moved with everything in it.'), "a folder moved by Move folder says so");
+    check((await page.textContent("#album .album-trail strong")) === "Sub", "the trail leads to the folder where it went");
+    await page.click("#album .album-trail button:has-text('Prints')");
+    await page.waitForSelector(sub);
+    await page.locator(sub).dragTo(page.locator("#album .album-trail button:has-text('Logos')"));
+    await page.waitForSelector(sub, { state: "detached" });
+    check((await page.textContent("#album .status")).includes('"Sub" moved with everything in it.'), "a folder dropped onto the trail goes up");
+    await page.click("#album .album-trail button:has-text('Logos')");
+    await page.waitForSelector(sub);
+    await page.locator(sub).dragTo(page.locator(prints));
+    await page.waitForSelector(sub, { state: "detached" });
+    check(await page.locator(prints).count() === 1, "a folder dropped onto a folder beside it goes into it");
     // A folder is deleted from the album, into the trash with what is in
     // it, and its page restores it (ADR-0190).
     await page.click(prints);
@@ -2321,6 +2348,49 @@ function webSource() {
       await page.waitForSelector(ada);
       await page.click("#album-view-folders");
       await page.waitForSelector("#album .album-card .album-name:text-is('2 Plan')"); // back in the folder Talk
+    }
+
+    step("faces suggested for a person: with recognition on, a person's album offers the unnamed faces that resemble them, and those chosen are named together (ADR-0199)");
+    {
+      // Administrators turn recognition on and are told that pictures
+      // searched before are recognised once searched again.
+      const back = page.url();
+      await page.goto(base + "/#/admin");
+      await page.waitForSelector("#faces-recognition", { state: "attached" });
+      check(!(await page.isChecked("#faces-recognition")), "recognition is off until administrators turn it on");
+      await page.check("#faces-recognition");
+      await page.click("#faces-form button[type=submit]");
+      await page.waitForSelector("#faces-search-hint a#faces-search-link[href='#/album?view=people']");
+      // The album opens at its top again; the folder Talk is opened, as
+      // the steps after this one begin there.
+      await page.goto(back);
+      await page.click("#album .album-folder:has-text('Talk')");
+      await page.waitForSelector("#album .album-card .album-name:text-is('2 Plan')");
+      const pics = await page.evaluate(async () => (await (await fetch("/api/album")).json()).pictures);
+      const plan = pics.find((p) => p.attachment.name === "2 Plan.png");
+      const other = pics.find((p) => p.attachment.id !== plan.attachment.id && /^image\//.test(p.attachment.type) && !p.video && p.editable);
+      check(plan && other, "two pictures to compare");
+      const near = (seed) => Array.from({ length: 128 }, (_, i) => seed + (i % 7) / 100);
+      const setFaces = (p, faces) => page.evaluate(async ([p, faces]) => (await fetch(`/api/items/${p.item.id}/attachments/${p.attachment.id}/faces`, { method: "PUT",
+        headers: { "Content-Type": "application/json" }, body: JSON.stringify({ faces }) })).status, [p, faces]);
+      check(await setFaces(plan, [{ x: 0.3, y: 0.2, w: 0.25, h: 0.4, person: "Ada Lovelace", vector: near(0.1) }]) === 200, "Ada's face with its vector");
+      check(await setFaces(other, [{ x: 0.2, y: 0.2, w: 0.3, h: 0.4, vector: near(0.11) }]) === 200, "an unnamed face that resembles Ada");
+      await page.click("#album-view-people");
+      await page.click("#album-people .album-person[data-person='Ada Lovelace']");
+      await page.waitForSelector("#album-suggested .album-suggested-face");
+      check(await page.textContent("#album-suggested .album-suggested-title") === "Is this Ada Lovelace?", "the suggestions name the person");
+      check(await page.isDisabled("#album-suggested-confirm"), "nothing is confirmed before a face is chosen");
+      await page.click("#album-suggested .album-suggested-face");
+      check(await page.getAttribute("#album-suggested .album-suggested-face", "aria-pressed") === "true", "a click chooses a face");
+      await page.click("#album-suggested-confirm");
+      await page.waitForSelector("#album .status .notice:text-is('1 face named Ada Lovelace.')");
+      await page.waitForSelector("#album-suggested", { state: "hidden" });
+      await page.waitForFunction(() => document.querySelectorAll("#album .album-card").length === 2);
+      check((await setFaces(other, [])) === 200, "the face named for the test is removed again");
+      check((await page.request.put(base + "/api/settings/faces", { data: { recognition: false } })).status() === 200, "recognition turned off again");
+      await page.click("#album-people-back");
+      await page.click("#album-view-folders");
+      await page.waitForSelector("#album .album-card .album-name:text-is('2 Plan')");
     }
 
     step("slide import: a presentation, alone or with its slides exported as pictures, becomes a folder of slides with their notes, hidden slides left out (ADR-0186)");

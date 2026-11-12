@@ -96,3 +96,37 @@ func TestNormalPerson(t *testing.T) {
 		t.Error("invalid UTF-8 taken")
 	}
 }
+
+// TestUnnamedFaces: the pictures a name can be suggested for across the
+// album are the newest versions one may edit with a face nobody named
+// (ADR-0199).
+func TestUnnamedFaces(t *testing.T) {
+	s := setup(t)
+	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))
+	noErr(t, s.GrantRole("admin", "PLAT", "ben", Viewer))
+	anna, ben := s.As("anna"), s.As("ben")
+	folder := mustItem(t)(anna.CreateFolder("PLAT", "", "Family"))
+	const named, open, old, newest = "0123456789abcdef0123456789abce41", "0123456789abcdef0123456789abce42", "0123456789abcdef0123456789abce43", "0123456789abcdef0123456789abce44"
+	add := func(id, name string, src *Source) {
+		t.Helper()
+		_, err := anna.AddAttachment(folder.ID, Attachment{ID: ID(id), Name: name, Type: "image/png", Size: 3, SHA256: strings.Repeat(id[30:], 32), Source: src})
+		noErr(t, err)
+	}
+	add(named, "Named.png", nil)
+	add(open, "Open.png", nil)
+	add(old, "Sketch.drawing.png", nil)
+	add(newest, "Sketch.drawing.png", &Source{Item: folder.ID, Attachment: old})
+	noErr(t, anna.SetPictureFaces(folder.ID, named, []Face{{X: 0.1, Y: 0.1, W: 0.2, H: 0.2, Person: "Anna"}}))
+	noErr(t, anna.SetPictureFaces(folder.ID, open, []Face{{X: 0.1, Y: 0.1, W: 0.2, H: 0.2, Person: "Anna"}, {X: 0.5, Y: 0.1, W: 0.2, H: 0.2}}))
+	// An older version of a stack is not offered: the album shows the newest.
+	noErr(t, anna.SetPictureFaces(folder.ID, old, []Face{{X: 0.1, Y: 0.1, W: 0.2, H: 0.2}}))
+	noErr(t, anna.SetPictureFaces(folder.ID, newest, []Face{{X: 0.1, Y: 0.1, W: 0.2, H: 0.2, Person: "Ben"}}))
+
+	got := anna.UnnamedFaces("")
+	if len(got) != 1 || got[0].Attachment.ID != open {
+		t.Fatalf("unnamed faces %+v", got)
+	}
+	if len(ben.UnnamedFaces("")) != 0 || len(anna.UnnamedFaces("OPS")) != 0 {
+		t.Error("pictures one may not edit, or of another space")
+	}
+}
