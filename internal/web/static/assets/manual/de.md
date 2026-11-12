@@ -206,7 +206,7 @@ Beim Lesen markiert man eine Stelle und wählt **Notiz**, um eine Notiz dazu anz
 
 ### Tagesnotizen
 
-Eine Tagesnotiz ist eine eigene Seite für einen Tag: Nur man selbst liest und bearbeitet sie. **Heute** in der oberen Leiste, **Mein Tag** auf der Startseite, Alt+Shift+D oder die Befehlspalette öffnet die Notiz von heute; sie wird beim ersten Öffnen erstellt, im **Raum für Tagesnotizen**, den man einmal wählt, unter den Räumen, in denen man Seiten erstellen darf. Der Raum lässt sich jederzeit ändern; bestehende Notizen bleiben, wo sie sind.
+Eine Tagesnotiz ist eine eigene Seite für einen Tag: Nur man selbst liest und bearbeitet sie. **Heute** in der oberen Leiste, **Mein Tag** auf der Startseite, Alt+Shift+D oder die Befehlspalette öffnet die Notiz von heute; sie wird beim ersten Öffnen erstellt, im **Raum für Tagesnotizen**, den man einmal wählt, unter den Räumen, in denen man Seiten erstellen darf. Solange kein Raum gewählt ist, steht die Auswahl an der Stelle der Notiz; später ändert man den Raum in der Spalte an der Seite, die sich mit ihrem Pfeil ein- und ausklappen lässt. Bestehende Notizen bleiben, wo sie sind.
 
 Der Text der Notiz wird an Ort und Stelle bearbeitet. **Vorheriger Tag** und **Nächster Tag** wechseln den Tag, und der Monat daneben markiert die Tage mit Notiz; ein Tag ohne Notiz bietet **Notiz für diesen Tag beginnen** an. Neben der Notiz zeigt **Im Kalender an diesem Tag** die Einträge, deren Daten auf diesen Tag fallen, und **An diesem Tag erstellt oder geändert** die lesbaren Einträge, die an diesem Tag erstellt oder zuletzt geändert wurden. **Als Seite öffnen** zeigt die Notiz als Eintrag, mit Kommentaren, Verlauf und Feldern. Tagesnotizen tragen das Label `daily-note`; eine Abfrage nach diesem Label listet sie alle.
 

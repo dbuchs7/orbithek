@@ -4062,7 +4062,7 @@ async function calendarScreen(params) {
 
 // dailyScreen shows one's daily note of a day (ADR-0205).
 async function dailyScreen(arg, params) {
-  await dailyView(screen(), arg || "", params, { ...textTools(), favouritesFirst, reload: () => route() });
+  await dailyView(screen(), arg || "", params, { ...textTools(), favouritesFirst, columnToggle, reload: () => route() });
 }
 
 // storagePaused tells that nothing new is made now (ADR-0163).
