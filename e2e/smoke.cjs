@@ -3389,6 +3389,27 @@ function webSource() {
     await page.waitForFunction(() => location.hash.includes("mode=gantt") && location.hash.includes("scale=week"));
     await page.reload();
     await page.waitForSelector(".tl-gantt .tl-tick:has-text('W10')");
+
+    step("roadmap picture: the chart leaves as PNG or JPEG, drawn in the browser with every row (ADR-0218)");
+    {
+      const fs = require("fs");
+      const saved = async (format) => {
+        await page.click("#roadmap-export summary");
+        const [file] = await Promise.all([page.waitForEvent("download"), page.click(`#roadmap-export-${format}`)]);
+        await page.waitForFunction(() => document.querySelector("#roadmap-export-status")?.textContent.endsWith("saved."));
+        return { name: file.suggestedFilename(), bytes: fs.readFileSync(await file.path()) };
+      };
+      await page.click("#roadmap-export summary");
+      check((await page.locator("#roadmap-export button").allTextContents()).join("|") === "PNG (lossless)|JPEG (smaller file)", "the chart offers PNG and JPEG");
+      await page.click("#roadmap-export summary");
+      const png = await saved("png");
+      check(/^Gantt chart plan-q1 plan-ops \d{4}-\d{2}-\d{2}\.png$/.test(png.name), "the picture is named after what the view shows: " + png.name);
+      check(png.bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])), "the PNG is a PNG");
+      // Two rows, the axis and the title, drawn twice as sharp as the page.
+      check(png.bytes.readUInt32BE(20) === 2 * (16 + 36 + 28 + 2 * 30 + 16), "the PNG holds every row, twice as sharp");
+      const jpeg = await saved("jpeg");
+      check(jpeg.name.endsWith(".jpg") && jpeg.bytes[0] === 0xff && jpeg.bytes[1] === 0xd8, "the JPEG is a JPEG");
+    }
     // The tasks page and a room lead there too.
     await page.goto(base + "/#/tasks");
     await page.click("#tab-roadmap");

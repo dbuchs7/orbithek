@@ -306,6 +306,9 @@ func (h itemHandlers) moveFile(w http.ResponseWriter, r *http.Request) {
 		h.fail(w, check)
 		return
 	}
+	if !boundFolder(w, h.d, to) {
+		return
+	}
 	if h.d.Whiteboards != nil && !h.d.Whiteboards.Yield(whiteboard.Key{Item: from, First: first}) {
 		writeError(w, http.StatusConflict, "this drawing is open as a live whiteboard; move it once the whiteboard is closed")
 		return
@@ -576,6 +579,9 @@ func (h itemHandlers) uploadAttachment(w http.ResponseWriter, r *http.Request) {
 	})
 	if check != nil {
 		h.fail(w, check)
+		return
+	}
+	if !boundFolder(w, h.d, id) {
 		return
 	}
 	limit := budget.Get().AttachmentBytes

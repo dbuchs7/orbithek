@@ -256,3 +256,22 @@ export function address(state) {
   const q = p.toString();
   return "#/roadmap" + (q ? "?" + q : "");
 }
+
+// quoted writes a value of the query language (ADR-0136) as quoted text,
+// so a type or label with spaces, commas or quotes stays one value.
+function quoted(value) {
+  return '"' + String(value).replace(/[\\"]/g, (c) => "\\" + c) + '"';
+}
+
+// itemQuery is the query that reads the items a view can show in one
+// listing: those of the types with a date field (unless the address names
+// a type, which the listing narrows to itself), with any of the chosen
+// labels. Items of other types are never read, so pages without dates
+// neither cost a request nor count against the boards' limit. It is empty
+// when nothing narrows the listing.
+export function itemQuery(typeNames, labels = []) {
+  const parts = [];
+  if (typeNames.length) parts.push(`type in (${typeNames.map(quoted).join(", ")})`);
+  if (labels.length) parts.push(`label in (${labels.map(quoted).join(", ")})`);
+  return parts.join(" AND ");
+}

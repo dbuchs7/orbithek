@@ -521,6 +521,12 @@ func (w *writer) copyFiles(it item.Item) error {
 		if a.Deleted {
 			continue
 		}
+		// An entry of a file share has no file here; the share's next run
+		// links it again (ADR-0197).
+		if a.Linked() {
+			w.p.note("%s: %s lies on the file share %s; its next run links it again", it.Key, a.Name, a.Share.Share)
+			continue
+		}
 		in, err := w.src.Open(it.ID, a.ID)
 		if err != nil {
 			w.p.note("%s: file %s not restored: %v", it.Key, a.Name, err)

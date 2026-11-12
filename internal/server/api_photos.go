@@ -763,6 +763,9 @@ func (h itemHandlers) importInto(w http.ResponseWriter, r *http.Request, folder,
 		h.fail(w, check)
 		return
 	}
+	if !boundFolder(w, h.d, id) {
+		return
+	}
 	limit := budget.Get().AttachmentBytes
 	if video {
 		limit = max(limit, budget.Get().VideoBytes)
@@ -1104,18 +1107,20 @@ func (h itemHandlers) googleImport(w http.ResponseWriter, r *http.Request) {
 // files to before anything is fetched from another service.
 func (h itemHandlers) mayImportInto(w http.ResponseWriter, r *http.Request, folder string) bool {
 	var err error
+	var id item.ID
 	h.d.DB.Read(func(s *item.Store) {
 		x := s.As(who(r))
 		var it item.Item
 		if it, err = resolveItem(x, folder); err == nil {
 			err = x.CanAttach(it.ID)
+			id = it.ID
 		}
 	})
 	if err != nil {
 		h.fail(w, err)
 		return false
 	}
-	return true
+	return boundFolder(w, h.d, id)
 }
 
 func (h itemHandlers) googleClose(w http.ResponseWriter, r *http.Request) {

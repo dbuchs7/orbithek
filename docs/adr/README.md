@@ -209,7 +209,7 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0194](0194-faces-and-person-albums.md) | Faces found in the browser, named by people, and recognised only where administrators allow it | Accepted | Landed |
 | [0195](0195-the-slides-of-a-folder-or-collection-are-ordered-by-hand.md) | The slides of a folder or collection are ordered by hand, by dragging | Accepted | Landed |
 | [0196](0196-duplicates-in-the-album.md) | Duplicates in the album, found by the file and by how a picture looks | Proposed | Partial |
-| [0197](0197-album-folders-that-show-a-file-share.md) | Album folders that show a file share, as previews, with the share as master | Proposed | Not started |
+| [0197](0197-album-folders-that-show-a-file-share.md) | Album folders that show a file share, as previews, with the share as master | Proposed | Partial |
 | [0198](0198-a-photos-time-set-by-hand-and-written-into-the-files-given-out.md) | A photo's time set by hand, and written into the files given out | Proposed | Partial |
 | [0199](0199-faces-searched-again-and-suggested-for-a-person.md) | Faces searched again until they can be recognised, and suggested for a person across the album | Proposed | Partial |
 | [0200](0200-a-folder-is-moved-from-the-album.md) | A folder is moved from the album, with what it holds | Accepted | Landed |
@@ -230,3 +230,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0215](0215-pictures-on-the-starmap-of-all-rooms.md) | Pictures and drawings on the starmap of all rooms, joined to the items that use them | Accepted | Landed |
 | [0216](0216-adr-numbers-assigned-by-the-pull-requests-last-commit.md) | ADR numbers are assigned by the pull request's last commit | Proposed | Partial |
 | [0217](0217-golden-files-of-the-current-format-carry-no-version-number.md) | Golden files of the current format carry no version number | Proposed | Partial |
+| [0218](0218-roadmap-one-listing-and-pictures.md) | The roadmap and the Gantt chart read their items in one listing and export as PNG and JPEG | Proposed | Partial |
