@@ -5531,6 +5531,46 @@ function gitSource() {
     await page.setInputFiles("#note-import-file", { name: "Vault.zip", mimeType: "application/zip", buffer: vaultZip });
     await page.click("#note-import-run");
     await page.waitForSelector("#note-import-report[data-dry=false]:has-text('0 new'):has-text('3 unchanged')");
+
+    step("connectors: the highlights of a reading service become items, their quotes above a line people write below (ADR-0210)");
+    // The service's export, which the server under test reads with
+    // OT_CONNECTOR_READING_TOKEN=e2e-reading-token; without that variable
+    // the run fails and names it.
+    const reading = require("http").createServer((req, res) => {
+      const ok = req.headers.authorization === "Token e2e-reading-token" && req.url.startsWith("/api/v2/export/");
+      res.writeHead(ok ? 200 : 401, { "Content-Type": "application/json" });
+      res.end(ok ? JSON.stringify({ count: 1, nextPageCursor: null, results: [{ user_book_id: 7, title: "Walden", readable_title: "Walden", author: "H. D. Thoreau",
+        book_tags: [{ id: 1, name: "nature" }], source_url: "https://books.example/walden",
+        highlights: [{ id: 1, text: "Simplify, simplify.", note: hostile, location: 12, location_type: "page" }] }] }) : '{"detail":"no"}');
+    });
+    await new Promise((resolve) => reading.listen(0, "127.0.0.1", resolve));
+    try {
+      await page.goto(base + "/#/admin");
+      await page.click("#connector-new-highlights");
+      await page.waitForSelector("#connector-settings [name=fullDays]");
+      await page.fill("#connector-settings [name=id]", "reading");
+      await page.fill("#connector-settings [name=name]", "Reading");
+      await page.selectOption("#connector-settings [name=space]", "PLAT");
+      await page.fill("#connector-settings [name=url]", `http://127.0.0.1:${reading.address().port}`);
+      await page.click("#connector-settings button[type=submit]");
+      await page.waitForSelector("#connector-list tr[data-connector='reading']");
+      await page.waitForSelector("#connector-run-full");
+      const tokenSet = (await page.textContent("#connector-credential")).includes("OT_CONNECTOR_READING_TOKEN is set");
+      await page.click("#connector-dry-run");
+      if (tokenSet) {
+        await page.waitForSelector("#connector-history .catalog-run:has-text('Dry run'):has-text('1 new')");
+        await page.click("#connector-run-now");
+        await page.waitForSelector("#connector-history .catalog-run:has-text('Sync'):has-text('1 new') a");
+        await page.click("#connector-history .catalog-run a:has-text('Walden')");
+        await page.waitForSelector(".item-main blockquote:has-text('Simplify, simplify.')");
+        await page.waitForSelector(".item-main :text('" + hostile.slice(0, 8) + "')");
+        await page.waitForSelector(".item-main :text('Write your own notes below this line')");
+      } else {
+        await page.waitForSelector("#connector-history .catalog-run .error:has-text('OT_CONNECTOR_READING_TOKEN')");
+      }
+    } finally {
+      reading.close();
+    }
     check(problems.length === 0, problems.join("; "));
     console.log("ok");
   } catch (err) {

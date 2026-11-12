@@ -2567,5 +2567,10 @@ export default {
   "notesImport.kind.new": "neu",
   "notesImport.kind.changed": "geändert",
   "notesImport.kind.kept": "behalten",
-  "notesImport.otherWiki": "Räume und Projekte eines anderen Wikis oder Trackers"
+  "notesImport.otherWiki": "Räume und Projekte eines anderen Wikis oder Trackers",
+  "highlights.note": "Jedes Buch und jeder Artikel, in dem Sie beim Lesedienst Stellen markiert haben, wird zu einem Eintrag des gewählten Typs: Titel, Autorin oder Autor, Quelladresse und Cover als Felder, seine Tags als Labels, seine Markierungen als Zitate mit ihren Notizen und Fundstellen über einer Linie. Was unter die Linie geschrieben wird, bleibt erhalten. Ein Lauf liest nur, was sich seit dem letzten geändert hat; das Token des Kontos kommt aus der Umgebung.",
+  "highlights.url": "Adresse des Dienstes",
+  "highlights.urlHelp": "Die Adresse, unter der seine Export-API antwortet; das Token des Kontos, dessen Markierungen gelesen werden, setzt der Betrieb in der unten genannten Variable.",
+  "highlights.fullDays": "Vollständiger Lauf alle … Tage",
+  "highlights.fullDaysHelp": "Ein Lauf liest nur die seit dem letzten geänderten Markierungen und sieht deshalb nicht, wenn ein Buch beim Dienst entfernt wurde; ein vollständiger Lauf liest alles und kennzeichnet ein solches Buch als zurückgezogen."
 };

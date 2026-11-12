@@ -2569,5 +2569,10 @@ export default {
   "notesImport.kind.new": "new",
   "notesImport.kind.changed": "changed",
   "notesImport.kind.kept": "kept",
-  "notesImport.otherWiki": "Rooms and projects of another wiki or tracker"
+  "notesImport.otherWiki": "Rooms and projects of another wiki or tracker",
+  "highlights.note": "Each book or article whose passages you highlighted at the reading service becomes an item of the chosen type: its title, author, source address and cover as fields, its tags as labels, its highlights as quotes with their notes and places above a line. What people write below the line stays. A run reads only what changed since the last one; the account's token comes from the environment.",
+  "highlights.url": "Address of the service",
+  "highlights.urlHelp": "The address its export API answers at; the token of the account whose highlights are read is set by the operator in the variable named below.",
+  "highlights.fullDays": "Full run every … days",
+  "highlights.fullDaysHelp": "A run reads only the highlights changed since the last one, so it cannot see a book removed at the service; a full run reads everything and marks such a book withdrawn."
 };

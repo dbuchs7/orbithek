@@ -44,6 +44,8 @@ var readers = map[string]Reader{
 	site.KindJSON:      jsonReader{},
 	site.KindAtlassian: atlassianReader{},
 	site.KindGit:       gitReader{},
+	// A reading service's highlights (ADR-0210).
+	site.KindHighlights: highlightsReader{},
 }
 
 // reader returns the reader of a connector's kind.
