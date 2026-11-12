@@ -105,7 +105,7 @@ func shownValue(s *item.Store, it item.Item, kind item.FieldKind, v any, documen
 	switch kind {
 	case item.KindItem:
 		id, ok := v.(item.ID)
-		if !ok {
+		if !ok || s == nil {
 			return v
 		}
 		target, err := s.Get(id)
@@ -286,7 +286,7 @@ func (h itemHandlers) exportDocument(r *http.Request, children, withData bool) (
 					spaceName = sp.Name
 				}
 			}
-			doc.Controls = controls(root, td, spaceName, names)
+			doc.Controls = controls(s, root, td, spaceName, names)
 		}
 	})
 	if err != nil || !withData {
