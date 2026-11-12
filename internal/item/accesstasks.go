@@ -132,8 +132,9 @@ func MentionParagraph(before string, item ID, label, after string) Block {
 // TypeTemplates are the ready-made types an installation starts from
 // (types are data, ADR-0001): the UI offers them to administrators, a
 // request's task is of the first of them that can hold one when the
-// installation has no such type yet (ADR-0162), and a label's page is of
-// the type topic (ADR-0202).
+// installation has no such type yet (ADR-0162), a label's page is of
+// the type topic (ADR-0202), and a web link is saved as an item of the
+// last, defined when it is first needed (ADR-0206).
 func TypeTemplates() []TypeDef {
 	return []TypeDef{
 		{Name: "page", Body: true, Fields: []FieldDef{{Name: "owner", Kind: KindUser}}},
@@ -149,6 +150,7 @@ func TypeTemplates() []TypeDef {
 				{Name: "reject", From: []string{"proposed"}, To: "rejected"}}}},
 		// The page of a label (ADR-0202).
 		topicType(),
+		webLinkTemplate(),
 	}
 }
 

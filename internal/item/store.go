@@ -299,7 +299,14 @@ type NewItem struct {
 // firstBody validates the body given with a new item and returns its
 // commit, as CommitBody would for an item without a body.
 func (s *Store) firstBody(created Event, d Doc) (Event, error) {
-	if td, _ := s.latest(created.TypeName); !td.Body {
+	td, _ := s.latest(created.TypeName)
+	return s.firstBodyOf(td, created, d)
+}
+
+// firstBodyOf is firstBody for an item of td, a type that may be defined
+// in the same batch (ADR-0206).
+func (s *Store) firstBodyOf(td TypeDef, created Event, d Doc) (Event, error) {
+	if !td.Body {
 		return Event{}, invalid("type %q has no body", td.Name)
 	}
 	for i, b := range d.Blocks {
@@ -362,6 +369,15 @@ func (s *Store) prepareCreate(n NewItem) (Event, error) {
 	td, ok := s.latest(n.Type)
 	if !ok {
 		return Event{}, notFound("type %q", n.Type)
+	}
+	return s.prepareCreateOf(n, td)
+}
+
+// prepareCreateOf is prepareCreate for an item of td, a type that may be
+// defined in the same batch (ADR-0206).
+func (s *Store) prepareCreateOf(n NewItem, td TypeDef) (Event, error) {
+	if !s.HasSpace(n.Space) {
+		return Event{}, notFound("space %q", n.Space)
 	}
 	if strings.TrimSpace(n.Title) == "" {
 		return Event{}, invalid("title is empty")

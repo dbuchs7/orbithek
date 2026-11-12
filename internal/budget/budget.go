@@ -162,6 +162,18 @@ type Budgets struct {
 	// HighlightRects bounds the rectangles one highlight in a PDF draws on
 	// its page (ADR-0208): a selection over many lines makes one per line.
 	HighlightRects int
+	// LinkPreviewPageBytes bounds what the server reads of one web page
+	// whose metadata or text it takes (ADR-0206), LinkPreviewImageBytes
+	// the picture a page names, kept as a file of its item, and
+	// LinkPreviewSeconds each of those requests, redirects included.
+	// LinkPreviewsAtOnce bounds the pages and pictures read at once,
+	// across all people, LinkPreviewBlocks the blocks one page's text
+	// becomes.
+	LinkPreviewPageBytes  int64
+	LinkPreviewImageBytes int64
+	LinkPreviewSeconds    int
+	LinkPreviewsAtOnce    int
+	LinkPreviewBlocks     int
 }
 
 // Default returns the budgets the server uses unless configured otherwise.
@@ -218,6 +230,11 @@ func Default() Budgets {
 		VideoBytes:             2 << 30,
 		VideoTransferSeconds:   3600,
 		HighlightRects:         200,
+		LinkPreviewPageBytes:   2 << 20,
+		LinkPreviewImageBytes:  5 << 20,
+		LinkPreviewSeconds:     10,
+		LinkPreviewsAtOnce:     8,
+		LinkPreviewBlocks:      500,
 	}
 }
 

@@ -141,6 +141,25 @@ The **Name of the import** identifies it. Import a newer archive under the same 
 ### Importing highlights
 
 An administrator can set up a connector of the kind Readwise under **Administration → Connectors**. It reads your highlights from Readwise on its schedule, with a dry run first like every connector: each book or article becomes an item of the chosen type, with its title, author, source address and cover, labels from its tags, and its highlights as quotes with their notes and locations. A run reads only what changed since the last one. The highlights stand above a line in the item's text; what you write below that line stays when the highlights are brought up to date.
+## Web links and capturing
+
+### Saving a web link
+
+A page of the web can be kept as an item of its own, a *web link*: its address, and what the page says about itself, such as its site, description, author and day of publication, in its fields; its picture as a file; and your own notes in its text, where comments and personal notes work as on any page.
+
+While editing a text, paste an address on its own line. The bubble below the link offers **Save as web link item**: the item goes below the page you are writing, or into another room, and the line with the address becomes a card of the page, with its picture, title, site and description. A web link item shows the same card at its top, and so does every text that embeds it.
+
+If your server reads web pages (an administrator decides), a web link's fields and picture are filled from the page. On the web link item, **Read the page again** brings them up to date, keeping an earlier picture as an earlier version; **Take over the page's text** adds the page's main text below the item's text, to comment on it and annotate it with personal notes. Without this, a web link keeps its address, and you fill in its fields yourself.
+
+### Capturing from anywhere
+
+**Capture** saves a page of the web, a quote or a thought from wherever you are. It opens:
+
+- from **New**, with the card **Capture**;
+- from any page of the web, with the bookmark offered under **Account and password** in the account menu: drag the button **Capture** to your browser's bookmarks, or use **Copy the bookmark**. On a page, it opens the capture view with the page's title, its address and the text you selected;
+- on a phone, by sharing a page or a text to Orbithek once you installed it as an app from the browser's menu.
+
+The capture view shows the title, the address and the text, which you may change, and asks where to save them: as **a web link** (when there is an address), as **a new item** of a type and in a room you choose, or as **an addition to an item** that you find by searching. The text becomes quotes, and the address follows as their source. Nothing is saved before you choose **Save**. Signing in first keeps what was shared.
 
 ## Working together
 
