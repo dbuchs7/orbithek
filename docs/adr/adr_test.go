@@ -14,10 +14,9 @@ import (
 
 var (
 	fileNameRE    = regexp.MustCompile(`^(\d{4})-[a-z0-9]+(?:[a-z0-9.-]*[a-z0-9])?\.md$`)
-	headingRE     = regexp.MustCompile(`^# ADR-(\d{4}): (\S.*)$`)
+	headingRE     = regexp.MustCompile(`^# ADR-(\d{4}|DRAFT): (\S.*)$`)
 	frontMatterRE = regexp.MustCompile(`^- \*\*([A-Za-z ]+):\*\* ?(.*)$`)
 	supersededRE  = regexp.MustCompile(`^Superseded by ADR-(\d{4})$`)
-	indexRowRE    = regexp.MustCompile(`^\| \[(\d{4})\]\(([^)]+)\) \| (.+?) \| (.+?) \| (.+?) \|$`)
 	monthRE       = regexp.MustCompile(`^\d{4}-\d{2}$`)
 )
 
@@ -50,7 +49,7 @@ func loadRecords(t *testing.T) map[string]record {
 	records := make(map[string]record)
 	for _, e := range entries {
 		name := e.Name()
-		if e.IsDir() || !strings.HasSuffix(name, ".md") || name == "README.md" || name == "template.md" {
+		if e.IsDir() || !strings.HasSuffix(name, ".md") || name == "README.md" || name == "template.md" || draftFileRE.MatchString(name) {
 			continue
 		}
 		m := fileNameRE.FindStringSubmatch(name)
@@ -63,7 +62,9 @@ func loadRecords(t *testing.T) map[string]record {
 			t.Errorf("%s: %v", name, err)
 			continue
 		}
-		if r.number != m[1] {
+		if r.number == "DRAFT" {
+			t.Errorf("%s: heading says ADR-DRAFT, but the file name carries a number", name)
+		} else if r.number != m[1] {
 			t.Errorf("%s: heading says ADR-%s, file name says %s", name, r.number, m[1])
 		}
 		if prev, ok := records[m[1]]; ok {
@@ -73,6 +74,34 @@ func loadRecords(t *testing.T) map[string]record {
 		records[m[1]] = r
 	}
 	return records
+}
+
+// loadDrafts reads the records in flight (ADR-0007): draft-<slug>.md,
+// headed `# ADR-DRAFT: Title`, by slug.
+func loadDrafts(t *testing.T) map[string]record {
+	t.Helper()
+	entries, err := os.ReadDir(".")
+	if err != nil {
+		t.Fatalf("reading ADR directory: %v", err)
+	}
+	drafts := make(map[string]record)
+	for _, e := range entries {
+		m := draftFileRE.FindStringSubmatch(e.Name())
+		if e.IsDir() || m == nil {
+			continue
+		}
+		r, err := parseRecord(e.Name())
+		if err != nil {
+			t.Errorf("%s: %v", e.Name(), err)
+			continue
+		}
+		if r.number != "DRAFT" {
+			t.Errorf("%s: a draft heads with `# ADR-DRAFT: Title`, not ADR-%s; its number is assigned before merge", e.Name(), r.number)
+			continue
+		}
+		drafts[m[1]] = r
+	}
+	return drafts
 }
 
 func parseRecord(name string) (record, error) {
@@ -89,7 +118,7 @@ func parseRecord(name string) (record, error) {
 	}
 	h := headingRE.FindStringSubmatch(sc.Text())
 	if h == nil {
-		return record{}, fmt.Errorf("first line must be '# ADR-NNNN: Title', got %q", sc.Text())
+		return record{}, fmt.Errorf("first line must be '# ADR-NNNN: Title' or, in a draft, '# ADR-DRAFT: Title', got %q", sc.Text())
 	}
 	r.number, r.title = h[1], h[2]
 
@@ -134,8 +163,15 @@ func TestRecordsAreNumberedWithoutGaps(t *testing.T) {
 
 func TestFrontMatter(t *testing.T) {
 	records := loadRecords(t)
-	now := time.Now()
+	all := make([]record, 0, len(records))
 	for _, r := range records {
+		all = append(all, r)
+	}
+	for _, d := range loadDrafts(t) {
+		all = append(all, d)
+	}
+	now := time.Now()
+	for _, r := range all {
 		fm := r.frontMatter
 		for _, key := range []string{"Status", "Implementation", "Date", "Deciders"} {
 			if fm[key] == "" {
@@ -245,3 +281,53 @@ func TestIndexMatchesRecords(t *testing.T) {
 		}
 	}
 }
+
+// TestDraftsAreCitedAndIndexedCorrectly keeps the records in flight
+// honest (ADR-0007): a draft has no row in the index, and every
+// ADR-draft-<slug> citation in the repository names a draft that exists,
+// so numbering it cannot leave a citation behind that points nowhere.
+func TestDraftsAreCitedAndIndexedCorrectly(t *testing.T) {
+	drafts := loadDrafts(t)
+	index, err := os.ReadFile("README.md")
+	if err != nil {
+		t.Fatalf("reading index: %v", err)
+	}
+	for slug := range drafts {
+		if strings.Contains(string(index), "draft-"+slug+".md") {
+			t.Errorf("README.md lists draft-%s.md; a draft gets its row when it is numbered", slug)
+		}
+	}
+	err = filepath.WalkDir(filepath.Join("..", ".."), func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			if skipDirs[d.Name()] {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if !citable[strings.ToLower(filepath.Ext(path))] {
+			return nil
+		}
+		body, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		for _, m := range citationRE.FindAllStringSubmatch(string(body), -1) {
+			if _, ok := drafts[m[1]]; !ok && !citationExample[m[1]] && !strings.HasPrefix(m[1], "fixture-") {
+				t.Errorf("%s cites ADR-draft-%s, but docs/adr/draft-%s.md does not exist", path, m[1], m[1])
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// citationExample are the slugs that name no draft of this repository:
+// the one the documentation uses to show the form of a citation, and
+// drafts of another project cited by name (ADR-0129 cites one of atlas).
+// The tests of the numbering use slugs that start with "fixture-".
+var citationExample = map[string]bool{"slug": true, "diagrams-scope": true}

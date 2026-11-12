@@ -5,7 +5,7 @@ Every load-bearing architectural decision is recorded as an ADR: context, decisi
 - **Status** says whether the decision holds (`Proposed`, `Accepted`, `Superseded by ADR-XXXX`, `Deprecated`).
 - **Implementation** says whether it is built (`Not started`, `Partial`, `Landed`, `Superseded`). `Landed` requires `Accepted`.
 
-New records start from [`template.md`](template.md). An accepted decision is not overwritten; it is superseded by a new ADR.
+New records start from [`template.md`](template.md) as drafts (ADR-0007): `draft-<slug>.md`, headed `# ADR-DRAFT: Title`, without a row in the index, cited as `ADR-draft-<slug>`. When the pull request is ready and up to date with `main`, its last commit numbers them: `go run ./docs/adr/cmd/adrnum` renames each draft to the next free number, rewrites its heading and every citation, and appends its row below. An accepted decision is not overwritten; it is superseded by a new ADR.
 
 ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](https://github.com/pblumer/atlas) and adapted to this product; each names its atlas sources under *Context* and *Links*.
 
@@ -19,7 +19,7 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0004](0004-go-without-cgo.md) | Go as implementation language, without CGO | Accepted | Landed |
 | [0005](0005-test-driven-development.md) | Test-driven development as the default workflow | Accepted | Landed |
 | [0006](0006-decision-record-states-and-open-questions.md) | A decision record has two states, and its open questions expire | Accepted | Landed |
-| [0007](0007-adr-numbers-assigned-at-merge.md) | ADR numbers are assigned at merge, not on a branch | Accepted | Not started |
+| [0007](0007-adr-numbers-assigned-at-merge.md) | ADR numbers are assigned at merge, not on a branch | Accepted | Partial |
 | [0008](0008-event-sourced-persistence.md) | Event-sourced persistence in an embedded store, with a single writer | Accepted | Partial |
 | [0009](0009-single-binary-with-embedded-web-ui.md) | A single binary with an embedded web UI | Accepted | Partial |
 | [0010](0010-real-time-collaboration-with-block-locks.md) | Real-time collaboration starts with block-level locks, not a CRDT | Accepted | Partial |
@@ -226,5 +226,7 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0211](0211-importing-a-folder-of-markdown-notes-and-exported-note-workspaces.md) | Importing a folder of Markdown notes and exported note workspaces | Accepted | Landed |
 | [0212](0212-highlights-from-a-reading-service-as-a-connector.md) | Highlights from a reading service as a connector | Accepted | Landed |
 | [0213](0213-the-capacity-theme-a-quiet-look-for-notes.md) | The Capacity theme, a quiet look for notes in light and dark | Accepted | Landed |
-| [0214](0214-tables-with-formatted-cells-sizes-and-colours.md) | Tables with formatted cells, sized columns and rows, and coloured cells | Proposed | Partial |
+| [0214](0214-tables-with-formatted-cells-sizes-and-colours.md) | Tables with formatted cells, sized columns and rows, and coloured cells | Accepted | Landed |
 | [0215](0215-pictures-on-the-starmap-of-all-rooms.md) | Pictures and drawings on the starmap of all rooms, joined to the items that use them | Proposed | Partial |
+| [0216](0216-adr-numbers-assigned-by-the-pull-requests-last-commit.md) | ADR numbers are assigned by the pull request's last commit | Proposed | Partial |
+| [0217](0217-golden-files-of-the-current-format-carry-no-version-number.md) | Golden files of the current format carry no version number | Proposed | Partial |
