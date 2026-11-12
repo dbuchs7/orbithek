@@ -2,6 +2,7 @@ package photo
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"image"
 	"image/color"
@@ -310,7 +311,7 @@ func TestThumbnailRefusals(t *testing.T) {
 	if _, _, err := Thumbnail(bytes.NewReader(png100), "image/png", 10, 1, 10000); err != nil {
 		t.Errorf("exactly the limit: %v", err)
 	}
-	for _, mt := range []string{"image/webp", "image/bmp", "image/heic", ""} {
+	for _, mt := range []string{"image/bmp", "image/heic", ""} {
 		if _, _, err := Thumbnail(bytes.NewReader(png100), mt, 10, 1, 1<<20); !errors.Is(err, ErrUnsupported) {
 			t.Errorf("%q: %v", mt, err)
 		}
@@ -429,5 +430,21 @@ func BenchmarkRead(b *testing.B) {
 	r := bytes.NewReader(f)
 	for b.Loop() {
 		Read(r, "image/jpeg")
+	}
+}
+
+// tinyWebP is a WebP of one pixel, lossless.
+const tinyWebP = "UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA=="
+
+// TestThumbnailOfAWebP: a WebP is decoded and scaled as a JPEG or PNG is
+// (ADR-draft-signed-links-to-a-shares-originals-and-previews-of-raw-and-webp); a broken one is refused.
+func TestThumbnailOfAWebP(t *testing.T) {
+	data, _ := base64.StdEncoding.DecodeString(tinyWebP)
+	out, ct, err := Thumbnail(bytes.NewReader(data), "image/webp", 400, 1, 1<<20)
+	if err != nil || (ct != "image/jpeg" && ct != "image/png") || len(out) == 0 {
+		t.Fatalf("thumbnail of a WebP: %q %d bytes, %v", ct, len(out), err)
+	}
+	if _, _, err := Thumbnail(bytes.NewReader([]byte("RIFF....WEBP")), "image/webp", 400, 1, 1<<20); err == nil {
+		t.Error("a broken WebP was scaled")
 	}
 }

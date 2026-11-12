@@ -169,3 +169,22 @@ func statusError(resp *http.Response, what string) error {
 	}
 	return fmt.Errorf("%w: %s", ErrUnreadable, msg)
 }
+
+// SignedLink answers a GET of a file of an S3 share signed in its query,
+// valid for ttl: whoever holds it reads the original until then, without
+// the keys (ADR-draft-signed-links-to-a-shares-originals-and-previews-of-raw-and-webp).
+func SignedLink(a Address, id, p string, env Env, ttl time.Duration) (string, error) {
+	if a.Kind != S3 {
+		return "", fmt.Errorf("%w: only an S3 share signs links", ErrInvalid)
+	}
+	if err := CheckPath(p); err != nil {
+		return "", err
+	}
+	av, sv := KeyVars(id)
+	access, secret := strings.TrimSpace(env(av)), strings.TrimSpace(env(sv))
+	if access == "" || secret == "" {
+		return "", fmt.Errorf("%w: set %s and %s in the server's environment", ErrUnreadable, av, sv)
+	}
+	c := s3sig.Client{Endpoint: a.Endpoint, Bucket: a.Bucket, Region: a.Region, Access: access, Secret: secret}
+	return c.Presign(join(a.Prefix, p), ttl)
+}

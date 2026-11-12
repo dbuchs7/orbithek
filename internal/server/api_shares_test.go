@@ -173,3 +173,57 @@ func TestABoundFolderShowsItsShare(t *testing.T) {
 		t.Error("the album shows a withdrawn entry")
 	}
 }
+
+// TestSignedLinksOpenAnS3SharesOriginals: where an administrator turned it
+// on, an entry of an S3 share links to the wiki, which answers a redirect
+// to the object signed for minutes; elsewhere there is no such original
+// (ADR-draft-signed-links-to-a-shares-originals-and-previews-of-raw-and-webp).
+func TestSignedLinksOpenAnS3SharesOriginals(t *testing.T) {
+	t.Setenv("OT_SHARE_BUCKET_ACCESS_KEY", "AKID")
+	t.Setenv("OT_SHARE_BUCKET_SECRET_KEY", "SECRET")
+	w := newWorld(t)
+	folder := field(w.admin.expect("POST", "/api/album/folders", `{"space":"PLAT","name":"Bucket"}`, http.StatusCreated), "item", "id").(string)
+	w.admin.expect("POST", "/api/shares", `{"id":"bucket","name":"Bucket","address":"s3://photos/family?endpoint=https://s3.example.com&region=eu-central-1","folder":"`+folder+`","link":"https://nas.example/{path}"}`, http.StatusCreated)
+	const entry = "0123456789abcdef0123456789abc197"
+	db := w.deps.DB
+	if err := db.Write(func(s *item.Store) error {
+		_, err := s.LinkFile("sync:share:bucket", item.ID(folder), item.Attachment{ID: entry, Name: "lake.png", Type: "image/png", Size: 5, SHA256: strings.Repeat("ab", 32),
+			Share: &item.ShareFile{Share: "bucket", Path: "2024/lake.png"}})
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	linkOf := func() string {
+		files := field(w.admin.expect("GET", "/api/items/"+folder+"/attachments", "", http.StatusOK), "attachments").([]any)
+		return field(files[0].(map[string]any), "share", "link").(string)
+	}
+	original := "/api/items/" + folder + "/attachments/" + entry + "/original"
+	// Off: the link template, and no original through the wiki.
+	if got := linkOf(); got != "https://nas.example/2024/lake.png" {
+		t.Fatalf("link without signing %q", got)
+	}
+	w.admin.expect("GET", original, "", http.StatusNotFound)
+
+	w.admin.expect("PUT", "/api/shares/bucket", `{"name":"Bucket","address":"s3://photos/family?endpoint=https://s3.example.com&region=eu-central-1","link":"https://nas.example/{path}","signedLinks":true}`, http.StatusOK)
+	if got := linkOf(); got != original {
+		t.Fatalf("link with signing %q", got)
+	}
+	rec := w.admin.do("GET", original, "")
+	loc := rec.Header().Get("Location")
+	if rec.Code != http.StatusFound || !strings.HasPrefix(loc, "https://s3.example.com/photos/family/2024/lake.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&") ||
+		!strings.Contains(loc, "X-Amz-Expires=900") || rec.Header().Get("Cache-Control") != "no-store" || rec.Header().Get("Referrer-Policy") != "no-referrer" {
+		t.Fatalf("original %d %q %v", rec.Code, loc, rec.Header())
+	}
+	// A withdrawn entry, an unknown one and missing keys open nothing.
+	w.admin.expect("GET", "/api/items/"+folder+"/attachments/0123456789abcdef0123456789abd197/original", "", http.StatusNotFound)
+	t.Setenv("OT_SHARE_BUCKET_SECRET_KEY", "")
+	w.admin.expect("GET", original, "", http.StatusNotFound)
+	if got := linkOf(); got != "https://nas.example/2024/lake.png" {
+		t.Errorf("without keys the template is used again: %q", got)
+	}
+	t.Setenv("OT_SHARE_BUCKET_SECRET_KEY", "SECRET")
+	if err := db.Write(func(s *item.Store) error { return s.WithdrawFile("sync:share:bucket", item.ID(folder), entry) }); err != nil {
+		t.Fatal(err)
+	}
+	w.admin.expect("GET", original, "", http.StatusNotFound)
+}

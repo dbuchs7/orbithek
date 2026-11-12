@@ -727,7 +727,35 @@ func (sh *Shares) read(ctx context.Context, src share.Source, o share.Object) re
 		return f
 	}
 	b := budget.Get()
-	// A video, a HEIC or a RAW is streamed for its hash, within
+	// A RAW within SharePreviewBytes is read whole: its hash, and its
+	// preview from the JPEG the camera embedded. A HEIC, a larger RAW and
+	// a video are streamed below.
+	if raw != "" && raw != "image/heic" && raw != "image/avif" && o.Size <= b.SharePreviewBytes {
+		r, err := src.Open(ctx, o.Path)
+		if err != nil {
+			f.err = err
+			return f
+		}
+		data, err := io.ReadAll(io.LimitReader(r, b.SharePreviewBytes+1))
+		r.Close()
+		if err != nil {
+			f.err = err
+			return f
+		}
+		if int64(len(data)) != o.Size {
+			f.err = errors.New("the file changed while it was read")
+			return f
+		}
+		sum := sha256.Sum256(data)
+		f.sum = hex.EncodeToString(sum[:])
+		if pic, orientation := photo.EmbeddedJPEG(data, b.ThumbnailPixels); pic != nil {
+			if p, _, err := photo.Thumbnail(bytes.NewReader(pic), "image/jpeg", previewEdge, orientation, b.ThumbnailPixels); err == nil {
+				f.preview = p
+			}
+		}
+		return f
+	}
+	// A video, a HEIC or a larger RAW is streamed for its hash, within
 	// VideoBytes, since a camera's RAW often exceeds AttachmentBytes; the
 	// server makes no preview of it, and the album shows a symbol.
 	if video != "" || raw != "" {

@@ -32,6 +32,10 @@ type Share struct {
 	// an unmounted share is not read as empty; 0 for S3 or where the
 	// system does not tell.
 	Device uint64 `json:"device,omitempty"`
+	// SignedLinks lets readers of the folder open an S3 share's originals
+	// through links the server signs for minutes, when they follow them
+	// (ADR-draft-signed-links-to-a-shares-originals-and-previews-of-raw-and-webp); off by default.
+	SignedLinks bool `json:"signedLinks,omitempty"`
 }
 
 // maxShares bounds how many shares a site keeps.
@@ -91,6 +95,9 @@ func (sh Share) Validate() error {
 	}
 	if sh.Link != "" && !share.LinkTemplateOK(sh.Link) {
 		return fmt.Errorf("%w: a link is an https: or smb: address with {path}, such as smb://nas/photos/{path}", ErrInvalid)
+	}
+	if sh.SignedLinks && sh.Kind() != share.S3 {
+		return fmt.Errorf("%w: only an S3 share signs links to its originals", ErrInvalid)
 	}
 	if sh.IntervalHours < ShareIntervalMin || sh.IntervalHours > ShareIntervalMax {
 		return fmt.Errorf("%w: a share is read every %d to %d hours", ErrInvalid, ShareIntervalMin, ShareIntervalMax)
