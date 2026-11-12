@@ -1,4 +1,4 @@
-// The picture of a roadmap or a Gantt chart (ADR-draft-roadmap-one-listing-and-pictures): the chart as a PNG or
+// The picture of a roadmap or a Gantt chart (ADR-0218): the chart as a PNG or
 // JPEG file, drawn on a canvas in this browser from what the chart shows.
 // Nothing new is asked of the server: the picture holds exactly the items
 // the reader sees, as the chart in the page does (D10).

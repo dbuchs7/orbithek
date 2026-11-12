@@ -1,4 +1,4 @@
-# ADR-DRAFT: The roadmap and the Gantt chart read their items in one listing and export as PNG and JPEG
+# ADR-0218: The roadmap and the Gantt chart read their items in one listing and export as PNG and JPEG
 
 - **Status:** Proposed
 - **Implementation:** Partial

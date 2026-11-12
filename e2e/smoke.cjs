@@ -3387,7 +3387,7 @@ function webSource() {
     await page.reload();
     await page.waitForSelector(".tl-gantt .tl-tick:has-text('W10')");
 
-    step("roadmap picture: the chart leaves as PNG or JPEG, drawn in the browser with every row (ADR-draft-roadmap-one-listing-and-pictures)");
+    step("roadmap picture: the chart leaves as PNG or JPEG, drawn in the browser with every row (ADR-0218)");
     {
       const fs = require("fs");
       const saved = async (format) => {

@@ -1,5 +1,5 @@
 // Unit tests of the picture of a roadmap and a Gantt chart (roadmappic.js,
-// ADR-draft-roadmap-one-listing-and-pictures): where the title, the axis, the heads, the bars and
+// ADR-0218): where the title, the axis, the heads, the bars and
 // milestones and the line of today stand in pixels, how far a picture is
 // scaled before a browser would refuse its canvas, and what its file is
 // called. They run in Node.js without a browser and without dependencies:

@@ -6,7 +6,7 @@
 // shows the same view to anyone who may read the same items (D10). The
 // items are read in one listing and kept in the tab only while one stays
 // in the view; the chart exports as a picture, drawn by roadmappic.js
-// (ADR-draft-roadmap-one-listing-and-pictures). The layout is timeline.js;
+// (ADR-0218). The layout is timeline.js;
 // this module only draws it. Bars and milestones are links to their items;
 // colours are the look's tokens (style.css), and shape and text, not
 // colour alone, tell a milestone and a finished item.
@@ -146,7 +146,7 @@ function chart(state, model, fields) {
   return h("div", { class: "tl-scroll", id: "roadmap-chart" }, el);
 }
 
-// pictureSpec is the model in words, for its picture (ADR-draft-roadmap-one-listing-and-pictures):
+// pictureSpec is the model in words, for its picture (ADR-0218):
 // what each head, tick and bar says, as the chart shows it.
 function pictureSpec(state, model, title) {
   const { fr, rows, done } = model;
@@ -205,7 +205,7 @@ function keep(key, read) {
 
 // readItems reads the items the view shows in one listing: those of the
 // types with a date field, with any of its labels, or all it narrows to
-// without a label (ADR-draft-roadmap-one-listing-and-pictures). Where the server refuses the query (one
+// without a label (ADR-0218). Where the server refuses the query (one
 // narrowed below the defaults to fewer conditions than it holds), it
 // reads as before: per label, every type, and the view leaves out what
 // has no date.
