@@ -1,4 +1,4 @@
-# ADR-DRAFT: A picture's own labels on the starmap
+# ADR-0223: A picture's own labels on the starmap
 
 - **Status:** Proposed
 - **Implementation:** Partial
@@ -28,12 +28,9 @@ How do a picture's own labels act on the starmap without merging them into its i
 
 ## Considered options
 
-1.
-**A picture's own labels count as an item's on the starmap: label stars join pictures, and a label brings in the pictures that carry it with the items that hold them.**
-2.
-**Only the label filter of the map of all rooms reads album labels; label stars stay item labels.**
-3.
-**A picture carries its item's labels on the starmap.**
+1. **A picture's own labels count as an item's on the starmap: label stars join pictures, and a label brings in the pictures that carry it with the items that hold them.**
+2. **Only the label filter of the map of all rooms reads album labels; label stars stay item labels.**
+3. **A picture carries its item's labels on the starmap.**
 
 ## Decision outcome
 
