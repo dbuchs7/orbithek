@@ -69,6 +69,13 @@ const blockFormat = "A body is a list of blocks, each an object with kind and te
 	"Example: [{\"kind\":\"heading\",\"level\":1,\"text\":\"Runbook\"},{\"kind\":\"paragraph\",\"text\":\"Stop the writers first.\"," +
 	"\"marks\":[{\"type\":\"bold\",\"start\":0,\"end\":4}]},{\"kind\":\"bullet\",\"text\":\"db1\"},{\"kind\":\"bullet\",\"text\":\"db2\"}]."
 
+// fieldValues describes the values of the field kinds to agents (ADR-0166,
+// ADR-0200).
+const fieldValues = "By kind: text, url, enum and user (a user ID) as strings; number as a number; bool as true or false; date as 2026-10-01; " +
+	"datetime as RFC 3339 with an offset; item as the ID or key of a readable item, of the field's targets if it names any; " +
+	"multi as a list of the field's values, e.g. [\"web\", \"ios\"]; rating as a whole number from 1 to 5; " +
+	"file as the attachment ID of one of the item's own files, as the links of get_item_markdown name them."
+
 // queryLanguage describes the query language (ADR-0136) to agents.
 const queryLanguage = "A query is conditions joined with AND, OR, NOT and parentheses, then optionally ORDER BY field [ASC|DESC], further fields after commas. " +
 	"A condition is field = value, !=, <, <=, >, >=, ~ (every word of the value occurs), !~, field IN (a, b), field NOT IN (...), field IS EMPTY, field IS NOT EMPTY. " +
@@ -77,7 +84,8 @@ const queryLanguage = "A query is conditions joined with AND, OR, NOT and parent
 	"quote a name with spaces, or a property whose name is also a built-in field's, e.g. \"due date\". Values with spaces or commas are quoted. " +
 	"Dates are 2026-10-01, a time is RFC 3339, -7d, 2w, +12h and -1y count from now; functions: now(), startOfDay(), endOfDay(), startOfWeek(), endOfWeek(), " +
 	"startOfMonth(), endOfMonth(), startOfYear(), endOfYear(), each with an optional offset such as -1, and currentUser(), your caller. " +
-	"A user field takes a username or a user ID. != and NOT IN also hold for items without the field. A mistake is answered with the character where it is."
+	"A user field takes a username or a user ID; an item field an item's key or ID; a multi field = value holds when the item has that value among others; " +
+	"a rating compares as a number. != and NOT IN also hold for items without the field. A mistake is answered with the character where it is."
 
 var (
 	refParam = param{"ref", str, inPath, true, "The item's ID or key, e.g. PLAT-12."}
@@ -92,7 +100,9 @@ var (
 // restrictions, removing relations, editing or deleting comments and
 // resolving comment threads (they
 // change who sees what, or destroy content, and are a person's decision;
-// ADR-0035); administration of types,
+// ADR-0035); administration of types — of the installation and of a
+// space alike (ADR-0199): defining a type shapes what every person of a
+// space works with, and is a person's decision —,
 // spaces, roles, groups, users and backups; and everything about
 // credentials. An agent with an administrator's token still cannot reach
 // them through this adapter.
@@ -165,8 +175,9 @@ var tools = []tool{
 			{"after", integer, inQuery, false, "The last of the previous answer; absent to start from now."},
 			{"limit", integer, inQuery, false, "Entries per page, 1 to the server's budget; 100 if absent."},
 		}},
-	{Name: "list_types", Description: "List the item types with their fields and workflows; read it before creating an item or setting a property.",
-		Method: "GET", Path: "/api/types"},
+	{Name: "list_types", Description: "List the item types with their fields and workflows; read it before creating an item or setting a property. " +
+		"A type with a space belongs to that space: its items live only there. With space, only the types an item of that space may have.",
+		Method: "GET", Path: "/api/types", Params: []param{{"space", str, inQuery, false, "A space key, e.g. PLAT, to list only the types its items may have."}}},
 	{Name: "find_items", Description: "Find readable items by space, type, state, parent, label or a property's value, paged. The answer's total says whether it is exact. " +
 		"To keep a catalog in step with another system, find an item by the identifier it has there with where, before creating it.",
 		Method: "GET", Path: "/api/items", Params: append([]param{
@@ -212,7 +223,7 @@ var tools = []tool{
 			{"type", str, inBody, true, "The type name, e.g. page."},
 			{"title", str, inBody, true, "The title."},
 			{"parent", str, inBody, false, "The ID of the item to place it under, e.g. a parent page."},
-			{"properties", object, inBody, false, "Field values by field name."},
+			{"properties", object, inBody, false, "Field values by field name. " + fieldValues},
 			{"body", array, inBody, false, "The item's first body, as blocks; only for types with a body."},
 		}},
 	{Name: "get_tree", Description: "The pages of a space in their order, one level at a time: the top of the space, or the children of parent. " +
@@ -243,7 +254,7 @@ var tools = []tool{
 		Method: "PUT", Path: "/api/items/{ref}/properties/{field}", Params: []param{
 			refParam,
 			{"field", str, inPath, true, "The field name."},
-			{"value", anyJSON, inBody, true, "The new value, of the field's kind, or null."},
+			{"value", anyJSON, inBody, true, "The new value, of the field's kind, or null. " + fieldValues},
 		}},
 	{Name: "transition", Description: "Perform a workflow transition, e.g. finish.", Method: "POST", Path: "/api/items/{ref}/transitions",
 		Params: []param{refParam, {"name", str, inBody, true, "The transition's name."}}},

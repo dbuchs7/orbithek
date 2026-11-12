@@ -249,7 +249,8 @@ func (p *plan) blocked(t *item.Store, it item.Item) string {
 }
 
 // refs are the items an item needs or points at: its parent, the items its
-// body shows or mentions, and the targets of its relations.
+// body shows or mentions, the items its item fields refer to (ADR-0200),
+// and the targets of its relations.
 func (p *plan) refs(it item.Item) []item.ID {
 	var out []item.ID
 	add := func(id item.ID) {
@@ -267,7 +268,7 @@ func (p *plan) refs(it item.Item) []item.ID {
 		}
 	}
 	for _, r := range p.src.Relations(it.ID, item.Outgoing) {
-		if !r.Derived {
+		if !r.Derived || r.Field() != "" {
 			add(r.To)
 		}
 	}
@@ -367,10 +368,20 @@ func (w *writer) item(t *item.Store, id item.ID) {
 			parent = ""
 		}
 	}
+	// Item and file fields are written with the content, once every
+	// restored item and file exists (ADR-0200).
+	props := item.Props{}
+	for name, v := range it.Properties {
+		// A reference to an item that is here already is written at once,
+		// so a required item field holds.
+		if ref, ok := v.(item.ID); !w.later(it, name, v) || (ok && w.live(t, ref)) {
+			props[name] = v
+		}
+	}
 	u := item.Upsert{
 		Origin: item.Origin{System: System, Instance: w.src.Instance, ExternalID: string(it.ID), ExternalKey: it.Key, Version: strconv.Itoa(it.Version)},
 		ID:     it.ID, Key: it.Key, Space: it.Space, Type: it.Type, Parent: parent,
-		Title: it.Title, Properties: it.Properties, State: it.State,
+		Title: it.Title, Properties: props, State: it.State,
 	}
 	got, _, err := t.Upsert(w.p.opt.Actor, u)
 	if err != nil {
@@ -416,6 +427,7 @@ func (w *writer) content(id item.ID) error {
 				w.p.note("%s: text not restored: %v", it.Key, err)
 			}
 		}
+		w.laterFields(t, it)
 		for _, r := range w.p.src.Relations(id, item.Outgoing) {
 			if r.Derived {
 				continue
@@ -437,6 +449,54 @@ func (w *writer) content(id item.ID) error {
 		}
 		return nil
 	})
+}
+
+// later reports whether a property is written with the content: the
+// value of an item field, which refers to an item that may come back after
+// it, or of a file field, which names a file restored with the content.
+func (w *writer) later(it item.Item, name string, v any) bool {
+	if _, ref := v.(item.ID); ref {
+		return true
+	}
+	td, _ := w.p.src.TypeAt(it.Type, it.TypeVersion)
+	for _, f := range td.Fields {
+		if f.Name == name && f.Kind == item.KindFile {
+			return true
+		}
+	}
+	return false
+}
+
+// laterFields writes the item and file fields of an item: a reference to
+// an item that is not here, and a file that did not come back, are left
+// out.
+func (w *writer) laterFields(t *item.Store, it item.Item) {
+	for _, name := range slices.Sorted(maps.Keys(it.Properties)) {
+		v := it.Properties[name]
+		if !w.later(it, name, v) {
+			continue
+		}
+		if here, err := t.Get(it.ID); err != nil || here.Properties[name] == v {
+			continue // written with the item already
+		}
+		switch x := v.(type) {
+		case item.ID:
+			if !w.live(t, x) {
+				w.p.note("%s: field %s left out: %s is not here", it.Key, name, w.key(x))
+				continue
+			}
+		case string:
+			to, ok := w.files[it.ID][item.ID(x)]
+			if !ok {
+				w.p.note("%s: field %s left out: its file did not come back", it.Key, name)
+				continue
+			}
+			v = string(to)
+		}
+		if err := t.SetProperty(w.p.opt.Actor, it.ID, name, v); err != nil {
+			w.p.note("%s: field %s not restored: %v", it.Key, name, err)
+		}
+	}
 }
 
 func (w *writer) live(t *item.Store, id item.ID) bool {
