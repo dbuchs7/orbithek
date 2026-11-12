@@ -71,9 +71,12 @@ const (
 	// ShareAdded, ShareChanged and ShareRemoved record an administrator
 	// binding an album folder to a file share, changing the binding, or
 	// removing it (ADR-0197).
-	ShareAdded      = "share.add"
-	ShareChanged    = "share.change"
-	ShareRemoved    = "share.remove"
+	ShareAdded   = "share.add"
+	ShareChanged = "share.change"
+	ShareRemoved = "share.remove"
+	// ShareConfirmed records an administrator confirming the withdrawals
+	// a share's run held back (ADR-0197).
+	ShareConfirmed  = "share.confirm"
 	UserCreated     = "user.create"
 	RoleGranted     = "role.grant"
 	SystemRole      = "system-role.grant"

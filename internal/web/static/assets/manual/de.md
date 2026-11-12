@@ -363,6 +363,21 @@ Gesichter werden im eigenen Browser gefunden; nichts wird anderswohin gesendet. 
 
 Ist die Wiedererkennung eingeschaltet, zeigt das Album einer Person zusätzlich **Ist das Ada?**: Gesichter auf anderen Bildern, die man bearbeiten darf und die Ada mehr ähneln als allen anderen benannten Personen, die ähnlichsten zuerst. Man klickt die Gesichter an, die Ada zeigen, oder wählt **Alle wählen** und klickt die falschen wieder ab, dann **Gewählte bestätigen**. Nicht gewählte Gesichter bleiben unbenannt und werden später erneut vorgeschlagen. Vorgeschlagen werden nur Bilder, deren Gesichter bei eingeschalteter Wiedererkennung gesucht wurden.
 
+### Ordner, die einen Fileshare zeigen
+
+Ein Administrator kann einen Album-Ordner an einen Fileshare binden: ein Verzeichnis des Servers, etwa einen eingebundenen Samba-Share, oder einen S3-Bucket.
+Der Ordner zeigt dann die Bilder des Shares und liest ihn nach einem Zeitplan neu.
+Der Share bleibt massgebend: Das Wiki behält von jedem Bild eine Vorschau, das Original bleibt, wo es liegt.
+
+Ein solches Bild ist mit **Auf einem Fileshare** markiert.
+**Original öffnen** öffnet es dort, wo es liegt, mit dem eigenen Zugriff auf den Share; der Share entscheidet, ob es sich öffnet.
+Man versieht es mit Labels, benennt die Personen darauf, setzt Ort und Zeit und markiert es als Favorit wie jedes Bild.
+Man benennt es nicht um, verschiebt oder löscht es nicht und fügt einem solchen Ordner keine Bilder hinzu: Man ändert die Dateien auf dem Share, und das nächste Lesen folgt.
+Eine auf dem Share verschobene Datei behält, was auf ihr gesetzt wurde, solange ihr Inhalt gleich bleibt.
+Eine vom Share verschwundene Datei verschwindet aus dem Album; kommt sie innert 30 Tagen zurück, kehrt sie mit ihren Labels und Namen zurück.
+Wer ein solches Bild kopiert oder exportiert, erhält seine Vorschau.
+Ein Bild in einem Format, von dem der Server kein Bild zeigt, hat statt einer Vorschau ein Symbol.
+
 ### Einen Ordner verschieben
 
 **Ordner verschieben** in einem offenen Ordner verschiebt ihn mit seinen Ordnern, Bildern und Videos in einen anderen Ordner oder auf die oberste Ebene eines Raums. Den Ort unter **Verschieben nach…** wählen und **Verschieben** klicken; der Pfad führt danach zum Ordner an seinem neuen Ort. Ein Ordner lässt sich auch auf einen daneben aufgeführten Ordner oder auf einen übergeordneten Ordner im Pfad ziehen; auf **Alle Bilder** gezogen, kommt er auf die oberste Ebene seines Raums. Wird der Ordner in einen anderen Raum verschoben, fragt das Album zuerst nach: Danach entscheidet dieser Raum, wer ihn sehen und ändern darf. Verschieben darf einen Ordner nur, wer ihn und alles darin ändern und am Ziel etwas erstellen darf; in sich selbst oder einen Ordner darunter lässt er sich nicht verschieben.
@@ -540,7 +555,9 @@ Die Administration findet unter **Administration**:
 - **Räume**: Räume erstellen, ihre Einstellungen öffnen, einen Raum in den Papierkorb legen und wiederherstellen oder endgültig löschen;
 - **Typen**: Typen in einem Formular anlegen und ändern — Name, Text, Felder mit ihrer Art und ihren Optionen, Workflow mit Status und Übergängen (oder einfach *offen → erledigt*) und Starttext — für die ganze Installation oder für einen Raum; der Typ als JSON bleibt unter **Erweitert**. Typen entstehen auch aus den Vorlagen;
 - **Backup** (auch zeitgesteuert in ein Verzeichnis, per WebDAV, S3, FTPS oder SFTP) und **Speicher**;
-- **Kalender anderer Dienste**, **Album: ältere Versionen**, **Konnektoren** und **Prozess-Engines**;
+- **Kalender anderer Dienste**, **Album: ältere Versionen**, **Fileshares**, **Konnektoren** und **Prozess-Engines**.
+  Unter **Fileshares** wird ein Album-Ordner an ein vom Betrieb freigegebenes Verzeichnis oder an einen S3-Bucket gebunden und sofort (**Jetzt lesen**, **Probelauf**) oder nach Zeitplan gelesen.
+  Wer den Ordner lesen darf, sieht jedes Bild, das der Server auf dem Share lesen kann; ein Lauf, der mehr als die Hälfte der Bilder eines Shares zurückziehen würde, zieht keines zurück bis **Rückzug bestätigen**;
 - **Erscheinungsbild (Corporate Design)**: Logo, Farben, Hintergrund, Schriften und ein fertiges Theme, darunter *Capacity*, ein ruhiges Erscheinungsbild für Notizen in Hell und Dunkel;
 - **Word-Vorlagen**, **Datenschutz-Regelwerke**, **Import** und das **Audit-Protokoll**.
 

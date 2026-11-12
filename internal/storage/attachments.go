@@ -201,6 +201,15 @@ func (db *DB) StorePreview(id, entry item.ID, content io.Reader, limit int64) (i
 	return db.sealAttachment(id, entry+PreviewSuffix, content, limit)
 }
 
+// HasPreview reports whether an entry of a file share has a preview.
+func (db *DB) HasPreview(id, entry item.ID) bool {
+	if !item.ValidAttachmentID(string(entry)) {
+		return false
+	}
+	_, err := os.Stat(attachmentPath(db.dir, id, entry+PreviewSuffix))
+	return err == nil
+}
+
 // OpenPreview returns the decrypted preview of an entry of a file share,
 // or an error that matches os.ErrNotExist when it has none.
 func (db *DB) OpenPreview(id, entry item.ID) (io.ReadSeekCloser, error) {

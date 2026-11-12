@@ -2897,3 +2897,6 @@ dialog.palette::backdrop { background: rgba(20, 22, 26, .45); }
   .with-tree-main:has(> .beside-pane), .daily-view:has(> .beside-pane) { display: block; }
   .beside-pane { position: static; max-height: none; margin-top: 16px; }
 }
+/* An entry of a file share without a preview (ADR-0197). */
+.album-share-symbol { width: 56px; height: 44px; border-radius: 8px; background: var(--accent); opacity: .6; position: relative; display: inline-block; }
+.album-share-symbol::after { content: ""; position: absolute; left: 14px; top: 12px; width: 28px; height: 20px; border: 2px solid var(--surface); border-radius: 3px; }

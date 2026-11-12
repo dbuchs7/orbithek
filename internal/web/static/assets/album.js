@@ -27,7 +27,7 @@ import { get, post, put, del, upload } from "./api.js";
 import { DRAWING } from "./drawing.js";
 import { exportFormats, exportPicture } from "./picexport.js";
 import { allFolders, copyTo, moveTo, dayText, deckText, googleImport, icloudImport, importDeck, importFiles, monthText, openViewer, rememberedAlbum, setFavourite, importPlace, PLACES, summaryText, thumbURL, zipPictures } from "./photos.js";
-import { dragged, durationText, folderDrop, folderTargets, groups, isVideo, orderDrop, range, shiftTaken, yearsAgo } from "./photoparts.js";
+import { dragged, durationText, folderDrop, folderTargets, groups, isVideo, onShare, orderDrop, range, shareLink, shiftTaken, yearsAgo } from "./photoparts.js";
 import { askTime } from "./phototime.js";
 import { photoMap } from "./photomap.js";
 import { pickPlace, placeInput } from "./places.js";
@@ -346,8 +346,12 @@ export function albumBrowser({ pick, pickText } = {}) {
   // its item's text shows is deleted there, not here; the menu says so.
   const moreMenu = (p, stacked) => {
     const name = captionOf(p.attachment.name);
+    // An entry of a file share is renamed and deleted on the share
+    // (ADR-0197); its order among the slides is still set here.
+    const fixed = onShare(p);
+    if (fixed && !reordering()) return null;
     const m = menu("album-more", h("summary", { class: "album-more-button", "aria-label": t("album.moreOf", { name }), title: t("album.moreTitle") }), [
-      h("button", { type: "button", class: "link album-rename", text: t("album.rename"),
+      fixed ? null : h("button", { type: "button", class: "link album-rename", text: t("album.rename"),
         onclick: () => { m.open = false; rename(p, m.closest(".album-card")?.querySelector(".album-name")); } }),
       stacked ? h("button", { type: "button", class: "link album-retention", text: t("retention.open"),
         onclick: () => { m.open = false; cleanUp(p); } }) : null,
@@ -355,7 +359,7 @@ export function albumBrowser({ pick, pickText } = {}) {
         onclick: () => { m.open = false; stepPicture(p, -1); } }) : null,
       reordering() && !p.versionOf ? h("button", { type: "button", class: "link album-later", text: t("album.moveLater"),
         onclick: () => { m.open = false; stepPicture(p, 1); } }) : null,
-      h("button", { type: "button", class: "link danger album-delete", text: t("album.delete"), disabled: p.used,
+      fixed ? null : h("button", { type: "button", class: "link danger album-delete", text: t("album.delete"), disabled: p.used,
         onclick: async () => {
           m.open = false;
           if (!confirm(t("album.deleteConfirm", { name: p.attachment.name }))) return;
@@ -365,7 +369,7 @@ export function albumBrowser({ pick, pickText } = {}) {
             refresh();
           } catch (err) { fail(err); }
         } }),
-      p.used ? h("p", { class: "muted album-used", text: t("album.used") }) : null,
+      p.used && !fixed ? h("p", { class: "muted album-used", text: t("album.used") }) : null,
     ]);
     return m;
   };
@@ -403,7 +407,11 @@ export function albumBrowser({ pick, pickText } = {}) {
           } else b.disabled = false;
         } catch (err) { b.disabled = false; fail(err); }
       } }));
+    // An entry of a file share opens its original where it lies, with the
+    // reader's own access to the share (ADR-0197).
+    const original = shareLink(p);
     return h("div", { class: "album-actions" },
+      original ? h("a", { class: "button secondary album-original", href: original, target: "_blank", rel: "noopener noreferrer", text: t("album.openOriginal"), title: t("album.openOriginalTitle") }) : null,
       h("button", { type: "button", class: "secondary album-copy", text: t("album.copy"), title: t("album.copyTitle"), onclick: async () => {
         const system = await copyPicture(p);
         status.replaceChildren(h("p", { class: "notice", role: "status", text: t(system ? "album.copied" : "album.copiedHere", { name: captionOf(p.attachment.name) }) }));
@@ -436,7 +444,12 @@ export function albumBrowser({ pick, pickText } = {}) {
   // is the top of a stack with older versions.
   const card = (p, version, picture, stacked = false) => {
     const name = captionOf(p.attachment.name);
-    const thumb = h("div", { class: "album-thumb" }, picture || (isVideo(p) ? videoThumb(p, name) : h("img", { src: thumbURL(p), alt: name, loading: "lazy", draggable: "false" })));
+    // An entry of a file share without a preview (a format the server
+    // does not scale) shows a symbol (ADR-0197).
+    const noPreview = onShare(p) && !isVideo(p) && !p.attachment.share.preview;
+    const thumb = h("div", { class: "album-thumb" }, picture || (isVideo(p) ? videoThumb(p, name)
+      : noPreview ? h("span", { class: "album-share-symbol", role: "img", "aria-label": t("album.noPreview") })
+        : h("img", { src: thumbURL(p), alt: name, loading: "lazy", draggable: "false" })));
     const li = h("li", { class: "album-card", "data-attachment": p.attachment.id },
       h("figure", {},
         thumb,
@@ -448,6 +461,7 @@ export function albumBrowser({ pick, pickText } = {}) {
           h("span", { class: "album-chips" },
             p.drawing ? h("span", { class: "chip", text: t("album.drawing") }) : null,
             isVideo(p) ? h("span", { class: "chip album-video-chip", text: t("album.video") }) : null,
+            onShare(p) ? h("span", { class: "chip album-share-chip", text: t("album.onShare"), title: p.attachment.share.path }) : null,
             version ? h("span", { class: "chip album-version", text: t("album.version", { n: version }) }) : null,
             stacked && p.retention ? h("span", { class: "chip album-own-rule", text: t("retention.chip") }) : null,
             // In the view of duplicates, how it matches the others (ADR-0196).
@@ -1395,9 +1409,9 @@ export function albumBrowser({ pick, pickText } = {}) {
         try { await zipPictures(list); say(t("photos.zipped", { n: list.length }), "notice"); } catch (err) { fail(err); }
       } }),
       h("button", { type: "button", class: "danger", id: "album-bulk-delete", disabled: !any, text: t("album.delete"), onclick: async () => {
-        const may = list.filter((p) => p.editable && !p.used);
+        const may = list.filter((p) => p.editable && !p.used && !onShare(p));
         if (!confirm(t("photos.deleteConfirm", { n: may.length, kept: list.length - may.length }))) return;
-        await together("photos.deleted", async (p) => { if (!p.editable || p.used) return false; await del(fileURL(p)); return true; });
+        await together("photos.deleted", async (p) => { if (!p.editable || p.used || onShare(p)) return false; await del(fileURL(p)); return true; });
         chosen.clear();
         await loadLabels();
         refresh();

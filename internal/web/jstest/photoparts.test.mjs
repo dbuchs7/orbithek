@@ -13,7 +13,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { deflateRawSync } from "node:zlib";
 import {
-  TILE, project, unproject, fit, tiles, cluster, pan, zoomAt, radius, hit, groups, yearsAgo, range, dragged, folderTargets, folderDrop, orderDrop, moveWithin, durationText, posterTime, isVideo,
+  TILE, project, unproject, fit, tiles, cluster, pan, zoomAt, radius, hit, groups, yearsAgo, range, dragged, folderTargets, folderDrop, orderDrop, moveWithin, durationText, posterTime, isVideo, onShare, shareLink,
   sorts, typeOf, baseName, hidden, exposureText, placeText, OFFSETS, takenValue, shiftMinutes, shiftTaken,
 } from "../static/assets/photoparts.js";
 import { entries, read } from "../static/assets/zipread.js";
@@ -291,4 +291,17 @@ test("a time is shifted by days, hours and minutes, later or earlier, within the
   assert.equal(shiftTaken("2200-12-31T23:59:00", 1), "");
   assert.equal(shiftTaken("", 10), "");
   assert.equal(shiftTaken("2024-05-01T13:22:10", NaN), "");
+});
+
+test("an entry of a file share is told apart and opens only by https: or smb:", () => {
+  const entry = (link) => ({ attachment: { share: { share: "nas", path: "a.jpg", link } } });
+  assert.equal(onShare(entry("")), true);
+  assert.equal(onShare({ attachment: {} }), false);
+  assert.equal(onShare(null), false);
+  assert.equal(shareLink(entry("smb://nas/photos/a.jpg")), "smb://nas/photos/a.jpg");
+  assert.equal(shareLink(entry("https://nas.example/p?a.jpg")), "https://nas.example/p?a.jpg");
+  assert.equal(shareLink(entry("javascript:alert(1)")), "");
+  assert.equal(shareLink(entry("file:///mnt/a.jpg")), "");
+  assert.equal(shareLink(entry(undefined)), "");
+  assert.equal(shareLink({ attachment: {} }), "");
 });

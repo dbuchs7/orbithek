@@ -181,6 +181,12 @@ type Budgets struct {
 	// DailyNoteDays bounds the days one listing of a person's daily notes
 	// covers (ADR-0205), a year and a little more by default.
 	DailyNoteDays int
+	// ShareFiles bounds the files one file share shows in its album
+	// folder (ADR-0197); a run that finds more takes the first in path
+	// order. ShareWorkers bounds the files runs read at once, across all
+	// shares.
+	ShareFiles   int
+	ShareWorkers int
 }
 
 // Default returns the budgets the server uses unless configured otherwise.
@@ -244,6 +250,8 @@ func Default() Budgets {
 		LinkPreviewBlocks:      500,
 		ContextEntries:         50,
 		DailyNoteDays:          400,
+		ShareFiles:             100_000,
+		ShareWorkers:           2,
 	}
 }
 
