@@ -271,7 +271,7 @@ A label's page shows the items carrying its label as a view: **Table**, **Galler
 
 The module **Tasks** lists open work across your rooms: items of the type *task* and of every type with a workflow and an *assignee* or *due* field. The tabs show **Assigned to me**, **Unassigned** and **All open**; filters narrow by room, state, person, due date and labels. **Take over** assigns a task to you, **Give back** releases it. Overdue tasks are marked.
 
-The ready-made type *task* has a *start* date beside its *due* date. The calendar and the roadmap show a task with both as a bar from its start to its due date. A start date is not a deadline: on a kanban a past start date is not marked as overdue. Types created before gain the field when an administrator adds the ready-made types' new fields on the start page.
+The ready-made type *task* has a *start* date beside its *due* date. A new task starts today: when it is created, its start date is filled with the current day, which can be changed or cleared in the form. The same holds for every date field named like a beginning (*start*, *begin*, *kickoff* and the like); a task created in the calendar takes the day chosen there. The calendar and the roadmap show a task with both dates as a bar from its start to its due date. A start date is not a deadline: on a kanban a past start date is not marked as overdue. Types created before gain the field when an administrator adds the ready-made types' new fields on the start page.
 
 ### Boards and kanbans
 
