@@ -6054,7 +6054,9 @@ function webSource() {
     // Without an address, a thought becomes a new item, or is added to one.
     await page.goto(base + "/#/capture?" + new URLSearchParams({ title: "A thought", text: "Worth remembering." }));
     await page.waitForSelector("#capture-form");
-    check(await page.locator("#capture-target-weblink").count() === 0 && await page.isChecked("#capture-target-item"), "no web link without an address");
+    // Today's daily note comes first then (ADR-0205); a new item is chosen.
+    check(await page.locator("#capture-target-weblink").count() === 0 && await page.isChecked("#capture-target-daily"), "no web link without an address, today's note first");
+    await page.check("#capture-target-item");
     await page.selectOption("#capture-type", "reading");
     await page.selectOption("#capture-item-space", "LINKS");
     await page.click("#capture-save");
