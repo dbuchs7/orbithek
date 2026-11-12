@@ -1,9 +1,9 @@
 # ADR-0197: Album folders that show a file share, as previews, with the share as master
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-11
-- **Deciders:** Project initiators (request of 2026-11-11 to name file shares — S3 and Samba — for album folders, so that photos are shown only as previews while they stay stored on the share; the four choices below were answered the same day)
+- **Deciders:** Project initiators (request of 2026-11-11 to name file shares — S3 and Samba — for album folders, so that photos are shown only as previews while they stay stored on the share; the four choices below were answered the same day); accepted 2026-11-12.
 - **Open question:** whether the link to open an original may, for S3, be a presigned address the server signs, which would hand out the original to every reader of the folder; whether pictures the server cannot scale (HEIC, RAW, WebP) should get a preview by other means; whether a share should be read for what changed (S3 event notifications, SMB change notifications) rather than listed on a schedule; whether a native SMB client should replace the mount
 - **Question checked:** 2026-11
 
