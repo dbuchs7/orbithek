@@ -305,3 +305,12 @@ test("an entry of a file share is told apart and opens only by https: or smb:", 
   assert.equal(shareLink(entry(undefined)), "");
   assert.equal(shareLink({ attachment: {} }), "");
 });
+
+test("the link to an original takes https: and smb: alone", async () => {
+  const { shareHref } = await import("../static/assets/dom.js");
+  assert.equal(shareHref("smb://nas/photos/2024/lake.png"), "smb://nas/photos/2024/lake.png");
+  assert.equal(shareHref("https://nas.example/p?f=a.jpg"), "https://nas.example/p?f=a.jpg");
+  for (const bad of ["javascript:alert(1)", "data:text/html,x", "file:///etc/passwd", "http://nas/a.jpg", "/relative", "not a url"]) {
+    assert.equal(shareHref(bad), "#", bad);
+  }
+});

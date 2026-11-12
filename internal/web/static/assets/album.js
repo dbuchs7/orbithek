@@ -21,7 +21,7 @@
 // a folder chosen each time, where a collection's labels are given to
 // them; pictures already in the album are copied into a folder or given a
 // collection's labels.
-import { h, when } from "./dom.js";
+import { h, shareHref, when } from "./dom.js";
 import { t } from "./i18n.js";
 import { get, post, put, del, upload } from "./api.js";
 import { DRAWING } from "./drawing.js";
@@ -409,9 +409,13 @@ export function albumBrowser({ pick, pickText } = {}) {
       } }));
     // An entry of a file share opens its original where it lies, with the
     // reader's own access to the share (ADR-0197).
+    // h() allows http(s) links only; an smb: address is set with shareHref,
+    // which allows https: and smb: alone.
     const original = shareLink(p);
+    const openOriginal = original ? h("a", { class: "button secondary album-original", target: "_blank", rel: "noopener noreferrer", text: t("album.openOriginal"), title: t("album.openOriginalTitle") }) : null;
+    openOriginal?.setAttribute("href", shareHref(original));
     return h("div", { class: "album-actions" },
-      original ? h("a", { class: "button secondary album-original", href: original, target: "_blank", rel: "noopener noreferrer", text: t("album.openOriginal"), title: t("album.openOriginalTitle") }) : null,
+      openOriginal,
       h("button", { type: "button", class: "secondary album-copy", text: t("album.copy"), title: t("album.copyTitle"), onclick: async () => {
         const system = await copyPicture(p);
         status.replaceChildren(h("p", { class: "notice", role: "status", text: t(system ? "album.copied" : "album.copiedHere", { name: captionOf(p.attachment.name) }) }));
