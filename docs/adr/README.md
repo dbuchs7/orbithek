@@ -212,7 +212,7 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0197](0197-album-folders-that-show-a-file-share.md) | Album folders that show a file share, as previews, with the share as master | Proposed | Not started |
 | [0198](0198-a-photos-time-set-by-hand-and-written-into-the-files-given-out.md) | A photo's time set by hand, and written into the files given out | Proposed | Partial |
 | [0199](0199-faces-searched-again-and-suggested-for-a-person.md) | Faces searched again until they can be recognised, and suggested for a person across the album | Proposed | Partial |
-| [0200](0200-a-folder-is-moved-from-the-album.md) | A folder is moved from the album, with what it holds | Proposed | Partial |
+| [0200](0200-a-folder-is-moved-from-the-album.md) | A folder is moved from the album, with what it holds | Accepted | Landed |
 | [0201](0201-types-of-a-room-defined-by-its-administrators-in-a-type-editor.md) | Types of a room, defined by its administrators in a type editor | Accepted | Landed |
 | [0202](0202-field-kinds-for-an-item-several-values-a-rating-and-a-file.md) | Field kinds for an item, several values, a rating and a file | Accepted | Landed |
 | [0203](0203-views-of-the-items-of-a-type-as-a-table-a-gallery-or-a-list.md) | Views of the items of a type as a table, a gallery or a list, grouped by a field, also placed in a text | Accepted | Landed |
@@ -226,3 +226,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0211](0211-importing-a-folder-of-markdown-notes-and-exported-note-workspaces.md) | Importing a folder of Markdown notes and exported note workspaces | Accepted | Landed |
 | [0212](0212-highlights-from-a-reading-service-as-a-connector.md) | Highlights from a reading service as a connector | Accepted | Landed |
 | [0213](0213-the-capacity-theme-a-quiet-look-for-notes.md) | The Capacity theme, a quiet look for notes in light and dark | Accepted | Landed |
+| [0214](0214-tables-with-formatted-cells-sizes-and-colours.md) | Tables with formatted cells, sized columns and rows, and coloured cells | Proposed | Partial |

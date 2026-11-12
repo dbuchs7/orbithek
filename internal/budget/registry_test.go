@@ -81,6 +81,8 @@ var classified = map[string]string{
 		"each page is bounded by EngineResponseBytes and applied before the next is read, not memory a caller of this server can claim",
 	"internal/connector.maxDatasets": "the size of one connector's run (ADR-0075), so a misbehaving source cannot make it endless; " +
 		"not memory a caller of this server can claim",
+	"internal/item.maxColumnWidth":                     "the shape of a table (ADR-0214): how wide a person may drag a column, a size on the screen, not memory a caller claims",
+	"internal/item.maxRowHeight":                       "the shape of a table (ADR-0214): how tall a person may drag a row, a size on the screen, not memory a caller claims",
 	"internal/item.maxColumns":                         "the shape of a kanban (ADR-0076), like the length of its name; a definition of the space, not memory a caller claims",
 	"internal/item.maxCardFields":                      "the shape of a kanban's cards (ADR-0076): how many fields a card shows",
 	"internal/item.maxColumnLimit":                     "a sanity bound of a column's limit of cards (ADR-0134): a setting a person types, not memory a caller claims",
