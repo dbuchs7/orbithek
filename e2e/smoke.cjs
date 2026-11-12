@@ -6192,12 +6192,15 @@ function webSource() {
     await page.click("#nav-today");
     await page.waitForSelector("#daily-title");
     if (await page.locator("#daily-note.daily-empty").count()) {
-      // The room is chosen once; the note is made then.
+      // The room is chosen once, where the note will be, so that it is
+      // seen with the side column folded away too; the note is made then.
+      check(await page.locator("#daily-note.daily-empty #daily-room").count() === 1, "the room is chosen in the note's place");
       await page.selectOption("#daily-room", "PLAT");
       await page.waitForSelector("#daily-note.editing .ProseMirror");
     }
     await page.waitForSelector("#daily-note.editing .ProseMirror");
     check(await page.inputValue("#daily-room") === "PLAT", "the room of the daily notes is kept");
+    check(await page.locator(".daily-layout .item-side .col-toggle-side").count() === 1, "the side column of a daily note folds away and comes back");
     const dailyKey = (await page.getAttribute("#daily-item", "href")).replace("#/item/", "");
     const dailyNote = (await (await page.request.get(base + "/api/items/" + dailyKey)).json()).item;
     check(dailyNote.labels.includes("daily-note") && dailyNote.restriction.read.length === 1, "the note is labelled and restricted to its author");
