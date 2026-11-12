@@ -65,6 +65,10 @@ services:
       # OT_LINKCHECK: "on"
       # Editors may show Markdown files of public repositories (ADR-0138).
       # OT_GIT_FILES: "on"
+      # The server reads what web pages say about themselves for web
+      # links (ADR-0206); the second switch lets it read private addresses.
+      # OT_LINK_PREVIEWS: "on"
+      # OT_LINK_PREVIEWS_ALLOW_PRIVATE: "on"
 
       # --- The album's photos and map (ADR-0177 to ADR-0179) -----------
       # Photos from Google Photos through its picker, with the Google

@@ -51,6 +51,10 @@ The album is a photo library ([ADR-0177](docs/adr/0177-photo-management-in-the-a
 
 `OT_LINKCHECK=on` lets space administrators check the web links of a space ([ADR-0039](docs/adr/0039-link-check-on-demand-public-addresses-only.md)): the server calls each linked address and lists the broken ones with whoever last edited the item. It is off by default, and it never calls an address in a private or local network.
 
+`OT_LINK_PREVIEWS=on` lets the server read what a web page says about itself when someone saves it as a web link item ([ADR-0206](docs/adr/0206-a-web-link-becomes-an-item-with-what-its-page-says-about-itself.md)): its title, description, site, picture and, on request, its main text. It is off by default and reads only public addresses; `OT_LINK_PREVIEWS_ALLOW_PRIVATE=on` lets it read the server's own network too. Without it, web links are still saved, with what the person types.
+
+The UI installs as a web app, whose share target takes pages and text shared on a phone into the capture view ([ADR-0207](docs/adr/0207-capturing-into-the-wiki-from-anywhere.md)). A reverse proxy or a single sign-on gateway in front of the server must let `/manifest.webmanifest` and `/capture` through without signing in; neither reveals any content.
+
 Messages to people ([ADR-0064](docs/adr/0064-message-delivery-and-password-reset.md)) go to the channels on their accounts: mail, Slack, Microsoft Teams or another webhook, each set on the account page. Mail is sent through an SMTP server set by `OT_SMTP_HOST`, `OT_SMTP_PORT` (587, or 465 with `tls`), `OT_SMTP_SECURITY` (`starttls` by default, `tls`, or `none` for a relay on the same host or network), `OT_SMTP_USERNAME`, `OT_SMTP_PASSWORD` and `OT_SMTP_FROM` (e.g. `Wiki <wiki@example.org>`). `OT_PUBLIC_URL` (e.g. `https://wiki.example.org`) is the address links in messages lead to; with mail it enables *Forgot your password?* on the sign-in page. A digest of new notifications goes out every `OT_DIGEST_MINUTES` (15 by default, 0 for never). Webhooks reach only public addresses unless `OT_WEBHOOKS_PRIVATE=on`, for a chat server in the own network.
 
 Content governance ([ADR-0040](docs/adr/0040-governance-checks-and-automatic-restriction.md)) is always on: saving content that holds a password, a private key, an access token, an IBAN or a card number restricts the item to whoever saved it, until a space administrator lifts the restriction under *Governance*, which also lists items unchanged for a year and formal contradictions.
@@ -139,7 +143,7 @@ docker run --rm -p 8080:8080 -v orbithek-data:/data \
   -e OT_ADMIN_PASSWORD='choose a long one' ghcr.io/dbuchs7/orbithek:latest
 ```
 
-With Docker Compose, the template [`compose.yaml`](compose.yaml) starts the same container and lists the common variables, commented out, the switches that are off by default among them (`OT_CALENDAR_FEEDS`, `OT_LINKCHECK`, `OT_GIT_FILES`); the secrets go into a file `.env` next to it.
+With Docker Compose, the template [`compose.yaml`](compose.yaml) starts the same container and lists the common variables, commented out, the switches that are off by default among them (`OT_CALENDAR_FEEDS`, `OT_LINKCHECK`, `OT_GIT_FILES`, `OT_LINK_PREVIEWS`); the secrets go into a file `.env` next to it.
 
 A directory of the host works as well as a volume, e.g. `-v /volume1/docker/orbithek/data:/data`: the server starts as root only to hand the directory to uid 65532 and then runs as that account ([ADR-0038](docs/adr/0038-container-starts-as-root-and-drops.md)). Set `OT_RUN_AS=<uid>:<gid>` to have another account own the files.
 
