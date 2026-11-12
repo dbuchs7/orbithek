@@ -85,6 +85,16 @@ export function isStartName(name) {
   return startNames.test(name);
 }
 
+// startDefaults are the values a new item is made with: today, as the
+// browser's people call it, in each of its type's date fields named like
+// a beginning, so a task starts the day it is created unless the one who
+// makes it says otherwise. A point in time (datetime) gets none: the
+// moment a form opens is no start anyone chose.
+export function startDefaults(fields, now = new Date()) {
+  const today = dayString(todayDay(now));
+  return Object.fromEntries((fields || []).filter((f) => f.kind === "date" && isStartName(f.name)).map((f) => [f.name, today]));
+}
+
 // guessFields picks the fields a view is scheduled by when the address
 // names none: a start among the names that mean a beginning, an end among
 // those that mean an end, else the only or the first other date field.
