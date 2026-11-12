@@ -54,6 +54,12 @@ func (x *Session) CreateFromTemplate(n NewItem) (Item, error) {
 	return x.s.createDefining(x.who, n, tmpl)
 }
 
+// MayCreateIn reports whether the principal may create an item in a
+// space, below parent when given: nil, or why not.
+func (x *Session) MayCreateIn(space string, parent ID) error {
+	return x.canCreateIn(space, parent)
+}
+
 // createDefining defines td and creates an item of it, as one batch.
 func (s *Store) createDefining(actor string, n NewItem, td TypeDef) (Item, error) {
 	if err := td.validate(); err != nil {

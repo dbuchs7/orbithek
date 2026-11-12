@@ -155,6 +155,12 @@ var (
 // photo was taken by hand (ADR-0198) is not offered either: it changes
 // every file of the picture given out, and an agent that cannot list the
 // album would date pictures it never saw.
+//
+// Web links (ADR-0206) are offered as items: saving a page as a web link
+// item and reading its page again, which act on items an agent may
+// change. What a page says about itself without keeping it
+// (/api/linkpreview) is not offered: an agent reads the web itself, and
+// would only borrow the server's address to read it.
 var tools = []tool{
 	{Name: "list_spaces", Description: "List the spaces the caller holds a role in.", Method: "GET", Path: "/api/spaces"},
 	{Name: "get_own_roles", Description: "The caller's own roles: the system roles held, and every space role granted to the caller, directly or through a group (via), one entry per grant.",
@@ -248,8 +254,24 @@ var tools = []tool{
 	{Name: "transition", Description: "Perform a workflow transition, e.g. finish.", Method: "POST", Path: "/api/items/{ref}/transitions",
 		Params: []param{refParam, {"name", str, inBody, true, "The transition's name."}}},
 	{Name: "commit_body", Description: "Replace the item's body with a new version; the earlier one stays in the history. " +
-		"Refused while people edit it in a live session, and when it holds protected passages your caller may not read. To add to a body, read it with get_item and send it back extended. " + blockFormat,
+		"Refused while people edit it in a live session, and when it holds protected passages your caller may not read. To add to the end of a body, use append_to_body. " + blockFormat,
 		Method: "PUT", Path: "/api/items/{ref}/body", Params: []param{refParam, {"blocks", array, inBody, true, "The body's blocks."}}},
+	{Name: "append_to_body", Description: "Add blocks at the end of an item's body in one step, without sending the body back; the earlier version stays in the history. " +
+		"Refused while people edit it in a live session, and when it holds protected passages your caller may not read. " + blockFormat,
+		Method: "POST", Path: "/api/items/{ref}/body/blocks", Params: []param{refParam, {"blocks", array, inBody, true, "The blocks to add."}}},
+	{Name: "save_web_link", Description: "Save a web page as a web link item (type weblink, defined when there is none): its address in the field url, " +
+		"and, where the server reads web pages, the page's title, site, description, author, day of publication and picture. The answer names a problem when the page could not be read; the link is saved all the same.",
+		Method: "POST", Path: "/api/weblinks", Params: []param{
+			{"url", str, inBody, true, "The page's address, http or https."},
+			{"space", str, inBody, true, "The space's key."},
+			{"parent", str, inBody, false, "The ID of the item it goes below."},
+			{"title", str, inBody, false, "Its title; the page's own when absent."},
+			{"quote", str, inBody, false, "Text kept from the page, plain; each paragraph becomes a quote of the body."},
+			{"text", boolean, inBody, false, "true takes the page's main text into the body."},
+		}},
+	{Name: "read_web_link_again", Description: "Read the page of an item's url field again, where the server reads web pages: its fields site, description, author and published, where its type has them, " +
+		"and its picture, a new version when it changed; text true also takes the page's main text below the body.",
+		Method: "POST", Path: "/api/items/{ref}/weblink", Params: []param{refParam, {"text", boolean, inBody, false, "true takes the page's main text below the body."}}},
 	{Name: "add_relation", Description: "Relate two items with a typed relation, e.g. blocks or implements.",
 		Method: "POST", Path: "/api/relations", Params: []param{
 			{"type", str, inBody, true, "The relation type."},

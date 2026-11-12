@@ -303,6 +303,32 @@ func TestLinkCheckConfiguration(t *testing.T) {
 	}
 }
 
+// TestLinkPreviewsConfiguration: the server reads web pages only when
+// OT_LINK_PREVIEWS is on, the own network only when allowed besides
+// (ADR-0206); an unusable value stops it.
+func TestLinkPreviewsConfiguration(t *testing.T) {
+	t.Setenv("OT_ADMIN_PASSWORD", "a given password!")
+	for _, c := range []struct{ previews, private, want string }{
+		{"yes", "", "OT_LINK_PREVIEWS is unusable"},
+		{"on", "maybe", "OT_LINK_PREVIEWS_ALLOW_PRIVATE is unusable"},
+	} {
+		t.Setenv("OT_LINK_PREVIEWS", c.previews)
+		t.Setenv("OT_LINK_PREVIEWS_ALLOW_PRIVATE", c.private)
+		code, _, errOut := runCmd(t, context.Background(), "serve", "-addr", freeAddr(t), "-data-dir", t.TempDir())
+		if code != 1 || !strings.Contains(errOut, c.want) {
+			t.Errorf("%+v: exit %d, stderr %q", c, code, errOut)
+		}
+	}
+	t.Setenv("OT_LINK_PREVIEWS", "on")
+	t.Setenv("OT_LINK_PREVIEWS_ALLOW_PRIVATE", "on")
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	code, _, errOut := runCmd(t, ctx, "serve", "-addr", freeAddr(t), "-data-dir", t.TempDir())
+	if code != 0 || !strings.Contains(errOut, "link previews are on") || !strings.Contains(errOut, "own network") {
+		t.Errorf("on: exit %d, stderr %q", code, errOut)
+	}
+}
+
 func TestCalendarFeedsConfiguration(t *testing.T) {
 	t.Setenv("OT_ADMIN_PASSWORD", "a given password!")
 	t.Setenv("OT_CALENDAR_FEEDS", "maybe")

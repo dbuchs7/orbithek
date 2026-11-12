@@ -95,6 +95,9 @@ type Deps struct {
 	// LinkCheck runs link checks (ADR-0039); nil means link checking is
 	// switched off.
 	LinkCheck *LinkChecks
+	// LinkPreviews reads what web pages say about themselves (ADR-0206);
+	// nil means the server reads no pages.
+	LinkPreviews *LinkPreviews
 	// Messages sends messages to people (ADR-0064); Routes creates one
 	// that sends nothing when it is nil.
 	Messages *Messenger
@@ -269,6 +272,7 @@ func Routes(d Deps) []Route {
 		{Method: http.MethodGet, Pattern: "/vendor/", Summary: "Vendored UI libraries and their licenses (ADR-0032)", Access: Public, Handler: noListing(files)},
 		{Method: http.MethodGet, Pattern: "/draw", Summary: "The drawing editor, shown in a frame of the UI (ADR-0053)", Access: Public, Handler: drawPage(d.UI)},
 	}
+	routes = append(routes, webAppRoutes(d)...)
 	routes = append(routes, authRoutes(d)...)
 	routes = append(routes, accountRoutes(d)...)
 	routes = append(routes, messageRoutes(d)...)
