@@ -40,6 +40,7 @@ Die Leiste oben auf jeder Seite enthält von links nach rechts:
 - Das **Logo**, das ebenfalls zur Startseite führt.
 - Das **Suchfeld**.
 - **+ Neu**: erstellt eine Seite oder einen Eintrag am aktuellen Ort.
+- **Heute**: die eigene Tagesnotiz von heute (Alt+Shift+D); siehe *Tagesnotizen*.
 - Die **Glocke**: die Benachrichtigungen, mit der Anzahl ungelesener.
 - **DE** und **EN**: die Sprache der Oberfläche.
 - Den Umschalter für **hellen und dunklen Modus**.
@@ -48,7 +49,7 @@ Die Leiste oben auf jeder Seite enthält von links nach rechts:
 
 ### Die Startseite
 
-Die Startseite begrüsst, zeigt die Anzahl Seiten, Aufgaben und Bilder und bietet einen Schnellzugriff auf die eigenen Aufgaben, Benachrichtigungen, persönlichen Notizen, die Sternkarte, das Album, die Whiteboards und den KI-Zugang. Darunter stehen die eigenen Räume, als Kacheln oder als Liste; ein Stern markiert einen Raum als Favorit. Gibt es noch keine Räume, findet die Administration dort die ersten Schritte: einen Raum erstellen, mit den Vorlagen Typen hinzufügen (Seite, Aufgabe, Entscheidung) und Personen eine Rolle geben.
+Die Startseite begrüsst, zeigt die Anzahl Seiten, Aufgaben und Bilder und bietet einen Schnellzugriff auf die eigenen Aufgaben, Benachrichtigungen, persönlichen Notizen, die Sternkarte, das Album, die Whiteboards und den KI-Zugang. Darunter stehen die eigenen Räume, als Kacheln oder als Liste; ein Stern markiert einen Raum als Favorit. Gibt es noch keine Räume, findet die Administration dort die ersten Schritte: einen Raum erstellen, mit den Vorlagen Typen hinzufügen (Seite, Aufgabe, Entscheidung, Tagesnotiz) und Personen eine Rolle geben.
 
 ## Seiten und Einträge
 
@@ -68,6 +69,10 @@ Ein Eintrag zeigt Titel, Schlüssel, Typ und Status sowie seinen Text. Die Seite
 
 Über dem Text stehen **Exportieren** und **Beobachten** zur Verfügung; die Kommentare folgen unter dem Text.
 
+Der Abschnitt **Zusammenhang** in der Seitenleiste zeigt, was zum Eintrag gehört, ohne in ihm zu stehen: unter **Verwiesen von** die Einträge, die ihn erwähnen, einbetten, verlinken oder mit ihm in Beziehung stehen, jeweils mit dem Satz, in dem die Erwähnung oder der Link steht; unter **Mit gleichen Labels** die Einträge mit seinen Labels, die mit den meisten gemeinsamen zuerst; und unter **In Tagesnotizen** die eigenen Tagesnotizen, die ihn nennen. Es erscheinen nur Einträge, die man lesen darf, und jede Liste zeigt ihre ersten Einträge.
+
+Shift+Klick auf einen Link zu einem anderen Eintrag, oder **Daneben** bei einem Eintrag des Zusammenhangs, öffnet diesen Eintrag in einem Bereich neben dem aktuellen: Man liest ihn dort und bearbeitet seinen Text mit **Bearbeiten**, wenn man darf. Die Adresse behält den Eintrag daneben, so lässt sich das Paar teilen und kommt mit **Zurück** wieder. **Für sich öffnen** zeigt ihn als Seite; Esc oder das × schliesst den Bereich. Auf dem Telefon folgt der Bereich unter der Seite.
+
 ### Einen Text bearbeiten
 
 Mit **Bearbeiten** wird der Text bearbeitet, mit **Fertig** abgeschlossen. Änderungen werden laufend gespeichert; die Statuszeile zeigt *Wird gespeichert…* und danach *Alle Änderungen gespeichert.* Die Werkzeugleiste bietet:
@@ -79,6 +84,8 @@ Mit **Bearbeiten** wird der Text bearbeitet, mit **Fertig** abgeschlossen. Ände
 - **Rückgängig** und **Wiederholen**.
 
 Eingefügtes Markdown wird zu formatiertem Text. Ctrl+Shift+V fügt stattdessen reinen Text ein.
+
+Hat kein Eintrag den Titel, den man nach @ oder als Adresse eines Links tippt, bietet die Liste *«Titel» erstellen als …* an. Der Dialog **Erstellen und erwähnen** fragt nach dem Typ (dem Seitentyp des Raums, wenn man keinen anderen wählt) und dem Raum (dem Raum des bearbeiteten Texts, wenn man keinen anderen wählt); eine Seite im selben Raum kommt unter die bearbeitete Seite und ist wie diese geschützt; aus einer Tagesnotiz kommt sie zuoberst in den Raum. Der neue Eintrag wird dort erwähnt, wo man getippt hat. Typen mit Pflichtfeldern erstellt man stattdessen mit **+ Neu**. Darf man in einem Raum nichts erstellen oder ist der Speicher fast voll, sagt es der Dialog, und es wird nichts erstellt.
 
 ### Inhalte einfügen
 
@@ -127,6 +134,12 @@ Das Modul **Kommentare** sammelt Kommentare zu beobachteten Einträgen, die eige
 
 Beim Lesen markiert man eine Stelle und wählt **Notiz**, um eine Notiz dazu anzulegen, die nur man selbst sieht. **Meine Notizen** auf der Startseite listet alle eigenen Notizen mit den zugehörigen Stellen auf.
 
+### Tagesnotizen
+
+Eine Tagesnotiz ist eine eigene Seite für einen Tag: Nur man selbst liest und bearbeitet sie. **Heute** in der oberen Leiste, Alt+Shift+D oder die Befehlspalette öffnet die Notiz von heute; sie wird beim ersten Öffnen erstellt, im **Raum für Tagesnotizen**, den man einmal wählt, unter den Räumen, in denen man Seiten erstellen darf. Der Raum lässt sich jederzeit ändern; bestehende Notizen bleiben, wo sie sind.
+
+Der Text der Notiz wird an Ort und Stelle bearbeitet. **Vorheriger Tag** und **Nächster Tag** wechseln den Tag, und der Monat daneben markiert die Tage mit Notiz; ein Tag ohne Notiz bietet **Notiz für diesen Tag beginnen** an. Neben der Notiz zeigt **Im Kalender an diesem Tag** die Einträge, deren Daten auf diesen Tag fallen, und **An diesem Tag erstellt oder geändert** die lesbaren Einträge, die an diesem Tag erstellt oder zuletzt geändert wurden. **Als Seite öffnen** zeigt die Notiz als Eintrag, mit Kommentaren, Verlauf und Feldern. Tagesnotizen tragen das Label `daily-note`; eine Abfrage nach diesem Label listet sie alle.
+
 ### Gleichzeitig bearbeiten
 
 Mehrere Personen können einen Text gleichzeitig bearbeiten. Jeder Block, an dem jemand arbeitet, ist für die anderen gesperrt; die Zeile über dem Text nennt, wer gerade im Text ist und wer welchen Block bearbeitet. Bricht die Verbindung ab, stellt der Editor sie selbständig wieder her.
@@ -136,6 +149,10 @@ Mehrere Personen können einen Text gleichzeitig bearbeiten. Jeder Block, an dem
 ### Suche
 
 Man gibt Wörter aus Titel, Text oder Kommentar oder einen Schlüssel wie `PLAT-12` in das Suchfeld ein. Während der Eingabe erscheinen Vorschläge; **Enter** zeigt alle Treffer, geordnet nach Relevanz (ein bis fünf Sterne). Die Suche findet nur, was man lesen darf.
+
+### Befehlspalette
+
+Ctrl+K (ausser beim Bearbeiten eines Texts, wo Ctrl+K einen Link einfügt) oder Ctrl+Shift+P öffnet die **Befehlspalette**. Man tippt einen Teil eines Titels, eines Schlüssels oder eines Befehls: Sie findet Einträge, bietet unter **Zuletzt geöffnet** die zuletzt geöffneten Einträge an (in diesem Browser gemerkt) und **Befehle** wie einen neuen Eintrag, die Tagesnotiz von heute, ein Modul oder einen Raum, die Abfrage, den Kalender, die helle oder dunkle Darstellung, den Lesemodus und das Handbuch. Die getippten Buchstaben müssen nur in ihrer Reihenfolge vorkommen, so findet `tvh` die *Tagesnotiz von heute*. Pfeiltasten wählen, Enter öffnet, Esc schliesst.
 
 ### Abfragen
 
@@ -441,7 +458,10 @@ Die Raumadministration verwaltet Mitglieder und Rollen ihres Raums unter den **E
 | Ctrl+B, Ctrl+I, Ctrl+U | Fett, kursiv, unterstreichen |
 | Ctrl+Shift+X, Ctrl+Shift+H | Durchstreichen, hervorheben |
 | Ctrl+Shift+L, E, R, J | Linksbündig, zentriert, rechtsbündig, Blocksatz |
-| Ctrl+K | Link einfügen oder bearbeiten |
+| Ctrl+K | Link einfügen oder bearbeiten; ausserhalb eines Texts die Befehlspalette öffnen |
+| Ctrl+Shift+P | Befehlspalette öffnen |
+| Alt+Shift+D | Tagesnotiz von heute öffnen |
+| Shift+Klick | Verlinkten Eintrag neben dem aktuellen öffnen; Esc schliesst ihn |
 | @ | Person oder Eintrag erwähnen |
 | Ctrl+Z, Ctrl+Y | Rückgängig, wiederholen |
 | Ctrl+Shift+V | Als reinen Text einfügen |

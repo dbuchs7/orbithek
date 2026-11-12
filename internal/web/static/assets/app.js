@@ -29,6 +29,11 @@ import { freshNotice, taskDialog, taskPanel } from "./taskdialog.js";
 import { finishing } from "./taskparts.js";
 import { documentView, upgradeTemplate, wordTemplatesCard } from "./wordtemplates.js";
 import { manualBlocks, manualLanguage, manualLanguages, manualPath } from "./manual.js";
+import { dailyView, installDailyKeys } from "./daily.js";
+import { installPalette, rememberItem } from "./palette.js";
+import { besidePane, installBeside, openBeside } from "./beside.js";
+import { contextSection } from "./context.js";
+import { mentionCreator } from "./mentioncreate.js";
 
 const app = document.getElementById("app");
 const nav = document.getElementById("nav");
@@ -1261,6 +1266,8 @@ function renderNav() {
   mount(nav,
     search,
     newButton(),
+    // Today's daily note (ADR-0203).
+    h("button", { type: "button", id: "nav-today", class: "nav-today", title: t("daily.todayHint"), text: t("daily.today"), onclick: () => { location.hash = "#/daily"; } }),
     bell,
     lookToggles(),
     accountMenu(),
@@ -1638,6 +1645,7 @@ async function route() {
       case "labelboard": return await labelBoardView(arg, params.get("space") || "");
       case "roadmap": return await roadmapScreen(params);
       case "calendar": return await calendarScreen(params);
+      case "daily": return await dailyScreen(arg, params);
       case "space": return await spaceView(arg);
       case "board": return await boardView(arg, arg2);
       case "links": return await linksView(arg);
@@ -1744,6 +1752,11 @@ const topBar = document.querySelector("header.top");
 if (topBar && "ResizeObserver" in window) {
   new ResizeObserver(() => document.documentElement.style.setProperty("--top-offset", topBar.offsetHeight + "px")).observe(topBar);
 }
+// The command palette, an item beside another and today's note
+// (ADR-0203, ADR-0205).
+installPalette(paletteCommands);
+installBeside();
+installDailyKeys();
 window.addEventListener("hashchange", route);
 applyTheme();
 applyBranding();
@@ -3875,6 +3888,44 @@ async function calendarScreen(params) {
   await calendarView(section, params, { readAll, favouritesFirst, propertyInput, readProperty });
 }
 
+// dailyScreen shows one's daily note of a day (ADR-0203).
+async function dailyScreen(arg, params) {
+  await dailyView(screen(), arg || "", params, { ...textTools(), favouritesFirst, reload: () => route() });
+}
+
+// storagePaused tells that nothing new is made now (ADR-0163).
+function storagePaused() {
+  return storageNow === "critical" || storageNow === "full";
+}
+
+// textTools are the item page's helpers for a text, for the views that
+// show one besides it: a daily note and an item beside another.
+function textTools() {
+  return { files: filesOf, childPages: childPagesOf, embeds: embedLoader, tasks: taskTools, markdown: markdownTools,
+    create: (item) => mentionCreator(item, storagePaused), onLeave };
+}
+
+// paletteCommands are the commands the palette offers now (ADR-0205): a
+// new item where one is, today's note, the modules and rooms, the views
+// and the look.
+async function paletteCommands() {
+  if (!me) return [];
+  const { spaces } = await get("/api/spaces").catch(() => ({ spaces: [] }));
+  const go = (href) => () => { location.hash = href; };
+  const cmds = [
+    { id: "new", name: t("palette.new"), hint: t("nav.newButton"), run: go(newHref()) },
+    { id: "today", name: t("palette.today"), hint: "Alt+Shift+D", run: go("#/daily") },
+    { id: "query", name: t("palette.query"), run: go("#/query") },
+    { id: "calendar", name: t("palette.calendar"), run: go("#/calendar") },
+    ...modules.filter((m) => m.id !== "new" && (!m.admin || me.admin)).map((m) => ({ id: "module-" + m.id, name: t("palette.goTo", { name: t(m.name) }), run: go(m.href) })),
+    { id: "look", name: t("palette.look"), run: () => document.getElementById("theme-toggle")?.click() },
+    { id: "reading", name: t("palette.reading"), hint: "Ctrl+Shift+F", run: () => readingMode.set(true) },
+    { id: "manual", name: t("palette.manual"), run: go("#/manual") },
+  ];
+  for (const sp of favouritesFirst(spaces)) cmds.push({ id: "space-" + sp.key, name: t("palette.room", { name: sp.name }), hint: sp.key, run: go("#/space/" + encodeURIComponent(sp.key)) });
+  return cmds;
+}
+
 // starmapScreen shows the starmap of a room (ADR-0157): its items,
 // pictures and shared labels in their context, filtered in the browser;
 // the rest of the address is the drill path into it (ADR-0158), and its
@@ -4431,6 +4482,8 @@ async function itemView(ref, params = new URLSearchParams()) {
   const show = screen();
   const { item, editable, may = {} } = await get("/api/items/" + encodeURIComponent(ref));
   const path = "/api/items/" + item.id;
+  // The palette offers the items opened recently (ADR-0205).
+  rememberItem(item);
   const [{ types }, history, out, inc, embeds, comments, { attachments }, { watches }, { spaces }, myNotes] = await Promise.all([
     get("/api/types"),
     get(path + "/history"),
@@ -4680,7 +4733,12 @@ async function itemView(ref, params = new URLSearchParams()) {
         await relationsSection(path, out.relations, inc.relations, item.id, canEdit),
         await accessSection(path, item, canEdit, spaceAdmin),
         historySection(path, history.events, canEdit, readsAll),
+        // What refers to it, shares its labels, names it in a daily note
+        // (ADR-0205).
+        contextSection(item, openBeside),
         more)),
+    // An item beside this one, kept in the address (ADR-0205).
+    besidePane(params, textTools()),
   ));
 }
 
@@ -4777,7 +4835,8 @@ function bodySection(item, embeds, editing, threads, attachments, protect, edit,
     return { element: section, session: null };
   }
   const session = liveBody({ ref: item.id, embeds, resolve, childPages: childPagesOf(item), files: filesOf(item, attachments),
-    extra: [threads.plugin], comment: threads.start, actions: edit ? [edit] : [], embedContent: embedLoader([item.id]), tasks: taskTools(item, true), markdown: markdownTools(item), onPresence });
+    extra: [threads.plugin], comment: threads.start, actions: edit ? [edit] : [], embedContent: embedLoader([item.id]), tasks: taskTools(item, true), markdown: markdownTools(item), onPresence,
+    create: mentionCreator(item, storagePaused) });
   onLeave(session.close);
   return { element: h("section", { id: "body", class: "editing" }, session.element), session };
 }

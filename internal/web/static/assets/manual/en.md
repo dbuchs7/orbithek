@@ -40,6 +40,7 @@ The bar at the top of every page holds, from left to right:
 - The **logo**, which also leads to the start page.
 - The **search** field.
 - **+ New**: creates a page or item where you are.
+- **Today**: your daily note of today (Alt+Shift+D); see *Daily notes*.
 - The **bell**: your notifications, with the number of unread ones.
 - **DE** and **EN**: the language of the interface.
 - The **light and dark mode** switch.
@@ -48,7 +49,7 @@ The bar at the top of every page holds, from left to right:
 
 ### The start page
 
-The start page greets you, shows counts of pages, tasks and pictures, and offers quick access to your tasks, notifications, personal notes, the starmap, the album, the whiteboards and AI access. Below it lists your rooms, as tiles or as a list; a star marks a room as a favourite. If there are no rooms yet, administrators find the first steps there: create a room, add types from the ready-made templates (page, task, decision), and give people a role.
+The start page greets you, shows counts of pages, tasks and pictures, and offers quick access to your tasks, notifications, personal notes, the starmap, the album, the whiteboards and AI access. Below it lists your rooms, as tiles or as a list; a star marks a room as a favourite. If there are no rooms yet, administrators find the first steps there: create a room, add types from the ready-made templates (page, task, decision, daily note), and give people a role.
 
 ## Pages and items
 
@@ -68,6 +69,10 @@ An item shows its title, its key, type and state, and its text. The panel **Abou
 
 Above the text, **Export** and **Watch** are available; the comments follow below the text.
 
+The section **Context** at the side lists what belongs to the item without being in it: under **Referred to by** the items that mention it, embed it, link to it or relate to it, each with the sentence the mention or link stands in; under **Sharing labels** the items that carry its labels, most labels in common first; and under **In daily notes** your daily notes that name it. Only items you may read are listed, and each list shows its first entries.
+
+Shift+click on a link to another item, or **Beside** next to an entry of the context, opens that item in a pane beside the current one: you read it there, and edit its text with **Edit** if you may. The address keeps the item beside, so the pair can be shared and comes back with **Back**. **Open on its own** shows it as a page; Esc or the × closes the pane. On a phone, the pane follows below the page.
+
 ### Editing a text
 
 Choose **Edit** to edit the text and **Done** to finish. Changes are saved continuously; the status line shows *Saving…* and then *All changes saved.* The toolbar offers:
@@ -79,6 +84,8 @@ Choose **Edit** to edit the text and **Done** to finish. Changes are saved conti
 - **Undo** and **Redo**.
 
 Markdown that you paste becomes formatted text. Ctrl+Shift+V pastes plain text instead.
+
+If no item has the title you type after @ or as the address of a link, the list offers *Create «title» as …*. The dialog **Create and mention** asks for the type (the room's page type unless you choose another) and the room (the room of the text you edit unless you choose another); a page made in the same room goes below the page you edit, and is protected as that page is; from a daily note, it goes to the top of the room. The new item is mentioned where you typed. Types that require fields are made with **+ New** instead. When you may not create in a room, or the storage is almost full, the dialog says so and nothing is created.
 
 ### Inserting content
 
@@ -127,6 +134,12 @@ The module **Comments** gathers comments on the items you watch, your own and th
 
 Select a passage while reading and choose **Note** to keep a note on it that only you see. **My notes** on the start page lists all your notes with the passages they belong to.
 
+### Daily notes
+
+A daily note is a page of your own for one day: only you read and edit it. **Today** in the top bar, Alt+Shift+D or the command palette opens today's note; it is made the first time you open it, in the **Room for daily notes** you choose once, among the rooms where you may create pages. You can change the room at any time; notes already made stay where they are.
+
+The note's text is edited in place. **Previous day** and **Next day** move between days, and the month beside marks the days that have a note; a day without one offers **Start this day's note**. Beside the note, **In the calendar this day** lists the items whose dates fall on that day, and **Created or changed this day** the items you may read that were created that day or last changed on it. **Open as a page** shows the note as an item, with its comments, history and fields. Daily notes carry the label `daily-note`, so a query by that label lists them all.
+
 ### Editing at the same time
 
 Several people can edit a text at once. Each block someone is working on is locked for the others; the line above the text names who is in the text right now and who is editing which block. If the connection is lost, the editor reconnects on its own.
@@ -136,6 +149,10 @@ Several people can edit a text at once. Each block someone is working on is lock
 ### Search
 
 Type words of a title, a text or a comment, or a key such as `PLAT-12`, into the search field. Suggestions appear while you type; **Enter** shows all results, ordered by relevance (one to five stars). The search finds only what you may read.
+
+### Command palette
+
+Ctrl+K (when you are not editing a text, where Ctrl+K inserts a link) or Ctrl+Shift+P opens the **Command palette**. Type part of a title, a key or a command: it finds items, offers your **Recently opened** items (remembered in this browser) and **Commands** such as a new item, today's daily note, a module or room, the query, the calendar, the light or dark look, reading mode and the manual. The letters you type need only appear in order, so `tdn` finds *Today's daily note*. Arrow keys choose, Enter opens, Esc closes.
 
 ### Queries
 
@@ -441,7 +458,10 @@ Room administrators manage members and roles of their room under the room's **Se
 | Ctrl+B, Ctrl+I, Ctrl+U | Bold, italic, underline |
 | Ctrl+Shift+X, Ctrl+Shift+H | Strike through, highlight |
 | Ctrl+Shift+L, E, R, J | Align left, centre, right, justify |
-| Ctrl+K | Insert or edit a link |
+| Ctrl+K | Insert or edit a link; outside a text, open the command palette |
+| Ctrl+Shift+P | Open the command palette |
+| Alt+Shift+D | Open today's daily note |
+| Shift+click | Open a linked item beside the current one; Esc closes it |
 | @ | Mention a person or an item |
 | Ctrl+Z, Ctrl+Y | Undo, redo |
 | Ctrl+Shift+V | Paste as plain text |

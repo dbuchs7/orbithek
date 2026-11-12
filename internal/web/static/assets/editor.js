@@ -877,7 +877,7 @@ function imageView(node, view, getPos, files) {
 // shown in its block (ADR-0106). markdown.insert(address), if given, makes
 // a page from a Markdown file of a repository below the item and returns
 // it, or null when cancelled (ADR-0138).
-export function createEditor({ blocks, embeds, editable, resolve, childPages, files, extra = [], viewProps = {}, comment, protect, note, actions = [], embedContent, tasks, markdown }) {
+export function createEditor({ blocks, embeds, editable, resolve, childPages, files, extra = [], viewProps = {}, comment, protect, note, actions = [], embedContent, tasks, markdown, create }) {
   const mount = h("div", { class: "pm-editor" });
   const tocs = new Set();
   const tocPlugin = new Plugin({ view: () => ({ update: (v, prev) => { if (!v.state.doc.eq(prev.doc)) tocs.forEach((f) => f()); } }) });
@@ -888,7 +888,9 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
   // Links, "@" and embedding as in a word processor (ADR-0096); a link to
   // a Markdown file offers to show the file instead (ADR-0138).
   let showFile = null;
-  const aids = assist(schema, isSafeLink, { showFile: markdown ? (href) => showFile(href) : null });
+  // create(title), if given, makes an item for a title that matches
+  // nothing, from "@" or the link dialog (ADR-0204).
+  const aids = assist(schema, isSafeLink, { showFile: markdown ? (href) => showFile(href) : null, create });
   const aidKeys = keymap({ "Mod-k": (state, dispatch, v) => { aids.openLink(v); return true; } });
   // Pictures pasted into the text (ADR-0108): one copied in the album
   // becomes a copy of its original file, any other image an upload.
