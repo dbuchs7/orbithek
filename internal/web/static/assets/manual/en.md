@@ -287,6 +287,8 @@ Cards are added with **New card**, opened for their details, and taken off with 
 
 **Roadmap** shows items with date fields on a time axis: as a **Roadmap by label** in lanes, or as a **Gantt chart** with one row per item. Choose the room, the types, the **Start** and **End** fields, the labels and the **Scale** (weeks, months, quarters). Items that wait on unfinished items are marked.
 
+**Export** saves the chart as a picture, as **PNG** or **JPEG**, with every row and the whole time axis, also what is scrolled out of sight. The picture shows what you see, in the current look, and is named after the view and the day, such as *Gantt chart PLAT 2026-11-12.png*. A chart too large for a picture the browser can draw is refused with a note; narrow it by labels, type or room, or choose a coarser scale.
+
 ### Calendar
 
 The **Calendar** shows items with date fields as a **Month**, **Week** or **Agenda**. **Filter** chooses the room, the type, who is assigned, the status, words of the text and labels; a sentence above the calendar says what is shown. Under **Advanced** you choose the date fields and an additional query.
