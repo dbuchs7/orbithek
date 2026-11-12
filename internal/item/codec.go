@@ -157,7 +157,13 @@ import (
 //   - 54: photo data may carry TakenManual, a time set by hand, and the
 //     kind AttachmentTakenSet with attachment, sealed (ADR-0198). Versions
 //     1 to 53 are still read; their times are the files' own.
-const CodecVersion = 54
+//   - 56: the block kind view, with the block fields Layout, ItemType,
+//     Space, Group, Columns and Sort and its Query, sealed with the body
+//     (ADR-0201); and the kind ItemsOrdered with order, the items of a
+//     label's page in the order set by hand, not sealed, as it names items
+//     by ID only (ADR-0202). Versions 1 to 55 are still read; their bodies
+//     hold no view and their pages no order.
+const CodecVersion = 56
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,
