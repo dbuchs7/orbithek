@@ -867,6 +867,9 @@ function webSource() {
     // stays in it, folded away, and is applied to the form.
     await page.click("#new-type");
     await page.click("#type-editor details.type-json summary");
+    // Opening the fold writes the form's definition into the field when its
+    // toggle event comes, which is after the click; fill it only then.
+    await page.waitForFunction(() => document.querySelector("#type-json")?.value.trim().startsWith("{"));
     await page.fill("#type-json", JSON.stringify({
       name: "task", body: true,
       fields: [{ name: "priority", kind: "enum", required: true, values: ["low", "high"] }, { name: "estimate", kind: "number" }],
