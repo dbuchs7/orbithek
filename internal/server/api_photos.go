@@ -358,7 +358,9 @@ func albumKind(a item.Attachment) string {
 // their top was taken, or by when it was added.
 func albumStacks(x *item.Session, f albumFilter) [][]item.Picture {
 	keep := func(a item.Attachment) bool {
-		return (inlineTypes[a.Type] || albumVideo(a)) && (f.kind == "" || albumKind(a) == f.kind)
+		// An entry of a file share is a picture of the album whatever its
+		// format: HEIC and RAW show a symbol (ADR-0197).
+		return (inlineTypes[a.Type] || albumVideo(a) || a.Linked()) && (f.kind == "" || albumKind(a) == f.kind)
 	}
 	match := func(p item.Picture) bool {
 		return (f.inRule == nil || f.inRule(p)) && (f.folder == "" || p.Item.ID == f.folder) && (f.label == "" || slices.Contains(p.Attachment.Labels, f.label)) &&

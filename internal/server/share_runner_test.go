@@ -72,18 +72,35 @@ func mustRun(t *testing.T, sh *Shares, dryRun, confirm bool) ShareRun {
 	return run
 }
 
-func entriesOf(t *testing.T, w world, folder string) map[string]item.Attachment {
+// entriesOf answers the share's entries by path, wherever they lie.
+func entriesOf(t *testing.T, w world, _ string) map[string]item.Attachment {
 	t.Helper()
 	out := map[string]item.Attachment{}
 	w.deps.DB.Read(func(s *item.Store) {
-		it, _ := s.Get(item.ID(folder))
-		for _, a := range it.Attachments {
-			if !a.Deleted && a.Linked() {
-				out[a.Share.Path] = a
-			}
+		entries, _ := shareItems(s, "nas")
+		for _, e := range entries {
+			out[e.a.Share.Path] = e.a
 		}
 	})
 	return out
+}
+
+// folderOfEntry answers the folder that holds an entry, and the folders
+// the share's runs made, by directory.
+func folderOfEntry(t *testing.T, w world, id item.ID) (item.ID, map[string]item.Item) {
+	t.Helper()
+	var in item.ID
+	var made map[string]item.Item
+	w.deps.DB.Read(func(s *item.Store) {
+		var entries []*entryState
+		entries, made = shareItems(s, "nas")
+		for _, e := range entries {
+			if e.a.ID == id {
+				in = e.folder
+			}
+		}
+	})
+	return in, made
 }
 
 // TestASharesRunsFollowTheShare: runs link new files with a preview,
@@ -114,12 +131,19 @@ func TestASharesRunsFollowTheShare(t *testing.T) {
 		lakeEntry.Author != "sync:share:nas" || entries["clip.mp4"].Type != "video/mp4" {
 		t.Fatalf("entries %+v", entries)
 	}
-	got := w.admin.do("GET", "/api/items/"+folder+"/attachments/"+string(lakeEntry.ID), "")
+	// The picture lies in the folder of its directory, made below the
+	// bound folder.
+	lakeFolder, made := folderOfEntry(t, w, lakeEntry.ID)
+	if dir, ok := made["2024"]; !ok || dir.ID != lakeFolder || dir.Parent != item.ID(folder) || dir.Title != "2024" || dir.Type != item.FolderType {
+		t.Fatalf("the folder of 2024: %+v, the entry in %s", made, lakeFolder)
+	}
+	got := w.admin.do("GET", "/api/items/"+string(lakeFolder)+"/attachments/"+string(lakeEntry.ID), "")
 	img, _, err := image.DecodeConfig(bytes.NewReader(got.Body.Bytes()))
 	if got.Code != http.StatusOK || err != nil || img.Width != previewEdge || img.Height != previewEdge/2 {
 		t.Fatalf("preview %d %v %+v", got.Code, err, img)
 	}
-	album := field(w.admin.expect("GET", "/api/album?folder="+folder, "", http.StatusOK), "pictures").([]any)
+	album := append(field(w.admin.expect("GET", "/api/album?folder="+folder, "", http.StatusOK), "pictures").([]any),
+		field(w.admin.expect("GET", "/api/album?folder="+string(lakeFolder), "", http.StatusOK), "pictures").([]any)...)
 	if len(album) != 3 {
 		t.Fatalf("album %d", len(album))
 	}
@@ -137,14 +161,29 @@ func TestASharesRunsFollowTheShare(t *testing.T) {
 	}
 
 	// People label it; the share moves it and changes another.
-	w.admin.expect("PUT", "/api/items/"+folder+"/attachments/"+string(lakeEntry.ID)+"/labels", `{"labels":["see"]}`, http.StatusOK)
+	w.admin.expect("PUT", "/api/items/"+string(lakeFolder)+"/attachments/"+string(lakeEntry.ID)+"/labels", `{"labels":["see"]}`, http.StatusOK)
+	// The folders of a share are its runs' alone.
+	w.admin.expect("POST", "/api/album/folders", `{"parent":"`+string(lakeFolder)+`","name":"Mine"}`, http.StatusConflict)
+	w.admin.expect("POST", "/api/items/"+string(lakeFolder)+"/trash", "", http.StatusConflict)
+	w.admin.expect("POST", "/api/items/"+folder+"/trash", "", http.StatusConflict)
+	w.admin.expect("POST", "/api/items/"+string(lakeFolder)+"/move", `{"space":"PLAT","parent":""}`, http.StatusConflict)
+	if rec := w.admin.upload("/api/items/"+string(lakeFolder)+"/attachments?name=x.png", "application/octet-stream", hut); rec.Code != http.StatusConflict {
+		t.Errorf("an upload into a folder of the share: %d", rec.Code)
+	}
+	// A title changed by hand is set back by the next run.
+	w.admin.expect("PUT", "/api/items/"+string(lakeFolder)+"/title", `{"title":"Renamed"}`, http.StatusOK)
 	if err := os.Rename(filepath.Join(dir, "2024", "lake.png"), filepath.Join(dir, "lake-moved.png")); err != nil {
 		t.Fatal(err)
 	}
 	put(t, dir, "hut.png", picture(t, 40, 30, 99))
 	run = mustRun(t, sh, false, false)
-	if run.Moved != 1 || run.Changed != 1 || run.Withdrawn != 0 {
+	if run.Moved != 1 || run.Changed != 1 || run.Withdrawn != 0 || run.FoldersRemoved != 1 {
 		t.Fatalf("moved and changed %+v", run)
+	}
+	// It left 2024, whose folder is gone now that the directory is empty
+	// and gone.
+	if in, made := folderOfEntry(t, w, lakeEntry.ID); in != item.ID(folder) || len(made) != 0 {
+		t.Fatalf("after the move: in %s, folders %+v", in, made)
 	}
 	entries = entriesOf(t, w, folder)
 	if moved := entries["lake-moved.png"]; moved.ID != lakeEntry.ID || len(moved.Labels) != 1 {
@@ -165,6 +204,20 @@ func TestASharesRunsFollowTheShare(t *testing.T) {
 	if run = mustRun(t, sh, false, false); run.Restored != 1 {
 		t.Fatalf("restored %+v", run)
 	}
+	if in, made := folderOfEntry(t, w, lakeEntry.ID); made["Archiv"].ID != in || made["Archiv"].Title != "Archiv" {
+		t.Fatalf("restored into %s, folders %+v", in, made)
+	}
+	if back := entriesOf(t, w, folder)["Archiv/lake.png"]; back.Name != "lake.png" {
+		t.Errorf("the entry back under another name keeps %q", back.Name)
+	}
+	// A folder's title changed by hand is set back while its directory is
+	// there.
+	archivID := made2(t, w)["Archiv"].ID
+	w.admin.expect("PUT", "/api/items/"+string(archivID)+"/title", `{"title":"Renamed"}`, http.StatusOK)
+	mustRun(t, sh, false, false)
+	if a := made2(t, w)["Archiv"]; a.Title != "Archiv" {
+		t.Fatalf("the title set by hand stays: %q", a.Title)
+	}
 	if back := entriesOf(t, w, folder)["Archiv/lake.png"]; back.ID != lakeEntry.ID || back.Withdrawn() || len(back.Labels) != 1 {
 		t.Fatalf("back %+v", back)
 	}
@@ -173,17 +226,30 @@ func TestASharesRunsFollowTheShare(t *testing.T) {
 	if err := os.Remove(filepath.Join(dir, "Archiv", "lake.png")); err != nil {
 		t.Fatal(err)
 	}
+	archiv := made2(t, w)["Archiv"]
 	mustRun(t, sh, false, false)
+	// The folder holds the withdrawn entry, so it stays.
+	if a := made2(t, w)["Archiv"]; a.ID != archiv.ID {
+		t.Fatalf("the folder of a withdrawn entry: %+v", a)
+	}
 	sh.now = func() time.Time { return time.Now().Add((withdrawnDays + 1) * 24 * time.Hour) }
 	defer func() { sh.now = time.Now }()
 	if run = mustRun(t, sh, false, false); run.Deleted != 1 {
 		t.Fatalf("deleted %+v", run)
 	}
-	if w.deps.DB.HasPreview(item.ID(folder), lakeEntry.ID) {
-		t.Error("the preview of a deleted entry stays")
+	if archiv := made2(t, w)["Archiv"]; archiv.ID != "" {
+		if w.deps.DB.HasPreview(archiv.ID, lakeEntry.ID) {
+			t.Error("the preview of a deleted entry stays")
+		}
 	}
-	if h := sh.Status("nas").History; len(h) != 8 || h[0].Deleted != 1 {
+	if h := sh.Status("nas").History; len(h) != 9 || h[0].Deleted != 1 || h[0].FoldersRemoved != 1 {
 		t.Errorf("history: %d runs, newest %+v", len(h), h[0])
+	}
+	// A directory whose folder a run removed brings that folder back.
+	put(t, dir, "2024/again.png", picture(t, 8, 8, 77))
+	mustRun(t, sh, false, false)
+	if back := made2(t, w)["2024"]; back.ID != lakeFolder || back.Presence != item.Live {
+		t.Fatalf("the folder of 2024 again: %+v, was %s", back, lakeFolder)
 	}
 }
 
@@ -241,6 +307,7 @@ func TestAShareThatFailsEmptiesNothing(t *testing.T) {
 func TestSharesThroughTheRunRoute(t *testing.T) {
 	w, sh, dir, folder := shareWorld(t)
 	put(t, dir, "a.png", picture(t, 8, 8, 1))
+	put(t, dir, "sub/deeper/b.png", picture(t, 8, 8, 2))
 	w.bert.expect("POST", "/api/shares/nas/run", `{}`, http.StatusForbidden)
 	w.admin.expect("POST", "/api/shares/nope/run", `{}`, http.StatusNotFound)
 	w.admin.expect("POST", "/api/shares/nas/run", `{`, http.StatusBadRequest)
@@ -251,7 +318,7 @@ func TestSharesThroughTheRunRoute(t *testing.T) {
 	}
 	got := w.admin.expect("GET", "/api/shares", "", http.StatusOK)
 	s := got["shares"].([]any)[0].(map[string]any)
-	if s["entries"].(float64) != 1 || len(s["status"].(map[string]any)["history"].([]any)) != 1 {
+	if s["entries"].(float64) != 2 || len(s["status"].(map[string]any)["history"].([]any)) != 1 {
 		t.Fatalf("status %s", jsonOf(s))
 	}
 	if !strings.Contains(jsonOf(w.admin.expect("GET", "/api/audit", "", http.StatusOK)), "share.confirm") {
@@ -279,6 +346,9 @@ func TestSharesThroughTheRunRoute(t *testing.T) {
 	w.admin.expect("DELETE", "/api/shares/nas", "", http.StatusNoContent)
 	if len(entriesOf(t, w, folder)) != 0 || w.deps.DB.HasPreview(item.ID(folder), entry.ID) {
 		t.Error("the share's entries stayed")
+	}
+	if made := made2(t, w); len(made) != 0 {
+		t.Errorf("the share's folders stayed: %+v", made)
 	}
 	if _, err := sh.Run(context.Background(), "nas", false, false); err == nil {
 		t.Error("a removed share ran")
@@ -339,5 +409,65 @@ func TestRangeReader(t *testing.T) {
 	r.Seek(0, 2)
 	if _, err := r.Read(buf); err == nil {
 		t.Error("read past the end")
+	}
+}
+
+func made2(t *testing.T, w world) map[string]item.Item {
+	_, made := folderOfEntry(t, w, "")
+	return made
+}
+
+// TestHEICAndRAWOfAShareAreListed: a HEIC and a camera's RAW are linked
+// without a preview, larger than AttachmentBytes too, and listed in the
+// album, where they show a symbol (ADR-0197).
+func TestHEICAndRAWOfAShareAreListed(t *testing.T) {
+	w, sh, dir, folder := shareWorld(t)
+	b := budget.Default()
+	b.AttachmentBytes = 1000
+	budget.Set(b)
+	defer budget.Set(budget.Default())
+	put(t, dir, "phone.heic", append([]byte("\x00\x00\x00\x18ftypheic\x00\x00\x00\x00mif1heic"), make([]byte, 3000)...))
+	put(t, dir, "camera.cr2", append([]byte("II*\x00\x10\x00\x00\x00CR\x02\x00"), make([]byte, 3000)...))
+	put(t, dir, "notes.txt", []byte("no picture"))
+	run := mustRun(t, sh, false, false)
+	if run.Linked != 2 || run.NoPreview != 2 || run.Skipped != 1 || run.TooLarge != 0 {
+		t.Fatalf("run %+v", run)
+	}
+	entries := entriesOf(t, w, folder)
+	if entries["phone.heic"].Type != "image/heic" || entries["camera.cr2"].Type != "image/tiff" || entries["camera.cr2"].Size != 3012 {
+		t.Fatalf("entries %+v", entries)
+	}
+	album := field(w.admin.expect("GET", "/api/album?folder="+folder, "", http.StatusOK), "pictures").([]any)
+	if len(album) != 2 {
+		t.Fatalf("album %d", len(album))
+	}
+	for _, p := range album {
+		if field(p.(map[string]any), "attachment", "share", "preview") != false {
+			t.Errorf("a preview claimed for %s", jsonOf(p))
+		}
+	}
+	if got := w.admin.do("GET", "/api/items/"+folder+"/attachments/"+string(entries["phone.heic"].ID), ""); got.Code == http.StatusOK {
+		t.Errorf("a HEIC of a share gives out %d: the original is not here, and it has no preview", got.Code)
+	}
+}
+
+func TestRawType(t *testing.T) {
+	for head, want := range map[string]string{
+		"\x00\x00\x00\x18ftypheic....": "image/heic",
+		"\x00\x00\x00\x18ftypmif1....": "image/heic",
+		"\x00\x00\x00\x18ftypavif....": "image/avif",
+		"\x00\x00\x00\x18ftypcrx ....": "image/x-canon-cr3",
+		"\x00\x00\x00\x18ftypisom....": "",
+		"FUJIFILMCCD-RAW 0201":         "image/x-fuji-raf",
+		"IIRO\x08\x00\x00\x00":         "image/x-olympus-orf",
+		"IIU\x00\x08\x00\x00\x00":      "image/x-panasonic-rw2",
+		"II*\x00\x08\x00\x00\x00":      "image/tiff",
+		"MM\x00*\x00\x00\x00\x08":      "image/tiff",
+		"\x89PNG\r\n\x1a\n":            "",
+		"":                             "",
+	} {
+		if got := rawType([]byte(head)); got != want {
+			t.Errorf("rawType(%q) = %q, want %q", head, got, want)
+		}
 	}
 }

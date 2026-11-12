@@ -369,6 +369,7 @@ Ist die Wiedererkennung eingeschaltet, zeigt das Album einer Person zusätzlich 
 
 Ein Administrator kann einen Album-Ordner an einen Fileshare binden: ein Verzeichnis des Servers, etwa einen eingebundenen Samba-Share, oder einen S3-Bucket.
 Der Ordner zeigt dann die Bilder des Shares und liest ihn nach einem Zeitplan neu.
+Darunter enthält für jedes Verzeichnis des Shares ein eigener Ordner dessen Bilder; diese Ordner folgen dem Share und werden nicht von Hand erstellt, verschoben oder gelöscht, und ein von Hand geänderter Titel wird zurückgesetzt.
 Der Share bleibt massgebend: Das Wiki behält von jedem Bild eine Vorschau, das Original bleibt, wo es liegt.
 
 Ein solches Bild ist mit **Auf einem Fileshare** markiert.
@@ -378,7 +379,7 @@ Man benennt es nicht um, verschiebt oder löscht es nicht und fügt einem solche
 Eine auf dem Share verschobene Datei behält, was auf ihr gesetzt wurde, solange ihr Inhalt gleich bleibt.
 Eine vom Share verschwundene Datei verschwindet aus dem Album; kommt sie innert 30 Tagen zurück, kehrt sie mit ihren Labels und Namen zurück.
 Wer ein solches Bild kopiert oder exportiert, erhält seine Vorschau.
-Ein Bild in einem Format, von dem der Server kein Bild zeigt, hat statt einer Vorschau ein Symbol.
+Ein Bild in einem Format, von dem der Server kein Bild zeigt, etwa HEIC eines Telefons oder RAW einer Kamera, hat statt einer Vorschau ein Symbol; es bietet nur **Original öffnen** an, ebenso ein Video eines Shares.
 
 ### Einen Ordner verschieben
 

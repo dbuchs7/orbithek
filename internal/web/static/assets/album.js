@@ -414,6 +414,9 @@ export function albumBrowser({ pick, pickText } = {}) {
     const original = shareLink(p);
     const openOriginal = original ? h("a", { class: "button secondary album-original", target: "_blank", rel: "noopener noreferrer", text: t("album.openOriginal"), title: t("album.openOriginalTitle") }) : null;
     openOriginal?.setAttribute("href", shareHref(original));
+    // Without a preview (HEIC, RAW, a video of a share) there is nothing
+    // here to copy, export or download; the original opens on the share.
+    if (onShare(p) && !p.attachment.share.preview) return h("div", { class: "album-actions" }, openOriginal);
     return h("div", { class: "album-actions" },
       openOriginal,
       h("button", { type: "button", class: "secondary album-copy", text: t("album.copy"), title: t("album.copyTitle"), onclick: async () => {

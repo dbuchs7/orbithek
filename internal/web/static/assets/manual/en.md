@@ -369,6 +369,7 @@ With recognition on, a person's album also shows **Is this Ada?**: faces on othe
 
 An administrator can bind an album folder to a file share: a directory of the server, such as a mounted Samba share, or an S3 bucket.
 The folder then shows the pictures of the share, read again on a schedule.
+Below it, a folder for each directory of the share holds that directory's pictures; these folders follow the share and are not made, moved or deleted by hand, and a title changed by hand is set back.
 The share stays the master: the wiki keeps a preview of each picture, and the original stays where it lies.
 
 Such a picture is marked **On a file share**.
@@ -378,7 +379,7 @@ You do not rename, move or delete it, and you add no pictures to such a folder: 
 A file moved on the share keeps what was set on it, as far as its content is unchanged.
 A file gone from the share disappears from the album; if it comes back within 30 days, it returns with its labels and names.
 Copying such a picture, or exporting it, takes its preview.
-A picture of a format the server shows no picture of has a symbol instead of a preview.
+A picture of a format the server shows no picture of, such as a phone's HEIC or a camera's RAW, has a symbol instead of a preview; it offers only **Open original**, and so does a video of a share.
 
 ### Moving a folder
 
