@@ -78,7 +78,7 @@ func TestAChangeThatIsNotPersistedDoesNotHappen(t *testing.T) {
 
 func TestDecodeRejectsWhatItCannotReadExactly(t *testing.T) {
 	cases := map[string]string{
-		"newer format":       `[{"v":60,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
+		"newer format":       `[{"v":61,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"no format version":  `[{"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"unknown field":      `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated","colour":"red"}]`,
 		"unknown role":       `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"RoleGranted","role":"owner"}]`,
@@ -200,8 +200,9 @@ func TestPersistedFormatIsStable(t *testing.T) {
 	itemViews := itemViewsLog(t)
 	highlights := pdfHighlightLog(t)
 	styledTables := tableStyleLog(t)
+	shareFiles := shareFileLog(t)
 	kinds := map[EventKind]bool{}
-	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments, notes, photos, places, renames, geotags, moves, albumVideos, faces, slideOrders, fingerprints, times, highlights, itemViews, kinds55, styledTables) {
+	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments, notes, photos, places, renames, geotags, moves, albumVideos, faces, slideOrders, fingerprints, times, highlights, itemViews, kinds55, styledTables, shareFiles) {
 		kinds[e.Kind] = true
 	}
 	for _, k := range allEventKinds {
@@ -309,6 +310,8 @@ func TestPersistedFormatIsStable(t *testing.T) {
 		{"events.current.accesstasks.plain.golden.jsonl", nil, tasks},
 		{"events.current.tablestyle.golden.jsonl", fakeSealer{}, styledTables},
 		{"events.current.tablestyle.plain.golden.jsonl", nil, styledTables},
+		{"events.current.sharefiles.golden.jsonl", fakeSealer{}, shareFiles},
+		{"events.current.sharefiles.plain.golden.jsonl", nil, shareFiles},
 	}
 	for _, c := range cases {
 		name, sl, log := c.name, c.sl, c.log
@@ -1644,6 +1647,38 @@ func takenLog(t *testing.T) []Event {
 	return s.Log()
 }
 
+// shareFileLog links two files of a file share into a folder, labels one,
+// reads it again with new content at a new path, withdraws and restores
+// it, and deletes the other, so the golden files pin the kinds of linked
+// entries (ADR-0197).
+func shareFileLog(t *testing.T) []Event {
+	s := setup(t)
+	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))
+	anna := s.As("anna")
+	folder := mustItem(t)(anna.CreateFolder("PLAT", "", "NAS"))
+	const run = "sync:share:nas"
+	const lake, hut = "0123456789abcdef0123456789abc197", "0123456789abcdef0123456789abd197"
+	_, err := s.LinkFile(run, folder.ID, Attachment{ID: lake, Name: "lake.jpg", Type: "image/jpeg", Size: 7, SHA256: strings.Repeat("a1", 32),
+		Photo: &Photo{Taken: "2024-07-01T10:00:00", Make: "Camera"}, Share: &ShareFile{Share: "nas", Path: "2024/Sommer/lake.jpg", Tag: "1719828000000000000"}})
+	noErr(t, err)
+	_, err = s.LinkFile(run, folder.ID, Attachment{ID: hut, Name: "hut.png", Type: "image/png", Size: 5, SHA256: strings.Repeat("b2", 32),
+		Share: &ShareFile{Share: "nas", Path: "hut.png", Tag: "etag-1"}})
+	noErr(t, err)
+	noErr(t, anna.SetPictureLabels(folder.ID, lake, []string{"ferien"}))
+	_, err = s.RelinkFile(run, folder.ID, Attachment{ID: lake, Name: "lake.jpg", Type: "image/jpeg", Size: 9, SHA256: strings.Repeat("c3", 32),
+		Photo: &Photo{Taken: "2024-07-01T10:00:00", Make: "Camera"}, Share: &ShareFile{Share: "nas", Path: "2024/Ferien/lake.jpg", Tag: "1719828000000000001"}})
+	noErr(t, err)
+	noErr(t, s.WithdrawFile(run, folder.ID, lake))
+	noErr(t, s.RestoreFile(run, folder.ID, lake, ShareFile{Path: "Archiv/lake.jpg", Tag: "1719828000000000001"}))
+	noErr(t, s.DeleteAttachment(run, folder.ID, hut))
+	// The folder of a directory, made by the run, takes the entry whose
+	// file is in that directory.
+	archiv, _, err := s.Upsert(run, Upsert{Origin: Origin{System: "share", Instance: "nas", ExternalID: "Archiv"}, Space: "PLAT", Type: FolderType, Parent: folder.ID, Title: "Archiv"})
+	noErr(t, err)
+	noErr(t, s.MoveLinkedFile(run, folder.ID, lake, archiv.ID))
+	return s.Log()
+}
+
 // tableStyleLog writes a table with formatted cells, column widths, row
 // heights and coloured cells, so the golden files pin the block fields
 // Widths, Heights and Cells and marks inside a table (ADR-0214).
@@ -2373,6 +2408,7 @@ var allEventKinds = []EventKind{
 	SecretSet, SecretRemoved, SecretRequested, SecretGranted, SecretDeclined, SecretErased, AttachmentLabelled,
 	AttachmentRetentionSet, AttachmentNotesSet, AttachmentPlaceSet, AttachmentRenamed, TemplateSet,
 	AttachmentMovedIn, AttachmentMovedOut, AttachmentTakenSet, ItemsOrdered,
+	AttachmentLinked, AttachmentRelinked, AttachmentWithdrawn, AttachmentRestored,
 }
 
 // everyKindLog runs commands that produce every event kind, deterministically.

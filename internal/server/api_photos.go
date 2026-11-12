@@ -358,7 +358,9 @@ func albumKind(a item.Attachment) string {
 // their top was taken, or by when it was added.
 func albumStacks(x *item.Session, f albumFilter) [][]item.Picture {
 	keep := func(a item.Attachment) bool {
-		return (inlineTypes[a.Type] || albumVideo(a)) && (f.kind == "" || albumKind(a) == f.kind)
+		// An entry of a file share is a picture of the album whatever its
+		// format: HEIC and RAW show a symbol (ADR-0197).
+		return (inlineTypes[a.Type] || albumVideo(a) || a.Linked()) && (f.kind == "" || albumKind(a) == f.kind)
 	}
 	match := func(p item.Picture) bool {
 		return (f.inRule == nil || f.inRule(p)) && (f.folder == "" || p.Item.ID == f.folder) && (f.label == "" || slices.Contains(p.Attachment.Labels, f.label)) &&
@@ -763,6 +765,9 @@ func (h itemHandlers) importInto(w http.ResponseWriter, r *http.Request, folder,
 		h.fail(w, check)
 		return
 	}
+	if !boundFolder(w, h.d, id) {
+		return
+	}
 	limit := budget.Get().AttachmentBytes
 	if video {
 		limit = max(limit, budget.Get().VideoBytes)
@@ -1104,18 +1109,20 @@ func (h itemHandlers) googleImport(w http.ResponseWriter, r *http.Request) {
 // files to before anything is fetched from another service.
 func (h itemHandlers) mayImportInto(w http.ResponseWriter, r *http.Request, folder string) bool {
 	var err error
+	var id item.ID
 	h.d.DB.Read(func(s *item.Store) {
 		x := s.As(who(r))
 		var it item.Item
 		if it, err = resolveItem(x, folder); err == nil {
 			err = x.CanAttach(it.ID)
+			id = it.ID
 		}
 	})
 	if err != nil {
 		h.fail(w, err)
 		return false
 	}
-	return true
+	return boundFolder(w, h.d, id)
 }
 
 func (h itemHandlers) googleClose(w http.ResponseWriter, r *http.Request) {

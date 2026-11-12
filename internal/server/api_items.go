@@ -968,7 +968,14 @@ func (h itemHandlers) move(w http.ResponseWriter, r *http.Request) {
 		Before *string `json:"before"`
 	}
 	if decode(w, r, &req) {
-		h.change(w, r, func(x *item.Session, _ *item.Store, it item.Item) error {
+		h.change(w, r, func(x *item.Session, s *item.Store, it item.Item) error {
+			// Nothing moves into or out of the folders of a file share, but
+			// the bound folder itself, with them (ADR-0197).
+			for _, at := range []item.ID{it.Parent, req.Parent} {
+				if sh, ok := shareTree(s, h.d.DB.Site, at); ok {
+					return treeRefusal(sh)
+				}
+			}
 			if req.Before == nil {
 				return x.Move(it.ID, req.Space, req.Parent)
 			}
@@ -1354,7 +1361,14 @@ func (h itemHandlers) restrict(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h itemHandlers) trash(w http.ResponseWriter, r *http.Request) {
-	h.change(w, r, func(x *item.Session, _ *item.Store, it item.Item) error { return x.Trash(it.ID) })
+	h.change(w, r, func(x *item.Session, s *item.Store, it item.Item) error {
+		// A folder of a file share goes when the share is removed or its
+		// directory is gone (ADR-0197).
+		if sh, ok := shareTree(s, h.d.DB.Site, it.ID); ok {
+			return treeRefusal(sh)
+		}
+		return x.Trash(it.ID)
+	})
 }
 
 func (h itemHandlers) restore(w http.ResponseWriter, r *http.Request) {

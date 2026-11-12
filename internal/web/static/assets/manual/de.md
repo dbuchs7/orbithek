@@ -49,7 +49,7 @@ Die Leiste oben auf jeder Seite enthält von links nach rechts:
 
 ### Die Startseite
 
-Die Startseite begrüsst, zeigt die Anzahl Seiten, Aufgaben und Bilder und bietet einen Schnellzugriff auf die eigenen Aufgaben, Benachrichtigungen, persönlichen Notizen, die Sternkarte, das Album, die Whiteboards und den KI-Zugang. Darunter stehen die eigenen Räume, als Kacheln oder als Liste; ein Stern markiert einen Raum als Favorit. Gibt es noch keine Räume, findet die Administration dort die ersten Schritte: einen Raum erstellen, mit den Vorlagen Typen hinzufügen (Seite, Aufgabe, Entscheidung, Tagesnotiz) und Personen eine Rolle geben.
+Die Startseite begrüsst, zeigt die Anzahl Seiten, Aufgaben und Bilder und bietet einen Schnellzugriff auf die Sternkarte, **Mein Tag** (die Tagesnotiz von heute, mit dem heutigen Datum), die eigenen Aufgaben, Benachrichtigungen, persönlichen Notizen, das Album, die Whiteboards und den KI-Zugang. Darunter stehen die eigenen Räume, als Kacheln oder als Liste; ein Stern markiert einen Raum als Favorit. Gibt es noch keine Räume, findet die Administration dort die ersten Schritte: einen Raum erstellen, mit den Vorlagen Typen hinzufügen (Seite, Aufgabe, Entscheidung, Tagesnotiz) und Personen eine Rolle geben.
 
 ## Seiten und Einträge
 
@@ -120,6 +120,8 @@ Formatierung, Farben und Grössen bleiben im Word- und PDF-Export erhalten; ein 
 **Beziehungen** verknüpfen einen Eintrag mit einem anderen unter einem benannten Typ, zum Beispiel *blocks* oder *depends on*: Beziehung und Schlüssel des anderen Eintrags eingeben und **Verknüpfen** wählen. Links und Erwähnungen im Text erscheinen ebenfalls als Beziehungen.
 
 **Dateien** werden mit **Dateien hochladen** angehängt. Wer den Eintrag bearbeiten darf, benennt eine Datei in der Liste mit **Umbenennen** um: Alle Versionen erhalten den neuen Namen, der Dateityp bleibt. Bilder und Zeichnungen aller Einträge erscheinen zudem im Album.
+
+Wer den Eintrag bearbeiten darf, nimmt mit **Ton aufnehmen** auch Ton in seine Dateien auf: Der Browser fragt einmal nach dem Mikrofon, die Aufnahme läuft mit angezeigter Zeit, **Beenden und anhängen** fügt sie als *Aufnahme <Datum> <Uhrzeit>* den Dateien hinzu, **Verwerfen** verwirft sie. Eine Aufnahme endet nach 30 Minuten von selbst und wird angehängt. Wer die Seite während der Aufnahme verlässt, verwirft sie. Die Schaltfläche erscheint nur, wo der Browser aufnehmen kann; dafür muss die Adresse mit `https://` beginnen (oder `localhost` sein). Tondateien – Aufnahmen, MP3, WAV, M4A und Ogg – werden in der Dateiliste abgespielt; sie erscheinen nicht im Album, und nichts wird transkribiert.
 
 ### PDF-Dateien lesen
 
@@ -206,7 +208,7 @@ Beim Lesen markiert man eine Stelle und wählt **Notiz**, um eine Notiz dazu anz
 
 ### Tagesnotizen
 
-Eine Tagesnotiz ist eine eigene Seite für einen Tag: Nur man selbst liest und bearbeitet sie. **Heute** in der oberen Leiste, Alt+Shift+D oder die Befehlspalette öffnet die Notiz von heute; sie wird beim ersten Öffnen erstellt, im **Raum für Tagesnotizen**, den man einmal wählt, unter den Räumen, in denen man Seiten erstellen darf. Der Raum lässt sich jederzeit ändern; bestehende Notizen bleiben, wo sie sind.
+Eine Tagesnotiz ist eine eigene Seite für einen Tag: Nur man selbst liest und bearbeitet sie. **Heute** in der oberen Leiste, **Mein Tag** auf der Startseite, Alt+Shift+D oder die Befehlspalette öffnet die Notiz von heute; sie wird beim ersten Öffnen erstellt, im **Raum für Tagesnotizen**, den man einmal wählt, unter den Räumen, in denen man Seiten erstellen darf. Solange kein Raum gewählt ist, steht die Auswahl an der Stelle der Notiz; später ändert man den Raum in der Spalte an der Seite, die sich mit ihrem Pfeil ein- und ausklappen lässt. Bestehende Notizen bleiben, wo sie sind.
 
 Der Text der Notiz wird an Ort und Stelle bearbeitet. **Vorheriger Tag** und **Nächster Tag** wechseln den Tag, und der Monat daneben markiert die Tage mit Notiz; ein Tag ohne Notiz bietet **Notiz für diesen Tag beginnen** an. Neben der Notiz zeigt **Im Kalender an diesem Tag** die Einträge, deren Daten auf diesen Tag fallen, und **An diesem Tag erstellt oder geändert** die lesbaren Einträge, die an diesem Tag erstellt oder zuletzt geändert wurden. **Als Seite öffnen** zeigt die Notiz als Eintrag, mit Kommentaren, Verlauf und Feldern. Tagesnotizen tragen das Label `daily-note`; eine Abfrage nach diesem Label listet sie alle.
 
@@ -269,7 +271,7 @@ Die Seite eines Labels zeigt die Einträge mit ihrem Label als Ansicht: **Tabell
 
 Das Modul **Aufgaben** listet die offene Arbeit in den eigenen Räumen auf: Einträge vom Typ *task* sowie jedes Typs mit Workflow und einem Feld *assignee* oder *due*. Die Reiter zeigen **Mir zugewiesen**, **Nicht zugewiesen** und **Alle offenen**; Filter schränken nach Raum, Status, Person, Fälligkeit und Labels ein. **Übernehmen** weist eine Aufgabe sich selbst zu, **Zurückgeben** gibt sie frei. Überfällige Aufgaben sind markiert.
 
-Der vorgefertigte Typ *task* hat neben dem Datum *due* ein Datum *start*. Kalender und Roadmap zeigen eine Aufgabe mit beiden Daten als Balken vom Beginn bis zur Fälligkeit. Ein Startdatum ist keine Frist: Auf einem Kanban wird ein vergangenes Startdatum nicht als überfällig markiert. Bereits angelegte Typen erhalten das Feld, wenn eine Administratorin oder ein Administrator auf der Startseite die neuen Felder der vorgefertigten Typen hinzufügt.
+Der vorgefertigte Typ *task* hat neben dem Datum *due* ein Datum *start*. Eine neue Aufgabe beginnt heute: Beim Erstellen wird ihr Startdatum mit dem aktuellen Tag vorbelegt, den man im Formular ändern oder leeren kann. Dasselbe gilt für jedes Datumsfeld, dessen Name einen Beginn bezeichnet (*start*, *begin*, *kickoff* und ähnliche); eine im Kalender erstellte Aufgabe übernimmt den dort gewählten Tag. Kalender und Roadmap zeigen eine Aufgabe mit beiden Daten als Balken vom Beginn bis zur Fälligkeit. Ein Startdatum ist keine Frist: Auf einem Kanban wird ein vergangenes Startdatum nicht als überfällig markiert. Bereits angelegte Typen erhalten das Feld, wenn eine Administratorin oder ein Administrator auf der Startseite die neuen Felder der vorgefertigten Typen hinzufügt.
 
 ### Boards und Kanbans
 
@@ -286,6 +288,8 @@ Karten werden mit **Neue Karte** hinzugefügt, für ihre Details geöffnet und m
 ### Roadmap und Gantt-Diagramm
 
 Die **Roadmap** zeigt Einträge mit Datumsfeldern auf einer Zeitachse: als **Roadmap nach Label** in Bahnen oder als **Gantt-Diagramm** mit einer Zeile je Eintrag. Man wählt Raum, Typen, die Felder **Beginn** und **Ende**, die Labels und den **Massstab** (Wochen, Monate, Quartale). Einträge, die auf unerledigte Einträge warten, sind markiert.
+
+**Exportieren** speichert das Diagramm als Bild, als **PNG** oder **JPEG**, mit allen Zeilen und der ganzen Zeitachse, auch dem, was ausserhalb des sichtbaren Bereichs liegt. Das Bild zeigt, was man sieht, im aktuellen Erscheinungsbild, und ist nach der Ansicht und dem Tag benannt, etwa *Gantt-Diagramm PLAT 2026-11-12.png*. Ein Diagramm, das für ein Bild zu gross ist, das der Browser zeichnen kann, wird mit einem Hinweis abgelehnt; man schränkt es nach Labels, Typ oder Raum ein oder wählt einen gröberen Massstab.
 
 ### Kalender
 
@@ -318,8 +322,8 @@ In der Ansicht **Ordner** steht über dem Inhalt der Pfad zum offenen Ordner, da
 
 Bilder werden dort hinzugefügt, wo man gerade ist, in der Ansicht **Ordner**:
 
-- *In einem Ordner* wählt man **Bilder hochladen**, legt Bilder und ZIP-Archive auf dem Album ab oder fügt ein Bild mit Strg+V ein, etwa ein Bildschirmfoto. Ein leerer Ordner zeigt dafür eine grosse Fläche. **Aus dem Album hinzufügen…** kopiert Bilder, die schon im Album sind, in den Ordner; das Original bleibt, wo es ist.
-- *In einer Sammlung* gelten dieselben Wege. Eine Sammlung hält keine eigenen Dateien; das Album fragt deshalb, in welchem Ordner die neuen Bilder abgelegt werden, wobei der zuletzt gewählte Ordner vorne steht, oder legt einen **Neuer Ordner…** an. Jedes Bild erhält die Labels der Sammlung und erscheint so in ihr. **Aus dem Album hinzufügen…** gibt Bildern, die schon im Album sind, die Labels der Sammlung, ohne sie zu kopieren.
+- *In einem Ordner* wählt man **Bilder hochladen**, legt Bilder und ZIP-Archive auf dem Album ab oder fügt ein Bild mit Strg+V ein, etwa ein Bildschirmfoto. Ein leerer Ordner zeigt dafür eine grosse Fläche. **Aus dem Album hinzufügen…** holt Bilder, die schon im Album sind, in den Ordner: Mit **Kopieren** bleibt das Original, wo es ist; mit **Verschieben** wandert das Bild mit seinen Versionen, ausser man darf es nicht ändern oder ein Text zeigt es. Das Album merkt sich die Wahl.
+- *In einer Sammlung* gelten dieselben Wege. Eine Sammlung hält keine eigenen Dateien; das Album fragt deshalb, in welchem Ordner die neuen Bilder abgelegt werden, oder legt einen **Neuer Ordner…** an. Die Sammlung merkt sich den Ordner für alle, die Bilder hinzufügen, und schlägt ihn beim nächsten Mal vor; ändern kann ihn nur, wer die Sammlung bearbeiten darf. Jedes Bild erhält die Labels der Sammlung und erscheint so in ihr. **Aus dem Album hinzufügen…** gibt Bildern, die schon im Album sind, die Labels der Sammlung, ohne sie zu kopieren.
 - *Ganz oben* im Album fragt das Hochladen, Ablegen oder Einfügen ebenfalls nach dem Ordner, der sich danach öffnet.
 
 Eine PowerPoint-Präsentation wird zu einem Ordner von Folien mit ihren Notizen (siehe *Eine PowerPoint-Präsentation importieren*). Aus Foto-Apps exportierte Bilder werden im Browser entpackt. Sofern eingeschaltet, kommen Fotos auch **Aus Google Fotos** oder **Aus geteiltem iCloud-Album**. HEIC-Fotos werden nicht übernommen; sie sind vorher als JPEG zu exportieren. Videos aus Google Fotos und geteilten iCloud-Alben kommen ebenfalls, mit dem Bild, das der Dienst von ihnen hat, als Vorschaubild.
@@ -360,6 +364,22 @@ Die Ansicht **Personen** listet alle benannten Personen mit ihrem Gesicht und de
 Gesichter werden im eigenen Browser gefunden; nichts wird anderswohin gesendet. Hat die Administration **Gesichter wiedererkennen** eingeschaltet, berechnet der Browser zu jedem Gesicht zusätzlich Zahlenwerte, mit denen das Album für ein Gesicht, das bereits benannten Gesichtern ähnelt, einen Namen vorschlägt, etwa *Ada?*. Diese Werte sind biometrische Daten: Man schaltet das nur ein, wenn die abgebildeten Personen einverstanden sind. Beim Ausschalten werden sie alle gelöscht; die Namen bleiben. Bilder, die vor dem Einschalten durchsucht wurden, werden erst erkannt, wenn sie erneut durchsucht werden: Nach dem Einschalten weist die Administration auf **Gesichter in allen Bildern finden** hin, und ein im Betrachter geöffnetes Bild wird von selbst erneut durchsucht.
 
 Ist die Wiedererkennung eingeschaltet, zeigt das Album einer Person zusätzlich **Ist das Ada?**: Gesichter auf anderen Bildern, die man bearbeiten darf und die Ada mehr ähneln als allen anderen benannten Personen, die ähnlichsten zuerst. Man klickt die Gesichter an, die Ada zeigen, oder wählt **Alle wählen** und klickt die falschen wieder ab, dann **Gewählte bestätigen**. Nicht gewählte Gesichter bleiben unbenannt und werden später erneut vorgeschlagen. Vorgeschlagen werden nur Bilder, deren Gesichter bei eingeschalteter Wiedererkennung gesucht wurden.
+
+### Ordner, die einen Fileshare zeigen
+
+Ein Administrator kann einen Album-Ordner an einen Fileshare binden: ein Verzeichnis des Servers, etwa einen eingebundenen Samba-Share, oder einen S3-Bucket.
+Der Ordner zeigt dann die Bilder des Shares und liest ihn nach einem Zeitplan neu.
+Darunter enthält für jedes Verzeichnis des Shares ein eigener Ordner dessen Bilder; diese Ordner folgen dem Share und werden nicht von Hand erstellt, verschoben oder gelöscht, und ein von Hand geänderter Titel wird zurückgesetzt.
+Der Share bleibt massgebend: Das Wiki behält von jedem Bild eine Vorschau, das Original bleibt, wo es liegt.
+
+Ein solches Bild ist mit **Auf einem Fileshare** markiert.
+**Original öffnen** öffnet es dort, wo es liegt, mit dem eigenen Zugriff auf den Share; der Share entscheidet, ob es sich öffnet.
+Man versieht es mit Labels, benennt die Personen darauf, setzt Ort und Zeit und markiert es als Favorit wie jedes Bild.
+Man benennt es nicht um, verschiebt oder löscht es nicht und fügt einem solchen Ordner keine Bilder hinzu: Man ändert die Dateien auf dem Share, und das nächste Lesen folgt.
+Eine auf dem Share verschobene Datei behält, was auf ihr gesetzt wurde, solange ihr Inhalt gleich bleibt.
+Eine vom Share verschwundene Datei verschwindet aus dem Album; kommt sie innert 30 Tagen zurück, kehrt sie mit ihren Labels und Namen zurück.
+Wer ein solches Bild kopiert oder exportiert, erhält seine Vorschau.
+Ein Bild in einem Format, von dem der Server kein Bild zeigt, etwa HEIC eines Telefons oder RAW einer Kamera, hat statt einer Vorschau ein Symbol; es bietet nur **Original öffnen** an, ebenso ein Video eines Shares.
 
 ### Einen Ordner verschieben
 
@@ -538,7 +558,9 @@ Die Administration findet unter **Administration**:
 - **Räume**: Räume erstellen, ihre Einstellungen öffnen, einen Raum in den Papierkorb legen und wiederherstellen oder endgültig löschen;
 - **Typen**: Typen in einem Formular anlegen und ändern — Name, Text, Felder mit ihrer Art und ihren Optionen, Workflow mit Status und Übergängen (oder einfach *offen → erledigt*) und Starttext — für die ganze Installation oder für einen Raum; der Typ als JSON bleibt unter **Erweitert**. Typen entstehen auch aus den Vorlagen;
 - **Backup** (auch zeitgesteuert in ein Verzeichnis, per WebDAV, S3, FTPS oder SFTP) und **Speicher**;
-- **Kalender anderer Dienste**, **Album: ältere Versionen**, **Konnektoren** und **Prozess-Engines**;
+- **Kalender anderer Dienste**, **Album: ältere Versionen**, **Fileshares**, **Konnektoren** und **Prozess-Engines**.
+  Unter **Fileshares** wird ein Album-Ordner an ein vom Betrieb freigegebenes Verzeichnis oder an einen S3-Bucket gebunden und sofort (**Jetzt lesen**, **Probelauf**) oder nach Zeitplan gelesen.
+  Wer den Ordner lesen darf, sieht jedes Bild, das der Server auf dem Share lesen kann; ein Lauf, der mehr als die Hälfte der Bilder eines Shares zurückziehen würde, zieht keines zurück bis **Rückzug bestätigen**;
 - **Erscheinungsbild (Corporate Design)**: Logo, Farben, Hintergrund, Schriften und ein fertiges Theme, darunter *Capacity*, ein ruhiges Erscheinungsbild für Notizen in Hell und Dunkel;
 - **Word-Vorlagen**, **Datenschutz-Regelwerke**, **Import** und das **Audit-Protokoll**.
 

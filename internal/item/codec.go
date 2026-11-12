@@ -177,7 +177,13 @@ import (
 //     fields Widths, Heights and Cells, its column widths, row heights and
 //     coloured cells, sealed with the body (ADR-0214). Versions 1 to 58
 //     are still read; their tables are plain and sized by their text.
-const CodecVersion = 59
+//   - 60: an attachment may carry Share, where the original of an entry
+//     of a file share lies (share, path, tag), sealed with the rest of
+//     it, and the kinds AttachmentLinked, AttachmentRelinked and
+//     AttachmentRestored with attachment, sealed, and AttachmentWithdrawn
+//     with the attachment's ID only (ADR-0197). Versions 1 to 59 are
+//     still read; they hold no entry of a share.
+const CodecVersion = 60
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

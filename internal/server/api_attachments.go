@@ -14,6 +14,7 @@ import (
 
 	"github.com/dbuchs7/orbithek/internal/budget"
 	"github.com/dbuchs7/orbithek/internal/item"
+	"github.com/dbuchs7/orbithek/internal/share"
 	"github.com/dbuchs7/orbithek/internal/storage"
 	"github.com/dbuchs7/orbithek/internal/whiteboard"
 )
@@ -36,6 +37,7 @@ func attachmentRoutes(h itemHandlers) []Route {
 		{Method: http.MethodPost, Pattern: "/api/album/folders", Summary: "Make a folder of the album: name, and space or parent (a folder); who may create there may", Handler: http.HandlerFunc(h.createAlbumFolder)},
 		{Method: http.MethodPost, Pattern: "/api/album/collections", Summary: "Make a collection of the album, which gathers the labelled pictures of every room: name, space or parent (a folder), labels, match (any or all) and items (the labels of a picture's item count too); who may create there may", Handler: http.HandlerFunc(h.createAlbumCollection)},
 		{Method: http.MethodPut, Pattern: "/api/album/collections/{ref}", Summary: "Change a collection's rule: labels, match (any or all) and items; who may edit the collection may", Handler: http.HandlerFunc(h.setAlbumCollection)},
+		{Method: http.MethodPut, Pattern: "/api/album/collections/{ref}/folder", Summary: "Keep the folder a collection's new pictures go into, for everyone who adds to it (folder: a folder's ID, empty to forget it); who may edit the collection may", Handler: http.HandlerFunc(h.setAlbumCollectionFolder)},
 		{Method: http.MethodPut, Pattern: "/api/album/order/{ref}", Summary: "Move pictures within the order of the slides of a folder or collection ({ref}), set by hand: pictures (the first versions of their stacks, first, in the order they are to have) go right before before, or to the end without it; the album lists the pictures so with order=slides, those the order does not name after the others by name; who may edit the folder or collection may (ADR-0195)", Handler: http.HandlerFunc(h.placePictures)},
 		{Method: http.MethodDelete, Pattern: "/api/album/order/{ref}", Summary: "Forget the order of the slides set by hand of a folder or collection ({ref}): its slides are ordered by name again; who may edit it may (ADR-0195)", Handler: http.HandlerFunc(h.clearPictureOrder)},
 		{Method: http.MethodGet, Pattern: "/api/album/labels", Summary: "The labels of the pictures one may read, most used first (space; q: holding it)", Handler: http.HandlerFunc(h.albumLabels)},
@@ -177,7 +179,7 @@ type albumPicture struct {
 // that belong to its stack (versions, rule, notes, favourite, taken).
 func (h itemHandlers) albumPictureOf(p item.Picture) albumPicture {
 	return albumPicture{Item: albumItemRef{p.Item.ID, p.Item.Key, p.Item.Title, p.Item.Space, p.Item.Type},
-		Attachment: toAttachmentJSON(p.Attachment), Drawing: albumKind(p.Attachment) == "drawing", Video: albumVideo(p.Attachment),
+		Attachment: h.withShare(p.Item.ID, toAttachmentJSON(p.Attachment)), Drawing: albumKind(p.Attachment) == "drawing", Video: albumVideo(p.Attachment),
 		Poster: albumVideo(p.Attachment) && h.d.DB.HasPoster(p.Item.ID, p.Attachment.ID), Used: p.Used, Editable: p.Editable, First: p.First}
 }
 
@@ -204,6 +206,35 @@ type attachmentJSON struct {
 	// FacesSeen says it was searched for faces (ADR-0194).
 	Faces     []faceJSON `json:"faces,omitempty"`
 	FacesSeen bool       `json:"facesSeen,omitempty"`
+	// Share says where the original of an entry of a file share lies
+	// (ADR-0197); absent for every other file.
+	Share *shareFileJSON `json:"share,omitempty"`
+}
+
+// shareFileJSON is where an entry's original lies: the share, the path
+// below its address, whether the file is gone for now, the link that
+// opens it where it lies (when the share has a link template), and
+// whether the entry has a preview to show.
+type shareFileJSON struct {
+	Share     string `json:"share"`
+	Path      string `json:"path"`
+	Withdrawn bool   `json:"withdrawn,omitempty"`
+	Link      string `json:"link,omitempty"`
+	Preview   bool   `json:"preview"`
+}
+
+// withShare adds an entry's link and whether it has a preview.
+func (h itemHandlers) withShare(id item.ID, a attachmentJSON) attachmentJSON {
+	if a.Share == nil {
+		return a
+	}
+	f := *a.Share
+	if sh, ok := h.d.DB.Site.Share(f.Share); ok && sh.Link != "" {
+		f.Link = share.Link(sh.Link, f.Path)
+	}
+	f.Preview = h.d.DB.HasPreview(id, a.ID)
+	a.Share = &f
+	return a
 }
 
 type copyOriginJSON struct {
@@ -244,7 +275,14 @@ func withOrigin(x *item.Session, id item.ID, a attachmentJSON) attachmentJSON {
 func toAttachmentJSON(a item.Attachment) attachmentJSON {
 	return attachmentJSON{ID: a.ID, Name: a.Name, Type: a.Type, Size: a.Size, SHA256: a.SHA256, Author: a.Author,
 		Created: time.Unix(a.Created, 0).UTC(), Inline: inlineTypes[a.Type], Labels: a.Labels, Photo: a.Photo,
-		Faces: toFacesJSON(a.Faces), FacesSeen: a.FacesSeen}
+		Faces: toFacesJSON(a.Faces), FacesSeen: a.FacesSeen, Share: shareFileOf(a)}
+}
+
+func shareFileOf(a item.Attachment) *shareFileJSON {
+	if !a.Linked() {
+		return nil
+	}
+	return &shareFileJSON{Share: a.Share.Share, Path: a.Share.Path, Withdrawn: a.Withdrawn()}
 }
 
 func (h itemHandlers) setPictureLabels(w http.ResponseWriter, r *http.Request) {
@@ -304,6 +342,9 @@ func (h itemHandlers) moveFile(w http.ResponseWriter, r *http.Request) {
 	})
 	if check != nil {
 		h.fail(w, check)
+		return
+	}
+	if !boundFolder(w, h.d, to) {
 		return
 	}
 	if h.d.Whiteboards != nil && !h.d.Whiteboards.Yield(whiteboard.Key{Item: from, First: first}) {
@@ -400,7 +441,7 @@ func (h itemHandlers) albumFolders(w http.ResponseWriter, r *http.Request) {
 		collections := []map[string]any{}
 		for _, c := range x.Collections(space, parent) {
 			collections = append(collections, map[string]any{"id": c.Item.ID, "key": c.Item.Key, "name": c.Item.Title, "space": c.Item.Space,
-				"parent": c.Item.Parent, "rule": toRuleJSON(c.Rule), "editable": c.Editable})
+				"parent": c.Item.Parent, "rule": toRuleJSON(c.Rule), "editable": c.Editable, "folder": c.Folder})
 		}
 		return map[string]any{"folders": out, "collections": collections}, nil
 	})
@@ -480,6 +521,27 @@ func (h itemHandlers) setAlbumCollection(w http.ResponseWriter, r *http.Request)
 	})
 }
 
+// setAlbumCollectionFolder keeps the folder a collection's new pictures go
+// into (ADR-0221).
+func (h itemHandlers) setAlbumCollectionFolder(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Folder item.ID `json:"folder"`
+	}
+	if !decode(w, r, &req) {
+		return
+	}
+	h.write(w, r, http.StatusOK, func(x *item.Session, _ *item.Store) (any, error) {
+		it, err := resolveItem(x, r.PathValue("ref"))
+		if err != nil {
+			return nil, err
+		}
+		if err := x.SetCollectionFolder(it.ID, req.Folder); err != nil {
+			return nil, err
+		}
+		return map[string]item.ID{"folder": req.Folder}, nil
+	})
+}
+
 func (h itemHandlers) createAlbumFolder(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Space  string  `json:"space"`
@@ -489,7 +551,10 @@ func (h itemHandlers) createAlbumFolder(w http.ResponseWriter, r *http.Request) 
 	if !decode(w, r, &req) {
 		return
 	}
-	h.write(w, r, http.StatusCreated, func(x *item.Session, _ *item.Store) (any, error) {
+	h.write(w, r, http.StatusCreated, func(x *item.Session, s *item.Store) (any, error) {
+		if sh, ok := shareTree(s, h.d.DB.Site, req.Parent); ok {
+			return nil, treeRefusal(sh)
+		}
 		f, err := x.CreateFolder(req.Space, req.Parent, req.Name)
 		if err != nil {
 			return nil, err
@@ -549,7 +614,7 @@ func (h itemHandlers) listAttachments(w http.ResponseWriter, r *http.Request) {
 		list, err := x.Attachments(it.ID)
 		out := []attachmentJSON{}
 		for _, a := range list {
-			out = append(out, withOrigin(x, it.ID, toAttachmentJSON(a)))
+			out = append(out, h.withShare(it.ID, withOrigin(x, it.ID, toAttachmentJSON(a))))
 		}
 		return map[string]any{"attachments": out}, err
 	})
@@ -576,6 +641,9 @@ func (h itemHandlers) uploadAttachment(w http.ResponseWriter, r *http.Request) {
 	})
 	if check != nil {
 		h.fail(w, check)
+		return
+	}
+	if !boundFolder(w, h.d, id) {
 		return
 	}
 	limit := budget.Get().AttachmentBytes
@@ -611,7 +679,16 @@ func (h itemHandlers) uploadAttachment(w http.ResponseWriter, r *http.Request) {
 	a.Name = name
 	// A video is told by its own bytes (ADR-0189): QuickTime, and some
 	// MP4 brands, read as an octet stream to the standard detection.
-	if vt := h.videoType(id, a); vt != "" {
+	// Sound alone is told by its tracks, so a recording in a container
+	// that also holds videos is no video (ADR-0219).
+	if at := h.audioType(id, a); at != "" {
+		a.Type = at
+		if video && a.Size > budget.Get().AttachmentBytes {
+			h.d.DB.DiscardAttachment(id, a.ID)
+			writeError(w, http.StatusRequestEntityTooLarge, fmt.Sprintf("a file other than a video may have at most %d bytes", budget.Get().AttachmentBytes))
+			return
+		}
+	} else if vt := h.videoType(id, a); vt != "" {
 		a.Type = vt
 	} else if video && a.Size > budget.Get().AttachmentBytes {
 		h.d.DB.DiscardAttachment(id, a.ID)
@@ -703,7 +780,7 @@ func (h itemHandlers) downloadAttachment(w http.ResponseWriter, r *http.Request)
 	defer content.Close()
 	hd := w.Header()
 	disposition := "attachment"
-	if inlineTypes[a.Type] || slices.Contains(item.VideoTypes, a.Type) {
+	if inlineTypes[a.Type] || slices.Contains(item.VideoTypes, a.Type) || slices.Contains(item.AudioTypes, a.Type) {
 		disposition = "inline"
 		hd.Set("Content-Type", a.Type)
 	} else {

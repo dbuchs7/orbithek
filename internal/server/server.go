@@ -234,6 +234,9 @@ func Routes(d Deps) []Route {
 	if d.Shares == nil {
 		d.Shares = NewShares(os.Getenv)
 	}
+	if d.DB != nil {
+		d.Shares.bind(d.DB, d.Log)
+	}
 	if d.Calendars == nil && d.DB != nil {
 		d.Calendars = extcal.NewReader(d.DB.Calendars, CalendarClient(os.Getenv), nil)
 	}

@@ -13,11 +13,13 @@ import { isDrawing } from "./drawing.js";
 import { albumBrowser, retentionCard, captionOf } from "./album.js";
 import { forgetRecognition } from "./faces.js";
 import { sorts } from "./photoparts.js";
+import { recorderControl } from "./recorder.js";
+import { isAudio } from "./recorderparts.js";
 import { renameInPlace } from "./rename.js";
 import { presenterView, audienceView } from "./present.js";
 import { starmapView } from "./starmap.js";
 import { roadmapView } from "./roadmap.js";
-import { isStartName } from "./timeline.js";
+import { isStartName, startDefaults } from "./timeline.js";
 import { calendarView } from "./calendarview.js";
 import { WEEKDAYS, parseRule, ruleText } from "./recurrence.js";
 import { address as calendarAddress, tasksTab } from "./calendar.js";
@@ -908,7 +910,8 @@ function taskTools(item, editing) {
       h("p", { class: "muted", text: t("editor.newTaskHint", { title: item.title || item.key }) }),
     ], async (f) => {
       const ty = types.find((x) => x.name === typeSelect.value);
-      const properties = {};
+      // Only the required fields are asked for; a start date is today.
+      const properties = startDefaults(ty.fields);
       for (const fd of ty.fields.filter((x) => x.required)) {
         const v = readProperty(fd, f.querySelector(`[name="p:${CSS.escape(fd.name)}"]`));
         if (v !== null) properties[fd.name] = v;
@@ -932,7 +935,8 @@ function sizeText(n) {
 // can be uploaded and files deleted.
 function attachmentsSection(path, files, live) {
   const status = h("div", { class: "status" });
-  const kindOf = (a) => a.type?.startsWith("image/") ? t("att.kindImage") : a.type?.startsWith("video/") ? t("att.kindVideo") : t("att.kindOther");
+  const kindOf = (a) => a.type?.startsWith("image/") ? t("att.kindImage") : a.type?.startsWith("video/") ? t("att.kindVideo")
+    : isAudio(a) ? t("att.kindAudio") : t("att.kindOther");
   const row = (a) => h("li", { class: "attachment", "data-f-kind": kindOf(a) },
     h("a", { href: `${path}/attachments/${a.id}`, text: a.name, download: a.inline ? null : a.name, target: a.inline ? "_blank" : null, rel: "noopener" }),
     h("span", { class: "muted", text: ` · ${sizeText(a.size)} · ${person(a.author)} · ${when(a.created)}` }),
@@ -941,6 +945,9 @@ function attachmentsSection(path, files, live) {
       : t("att.copyOfUnknown"),
     a.origin.newer ? [" ", h("span", { class: "chip", text: t("att.originChanged") })] : null) : null,
     isDrawing(a.name) ? [" · ", link(whiteboardHref(path, a.id), t("wb.open"), "wb-open")] : null,
+    // Sound plays in the list (ADR-0219).
+    isAudio(a) ? h("audio", { class: "att-audio", controls: true, preload: "none", src: `${path}/attachments/${a.id}`,
+      "aria-label": t("att.playOf", { name: a.name }) }) : null,
     // A PDF opens in the reader (ADR-0210).
     isPdf(a) ? [" · ", h("a", { href: readerHref(decodeURIComponent(path.split("/").pop()), a.id), class: "pdf-read", text: t("pdf.read"),
       "aria-label": t("pdf.readLabel", { name: a.name }) })] : null,
@@ -968,11 +975,15 @@ function attachmentsSection(path, files, live) {
       for (const file of picker.files) await upload(path, file);
     }, status));
   }
+  // Sound recorded here becomes a file of the item
+  // (ADR-0219).
+  const recorder = live ? recorderControl((file) => action(() => upload(path, file), status), status) : null;
   return h("section", { id: "attachments" },
     h("h2", { text: t("att.title", { n: files.length }) }),
     files.length ? filtered(h("ul", { class: "attachments" }, files.map(row)), { id: "files", label: t("att.title", { n: files.length }),
       choices: [{ key: "kind", label: t("filter.kind") }] }) : empty(t("att.none")),
     picker ? h("label", { class: "upload" }, h("span", { text: t("att.upload") }), picker) : null,
+    recorder,
     board ? h("p", {}, board) : null,
     status);
 }
@@ -1197,17 +1208,25 @@ const moduleGlyphs = {
     ["path", { d: "M9 20.5l3-4 3 4", fill: "none", stroke: "#fff", "stroke-width": "1.8", "stroke-linecap": "round", "stroke-linejoin": "round" }],
     ["rect", { x: "6", y: "7", width: "5.5", height: "5.5", rx: "1", fill: "#fff" }],
     ["path", { d: "M14 8.5h4M14 11.5h3", fill: "none", stroke: "#fff", "stroke-width": "1.6", "stroke-linecap": "round" }]],
+  // A calendar sheet with today's day of the month (ADR-0205); the number
+  // is given by the caller as a text glyph, so the icon is today's.
+  day: [
+    ["rect", { x: "3.5", y: "5", width: "17", height: "15.5", rx: "2.5", fill: "none", stroke: "#fff", "stroke-width": "1.8" }],
+    ["path", { d: "M3.5 9.5h17M8 3v4M16 3v4", fill: "none", stroke: "#fff", "stroke-width": "1.8", "stroke-linecap": "round" }]],
   protection: [
     ["path", { d: "M12 3l7 3v5c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6z", fill: "#fff" }],
     ["path", { d: "M8.8 11.8l2.3 2.3 4.2-4.4", fill: "none", class: "module-stroke", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }]],
 };
-function moduleIcon(kind) {
+// moduleIcon draws a module's symbol; extra glyphs are drawn on top, and
+// a glyph's text, if it has one, is its content rather than an attribute.
+function moduleIcon(kind, extra = []) {
   const ns = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(ns, "svg");
   for (const [k, v] of Object.entries({ viewBox: "0 0 24 24", width: "22", height: "22", "aria-hidden": "true" })) svg.setAttribute(k, v);
-  for (const [tag, attrs] of moduleGlyphs[kind]) {
+  for (const [tag, attrs, text] of [...moduleGlyphs[kind], ...extra]) {
     const el = document.createElementNS(ns, tag);
     for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    if (text !== undefined) el.textContent = text;
     svg.append(el);
   }
   return h("span", { class: "module-icon module-" + kind }, svg);
@@ -2310,8 +2329,14 @@ async function homeView() {
   const name = brand.name || "Orbithek";
   // Each tile wears the symbol and colour of its module on the station of
   // the start page's picture.
-  const quick = (href, title, text, id, extra, module) => h("a", { class: "home-tile", href, id },
-    module ? moduleIcon(module) : null, h("strong", { text: title }), h("span", { class: "muted", text }), extra || null);
+  const quick = (href, title, text, id, extra, module, glyphs) => h("a", { class: "home-tile", href, id },
+    module ? moduleIcon(module, glyphs) : null, h("strong", { text: title }), h("span", { class: "muted", text }), extra || null);
+  // Today, where the browser is: its long date for "My day" and its day of
+  // the month on the tile's calendar sheet.
+  const now = new Date();
+  const todayText = now.toLocaleDateString(language() || undefined, { weekday: "long", day: "numeric", month: "long" });
+  const todayNumber = ["text", { x: "12", y: "18.6", "text-anchor": "middle", "font-size": "9", "font-weight": "700",
+    "font-family": "system-ui, sans-serif", fill: "#fff" }, String(now.getDate())];
   // How much the wiki holds that one may read: pages, tasks (open and
   // done) and pictures in the album. Counted after the page is shown.
   const stats = h("p", { class: "home-stats", id: "home-stats", "aria-live": "polite" });
@@ -2358,6 +2383,9 @@ async function homeView() {
       // The starmap first: one's rooms as a map of connections (ADR-0157);
       // the view picks the favourite or first room.
       quick("#/starmap", t("nav.starmap"), t("home.starmapText"), "home-starmap", null, "starmap"),
+      // My day: today's daily note, made in one's daily room on opening
+      // when there is none (ADR-0205).
+      quick("#/daily", t("home.today"), t("home.todayText", { date: todayText }), "home-today", null, "day", [todayNumber]),
       quick("#/tasks", t("nav.tasks"), t("home.tasksText"), "home-tasks",
         requests.length ? h("span", { class: "chip", text: t("nav.requestsWaiting", { n: requests.length }) }) : null, "tasks"),
       quick("#/notifications", t("nav.notifications"), notes.unread ? t("home.notesUnread", { n: notes.unread }) : t("home.notesNone"), "home-notes",
@@ -2777,7 +2805,7 @@ function viewSection(type, items, status, make, keep, heading) {
     },
     takes: (col) => Boolean(make) && (col.state === wf.initial || ways(wf.initial, col.state).length === 1),
     create: async (col, title, properties) => {
-      const { item } = await post("/api/items", { space: make.space, type: type.name, title, properties });
+      const { item } = await post("/api/items", { space: make.space, type: type.name, title, properties: { ...startDefaults(type.fields), ...properties } });
       if (make.label) await put(`/api/items/${item.id}/labels`, { labels: [make.label] });
       const [way] = col.state === item.state ? [] : ways(item.state, col.state);
       if (way) await transition(item, way.name);
@@ -3316,7 +3344,7 @@ async function kanbanView(space, id) {
   // It carries the kanban's label and stands on top of its column.
   const takes = (col) => canEdit && (!col.state || col.state === wf.initial || wf.transitions.some((tr) => tr.to === col.state && tr.from.includes(wf.initial)));
   const create = async (col, title, properties) => {
-    const { item } = await post("/api/items", { space, type: k.type, title, properties });
+    const { item } = await post("/api/items", { space, type: k.type, title, properties: { ...startDefaults(type.fields), ...properties } });
     await setLabels(item, [k.label]);
     await post(kpath + "/place", { card: item.id, column: col.id, before: (col.cards || [])[0] || "" });
   };
@@ -4045,7 +4073,7 @@ async function calendarScreen(params) {
 
 // dailyScreen shows one's daily note of a day (ADR-0205).
 async function dailyScreen(arg, params) {
-  await dailyView(screen(), arg || "", params, { ...textTools(), favouritesFirst, reload: () => route() });
+  await dailyView(screen(), arg || "", params, { ...textTools(), favouritesFirst, columnToggle, reload: () => route() });
 }
 
 // storagePaused tells that nothing new is made now (ADR-0163).
@@ -4614,7 +4642,8 @@ function newItemForm({ space, spaces = null, types, parent = null, heading = t("
   };
   const showFields = () => {
     const ty = types.find((x) => x.name === typeSelect.value);
-    fields.replaceChildren(...(ty?.fields || []).map((f) => field(f.name + (f.required ? " *" : ""), propertyInput(f))));
+    const start = startDefaults(ty?.fields);
+    fields.replaceChildren(...(ty?.fields || []).map((f) => field(f.name + (f.required ? " *" : ""), propertyInput(f, start[f.name]))));
   };
   typeSelect.addEventListener("change", showFields);
   spaceSelect?.addEventListener("change", () => { offerTypes(); showFields(); });
@@ -6297,7 +6326,7 @@ async function adminView() {
 
   const storageSection = section("storage", t("storage.title"), await storageCard());
   const calendarsSection = section("calendars", t("extcal.adminTitle"), await calendarsCard());
-  const albumSection = section("album", t("retention.title"), await retentionCard(), await placesCard(), await facesCard());
+  const albumSection = section("album", t("retention.title"), await retentionCard(), await placesCard(), await facesCard(), await sharesCard());
   const catalogSection = section("connectors", t("connector.title"), connectorsCard(spaces, users));
   const enginesSection = section("engines", t("engine.title"), enginesCard());
   const designSection = section("design", t("design.title"), await designCard());
@@ -6441,6 +6470,105 @@ async function facesCard() {
     }),
     done);
   draw(await get("/api/settings/faces"));
+  return box;
+}
+
+// sharesCard binds album folders to file shares, a directory the operator
+// allows or an S3 bucket, and reads them now or on their schedule
+// (ADR-0197). Binding shows every file the share's credential reads to
+// every reader of the folder; the card says so.
+async function sharesCard() {
+  const box = h("div", { id: "shares-settings" });
+  const done = h("div", { class: "status", role: "status" });
+  const runText = (r) => r.error ? t("shares.runFailed", { error: r.error })
+    : t(r.dryRun ? "shares.runDry" : "shares.runDone", { seen: r.seen, linked: r.linked, changed: r.changed, moved: r.moved, restored: r.restored, withdrawn: r.withdrawn, deleted: r.deleted, read: r.toRead || 0 });
+  const runNow = async (s, body) => {
+    await post(`/api/shares/${encodeURIComponent(s.id)}/run`, body);
+    done.replaceChildren(h("p", { class: "notice", text: t("shares.started", { name: s.name }) }));
+    setTimeout(load, 1500);
+  };
+  const row = (s) => {
+    const last = s.status.history[0];
+    return h("li", { class: "share-row", "data-share": s.id },
+      h("strong", { text: s.name }), " ",
+      h("span", { class: "chip", text: s.kind === "s3" ? "S3" : t("shares.kindDir") }), " ",
+      h("code", { text: s.address }),
+      h("p", { class: "muted" }, t("shares.folder") + " ", h("span", { text: s.folderTitle || s.folder }),
+        " · " + t("shares.entries", { n: s.entries, withdrawn: s.withdrawn }),
+        " · " + (s.enabled ? t("shares.every", { n: s.intervalHours }) : t("shares.off"))),
+      s.kind === "s3" && !s.keysSet ? h("p", { class: "error-text", text: t("shares.keysMissing", { access: s.accessKeyVar, secret: s.secretKeyVar }) }) : null,
+      s.status.running ? h("p", { class: "muted", text: t("shares.running") }) : null,
+      last ? h("p", { class: last.error ? "error-text" : "muted", text: when(last.finished) + " — " + runText(last) }) : h("p", { class: "muted", text: t("shares.never") }),
+      last?.held ? h("p", { class: "error-text", text: t("shares.held", { n: last.held }) }) : null,
+      ...(last?.problems || []).map((p) => h("p", { class: "muted share-problem", text: p })),
+      h("div", { class: "row" },
+        h("button", { type: "button", class: "secondary share-run", text: t("shares.runNow"), disabled: s.status.running, onclick: () => runNow(s, {}).catch(fail) }),
+        h("button", { type: "button", class: "secondary share-dry", text: t("shares.dryRun"), disabled: s.status.running, onclick: () => runNow(s, { dryRun: true }).catch(fail) }),
+        last?.held ? h("button", { type: "button", class: "danger share-confirm", text: t("shares.confirm"), disabled: s.status.running, onclick: () => {
+          if (confirm(t("shares.confirmAsk", { n: last.held, name: s.name }))) runNow(s, { confirm: true }).catch(fail);
+        } }) : null,
+        h("button", { type: "button", class: "link share-edit", text: t("common.edit"), onclick: () => fill(s) }),
+        h("button", { type: "button", class: "link danger share-remove", text: t("shares.remove"), disabled: s.status.running, onclick: async () => {
+          if (!confirm(t("shares.removeConfirm", { name: s.name, n: s.entries }))) return;
+          try { await del(`/api/shares/${encodeURIComponent(s.id)}`); load(); } catch (err) { fail(err); }
+        } })));
+  };
+  const fail = (err) => done.replaceChildren(errorBox(err));
+  let editing = null;
+  const input = (name, attrs = {}) => h("input", { name, id: "share-" + name, ...attrs });
+  const fields = {
+    id: input("id", { required: true, pattern: "[a-z0-9][a-z0-9.\\-]{0,39}" }),
+    name: input("name", { required: true, maxlength: 80 }),
+    address: input("address", { required: true, placeholder: "/mnt/nas/photos" }),
+    folder: input("folder", { required: true, placeholder: "PLAT-12" }),
+    link: input("link", { placeholder: "smb://nas/photos/{path}" }),
+    intervalHours: input("intervalHours", { type: "number", min: 1, max: 168, value: 6 }),
+  };
+  const enabled = h("input", { type: "checkbox", name: "enabled", id: "share-enabled" });
+  const fill = (s) => {
+    editing = s;
+    for (const [k, el] of Object.entries(fields)) el.value = s[k] ?? "";
+    fields.id.readOnly = fields.folder.readOnly = true;
+    enabled.checked = s.enabled;
+    fields.name.focus();
+  };
+  const clear = () => {
+    editing = null;
+    for (const el of Object.values(fields)) { el.value = ""; el.readOnly = false; }
+    fields.intervalHours.value = 6;
+    enabled.checked = false;
+  };
+  const load = async () => {
+    const d = await get("/api/shares");
+    box.replaceChildren(
+      h("h3", { text: t("shares.title") }),
+      h("p", { class: "muted", text: t("shares.lead") }),
+      h("p", { class: "notice", id: "shares-disclosure", text: t("shares.disclosure") }),
+      d.roots.length
+        ? h("p", { class: "muted", id: "shares-roots" }, t("shares.roots") + " ", ...d.roots.map((r) => h("code", { text: r + " " })))
+        : h("p", { class: "muted", id: "shares-roots", text: t("shares.noRoots", { variable: d.rootsVar }) }),
+      d.shares.length ? h("ul", { class: "share-list" }, ...d.shares.map(row)) : h("p", { class: "muted", text: t("shares.none") }),
+      form({ id: "share-form" }, [
+        field(t("shares.id"), fields.id), field(t("shares.name"), fields.name),
+        field(t("shares.address"), fields.address), field(t("shares.folderKey"), fields.folder),
+        field(t("shares.link"), fields.link), field(t("shares.interval"), fields.intervalHours),
+        h("label", { class: "check" }, enabled, t("shares.enabled")),
+        h("p", { class: "muted", text: t("shares.formHelp") }),
+        h("div", { class: "row" },
+          h("button", { type: "submit", text: t("common.save") }),
+          h("button", { type: "button", class: "link", text: t("common.cancel"), onclick: clear })),
+      ], async (f) => {
+        const body = { id: f.get("id"), name: f.get("name"), address: f.get("address"), folder: f.get("folder"), link: f.get("link"),
+          intervalHours: Number(f.get("intervalHours")) || 0, enabled: f.get("enabled") === "on" };
+        if (editing) await put(`/api/shares/${encodeURIComponent(editing.id)}`, body);
+        else await post("/api/shares", body);
+        done.replaceChildren(h("p", { class: "notice", text: t("shares.saved", { name: body.name }) }));
+        clear();
+        await load();
+      }),
+      done);
+  };
+  await load();
   return box;
 }
 

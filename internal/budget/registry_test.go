@@ -57,6 +57,9 @@ var classified = map[string]string{
 		"it guards against a host that names a next page for ever",
 	"internal/connector.maxPages": "how many pages of a JSON source's list a connector reads (ADR-0127, ADR-0135), not a caller's input to this server; " +
 		"it guards the connector against a source that names a next page for ever",
+	"internal/item.maxSharePath": "the shape of an entry of a file share (ADR-0197): how long the path it names may be, as the share's own path bound; " +
+		"what a request carries is bounded by RequestBody",
+	"internal/item.maxShareTag": "the shape of an entry of a file share (ADR-0197): how long the tag of its content (an ETag, a time) may be",
 	"internal/share.MaxPath": "the shape of a path below a file share's address (ADR-0197), like the length of a file name; " +
 		"a run's size is bounded by ShareFiles",
 	"internal/share.maxListingPage": "a page of an S3 share's listing (ADR-0197), read and parsed; not a caller's input to this server, " +
@@ -121,6 +124,8 @@ var classified = map[string]string{
 	"internal/photo.maxEntries":                        "the shape of an EXIF directory (ADR-0177): more entries than any camera writes mark a damaged file, read from a file already bounded by AttachmentBytes",
 	"internal/photo.maxVideoBoxes":                     "the shape of a video's boxes (ADR-0189): more boxes than any camera writes mark a damaged file; each box is visited by seeking, not held",
 	"internal/photo.maxVideoDepth":                     "the shape of a video's boxes (ADR-0189): how deep the boxes the album reads are nested",
+	"internal/photo.maxAudioElements":                  "the shape of a WebM file's elements (ADR-0219): more elements before the first Cluster than any recorder writes mark a damaged file; each is visited by seeking, not held",
+	"internal/photo.maxAudioDepth":                     "the shape of a WebM file's elements (ADR-0219): how deep the Tracks element is nested",
 	"internal/photo.maxVideoBoxRead":                   "the shape of a small box of a video's header (ADR-0189), read whole; larger boxes are skipped, never read",
 	"internal/photo.maxExifBytes":                      "the shape of a picture's EXIF chunk (ADR-0177), read from a file already bounded by AttachmentBytes",
 	"internal/photo.maxExposureSecs":                   "the shape of photo data (ADR-0177): an exposure no camera takes is no exposure",

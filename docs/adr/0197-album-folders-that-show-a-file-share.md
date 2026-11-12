@@ -1,9 +1,9 @@
 # ADR-0197: Album folders that show a file share, as previews, with the share as master
 
-- **Status:** Proposed
-- **Implementation:** Not started
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-11
-- **Deciders:** Project initiators (request of 2026-11-11 to name file shares — S3 and Samba — for album folders, so that photos are shown only as previews while they stay stored on the share; the four choices below were answered the same day)
+- **Deciders:** Project initiators (request of 2026-11-11 to name file shares — S3 and Samba — for album folders, so that photos are shown only as previews while they stay stored on the share; the four choices below were answered the same day); accepted 2026-11-12.
 - **Open question:** whether the link to open an original may, for S3, be a presigned address the server signs, which would hand out the original to every reader of the folder; whether pictures the server cannot scale (HEIC, RAW, WebP) should get a preview by other means; whether a share should be read for what changed (S3 event notifications, SMB change notifications) rather than listed on a schedule; whether a native SMB client should replace the mount
 - **Question checked:** 2026-11
 
@@ -56,16 +56,28 @@ Chosen option: **1**.
 
 - **Definition:** administrators define shares under *Administration → Album → Shares*, kept in `site.wal` as connectors are: an ID (lower-case letters, digits, dots and hyphens, at most 40, fixed once made), a name, a kind, an address, the folder it fills (by the folder's ID, D2), a link template, whether it runs on its schedule, and its interval (one hour to seven days, six hours by default). A site keeps up to 20 of them, like connectors.
 - **One folder, one share:** a bound folder shows its share and nothing else. Uploading into it, and moving or copying pictures into it, is refused with a message that names the share. Its subfolders follow the share's directories; they are folders of the album like any other, made, renamed and removed by the runs, never by hand. A folder holding pictures of its own cannot be bound.
+  As built, the folders of directories are items of the album's folder type with the origin `share`, the share's ID and the directory's path (ADR-0023), upserted once a run, so a title changed by hand is set back; an entry whose file moves to another directory moves with its preview to that folder (`MoveLinkedFile`), and the folder of a directory gone is removed to the trash once it holds nothing, restored when the directory comes back.
+  Folders are not made, moved or trashed by hand inside a bound folder, and the bound folder is not trashed while it is bound.
 - **Kind `dir` (Samba and every mounted file system):** the address is an absolute path of the server. The operator lists the directories administrators may bind in `OT_SHARE_ROOTS` (separated by the system's list separator); a path outside them, inside the data directory, or containing the data directory, is refused. The share is mounted by the operator (CIFS on the host, a volume of the container); its credentials, Kerberos included, stay with the operating system. Files are read through `os.Root`, so no symbolic link or `..` leads out of the bound directory.
 - **Kind `s3`:** the address is `s3://bucket/prefix?endpoint=https://…&region=…`, as for backups. The credentials come from `OT_SHARE_<ID>_ACCESS_KEY` and `OT_SHARE_<ID>_SECRET_KEY`, the ID in capitals with every other character as `_`; the page shows whether they are set and their names, never their values. The signing of `internal/backup/dest` moves into a package both use; the listing learns each object's size, ETag and time, and reading learns ranges. Every request, redirects included, goes to public addresses only (`linkcheck.Public`) unless the operator sets `OT_SHARE_ALLOW_PRIVATE=on`, which a bucket on the own network needs.
 - **What is taken:** files whose leading bytes show a picture or video the album takes (ADR-0177, ADR-0189), told by content, never by name. Names starting with a dot and the directories `@eaDir` and `#recycle` (housekeeping of common NAS systems) are skipped. A share holds at most `ShareFiles` entries; a run that finds more takes the first in path order and reports the rest.
+  As built, the album takes JPEG, PNG, GIF and WebP pictures, MP4, WebM and QuickTime videos, and HEIC, AVIF and the RAW of cameras (TIFF-based such as DNG, CR2, NEF and ARW, and CR3, RAF, ORF and RW2), told by their leading bytes; other files are left out and counted as skipped.
 
 ### Entries
 
-- **A record per file:** `AttachmentLinked` records, on the folder that holds the file's directory, an attachment with no content of its own and a `Source`: the share's ID, the path below its address, the size, the ETag (S3) or modification time (`dir`), the SHA-256 of the content, the media type and the photo data (ADR-0177). The path and the name are content, sealed with the item's key and erased with it (ADR-0026). The new kinds raise the codec version (to 55, as `main` stands on 2026-11-11).
+- **A record per file:** `AttachmentLinked` records, on the folder that holds the file's directory, an attachment with no content of its own and a `Share`: the share's ID, the path below its address and a tag (the ETag of S3, the modification time of a directory), besides the size, the SHA-256 of the content, the media type and the photo data (ADR-0177).
+  The path and the name are content, sealed with the item's key and erased with it (ADR-0026).
+  `AttachmentRelinked` records new content or a new path, `AttachmentWithdrawn` (the attachment's ID only, unsealed) a file gone from the share, `AttachmentRestored` its return.
+  Only a share's run records them, as the trusted store; the kinds raise the codec to version 60.
 - **The preview:** the server reads the original once, scales it to 1600 pixels on its longer edge, turned upright, as JPEG (PNG with transparency), and seals it with the item's key beside the record as `<id>.preview`, as a poster is kept (ADR-0189). It is backed up, moved with the record between the share's folders, and removed with it. The album's 400-pixel thumbnails are made from it on demand, as today. Reading the original for the hash and the preview are one pass.
 - **What the album hands out is the preview:** the viewer, the slides (ADR-0176), the export (ADR-0173), the ZIP download (ADR-0177), the clipboard (ADR-0108) and *Insert → From the album* (ADR-0054) all use the preview. Inserting copies the preview into the edited item as an ordinary attachment, with the entry as its source (ADR-0055). No route serves the original.
+  Storage gives out an entry's preview wherever an attachment's content is read, since only such an entry has one.
+- **Copies and exports** (the requester's choice of 2026-11-12): copying an entry into another item, alone or with its whole item (ADR-0067), and exporting it, take its preview as an ordinary file, with the entry as its source and no link to the share.
+  The item model accepts such a copy only with the preview as its content, which the server marks (`FromPreview`).
+  A restore of single items from a backup leaves the entries out; the share's next run links them again.
 - **Pictures the server cannot scale** (HEIC, RAW, WebP, pictures beyond `ThumbnailPixels`) and videos are listed with a symbol, their name, the link and what `internal/photo` can read of them, without a preview. A video's photo data are read through ranges, as an upload's are (ADR-0189). The run's report counts them by format.
+  As built, a picture the server cannot scale (HEIC, RAW, WebP, one beyond `ThumbnailPixels`) is linked without a preview and shows a symbol; it and a video are streamed for their hash within `VideoBytes`, as a RAW often exceeds `AttachmentBytes`, and a video's photo data are read through ranges.
+  Such an entry offers only the link to its original, in the album and in the viewer.
 
 ### The link to open
 

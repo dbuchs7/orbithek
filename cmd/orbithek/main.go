@@ -356,7 +356,14 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 	if os.Getenv(server.PhotosGoogleVar) == "on" && photos.Google == nil {
 		log.Warn("imports from Google Photos are turned on but not set up: they need OT_GOOGLE_CLIENT_ID, OT_GOOGLE_CLIENT_SECRET and OT_PUBLIC_URL", "variable", server.PhotosGoogleVar)
 	}
-	routes := server.Routes(server.Deps{UI: web.FS(), DB: db, Log: log, SSO: providers, Collab: live, Whiteboards: boards, LinkCheck: links, LinkPreviews: previews, Messages: messages, OAuthRegistration: registration, CalendarFeeds: feeds, Calendars: calendars, CalendarAllowPrivate: calendarsPrivate, Backups: backups, Connectors: catalog, Engines: engines, TaskLinks: taskLinks, Connect: connect, Disk: disk, Photos: photos})
+	// File shares fill the album folders bound to them, on the schedules
+	// set under Administration (ADR-0197).
+	shares := server.NewShares(os.Getenv)
+	routes := server.Routes(server.Deps{UI: web.FS(), DB: db, Log: log, SSO: providers, Collab: live, Whiteboards: boards, LinkCheck: links, LinkPreviews: previews, Messages: messages, OAuthRegistration: registration, CalendarFeeds: feeds, Calendars: calendars, CalendarAllowPrivate: calendarsPrivate, Backups: backups, Connectors: catalog, Engines: engines, TaskLinks: taskLinks, Connect: connect, Disk: disk, Photos: photos, Shares: shares})
+	sharesCtx, stopShares := context.WithCancel(ctx)
+	sharesDone := make(chan struct{})
+	go func() { shares.Loop(sharesCtx); close(sharesDone) }()
+	defer func() { stopShares(); <-sharesDone }()
 	if err := server.Serve(ctx, ln, server.BehindProxies(proxies, server.WithPublicURL(notifier.PublicURL(), server.Handler(routes, db.Accounts))), log); err != nil {
 		log.Error("server failed", "err", err)
 		return 1

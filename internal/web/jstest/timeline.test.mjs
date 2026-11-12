@@ -1,7 +1,8 @@
 // Unit tests of the timeline of a roadmap and a Gantt chart (timeline.js,
 // ADR-0164): reading dates, the fields guessed, the bars and milestones
 // items become, the frame and its ticks at each scale, a bar's place, the
-// rows bars are packed into, the lanes by label and the address. They run
+// rows bars are packed into, the lanes by label, the address and the query
+// that reads the items in one listing. They run
 // in Node.js without a browser and without dependencies:
 //
 //   node --test "internal/web/jstest/*.test.mjs"
@@ -9,8 +10,8 @@
 // The view itself is in e2e/smoke.cjs.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NO_LABEL, address, autoScale, dateFields, dayString, frame, ganttRows, guessFields, isStartName, isoWeek, lanes, normalLabel, pack, parseDay, place, readState,
-  schedule, span, suggest, todayDay } from "../static/assets/timeline.js";
+import { NO_LABEL, address, autoScale, dateFields, dayString, frame, ganttRows, guessFields, isStartName, isoWeek, itemQuery, lanes, normalLabel, pack, parseDay, place, readState,
+  schedule, span, startDefaults, suggest, todayDay } from "../static/assets/timeline.js";
 
 const d = (s) => parseDay(s);
 const it = (key, props, labels = []) => ({ id: "id-" + key, key, title: key, properties: props, labels });
@@ -42,6 +43,17 @@ test("the date fields of the types are offered once each, and start and end are 
 test("a field named like a beginning is a start, never a deadline", () => {
   for (const n of ["start", "Start", "begin", "start_date", "planned_start", "kickoff"]) assert.ok(isStartName(n), n);
   for (const n of ["due", "deadline", "decided", "end", "restart", ""]) assert.ok(!isStartName(n), n);
+});
+
+test("a new item starts today: every date field named like a beginning is filled with the day it is made", () => {
+  const fields = [{ name: "assignee", kind: "user" }, { name: "start", kind: "date" }, { name: "due", kind: "date" },
+    { name: "kickoff", kind: "date" }, { name: "begins", kind: "datetime" }, { name: "from", kind: "text" }];
+  // Late in the evening the day is still the one the browser's people
+  // call today, not the day in UTC.
+  const now = new Date(2026, 10, 12, 23, 30);
+  assert.deepEqual(startDefaults(fields, now), { start: "2026-11-12", kickoff: "2026-11-12" });
+  assert.deepEqual(startDefaults([{ name: "due", kind: "date" }], now), {});
+  assert.deepEqual(startDefaults(undefined, now), {});
 });
 
 test("items become bars, milestones or unscheduled items", () => {
@@ -137,4 +149,12 @@ test("labels are suggested as one types: beginnings first, the most used first, 
   assert.deepEqual(suggest(labels, "A", ["atlas"]), ["roadmap", "lifecycle-active", "macos"]);
   assert.deepEqual(suggest(labels, "", ["roadmap"], 2), ["atlas", "lifecycle-active"]);
   assert.deepEqual(suggest(labels, "zz"), []);
+});
+
+test("the items are read in one listing: the types with dates, with any of the labels, every value quoted", () => {
+  assert.equal(itemQuery(["task", "epic"]), 'type in ("task", "epic")');
+  assert.equal(itemQuery(["task"], ["q1", "release"]), 'type in ("task") AND label in ("q1", "release")');
+  assert.equal(itemQuery([], ["q1"]), 'label in ("q1")', "a type named in the address narrows the listing itself");
+  assert.equal(itemQuery([], []), "", "nothing narrows: no query");
+  assert.equal(itemQuery(['say "hi"', "a\\b", "x, y (z)"]), 'type in ("say \\"hi\\"", "a\\\\b", "x, y (z)")', "quotes, backslashes, commas and brackets stay inside one value");
 });

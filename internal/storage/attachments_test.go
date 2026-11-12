@@ -414,3 +414,96 @@ func readPoster(db *DB, id, video item.ID) ([]byte, error) {
 	defer r.Close()
 	return io.ReadAll(r)
 }
+
+// The preview of an entry of a file share is sealed beside the entry,
+// which has no file of its own; it is backed up, kept at a restart,
+// moved and removed with the entry, and one never recorded goes at the
+// next start (ADR-0197).
+func TestAPreviewStandsForAnEntryOfAShare(t *testing.T) {
+	dir := t.TempDir()
+	db, from := pageIn(t, dir)
+	var to item.ID
+	if err := db.Write(func(s *item.Store) error {
+		it, err := s.Create("admin", item.NewItem{Space: "PLAT", Type: "page", Title: "Archive"})
+		to = it.ID
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	const entry, stray = item.ID("0123456789abcdef0123456789abc197"), item.ID("0123456789abcdef0123456789abd197")
+	if _, err := db.OpenPreview(from, entry); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("a preview before one is stored: %v", err)
+	}
+	if _, err := db.OpenPreview(from, "../x"); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("a preview of a bad ID: %v", err)
+	}
+	if _, err := db.StorePreview(from, "../x", bytes.NewReader([]byte("x")), 100); err == nil {
+		t.Fatal("a preview stored under a bad ID")
+	}
+	for _, id := range []item.ID{entry, stray} {
+		if _, err := db.StorePreview(from, id, bytes.NewReader([]byte("a preview")), 100); err != nil {
+			t.Fatal(err)
+		}
+	}
+	linked := item.Attachment{ID: entry, Name: "lake.jpg", Type: "image/jpeg", Size: 9, SHA256: strings.Repeat("ab", 32), Share: &item.ShareFile{Share: "nas", Path: "lake.jpg"}}
+	if err := db.Write(func(s *item.Store) error { _, err := s.LinkFile("sync:share:nas", from, linked); return err }); err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := os.ReadFile(attachmentPath(dir, from, entry+PreviewSuffix))
+	if bytes.Contains(raw, []byte("a preview")) {
+		t.Fatal("the preview is stored in plaintext")
+	}
+	files, err := db.Snapshot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, f := range files {
+		if strings.Contains(f.Name, string(entry)) {
+			names = append(names, f.Name)
+		}
+	}
+	if len(names) != 1 || !strings.HasSuffix(names[0], string(entry)+PreviewSuffix) {
+		t.Errorf("backed up for the entry: %v", names)
+	}
+	// A restart keeps the recorded entry's preview and removes the other.
+	db.Close()
+	db, rec, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.Orphans != 1 {
+		t.Errorf("removed %d files at the start, want the preview never recorded", rec.Orphans)
+	}
+	if got, err := readPreview(db, from, entry); err != nil || string(got) != "a preview" {
+		t.Fatalf("preview after a restart %q %v", got, err)
+	}
+	// It moves with its entry: only the preview, no file of its own.
+	if err := db.MoveAttachmentContent(from, to, linked); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := readPreview(db, to, entry); err != nil || string(got) != "a preview" {
+		t.Fatalf("preview after the move %q %v", got, err)
+	}
+	if err := db.MoveAttachmentContent(from, to, item.Attachment{ID: stray, Share: linked.Share}); err == nil {
+		t.Error("moved an entry without a preview")
+	}
+	db.DiscardAttachment(to, entry)
+	// It goes with its entry.
+	if err := db.Write(func(s *item.Store) error { return s.DeleteAttachment("sync:share:nas", from, entry) }); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(attachmentPath(dir, from, entry+PreviewSuffix)); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("the preview of a deleted entry stays: %v", err)
+	}
+	db.Close()
+}
+
+func readPreview(db *DB, id, entry item.ID) ([]byte, error) {
+	r, err := db.OpenPreview(id, entry)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	return io.ReadAll(r)
+}
