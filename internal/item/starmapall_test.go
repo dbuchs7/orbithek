@@ -194,7 +194,7 @@ func TestTheStarmapOfAllSpacesShowsPicturesWhereTheyAreUsed(t *testing.T) {
 // On the starmap of all spaces a picture's own labels (ADR-0090) count
 // as an item's do: a label shows the pictures that carry it with the
 // items that hold them, and the label stars join pictures too
-// (ADR-draft-album-labels-on-the-starmap).
+// (ADR-0224).
 func TestTheStarmapOfAllSpacesFollowsAlbumLabels(t *testing.T) {
 	s := permFixture(t)
 	noErr(t, s.GrantRole("root", "OPS", "anna", Editor))

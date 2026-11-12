@@ -1,4 +1,4 @@
-# ADR-DRAFT: A picture's own labels on the starmap
+# ADR-0224: A picture's own labels on the starmap
 
 - **Status:** Proposed
 - **Implementation:** Partial

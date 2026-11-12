@@ -24,7 +24,7 @@ const StarGroup = "group"
 // carriers the budget left out but one is dropped. With label, the map
 // holds the items that carry it and the items that hold a picture that
 // carries it, with the pictures of the former and the pictures that carry
-// it (ADR-draft-album-labels-on-the-starmap). When the items are more than maxNodes, the map shows a
+// it (ADR-0224). When the items are more than maxNodes, the map shows a
 // node per space and type instead
 // (StarGroup, Count the items it stands for), no pictures, and an edge
 // between two such nodes for the containment and relations between their

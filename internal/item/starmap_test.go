@@ -262,7 +262,7 @@ func TestPicturesAreTheBrowsersImages(t *testing.T) {
 }
 
 // A picture's own labels (ADR-0090) join it to the label stars of a
-// space's starmap, as an item's labels do (ADR-draft-album-labels-on-the-starmap).
+// space's starmap, as an item's labels do (ADR-0224).
 func TestAStarmapJoinsPicturesToTheirAlbumLabels(t *testing.T) {
 	f := newStarFixture(t)
 	anna := f.s.As("anna")
