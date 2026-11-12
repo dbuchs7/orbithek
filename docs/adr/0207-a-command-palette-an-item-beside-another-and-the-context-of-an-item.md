@@ -1,9 +1,9 @@
 # ADR-0207: A command palette, an item beside another, and the context of an item
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-12
-- **Deciders:** Project initiators (request of 2026-11-12 for keyboard navigation across the product, reading two items side by side, and seeing what refers to an item)
+- **Deciders:** Project initiators (request of 2026-11-12 for keyboard navigation across the product, reading two items side by side, and seeing what refers to an item). Accepted by the requester on 2026-11-12, with the defaults proposed with the implementation.
 - **Open question:** whether the context should also list items that mention an item's title without linking it (unlinked mentions), and whether the palette should search the server with the same letters-in-order matching it uses for commands; this record decides neither
 - **Question checked:** 2026-11
 
@@ -37,7 +37,7 @@ How are these met without new stored objects, without revealing what a reader ma
 
 ## Decision outcome
 
-Chosen option: **1**, because each part reuses what exists (search, the item API, the editor and live session), adds one read route, and keeps all state either in the address or, for conveniences, in the browser.
+Chosen option: **1** (defaults proposed with the implementation, confirmed by the requester), because each part reuses what exists (search, the item API, the editor and live session), adds one read route, and keeps all state either in the address or, for conveniences, in the browser.
 
 ### The command palette
 
@@ -66,7 +66,7 @@ Chosen option: **1**, because each part reuses what exists (search, the item API
 - **Negative / trade-offs accepted:** the palette's item search is the server's word search, not letters-in-order matching; the recent items are per browser, not per person. Links are recognised by the item's address alone: an address of another installation that names an item of the same key counts too, as the link alone cannot tell which site it names. A sentence ends at a full stop, question or exclamation mark followed by a space, so "e.g. this" splits early; long sentences are cut around the reference. The pane shows one item; its fields are read-only there. The context scans every readable item's text per request; at the sizes of ADR-0081 this is the cost of a search.
 - **Follow-ups / risks to watch:** unlinked mentions (titles in texts without a link) as a fourth part; letters-in-order matching on the server; keeping the pane's scroll position when the main item changes.
 
-**Implementation so far:** everything above; tested by `internal/item/context_test.go`, `internal/server/api_daily_test.go`, `internal/web/jstest/palette.test.mjs` and `e2e/smoke.cjs`. Not built: unlinked mentions, editing fields in the pane.
+**Implementation:** everything above is built; tested by `internal/item/context_test.go`, `internal/server/api_daily_test.go`, `internal/web/jstest/palette.test.mjs` and `e2e/smoke.cjs`. Not decided here and not built: unlinked mentions, editing fields in the pane.
 
 ## Pros and cons of the options
 

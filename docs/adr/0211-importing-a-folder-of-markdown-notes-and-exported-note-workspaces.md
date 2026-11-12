@@ -1,9 +1,9 @@
 # ADR-0211: Importing a folder of Markdown notes and exported note workspaces
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-12
-- **Deciders:** Project initiators (the maintainer asked that notes kept in other applications — a folder of Markdown files such as an Obsidian vault, a Notion workspace export, the Markdown export of other notes applications — can be brought into a room by its administrators, with a dry run, links between notes kept and re-runs that make nothing twice, 2026-11-12)
+- **Deciders:** Project initiators (the maintainer asked that notes kept in other applications — a folder of Markdown files such as an Obsidian vault, a Notion workspace export, the Markdown export of other notes applications — can be brought into a room by its administrators, with a dry run, links between notes kept and re-runs that make nothing twice, 2026-11-12). Accepted by the requester on 2026-11-12, with the defaults proposed with the implementation.
 - **Open question:** Should a re-run remove the labels a source no longer names, and should it ever move a page back to where its note now lies, when people may have changed both since?
 - **Question checked:** 2026-11
 
@@ -31,7 +31,7 @@ How does a room administrator bring such a collection into a room as pages and i
 
 ## Decision outcome
 
-Chosen option: **1**, because the notes are on the person's computer, not at an address a server can read; the server already converts Markdown (ADR-0138) and holds the validated, idempotent import machinery (ADR-0023); and a room administrator — not only an operator — can then do it.
+Chosen option: **1** (defaults proposed with the implementation, confirmed by the requester), because the notes are on the person's computer, not at an address a server can read; the server already converts Markdown (ADR-0138) and holds the validated, idempotent import machinery (ADR-0023); and a room administrator — not only an operator — can then do it.
 
 ### What is imported
 

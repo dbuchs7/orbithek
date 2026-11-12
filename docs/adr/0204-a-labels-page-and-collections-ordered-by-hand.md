@@ -1,9 +1,9 @@
 # ADR-0204: A label's page, and collections ordered by hand
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-12
-- **Deciders:** Project initiators (request of 2026-11-12: a label gets an optional page that says what it is about and shows its items; such a page with an order set by hand is a collection; adding an item to a collection is giving it the label)
+- **Deciders:** Project initiators (request of 2026-11-12: a label gets an optional page that says what it is about and shows its items; such a page with an order set by hand is a collection; adding an item to a collection is giving it the label). Accepted by the requester on 2026-11-12, with the defaults proposed with the implementation.
 - **Open question:** whether several pages of one label in different rooms should be shown together rather than only the oldest readable one; whether a label's page should be offered as the label's own page in the label board and the labels' starmap too; whether renaming a page's label should carry its order and offer to relabel the items
 - **Question checked:** 2026-11
 
@@ -30,7 +30,7 @@ The question is where a label's description lives, how the label's view finds it
 
 ## Decision outcome
 
-Chosen option: **1**.
+Chosen option: **1** (defaults proposed with the implementation, confirmed by the requester).
 
 - **The type.** `item.TypeTemplates` gains `topic`: a body and a required, unique text field `label` (unique per room, ADR-0074). Any type with a body and a text field `label` can hold a label's page. **Describe this label** on a label's view makes one in a room the person may create in (`POST /api/labels/{label}/page`, `Session.DescribeLabel`), titled by the label unless given a title; the type is defined from its template on first use, as the album defines its collection's type (ADR-0175), and a type of that name that cannot hold a page is not taken over. While nothing new may be made (ADR-0163), neither the type nor the page is made.
 - **Finding it.** `GET /api/labels/{label}/page` answers the page of the label the caller reads: among the live items whose type holds a page and whose field names the label (normalised as labels are), the one made first (`Session.TopicOf`). A label with pages in several rooms shows each reader the oldest they read. The label's view shows it on top, its title, the beginning of its text and **Read the page**.

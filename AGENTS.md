@@ -218,31 +218,31 @@ Word, PDF and Markdown exports keep the formats, Word and PDF also sizes and col
 A user manual in every UI language — Markdown in `internal/web/static/assets/manual/`, embedded with the UI — is shown read-only at `#/manual` through the Markdown conversion, with a table of contents, and linked as *Manual* from the account menu (`assets/manual.js`, ADR-0183);
 a test holds the labels it names to the catalogue, and a pull request check asks changes to what people see to update it (ADR-0185).
 A type may belong to one room (`TypeDef.Space`): its items live only there, and that room's administrators define, redefine and remove it through their session (`Session.DefineType`, `Session.RemoveType`);
-names stay unique across the installation, and types are edited in a form, the JSON folded away, under Administration and in a room's settings (`assets/typeeditor.js`, `assets/typeparts.js`, proposed, ADR-0201).
+names stay unique across the installation, and types are edited in a form, the JSON folded away, under Administration and in a room's settings (`assets/typeeditor.js`, `assets/typeparts.js`, ADR-0201).
 A field may also be of the kinds `item` (a reference by ID, derived as a relation named by the field, so it counts in relations, starmap, impact and deletion protection), `multi`, `rating` (1–5) and `file` (a file of the same item);
-a reference the reader may not read is left out; `assets/fields.js` draws and edits them for every view (codec version 55, proposed, ADR-0202).
+a reference the reader may not read is left out; `assets/fields.js` draws and edits them for every view (codec version 55, ADR-0202).
 The items one may read stand as a table, a gallery or a list at `#/view`, of a type in a room or all rooms, narrowed by a query, grouped by the state, the labels or a field under folding headers, sorted by a column, cells changed in place by validated commands;
-a text holds such a view as a block of the kind `view`, computed for each reader (`assets/itemviews.js`, `assets/itemview.js`, codec version 56, proposed, ADR-0203).
+a text holds such a view as a block of the kind `view`, computed for each reader (`assets/itemviews.js`, `assets/itemview.js`, codec version 56, ADR-0203).
 A label may have a page, an item of the ready-made type `topic` whose field `label` names it (`GET`/`POST /api/labels/{label}/page`, MCP `get_label_page`);
-the page shows the label's items as a view, ordered by hand and kept as item IDs in `ItemsOrdered`, not sealed (codec version 56, proposed, ADR-0204).
+the page shows the label's items as a view, ordered by hand and kept as item IDs in `ItemsOrdered`, not sealed (codec version 56, ADR-0204).
 Each person keeps a daily note per day: an item of the ready-made type `daily-note`, labelled `daily-note`, made in the room they chose once (`DailyRoomSet` in the accounts journal) and restricted to them in the same batch, one per day under concurrent requests (`Session.OpenDailyNote`, `Session.AppendToDailyNote`, `/api/daily…`, MCP `open_daily_note`);
-**Today**, Alt+Shift+D and the palette open `#/daily/<date>` (`assets/daily.js`, proposed, ADR-0205).
-A title that matches nothing after "@" or in the link dialog is offered to be created with a type and room (`assets/mentioncreate.js`, proposed, ADR-0206).
+**Today**, Alt+Shift+D and the palette open `#/daily/<date>` (`assets/daily.js`, ADR-0205).
+A title that matches nothing after "@" or in the link dialog is offered to be created with a type and room (`assets/mentioncreate.js`, ADR-0206).
 A command palette (Ctrl+K outside a text, Ctrl+Shift+P) finds items, recent items and commands (`assets/palette.js`);
 Shift+click or *Beside* opens an item in a pane kept as `?beside=` (`assets/beside.js`);
-the side column shows an item's context — what refers to it with the sentence it stands in, items sharing its labels, daily notes naming it — within the budget `ContextEntries` (`Session.Context`, `GET /api/items/{ref}/context`, MCP `get_context`, proposed, ADR-0207).
+the side column shows an item's context — what refers to it with the sentence it stands in, items sharing its labels, daily notes naming it — within the budget `ContextEntries` (`Session.Context`, `GET /api/items/{ref}/context`, MCP `get_context`, ADR-0207).
 A web link is an item of the ready-made type `weblink`, defined with its first item (`Session.CreateFromTemplate`, `POST /api/weblinks`);
 with `OT_LINK_PREVIEWS=on` the server reads what a page says about itself and on request its main text as blocks, public addresses only unless `OT_LINK_PREVIEWS_ALLOW_PRIVATE=on`, within the budgets `LinkPreview*`, its picture kept as the file `preview.*`;
-a web link shows as a card, the embed of its item (`internal/linkpreview`, `assets/weblink.js`, proposed, ADR-0208).
+a web link shows as a card, the embed of its item (`internal/linkpreview`, `assets/weblink.js`, ADR-0208).
 The UI installs as a web app (`/manifest.webmanifest`, public) whose share target `/capture` (public) passes a share in the address's fragment to `#/capture`, which saves it as a web link, into today's daily note, as a new item or at the end of an item (`POST /api/items/{ref}/body/blocks`);
-the account page offers a bookmarklet (`assets/capture.js`, `assets/captureview.js`, proposed, ADR-0209).
+the account page offers a bookmarklet (`assets/capture.js`, `assets/captureview.js`, ADR-0209).
 A PDF file of an item opens in a reader at `#/pdf/{item}/{file}` (pdf.js, vendored, run without evaluated code or WebAssembly);
 whoever may comment highlights text in five colours with or without a note: a comment whose anchor names the PDF's first version, the version, a page, the quote and rectangles (`Anchor.File`, `Version`, `Page`, `Rects`, `Color`, sealed, codec version 58, budget `HighlightRects`);
-comments on a file the reader may not have are left out with their replies (`assets/pdfview.js`, `assets/pdfparts.js`, proposed, ADR-0210).
+comments on a file the reader may not have are left out with their replies (`assets/pdfview.js`, `assets/pdfparts.js`, ADR-0210).
 A room administrator imports a ZIP archive of notes — a folder of Markdown files or a workspace export of Markdown and CSV — into the room: folders become a page tree, links between notes mentions (D2), pictures attachments, front matter and tags fields and labels;
-a dry run first, a re-run updates what it made and never deletes (origin `import:notes`, `Session.Import`, budgets `NoteImportBytes`, `NoteImportFiles`, `NoteUnpackedBytes`, `internal/noteimport`, proposed, ADR-0211).
-A connector of the kind `highlights` reads one's highlights from a reading service's export API, each book an item with its highlights as quotes above a line below which people's own notes stay (`Entry.Labels`, `Entry.Update`, `Entry.Below`, proposed, ADR-0212).
-The ready-made theme Capacity is a quiet look for notes in light and dark (`internal/site/themes/capacity.css`, proposed, ADR-0213).
+a dry run first, a re-run updates what it made and never deletes (origin `import:notes`, `Session.Import`, budgets `NoteImportBytes`, `NoteImportFiles`, `NoteUnpackedBytes`, `internal/noteimport`, ADR-0211).
+A connector of the kind `highlights` reads one's highlights from a reading service's export API, each book an item with its highlights as quotes above a line below which people's own notes stay (`Entry.Labels`, `Entry.Update`, `Entry.Below`, ADR-0212).
+The ready-made theme Capacity is a quiet look for notes in light and dark (`internal/site/themes/capacity.css`, ADR-0213).
 
 **The persisted event format is a contract with every existing data directory** (ADR-0025).
 Never change what `item.EncodeBatch` writes — a field name, a value encoding, a role name — without raising `item.CodecVersion` and teaching the decoder the old version.

@@ -1,9 +1,9 @@
 # ADR-0206: An item is created where it is mentioned
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-12
-- **Deciders:** Project initiators (request of 2026-11-12: typing a title that matches nothing offers to create it)
+- **Deciders:** Project initiators (request of 2026-11-12: typing a title that matches nothing offers to create it). Accepted by the requester on 2026-11-12, with the defaults proposed with the implementation.
 - **Open question:** whether the dialog should offer the fields a type requires, so that every type can be made from a mention; this record leaves such types to **+ New**
 - **Question checked:** 2026-11
 
@@ -30,7 +30,7 @@ How does the editor turn a title that matches nothing into an item and a mention
 
 ## Decision outcome
 
-Chosen option: **1**, because it keeps the person in control of what is made and where, uses the one route every client creates with, and changes nothing in the model.
+Chosen option: **1** (defaults proposed with the implementation, confirmed by the requester), because it keeps the person in control of what is made and where, uses the one route every client creates with, and changes nothing in the model.
 
 - **Offer:** when "@" is followed by a query and no item found has that title (letter case aside), the list ends with *Create «title» as …*; the link dialog offers the same below its results when what is typed is no web address. Enter or a click opens the dialog; Escape keeps the text as typed. The query after "@" holds no space (ADR-0096), so the dialog's title field is editable and takes the whole title.
 - **Dialog (`assets/mentioncreate.js`):** the title, the type (default: the room's page type — one named `page`, else the first type with a text and no workflow) and the room (default: the edited item's room), among the rooms where one holds Editor or higher. Only types that require no field are offered; the daily note type (ADR-0205) is made from its day, never from a mention. A sentence says where the item goes: an item of a type with a text, made in the edited item's room, goes below the edited item, as a child page; anything else at the top of the chosen room. A child inherits its parent's restriction (D9), so the sentence says so when the edited item is restricted, and nothing goes below a daily note (ADR-0205), which is its author's alone: from a note, the item goes to the top of the room.
@@ -44,7 +44,7 @@ Chosen option: **1**, because it keeps the person in control of what is made and
 - **Negative / trade-offs accepted:** the item and the mention are two changes: when the session's save of the mention fails, the item stays without it, as an item made with **+ New** would. Types with required fields are not offered. The default page type is found by name and shape, a guess an administrator cannot change.
 - **Follow-ups / risks to watch:** offering required fields in the dialog; a room's default type chosen by its administrators.
 
-**Implementation so far:** everything above; tested by `e2e/smoke.cjs`. Not built: required fields in the dialog.
+**Implementation:** everything above is built; tested by `e2e/smoke.cjs`. Not decided here and not built: required fields in the dialog.
 
 ## Pros and cons of the options
 
