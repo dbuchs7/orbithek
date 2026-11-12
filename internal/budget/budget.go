@@ -187,6 +187,10 @@ type Budgets struct {
 	// shares.
 	ShareFiles   int
 	ShareWorkers int
+	// SharePreviewBytes is the largest RAW of a file share a run reads
+	// whole to make its preview from the JPEG the camera embedded; a larger
+	// one keeps its symbol.
+	SharePreviewBytes int64
 }
 
 // Default returns the budgets the server uses unless configured otherwise.
@@ -252,6 +256,7 @@ func Default() Budgets {
 		DailyNoteDays:          400,
 		ShareFiles:             100_000,
 		ShareWorkers:           2,
+		SharePreviewBytes:      128 << 20,
 	}
 }
 

@@ -60,6 +60,8 @@ var classified = map[string]string{
 	"internal/item.maxSharePath": "the shape of an entry of a file share (ADR-0197): how long the path it names may be, as the share's own path bound; " +
 		"what a request carries is bounded by RequestBody",
 	"internal/item.maxShareTag": "the shape of an entry of a file share (ADR-0197): how long the tag of its content (an ETag, a time) may be",
+	"internal/photo.maxEmbeddedCandidates": "the shape of a camera's RAW as read for its preview: how many starts of a JPEG are looked at; " +
+		"what the RAW holds is bounded by SharePreviewBytes",
 	"internal/share.MaxPath": "the shape of a path below a file share's address (ADR-0197), like the length of a file name; " +
 		"a run's size is bounded by ShareFiles",
 	"internal/share.maxListingPage": "a page of an S3 share's listing (ADR-0197), read and parsed; not a caller's input to this server, " +

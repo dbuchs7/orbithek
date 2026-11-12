@@ -235,3 +235,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0220](0220-voice-recordings-become-text-in-the-browser.md) | Voice recordings become text in the browser, the recording kept only on request | Proposed | Not started |
 | [0221](0221-a-collection-keeps-the-folder-of-its-new-pictures.md) | A collection keeps the folder of its new pictures, for everyone | Accepted | Landed |
 | [0222](0222-pictures-added-from-the-album-to-a-folder-are-copied-or-moved.md) | Pictures added from the album to a folder are copied or moved, as one chooses | Accepted | Landed |
+| [0223](0223-signed-links-to-a-shares-originals-and-previews-of-raw-and-webp.md) | Signed links to an S3 share's originals, and previews of RAW and WebP | Accepted | Landed |

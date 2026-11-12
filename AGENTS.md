@@ -27,7 +27,7 @@ The single binary `cmd/orbithek` opens the data directory and serves the web UI,
 it is released for every common platform and as a container image (ADR-0024).
 A buildless web UI (`internal/web`, ADR-0031) runs on top of the API;
 bodies are edited with ProseMirror, vendored as one pre-built bundle (ADR-0032);
-Markdown pasted or inserted through a dialog becomes blocks of the body in the browser, never stored as Markdown (`assets/markdown.js`, proposed, ADR-0133);
+Markdown pasted or inserted through a dialog becomes blocks of the body in the browser, a table's cells keeping their formats (ADR-0214), never stored as Markdown (`assets/markdown.js`, proposed, ADR-0133);
 drawings are made with Excalidraw on a page of its own with a looser content security policy and stored as PNG attachments that carry their scene (ADR-0053).
 The album lists the pictures of every readable item; inserting one copies it into the edited item (ADR-0054);
 copies carry their source and learn of a changed original (ADR-0055).
@@ -571,6 +571,7 @@ Before adding a dependency, check that its license is compatible with AGPL-3.0, 
 Current dependencies: go-oidc, go-jose (Apache-2.0) and x/oauth2 (BSD-3-Clause), for OIDC only (ADR-0030);
 x/crypto (BSD-3-Clause), for its SSH client, used by backups to SFTP only (ADR-0073);
 go.yaml.in/yaml/v3 (MIT and Apache-2.0), to read API descriptions in YAML (ADR-0130). goldmark (MIT), as the Markdown parser only, never its renderer (ADR-0138). golang.org/x/net (BSD-3-Clause), for its HTML parser only, to read web pages (ADR-0208).
+golang.org/x/image (BSD-3-Clause), for its WebP decoder only, to scale WebP pictures (ADR-0223).
 Never copy code from sources whose license is incompatible or unknown.
 
 ## Pointers

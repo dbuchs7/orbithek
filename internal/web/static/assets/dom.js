@@ -47,6 +47,8 @@ export function safeHref(v) {
 // opens an original; every other link keeps safeHref's rule. Anything
 // else becomes "#".
 export function shareHref(v) {
+  // The wiki's own route that signs a link to an S3 share's original.
+  if (/^\/api\/items\/[^/]+\/attachments\/[0-9a-f]{32}\/original$/.test(String(v))) return String(v);
   try {
     const u = new URL(String(v));
     if (u.protocol === "https:" || u.protocol === "smb:") return u.href;
