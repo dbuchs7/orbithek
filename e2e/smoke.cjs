@@ -5552,6 +5552,7 @@ function gitSource() {
       await page.fill("#connector-settings [name=name]", "Reading");
       await page.selectOption("#connector-settings [name=space]", "PLAT");
       await page.fill("#connector-settings [name=url]", `http://127.0.0.1:${reading.address().port}`);
+      await page.selectOption("#connector-settings [name=language]", "en");
       await page.click("#connector-settings button[type=submit]");
       await page.waitForSelector("#connector-list tr[data-connector='reading']");
       await page.waitForSelector("#connector-run-full");
