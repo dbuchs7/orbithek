@@ -1,4 +1,4 @@
-# ADR-XXXX: Title
+# ADR-DRAFT: Title
 
 - **Status:** Proposed | Accepted | Superseded by ADR-XXXX | Deprecated
 - **Implementation:** Not started | Partial | Landed | Superseded
