@@ -155,6 +155,9 @@ type event struct {
 	Places *Places `json:"places,omitempty"`
 	// Faces is set by FacesSet (ADR-0194).
 	Faces *Faces `json:"faces,omitempty"`
+	// Share is set by ShareSet; ShareRemoved names it in Asset
+	// (ADR-0197).
+	Share *Share `json:"share,omitempty"`
 }
 
 const (
@@ -190,6 +193,11 @@ const (
 	// facesSet turns the recognition of faces in the album on or off
 	// (ADR-0194).
 	facesSet = "FacesSet"
+
+	// shareSet binds an album folder to a file share, shareRemoved
+	// unbinds it (ADR-0197).
+	shareSet     = "ShareSet"
+	shareRemoved = "ShareRemoved"
 )
 
 // Settings is safe for concurrent use.
@@ -223,11 +231,13 @@ type Settings struct {
 	taskLinks map[string]TaskLinks
 	// wordTemplates are the Word templates by ID (ADR-0167).
 	wordTemplates map[string]*WordTemplate
+	// shares are the file shares album folders show, by ID (ADR-0197).
+	shares map[string]Share
 }
 
 // New rebuilds the settings from records and journals later changes.
 func New(records [][]byte, j Journal) (*Settings, error) {
-	s := &Settings{journal: j, now: time.Now, assets: map[string]Asset{}, regulations: map[string]Regulation{}, connectors: map[string]Connector{}, engines: map[string]Engine{}, taskLinks: map[string]TaskLinks{}, wordTemplates: map[string]*WordTemplate{}}
+	s := &Settings{journal: j, now: time.Now, assets: map[string]Asset{}, regulations: map[string]Regulation{}, connectors: map[string]Connector{}, engines: map[string]Engine{}, taskLinks: map[string]TaskLinks{}, wordTemplates: map[string]*WordTemplate{}, shares: map[string]Share{}}
 	for i, r := range records {
 		var e event
 		if err := json.Unmarshal(r, &e); err != nil {
@@ -328,6 +338,13 @@ func (s *Settings) apply(e event) error {
 			return errors.New("a faces event without its setting")
 		}
 		s.faces = *e.Faces
+	case shareSet:
+		if e.Share == nil {
+			return errors.New("a share event without a share")
+		}
+		s.shares[e.Share.ID] = *e.Share
+	case shareRemoved:
+		delete(s.shares, e.Asset)
 	default:
 		return fmt.Errorf("unknown event %q", e.Kind)
 	}

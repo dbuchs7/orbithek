@@ -1,21 +1,17 @@
 package dest
 
 import (
-	"bytes"
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"sort"
 	"strconv"
 	"strings"
-	"time"
+
+	"github.com/dbuchs7/orbithek/internal/s3sig"
 )
 
 // s3 is a bucket of an S3-compatible object store (Amazon S3, MinIO,
@@ -23,12 +19,9 @@ import (
 // s3://bucket/folder?endpoint=https://host&region=… and reached path-style
 // with signature version 4. The keys are in AccessKeyEnv and SecretKeyEnv.
 type s3 struct {
-	endpoint       *url.URL
-	bucket, prefix string
-	region         string
-	access, secret string
-	client         *http.Client
-	now            func() time.Time
+	c      s3sig.Client
+	bucket string
+	prefix string
 }
 
 // partSize is the size of each part of a multipart upload: a backup is
@@ -52,7 +45,8 @@ func newS3(a address, env Env) (Target, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &s3{endpoint: ep, bucket: a.url.Hostname(), prefix: a.dir, region: region, access: access, secret: secret, client: httpClient(cfg), now: time.Now}, nil
+	bucket := a.url.Hostname()
+	return &s3{c: s3sig.Client{Endpoint: ep, Bucket: bucket, Region: region, Access: access, Secret: secret, HTTP: httpClient(cfg)}, bucket: bucket, prefix: a.dir}, nil
 }
 
 func (s *s3) key(name string) string {
@@ -65,22 +59,7 @@ func (s *s3) key(name string) string {
 // do sends a signed request; body is held in memory, so its hash is
 // signed too.
 func (s *s3) do(ctx context.Context, method, key string, query url.Values, body []byte) (*http.Response, error) {
-	u := *s.endpoint
-	u.Path = strings.TrimSuffix(u.Path, "/") + "/" + s.bucket
-	if key != "" {
-		u.Path += "/" + key
-	}
-	u.RawPath = uriEncode(u.Path, false)
-	u.RawQuery = canonicalQuery(query)
-	req, err := http.NewRequestWithContext(ctx, method, u.String(), bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-	req.ContentLength = int64(len(body))
-	sum := sha256.Sum256(body)
-	req.Header.Set("x-amz-content-sha256", hex.EncodeToString(sum[:]))
-	sign(req, s.access, s.secret, s.region, "s3", s.now().UTC(), hex.EncodeToString(sum[:]), []string{"host", "x-amz-content-sha256", "x-amz-date"})
-	return s.client.Do(req)
+	return s.c.Do(ctx, method, key, query, body, nil)
 }
 
 func (s *s3) Put(ctx context.Context, name string, r io.Reader) error {
@@ -270,75 +249,4 @@ func (s *s3) Delete(ctx context.Context, name string) error {
 		return statusError("s3", "DELETE", s.key(name), resp)
 	}
 	return nil
-}
-
-// sign adds an AWS signature version 4 to req, over the headers named
-// (lower case, sorted) and the payload's hash.
-func sign(req *http.Request, access, secret, region, service string, t time.Time, payloadHash string, headers []string) {
-	stamp, day := t.Format("20060102T150405Z"), t.Format("20060102")
-	req.Header.Set("x-amz-date", stamp)
-	var canonHeaders strings.Builder
-	for _, h := range headers {
-		v := req.Header.Get(h)
-		if h == "host" {
-			v = req.URL.Host
-		}
-		canonHeaders.WriteString(h + ":" + strings.Join(strings.Fields(v), " ") + "\n")
-	}
-	signed := strings.Join(headers, ";")
-	path := req.URL.EscapedPath()
-	if path == "" {
-		path = "/"
-	}
-	canonical := strings.Join([]string{req.Method, path, req.URL.RawQuery, canonHeaders.String(), signed, payloadHash}, "\n")
-	scope := day + "/" + region + "/" + service + "/aws4_request"
-	sum := sha256.Sum256([]byte(canonical))
-	toSign := "AWS4-HMAC-SHA256\n" + stamp + "\n" + scope + "\n" + hex.EncodeToString(sum[:])
-	key := hmacSHA256([]byte("AWS4"+secret), day)
-	key = hmacSHA256(key, region)
-	key = hmacSHA256(key, service)
-	key = hmacSHA256(key, "aws4_request")
-	sig := hex.EncodeToString(hmacSHA256(key, toSign))
-	req.Header.Set("Authorization", "AWS4-HMAC-SHA256 Credential="+access+"/"+scope+", SignedHeaders="+signed+", Signature="+sig)
-}
-
-func hmacSHA256(key []byte, data string) []byte {
-	m := hmac.New(sha256.New, key)
-	m.Write([]byte(data))
-	return m.Sum(nil)
-}
-
-// uriEncode encodes as signature version 4 requires: every byte but the
-// unreserved ones, and the slash unless slash is set.
-func uriEncode(s string, slash bool) string {
-	var b strings.Builder
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		switch {
-		case 'A' <= c && c <= 'Z', 'a' <= c && c <= 'z', '0' <= c && c <= '9', c == '-', c == '.', c == '_', c == '~', c == '/' && !slash:
-			b.WriteByte(c)
-		default:
-			fmt.Fprintf(&b, "%%%02X", c)
-		}
-	}
-	return b.String()
-}
-
-// canonicalQuery is a query string sorted and encoded as signature
-// version 4 requires; the same string is sent.
-func canonicalQuery(q url.Values) string {
-	keys := make([]string, 0, len(q))
-	for k := range q {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	var parts []string
-	for _, k := range keys {
-		vs := append([]string(nil), q[k]...)
-		sort.Strings(vs)
-		for _, v := range vs {
-			parts = append(parts, uriEncode(k, true)+"="+uriEncode(v, true))
-		}
-	}
-	return strings.Join(parts, "&")
 }
