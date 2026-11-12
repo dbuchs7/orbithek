@@ -211,3 +211,5 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0196](0196-duplicates-in-the-album.md) | Duplicates in the album, found by the file and by how a picture looks | Proposed | Partial |
 | [0197](0197-album-folders-that-show-a-file-share.md) | Album folders that show a file share, as previews, with the share as master | Proposed | Not started |
 | [0198](0198-a-photos-time-set-by-hand-and-written-into-the-files-given-out.md) | A photo's time set by hand, and written into the files given out | Proposed | Partial |
+| [0206](0206-a-web-link-becomes-an-item-with-what-its-page-says-about-itself.md) | A web link becomes an item with what its page says about itself | Proposed | Partial |
+| [0207](0207-capturing-into-the-wiki-from-anywhere.md) | Capturing into the wiki from anywhere | Proposed | Partial |
