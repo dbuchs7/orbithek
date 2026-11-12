@@ -228,3 +228,5 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0213](0213-the-capacity-theme-a-quiet-look-for-notes.md) | The Capacity theme, a quiet look for notes in light and dark | Proposed | Partial |
 | [0214](0214-tables-with-formatted-cells-sizes-and-colours.md) | Tables with formatted cells, sized columns and rows, and coloured cells | Accepted | Landed |
 | [0215](0215-pictures-on-the-starmap-of-all-rooms.md) | Pictures and drawings on the starmap of all rooms, joined to the items that use them | Proposed | Partial |
+| [0216](0216-adr-numbers-assigned-by-the-pull-requests-last-commit.md) | ADR numbers are assigned by the pull request's last commit | Proposed | Partial |
+| [0217](0217-golden-files-of-the-current-format-carry-no-version-number.md) | Golden files of the current format carry no version number | Proposed | Partial |

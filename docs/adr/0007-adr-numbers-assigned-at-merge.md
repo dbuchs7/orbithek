@@ -67,7 +67,7 @@ Strongest form: no tooling at all; the number is known from the first commit and
 
 ## Links
 
-- open question (how a numbering step writes to `main` when the ruleset of ADR-0003 allows no bypass) answered by ADR-draft-adr-numbers-assigned-by-the-pull-requests-last-commit: option 3
+- open question (how a numbering step writes to `main` when the ruleset of ADR-0003 allows no bypass) answered by ADR-0216: option 3
 
 - atlas [ADR-0170](https://github.com/pblumer/atlas/blob/main/docs/adr/0170-adr-numbers-assigned-at-merge.md)
 - conflicts with [ADR-0003](0003-repository-governance-settings.md) in its atlas form

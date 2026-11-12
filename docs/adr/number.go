@@ -1,6 +1,6 @@
 package adr
 
-// Numbering of records in flight (ADR-0007, ADR-draft-adr-numbers-assigned-by-the-pull-requests-last-commit).
+// Numbering of records in flight (ADR-0007, ADR-0216).
 //
 // A record written on a branch carries no number: it lives at
 // draft-<slug>.md, heads with `# ADR-DRAFT: Title`, has no row in the
