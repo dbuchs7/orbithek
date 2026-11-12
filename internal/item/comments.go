@@ -70,7 +70,8 @@ type Anchor struct {
 }
 
 // Rect is a rectangle on a page of a PDF, in fractions of the page's width
-// and height from its top left corner, unrotated (ADR-0208).
+// and height from its top left corner, the page shown as its own rotation
+// turns it (ADR-0208).
 type Rect struct {
 	X, Y, W, H float64
 }
