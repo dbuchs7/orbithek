@@ -35,12 +35,12 @@ Die Anmeldung erfolgt mit Benutzername und Passwort oder per Single Sign-on, sof
 
 Die Leiste oben auf jeder Seite enthält von links nach rechts:
 
-- **Neun Punkte** (Module): öffnet den Modulwechsler mit Räume, Erstellen, Aufgaben, Kommentare, Album, Whiteboards, Sternkarte, KI-Zugang, Governance, Konto und, für die Administration, Administration.
+- **Neun Punkte** (Module): öffnet den Modulwechsler mit Räume, Erstellen, Aufgaben, Heute, Kommentare, Album, Whiteboards, Sternkarte, KI-Zugang, Governance, Konto und, für die Administration, Administration.
 - **Startseite**, **Zurück** und **Vorwärts**.
 - Das **Logo**, das ebenfalls zur Startseite führt.
 - Das **Suchfeld**.
 - **+ Neu**: erstellt eine Seite oder einen Eintrag am aktuellen Ort.
-- **Heute**: die eigene Tagesnotiz von heute (Alt+Shift+D); siehe *Tagesnotizen*.
+- **Heute**: die eigene Tagesnotiz von heute (Alt+Shift+D); siehe *Tagesnotizen*. Auf einem schmalen Bildschirm steht es im Modulwechsler.
 - Die **Glocke**: die Benachrichtigungen, mit der Anzahl ungelesener.
 - **DE** und **EN**: die Sprache der Oberfläche.
 - Den Umschalter für **hellen und dunklen Modus**.

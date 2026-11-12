@@ -35,12 +35,12 @@ Sign in with your username and password, or with single sign-on if your organisa
 
 The bar at the top of every page holds, from left to right:
 
-- **Nine dots** (Modules): opens the module switcher with Rooms, Create, Tasks, Comments, Album, Whiteboards, Starmap, AI access, Governance, Account and, for administrators, Administration.
+- **Nine dots** (Modules): opens the module switcher with Rooms, Create, Tasks, Today, Comments, Album, Whiteboards, Starmap, AI access, Governance, Account and, for administrators, Administration.
 - **Start page**, **Back** and **Forward**.
 - The **logo**, which also leads to the start page.
 - The **search** field.
 - **+ New**: creates a page or item where you are.
-- **Today**: your daily note of today (Alt+Shift+D); see *Daily notes*.
+- **Today**: your daily note of today (Alt+Shift+D); see *Daily notes*. On a narrow screen it is in the module switcher.
 - The **bell**: your notifications, with the number of unread ones.
 - **DE** and **EN**: the language of the interface.
 - The **light and dark mode** switch.

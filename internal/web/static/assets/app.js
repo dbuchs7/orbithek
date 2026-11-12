@@ -948,6 +948,9 @@ const modules = [
   { id: "spaces", name: "nav.spaces", href: "#/", match: ["", "space", "item", "board", "links", "search", "query", "label"], icon: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" },
   { id: "new", name: "nav.new", href: "#/new", match: ["new"], icon: "M12 8v8M8 12h8M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" },
   { id: "tasks", name: "nav.tasks", href: "#/tasks", match: ["tasks", "kanbans", "kanban", "roadmap", "calendar"], icon: "M9 11l3 3 8-8M20 12v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h11" },
+  // Today's daily note (ADR-0203); on a phone, where the top bar has no
+  // room for its button, it is reached here.
+  { id: "daily", name: "daily.today", href: "#/daily", match: ["daily"], icon: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4M9 15l2 2 4-4" },
   { id: "comments", name: "nav.comments", href: "#/comments", match: ["comments"], icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" },
   { id: "album", name: "nav.album", href: "#/album", match: ["album"], icon: "M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15 8h.01" },
   { id: "whiteboards", name: "nav.whiteboards", href: "#/whiteboards", match: ["whiteboards", "whiteboard"], icon: "M3 4h18v12H3zM8 20l4-4 4 4M7 8h6M7 12h10" },
@@ -3917,7 +3920,7 @@ async function paletteCommands() {
     { id: "today", name: t("palette.today"), hint: "Alt+Shift+D", run: go("#/daily") },
     { id: "query", name: t("palette.query"), run: go("#/query") },
     { id: "calendar", name: t("palette.calendar"), run: go("#/calendar") },
-    ...modules.filter((m) => m.id !== "new" && (!m.admin || me.admin)).map((m) => ({ id: "module-" + m.id, name: t("palette.goTo", { name: t(m.name) }), run: go(m.href) })),
+    ...modules.filter((m) => m.id !== "new" && m.id !== "daily" && (!m.admin || me.admin)).map((m) => ({ id: "module-" + m.id, name: t("palette.goTo", { name: t(m.name) }), run: go(m.href) })),
     { id: "look", name: t("palette.look"), run: () => document.getElementById("theme-toggle")?.click() },
     { id: "reading", name: t("palette.reading"), hint: "Ctrl+Shift+F", run: () => readingMode.set(true) },
     { id: "manual", name: t("palette.manual"), run: go("#/manual") },

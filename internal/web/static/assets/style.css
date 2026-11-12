@@ -2628,6 +2628,8 @@ button.link.album-notes-edit:hover { color: var(--accent); }
    of an item (ADR-0203, ADR-0204, ADR-0205). */
 .nav-today { white-space: nowrap; }
 #nav .nav-today { padding: 6px 12px; }
+/* Where the top bar would wrap into another row, Today is in the modules. */
+@media (max-width: 720px) { #nav .nav-today { display: none; } }
 .daily-head h1 { margin-right: auto; }
 .daily-nav { display: flex; flex-wrap: wrap; gap: 8px; }
 .daily-empty { background: var(--surface); border: 1px dashed var(--border-strong); border-radius: var(--radius); padding: 24px; }

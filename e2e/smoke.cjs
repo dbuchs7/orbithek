@@ -1147,7 +1147,7 @@ function gitSource() {
     await page.click("#app-switcher");
     await page.waitForSelector("#drawer:not([hidden])");
     const modules = (await page.locator("#drawer-apps a").allTextContents()).join(",");
-    check(modules === "Rooms,Create,Tasks,Comments,Album,Whiteboards,Starmap,AI access,Governance,Account,Administration", "the modules of an administrator: " + modules);
+    check(modules === "Rooms,Create,Tasks,Today,Comments,Album,Whiteboards,Starmap,AI access,Governance,Account,Administration", "the modules of an administrator: " + modules);
     await page.keyboard.press("Escape");
     await page.waitForSelector("#drawer", { state: "hidden" });
     await page.click("#app-switcher");
@@ -5468,12 +5468,12 @@ function gitSource() {
     await page.click("#edit-done");
     await page.waitForSelector("#body.reading");
 
-    step("daily notes: Today opens one's own note for the day, fromMention in the room one chose, written in place (ADR-0203)");
+    step("daily notes: Today opens one's own note for the day, made in the room one chose, written in place (ADR-0203)");
     await page.goto(base + "/#/");
     await page.click("#nav-today");
     await page.waitForSelector("#daily-title");
     if (await page.locator("#daily-note.daily-empty").count()) {
-      // The room is chosen once; the note is fromMention then.
+      // The room is chosen once; the note is made then.
       await page.selectOption("#daily-room", "PLAT");
       await page.waitForSelector("#daily-note.editing .ProseMirror");
     }
@@ -5485,7 +5485,7 @@ function gitSource() {
     await page.locator("#daily-note .ProseMirror").click();
     await page.keyboard.type("Planned the day. ");
     await page.waitForSelector("#daily-month .daily-day.today.noted.shown");
-    // Another day's note is fromMention only when one starts it.
+    // Another day's note is made only when one starts it.
     await page.click("#daily-prev");
     await page.waitForSelector("#daily-note.daily-empty #daily-start");
     check(await page.locator("#daily-today").count() === 1, "a day before today offers to go back to today");
@@ -5578,6 +5578,28 @@ function gitSource() {
     await page.click("dialog.pm-dialog button:has-text('Cancel')");
     await page.keyboard.press("Alt+Shift+D");
     await page.waitForSelector("#daily-title");
+    // On a phone, Today is in the modules and the view fits the screen (ADR-0116).
+    const dailyPhoneCtx = await browser.newContext({ viewport: { width: 375, height: 700 }, isMobile: true, hasTouch: true });
+    const dailyPhone = await dailyPhoneCtx.newPage();
+    dailyPhone.on("pageerror", (e) => problems.push("phone page error: " + e.message));
+    await dailyPhone.goto(base + "/");
+    await dailyPhone.fill("#login [name=username]", "bert");
+    await dailyPhone.fill("#login [name=password]", "bert's password");
+    await dailyPhone.press("#login [name=password]", "Enter");
+    await dailyPhone.waitForSelector("#account-button");
+    check(!(await dailyPhone.isVisible("#nav-today")), "the top bar of a phone keeps its rows: Today is in the modules");
+    await dailyPhone.click("#app-switcher");
+    await dailyPhone.click("#drawer-apps a:has-text('Today')");
+    await dailyPhone.waitForSelector("#daily-note.editing .ProseMirror");
+    await dailyPhone.goto(base + "/#/item/" + fromMention.key + "?beside=" + dailyKey);
+    await dailyPhone.waitForSelector("#beside-pane .beside-title");
+    for (const view of ["#/daily", "#/item/" + fromMention.key + "?beside=" + dailyKey]) {
+      await dailyPhone.goto(base + "/" + view);
+      await dailyPhone.waitForTimeout(400);
+      const wide = await dailyPhone.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      check(wide <= 0, `${view} is ${wide}px wider than a phone's screen`);
+    }
+    await dailyPhoneCtx.close();
 
     check(problems.length === 0, problems.join("; "));
     console.log("ok");
