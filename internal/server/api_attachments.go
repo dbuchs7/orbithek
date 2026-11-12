@@ -36,6 +36,7 @@ func attachmentRoutes(h itemHandlers) []Route {
 		{Method: http.MethodPost, Pattern: "/api/album/folders", Summary: "Make a folder of the album: name, and space or parent (a folder); who may create there may", Handler: http.HandlerFunc(h.createAlbumFolder)},
 		{Method: http.MethodPost, Pattern: "/api/album/collections", Summary: "Make a collection of the album, which gathers the labelled pictures of every room: name, space or parent (a folder), labels, match (any or all) and items (the labels of a picture's item count too); who may create there may", Handler: http.HandlerFunc(h.createAlbumCollection)},
 		{Method: http.MethodPut, Pattern: "/api/album/collections/{ref}", Summary: "Change a collection's rule: labels, match (any or all) and items; who may edit the collection may", Handler: http.HandlerFunc(h.setAlbumCollection)},
+		{Method: http.MethodPut, Pattern: "/api/album/collections/{ref}/folder", Summary: "Keep the folder a collection's new pictures go into, for everyone who adds to it (folder: a folder's ID, empty to forget it); who may edit the collection may", Handler: http.HandlerFunc(h.setAlbumCollectionFolder)},
 		{Method: http.MethodPut, Pattern: "/api/album/order/{ref}", Summary: "Move pictures within the order of the slides of a folder or collection ({ref}), set by hand: pictures (the first versions of their stacks, first, in the order they are to have) go right before before, or to the end without it; the album lists the pictures so with order=slides, those the order does not name after the others by name; who may edit the folder or collection may (ADR-0195)", Handler: http.HandlerFunc(h.placePictures)},
 		{Method: http.MethodDelete, Pattern: "/api/album/order/{ref}", Summary: "Forget the order of the slides set by hand of a folder or collection ({ref}): its slides are ordered by name again; who may edit it may (ADR-0195)", Handler: http.HandlerFunc(h.clearPictureOrder)},
 		{Method: http.MethodGet, Pattern: "/api/album/labels", Summary: "The labels of the pictures one may read, most used first (space; q: holding it)", Handler: http.HandlerFunc(h.albumLabels)},
@@ -403,7 +404,7 @@ func (h itemHandlers) albumFolders(w http.ResponseWriter, r *http.Request) {
 		collections := []map[string]any{}
 		for _, c := range x.Collections(space, parent) {
 			collections = append(collections, map[string]any{"id": c.Item.ID, "key": c.Item.Key, "name": c.Item.Title, "space": c.Item.Space,
-				"parent": c.Item.Parent, "rule": toRuleJSON(c.Rule), "editable": c.Editable})
+				"parent": c.Item.Parent, "rule": toRuleJSON(c.Rule), "editable": c.Editable, "folder": c.Folder})
 		}
 		return map[string]any{"folders": out, "collections": collections}, nil
 	})
@@ -480,6 +481,27 @@ func (h itemHandlers) setAlbumCollection(w http.ResponseWriter, r *http.Request)
 			return nil, err
 		}
 		return map[string]collectionRuleJSON{"rule": toRuleJSON(kept)}, nil
+	})
+}
+
+// setAlbumCollectionFolder keeps the folder a collection's new pictures go
+// into (ADR-0221).
+func (h itemHandlers) setAlbumCollectionFolder(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Folder item.ID `json:"folder"`
+	}
+	if !decode(w, r, &req) {
+		return
+	}
+	h.write(w, r, http.StatusOK, func(x *item.Session, _ *item.Store) (any, error) {
+		it, err := resolveItem(x, r.PathValue("ref"))
+		if err != nil {
+			return nil, err
+		}
+		if err := x.SetCollectionFolder(it.ID, req.Folder); err != nil {
+			return nil, err
+		}
+		return map[string]item.ID{"folder": req.Folder}, nil
 	})
 }
 

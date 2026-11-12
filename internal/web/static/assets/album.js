@@ -1432,10 +1432,20 @@ export function albumBrowser({ pick, pickText } = {}) {
     const labels = collection ? collection.rule.labels : [];
     let folder = inFolder() ? here() : null;
     if (!folder) {
+      // A collection proposes the folder it keeps for everyone, and keeps
+      // the one chosen when one may edit it (ADR-0221).
       folder = await chooseFolder(collection
-        ? { title: t("album.targetTitleCollection", { name: collection.name, n: list.length }), hint: t("album.targetHintCollection", { labels: labels.join(", ") }) }
+        ? { title: t("album.targetTitleCollection", { name: collection.name, n: list.length }),
+          hint: t("album.targetHintCollection", { labels: labels.join(", ") }) + (collection.editable ? " " + t("album.targetKeptCollection") : ""),
+          preferred: collection.folder || "" }
         : { title: t("album.targetTitle", { n: list.length }), hint: t("album.targetHint") });
       if (!folder) return;
+      if (collection?.editable && collection.folder !== folder.id) {
+        try {
+          await put(`/api/album/collections/${collection.id}/folder`, { folder: folder.id });
+          collection.folder = folder.id;
+        } catch (err) { fail(err); }
+      }
     }
     const top = !here();
     // Where the pictures went, said once the album shows them; a folder
@@ -1470,10 +1480,11 @@ export function albumBrowser({ pick, pickText } = {}) {
   };
 
   // chooseFolder asks which folder pictures go into: one of the folders
-  // one may add to, the one chosen last first, or a new folder in a room
-  // (ADR-0187). It resolves to the folder, or to null.
+  // one may add to — preferred first, else the one chosen last in this
+  // browser — or a new folder in a room (ADR-0187, ADR-0221). It resolves
+  // to the folder, or to null.
   const LAST_FOLDER = "ot.albumUploadFolder";
-  const chooseFolder = ({ title, hint }) => new Promise((resolve) => {
+  const chooseFolder = ({ title, hint, preferred = "" }) => new Promise((resolve) => {
     const NEW = "new";
     let list = [];
     const select = h("select", { id: "album-target-folder", "aria-label": t("album.targetFolder") }, h("option", { value: NEW, text: t("album.targetNew") }));
@@ -1534,7 +1545,8 @@ export function albumBrowser({ pick, pickText } = {}) {
       let last = "";
       try { last = localStorage.getItem(LAST_FOLDER) || ""; } catch { /* none */ }
       select.prepend(...list.map((f) => h("option", { value: f.id, text: f.path })));
-      select.value = list.some((f) => f.id === last) ? last : list.length ? list[0].id : NEW;
+      const first = [preferred, last].find((id) => id && list.some((f) => f.id === id));
+      select.value = first || (list.length ? list[0].id : NEW);
       sync();
     }).catch((err) => { error.textContent = err.message; error.hidden = false; });
   });

@@ -233,3 +233,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0218](0218-roadmap-one-listing-and-pictures.md) | The roadmap and the Gantt chart read their items in one listing and export as PNG and JPEG | Accepted | Landed |
 | [0219](0219-recording-sound-into-an-items-files.md) | Recording sound into an item's files | Proposed | Partial |
 | [0220](0220-voice-recordings-become-text-in-the-browser.md) | Voice recordings become text in the browser, the recording kept only on request | Proposed | Not started |
+| [0221](0221-a-collection-keeps-the-folder-of-its-new-pictures.md) | A collection keeps the folder of its new pictures, for everyone | Proposed | Partial |

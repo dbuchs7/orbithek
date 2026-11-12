@@ -824,6 +824,7 @@ export default {
   "album.targetTitleCollection": {"one": "Ein Bild zu {name} hinzufügen", "other": "{n} Bilder zu {name} hinzufügen"},
   "album.targetHint": "Bilder werden in einem Ordner abgelegt. Man wählt einen oder legt einen neuen an.",
   "album.targetHintCollection": "Eine Sammlung hält keine eigenen Dateien: Die Bilder werden im hier gewählten Ordner abgelegt und erhalten die Labels {labels}, sodass die Sammlung sie zeigt.",
+  "album.targetKeptCollection": "Der gewählte Ordner wird für diese Sammlung gemerkt und allen vorgeschlagen, die Bilder hinzufügen.",
   "album.targetFolder": "Ordner",
   "album.targetNew": "Neuer Ordner…",
   "album.targetOk": "Hochladen",
