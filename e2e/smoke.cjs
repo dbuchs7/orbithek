@@ -1990,7 +1990,7 @@ function gitSource() {
     await page.click("#album .album-new-folder button[type=submit]");
     const prints = "#album .album-folder:has-text('Prints')";
     await page.waitForSelector(prints);
-    check((await page.getAttribute(prints, "title")) === "Drop pictures here to move them into Prints.", "a folder says that it takes dropped pictures");
+    check((await page.getAttribute(prints, "title")) === "Drop pictures or a folder here to move them into Prints.", "a folder says that it takes dropped pictures and folders");
     await page.locator(holiday).dragTo(page.locator(prints));
     await page.waitForSelector(holiday, { state: "detached" });
     check((await page.textContent("#album .status")).includes("1 picture moved with its versions"), "the dragged picture is moved into the folder it is dropped onto");
@@ -2037,6 +2037,33 @@ function gitSource() {
     await page.waitForSelector("dialog.photo-viewer[open] video.photo-viewer-video[src]");
     await page.click("#photo-viewer-close");
     await page.selectOption("#album select[aria-label=Kind]", "");
+    // A folder is moved with what it holds: by Move folder into a folder
+    // chosen, up by dragging it onto the trail, and down by dragging it
+    // onto a folder beside it (ADR-0200).
+    await page.click("#album-new-folder");
+    await page.fill("#album-folder-name", "Sub");
+    await page.click("#album .album-new-folder button[type=submit]");
+    const sub = "#album .album-folder:has-text('Sub')";
+    await page.click(sub);
+    await page.click("#album-folder-move");
+    await page.waitForFunction(() => [...document.querySelectorAll("#album-folder-move-target option")].some((o) => o.textContent.endsWith("› Prints")));
+    const intoPrints = await page.evaluate(() => [...document.querySelectorAll("#album-folder-move-target option")].find((o) => o.textContent.endsWith("› Prints")).value);
+    check(await page.evaluate(() => ![...document.querySelectorAll("#album-folder-move-target option")].some((o) => o.textContent.endsWith("› Sub"))), "a folder is not offered to move into itself");
+    await page.selectOption("#album-folder-move-target", intoPrints);
+    await page.click("#album-folder-move-form button[type=submit]");
+    await page.waitForSelector("#album .album-trail button:has-text('Prints')");
+    check((await page.textContent("#album .status")).includes('"Sub" moved with everything in it.'), "a folder moved by Move folder says so");
+    check((await page.textContent("#album .album-trail strong")) === "Sub", "the trail leads to the folder where it went");
+    await page.click("#album .album-trail button:has-text('Prints')");
+    await page.waitForSelector(sub);
+    await page.locator(sub).dragTo(page.locator("#album .album-trail button:has-text('Logos')"));
+    await page.waitForSelector(sub, { state: "detached" });
+    check((await page.textContent("#album .status")).includes('"Sub" moved with everything in it.'), "a folder dropped onto the trail goes up");
+    await page.click("#album .album-trail button:has-text('Logos')");
+    await page.waitForSelector(sub);
+    await page.locator(sub).dragTo(page.locator(prints));
+    await page.waitForSelector(sub, { state: "detached" });
+    check(await page.locator(prints).count() === 1, "a folder dropped onto a folder beside it goes into it");
     // A folder is deleted from the album, into the trash with what is in
     // it, and its page restores it (ADR-0190).
     await page.click(prints);

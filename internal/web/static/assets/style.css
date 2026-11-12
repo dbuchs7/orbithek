@@ -982,6 +982,8 @@ dialog.drawing::backdrop { background: rgba(20, 22, 26, .45); }
 .album.dropping { outline: 2px dashed var(--accent); outline-offset: 6px; border-radius: 8px; }
 .album-card[draggable="true"] { cursor: grab; }
 .album.dragging-pictures .album-folder:not(.album-collection), .album.dragging-pictures .album-trail button[title] { outline: 1px dashed var(--accent); outline-offset: 2px; }
+/* A folder being dragged goes into another folder or up the trail (ADR-0200). */
+.album.dragging-folder .album-folder:not(.album-collection), .album.dragging-folder .album-trail button { outline: 1px dashed var(--accent); outline-offset: 2px; }
 .album .drop-target, .album.dragging-pictures .drop-target { outline: 2px solid var(--accent); outline-offset: 2px; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
 /* Where pictures dropped among others go in the order of slides (ADR-0195). */
 .album-card.drop-before, .present-thumb.drop-before { box-shadow: -4px 0 0 0 var(--accent); }
@@ -1105,7 +1107,8 @@ dialog.retention-dialog .drawing-bar button { margin-left: auto; }
 .album-tools > .album-drop-hint { flex-basis: 100%; margin: -2px 0 0; font-size: 12px; }
 .album-count-row { margin: 16px 0 8px; padding-top: 12px; border-top: 1px solid var(--border); }
 .album-count-row > #album-choose[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
-.album-new-folder { display: flex; gap: 8px; flex: 1 1 100%; }
+.album-new-folder, .album-move-folder { display: flex; gap: 8px; flex: 1 1 100%; }
+.album-move-folder select { min-width: 0; flex: 1 1 auto; }
 .album-folders { list-style: none; margin: 8px 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
 .album-folder { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; text-align: left; overflow-wrap: anywhere; }
 .album-folder-icon { flex: none; position: relative; width: 26px; height: 18px; margin-top: 4px; background: var(--accent); border-radius: 2px 3px 3px 3px; opacity: .8; }

@@ -257,6 +257,10 @@ Faces are found in your browser; nothing is sent elsewhere. If an administrator 
 
 With recognition on, a person's album also shows **Is this Ada?**: faces on other pictures you may edit that resemble Ada more than anyone else named, most alike first. Click the faces that show Ada, or **Choose all** and click away the wrong ones, then **Confirm chosen**. The faces not chosen stay unnamed and are suggested again later. Only pictures whose faces were searched while recognition was on can be suggested.
 
+### Moving a folder
+
+**Move folder** in an open folder moves it with its folders, pictures and videos into another folder or to the top level of a room. Choose the place under **Move to…** and click **Move**; the path then leads to the folder where it went. A folder can also be dragged onto a folder listed beside it or onto a folder above it in the path; dragged onto **All pictures**, it goes to the top level of its room. Moved into another room, the folder is asked about first: afterwards that room decides who may see and change it. A folder is moved only by someone who may change it and everything in it and may create where it goes; it cannot go into itself or a folder below it.
+
 ### Deleting a folder
 
 **Delete folder** in an open folder moves it to the trash with its folders, pictures and videos, after saying how many go with it. Its page restores it with **Restore**. A folder is not deleted while something outside it, such as a page, still uses what is in it; the album names it.
