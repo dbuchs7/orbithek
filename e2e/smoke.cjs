@@ -5520,6 +5520,12 @@ function gitSource() {
     await page.click("#view-layout-gallery");
     await page.waitForSelector("#view .iv-gallery .iv-card");
     check(await page.locator("#view .iv-card").count() === 3, "the gallery shows a card per story");
+    const titleField = `#view .iv-card[data-key='${billing.key}'] .iv-field[data-col=title]`;
+    await page.hover(titleField);
+    await page.click(titleField + " .iv-edit");
+    await page.fill(titleField + " input", "Billing and invoices");
+    await page.press(titleField + " input", "Tab");
+    await page.waitForSelector(`#view .iv-card[data-key='${billing.key}'] .iv-title:text-is('Billing and invoices')`);
     await page.click("#view-layout-list");
     await page.waitForSelector("#view .iv-list .iv-row");
     check(page.url().includes("layout=list"), "the address keeps the layout");

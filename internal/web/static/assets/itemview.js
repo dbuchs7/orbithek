@@ -193,7 +193,7 @@ function gallery(items, cols, type, o) {
         cover ? h("img", { src: `/api/items/${encodeURIComponent(cover.item)}/attachments/${encodeURIComponent(cover.attachment)}/thumbnail?edge=400`, alt: "", loading: "lazy", draggable: "false" })
           : h("span", { class: "iv-cover-none", text: (it.title || it.key).slice(0, 1).toUpperCase() })),
       h("div", { class: "iv-card-body" },
-        h("p", { class: "iv-card-title" }, h("span", { class: "muted iv-card-key", text: it.key + " " }), ...cellBody(it, "title", type, o)),
+        h("p", { class: "iv-card-title" }, h("span", { class: "muted iv-card-key", text: it.key + " " }), h("span", { class: "iv-field", "data-col": "title" }, cellBody(it, "title", type, o))),
         shown.length ? h("dl", { class: "iv-fields" }, shown.flatMap((c) => [h("dt", { text: columnName(c) }), h("dd", { class: "iv-field", "data-col": c }, cellBody(it, c, type, o))])) : null));
     const move = orderTools(card, it, o);
     if (move) card.append(move);
