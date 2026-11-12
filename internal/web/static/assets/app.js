@@ -29,6 +29,8 @@ import { freshNotice, taskDialog, taskPanel } from "./taskdialog.js";
 import { finishing } from "./taskparts.js";
 import { documentView, upgradeTemplate, wordTemplatesCard } from "./wordtemplates.js";
 import { manualBlocks, manualLanguage, manualLanguages, manualPath } from "./manual.js";
+import { pdfView } from "./pdfview.js";
+import { attachmentLink, isPdf, onPdf, readerHref } from "./pdfparts.js";
 
 const app = document.getElementById("app");
 const nav = document.getElementById("nav");
@@ -254,6 +256,8 @@ async function commentsView(tab = "") {
             link("#/item/" + encodeURIComponent(e.key), `${e.key} ${e.title}`),
             h("span", { class: "muted", text: " · " + when(c.created) })),
           c.anchor ? h("blockquote", { class: "comment-quote", text: c.anchor.quote }) : "",
+          // A highlight in a PDF leads to its place in the reader (ADR-0208).
+          onPdf(c) ? h("p", {}, link(readerHref(e.key, c.anchor.file, { comment: c.reply || c.id }), t("pdf.showInPdf"), "pdf-show")) : "",
           h("p", { class: "comment-text", text: c.text }),
           h("div", { class: "comment-entry-why" },
             ...e.why.map((w) => h("span", { class: "chip why-" + w, text: kinds[w] })),
@@ -822,6 +826,9 @@ function attachmentsSection(path, files, live) {
       : t("att.copyOfUnknown"),
     a.origin.newer ? [" ", h("span", { class: "chip", text: t("att.originChanged") })] : null) : null,
     isDrawing(a.name) ? [" · ", link(whiteboardHref(path, a.id), t("wb.open"), "wb-open")] : null,
+    // A PDF opens in the reader (ADR-0208).
+    isPdf(a) ? [" · ", h("a", { href: readerHref(decodeURIComponent(path.split("/").pop()), a.id), class: "pdf-read", text: t("pdf.read"),
+      "aria-label": t("pdf.readLabel", { name: a.name }) })] : null,
     // Renaming keeps the file type and renames every version (ADR-0182).
     live ? h("button", { class: "link att-rename", text: t("att.rename"), "aria-label": t("att.renameOf", { name: a.name }),
       onclick: (e) => renameInPlace(e.currentTarget.closest("li")?.querySelector("a"), { value: captionOf(a.name),
@@ -1652,6 +1659,7 @@ async function route() {
       case "show": return showScreen(params);
       case "whiteboards": return await whiteboardsView();
       case "whiteboard": return await whiteboardView(arg, arg2);
+      case "pdf": return await pdfScreen(arg, arg2, params);
       case "labelmap": return await labelmapScreen(params);
       case "starmap": return await starmapScreen(arg || "", hash.split("?")[0].split("/").slice(3).map(decodeURIComponent), params);
       case "search": return await searchView(arg || "");
@@ -3950,6 +3958,12 @@ async function whiteboardView(ref, file) {
     frame));
 }
 
+// pdfScreen shows a PDF file of an item in the reader, with its
+// highlights (ADR-0208).
+async function pdfScreen(ref, file, params) {
+  await pdfView(ref, file, params, { show: screen(), person, nameOf: (id) => names.get(id) ?? person(id), learnNames, onLeave, here, errorBox, user: me.user.id });
+}
+
 // whiteboardsView lists the whiteboards with a live session and the
 // drawings one may open as one, and makes new ones in a new page.
 async function whiteboardsView() {
@@ -4466,7 +4480,7 @@ async function itemView(ref, params = new URLSearchParams()) {
   const itemHref = "#/item/" + encodeURIComponent(item.key);
   here.space = item.space;
   here.parent = item.id;
-  const threads = commentThreads(path, comments, canEdit);
+  const threads = commentThreads(path, comments, canEdit, attachments, item.key);
   // One's own notes on passages, seen by no one else (ADR-0107).
   const notes = live ? personalNotes(path, myNotes.notes) : null;
   // Who edits the text now, as faces beside the bell, for readers too
@@ -4757,6 +4771,15 @@ function bodySection(item, embeds, editing, threads, attachments, protect, edit,
     // the list of passages.
     const open = (ev) => {
       if (ev.target.closest?.("button")) return;
+      // A link in the text to a PDF of the item opens it in the reader
+      // (ADR-0208); other files download as before.
+      const a = ev.type === "click" ? ev.target.closest?.("a[href]") : null;
+      const target = a ? attachmentLink(a.href, location.origin) : null;
+      if (target && [item.id, item.key].includes(target.item) && isPdf(attachments.find((x) => x.id === target.file))) {
+        ev.preventDefault();
+        location.hash = readerHref(item.key, target.file);
+        return;
+      }
       const el = ev.target.closest?.(".pm-secret, .pm-veiled");
       if (!el || (ev.type === "keydown" && ev.key !== "Enter" && ev.key !== " ")) return;
       const shown = shownSecrets.get(el.dataset.secret);
@@ -5184,14 +5207,14 @@ function protectForm(path, read, edit, spaceAdmin, named) {
 // It returns the section, a plugin highlighting the passages of the open
 // threads in the body, and start(anchor), which begins a comment on a
 // passage.
-function commentThreads(path, page, live) {
+function commentThreads(path, page, live, files = [], key = "") {
   const author = (c) => person(c.author);
   const roots = page.comments.filter((c) => !c.reply);
   const replies = new Map();
   for (const c of page.comments.filter((c) => c.reply)) replies.set(c.reply, [...(replies.get(c.reply) || []), c]);
-  // A comment on an element of a whiteboard is on no passage of the body
-  // (ADR-0171).
-  const anchored = roots.filter((c) => c.anchor && !c.anchor.element && !c.deleted && !c.resolved);
+  // A comment on an element of a whiteboard (ADR-0171) or a highlight in a
+  // PDF (ADR-0208) is on no passage of the body.
+  const anchored = roots.filter((c) => c.anchor && !c.anchor.element && !onPdf(c) && !c.deleted && !c.resolved);
   const threadEls = new Map(); // root id -> its element
 
   const row = (c) => {
@@ -5226,9 +5249,16 @@ function commentThreads(path, page, live) {
 
   const thread = (c) => {
     const status = h("div", { class: "status" });
+    // A highlight names its PDF and page, and leads to it in the reader.
+    const pdfName = onPdf(c) ? files.find((a) => a.id === c.anchor.file)?.name : "";
     const quote = c.anchor?.element && !c.deleted
       ? h("blockquote", { class: "comment-quote comment-element" }, t("wb.onElement"), " ",
         link(whiteboardHref(path, c.anchor.drawing), c.anchor.quote || t("wb.openWhiteboard")))
+      : onPdf(c) && !c.deleted
+        ? h("blockquote", { class: `comment-quote comment-pdf hl-${c.anchor.color || "yellow"}` },
+          h("span", { class: "muted", text: t("pdf.onHighlight", { name: pdfName || t("pdf.aPdf"), page: c.anchor.page }) }), " ",
+          h("span", { text: c.anchor.quote }), " ",
+          link(readerHref(key || decodeURIComponent(path.split("/").pop()), c.anchor.file, { comment: c.id }), t("pdf.showInPdf"), "pdf-show"))
       : c.anchor && !c.deleted
         ? h("blockquote", { class: "comment-quote" },
           h("button", { type: "button", class: "link", text: c.anchor.quote, title: t("comment.showPassage"), onclick: () => reveal(c.id) }))

@@ -68,6 +68,53 @@ function pageState() {
   };
 }
 
+// makePdf writes a PDF of pages of lines in Helvetica, with a table of
+// contents naming each page "Chapter n", for the PDF reader (ADR-0208).
+function makePdf(pages) {
+  const objs = [];
+  const add = (s) => { objs.push(s); return objs.length; };
+  const catalog = add(null), tree = add(null), outlines = add(null), font = add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+  const pageRefs = [];
+  for (const lines of pages) {
+    const esc = (s) => s.replace(/[\\()]/g, (c) => "\\" + c);
+    const body = "BT /F1 14 Tf 72 720 Td 18 TL " + lines.map((l) => `(${esc(l)}) '`).join(" ") + " ET";
+    const content = add(`<< /Length ${body.length} >>\nstream\n${body}\nendstream`);
+    pageRefs.push(add(`<< /Type /Page /Parent ${tree} 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 ${font} 0 R >> >> /Contents ${content} 0 R >>`));
+  }
+  const items = pageRefs.map(() => add(null));
+  items.forEach((id, i) => {
+    objs[id - 1] = `<< /Title (Chapter ${i + 1}) /Parent ${outlines} 0 R /Dest [${pageRefs[i]} 0 R /XYZ 0 792 0]` +
+      (i ? ` /Prev ${items[i - 1]} 0 R` : "") + (i + 1 < items.length ? ` /Next ${items[i + 1]} 0 R` : "") + " >>";
+  });
+  objs[catalog - 1] = `<< /Type /Catalog /Pages ${tree} 0 R /Outlines ${outlines} 0 R >>`;
+  objs[tree - 1] = `<< /Type /Pages /Kids [${pageRefs.map((r) => r + " 0 R").join(" ")}] /Count ${pageRefs.length} >>`;
+  objs[outlines - 1] = `<< /Type /Outlines /First ${items[0]} 0 R /Last ${items.at(-1)} 0 R /Count ${items.length} >>`;
+  let out = "%PDF-1.4\n";
+  const offsets = [];
+  objs.forEach((o, i) => { offsets.push(out.length); out += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+  const xref = out.length;
+  out += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n` + offsets.map((o) => String(o).padStart(10, "0") + " 00000 n \n").join("");
+  out += `trailer\n<< /Size ${objs.length + 1} /Root ${catalog} 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  return Buffer.from(out, "latin1");
+}
+
+// selectInPdf selects a text on a page of the PDF reader, as a person
+// would by dragging, and lets the reader see the selection end.
+async function selectInPdf(p, pageNo, text) {
+  await p.waitForSelector(`.pdf-page[data-page='${pageNo}'][data-rendered='1'] .textLayer span`);
+  await p.evaluate(([n, words]) => {
+    const layer = document.querySelector(`.pdf-page[data-page='${n}'] .textLayer`);
+    const span = [...layer.querySelectorAll("span")].find((s) => s.textContent.includes(words));
+    const node = span.firstChild, at = node.data.indexOf(words);
+    const r = document.createRange();
+    r.setStart(node, at);
+    r.setEnd(node, at + words.length);
+    getSelection().removeAllRanges();
+    getSelection().addRange(r);
+  }, [pageNo, text]);
+  await p.dispatchEvent("#pdf-pages", "mouseup");
+}
+
 // mailSink is a mail server that keeps every message, for the server under
 // test to send to (OT_SMTP_HOST=127.0.0.1, OT_SMTP_PORT=SMTP_SINK_PORT,
 // OT_SMTP_SECURITY=none). Without SMTP_SINK_PORT there is none.
@@ -5467,6 +5514,103 @@ function gitSource() {
     await page.click("dialog.drawing button:has-text('Cancel')");
     await page.click("#edit-done");
     await page.waitForSelector("#body.reading");
+
+    step("a PDF of an item opens in the reader: pages with their text, contents, search, zoom (ADR-0208)");
+    const report = (await (await page.request.post(base + "/api/items", { data: { space: "PLAT", type: "page", title: "Annual report" } })).json()).item;
+    const reportPdf = makePdf([
+      ["Annual report 2025", "The revenue grew by four percent.", "Costs grew by two percent."],
+      ["Outlook", "The revenue grew again in the first quarter.", "We expect a steady year."],
+      ["Appendix", "Tables and figures."],
+    ]);
+    const pdfFile = (await (await page.request.post(base + `/api/items/${report.id}/attachments?name=report.pdf`,
+      { headers: { "Content-Type": "application/octet-stream" }, data: reportPdf })).json()).attachment;
+    check(pdfFile.type === "application/pdf", "the server tells a PDF by its bytes: " + pdfFile.type);
+    // The text links to the PDF; a click on the link reads it.
+    check((await page.request.put(base + `/api/items/${report.id}/body`, { data: { blocks: [{ kind: "paragraph", text: "See the report.",
+      marks: [{ type: "link", start: 8, end: 14, href: `${base}/api/items/${report.id}/attachments/${pdfFile.id}` }] }] } })).ok(), "a text links to the PDF");
+    await page.goto(base + "/#/item/" + report.key);
+    await page.click("#body.reading a:has-text('report')");
+    await page.waitForSelector("#pdf-pages[data-ready='1']");
+    check(page.url().includes(`#/pdf/${report.key}/${pdfFile.id}`), "a link in a text to a PDF of the item opens the reader: " + page.url());
+    await page.goto(base + "/#/item/" + report.key);
+    await page.click(`#attachments a.pdf-read[aria-label*='report.pdf']`);
+    await page.waitForSelector("#pdf-pages[data-ready='1'] .pdf-page[data-page='1'][data-rendered='1'] .textLayer span");
+    check((await page.textContent("#pdf-page-count")).includes("3"), "the reader counts the pages");
+    check((await page.locator(".pdf-page").count()) === 3, "a frame per page");
+    check(await page.getAttribute("#pdf-download", "href") === `/api/items/${report.id}/attachments/${pdfFile.id}`, "the file downloads from its item");
+    await page.click("#pdf-tab-outline");
+    await page.click(".pdf-outline button:has-text('Chapter 3')");
+    await page.waitForFunction(() => document.querySelector("#pdf-page").value === "3");
+    check(page.url().endsWith("?page=3"), "the address follows the page: " + page.url());
+    await page.click("#pdf-prev");
+    await page.waitForFunction(() => document.querySelector("#pdf-page").value === "2");
+    await page.fill("#pdf-search", "revenue grew");
+    await page.press("#pdf-search", "Enter");
+    await page.waitForSelector(".pdf-hit");
+    await page.waitForFunction(() => document.querySelector("#pdf-search-count").textContent.includes("2"));
+    check((await page.textContent("#pdf-search-count")).trim() === "1 of 2", "the search finds the words on two pages: " + await page.textContent("#pdf-search-count"));
+    await page.click("#pdf-search-next");
+    await page.waitForFunction(() => document.querySelector("#pdf-search-count").textContent.trim() === "2 of 2");
+    await page.click("#pdf-zoom-in");
+    check((await page.textContent("#pdf-zoom")).trim() === "125 %", "zoom by steps");
+    await page.click("#pdf-fit");
+    await page.click("#pdf-tab-pages");
+    await page.waitForSelector(".pdf-thumb[data-page='3']");
+    await page.click(".pdf-thumb[data-page='1'] button");
+    await page.waitForFunction(() => document.querySelector("#pdf-page").value === "1");
+
+    step("highlights in a PDF: a colour, a note, drawn over the page, listed and exported as Markdown (ADR-0208)");
+    await selectInPdf(page, 1, "revenue grew");
+    await page.click("#pdf-selbar:not([hidden]) [data-color=green]");
+    await page.waitForSelector(".pdf-page[data-page='1'] .pdf-mark.hl-green");
+    await page.waitForSelector("#pdf-highlights li");
+    await selectInPdf(page, 1, "Costs grew");
+    await page.click("#pdf-with-note");
+    await page.fill("#pdf-note", "Lower than planned? " + hostile);
+    await page.click("#pdf-selbar .pdf-colors [aria-label='purple']");
+    await page.click("#pdf-note-save");
+    await page.waitForSelector(".pdf-page[data-page='1'] .pdf-mark.hl-purple");
+    check((await page.locator("#pdf-highlights li").count()) === 2, "both highlights are listed");
+    check((await page.textContent("#pdf-highlights")).includes(hostile), "a note is shown as text");
+    const [mdFile] = await Promise.all([page.waitForEvent("download"), page.click("#pdf-export")]);
+    check(mdFile.suggestedFilename() === "report-highlights.md", "the export is named after the PDF: " + mdFile.suggestedFilename());
+    const md = require("fs").readFileSync(await mdFile.path(), "utf8");
+    check(md.startsWith("# Highlights in report.pdf") && md.includes("## Page 1") && md.includes("> revenue grew") && md.includes("Lower than planned?"),
+      "the Markdown holds quote, page and note: " + md);
+    // An agent's highlight names a page and a quote; the reader finds it.
+    check((await page.request.post(base + `/api/items/${report.id}/comments`, { data: { text: "", anchor: { file: pdfFile.id, page: 2, quote: "steady year" } } })).status() === 201,
+      "a highlight without rectangles and without a note");
+    // A new version moves the text to another page; the highlight follows
+    // its quote.
+    const pdfV2 = (await (await page.request.post(base + `/api/items/${report.id}/attachments?name=report.pdf&sourceItem=${report.id}&sourceAttachment=${pdfFile.id}`,
+      { headers: { "Content-Type": "application/octet-stream" }, data: makePdf([["Preface"], ["Annual report 2025", "The revenue grew by four percent.", "Costs grew by two percent."],
+        ["Outlook", "We expect a steady year."]]) })).json()).attachment;
+    await page.goto(base + "/#/item/" + report.key);
+    await page.waitForSelector("#attachments");
+    await page.goto(base + `/#/pdf/${report.key}/${pdfFile.id}`);
+    // Named by its first version, the reader shows the newest.
+    await page.waitForSelector(`#pdf-download[href='/api/items/${report.id}/attachments/${pdfV2.id}']`);
+    await page.waitForSelector("#pdf-pages[data-ready='1']");
+    await page.click("#pdf-tab-highlights");
+    check((await page.locator("#pdf-highlights li").count()) === 3, "three highlights");
+    await page.click("#pdf-highlights li:has-text('revenue grew') .pdf-goto");
+    await page.waitForSelector(".pdf-page[data-page='2'] .pdf-mark.hl-green");
+    await page.waitForSelector("#pdf-highlights li:has-text('revenue grew'):has-text('earlier version')");
+    await page.click("#pdf-highlights li:has-text('steady year') .pdf-goto");
+    await page.waitForSelector(".pdf-page[data-page='3'] .pdf-mark.hl-yellow");
+
+    step("a highlight is a comment: shown on the item, it leads to its place in the PDF (ADR-0208)");
+    await page.click("#pdf-back");
+    await page.waitForSelector("#comments .comment-pdf");
+    check((await page.locator("#comments .comment-pdf").count()) === 3, "the item's comments show the highlights");
+    check((await page.textContent("#comments .comment-pdf >> nth=0")).includes("report.pdf"), "a highlight names its PDF");
+    await page.click("#comments .thread:has-text('Lower than planned') a.pdf-show");
+    await page.waitForSelector(".pdf-highlight.focus:has-text('Lower than planned')");
+    await page.waitForSelector(".pdf-mark.hl-purple.focus");
+    // Resolved in the reader, the highlight stays, paler.
+    await page.click("#pdf-highlights li:has-text('Lower than planned') button:has-text('Resolve')");
+    await page.waitForSelector("#pdf-highlights li.resolved:has-text('Lower than planned')");
+    await page.waitForSelector(".pdf-mark.hl-purple.resolved");
 
     check(problems.length === 0, problems.join("; "));
     console.log("ok");
