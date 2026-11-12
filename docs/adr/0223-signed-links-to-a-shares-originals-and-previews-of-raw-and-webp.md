@@ -1,9 +1,9 @@
 # ADR-0223: Signed links to an S3 share's originals, and previews of RAW and WebP
 
-- **Status:** Proposed
-- **Implementation:** Not started
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-12
-- **Deciders:** Project initiators (request of 2026-11-12 to settle the open questions of ADR-0197; the four choices below were answered the same day)
+- **Deciders:** Project initiators (request of 2026-11-12 to settle the open questions of ADR-0197; the four choices below were answered the same day; accepted 2026-11-12)
 - **Open question:** whether a HEIC should get a preview once a decoder of HEVC exists that keeps the binary pure Go; whether a reader's browser that decodes HEIC (Safari) should make the preview, as it makes a video's poster (ADR-0189), which needs the original in that browser
 - **Question checked:** 2026-11
 
