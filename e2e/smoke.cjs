@@ -6406,6 +6406,8 @@ function webSource() {
       fs.mkdirSync(path.join(process.env.SHARE_DIR, "2024"), { recursive: true });
       fs.writeFileSync(path.join(process.env.SHARE_DIR, "2024", "lake.png"),
         Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64"));
+      // A phone's HEIC, which the server shows no picture of.
+      fs.writeFileSync(path.join(process.env.SHARE_DIR, "phone.heic"), Buffer.concat([Buffer.from("\x00\x00\x00\x18ftypheic\x00\x00\x00\x00mif1heic", "latin1"), Buffer.alloc(64)]));
       check((await page.request.post(base + "/api/login", { data: { username: "admin", password: adminPassword } })).ok(), "admin signs in for the file shares");
       const nasMade = await page.request.post(base + "/api/album/folders", { data: { space: "PLAT", name: "Share NAS" } });
       check(nasMade.status() === 201, "the folder for the share is made: " + nasMade.status());
@@ -6425,16 +6427,22 @@ function webSource() {
       for (let i = 0; i < 100 && !read; i++) {
         const nas = (await (await page.request.get(base + "/api/shares")).json()).shares.find((s) => s.id === "nas");
         read = nas && !nas.status.running && nas.status.history.length > 0;
-        if (read) check(!nas.status.history[0].error && nas.entries === 1, "the run linked the picture: " + JSON.stringify(nas.status.history[0]));
+        if (read) check(!nas.status.history[0].error && nas.entries === 2, "the run linked the pictures: " + JSON.stringify(nas.status.history[0]));
         else await page.waitForTimeout(100);
       }
       check(read, "the share was read");
       await page.goto(base + "/#/album");
       await page.click("#album .album-trail button:has-text('All pictures')");
       await page.click("#album .album-folder:has-text('Share NAS')");
+      // The HEIC lies in the bound folder and shows a symbol; the picture
+      // of 2024 lies in the folder of its directory.
+      const heicCard = page.locator("#album .album-card", { has: page.locator(".album-share-symbol") });
+      await heicCard.waitFor();
+      check(await heicCard.locator(".album-copy").count() === 0, "a picture without a preview offers nothing to copy");
+      await page.click("#album .album-folder:has-text('2024')");
       // The view of all pictures shows the share's picture too, among
       // others; every check is on its own card.
-      const shareCard = page.locator("#album .album-card", { has: page.locator(".album-share-chip") });
+      const shareCard = page.locator("#album .album-card", { has: page.locator(".album-share-chip") }).filter({ has: page.locator(".album-thumb img") });
       await shareCard.waitFor();
       check(await shareCard.locator(".album-original").getAttribute("href") === "smb://nas/photos/2024/lake.png", "the picture opens where it lies on the share");
       check(await shareCard.locator(".album-rename, .album-delete").count() === 0, "a picture of a share is not renamed or deleted here");

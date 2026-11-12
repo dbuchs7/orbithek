@@ -551,7 +551,10 @@ func (h itemHandlers) createAlbumFolder(w http.ResponseWriter, r *http.Request) 
 	if !decode(w, r, &req) {
 		return
 	}
-	h.write(w, r, http.StatusCreated, func(x *item.Session, _ *item.Store) (any, error) {
+	h.write(w, r, http.StatusCreated, func(x *item.Session, s *item.Store) (any, error) {
+		if sh, ok := shareTree(s, h.d.DB.Site, req.Parent); ok {
+			return nil, treeRefusal(sh)
+		}
 		f, err := x.CreateFolder(req.Space, req.Parent, req.Name)
 		if err != nil {
 			return nil, err

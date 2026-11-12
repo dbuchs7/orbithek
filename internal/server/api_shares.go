@@ -3,8 +3,10 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -90,13 +92,12 @@ func (h authHandlers) shareJSON(sh site.Share) shareJSON {
 	h.d.DB.Read(func(s *item.Store) {
 		if it, err := s.Get(item.ID(sh.Folder)); err == nil {
 			out.FolderTitle = it.Title
-			for _, a := range it.Attachments {
-				if !a.Deleted && a.Linked() && a.Share.Share == sh.ID {
-					out.Entries++
-					if a.Withdrawn() {
-						out.Withdrawn++
-					}
-				}
+		}
+		entries, _ := shareItems(s, sh.ID)
+		out.Entries = len(entries)
+		for _, e := range entries {
+			if e.a.Withdrawn() {
+				out.Withdrawn++
 			}
 		}
 	})
@@ -259,22 +260,31 @@ func (h authHandlers) removeShare(w http.ResponseWriter, r *http.Request) {
 	// Its entries go first, with their previews and what was set on
 	// them; the folder stays (ADR-0197).
 	removed := 0
-	var gone []item.ID
-	h.d.DB.Read(func(s *item.Store) {
-		if it, err := s.Get(item.ID(sh.Folder)); err == nil {
-			for _, a := range it.Attachments {
-				if !a.Deleted && a.Linked() && a.Share.Share == sh.ID {
-					gone = append(gone, a.ID)
-				}
-			}
-		}
-	})
-	for _, id := range gone {
-		if err := h.d.DB.Write(func(s *item.Store) error { return s.DeleteAttachment(actor, item.ID(sh.Folder), id) }); err != nil {
+	var gone []*entryState
+	var made map[string]item.Item
+	h.d.DB.Read(func(s *item.Store) { gone, made = shareItems(s, sh.ID) })
+	for _, e := range gone {
+		if err := h.d.DB.Write(func(s *item.Store) error { return s.DeleteAttachment(actor, e.folder, e.a.ID) }); err != nil {
 			writeError(w, http.StatusInternalServerError, "the share's entries were not all removed; try again")
 			return
 		}
 		removed++
+	}
+	// The folders its runs made go to the trash, deeper ones first; one
+	// that holds something people put there stays.
+	dirs := make([]string, 0, len(made))
+	for d := range made {
+		dirs = append(dirs, d)
+	}
+	slices.SortFunc(dirs, func(a, b string) int { return strings.Count(b, "/") - strings.Count(a, "/") })
+	for _, d := range dirs {
+		_ = h.d.DB.Write(func(s *item.Store) error {
+			cur, err := s.Get(made[d].ID)
+			if err != nil || cur.Presence != item.Live || hasLiveFiles(cur) || len(s.Find(item.Query{Parent: cur.ID})) > 0 {
+				return err
+			}
+			return s.Trash(actor, cur.ID)
+		})
 	}
 	if err := h.d.DB.Site.RemoveShare(actor, sh.ID); err != nil {
 		writeError(w, http.StatusInternalServerError, "share not removed")
@@ -288,11 +298,35 @@ func (h authHandlers) removeShare(w http.ResponseWriter, r *http.Request) {
 // the folder shows its share and nothing else, and the share is the
 // master (ADR-0197). It answers whether the caller may go on.
 func boundFolder(w http.ResponseWriter, d Deps, id item.ID) bool {
-	if sh, ok := d.DB.Site.ShareOfFolder(string(id)); ok {
+	var sh site.Share
+	var ok bool
+	d.DB.Read(func(s *item.Store) { sh, ok = shareTree(s, d.DB.Site, id) })
+	if ok {
 		writeError(w, http.StatusConflict, "the folder shows the file share "+sh.Name+"; add the file to the share instead")
 		return false
 	}
 	return true
+}
+
+// shareTree answers the share whose bound folder is id or holds it: the
+// folders of a share's directories are its runs' alone (ADR-0197).
+func shareTree(s *item.Store, sites *site.Settings, id item.ID) (site.Share, bool) {
+	for depth := 0; id != "" && depth < 256; depth++ {
+		if sh, ok := sites.ShareOfFolder(string(id)); ok {
+			return sh, true
+		}
+		it, err := s.Get(id)
+		if err != nil {
+			return site.Share{}, false
+		}
+		id = it.Parent
+	}
+	return site.Share{}, false
+}
+
+// treeRefusal refuses to change the folders of a share by hand.
+func treeRefusal(sh site.Share) error {
+	return fmt.Errorf("%w: %w: the folder shows the file share %s, which is the master; its folders follow the share's directories", item.ErrValidation, item.ErrReferenced, sh.Name)
 }
 
 // runShare reads a share now, in the background (ADR-0197).

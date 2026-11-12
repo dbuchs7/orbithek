@@ -6,11 +6,11 @@
 // files of the folder's item; Google and iCloud photos are fetched by the
 // server, which asks Google or Apple for them.
 import { facesPanel, scanFile } from "./faces.js";
-import { h, when } from "./dom.js";
+import { h, shareHref, when } from "./dom.js";
 import { t } from "./i18n.js";
 import { askDuplicates, findDuplicates } from "./duplicates.js";
 import { get, post, put, del, upload, download } from "./api.js";
-import { baseName, durationText, exposureText, hidden, isVideo, placeText, posterTime, sorts, typeOf } from "./photoparts.js";
+import { baseName, durationText, exposureText, hidden, isVideo, onShare, placeText, posterTime, shareLink, sorts, typeOf } from "./photoparts.js";
 import { entries as zipEntries, read as zipRead } from "./zipread.js";
 import { folderName, isDeck, pair, readDeck, slideName, widthOf } from "./pptx.js";
 import { pickPlace, placeInput } from "./places.js";
@@ -67,6 +67,9 @@ export function openViewer(list, index, changed = () => {}) {
   // (ADR-0189).
   const video = h("video", { class: "photo-viewer-img photo-viewer-video", controls: true, preload: "metadata", playsinline: true, hidden: true });
   const info = h("div", { class: "photo-viewer-info", "aria-live": "polite" });
+  // An entry of a file share without a preview (HEIC, RAW, a video) is
+  // shown by a notice and the link to its original (ADR-0197).
+  const absent = h("div", { class: "photo-viewer-absent", hidden: true });
   // The faces found on a picture lie over it (ADR-0194).
   const layer = h("div", { class: "photo-faces-layer", "aria-hidden": "true" });
   let faces = null;
@@ -77,17 +80,26 @@ export function openViewer(list, index, changed = () => {}) {
       h("strong", { class: "photo-viewer-title" }),
       h("span", { class: "muted photo-viewer-pos" }),
       h("button", { type: "button", id: "photo-viewer-close", text: t("common.close"), onclick: () => dialog.close() })),
-    h("div", { class: "photo-viewer-body" }, h("div", { class: "photo-viewer-stage" }, prev, img, layer, video, next), info));
+    h("div", { class: "photo-viewer-body" }, h("div", { class: "photo-viewer-stage" }, prev, img, layer, video, absent, next), info));
   dialog.addEventListener("close", () => { video.pause(); video.removeAttribute("src"); video.load(); faces?.stop(); });
   const row = (label, value) => (value ? h("div", { class: "photo-fact" }, h("dt", { text: label }), h("dd", {}, value)) : null);
   const show = async () => {
     const p = list[i];
     const name = caption(p.attachment.name);
-    const playing = isVideo(p);
-    img.hidden = playing;
+    const missing = onShare(p) && !p.attachment.share.preview;
+    const playing = isVideo(p) && !missing;
+    img.hidden = playing || missing;
     video.hidden = !playing;
+    absent.hidden = !missing;
     video.pause();
-    if (playing) {
+    if (missing) {
+      img.removeAttribute("src");
+      video.removeAttribute("src");
+      const original = shareLink(p);
+      const open = original ? h("a", { class: "button secondary photo-viewer-original", target: "_blank", rel: "noopener noreferrer", text: t("album.openOriginal") }) : null;
+      open?.setAttribute("href", shareHref(original));
+      absent.replaceChildren(h("span", { class: "album-share-symbol", "aria-hidden": "true" }), h("p", { text: t("album.noPreview") }), open);
+    } else if (playing) {
       img.removeAttribute("src");
       if (p.poster) video.poster = thumbURL(p, 1600);
       else video.removeAttribute("poster");
