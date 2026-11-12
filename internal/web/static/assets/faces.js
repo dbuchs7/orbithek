@@ -18,9 +18,12 @@ const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
 const thumbURL = (p, edge) => `${fileURL(p)}/thumbnail?edge=${edge}`;
 
 // recognition says whether administrators turned recognition on, asked
-// once per page.
+// once and kept; forgetRecognition asks again next time, where the
+// setting may have changed since: when it is changed here, and before a
+// person's suggestions or a search of all pictures (ADR-0199).
 let recognitionAsked = null;
 export const recognition = () => (recognitionAsked ||= get("/api/album/imports").then((r) => !!r.faces).catch(() => false));
+export const forgetRecognition = () => { recognitionAsked = null; };
 
 // The library and its networks are loaded once, when a face is first
 // looked for: about 1.5 MB to find faces, 6.5 MB more to recognise them.
@@ -106,6 +109,7 @@ export async function scanFile(p, blob) {
 // told each step and cancelled is asked before each. It answers how many
 // were searched and how many faces were found.
 export async function scanAll(list, progress = () => {}, cancelled = () => false) {
+  forgetRecognition();
   const todo = list.filter(needsSearch);
   let done = 0, faces = 0;
   for (const p of todo) {
@@ -284,6 +288,7 @@ export function personSuggestions({ person, space = "", tell = () => {}, changed
   };
 
   const load = async () => {
+    forgetRecognition();
     if (!(await recognition())) return;
     const q = new URLSearchParams({ person });
     if (space) q.set("space", space);

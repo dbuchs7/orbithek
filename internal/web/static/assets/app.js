@@ -11,6 +11,7 @@ import { commentPlugin } from "./anchors.js";
 import { personalNotes } from "./notes.js";
 import { isDrawing } from "./drawing.js";
 import { albumBrowser, retentionCard, captionOf } from "./album.js";
+import { forgetRecognition } from "./faces.js";
 import { sorts } from "./photoparts.js";
 import { renameInPlace } from "./rename.js";
 import { presenterView, audienceView } from "./present.js";
@@ -6070,6 +6071,7 @@ async function facesCard() {
       const on = d.get("recognition") === "on";
       if (s.recognition && !on && !confirm(t("faces.adminOffConfirm"))) return draw(s);
       const r = await put("/api/settings/faces", { recognition: on });
+      forgetRecognition();
       const turnedOn = on && !s.recognition;
       draw(r);
       // Pictures searched before have nothing to recognise them by until
