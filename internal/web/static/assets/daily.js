@@ -99,10 +99,13 @@ export async function dailyView(show, arg, params, tools) {
       status.textContent = err.message;
     }
   });
+  // Before a room is chosen the choice stands in the note's place, where
+  // it is seen even with the side column folded away (ADR-0100); after,
+  // it is changed in the side column.
   const roomCard = h("section", { class: "side-card", id: "daily-room-card" },
     h("h2", { text: t("daily.room") }),
     h("p", { class: "muted", text: t("daily.roomHint") }),
-    rooms.length ? roomSelect : h("p", { class: "muted", text: t("daily.noRooms") }),
+    needsRoom ? null : rooms.length ? roomSelect : h("p", { class: "muted", text: t("daily.noRooms") }),
     info.space && !info.mayCreate ? h("p", { class: "notice", text: t("daily.roomLost", { space: info.space }) }) : null);
 
   // The text, in place: editing joins the note's live session (ADR-0010).
@@ -122,7 +125,8 @@ export async function dailyView(show, arg, params, tools) {
     }
   } else if (needsRoom) {
     main = h("section", { id: "daily-note", class: "daily-empty" },
-      h("p", { text: rooms.length ? t("daily.chooseRoom") : t("daily.noRooms") }));
+      h("p", { text: rooms.length ? t("daily.chooseRoom") : t("daily.noRooms") }),
+      rooms.length ? h("label", { class: "field daily-room-choice" }, h("span", { text: t("daily.room") }), roomSelect) : null);
   } else {
     const start = h("button", { type: "button", class: "primary", id: "daily-start", text: t("daily.start"), onclick: async () => {
       start.disabled = true;
@@ -189,7 +193,7 @@ export async function dailyView(show, arg, params, tools) {
     status,
     h("div", { class: "item-layout daily-layout" },
       h("div", { class: "item-main" }, main),
-      h("aside", { class: "item-side", "aria-label": t("daily.side") }, cal, roomCard, agenda, activity)),
+      h("aside", { class: "item-side", "aria-label": t("daily.side") }, tools.columnToggle ? tools.columnToggle("side") : null, cal, roomCard, agenda, activity)),
     besidePane(params, tools)));
 }
 
