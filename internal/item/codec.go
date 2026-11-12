@@ -184,7 +184,7 @@ import (
 //     with the attachment's ID only (ADR-0197). Versions 1 to 59 are
 //     still read; they hold no entry of a share.
 //   - 61: the block kind audio, a sound file of the item with a plain
-//     caption, sealed with the body (ADR-draft-sound-in-the-text).
+//     caption, sealed with the body (ADR-0224).
 //     Versions 1 to 60 are still read; their bodies play no sound.
 const CodecVersion = 61
 

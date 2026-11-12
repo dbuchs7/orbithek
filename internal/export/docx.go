@@ -407,7 +407,7 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int) string {
 		}
 		return out
 	case item.Audio:
-		// Nor does it play a sound (ADR-draft-sound-in-the-text).
+		// Nor does it play a sound (ADR-0224).
 		out := para("", "", run("[Audio: "+p.Images[bl.Ref].Name+"]", ""))
 		if strings.TrimSpace(bl.Text) != "" {
 			out += para(b.s("Caption"), "", run(bl.Text, ""))

@@ -607,7 +607,7 @@ li.attachment audio.att-audio { display: block; width: 100%; max-width: 28rem; m
 .recorder-clock { font-variant-numeric: tabular-nums; }
 @keyframes recorder-pulse { 50% { opacity: 0.3; } }
 @media (prefers-reduced-motion: reduce) { .recorder-dot { animation: none; } }
-/* Sound in the text (ADR-draft-sound-in-the-text). */
+/* Sound in the text (ADR-0224). */
 figure.pm-audio { margin: 12px 0; }
 figure.pm-audio audio { display: block; width: 100%; max-width: 32rem; }
 figure.pm-audio figcaption { margin-top: 4px; color: var(--muted, #6b7280); font-size: .9em; }

@@ -667,7 +667,7 @@ const filesOf = (item, attachments = [], canEdit = false) => {
     },
     isDrawing: (id) => isDrawing(known.get(id)?.name),
     // remove deletes a file of the item, as its file list does: a
-    // recording the text no longer plays (ADR-draft-sound-in-the-text).
+    // recording the text no longer plays (ADR-0224).
     remove: async (id) => {
       await del(`/api/items/${item.id}/attachments/${id}`);
       known.delete(id);

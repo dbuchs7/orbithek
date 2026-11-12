@@ -76,7 +76,7 @@ const (
 	Video BlockKind = "video"
 	// Audio plays a sound file of the item, such as a recording made in
 	// the browser (ADR-0219): Ref names it and Text is its caption
-	// (ADR-draft-sound-in-the-text).
+	// (ADR-0224).
 	Audio BlockKind = "audio"
 	// TaskList lists the tasks that carry a label, in every space the
 	// reader may read; Text is the label (ADR-0114). Or it lists the tasks
