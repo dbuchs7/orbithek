@@ -40,3 +40,14 @@ figcaption { font-size: 9pt; color: #6b7280; font-style: italic; }
 .embed { margin: .8em 0; padding: 4px 0 4px 12px; border-left: 2px dotted #bfbfbf; }
 .embed-title { font-weight: 600; color: #404040; margin: .2em 0; }
 .embed.restricted .embed-title { color: #9ca3af; font-weight: normal; }
+/* Coloured cells of a table (ADR-0214): a fill is the tone's soft shade,
+   a border the tone itself; the values match the tones of the web UI. */
+table:not(.facts) .fill-blue { background: #d5e2f8; } table:not(.facts) .border-blue { border: 2px solid #2f6fde; }
+table:not(.facts) .fill-green { background: #d2eddd; } table:not(.facts) .border-green { border: 2px solid #1f9d55; }
+table:not(.facts) .fill-yellow { background: #f6eccd; } table:not(.facts) .border-yellow { border: 2px solid #d4a106; }
+table:not(.facts) .fill-orange { background: #fadfc8; } table:not(.facts) .border-orange { border: 2px solid #e8710a; }
+table:not(.facts) .fill-red { background: #f7d6d6; } table:not(.facts) .border-red { border: 2px solid #d93636; }
+table:not(.facts) .fill-purple { background: #e7dcf7; } table:not(.facts) .border-purple { border: 2px solid #8a4fd8; }
+table:not(.facts) .fill-teal { background: #cfebeb; } table:not(.facts) .border-teal { border: 2px solid #0f9b9b; }
+table:not(.facts) .fill-gray { background: #e4e6ea; } table:not(.facts) .border-gray { border: 2px solid #7a8394; }
+table:not(.facts) td, table:not(.facts) th { overflow-wrap: anywhere; }

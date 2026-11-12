@@ -17,7 +17,7 @@ const StarGroup = "group"
 // the labels at least two of them carry, as a space's starmap shows them
 // (ADR-0157). The pictures and drawings of those items fill what the
 // budget leaves, each joined to its item and a copy to its original
-// (ADR-0214): first those a text shows, each copy's original after it,
+// (ADR-0215): first those a text shows, each copy's original after it,
 // then the labels, then the other pictures. With label, only the items
 // that carry it, and their pictures, are on the map. When the items are
 // more than maxNodes, the map shows a node per space and type instead
@@ -160,7 +160,7 @@ func (x *Session) StarmapAll(label string, maxNodes int) Starmap {
 }
 
 // allStarPictures are the picture nodes of the items on the starmap of all
-// spaces (ADR-0214), newest first; the original of a copy is kept only
+// spaces (ADR-0215), newest first; the original of a copy is kept only
 // when its item is on the map too.
 func (x *Session) allStarPictures(on map[ID]*Item) []starPicture {
 	var out []starPicture

@@ -1450,7 +1450,7 @@ func checkBlock(b Block, self ID) error {
 			return invalid("an embed has no text")
 		}
 	case Table:
-		if err := checkTable(b.Text); err != nil {
+		if err := checkTable(b); err != nil {
 			return err
 		}
 	case TOC, Children, Divider, Figures, Tables:
@@ -1579,8 +1579,16 @@ func checkBlock(b Block, self ID) error {
 	if b.Kind != Heading && b.Level != 0 || b.Level < 0 || b.Level > 3 {
 		return invalid("level %d: only headings have a level, 1 to 3", b.Level)
 	}
-	if len(b.Marks) > 0 && (b.Kind == CodeBlock || b.Kind == Unsupported || b.Kind == Table) {
+	if b.Kind != Table && (b.Widths != nil || b.Heights != nil || b.Cells != nil) {
+		return invalid("only a table has column widths, row heights and coloured cells")
+	}
+	if len(b.Marks) > 0 && (b.Kind == CodeBlock || b.Kind == Unsupported) {
 		return invalid("a %s block has no formatting", b.Kind)
+	}
+	if b.Kind == Table {
+		if err := checkCellMarks(b); err != nil {
+			return err
+		}
 	}
 	n := utf8.RuneCountInString(b.Text)
 	for _, m := range b.Marks {
@@ -1611,20 +1619,133 @@ func checkBlock(b Block, self ID) error {
 	return nil
 }
 
-// checkTable validates a table's text: at least one row, every row with
-// the same number of cells (ADR-0042).
-func checkTable(text string) error {
-	if text == "" {
+// The sizes a table's column and row may be given (ADR-0214), in CSS
+// pixels. Smaller than the least, a column or row could no longer be
+// grasped to make it larger again.
+const (
+	minColumnWidth = 24
+	maxColumnWidth = 2000
+	minRowHeight   = 16
+	maxRowHeight   = 1000
+)
+
+// checkTable validates a table: at least one row, every row with the same
+// number of cells (ADR-0042); a width per column and a height per row, or
+// none, and coloured cells inside the table, each once, in the order of
+// rows and columns, each with a tone (ADR-0214).
+func checkTable(b Block) error {
+	if b.Text == "" {
 		return invalid("a table has at least one row")
 	}
-	rows := strings.Split(text, "\n")
+	rows := strings.Split(b.Text, "\n")
 	cols := strings.Count(rows[0], "\t") + 1
 	for i, r := range rows {
 		if n := strings.Count(r, "\t") + 1; n != cols {
 			return invalid("table row %d has %d cells, the first has %d", i+1, n, cols)
 		}
 	}
+	if err := checkSizes("column widths", b.Widths, cols, minColumnWidth, maxColumnWidth); err != nil {
+		return err
+	}
+	if err := checkSizes("row heights", b.Heights, len(rows), minRowHeight, maxRowHeight); err != nil {
+		return err
+	}
+	for i, c := range b.Cells {
+		switch {
+		case c.Row < 0 || c.Row >= len(rows) || c.Col < 0 || c.Col >= cols:
+			return invalid("coloured cell %d,%d is outside the table of %d rows and %d columns", c.Row, c.Col, len(rows), cols)
+		case i > 0 && (c.Row < b.Cells[i-1].Row || c.Row == b.Cells[i-1].Row && c.Col <= b.Cells[i-1].Col):
+			return invalid("coloured cells come once each, in the order of rows and columns")
+		case c.Fill == "" && c.Border == "":
+			return invalid("coloured cell %d,%d has neither a fill nor a border", c.Row, c.Col)
+		case c.Fill != "" && !slices.Contains(TableTones, c.Fill), c.Border != "" && !slices.Contains(TableTones, c.Border):
+			return invalid("coloured cell %d,%d: a cell is filled and bordered with one of %s", c.Row, c.Col, strings.Join(TableTones, ", "))
+		}
+	}
+	if b.Cells != nil && len(b.Cells) == 0 {
+		return invalid("a table without coloured cells has none, not an empty list")
+	}
 	return nil
+}
+
+// checkSizes checks a table's column widths or row heights: none, or one
+// per column or row, each 0 or between least and most, not all of them 0.
+func checkSizes(what string, sizes []int, n, least, most int) error {
+	if sizes == nil {
+		return nil
+	}
+	if len(sizes) != n {
+		return invalid("a table of %d has %d %s; it has one each or none", n, len(sizes), what)
+	}
+	set := false
+	for _, v := range sizes {
+		if v != 0 && (v < least || v > most) {
+			return invalid("%s: %d is outside %d to %d pixels, or 0 for what the text takes", what, v, least, most)
+		}
+		set = set || v != 0
+	}
+	if !set {
+		return invalid("%s: a table whose every size is 0 has none", what)
+	}
+	return nil
+}
+
+// tableMarks are the formats a table's cell may carry (ADR-0214). A
+// mention and a protected passage are not among them: a table is one
+// block of cells, and a cell is no place for an embed or a placeholder.
+var tableMarks = []MarkType{MarkBold, MarkItalic, MarkCode, MarkLink, MarkUnderline, MarkStrike, MarkHighlight}
+
+// checkCellMarks checks that a table's marks format text inside one cell
+// each: none spans the tab or line break between two cells.
+func checkCellMarks(b Block) error {
+	if len(b.Marks) == 0 {
+		return nil
+	}
+	runes := []rune(b.Text)
+	for _, m := range b.Marks {
+		if !slices.Contains(tableMarks, m.Type) {
+			return invalid("a table's cell has no %s mark", m.Type)
+		}
+		if m.Start < 0 || m.End > len(runes) || m.Start >= m.End {
+			continue // the general check below names it
+		}
+		if slices.ContainsFunc(runes[m.Start:m.End], func(r rune) bool { return r == '\t' || r == '\n' }) {
+			return invalid("mark %s %d-%d spans two cells of the table", m.Type, m.Start, m.End)
+		}
+	}
+	return nil
+}
+
+// TableCell is the text of one cell of a table with its marks, counted in
+// code points of the cell's text (ADR-0214).
+type TableCell struct {
+	Text  string
+	Marks []Mark
+}
+
+// TableCells splits a table block into its rows of cells, each with the
+// marks that format it, so that what writes a table out writes each cell
+// as it writes a paragraph.
+func TableCells(b Block) [][]TableCell {
+	var out [][]TableCell
+	at := 0
+	for _, line := range strings.Split(b.Text, "\n") {
+		var row []TableCell
+		for _, text := range strings.Split(line, "\t") {
+			n := utf8.RuneCountInString(text)
+			c := TableCell{Text: text}
+			for _, m := range b.Marks {
+				if m.Start >= at && m.End <= at+n {
+					m.Start, m.End = m.Start-at, m.End-at
+					c.Marks = append(c.Marks, m)
+				}
+			}
+			row = append(row, c)
+			at += n + 1
+		}
+		out = append(out, row)
+	}
+	return out
 }
 
 // SafeHref reports whether a link target is allowed in content: http,

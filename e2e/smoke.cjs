@@ -1441,8 +1441,35 @@ function webSource() {
     await page.keyboard.type("Writers must be stopped.");
     await page.selectOption("#body .pm-toolbar select", "panel:warning");
     await page.selectOption("#body .pm-toolbar select >> nth=1", "table");
-    await page.fill("#body .pm-table tr:nth-child(2) td:first-child input", "db1");
-    await page.press("#body .pm-table tr:nth-child(2) td:first-child input", "Tab");
+    // A cell is edited in place, formatted, coloured, and its column and
+    // row sized by dragging their edges; text that does not fit wraps
+    // (ADR-0214).
+    await page.click("#body .pm-table tr:nth-child(2) td:first-child");
+    await page.waitForSelector("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-editor");
+    await page.keyboard.type("db1, the primary database server of the cluster in the main data centre");
+    await page.keyboard.press("Control+a");
+    await page.keyboard.press("Control+b");
+    await page.waitForSelector("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-editor strong");
+    await page.selectOption("#body .pm-table-fill", "yellow");
+    await page.waitForSelector("#body .pm-table tr:nth-child(2) td:first-child.pm-fill-yellow");
+    await page.click("#body .pm-table tr:first-child th:first-child");
+    await page.click("#body .pm-table tr:first-child th:nth-child(2)", { modifiers: ["Shift"] });
+    await page.selectOption("#body .pm-table-border", "red");
+    await page.waitForSelector("#body .pm-table tr:first-child th:nth-child(2).pm-border-red");
+    const dragEdge = async (selector, dx, dy) => {
+      // The edge is brought to the middle of the screen, out from under the top bar.
+      await page.locator(selector).evaluate((el) => el.scrollIntoView({ block: "center" }));
+      const box = await page.locator(selector).boundingBox();
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(box.x + box.width / 2 + dx, box.y + box.height / 2 + dy, { steps: 5 });
+      await page.mouse.up();
+    };
+    await dragEdge("#body .pm-table tr:first-child th:first-child .pm-col-handle", -60, 0);
+    await page.waitForSelector("#body .pm-table table.pm-table-sized");
+    const rowBefore = (await page.locator("#body .pm-table tr:nth-child(2)").boundingBox()).height;
+    await dragEdge("#body .pm-table tr:nth-child(2) td:first-child .pm-row-handle", 0, 50);
+    await page.waitForFunction((h) => document.querySelector("#body .pm-table tr:nth-child(2)").getBoundingClientRect().height >= h + 40, rowBefore);
     await page.selectOption("#body .pm-toolbar select >> nth=1", "toc");
     check(await page.locator("#body .pm-toolbar select >> nth=1").locator("option[value=toc]").textContent() === "Table of contents", "the insert menu says Table of contents");
     await page.selectOption("#body .pm-toolbar select >> nth=1", "tables");
@@ -1452,7 +1479,12 @@ function webSource() {
     await page.reload();
     await page.waitForSelector("#body .pm-task[data-checked='true']:has-text('Check the backups')");
     await page.waitForSelector("#body .pm-panel[data-tone='warning']:has-text('Writers must be stopped.')");
-    check(await page.inputValue("#body .pm-table tr:nth-child(2) td:first-child input") === "db1", "the table cell kept its text");
+    await page.waitForSelector("#body .pm-table tr:nth-child(2) td:first-child.pm-fill-yellow strong:has-text('db1, the primary database server')");
+    check(await page.locator("#body .pm-table th.pm-border-red").count() === 2, "both chosen header cells kept their border");
+    check(await page.locator("#body .pm-table table.pm-table-sized col").evaluateAll((cols) => cols.every((c) => c.style.width.endsWith("px"))),
+      "the columns kept their widths");
+    check(await page.locator("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-text").evaluate((el) => el.scrollWidth <= el.clientWidth + 1 && el.getClientRects().length > 0
+      && el.closest("td").getBoundingClientRect().height > 40), "the long text wraps within its cell");
     await page.waitForSelector("#body .pm-toc button:has-text('Prepare')");
     await page.waitForSelector("#body .pm-tables button:has-text('Table 1: ')"); // numbered, with its header row
     await page.waitForSelector("#body .pm-figures:has-text('No pictures yet.')");
@@ -2832,7 +2864,7 @@ function webSource() {
       check((await page.textContent("#body .ProseMirror pre")) === "docker compose up -d", "the code block " + when);
       check(await page.locator("#body .ProseMirror hr.pm-divider").count() === 1, "the divider " + when);
       check(await page.locator("#body .pm-task[data-checked='true']:has-text('Backups prüfen')").count() === 1, "the checked task " + when);
-      check(await page.inputValue("#body .pm-table tr:nth-child(2) td:nth-child(2) input") === "Aktiv", "the table " + when);
+      check((await page.textContent("#body .pm-table tr:nth-child(2) td:nth-child(2) .pm-cell-text")) === "Aktiv", "the table " + when);
       const order = await bodyOrder();
       check(order[0] === "p:Before" && order[order.length - 1] === "p:After" && order[1] === "h2:Installationsanleitung", "inserted between the paragraphs, which stay: " + order.join(" | "));
     };

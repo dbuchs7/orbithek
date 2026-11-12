@@ -84,7 +84,7 @@ func TestTheStarmapOfAllSpaces(t *testing.T) {
 // The starmap of all spaces shows the pictures and drawings of its items,
 // each joined to the item that holds it and a copy to its original: first
 // those a text shows, with their originals, then the labels, then the
-// rest; beyond the budget for items, in groups, none (ADR-0214).
+// rest; beyond the budget for items, in groups, none (ADR-0215).
 func TestTheStarmapOfAllSpacesShowsPicturesWhereTheyAreUsed(t *testing.T) {
 	s := permFixture(t)
 	noErr(t, s.GrantRole("root", "OPS", "anna", Editor))
