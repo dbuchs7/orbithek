@@ -417,27 +417,37 @@ func albumStacks(x *item.Session, f albumFilter) [][]item.Picture {
 }
 
 // withSlideRanks reads the order set by hand of the folder or collection
-// the filter narrows to, for ordering its stacks as slides (ADR-0195).
-// It reports whether it has one (ordered) and whether the caller may
-// change it (orderable). A folder the caller cannot read has none: the
-// album shows nothing of it anyway.
-func withSlideRanks(x *item.Session, f *albumFilter) (ordered, orderable bool) {
+// the filter narrows to, for ordering its stacks as slides (ADR-0195),
+// and reports whether the caller may change it (orderable). A folder the
+// caller cannot read has none: the album shows nothing of it anyway.
+func withSlideRanks(x *item.Session, f *albumFilter) (orderable bool) {
 	if !f.slides {
-		return false, false
+		return false
 	}
 	c := f.collection
 	if c == "" {
 		c = f.folder
 	}
 	if c == "" {
-		return false, false
+		return false
 	}
 	ranks, err := x.SlideRanks(c)
 	if err != nil {
-		return false, false
+		return false
 	}
 	f.ranks = ranks
-	return len(ranks) > 0, x.MayEdit(c)
+	return x.MayEdit(c)
+}
+
+// placed reports whether a stack listed has a place in the order set by
+// hand. The order may name pictures the caller does not read, or files
+// that are gone; those do not count, so the listing tells nothing of
+// them (D10, ADR-0195).
+func placed(stacks [][]item.Picture, ranks item.SlideRanks) bool {
+	return slices.ContainsFunc(stacks, func(st []item.Picture) bool {
+		_, ok := ranks[st[0].First]
+		return ok
+	})
 }
 
 // cameraText is the camera of a photo, searched with the album's words.

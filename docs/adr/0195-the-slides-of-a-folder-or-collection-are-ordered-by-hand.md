@@ -52,7 +52,7 @@ Chosen option: **1** (the requester's choices for where, for whom, new pictures 
 
 ### How it is shown
 
-- `GET /api/album?order=slides` lists the stacks in the order of the folder or collection the filter narrows to, those the order does not name after the named ones, **by name** — numbers by their value, letters regardless of case — then by item key and file, so every window agrees. The listing says whether there is an order (`ordered`) and whether the caller may change it (`orderable`). Without a folder or collection, `order=slides` is the order by name.
+- `GET /api/album?order=slides` lists the stacks in the order of the folder or collection the filter narrows to, those the order does not name after the named ones, **by name** — numbers by their value, letters regardless of case — then by item key and file, so every window agrees. The listing says whether a picture it lists has a place in the order (`ordered`) — pictures the caller does not read and files that are gone do not count, so it tells nothing of them — and whether the caller may change it (`orderable`). Without a folder or collection, `order=slides` is the order by name.
 - The comparison by name moves from the browser to the server (`item.ComparePictureNames`), so the album and the presentation share one order; the presentation now asks for `order=slides` and keeps the order it gets. Names that differ only in accents may order slightly differently from the browser's collator used before; this is accepted.
 - **New pictures** come after the placed ones, by name; a new version of a drawing keeps its place, since the order names first versions. A presentation imported from PowerPoint into a new folder (ADR-0186) needs no order: its names carry it.
 

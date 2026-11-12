@@ -114,3 +114,56 @@ func TestTheSlidesOfACollectionAreOrderedByHandThroughTheAPI(t *testing.T) {
 		t.Fatalf("collection %v %v", got, page["ordered"])
 	}
 }
+
+// TestOrderedSaysOnlyWhatTheCallerReads: a listing says it is ordered by
+// hand only when a picture it lists has a place in the order. An order
+// that names only pictures the caller does not read, or files that are
+// gone, tells them nothing (D10, ADR-0195).
+func TestOrderedSaysOnlyWhatTheCallerReads(t *testing.T) {
+	w := newWorld(t)
+	png := append([]byte("\x89PNG\r\n\x1a\n"), bytes.Repeat([]byte{7}, 100)...)
+	upload := func(folder, name string) string {
+		t.Helper()
+		rec := w.bert.upload("/api/items/"+folder+"/attachments?name="+url.QueryEscape(name), "application/octet-stream", png)
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("upload %s: %d %s", name, rec.Code, rec.Body)
+		}
+		var up struct {
+			Attachment struct {
+				ID string `json:"id"`
+			} `json:"attachment"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &up); err != nil {
+			t.Fatal(err)
+		}
+		w.bert.expect("PUT", "/api/items/"+folder+"/attachments/"+up.Attachment.ID+"/labels", `{"labels":["talk"]}`, http.StatusOK)
+		return up.Attachment.ID
+	}
+	open := field(w.bert.expect("POST", "/api/album/folders", `{"space":"PLAT","name":"Open"}`, http.StatusCreated), "item", "id").(string)
+	closed := field(w.bert.expect("POST", "/api/album/folders", `{"space":"PLAT","name":"Closed"}`, http.StatusCreated), "item", "id").(string)
+	w.bert.expect("PUT", "/api/items/"+closed+"/restriction", `{"read":["`+w.ids["bert"]+`"],"edit":[]}`, http.StatusOK)
+	// The order is set while the secret picture is the only one, so it
+	// names nothing else.
+	secret := upload(closed, "secret.png")
+	coll := field(w.bert.expect("POST", "/api/album/collections", `{"space":"PLAT","name":"Talks","labels":["talk"],"match":"any"}`, http.StatusCreated), "item", "id").(string)
+	w.bert.expect("PUT", "/api/album/order/"+coll, `{"pictures":["`+secret+`"]}`, http.StatusOK)
+	upload(open, "a.png")
+	listing := "/api/album?order=slides&collection=" + coll
+	if page := w.bert.expect("GET", listing, "", http.StatusOK); page["ordered"] != true {
+		t.Fatalf("bert reads the placed picture: ordered %v", page["ordered"])
+	}
+	if page := w.vera.expect("GET", listing, "", http.StatusOK); page["ordered"] != nil {
+		t.Fatalf("vera reads no placed picture, yet the listing says ordered: %v", page["ordered"])
+	}
+
+	// A placed picture that is deleted leaves the order naming it until
+	// the next change; the listing does not count it.
+	talk := field(w.bert.expect("POST", "/api/album/folders", `{"space":"PLAT","name":"Talk"}`, http.StatusCreated), "item", "id").(string)
+	gone := upload(talk, "gone.png")
+	w.bert.expect("PUT", "/api/album/order/"+talk, `{"pictures":["`+gone+`"]}`, http.StatusOK)
+	upload(talk, "kept.png")
+	w.bert.expect("DELETE", "/api/items/"+talk+"/attachments/"+gone, "", http.StatusOK)
+	if page := w.bert.expect("GET", "/api/album?order=slides&folder="+talk, "", http.StatusOK); page["ordered"] != nil {
+		t.Fatalf("only a deleted picture is placed, yet the listing says ordered: %v", page["ordered"])
+	}
+}
