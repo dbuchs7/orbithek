@@ -1,4 +1,4 @@
-# ADR-DRAFT: Golden files of the current format carry no version number
+# ADR-0217: Golden files of the current format carry no version number
 
 - **Status:** Proposed
 - **Implementation:** Partial

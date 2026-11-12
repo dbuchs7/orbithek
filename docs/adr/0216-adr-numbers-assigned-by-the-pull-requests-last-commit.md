@@ -1,4 +1,4 @@
-# ADR-DRAFT: ADR numbers are assigned by the pull request's last commit
+# ADR-0216: ADR numbers are assigned by the pull request's last commit
 
 - **Status:** Proposed
 - **Implementation:** Partial

@@ -138,7 +138,7 @@ func (f fakeSealer) Open(id ID, ct, aad []byte) ([]byte, error) {
 //
 // The files of the current format carry no version, neither in their names
 // (events.current.*) nor in their events, whose "v" reads "current"
-// (ADR-draft-golden-files-of-the-current-format-carry-no-version-number):
+// (ADR-0217):
 // raising CodecVersion then changes none of them, and only a change of what
 // a file pins changes that file. That every event is written with
 // CodecVersion is checked before the version is replaced.

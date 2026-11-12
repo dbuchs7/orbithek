@@ -1,5 +1,5 @@
 // Command adrnum numbers the architecture decision records in flight
-// (ADR-0007, ADR-draft-adr-numbers-assigned-by-the-pull-requests-last-commit).
+// (ADR-0007, ADR-0216).
 //
 // A record is written on a branch as docs/adr/draft-<slug>.md, without a
 // number, since two branches asking for "the next free number" at the same

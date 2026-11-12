@@ -247,7 +247,7 @@ The ready-made theme Capacity is a quiet look for notes in light and dark (`inte
 **The persisted event format is a contract with every existing data directory** (ADR-0025).
 Never change what `item.EncodeBatch` writes — a field name, a value encoding, a role name — without raising `item.CodecVersion` and teaching the decoder the old version.
 `TestPersistedFormatIsStable` fails on any change; regenerating its golden files (`go test ./internal/item -run PersistedFormat -update`) is the last step of such a change, never the fix for a failing test.
-The golden files of the current format are `internal/item/testdata/events.current.*` and carry no version: their events read `"v":"current"`, so raising `CodecVersion` changes none of them (ADR-draft-golden-files-of-the-current-format-carry-no-version-number).
+The golden files of the current format are `internal/item/testdata/events.current.*` and carry no version: their events read `"v":"current"`, so raising `CodecVersion` changes none of them (ADR-0217).
 `apply` must produce the same state from a decoded event as from the live one: every test in `internal/item` checks that.
 
 **Content never reaches disk in plaintext** (ADR-0026).
@@ -379,7 +379,7 @@ go run ./cmd/dcocheck origin/main HEAD
 go run ./cmd/manualcheck origin/main HEAD
 ```
 
-A decision record is written as a draft without a number and numbered by the pull request's last commit (see *How to approach a task*; ADR-0007, ADR-draft-adr-numbers-assigned-by-the-pull-requests-last-commit):
+A decision record is written as a draft without a number and numbered by the pull request's last commit (see *How to approach a task*; ADR-0007, ADR-0216):
 
 ```bash
 go run ./docs/adr/cmd/adrnum   # numbers every docs/adr/draft-<slug>.md, rewrites its citations, appends its index row
