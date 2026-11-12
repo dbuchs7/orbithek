@@ -1,6 +1,6 @@
 // Recording sound into an item's files (ADR-0219): the browser records from
 // the microphone and the recording is uploaded as a file of the item, which
-// its file list plays, or a block of the text (ADR-draft-sound-in-the-text).
+// its file list plays, or a block of the text (ADR-0223).
 // Nothing is transcribed, and nothing is kept in the browser: a recording
 // not attached is discarded.
 import { h } from "./dom.js";

@@ -148,7 +148,7 @@ func (h *htmlBuilder) block(bl item.Block, p Page, base int) {
 		}
 		h.out.WriteString("</figure>")
 	case item.Audio:
-		// A sound plays in the printed page's browser (ADR-draft-sound-in-the-text).
+		// A sound plays in the printed page's browser (ADR-0223).
 		h.out.WriteString(`<figure class="audio">`)
 		if a, ok := p.Images[bl.Ref]; ok {
 			h.printf(`<audio controls preload="metadata" src="/api/items/%s/attachments/%s" title="%s"></audio>`, url.PathEscape(string(p.ID)), url.PathEscape(string(bl.Ref)), html.EscapeString(a.Name))

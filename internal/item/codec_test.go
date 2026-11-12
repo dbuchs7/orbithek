@@ -1829,7 +1829,7 @@ func videoLog(t *testing.T) []Event {
 }
 
 // audioLog plays a recording in a text, so the golden files pin the block
-// kind audio (ADR-draft-sound-in-the-text).
+// kind audio (ADR-0223).
 func audioLog(t *testing.T) []Event {
 	s := setup(t)
 	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))
