@@ -322,7 +322,7 @@ In the **Folders** view, the path to the open folder stands above its contents, 
 
 Pictures are added where you are, in the **Folders** view:
 
-- *In a folder*, choose **Upload pictures**, drop pictures and ZIP archives onto the album, or paste a picture with Ctrl+V, such as a screenshot. An empty folder shows a large area for this. **Add from the album…** copies pictures that are already in the album into the folder; the original stays where it is.
+- *In a folder*, choose **Upload pictures**, drop pictures and ZIP archives onto the album, or paste a picture with Ctrl+V, such as a screenshot. An empty folder shows a large area for this. **Add from the album…** brings pictures that are already in the album into the folder: choose **Copy**, and the original stays where it is, or **Move**, and the picture moves with its versions, unless you may not change it or a text shows it. The album remembers the choice.
 - *In a collection*, the same ways work. A collection holds no files of its own, so the album asks which folder the new pictures are kept in, or makes a **New folder…**. The collection remembers the folder for everyone who adds to it and proposes it next time; only whoever may edit the collection changes it. Each picture gets the collection's labels and so shows in the collection. **Add from the album…** gives pictures already in the album the collection's labels, without copying them.
 - *At the top* of the album, uploading, dropping or pasting asks for the folder as well, and that folder then opens.
 

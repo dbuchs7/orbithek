@@ -322,7 +322,7 @@ In der Ansicht **Ordner** steht über dem Inhalt der Pfad zum offenen Ordner, da
 
 Bilder werden dort hinzugefügt, wo man gerade ist, in der Ansicht **Ordner**:
 
-- *In einem Ordner* wählt man **Bilder hochladen**, legt Bilder und ZIP-Archive auf dem Album ab oder fügt ein Bild mit Strg+V ein, etwa ein Bildschirmfoto. Ein leerer Ordner zeigt dafür eine grosse Fläche. **Aus dem Album hinzufügen…** kopiert Bilder, die schon im Album sind, in den Ordner; das Original bleibt, wo es ist.
+- *In einem Ordner* wählt man **Bilder hochladen**, legt Bilder und ZIP-Archive auf dem Album ab oder fügt ein Bild mit Strg+V ein, etwa ein Bildschirmfoto. Ein leerer Ordner zeigt dafür eine grosse Fläche. **Aus dem Album hinzufügen…** holt Bilder, die schon im Album sind, in den Ordner: Mit **Kopieren** bleibt das Original, wo es ist; mit **Verschieben** wandert das Bild mit seinen Versionen, ausser man darf es nicht ändern oder ein Text zeigt es. Das Album merkt sich die Wahl.
 - *In einer Sammlung* gelten dieselben Wege. Eine Sammlung hält keine eigenen Dateien; das Album fragt deshalb, in welchem Ordner die neuen Bilder abgelegt werden, oder legt einen **Neuer Ordner…** an. Die Sammlung merkt sich den Ordner für alle, die Bilder hinzufügen, und schlägt ihn beim nächsten Mal vor; ändern kann ihn nur, wer die Sammlung bearbeiten darf. Jedes Bild erhält die Labels der Sammlung und erscheint so in ihr. **Aus dem Album hinzufügen…** gibt Bildern, die schon im Album sind, die Labels der Sammlung, ohne sie zu kopieren.
 - *Ganz oben* im Album fragt das Hochladen, Ablegen oder Einfügen ebenfalls nach dem Ordner, der sich danach öffnet.
 
