@@ -1,9 +1,9 @@
 # ADR-0222: Pictures added from the album to a folder are copied or moved, as one chooses
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-12
-- **Deciders:** Project initiators (request of 2026-11-12 to decide the last open question of ADR-0187; asked whether *Add from the album…* should copy, move from folders only, always move or let one choose, the requester chose to choose in the dialog, the browser remembering the choice, copying by default)
+- **Deciders:** Project initiators (request of 2026-11-12 to decide the last open question of ADR-0187; asked whether *Add from the album…* should copy, move from folders only, always move or let one choose, the requester chose to choose in the dialog, the browser remembering the choice, copying by default; accepted on 2026-11-12)
 - **Open question:** whether the choice should also be offered when a picture is dragged onto a folder (ADR-0184), which always moves
 - **Question checked:** 2026-11
 
