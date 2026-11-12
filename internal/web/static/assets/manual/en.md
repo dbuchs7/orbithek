@@ -245,7 +245,7 @@ Before pictures and videos are uploaded, dropped or pasted, the browser checks w
 
 Files chosen twice count too. If duplicates are found, a dialog lists each file with the pictures it matches and their folders. Ticked files are skipped: **Skip ticked files** adds the others, **Add all** adds everything, **Cancel** adds nothing. Videos are compared as files only. Copies made with **Add from the album…** are no duplicates of their original. The check needs a secure connection (HTTPS); without one, files are added unchecked.
 
-The view **Duplicates** shows groups of pictures that are the same file or look the same, newest group first, as far as the room filter narrows it. Choose pictures there and delete them as in every view. Pictures added before this check existed are compared as the album gets to them: the view says how many still wait and compares more each time it opens.
+The view **Duplicates** shows groups of pictures that are the same file or look the same, newest group first, as far as the room filter narrows it. Choose pictures there and delete them as in every view. **Delete duplicates…** deletes them all at once after a warning: of every set of the same file one picture stays, one a text shows or you may not change, else the largest, else the oldest. Tick the box to also delete pictures that only look the same, so that one picture of each group stays. Deleted pictures cannot be restored. Pictures added before this check existed are compared as the album gets to them: the view says how many still wait and compares more each time it opens.
 
 ### Faces and people
 

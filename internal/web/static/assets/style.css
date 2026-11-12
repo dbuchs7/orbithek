@@ -1153,6 +1153,8 @@ dialog.album-target h2 { margin: 0 0 8px; font-size: 1.1rem; }
 .duplicate-match img, .duplicate-video { width: 48px; height: 36px; object-fit: cover; border-radius: 3px; flex: none; background: var(--border); }
 .chip.duplicate-same { background: color-mix(in srgb, var(--danger, #c0392b) 15%, transparent); }
 .chip.duplicate-alike { background: color-mix(in srgb, var(--accent, #2f6fde) 15%, transparent); }
+.album-cleanup-row { margin: 0 0 12px; }
+.album-cleanup-warning { font-weight: 600; }
 .album-add-hint { margin: 8px 12px 0; }
 
 /* Contrast warnings of the corporate design (ADR-0052). */

@@ -31,7 +31,7 @@ func attachmentRoutes(h itemHandlers) []Route {
 		{Method: http.MethodPost, Pattern: "/api/items/{ref}/attachments/{id}/move", Summary: "Move a file with all its versions to another item (to), keeping its identity: its versions, labels, notes, place and favourites go with it, and copies find it there; who may edit both items may. A file the item's text shows, a protected file and a drawing that comments are on stay (ADR-0188)", Handler: http.HandlerFunc(h.moveFile)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/poster", Summary: "Keep a picture taken from a video as its poster (JPEG, PNG or WebP, application/octet-stream), shown in the album in its place; who may add files to the item may (ADR-0189)", Handler: http.HandlerFunc(h.setPoster)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/notes", Summary: "Set a picture's speaker's notes (notes, plain text; empty clears them), kept on the file's first version so every version shows them (ADR-0176)", Handler: http.HandlerFunc(h.setPictureNotes)},
-		{Method: http.MethodGet, Pattern: "/api/album", Summary: "The album: images, drawings and videos of every item one may read, newest first (order=taken: by when they were taken; order=slides: as the slides of a presentation, by the order of the folder or collection set by hand, saying so with ordered and whether one may change it with orderable, the rest by name), the versions of one file stacked under the newest (versions); space, folder (only its pictures), collection (the pictures of every room its rule gathers), q (name, label, key or title, or a day, month or year the picture was taken, e.g. 2026, 11.2026, 10.11.2026, 2026-11-10, November 2026, 10.11. for that day in every year), label, kind (image, drawing or video), offset and limit narrow it; person narrows to the pictures that show a person (ADR-0194)", Handler: http.HandlerFunc(h.album)},
+		{Method: http.MethodGet, Pattern: "/api/album", Summary: "The album: images, drawings and videos of every item one may read, newest first (order=taken: by when they were taken; order=slides: as the slides of a presentation, by the order of the folder or collection set by hand, saying with ordered whether a picture listed has a place in that order and with orderable whether one may change it, the rest by name), the versions of one file stacked under the newest (versions); space, folder (only its pictures), collection (the pictures of every room its rule gathers), q (name, label, key or title, or a day, month or year the picture was taken, e.g. 2026, 11.2026, 10.11.2026, 2026-11-10, November 2026, 10.11. for that day in every year), label, kind (image, drawing or video), offset and limit narrow it; person narrows to the pictures that show a person (ADR-0194)", Handler: http.HandlerFunc(h.album)},
 		{Method: http.MethodGet, Pattern: "/api/album/folders", Summary: "The album's folders one may read, by name, each saying whether one may add pictures to it (editable), then its collections (collections, each with its rule): in space (every space when empty), right below parent (the top when empty)", Handler: http.HandlerFunc(h.albumFolders)},
 		{Method: http.MethodPost, Pattern: "/api/album/folders", Summary: "Make a folder of the album: name, and space or parent (a folder); who may create there may", Handler: http.HandlerFunc(h.createAlbumFolder)},
 		{Method: http.MethodPost, Pattern: "/api/album/collections", Summary: "Make a collection of the album, which gathers the labelled pictures of every room: name, space or parent (a folder), labels, match (any or all) and items (the labels of a picture's item count too); who may create there may", Handler: http.HandlerFunc(h.createAlbumCollection)},
@@ -96,9 +96,11 @@ func (h itemHandlers) albumPage(x *item.Session, f *albumFilter, q url.Values, o
 		return nil, err
 	}
 	// Ordered as slides: by the order set by hand (ADR-0195).
-	ordered, orderable := withSlideRanks(x, f)
+	orderable := withSlideRanks(x, f)
 	// The versions of one file form a stack (ADR-0103), newest on top.
 	all := albumStacks(x, *f)
+	// Ordered only when a picture listed has a place in it (ADR-0195).
+	ordered := placed(all, f.ranks)
 	for _, st := range all[min(offset, len(all)):min(offset+limit, len(all))] {
 		top := h.albumPictureOf(st[0])
 		top.Notes = st[0].Notes

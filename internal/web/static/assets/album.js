@@ -34,7 +34,8 @@ import { pickPlace, placeInput } from "./places.js";
 import { startPresentation } from "./present.js";
 import { personCover, personSuggestions, scanAll } from "./faces.js";
 import { renameInPlace } from "./rename.js";
-import { groupTitle, loadDuplicates } from "./duplicates.js";
+import { askCleanup, groupTitle, loadDuplicates } from "./duplicates.js";
+import { cleanupPlan } from "./duplicateparts.js";
 
 const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
 
@@ -1074,6 +1075,18 @@ export function albumBrowser({ pick, pickText } = {}) {
       if (mine !== generation) return;
       timeline.replaceChildren();
       shown = [];
+      // Every duplicate is deleted at once after a warning, one picture of
+      // each staying (ADR-0196).
+      if (!pick && cleanupPlan(answer.groups, true).remove.length) {
+        timeline.append(h("div", { class: "actions-row album-cleanup-row" },
+          h("button", { type: "button", class: "danger", id: "album-cleanup-start", text: t("duplicates.cleanup"), title: t("duplicates.cleanupHint"), onclick: async () => {
+            const list = await askCleanup(answer.groups);
+            if (!list || !list.length) return;
+            await together("duplicates.cleaned", async (p) => { await del(fileURL(p)); return true; }, list);
+            await loadLabels().catch(() => {});
+            load(false);
+          } })));
+      }
       for (const g of answer.groups) {
         shown.push(...g.pictures);
         timeline.append(h("h2", { class: "album-month", text: groupTitle(g) }),

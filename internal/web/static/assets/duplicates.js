@@ -8,6 +8,7 @@ import { h } from "./dom.js";
 import { t } from "./i18n.js";
 import { get, post } from "./api.js";
 import { earlierTwins, fingerprintOf, fitWithin } from "./fingerprint.js";
+import { cleanupPlan } from "./duplicateparts.js";
 
 // READ_EDGE is the longer edge a picture is drawn at to read how it looks;
 // the grid of 9×8 cells hardly changes below the full size.
@@ -150,4 +151,50 @@ export async function loadDuplicates(space, progress, current = () => true) {
 // groupTitle says what a group of duplicates holds.
 export function groupTitle(g) {
   return t(g.same ? "duplicates.groupSame" : "duplicates.groupAlike", { n: g.pictures.length });
+}
+
+// askCleanup warns before the duplicates of groups are deleted at once and
+// says what goes: one picture of every set of the same file stays, and with
+// the box ticked one of every group, pictures that only look the same
+// included. It resolves to the pictures to delete, or to null.
+export function askCleanup(groups) {
+  return new Promise((resolve) => {
+    const box = h("input", { type: "checkbox", id: "album-cleanup-alike" });
+    const what = h("p", { id: "album-cleanup-what" });
+    const kept = h("p", { class: "muted", id: "album-cleanup-kept" });
+    const go = h("button", { type: "button", class: "danger", id: "album-cleanup-ok" });
+    let plan;
+    const sync = () => {
+      plan = cleanupPlan(groups, box.checked);
+      what.textContent = t("duplicates.cleanupWhat", { n: plan.remove.length });
+      kept.textContent = plan.kept ? t("duplicates.cleanupKept", { n: plan.kept }) : "";
+      kept.hidden = !plan.kept;
+      go.textContent = t("duplicates.cleanupOk", { n: plan.remove.length });
+      go.disabled = !plan.remove.length;
+    };
+    const alike = cleanupPlan(groups, false).alike;
+    box.addEventListener("change", sync);
+    let done = false;
+    const finish = (v) => {
+      if (done) return;
+      done = true;
+      dialog.close();
+      dialog.remove();
+      resolve(v);
+    };
+    go.addEventListener("click", () => finish(plan.remove));
+    const dialog = h("dialog", { class: "album-target album-cleanup", id: "album-cleanup", "aria-label": t("duplicates.cleanupTitle") },
+      h("h2", { text: t("duplicates.cleanupTitle") }),
+      h("p", { class: "notice album-cleanup-warning", role: "alert", text: t("duplicates.cleanupWarning") }),
+      h("p", { class: "muted", text: t("duplicates.cleanupRule") }),
+      h("label", { class: "duplicate-choice", hidden: !alike }, box, h("span", { text: t("duplicates.cleanupAlike", { n: alike }) })),
+      what, kept,
+      h("div", { class: "actions-row" }, go,
+        h("button", { type: "button", class: "link", id: "album-cleanup-cancel", text: t("common.cancel"), onclick: () => finish(null) })));
+    dialog.addEventListener("cancel", (e) => { e.preventDefault(); finish(null); });
+    sync();
+    document.body.append(dialog);
+    dialog.showModal();
+    dialog.querySelector("#album-cleanup-cancel").focus();
+  });
 }

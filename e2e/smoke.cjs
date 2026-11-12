@@ -1903,7 +1903,7 @@ function gitSource() {
     check(imported.includes("1 picture brought in.") && imported.includes("1 HEIC photo skipped"), "the archive's picture comes in and the HEIC photo is skipped with advice: " + imported);
     check((await page.getAttribute(holiday + " .album-thumb img", "src")).endsWith("/thumbnail?edge=400"), "the album shows thumbnails");
 
-    step("album duplicates: a file already in the album is asked about before it is added, and the view Duplicates shows it (ADR-0196)");
+    step("album duplicates: a file already in the album is asked about before it is added, the view Duplicates shows it and deletes the duplicates at once after a warning (ADR-0196)");
     await page.setInputFiles("#album-files", { name: "holiday-again.png", mimeType: "image/png", buffer: own("holiday") });
     await page.waitForSelector("dialog#album-duplicates[open] .duplicate-row:has-text('holiday-again.png')");
     const asked = await page.textContent("dialog#album-duplicates");
@@ -1919,10 +1919,15 @@ function gitSource() {
     await page.waitForSelector("#album .album-duplicate-group .album-card:has(.album-name:text-is('holiday-again')) .duplicate-same");
     const group = await page.textContent("#album .album-timeline");
     check(group.includes("The same file, 2 times") && group.includes("holiday"), "the view groups the same file: " + group);
-    await page.evaluate(async () => {
-      const { groups } = await (await fetch("/api/album/duplicates")).json();
-      for (const g of groups) for (const p of g.pictures) if (p.attachment.name === "holiday-again.png") await fetch(`/api/items/${p.item.id}/attachments/${p.attachment.id}`, { method: "DELETE" });
-    });
+    // Every duplicate goes at once after a warning; the older holiday stays.
+    await page.click("#album-cleanup-start");
+    await page.waitForSelector("dialog#album-cleanup[open] #album-cleanup-ok");
+    const warned = await page.textContent("dialog#album-cleanup");
+    check(warned.includes("cannot be restored") && warned.includes("1 picture will be deleted."), "the warning says the pictures are destroyed and how many go: " + warned);
+    check(!(await page.$eval("#album-cleanup-alike", (b) => b.checked)), "pictures that only look the same stay unless ticked");
+    await page.click("#album-cleanup-ok");
+    await page.waitForSelector("#album .status .notice:has-text('1 duplicate deleted.')");
+    await page.waitForSelector("#album .album-card:has(.album-name:text-is('holiday-again'))", { state: "detached" });
     await page.click("#album-view-folders"); // back in the folder Logos, which the view kept
     await page.waitForSelector(holiday);
     check(await page.inputValue("#album-import-place") === "strip", "the choice to remove the place stays after the import");
