@@ -44,6 +44,12 @@ var classified = map[string]string{
 		"not memory a caller of this server can claim",
 	"internal/connector.maxPictures": "the shape of a page written from a Git repository (ADR-0138): how many pictures it keeps; " +
 		"each picture is bounded by AttachmentBytes",
+	"internal/noteimport.maxNote": "the shape of a page written from an imported note (ADR-0209), like a Markdown file of a repository; " +
+		"what an archive makes the server read is bounded by NoteUnpackedBytes",
+	"internal/noteimport.maxTable": "the shape of a database of an imported workspace (ADR-0209): the CSV file its rows are read from; " +
+		"what an archive makes the server read is bounded by NoteUnpackedBytes",
+	"internal/noteimport.maxPictures": "the shape of a page written from an imported note (ADR-0209): how many pictures it keeps; " +
+		"each picture is bounded by AttachmentBytes",
 	"internal/gitrepo.maxListing": "an answer of the API of a Git host the server reads (ADR-0138), not a caller's input to this server; " +
 		"it guards against a host that misbehaves",
 	"internal/gitrepo/gitrepo.go:maxListing + 1": "the same bound, where the answer is read",
