@@ -17,7 +17,7 @@ import { renameInPlace } from "./rename.js";
 import { presenterView, audienceView } from "./present.js";
 import { starmapView } from "./starmap.js";
 import { roadmapView } from "./roadmap.js";
-import { isStartName } from "./timeline.js";
+import { isStartName, startDefaults } from "./timeline.js";
 import { calendarView } from "./calendarview.js";
 import { WEEKDAYS, parseRule, ruleText } from "./recurrence.js";
 import { address as calendarAddress, tasksTab } from "./calendar.js";
@@ -908,7 +908,8 @@ function taskTools(item, editing) {
       h("p", { class: "muted", text: t("editor.newTaskHint", { title: item.title || item.key }) }),
     ], async (f) => {
       const ty = types.find((x) => x.name === typeSelect.value);
-      const properties = {};
+      // Only the required fields are asked for; a start date is today.
+      const properties = startDefaults(ty.fields);
       for (const fd of ty.fields.filter((x) => x.required)) {
         const v = readProperty(fd, f.querySelector(`[name="p:${CSS.escape(fd.name)}"]`));
         if (v !== null) properties[fd.name] = v;
@@ -2777,7 +2778,7 @@ function viewSection(type, items, status, make, keep, heading) {
     },
     takes: (col) => Boolean(make) && (col.state === wf.initial || ways(wf.initial, col.state).length === 1),
     create: async (col, title, properties) => {
-      const { item } = await post("/api/items", { space: make.space, type: type.name, title, properties });
+      const { item } = await post("/api/items", { space: make.space, type: type.name, title, properties: { ...startDefaults(type.fields), ...properties } });
       if (make.label) await put(`/api/items/${item.id}/labels`, { labels: [make.label] });
       const [way] = col.state === item.state ? [] : ways(item.state, col.state);
       if (way) await transition(item, way.name);
@@ -3316,7 +3317,7 @@ async function kanbanView(space, id) {
   // It carries the kanban's label and stands on top of its column.
   const takes = (col) => canEdit && (!col.state || col.state === wf.initial || wf.transitions.some((tr) => tr.to === col.state && tr.from.includes(wf.initial)));
   const create = async (col, title, properties) => {
-    const { item } = await post("/api/items", { space, type: k.type, title, properties });
+    const { item } = await post("/api/items", { space, type: k.type, title, properties: { ...startDefaults(type.fields), ...properties } });
     await setLabels(item, [k.label]);
     await post(kpath + "/place", { card: item.id, column: col.id, before: (col.cards || [])[0] || "" });
   };
@@ -4614,7 +4615,8 @@ function newItemForm({ space, spaces = null, types, parent = null, heading = t("
   };
   const showFields = () => {
     const ty = types.find((x) => x.name === typeSelect.value);
-    fields.replaceChildren(...(ty?.fields || []).map((f) => field(f.name + (f.required ? " *" : ""), propertyInput(f))));
+    const start = startDefaults(ty?.fields);
+    fields.replaceChildren(...(ty?.fields || []).map((f) => field(f.name + (f.required ? " *" : ""), propertyInput(f, start[f.name]))));
   };
   typeSelect.addEventListener("change", showFields);
   spaceSelect?.addEventListener("change", () => { offerTypes(); showFields(); });
