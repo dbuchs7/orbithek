@@ -1574,8 +1574,19 @@ export function albumBrowser({ pick, pickText } = {}) {
 
   // addFromAlbum adds pictures already in the album where one is
   // (ADR-0187): into a folder as copies with their source, as inserting
-  // does (ADR-0054); to a collection by giving them its labels, without
-  // a copy. The album stays open for one picture after another.
+  // does (ADR-0054), or moved with their versions (ADR-0188), as the
+  // dialog's choice says, which this browser keeps (ADR-0222); to a
+  // collection by giving them its labels, without a copy. The album stays
+  // open for one picture after another.
+  const ADD_MODE = "ot.albumAddMode";
+  const addMode = (value) => {
+    try {
+      if (value) localStorage.setItem(ADD_MODE, value);
+      return localStorage.getItem(ADD_MODE) === "move" ? "move" : "copy";
+    } catch {
+      return value === "move" ? "move" : "copy";
+    }
+  };
   const addFromAlbum = () => {
     const target = here();
     if (!target) return;
@@ -1594,9 +1605,31 @@ export function albumBrowser({ pick, pickText } = {}) {
         return t("album.added");
       }
       if (p.item.id === target.id) return t("album.addedAlready");
+      if (mode === "move") {
+        await moveTo(p, target.id);
+        return t("album.addMoved");
+      }
       await copyTo(p, target.id);
       return t("album.added");
     };
+    // Copy or move, for a folder; a collection takes neither.
+    let mode = addMode();
+    const hint = h("p", { class: "muted album-add-hint" });
+    const showHint = () => {
+      hint.textContent = collection ? t("album.addHintCollection", { labels: labels.join(", ") }) : t(mode === "move" ? "album.addHintMove" : "album.addHintFolder");
+    };
+    const modes = collection ? null : h("div", { class: "segmented album-add-mode", role: "radiogroup", "aria-label": t("album.addMode") },
+      ["copy", "move"].map((m) => h("button", { type: "button", class: "segment", role: "radio", id: "album-add-" + m, "data-mode": m,
+        "aria-checked": String(m === mode), "aria-pressed": String(m === mode), text: t(m === "move" ? "album.addModeMove" : "album.addModeCopy"),
+        onclick: () => {
+          mode = addMode(m);
+          for (const b of modes.querySelectorAll("button")) {
+            b.setAttribute("aria-checked", String(b.dataset.mode === mode));
+            b.setAttribute("aria-pressed", String(b.dataset.mode === mode));
+          }
+          showHint();
+        } })));
+    showHint();
     let closed = false;
     const close = () => {
       if (closed) return;
@@ -1610,7 +1643,7 @@ export function albumBrowser({ pick, pickText } = {}) {
     const dialog = h("dialog", { class: "album-dialog album-add", id: "album-add", "aria-label": title },
       h("div", { class: "drawing-bar" }, h("strong", { text: title }),
         h("button", { type: "button", class: "primary", id: "album-add-done", text: t("album.addDone"), onclick: close })),
-      h("p", { class: "muted album-add-hint", text: collection ? t("album.addHintCollection", { labels: labels.join(", ") }) : t("album.addHintFolder") }),
+      h("div", { class: "album-add-head" }, modes, hint),
       h("div", { class: "album-dialog-body" }, albumBrowser({ pick: add, pickText: t("album.addOne") })));
     dialog.addEventListener("cancel", (e) => { e.preventDefault(); close(); });
     document.body.append(dialog);

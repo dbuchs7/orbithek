@@ -1975,6 +1975,40 @@ function webSource() {
     await lastCard.locator(".album-labels-input").press("Enter");
     await lastCard.locator(".album-label:text-is('late')").waitFor();
     check(await page.locator("#album .album-grid > li.album-card").count() === 50, "labelling after Show more keeps every picture shown");
+    // Adding from the album to a folder copies or moves, as the dialog's
+    // choice says, which the browser keeps (ADR-0222).
+    await page.click("#album .album-trail button:has-text('All pictures')");
+    await page.click("#album .album-folder:has-text('Logos')");
+    await page.waitForSelector("#album-add-existing");
+    const addPicture = async (name, mode, done) => {
+      await page.click("#album-add-existing");
+      await page.waitForSelector("dialog#album-add[open] #album-add-copy");
+      await page.click(`#album-add-${mode}`);
+      await page.fill("dialog#album-add input[type=search]", name);
+      const card = `dialog#album-add .album-card:has(.album-name:text-is('${name}'))`;
+      await page.click(card + " .album-pick");
+      await page.waitForSelector(`${card} .album-pick:text-is('${done}')`);
+      await page.click("#album-add-done");
+      await page.waitForSelector("dialog#album-add", { state: "detached" });
+    };
+    await addPicture("many-01", "move", "Moved");
+    await addPicture("many-02", "copy", "Added");
+    await page.waitForSelector("#album .album-card:has(.album-name:text-is('many-01'))");
+    await page.waitForSelector("#album .album-card:has(.album-name:text-is('many-02'))");
+    const stayed = await page.evaluate(async (id) => (await (await fetch(`/api/album?folder=${id}&limit=200`)).json()).pictures.map((p) => p.attachment.name), many.id);
+    check(!stayed.includes("many-01.png") && stayed.includes("many-02.png"), "a picture moved leaves its folder, a copy leaves the original: " + stayed.length);
+    await page.click("#album-add-existing");
+    await page.waitForSelector("dialog#album-add[open] #album-add-copy[aria-pressed=true]");
+    await page.click("#album-add-done");
+    // The two pictures added leave again, so later steps count as before.
+    await page.evaluate(async () => {
+      const { folders } = await (await fetch("/api/album/folders?space=PLAT")).json();
+      const logos = folders.find((f) => f.name === "Logos");
+      const { pictures } = await (await fetch(`/api/album?folder=${logos.id}&limit=200`)).json();
+      for (const p of pictures.filter((p) => /^many-0[12]\.png$/.test(p.attachment.name))) {
+        await fetch(`/api/items/${p.item.id}/attachments/${p.attachment.id}`, { method: "DELETE" });
+      }
+    });
     await page.evaluate(async (id) => fetch(`/api/items/${id}/trash`, { method: "POST" }), many.id);
     await page.click("#album .album-trail button:has-text('All pictures')");
     await page.waitForSelector("#album .album-folder:has-text('Logos')");
