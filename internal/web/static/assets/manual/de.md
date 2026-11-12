@@ -49,7 +49,7 @@ Die Leiste oben auf jeder Seite enthält von links nach rechts:
 
 ### Die Startseite
 
-Die Startseite begrüsst, zeigt die Anzahl Seiten, Aufgaben und Bilder und bietet einen Schnellzugriff auf die eigenen Aufgaben, Benachrichtigungen, persönlichen Notizen, die Sternkarte, das Album, die Whiteboards und den KI-Zugang. Darunter stehen die eigenen Räume, als Kacheln oder als Liste; ein Stern markiert einen Raum als Favorit. Gibt es noch keine Räume, findet die Administration dort die ersten Schritte: einen Raum erstellen, mit den Vorlagen Typen hinzufügen (Seite, Aufgabe, Entscheidung, Tagesnotiz) und Personen eine Rolle geben.
+Die Startseite begrüsst, zeigt die Anzahl Seiten, Aufgaben und Bilder und bietet einen Schnellzugriff auf die Sternkarte, **Mein Tag** (die Tagesnotiz von heute, mit dem heutigen Datum), die eigenen Aufgaben, Benachrichtigungen, persönlichen Notizen, das Album, die Whiteboards und den KI-Zugang. Darunter stehen die eigenen Räume, als Kacheln oder als Liste; ein Stern markiert einen Raum als Favorit. Gibt es noch keine Räume, findet die Administration dort die ersten Schritte: einen Raum erstellen, mit den Vorlagen Typen hinzufügen (Seite, Aufgabe, Entscheidung, Tagesnotiz) und Personen eine Rolle geben.
 
 ## Seiten und Einträge
 
@@ -120,6 +120,8 @@ Formatierung, Farben und Grössen bleiben im Word- und PDF-Export erhalten; ein 
 **Beziehungen** verknüpfen einen Eintrag mit einem anderen unter einem benannten Typ, zum Beispiel *blocks* oder *depends on*: Beziehung und Schlüssel des anderen Eintrags eingeben und **Verknüpfen** wählen. Links und Erwähnungen im Text erscheinen ebenfalls als Beziehungen.
 
 **Dateien** werden mit **Dateien hochladen** angehängt. Wer den Eintrag bearbeiten darf, benennt eine Datei in der Liste mit **Umbenennen** um: Alle Versionen erhalten den neuen Namen, der Dateityp bleibt. Bilder und Zeichnungen aller Einträge erscheinen zudem im Album.
+
+Wer den Eintrag bearbeiten darf, nimmt mit **Ton aufnehmen** auch Ton in seine Dateien auf: Der Browser fragt einmal nach dem Mikrofon, die Aufnahme läuft mit angezeigter Zeit, **Beenden und anhängen** fügt sie als *Aufnahme <Datum> <Uhrzeit>* den Dateien hinzu, **Verwerfen** verwirft sie. Eine Aufnahme endet nach 30 Minuten von selbst und wird angehängt. Wer die Seite während der Aufnahme verlässt, verwirft sie. Die Schaltfläche erscheint nur, wo der Browser aufnehmen kann; dafür muss die Adresse mit `https://` beginnen (oder `localhost` sein). Tondateien – Aufnahmen, MP3, WAV, M4A und Ogg – werden in der Dateiliste abgespielt; sie erscheinen nicht im Album, und nichts wird transkribiert.
 
 ### PDF-Dateien lesen
 
@@ -206,7 +208,7 @@ Beim Lesen markiert man eine Stelle und wählt **Notiz**, um eine Notiz dazu anz
 
 ### Tagesnotizen
 
-Eine Tagesnotiz ist eine eigene Seite für einen Tag: Nur man selbst liest und bearbeitet sie. **Heute** in der oberen Leiste, Alt+Shift+D oder die Befehlspalette öffnet die Notiz von heute; sie wird beim ersten Öffnen erstellt, im **Raum für Tagesnotizen**, den man einmal wählt, unter den Räumen, in denen man Seiten erstellen darf. Der Raum lässt sich jederzeit ändern; bestehende Notizen bleiben, wo sie sind.
+Eine Tagesnotiz ist eine eigene Seite für einen Tag: Nur man selbst liest und bearbeitet sie. **Heute** in der oberen Leiste, **Mein Tag** auf der Startseite, Alt+Shift+D oder die Befehlspalette öffnet die Notiz von heute; sie wird beim ersten Öffnen erstellt, im **Raum für Tagesnotizen**, den man einmal wählt, unter den Räumen, in denen man Seiten erstellen darf. Solange kein Raum gewählt ist, steht die Auswahl an der Stelle der Notiz; später ändert man den Raum in der Spalte an der Seite, die sich mit ihrem Pfeil ein- und ausklappen lässt. Bestehende Notizen bleiben, wo sie sind.
 
 Der Text der Notiz wird an Ort und Stelle bearbeitet. **Vorheriger Tag** und **Nächster Tag** wechseln den Tag, und der Monat daneben markiert die Tage mit Notiz; ein Tag ohne Notiz bietet **Notiz für diesen Tag beginnen** an. Neben der Notiz zeigt **Im Kalender an diesem Tag** die Einträge, deren Daten auf diesen Tag fallen, und **An diesem Tag erstellt oder geändert** die lesbaren Einträge, die an diesem Tag erstellt oder zuletzt geändert wurden. **Als Seite öffnen** zeigt die Notiz als Eintrag, mit Kommentaren, Verlauf und Feldern. Tagesnotizen tragen das Label `daily-note`; eine Abfrage nach diesem Label listet sie alle.
 
@@ -286,6 +288,8 @@ Karten werden mit **Neue Karte** hinzugefügt, für ihre Details geöffnet und m
 ### Roadmap und Gantt-Diagramm
 
 Die **Roadmap** zeigt Einträge mit Datumsfeldern auf einer Zeitachse: als **Roadmap nach Label** in Bahnen oder als **Gantt-Diagramm** mit einer Zeile je Eintrag. Man wählt Raum, Typen, die Felder **Beginn** und **Ende**, die Labels und den **Massstab** (Wochen, Monate, Quartale). Einträge, die auf unerledigte Einträge warten, sind markiert.
+
+**Exportieren** speichert das Diagramm als Bild, als **PNG** oder **JPEG**, mit allen Zeilen und der ganzen Zeitachse, auch dem, was ausserhalb des sichtbaren Bereichs liegt. Das Bild zeigt, was man sieht, im aktuellen Erscheinungsbild, und ist nach der Ansicht und dem Tag benannt, etwa *Gantt-Diagramm PLAT 2026-11-12.png*. Ein Diagramm, das für ein Bild zu gross ist, das der Browser zeichnen kann, wird mit einem Hinweis abgelehnt; man schränkt es nach Labels, Typ oder Raum ein oder wählt einen gröberen Massstab.
 
 ### Kalender
 

@@ -51,8 +51,19 @@ const PosterSuffix = ".poster"
 // recognition is turned off.
 const FacesSuffix = ".faces"
 
+// PreviewSuffix ends the name of the file that holds the preview of an
+// entry of a file share (ADR-0197): the picture scaled down, sealed with
+// the item's key, kept while the entry is, backed up, moved and removed
+// with it. Such an entry has no file of its own; its original stays on
+// the share.
+const PreviewSuffix = ".preview"
+
 // companions are the files kept beside an attachment's own.
-var companions = []string{PosterSuffix, FacesSuffix}
+var companions = []string{PosterSuffix, FacesSuffix, PreviewSuffix}
+
+// backedUpCompanions are the companions a backup holds; what was computed
+// of faces never leaves the server (ADR-0194).
+var backedUpCompanions = []string{PosterSuffix, PreviewSuffix}
 
 // companionOf answers the attachment a companion file belongs to, or ""
 // for a name that is none.
@@ -126,6 +137,21 @@ func (db *DB) StoreAttachment(id item.ID, content io.Reader, limit int64) (item.
 // is the caller's next step; a file never recorded is removed on the next
 // start, or now with DiscardAttachment.
 func (db *DB) MoveAttachmentContent(from, to item.ID, want item.Attachment) error {
+	// An entry of a file share has no file of its own here, only its
+	// preview, which must move (ADR-0197).
+	if want.Linked() {
+		p, err := db.OpenPreview(from, want.ID)
+		if err != nil {
+			return err
+		}
+		defer p.Close()
+		if _, err := db.sealAttachment(to, want.ID+PreviewSuffix, p, budget.Get().AttachmentBytes); err != nil {
+			db.DiscardAttachment(to, want.ID)
+			return err
+		}
+		db.moveFaces(from, to, want.ID)
+		return nil
+	}
 	r, err := db.OpenAttachment(from, want.ID)
 	if err != nil {
 		return err
@@ -148,15 +174,40 @@ func (db *DB) MoveAttachmentContent(from, to item.ID, want item.Attachment) erro
 			os.Remove(attachmentPath(db.dir, to, want.ID+PosterSuffix))
 		}
 	}
-	// So does what was computed of its faces (ADR-0194).
-	if f, err := db.openFile(from, want.ID+FacesSuffix); err == nil {
-		_, err := db.sealAttachment(to, want.ID+FacesSuffix, f, maxFaceVectorBytes)
+	db.moveFaces(from, to, want.ID)
+	return nil
+}
+
+// moveFaces moves what was computed of a picture's faces with it
+// (ADR-0194); what does not read is left behind.
+func (db *DB) moveFaces(from, to, picture item.ID) {
+	if f, err := db.openFile(from, picture+FacesSuffix); err == nil {
+		_, err := db.sealAttachment(to, picture+FacesSuffix, f, maxFaceVectorBytes)
 		f.Close()
 		if err != nil {
-			os.Remove(attachmentPath(db.dir, to, want.ID+FacesSuffix))
+			os.Remove(attachmentPath(db.dir, to, picture+FacesSuffix))
 		}
 	}
-	return nil
+}
+
+// StorePreview stores the preview of an entry of a file share
+// (ADR-0197), replacing one stored before, sealed with the item's key.
+// The entry is recorded after its preview, so a preview never recorded is
+// removed on the next start, or now with DiscardAttachment.
+func (db *DB) StorePreview(id, entry item.ID, content io.Reader, limit int64) (item.Attachment, error) {
+	if !item.ValidAttachmentID(string(entry)) {
+		return item.Attachment{}, fmt.Errorf("storage: attachment ID %q", entry)
+	}
+	return db.sealAttachment(id, entry+PreviewSuffix, content, limit)
+}
+
+// OpenPreview returns the decrypted preview of an entry of a file share,
+// or an error that matches os.ErrNotExist when it has none.
+func (db *DB) OpenPreview(id, entry item.ID) (io.ReadSeekCloser, error) {
+	if !item.ValidAttachmentID(string(entry)) {
+		return nil, fmt.Errorf("storage: attachment %q: %w", entry, os.ErrNotExist)
+	}
+	return db.openFile(id, entry+PreviewSuffix)
 }
 
 // StorePoster stores a picture taken from a video as the video's poster
@@ -286,7 +337,16 @@ func (db *DB) OpenAttachment(id, attachment item.ID) (io.ReadSeekCloser, error) 
 	if !item.ValidAttachmentID(string(attachment)) {
 		return nil, fmt.Errorf("storage: attachment %q: %w", attachment, os.ErrNotExist)
 	}
-	return db.openFile(id, attachment)
+	r, err := db.openFile(id, attachment)
+	// An entry of a file share has no file of its own here: what is given
+	// out of it, wherever that is, is its preview (ADR-0197). Only such an
+	// entry has a preview.
+	if errors.Is(err, os.ErrNotExist) {
+		if p, perr := db.openFile(id, attachment+PreviewSuffix); perr == nil {
+			return p, nil
+		}
+	}
+	return r, err
 }
 
 // openFile opens an attachment's file or its poster's.

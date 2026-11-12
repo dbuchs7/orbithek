@@ -749,7 +749,10 @@ function webSource() {
   const engine = engineSource();
   const feed = feedSource();
   const repo = gitSource();
-  const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
+  // A simulated microphone, allowed without asking, records sound into
+  // an item's files (ADR-0219).
+  const browser = await chromium.launch({ ...(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {}),
+    args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"] });
   const page = await browser.newPage();
   await page.addInitScript(recordLiveStatus);
   const problems = [];
@@ -810,11 +813,15 @@ function webSource() {
     await page.waitForSelector("#welcome h1:has-text('admin')");
     await page.waitForSelector("#welcome img.welcome-art");
     await page.waitForSelector("#welcome #home-version:has-text('Version')");
-    check(await page.locator(".home-tiles a").count() === 7, "seven quick accesses, one's notes, the starmap and the whiteboards among them");
+    check(await page.locator(".home-tiles a").count() === 8, "eight quick accesses, one's day, one's notes, the starmap and the whiteboards among them");
     check(await page.getAttribute("#home-whiteboards", "href") === "#/whiteboards", "a quick access leads to the whiteboards (ADR-0169)");
-    check(await page.locator(".home-tiles a .module-icon svg").count() === 7, "each quick access wears the symbol of its module on the station");
+    check(await page.locator(".home-tiles a .module-icon svg").count() === 8, "each quick access wears the symbol of its module on the station");
     check(await page.getAttribute(".home-tiles a:first-child", "id") === "home-starmap" && await page.getAttribute("#home-starmap", "href") === "#/starmap"
       && await page.locator("#home-starmap .module-icon.module-starmap").count() === 1, "the starmap is the first quick access, with its module's symbol");
+    // My day follows the starmap: today's daily note, its date and its
+    // day of the month on the calendar sheet (ADR-0205).
+    check(await page.getAttribute(".home-tiles a:nth-child(2)", "id") === "home-today" && await page.getAttribute("#home-today", "href") === "#/daily"
+      && (await page.textContent("#home-today .module-icon.module-day svg text")) === String(new Date().getDate()), "my day is the second quick access and leads to today's daily note");
     await page.click("#home-starmap");
     await page.waitForSelector("h1:has-text('Starmap')");
     check(page.url().endsWith("#/starmap"), "the starmap tile leads to the starmap: " + page.url());
@@ -3382,6 +3389,27 @@ function webSource() {
     await page.waitForFunction(() => location.hash.includes("mode=gantt") && location.hash.includes("scale=week"));
     await page.reload();
     await page.waitForSelector(".tl-gantt .tl-tick:has-text('W10')");
+
+    step("roadmap picture: the chart leaves as PNG or JPEG, drawn in the browser with every row (ADR-0218)");
+    {
+      const fs = require("fs");
+      const saved = async (format) => {
+        await page.click("#roadmap-export summary");
+        const [file] = await Promise.all([page.waitForEvent("download"), page.click(`#roadmap-export-${format}`)]);
+        await page.waitForFunction(() => document.querySelector("#roadmap-export-status")?.textContent.endsWith("saved."));
+        return { name: file.suggestedFilename(), bytes: fs.readFileSync(await file.path()) };
+      };
+      await page.click("#roadmap-export summary");
+      check((await page.locator("#roadmap-export button").allTextContents()).join("|") === "PNG (lossless)|JPEG (smaller file)", "the chart offers PNG and JPEG");
+      await page.click("#roadmap-export summary");
+      const png = await saved("png");
+      check(/^Gantt chart plan-q1 plan-ops \d{4}-\d{2}-\d{2}\.png$/.test(png.name), "the picture is named after what the view shows: " + png.name);
+      check(png.bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])), "the PNG is a PNG");
+      // Two rows, the axis and the title, drawn twice as sharp as the page.
+      check(png.bytes.readUInt32BE(20) === 2 * (16 + 36 + 28 + 2 * 30 + 16), "the PNG holds every row, twice as sharp");
+      const jpeg = await saved("jpeg");
+      check(jpeg.name.endsWith(".jpg") && jpeg.bytes[0] === 0xff && jpeg.bytes[1] === 0xd8, "the JPEG is a JPEG");
+    }
     // The tasks page and a room lead there too.
     await page.goto(base + "/#/tasks");
     await page.click("#tab-roadmap");
@@ -6192,12 +6220,15 @@ function webSource() {
     await page.click("#nav-today");
     await page.waitForSelector("#daily-title");
     if (await page.locator("#daily-note.daily-empty").count()) {
-      // The room is chosen once; the note is made then.
+      // The room is chosen once, where the note will be, so that it is
+      // seen with the side column folded away too; the note is made then.
+      check(await page.locator("#daily-note.daily-empty #daily-room").count() === 1, "the room is chosen in the note's place");
       await page.selectOption("#daily-room", "PLAT");
       await page.waitForSelector("#daily-note.editing .ProseMirror");
     }
     await page.waitForSelector("#daily-note.editing .ProseMirror");
     check(await page.inputValue("#daily-room") === "PLAT", "the room of the daily notes is kept");
+    check(await page.locator(".daily-layout .item-side .col-toggle-side").count() === 1, "the side column of a daily note folds away and comes back");
     const dailyKey = (await page.getAttribute("#daily-item", "href")).replace("#/item/", "");
     const dailyNote = (await (await page.request.get(base + "/api/items/" + dailyKey)).json()).item;
     check(dailyNote.labels.includes("daily-note") && dailyNote.restriction.read.length === 1, "the note is labelled and restricted to its author");
@@ -6327,6 +6358,34 @@ function webSource() {
       check(wide <= 0, `${view} is ${wide}px wider than a phone's screen`);
     }
     await dailyPhoneCtx.close();
+
+    step("sound: recorded into an item's files, told as sound, played in the list and kept out of the album (ADR-0219)");
+    await page.goto(base + "/#/item/" + dailyKey);
+    await page.waitForSelector("#attachments #record-sound");
+    const filesBefore = await page.locator("#attachments li").count();
+    await page.click("#record-sound");
+    await page.waitForSelector("#record-stop");
+    await page.waitForSelector(".recorder-clock:not(:text-is('0:00'))");
+    await page.click("#record-stop");
+    await page.waitForSelector("#attachments li audio.att-audio[controls]");
+    check(await page.locator("#attachments li").count() === filesBefore + 1, "the recording is a file of the item");
+    const recorded = await page.evaluate(async (key) => (await (await fetch(`/api/items/${encodeURIComponent(key)}/attachments`)).json())
+      .attachments.find((a) => /^Recording \d{4}-\d\d-\d\d \d\d-\d\d\.webm$/.test(a.name)), dailyKey);
+    check(recorded && recorded.type === "audio/webm", "the recording is told as sound: " + JSON.stringify(recorded));
+    const playedFor = await page.evaluate(async () => {
+      const a = document.querySelector("#attachments li audio.att-audio");
+      await a.play();
+      await new Promise((r) => setTimeout(r, 700));
+      a.pause();
+      return a.currentTime;
+    });
+    check(playedFor > 0, "the recording plays from the file list");
+    const albumVideos = await page.evaluate(async () => (await (await fetch("/api/album?kind=video")).json()).pictures);
+    check(!albumVideos.some((p) => p.attachment.id === recorded.id), "a recording is no video of the album");
+    await page.click("#record-sound");
+    await page.click("#record-discard");
+    await page.waitForSelector("#record-sound:not([hidden])");
+    check(await page.locator("#attachments li").count() === filesBefore + 1, "a discarded recording is not attached");
 
     check(problems.length === 0, problems.join("; "));
     console.log("ok");

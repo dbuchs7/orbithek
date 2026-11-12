@@ -595,6 +595,14 @@ ul.attachments { list-style: none; padding: 0; margin: 0 0 8px; }
 li.attachment { padding: 4px 0; border-bottom: 1px solid var(--border); }
 li.attachment button.link { margin-left: 8px; }
 label.upload { display: inline-flex; align-items: center; gap: 8px; }
+/* Sound in the file list and its recorder (ADR-0219). */
+li.attachment audio.att-audio { display: block; width: 100%; max-width: 28rem; margin-top: 6px; }
+.recorder { margin: 8px 0; }
+.recorder-live { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.recorder-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger, #c62828); animation: recorder-pulse 1.2s ease-in-out infinite; }
+.recorder-clock { font-variant-numeric: tabular-nums; }
+@keyframes recorder-pulse { 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) { .recorder-dot { animation: none; } }
 .pm-image { margin: 10px 0; text-align: center; }
 .pm-image img { max-width: 100%; height: auto; border-radius: 4px; border: 1px solid var(--border); }
 .pm-image figcaption { margin-top: 4px; color: var(--muted); font-size: 13px; }
@@ -1295,6 +1303,7 @@ section.hold .chip, #governance .chip { font-size: 11px; padding: 1px 8px; borde
 .module-pictures { --module: #f59e0b; }
 .module-protection { --module: #7c5cff; }
 .module-starmap { --module: #0ea5e9; }
+.module-day { --module: #ef4444; }
 .module-whiteboard { --module: #ec4899; }
 .module-page { --module: linear-gradient(135deg, #0b5cff, #7c5cff); --module-ink: #3f5cf0; background: linear-gradient(135deg, #0b5cff, #7c5cff); box-shadow: 0 2px 6px rgba(63, 92, 240, .35); }
 .home-tile .chip { align-self: flex-start; font-size: 11px; padding: 1px 8px; border-radius: 999px; background: #fff4e5; color: #8a5300; }
@@ -2418,6 +2427,12 @@ dialog.note-dialog { max-height: calc(100dvh - 32px); overflow: auto; }
 .tl-milestone.tl-done::before { background: var(--success-soft); border-color: var(--success); }
 .tl-milestone.tl-waiting::before, .tl-inverted::before { background: var(--surface); border-style: dashed; border-color: var(--warning); }
 .tl-legend { font-size: 12px; }
+.tl-actions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-4); }
+.tl-actions + .tl-scroll { margin-top: var(--space-2); }
+/* Rows out of sight are neither laid out nor painted until they scroll
+   near; a row's height is fixed, so the scroll bar stays true. */
+.tl-body .tl-row { content-visibility: auto; contain-intrinsic-block-size: auto var(--tl-row); }
+.tl-actions .export-list { left: 0; right: auto; }
 .tl-unscheduled ul { margin: var(--space-2) 0; padding-left: var(--space-5); }
 @media (max-width: 640px) { .tl { --tl-head: 8rem; } }
 /* Calendar of the items' dates (ADR-0166): a month in whole weeks, a week,

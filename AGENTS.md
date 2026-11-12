@@ -50,6 +50,9 @@ a copy uploaded as given is accepted (`Attachment.AsGiven`), and a video keeps i
 HEIC is not taken.
 Videos (MP4, WebM, QuickTime) are taken into the album and handled as its pictures, up to the budget `VideoBytes` with `VideoTransferSeconds` to upload or download (`video=1`): `photo.VideoType` tells them by their bytes, `photo.ReadVideo` reads time, place, duration (`Photo.Duration`, codec version 50), size and camera from the movie header by seeking, the browser takes a poster when it uploads one, sealed beside the video as `<id>.poster` (`PUT …/poster`, `storage.StorePoster`), moved, backed up and removed with it and served as its thumbnail, and a place is removed or kept private by reading its texts as zeros (`photo.VideoWithoutPlace`), streamed;
 videos are not exported as pictures (ADR-0189).
+Whoever may edit an item records sound into its files from the file list (`assets/recorder.js`, `assets/recorderparts.js`: `MediaRecorder`, Opus in WebM or Ogg, AAC in MP4, at most 30 minutes, nothing kept in the browser);
+a file of sound alone is told by its tracks (`photo.AudioType`: WebM tracks, MP4 handlers, Ogg's first packet), so it is no video and not in the album, and files of `item.AudioTypes` are sent inline in parts and played in the file list;
+nothing is transcribed (proposed, ADR-0219).
 A video is a slide that plays from the presentation's state (`playing`), with sound in the presentation window only and neither zoom nor laser;
 Google Photos (`=dv`, poster `=w1600-h1600`) and shared iCloud albums (largest video derivative, poster frame as poster) bring videos within `VideoBytes` (ADR-0192).
 A collection is deleted from the album alone, into the trash (ADR-0193).
@@ -171,7 +174,7 @@ nothing on it names an item the reader may not read, not even as a count (`Sessi
 The starmap of all rooms (`#/starmap/*`, `GET /api/starmap`, `Session.StarmapAll`) holds every readable item of every room within the same budget, and beyond it a bubble per room and type as big as its items with edges counting the links between them;
 a label (`?label=`) narrows it to the items that carry it (ADR-0191).
 Within the budget the pictures and drawings of its items fill what the items leave, each joined to its item and a copy to its original when that item is on the map: first those a text shows, each copy's original after it, then the shared labels, then the other pictures;
-in bubbles there are none (`allStarPictures`, proposed, ADR-0215).
+in bubbles there are none (`allStarPictures`, ADR-0215).
 The map moves under a live force simulation that cools to rest (Barnes–Hut above a few dozen nodes, settled at once for reduced motion);
 a dragged node pulls its neighbours, pointing lights a neighbourhood, captions fade with the zoom, and a double-click separates a node with its neighbourhood at a depth of one to three, with a drill path in the address that Escape steps back (`assets/starmap-sim.js`, ADR-0158).
 From a node's panel, an impact view shows what depends on an item or picture, or what it depends on — children on their parent, a relation's source on its target, mentions and embeds, pictures on their item, copies on their original, never shared labels — walked by the server across rooms, breadth first to a depth of one to five or all, within the budget `ImpactNodes`, never through an unreadable item;
@@ -466,7 +469,7 @@ internal/share/    lists and reads the files of a file share an album folder sho
 internal/query/    the query language: parses a query into conditions and an order, and reads points in time (ADR-0136)
 internal/server/   HTTP route table with access classes, principal resolution, JSON API, graceful shutdown
 internal/web/      embedded web UI (plain HTML, CSS, ES modules; ADR-0009, ADR-0031)
-internal/web/jstest/  unit tests of UI modules that run without a browser, such as the Markdown conversion, the processes in a drawing, the description of a model, the forms and decisions of an engine, the architecture sketches of releases and the fields of a form and what a start form fills in, and the starmap's filters, layout, live simulation, drill path and impact view, what a selection may protect, the bars, lanes and axis of the roadmap and Gantt chart, the page tree's symbols for pages and tasks, the labels' starmap's filters, sizes and layout, what a Word template's frame admits of runs, pictures and lengths, the parts of a live whiteboard, the formats and file names of a picture's export, the album's map, timeline, choosing, what a dragged picture takes with it, where a folder may be moved, the times set by hand and ZIP archives, the order, zoom, laser pointer, keys and messages of a presentation of pictures, where pictures dropped among others go in the order of slides, reading a presentation's slides and notes, the scenes and text layout its slides are drawn from, and pairing them with their exported pictures, the file name a download names, the user manual's outline in every language, the fingerprint by which the album finds pictures that look the same, which duplicates are deleted at once, the cells, sizes and colours of a table, and that the UI's symbols in `docs/brand/icons` match the code (node --test; ADR-0133, ADR-0142, ADR-0143, ADR-0144, ADR-0146, ADR-0148, ADR-0157, ADR-0158, ADR-0159, ADR-0160, ADR-0164, ADR-0165, ADR-0167, ADR-0169, ADR-0173, ADR-0176, ADR-0177, ADR-0180, ADR-0183, ADR-0184, ADR-0186, ADR-0195, ADR-0196, ADR-0198, ADR-0200, ADR-0214)
+internal/web/jstest/  unit tests of UI modules that run without a browser, such as the Markdown conversion, the processes in a drawing, the description of a model, the forms and decisions of an engine, the architecture sketches of releases and the fields of a form and what a start form fills in, and the starmap's filters, layout, live simulation, drill path and impact view, what a selection may protect, the bars, lanes and axis of the roadmap and Gantt chart, the query that reads their items and their picture in pixels, the page tree's symbols for pages and tasks, the labels' starmap's filters, sizes and layout, what a Word template's frame admits of runs, pictures and lengths, the parts of a live whiteboard, the formats and file names of a picture's export, the album's map, timeline, choosing, what a dragged picture takes with it, where a folder may be moved, the times set by hand and ZIP archives, the order, zoom, laser pointer, keys and messages of a presentation of pictures, where pictures dropped among others go in the order of slides, reading a presentation's slides and notes, the scenes and text layout its slides are drawn from, and pairing them with their exported pictures, the file name a download names, the user manual's outline in every language, the fingerprint by which the album finds pictures that look the same, which duplicates are deleted at once, the cells, sizes and colours of a table, and that the UI's symbols in `docs/brand/icons` match the code (node --test; ADR-0133, ADR-0142, ADR-0143, ADR-0144, ADR-0146, ADR-0148, ADR-0157, ADR-0158, ADR-0159, ADR-0160, ADR-0164, ADR-0165, ADR-0167, ADR-0169, ADR-0173, ADR-0176, ADR-0177, ADR-0180, ADR-0183, ADR-0184, ADR-0186, ADR-0195, ADR-0196, ADR-0198, ADR-0200, ADR-0214, ADR-0218)
 internal/web/vendor/  pinned npm packages and build.sh for static/vendor/prosemirror.js (ADR-0032), excalidraw.js (ADR-0053) and bpmn-viewer.js and bpmn-modeler.js (ADR-0129), form-viewer.js and dmn-viewer.js (ADR-0144), and palettes.mjs for the drawing palettes (ADR-0117), and pdf.js and pdf.worker.js with their fonts, character maps and image decoders in pdfjs/ (ADR-0210); only needed to update them
 internal/dco/      DCO sign-off rules (humans only), with tests
 internal/manualcheck/ rules of the manual check: what changes what people see, and what answers it (ADR-0185)
@@ -504,8 +507,16 @@ Update this section whenever a top-level directory is added.
 
 ## Parallel pull requests and merge conflicts
 
-Several agents work on this repository at once, so conflicts between pull requests are the normal case.
-These rules keep them small and keep two sessions from resolving the same one:
+Several agents work on this repository, and pull requests that run side by side conflict in the files they share: the catalogues, the manuals, the ADR index, `style.css` and `e2e/smoke.cjs`.
+Pull requests are therefore opened one at a time.
+This is the maintainer's decision of 2026-11-12.
+
+- **Open a pull request only when no other is open.** Before opening one, list the repository's open pull requests; every open pull request counts, whoever opened it.
+  While any is open, keep the work on its branch, committed and pushed, and open the pull request once the others are merged or closed, after merging the then current `main` into the branch.
+  Two exceptions: a pull request that repairs a broken `main`, and one the person asking for the work explicitly wants opened alongside another.
+  A pull request opened under an exception follows the rules below.
+
+Where pull requests overlap all the same, these rules keep conflicts small and keep two sessions from resolving the same one:
 
 - **One session owns a pull request.** The session that opened it brings it up to date with `main` and resolves its conflicts.
   Another session pushes to its branch only when the person who asked for the work hands it over;

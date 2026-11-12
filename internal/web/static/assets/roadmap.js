@@ -1,18 +1,22 @@
 // The roadmap and the Gantt chart (ADR-0164): readable items with date
 // fields on a time axis. The roadmap lays them out in lanes by label, the
-// Gantt chart gives each item a row of its own. Nothing is kept: the view
+// Gantt chart gives each item a row of its own. Nothing is stored: the view
 // is computed in the browser from the item listing, as the board of a
 // label is (ADR-0087), and its whole state is in the address, so a link
 // shows the same view to anyone who may read the same items (D10). The
-// layout is timeline.js; this module only draws it. Bars and milestones
-// are links to their items; colours are the look's tokens (style.css), and
-// shape and text, not colour alone, tell a milestone and a finished item.
+// items are read in one listing and kept in the tab only while one stays
+// in the view; the chart exports as a picture, drawn by roadmappic.js
+// (ADR-0218). The layout is timeline.js;
+// this module only draws it. Bars and milestones are links to their items;
+// colours are the look's tokens (style.css), and shape and text, not
+// colour alone, tell a milestone and a finished item.
 import { h } from "./dom.js";
 import { t, language } from "./i18n.js";
 import { get } from "./api.js";
 import { finished } from "./taskparts.js";
-import { DATE_KINDS, MODES, NO_LABEL, SCALES, address, autoScale, dateFields, frame, ganttRows, guessFields, lanes, normalLabel, place, readState,
+import { DATE_KINDS, MODES, NO_LABEL, SCALES, address, autoScale, dateFields, frame, ganttRows, dayString, guessFields, itemQuery, lanes, normalLabel, place, readState,
   schedule, span, suggest, todayDay } from "./timeline.js";
+import { exportChart, pictureFormats } from "./roadmappic.js";
 
 // unitWidth is how many pixels a unit of each scale takes at least, so a
 // long frame scrolls rather than squeezing its bars.
@@ -23,16 +27,25 @@ const unitWidth = { week: 72, month: 96, quarter: 132 };
 const modeName = (m) => ({ roadmap: t("roadmap.modeRoadmap"), gantt: t("roadmap.modeGantt") })[m];
 const scaleName = (s) => ({ "": t("roadmap.scaleAuto"), week: t("roadmap.scaleWeek"), month: t("roadmap.scaleMonth"), quarter: t("roadmap.scaleQuarter") })[s];
 
+// formatter is a date format of the UI language, made once per language:
+// making one is far dearer than using it, and a chart of a thousand bars
+// writes thousands of dates.
+const formats = { day: { day: "numeric", month: "short", year: "numeric" }, month: { month: "short" }, monthYear: { month: "short", year: "numeric" } };
+let formatters = { lang: null };
+function formatter(name) {
+  const lang = language() || "";
+  if (formatters.lang !== lang) formatters = { lang };
+  return formatters[name] ||= new Intl.DateTimeFormat(lang || undefined, { timeZone: "UTC", ...formats[name] });
+}
+
 // dateText writes a day number as a date in the UI language.
-const dateText = (day) => new Date(day * 86400000).toLocaleDateString(language() || undefined, { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" });
+const dateText = (day) => formatter("day").format(new Date(day * 86400000));
 
 // tickText is the caption of a unit of the axis.
 function tickText(tick, scale, first) {
   if (scale === "week") return t("roadmap.week", { n: tick.week });
   if (scale === "quarter") return t("roadmap.quarter", { q: tick.quarter, year: tick.year });
-  const opts = { timeZone: "UTC", month: "short" };
-  if (first || tick.month === 0) opts.year = "numeric";
-  return new Date(tick.day * 86400000).toLocaleDateString(language() || undefined, opts);
+  return formatter(first || tick.month === 0 ? "monthYear" : "month").format(new Date(tick.day * 86400000));
 }
 
 const field = (label, input) => h("label", { class: "field" }, h("span", { text: label }), input);
@@ -85,41 +98,127 @@ function axis(fr) {
     })));
 }
 
-// chart draws the frame with its rows: lanes of packed bars for a roadmap,
-// a row per item for a Gantt chart.
-function chart(state, bars, fields, typeOf) {
+// chartModel is what the chart and its picture both draw: the frame at
+// its scale, and the rows with their heads and bars. A Gantt chart has a
+// row per item; a roadmap has its lanes of packed bars, each lane's first
+// row heading it with its label.
+function chartModel(state, bars, typeOf) {
   const s = span(bars);
-  const scale = state.scale || autoScale(s);
-  const fr = frame(s, scale, todayDay());
+  const fr = frame(s, state.scale || autoScale(s), todayDay());
   const done = (it) => finished(typeOf(it)?.workflow, it.state);
-  const body = h("div", { class: "tl-body" });
+  const rows = [];
   if (state.mode === "gantt") {
-    for (const bar of ganttRows(bars)) {
-      body.append(h("div", { class: "tl-row" },
-        h("div", { class: "tl-head" }, h("a", { href: "#/item/" + encodeURIComponent(bar.item.key), class: "key", text: bar.item.key }), " ",
-          h("span", { class: "tl-head-title", text: bar.item.title })),
-        h("div", { class: "tl-track" }, barEl(bar, fr, fields, done(bar.item), false))));
-    }
+    for (const bar of ganttRows(bars)) rows.push({ item: bar.item, bars: [bar], first: true });
   } else {
     for (const lane of lanes(bars, state.labels)) {
-      const rows = lane.rows.length ? lane.rows : [[]];
-      const group = h("div", { class: "tl-lane", "data-label": lane.label });
-      rows.forEach((row, i) => group.append(h("div", { class: "tl-row" },
-        h("div", { class: "tl-head" }, i === 0 ? (lane.label === NO_LABEL ? h("em", { text: t("roadmap.noLabel") }) : h("span", { class: "label", text: lane.label })) : null),
-        h("div", { class: "tl-track" }, row.map((bar) => barEl(bar, fr, fields, done(bar.item), true))))));
-      body.append(group);
+      const packed = lane.rows.length ? lane.rows : [[]];
+      packed.forEach((row, i) => rows.push({ lane: lane.label, bars: row, first: i === 0 }));
     }
   }
-  body.append(grid(fr));
+  return { fr, rows, done };
+}
+
+// chart draws the model: lanes of packed bars for a roadmap, a row per
+// item for a Gantt chart.
+function chart(state, model, fields) {
+  const { fr, rows, done } = model;
+  // The lines of the units come first, so the rows, each laid out on its
+  // own (style.css), are drawn over them.
+  const body = h("div", { class: "tl-body" }, grid(fr));
+  if (state.mode === "gantt") {
+    for (const { item, bars } of rows) {
+      body.append(h("div", { class: "tl-row" },
+        h("div", { class: "tl-head" }, h("a", { href: "#/item/" + encodeURIComponent(item.key), class: "key", text: item.key }), " ",
+          h("span", { class: "tl-head-title", text: item.title })),
+        h("div", { class: "tl-track" }, barEl(bars[0], fr, fields, done(item), false))));
+    }
+  } else {
+    let group = null;
+    for (const row of rows) {
+      if (row.first) body.append(group = h("div", { class: "tl-lane", "data-label": row.lane }));
+      group.append(h("div", { class: "tl-row" },
+        h("div", { class: "tl-head" }, row.first ? (row.lane === NO_LABEL ? h("em", { text: t("roadmap.noLabel") }) : h("span", { class: "label", text: row.lane })) : null),
+        h("div", { class: "tl-track" }, row.bars.map((bar) => barEl(bar, fr, fields, done(bar.item), true)))));
+    }
+  }
   const el = h("div", { class: "tl " + (state.mode === "gantt" ? "tl-gantt" : "tl-roadmap"), role: "region", "aria-label": modeName(state.mode) }, axis(fr), body);
-  el.style.minWidth = `calc(var(--tl-head) + ${fr.ticks.length * unitWidth[scale]}px)`;
+  el.style.minWidth = `calc(var(--tl-head) + ${fr.ticks.length * unitWidth[fr.scale]}px)`;
   return h("div", { class: "tl-scroll", id: "roadmap-chart" }, el);
 }
 
-// readItems reads the items the view shows: those with any of its labels,
-// or all it narrows to without a label; each item once.
-async function readItems(state, readAll) {
-  const base = "/api/items?limit=100" + (state.space ? "&space=" + encodeURIComponent(state.space) : "") + (state.type ? "&type=" + encodeURIComponent(state.type) : "");
+// pictureSpec is the model in words, for its picture (ADR-0218):
+// what each head, tick and bar says, as the chart shows it.
+function pictureSpec(state, model, title) {
+  const { fr, rows, done } = model;
+  return {
+    title, date: dateText(todayDay()), frame: fr, unit: unitWidth[fr.scale], gantt: state.mode === "gantt",
+    ticks: fr.ticks.map((tick, i) => tickText(tick, fr.scale, i === 0)),
+    rows: rows.map((row) => ({
+      first: row.first,
+      head: state.mode === "gantt" ? { key: row.item.key, text: row.item.title }
+        : !row.first ? null : row.lane === NO_LABEL ? { none: t("roadmap.noLabel") } : { label: row.lane },
+      bars: row.bars.map((bar) => ({ from: bar.from, to: bar.to, milestone: bar.milestone, inverted: bar.inverted, done: done(bar.item),
+        waiting: Boolean(bar.item.waitingOn), text: state.mode === "gantt" ? "" : bar.milestone ? bar.item.key : `${bar.item.key} ${bar.item.title}` })),
+    })),
+  };
+}
+
+// exportMenu offers the chart as a picture, PNG or JPEG, drawn in this
+// browser from what the chart shows; the menu closes when one is chosen.
+function exportMenu(spec, fileBase) {
+  const status = h("span", { class: "muted tl-export-status", id: "roadmap-export-status", role: "status" });
+  const formatText = { png: t("roadmap.exportPng"), jpeg: t("roadmap.exportJpeg") };
+  const menu = h("details", { class: "export-menu", id: "roadmap-export" },
+    h("summary", { class: "button secondary", text: t("roadmap.export"), title: t("roadmap.exportTitle") }),
+    h("div", { class: "export-list" }, pictureFormats.map((f) => h("button", { type: "button", class: "link", id: "roadmap-export-" + f, "data-format": f, text: formatText[f],
+      onclick: async () => {
+        menu.open = false;
+        status.textContent = t("roadmap.exporting");
+        try {
+          const name = await exportChart(spec, f, fileBase, h);
+          status.textContent = t("roadmap.exported", { name });
+        } catch (err) {
+          status.textContent = err.message === "too-large" ? t("roadmap.exportTooLarge") : t("roadmap.exportFailed", { reason: err.message });
+        }
+      } }))));
+  return h("div", { class: "tl-actions" }, menu, status);
+}
+
+// What the view read is kept while one stays in it, so changing the
+// layout, the scale or the fields draws again at once instead of reading
+// every item anew. Leaving the view forgets it, and so does time, so
+// coming back shows what changed meanwhile.
+const KEEP_MS = 5 * 60 * 1000;
+let kept = new Map();
+if (typeof window !== "undefined") {
+  window.addEventListener("hashchange", () => { if (!location.hash.startsWith("#/roadmap")) kept = new Map(); });
+}
+function keep(key, read) {
+  const k = kept.get(key);
+  if (k && Date.now() - k.at < KEEP_MS) return k.value;
+  const value = read();
+  kept.set(key, { at: Date.now(), value });
+  // A failed read is not kept: the next attempt reads again.
+  value.catch(() => kept.delete(key));
+  return value;
+}
+
+// readItems reads the items the view shows in one listing: those of the
+// types with a date field, with any of its labels, or all it narrows to
+// without a label (ADR-0218). Where the server refuses the query (one
+// narrowed below the defaults to fewer conditions than it holds), it
+// reads as before: per label, every type, and the view leaves out what
+// has no date.
+async function readItems(state, dated, readAll) {
+  const base = "/api/items?limit=500" + (state.space ? "&space=" + encodeURIComponent(state.space) : "") + (state.type ? "&type=" + encodeURIComponent(state.type) : "");
+  const query = itemQuery(state.type ? [] : dated.map((ty) => ty.name), state.labels);
+  if (query) {
+    try {
+      return await readAll(base + "&query=" + encodeURIComponent(query));
+    } catch (err) {
+      if (err.status !== 400) throw err;
+    }
+  }
   const reads = state.labels.length ? state.labels.map((l) => base + "&label=" + encodeURIComponent(l)) : [base];
   const found = await Promise.all(reads.map((url) => readAll(url)));
   const seen = new Map();
@@ -132,16 +231,26 @@ async function readItems(state, readAll) {
 // favouritesFirst orders the spaces as every choice of a space does.
 export async function roadmapView(container, params, { readAll, favouritesFirst }) {
   const state = readState(params);
-  const [{ types }, { spaces }, { labels }] = await Promise.all([get("/api/types"), get("/api/spaces"),
-    get("/api/labels" + (state.space ? "?space=" + encodeURIComponent(state.space) : "")).catch(() => ({ labels: [] }))]);
+  // The items are read as soon as the types are known; the rooms and
+  // labels are read meanwhile.
+  const typesRead = keep("types", () => get("/api/types"));
+  const itemsRead = typesRead.then(({ types }) => {
+    const dated = types.filter((ty) => dateFields([ty]).length);
+    if (!dated.length || (state.type && !dated.some((ty) => ty.name === state.type))) return { items: [], truncated: false };
+    return keep("items " + JSON.stringify([state.space, state.type, state.labels]), () => readItems(state, dated, readAll));
+  });
+  const [{ types }, { spaces }, { labels }, { items, truncated }] = await Promise.all([typesRead, keep("spaces", () => get("/api/spaces")),
+    keep("labels " + state.space, () => get("/api/labels" + (state.space ? "?space=" + encodeURIComponent(state.space) : "")).catch(() => ({ labels: [] }))),
+    itemsRead]);
   const dated = types.filter((ty) => dateFields([ty]).length);
-  const typeOf = (it) => types.find((ty) => ty.name === it.type);
+  const typeMap = new Map(types.map((ty) => [ty.name, ty]));
+  const typeOf = (it) => typeMap.get(it.type);
   const go = (change) => { location.hash = address({ ...state, ...change }); };
 
-  const { items, truncated } = await readItems(state, readAll);
   // Only items whose type has a date field belong on a time axis; others
   // (pages without dates) are not even counted as unscheduled.
-  const shown = items.filter((it) => dated.some((ty) => ty.name === it.type));
+  const datedNames = new Set(dated.map((ty) => ty.name));
+  const shown = items.filter((it) => datedNames.has(it.type));
   const fields = dateFields(state.type ? dated.filter((ty) => ty.name === state.type) : dated.filter((ty) => shown.some((it) => it.type === ty.name)));
   const guessed = guessFields(fields);
   const chosen = { start: fields.includes(state.start) ? state.start : guessed.start, end: fields.includes(state.end) ? state.end : guessed.end };
@@ -213,14 +322,21 @@ export async function roadmapView(container, params, { readAll, favouritesFirst 
     h("summary", { text: t("roadmap.unscheduled", { n: unscheduled.length }) }),
     h("ul", {}, unscheduled.map((it) => h("li", {}, h("a", { href: "#/item/" + encodeURIComponent(it.key), class: "key", text: it.key }), " " + it.title)))) : null;
 
-  let content;
+  let content, actions = null;
   if (!fields.length) content = h("p", { class: "empty", id: "roadmap-empty", text: t("roadmap.noDateFields") });
   else if (!bars.length) content = h("p", { class: "empty", id: "roadmap-empty", text: t("roadmap.none") });
-  else content = chart(state, bars, chosen, typeOf);
+  else {
+    const model = chartModel(state, bars, typeOf);
+    content = chart(state, model, chosen);
+    const room = state.space ? spaces.find((sp) => sp.key === state.space) : null;
+    const title = [modeName(state.mode), room ? `${room.key} ${room.name}` : state.space || t("roadmap.allSpaces"), state.type, state.labels.join(", ")].filter(Boolean).join(" · ");
+    actions = exportMenu(pictureSpec(state, model, title), [modeName(state.mode), state.space, state.type, ...state.labels, dayString(todayDay())].filter(Boolean).join(" "));
+  }
 
   container.replaceChildren(...[
     controls,
     truncated ? h("p", { class: "notice warning", text: t("board.truncated", { n: items.length }) }) : null,
+    actions,
     content,
     bars.length ? h("p", { class: "muted tl-legend", text: t("roadmap.legend") }) : null,
     unscheduledList,

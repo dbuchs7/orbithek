@@ -122,8 +122,9 @@ export function sceneAsSVG(scene, h) {
   });
 }
 
-// save hands a file to the browser's download.
-function save(blob, name, h) {
+// save hands a file to the browser's download; the roadmap's picture
+// (roadmappic.js) is saved the same way.
+export function save(blob, name, h) {
   // A blob address is set directly: h() admits only addresses of pages.
   const a = h("a", { download: name });
   a.href = URL.createObjectURL(blob);
