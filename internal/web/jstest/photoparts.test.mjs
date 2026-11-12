@@ -314,3 +314,14 @@ test("the link to an original takes https: and smb: alone", async () => {
     assert.equal(shareHref(bad), "#", bad);
   }
 });
+
+test("an S3 share that signs links opens its original through the wiki", async () => {
+  const { shareHref } = await import("../static/assets/dom.js");
+  const route = "/api/items/abc123/attachments/0123456789abcdef0123456789abcdef/original";
+  assert.equal(shareLink({ attachment: { share: { link: route } } }), route);
+  assert.equal(shareHref(route), route);
+  for (const bad of ["/api/items/abc/attachments/x/original", "/api/items/abc123/attachments/0123456789abcdef0123456789abcdef", "//evil.example/api/items/a/attachments/0123456789abcdef0123456789abcdef/original"]) {
+    assert.equal(shareLink({ attachment: { share: { link: bad } } }), "", bad);
+    assert.equal(shareHref(bad), "#", bad);
+  }
+});

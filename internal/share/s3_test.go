@@ -219,3 +219,24 @@ func TestOpenS3(t *testing.T) {
 		t.Errorf("private allowed: %v", err)
 	}
 }
+
+func TestSignedLink(t *testing.T) {
+	a, _ := ParseAddress("s3://photos/family?endpoint=https://s3.example.com&region=eu-central-1")
+	env := map[string]string{}
+	get := func(k string) string { return env[k] }
+	if _, err := SignedLink(a, "nas", "a.jpg", get, time.Minute); !errors.Is(err, ErrUnreadable) {
+		t.Errorf("without keys: %v", err)
+	}
+	env["OT_SHARE_NAS_ACCESS_KEY"], env["OT_SHARE_NAS_SECRET_KEY"] = "AKID", "SECRET"
+	link, err := SignedLink(a, "nas", "2024/a.jpg", get, 15*time.Minute)
+	if err != nil || !strings.HasPrefix(link, "https://s3.example.com/photos/family/2024/a.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&") || !strings.Contains(link, "X-Amz-Expires=900") {
+		t.Fatalf("link %s %v", link, err)
+	}
+	if _, err := SignedLink(a, "nas", "../x", get, time.Minute); !errors.Is(err, ErrInvalid) {
+		t.Errorf("a bad path: %v", err)
+	}
+	d, _ := ParseAddress(t.TempDir())
+	if _, err := SignedLink(d, "nas", "a.jpg", get, time.Minute); !errors.Is(err, ErrInvalid) {
+		t.Errorf("a directory: %v", err)
+	}
+}

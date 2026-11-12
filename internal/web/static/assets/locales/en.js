@@ -2987,5 +2987,8 @@ export default {
   "shares.interval": "Read every … hours",
   "shares.enabled": "Read on this schedule",
   "shares.formHelp": "The folder must be empty when it is first bound. The keys of an S3 bucket come from the server's environment, never from this form.",
-  "shares.saved": "{name} is saved."
+  "shares.saved": "{name} is saved.",
+  "shares.signedLinks": "Open the originals through signed links (S3 only)",
+  "shares.signedHelp": "Readers of the folder then open each original through a link the server signs for 15 minutes when they follow it: they get the original, whatever the share's own permissions say, and a link passed on works for its minutes.",
+  "shares.signedChip": "Signed links"
 };

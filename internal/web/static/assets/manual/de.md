@@ -382,7 +382,9 @@ Man benennt es nicht um, verschiebt oder löscht es nicht und fügt einem solche
 Eine auf dem Share verschobene Datei behält, was auf ihr gesetzt wurde, solange ihr Inhalt gleich bleibt.
 Eine vom Share verschwundene Datei verschwindet aus dem Album; kommt sie innert 30 Tagen zurück, kehrt sie mit ihren Labels und Namen zurück.
 Wer ein solches Bild kopiert oder exportiert, erhält seine Vorschau.
-Ein Bild in einem Format, von dem der Server kein Bild zeigt, etwa HEIC eines Telefons oder RAW einer Kamera, hat statt einer Vorschau ein Symbol; es bietet nur **Original öffnen** an, ebenso ein Video eines Shares.
+Ein RAW einer Kamera zeigt als Vorschau das Bild, das die Kamera darin eingebettet hat, ein WebP sein Bild.
+Ein Bild in einem Format, von dem der Server kein Bild zeigt, etwa HEIC eines Telefons, hat statt einer Vorschau ein Symbol; es bietet nur **Original öffnen** an, ebenso ein Video eines Shares.
+Erlaubt ein Administrator einem S3-Share signierte Links, öffnet **Original öffnen** das Original über einen Link, den der Server für 15 Minuten signiert, unabhängig von den Berechtigungen des Shares.
 
 ### Einen Ordner verschieben
 
@@ -563,7 +565,8 @@ Die Administration findet unter **Administration**:
 - **Backup** (auch zeitgesteuert in ein Verzeichnis, per WebDAV, S3, FTPS oder SFTP) und **Speicher**;
 - **Kalender anderer Dienste**, **Album: ältere Versionen**, **Fileshares**, **Konnektoren** und **Prozess-Engines**.
   Unter **Fileshares** wird ein Album-Ordner an ein vom Betrieb freigegebenes Verzeichnis oder an einen S3-Bucket gebunden und sofort (**Jetzt lesen**, **Probelauf**) oder nach Zeitplan gelesen.
-  Wer den Ordner lesen darf, sieht jedes Bild, das der Server auf dem Share lesen kann; ein Lauf, der mehr als die Hälfte der Bilder eines Shares zurückziehen würde, zieht keines zurück bis **Rückzug bestätigen**;
+  Wer den Ordner lesen darf, sieht jedes Bild, das der Server auf dem Share lesen kann; ein Lauf, der mehr als die Hälfte der Bilder eines Shares zurückziehen würde, zieht keines zurück bis **Rückzug bestätigen**.
+  **Originale über signierte Links öffnen** lässt die Leserinnen und Leser des Ordners eines S3-Shares dessen Originale über Links öffnen, die der Server für 15 Minuten signiert;
 - **Erscheinungsbild (Corporate Design)**: Logo, Farben, Hintergrund, Schriften und ein fertiges Theme, darunter *Capacity*, ein ruhiges Erscheinungsbild für Notizen in Hell und Dunkel;
 - **Word-Vorlagen**, **Datenschutz-Regelwerke**, **Import** und das **Audit-Protokoll**.
 

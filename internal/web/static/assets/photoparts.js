@@ -260,10 +260,12 @@ export const isVideo = (p) => Boolean(p?.video) || VIDEO_TYPES.includes(p?.attac
 export const onShare = (p) => Boolean(p?.attachment?.share);
 
 // shareLink is the address that opens an entry's original where it lies,
-// "" when its share names none; only https: and smb: addresses are taken.
+// "" when its share names none: an https: or smb: address of the share's
+// link template, or the wiki's own route that signs a link to an S3
+// share's original when it is followed.
 export const shareLink = (p) => {
   const link = p?.attachment?.share?.link || "";
-  return /^(https|smb):\/\//i.test(link) ? link : "";
+  return /^(https|smb):\/\//i.test(link) || /^\/api\/items\/[^/]+\/attachments\/[0-9a-f]{32}\/original$/.test(link) ? link : "";
 };
 
 // durationText writes how long a video plays: "0:12", "4:05", "1:02:03".
