@@ -1,9 +1,9 @@
 # ADR-0209: Capturing into the wiki from anywhere
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-12
-- **Deciders:** Project initiators (request of 2026-11-12 for an installable web app with a share target, a capture view and a bookmarklet)
+- **Deciders:** Project initiators (request of 2026-11-12 for an installable web app with a share target, a capture view and a bookmarklet). Accepted by the requester on 2026-11-12, with the defaults proposed with the implementation.
 - **Open question:** whether mail sent to an address of the wiki, and messages to a bot in a messenger, should become captures; whether a service worker becomes necessary for browsers that offer installing or sharing only with one; whether one's note of the day should be the first target once it exists; whether the share target should also accept files, such as photos
 - **Question checked:** 2026-11
 
@@ -32,7 +32,7 @@ How does content reach the wiki from wherever a person is — another web page o
 
 ## Decision outcome
 
-Chosen option: **1**.
+Chosen option: **1** (defaults proposed with the implementation, confirmed by the requester).
 
 - **The installable app.** `GET /manifest.webmanifest` (public: browsers fetch a manifest without the session cookie) names the installation as the corporate design does (ADR-0052), with the product's icons (192, 512 and a maskable 512, copied from `docs/brand/favicon`), start address `/`, display `standalone`, the header colour as theme colour, a shortcut to the capture view, and a share target: `POST /capture` with `title`, `text` and `url` as a form. The page links it. **No service worker** is served: the browsers that install web apps and offer them as share targets do so without one, and the decision not to keep items in the browser makes caching pointless.
 - **The share target** `GET` and `POST /capture` (public) take the three fields and nothing else, bounded by `RequestBody`, and redirect (303) to `/#/capture?…`. The content travels on in the fragment, which browsers do not send, so after this one request neither this server's logs nor a proxy's see it again; the redirect itself reveals and stores nothing, so it needs no principal. The view then signs in as any view does (a capture, like an assistant's consent page, survives signing in), and its API calls are same-site requests that carry the Strict cookie even when the share came from another app.
@@ -45,7 +45,7 @@ Chosen option: **1**.
 
 - **Positive:** a page, a quote or a thought is kept in two steps from any page or app; no extension, no native app, no change to authentication; the capture's content stays out of logs after the first request; appending is safe against concurrent writes.
 - **Negative / trade-offs accepted:** installing and sharing depend on the browser: some desktop browsers and some phone browsers do not offer share targets, where the bookmarklet or copying remains; a reverse proxy or sign-on gateway in front must let `/manifest.webmanifest` and `/capture` through without signing in; the first request of a share still carries its content to the server and any proxy before it.
-- **Follow-ups / risks to watch:** the daily note's target at integration; mail-in and messenger bots as further targets.
+- **Follow-ups / risks to watch:** mail-in and messenger bots as further targets. Today's daily note (ADR-0205) became the target `daily`, offered first for a capture without an address, through `POST /api/daily/{date}/paragraphs`.
 
 ## Pros and cons of the options
 

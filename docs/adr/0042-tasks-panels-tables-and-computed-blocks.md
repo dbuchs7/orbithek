@@ -66,4 +66,4 @@ Chosen option: **1**.
 ## Links
 
 - ADR-0010 (live editing), ADR-0023 (import), ADR-0032 (rich text), ADR-0033 (search), ADR-0040 (governance), ADR-0041 (page tree)
-- amended by [ADR-0214](0214-tables-with-formatted-cells-sizes-and-colours.md) (formatted cells, sized columns and rows, coloured cells, proposed)
+- amended by [ADR-0214](0214-tables-with-formatted-cells-sizes-and-colours.md) (formatted cells, sized columns and rows, coloured cells)

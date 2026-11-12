@@ -1,9 +1,9 @@
 # ADR-0205: A daily note per person and day
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-12
-- **Deciders:** Project initiators (request of 2026-11-12 for a daily note per person, a quick way to it, and its place among the day's work)
+- **Deciders:** Project initiators (request of 2026-11-12 for a daily note per person, a quick way to it, and its place among the day's work). Accepted by the requester on 2026-11-12, with the defaults proposed with the implementation.
 - **Open question:** whether a person may give their daily notes a start text of their own (a template per person), and whether weeks or months want notes of their own; this record decides neither
 - **Question checked:** 2026-11
 
@@ -34,7 +34,7 @@ How does each person get one note per day, private by default, found again by it
 
 ## Decision outcome
 
-Chosen option: **1**, because it adds no stored object and no codec change, keeps the note an item with everything items have (history, comments, protections, relations, search, export), lets a person keep notes where their team works or in a room of their own, and makes "one per day" a question the store's single writer answers in one command.
+Chosen option: **1** (defaults proposed with the implementation, confirmed by the requester), because it adds no stored object and no codec change, keeps the note an item with everything items have (history, comments, protections, relations, search, export), lets a person keep notes where their team works or in a room of their own, and makes "one per day" a question the store's single writer answers in one command.
 
 - **Type:** a ready-made template `daily-note` in `item.TypeTemplates`: a body and a field `date` of kind `date`. A person's first note defines it in the same batch when the installation has no type of that name (actor `daily-notes`, as ADR-0162 defines its task type). A type of that name that cannot hold notes (no body, no `date` field of kind `date`, or another required field) is refused with the reason; it is not replaced.
 - **What a daily note is:** a live item, made by its author (the actor of its creation), labelled `daily-note`, whose type, at the version it was made with, holds notes, with a `date`. Author, label and day identify it (`Store.IsDailyNote`); no index is kept, so moving a note to another room keeps it found, and removing its label makes it an ordinary page (a new note for that day is then made on the next open). A note someone else made is never one's own, even where one reads it.
@@ -51,7 +51,7 @@ Chosen option: **1**, because it adds no stored object and no codec change, keep
 - **Negative / trade-offs accepted:** relabelling or retyping a note by hand makes the mechanism lose it and make a new one; that is the price of keeping no index. A room administrator reads every note in their room (ADR-0022), as with any restricted item; a person who wants none to read them chooses a room they administer. "Changed that day" means "last changed that day": the query language knows an item's last change only, so an item changed that day and again later is listed on the later day. A note's day is the browser's: a person travelling across a date line names the day as they see it.
 - **Follow-ups / risks to watch:** a start text for daily notes (the type's Word template, ADR-0167, already gives every new note one, which `AppendToDailyNote` refuses to mix with a first paragraph); a weekly review that gathers the week's notes; the start page could show today's note.
 
-**Implementation so far:** everything above. Not built: a person's own start text, notes of a week or a month, today's note on the start page.
+**Implementation:** everything above is built. Not decided here and not built: a person's own start text, notes of a week or a month, today's note on the start page.
 
 ## Pros and cons of the options
 

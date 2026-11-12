@@ -1,9 +1,9 @@
 # ADR-0210: A PDF reader with highlights anchored as comments
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-12
-- **Deciders:** Project initiators (request of 2026-11-12: read PDF files in the browser, highlight passages and take notes on them)
+- **Deciders:** Project initiators (request of 2026-11-12: read PDF files in the browser, highlight passages and take notes on them). Accepted by the requester on 2026-11-12, with the defaults proposed with the implementation.
 - **Open question:** whether a text shows a PDF in a block of its own; whether the full-text search finds the text of PDFs; whether agents get a tool that lists an item's files
 - **Question checked:** 2026-11
 
@@ -32,7 +32,7 @@ How does a person read a PDF of an item in the wiki, and where do their highligh
 
 ## Decision outcome
 
-Chosen option: **1**, codec version 58.
+Chosen option: **1** (defaults proposed with the implementation, confirmed by the requester), codec version 58.
 
 ### The reader
 

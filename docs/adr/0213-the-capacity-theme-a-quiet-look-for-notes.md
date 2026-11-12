@@ -1,9 +1,9 @@
 # ADR-0213: The Capacity theme, a quiet look for notes in light and dark
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-12
-- **Deciders:** Project initiators. Request of 2026-11-12: a ready-made theme, light and dark, for people who keep their notes in the wiki and are used to a quiet, paper-like look; the requester named it *Capacity*. Colours, sizes and shapes are defaults proposed with the implementation.
+- **Deciders:** Project initiators. Request of 2026-11-12: a ready-made theme, light and dark, for people who keep their notes in the wiki and are used to a quiet, paper-like look; the requester named it *Capacity*. Colours, sizes and shapes are defaults proposed with the implementation, confirmed by the requester; accepted 2026-11-12.
 - **Open question:** whether the theme should also be offered as a personal look on the account page, as the cockpit is (ADR-0156), rather than only for the whole installation.
 - **Question checked:** 2026-11
 
@@ -28,7 +28,7 @@ Which look does the product offer them, and how does it ship?
 
 ## Decision outcome
 
-Chosen option: **1**, because it follows the mechanism every other theme uses and reaches every person of an installation at once.
+Chosen option: **1** (defaults proposed with the implementation, confirmed by the requester), because it follows the mechanism every other theme uses and reaches every person of an installation at once.
 
 - **Light:** white page and surfaces, a soft grey (`#f7f7f8`) for the side panel and the page tree, hairline borders (`#ececef`), near-black text (`#1d1d20`), grey secondary text (`#74747c`) and one blue-violet accent (`#4f5fe6`).
 - **Dark:** a near-black page (`#18191c`), surfaces a step lighter, light grey text (`#e8e8ec`) and a lighter accent (`#8d9bff`) with dark ink on it.

@@ -1,9 +1,9 @@
 # ADR-0202: Field kinds for an item, several values, a rating and a file
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-12
-- **Deciders:** Project initiators (request of 2026-11-12 for fields that refer to another item, hold several values, rate with stars and name a cover picture)
+- **Deciders:** Project initiators (request of 2026-11-12 for fields that refer to another item, hold several values, rate with stars and name a cover picture). Accepted by the requester on 2026-11-12, with the defaults proposed with the implementation.
 - **Open question:** whether a file field should follow the newest version of its file (ADR-0055) rather than name the version chosen; whether an item field may hold several items; whether listings should carry the key and title of referenced items so that tables and cards need no read per item; whether a field's targets should be checked again when a type is redefined with other targets
 - **Question checked:** 2026-11
 
@@ -27,7 +27,7 @@ A field holds text, a number, a yes or no, a date, a point in time, a person, on
 
 ## Decision outcome
 
-Chosen option: **1**.
+Chosen option: **1** (defaults proposed with the implementation, confirmed by the requester).
 
 - **Kinds:** `item` holds an `item.ID`, optionally limited to target types (`FieldDef.Targets`); `multi` holds a `[]string` of the field's `Values`, in the order of the values, an empty choice unsetting it; `rating` an `int` from 1 to 5; `file` the attachment ID of one file of the same item. A multi field needs values; only enum and multi fields have values, only item fields targets.
 - **Validation:** a reference names an existing, live item other than the item itself, of a target type if the field names any; a value the item already holds may stay when its target was trashed or the targets changed. A file is one of the item's own, not deleted; a new item has no files, so a file field is set after it is made. Through a session, a reference must name an item the caller reads: one it may not read does not exist for it (D10).

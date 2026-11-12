@@ -1,9 +1,9 @@
 # ADR-0208: A web link becomes an item with what its page says about itself
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-12
-- **Deciders:** Project initiators (request of 2026-11-12 for web links as items, a preview of a page's metadata, a link card and taking over a page's text)
+- **Deciders:** Project initiators (request of 2026-11-12 for web links as items, a preview of a page's metadata, a link card and taking over a page's text). Accepted by the requester on 2026-11-12, with the defaults proposed with the implementation.
 - **Open question:** whether a link card should also exist without an item, as a block of its own; whether the server should read pages through the proxy the environment names, as connectors do, rather than only directly; whether a page's text taken over should be replaced when it is read again rather than added; whether the picture of a page should be scaled down before it is kept
 - **Question checked:** 2026-11
 
@@ -33,7 +33,7 @@ How does a page of the web become something the wiki holds and works with, and h
 
 ## Decision outcome
 
-Chosen option: **1**, because it keeps every part of a web link in the item model the rest of the wiki already understands, needs no change of the persisted format, and confines the outgoing call to explicit actions of a person.
+Chosen option: **1** (defaults proposed with the implementation, confirmed by the requester), because it keeps every part of a web link in the item model the rest of the wiki already understands, needs no change of the persisted format, and confines the outgoing call to explicit actions of a person.
 
 - **The type.** `item.TypeTemplates` gains `weblink`: a body for one's notes and the fields `url` (kind url), `site`, `description`, `author` (text) and `published` (date). None is required. `POST /api/weblinks` saves a page as an item of it; when no type of that name exists, `Session.CreateFromTemplate` defines the ready-made type in the same batch as the item, as the task of an access request does (ADR-0162), so one who may create in a room saves a link before an administrator added the type. A refused item leaves no type behind. The setup card on the start page offers the type to administrators like every missing template.
 - **Reading a page.** With `OT_LINK_PREVIEWS=on` (off by default) the server reads, for a person's request, the page's title, description, site name, Open Graph or card picture, canonical address, author and day of publication (`POST /api/linkpreview`, nothing kept), and fills a new web link's fields from them. `internal/linkpreview` connects through `linkcheck.Transport`: the name is resolved and every address checked before a connection opens, also for each of at most five redirects, and never through a proxy. `OT_LINK_PREVIEWS_ALLOW_PRIVATE=on` lets it read the own network (an intranet), the operator's decision. Budgets: `LinkPreviewPageBytes` (a larger page is read as far as the budget, its head comes first), `LinkPreviewImageBytes` (and `AttachmentBytes`), `LinkPreviewSeconds`, `LinkPreviewsAtOnce` (beyond it, 503 with Retry-After) and `LinkPreviewBlocks`. ISO 8859-1 and Windows-1252 pages are converted; other pages are read as UTF-8.
