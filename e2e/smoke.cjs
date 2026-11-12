@@ -6425,10 +6425,14 @@ function webSource() {
       await page.goto(base + "/#/album");
       await page.click("#album .album-trail button:has-text('All pictures')");
       await page.click("#album .album-folder:has-text('Share NAS')");
-      await page.waitForSelector("#album .album-card .album-share-chip");
-      check(await page.getAttribute("#album .album-card .album-original", "href") === "smb://nas/photos/2024/lake.png", "the picture opens where it lies on the share");
-      check(await page.locator("#album .album-card .album-rename, #album .album-card .album-delete").count() === 0, "a picture of a share is not renamed or deleted here");
-      await page.waitForFunction(() => { const img = document.querySelector("#album .album-card .album-thumb img"); return img && img.complete && img.naturalWidth > 0; });
+      // The view of all pictures shows the share's picture too, among
+      // others; every check is on its own card.
+      const shareCard = page.locator("#album .album-card", { has: page.locator(".album-share-chip") });
+      await shareCard.waitFor();
+      check(await shareCard.locator(".album-original").getAttribute("href") === "smb://nas/photos/2024/lake.png", "the picture opens where it lies on the share");
+      check(await shareCard.locator(".album-rename, .album-delete").count() === 0, "a picture of a share is not renamed or deleted here");
+      await shareCard.locator(".album-thumb img").evaluate((img) => img.complete && img.naturalWidth > 0
+        ? true : new Promise((resolve, reject) => { img.addEventListener("load", () => resolve(true)); img.addEventListener("error", () => reject(new Error("the preview does not load"))); }));
     }
 
     check(problems.length === 0, problems.join("; "));
