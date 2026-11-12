@@ -5,7 +5,7 @@ Every load-bearing architectural decision is recorded as an ADR: context, decisi
 - **Status** says whether the decision holds (`Proposed`, `Accepted`, `Superseded by ADR-XXXX`, `Deprecated`).
 - **Implementation** says whether it is built (`Not started`, `Partial`, `Landed`, `Superseded`). `Landed` requires `Accepted`.
 
-New records start from [`template.md`](template.md). An accepted decision is not overwritten; it is superseded by a new ADR.
+New records start from [`template.md`](template.md) as drafts (ADR-0007): `draft-<slug>.md`, headed `# ADR-DRAFT: Title`, without a row in the index, cited as `ADR-draft-<slug>`. When the pull request is ready and up to date with `main`, its last commit numbers them: `go run ./docs/adr/cmd/adrnum` renames each draft to the next free number, rewrites its heading and every citation, and appends its row below. An accepted decision is not overwritten; it is superseded by a new ADR.
 
 ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](https://github.com/pblumer/atlas) and adapted to this product; each names its atlas sources under *Context* and *Links*.
 
@@ -19,7 +19,7 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0004](0004-go-without-cgo.md) | Go as implementation language, without CGO | Accepted | Landed |
 | [0005](0005-test-driven-development.md) | Test-driven development as the default workflow | Accepted | Landed |
 | [0006](0006-decision-record-states-and-open-questions.md) | A decision record has two states, and its open questions expire | Accepted | Landed |
-| [0007](0007-adr-numbers-assigned-at-merge.md) | ADR numbers are assigned at merge, not on a branch | Accepted | Not started |
+| [0007](0007-adr-numbers-assigned-at-merge.md) | ADR numbers are assigned at merge, not on a branch | Accepted | Partial |
 | [0008](0008-event-sourced-persistence.md) | Event-sourced persistence in an embedded store, with a single writer | Accepted | Partial |
 | [0009](0009-single-binary-with-embedded-web-ui.md) | A single binary with an embedded web UI | Accepted | Partial |
 | [0010](0010-real-time-collaboration-with-block-locks.md) | Real-time collaboration starts with block-level locks, not a CRDT | Accepted | Partial |

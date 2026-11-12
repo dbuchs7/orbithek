@@ -1,11 +1,9 @@
 # ADR-0007: ADR numbers are assigned at merge, not on a branch
 
 - **Status:** Accepted
-- **Implementation:** Not started
+- **Implementation:** Partial
 - **Date:** 2026-10-16
 - **Deciders:** Project initiators; accepted by the maintainer 2026-10-17
-- **Open question:** How does a numbering step write to `main` when the `protect-main` ruleset (ADR-0003) allows no bypass and no direct pushes?
-- **Question checked:** 2026-10
 
 ## Context and problem statement
 
@@ -68,6 +66,8 @@ Strongest form: no tooling at all; the number is known from the first commit and
 - Bad: a manual step at merge time; two quick merges can still race (caught, not prevented, by the up-to-date requirement).
 
 ## Links
+
+- open question (how a numbering step writes to `main` when the ruleset of ADR-0003 allows no bypass) answered by ADR-draft-adr-numbers-assigned-by-the-pull-requests-last-commit: option 3
 
 - atlas [ADR-0170](https://github.com/pblumer/atlas/blob/main/docs/adr/0170-adr-numbers-assigned-at-merge.md)
 - conflicts with [ADR-0003](0003-repository-governance-settings.md) in its atlas form
