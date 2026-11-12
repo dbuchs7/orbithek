@@ -170,7 +170,10 @@ rm dmn-meta.json
 
 # The PDF reader (ADR-0210): pdf.js, its worker and what the worker loads
 # when a document needs it, taken unchanged from pdfjs-dist's prebuilt
-# modules, renamed to .js. Of its directories: standard_fonts/ without the
+# legacy modules, renamed to .js: the modern build calls methods only the
+# newest browsers have (Map.prototype.getOrInsertComputed, Math.sumPrecise),
+# which the legacy build brings with core-js (MIT). Of its directories:
+# standard_fonts/ without the
 # Liberation fonts, whose license is the GPL version 2 with a font
 # exception (the browser's own sans-serif stands in for them), cmaps/ for
 # the character maps of East Asian text, and of wasm/ only the decoders of
@@ -179,8 +182,8 @@ rm dmn-meta.json
 pdf=node_modules/pdfjs-dist
 rm -rf "$out/pdfjs" "$out"/pdf.*
 mkdir -p "$out/pdfjs/standard_fonts" "$out/pdfjs/cmaps" "$out/pdfjs/wasm"
-cp "$pdf/build/pdf.min.mjs" "$out/pdf.js"
-cp "$pdf/build/pdf.worker.min.mjs" "$out/pdf.worker.js"
+cp "$pdf/legacy/build/pdf.min.mjs" "$out/pdf.js"
+cp "$pdf/legacy/build/pdf.worker.min.mjs" "$out/pdf.worker.js"
 cp "$pdf"/standard_fonts/Foxit*.pfb "$pdf/standard_fonts/LICENSE_FOXIT" "$out/pdfjs/standard_fonts/"
 cp "$pdf"/cmaps/*.bcmap "$pdf/cmaps/LICENSE" "$out/pdfjs/cmaps/"
 cp "$pdf/wasm/openjpeg_nowasm_fallback.js" "$pdf/wasm/jbig2_nowasm_fallback.js" "$out/pdfjs/wasm/"
@@ -190,7 +193,8 @@ cp "$pdf/wasm/openjpeg_nowasm_fallback.js" "$pdf/wasm/jbig2_nowasm_fallback.js" 
   echo "those of the parts it carries: the JPEG 2000 decoder (OpenJPEG, BSD 2-clause)"
   echo "and the JBIG2 decoder (PDFium, BSD 3-clause) in pdfjs/wasm/, compiled by"
   echo "Mozilla, the fonts by Foxit (PDFium, BSD 3-clause) in pdfjs/standard_fonts/"
-  echo "and the character maps by Adobe (BSD 3-clause) in pdfjs/cmaps/."
+  echo "and the character maps by Adobe (BSD 3-clause) in pdfjs/cmaps/. pdf.js and"
+  echo "pdf.worker.js are its legacy build, which carries polyfills of core-js (MIT)."
   echo
   echo "pdfjs-dist $(node -p 'require("./'"$pdf"'/package.json").version') Apache-2.0"
   echo
@@ -198,5 +202,6 @@ cp "$pdf/wasm/openjpeg_nowasm_fallback.js" "$pdf/wasm/jbig2_nowasm_fallback.js" 
   echo; echo "== OpenJPEG"; echo; cat "$pdf/wasm/LICENSE_OPENJPEG"; echo; cat "$pdf/wasm/LICENSE_PDFJS_OPENJPEG"
   echo; echo "== JBIG2 decoder of PDFium"; echo; cat "$pdf/wasm/LICENSE_JBIG2"; echo; cat "$pdf/wasm/LICENSE_PDFJS_JBIG2"
   echo; echo "== Foxit fonts"; echo; cat "$pdf/standard_fonts/LICENSE_FOXIT"
+  echo; echo "== core-js (MIT), polyfills in the legacy build"; echo; cat core-js.LICENSE.txt
   echo; echo "== Adobe CMaps"; echo; cat "$pdf/cmaps/LICENSE"
 } > "$out/pdf.LICENSE.txt"
