@@ -155,6 +155,14 @@ var (
 // photo was taken by hand (ADR-0198) is not offered either: it changes
 // every file of the picture given out, and an agent that cannot list the
 // album would date pictures it never saw.
+//
+// A person's daily notes (ADR-0203) are offered as opening one's note of
+// a day, which makes it when it is missing and is never destructive; the
+// text is then changed with commit_body, as any item's. Choosing the room
+// the notes go to is a person's own setting, like watching, and is not
+// offered; nor are the days listed or a paragraph appended, which
+// get_item, query_items by the label daily-note and commit_body cover. The
+// context of an item (ADR-0205) is offered as a read.
 var tools = []tool{
 	{Name: "list_spaces", Description: "List the spaces the caller holds a role in.", Method: "GET", Path: "/api/spaces"},
 	{Name: "get_own_roles", Description: "The caller's own roles: the system roles held, and every space role granted to the caller, directly or through a group (via), one entry per grant.",
@@ -235,6 +243,16 @@ var tools = []tool{
 			{"direction", str, inQuery, false, "affected (default) or dependson."},
 			{"depth", str, inQuery, false, "1 (default) to 5 hops, or all."},
 			{"picture", str, inQuery, false, "An attachment ID of the item's picture, to start at that picture instead."}}},
+	{Name: "get_context", Description: "The context of an item (ADR-0205): the items that refer to it (references: relations made by hand, mentions, embeds and links in their texts, " +
+		"each with kind, count and the sentence it stands in where it stands in a text), the items that share its labels (shared, the most labels in common first), " +
+		"and the daily notes that mention or link it (daily, newest day first). Only items your caller may read; more says a list was cut at the server's budget.",
+		Method: "GET", Path: "/api/items/{ref}/context", Params: []param{refParam}},
+	{Name: "open_daily_note", Description: "Open your caller's daily note of a day (ADR-0203): the note when there is one, else it is made in the room they chose for their daily notes, " +
+		"readable and editable by them alone, and created is true. Opening twice gives the same note. Without a chosen room a note is not made (409, needsRoom); " +
+		"add to it with commit_body.",
+		Method: "POST", Path: "/api/daily/{date}", Params: []param{
+			{"date", str, inPath, true, "The day, YYYY-MM-DD, in your caller's calendar."},
+			{"title", str, inBody, false, "The title of a new note; its day, as 2026-11-12, if absent."}}},
 	{Name: "set_labels", Description: "Replace an item's labels, e.g. [\"runbook\", \"ops\"]: lower case words, digits and dashes.",
 		Method: "PUT", Path: "/api/items/{ref}/labels", Params: []param{refParam, {"labels", array, inBody, true, "All labels the item carries afterwards."}}},
 	{Name: "set_title", Description: "Change an item's title.", Method: "PUT", Path: "/api/items/{ref}/title",

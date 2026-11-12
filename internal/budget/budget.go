@@ -151,6 +151,13 @@ type Budgets struct {
 	// may take, beyond the server's usual minute.
 	VideoBytes           int64
 	VideoTransferSeconds int
+	// ContextEntries bounds each list of an item's context (ADR-0205):
+	// what refers to it, what shares its labels, and the daily notes that
+	// name it. Beyond it a list keeps the first and says it was cut.
+	ContextEntries int
+	// DailyNoteDays bounds the days one listing of a person's daily notes
+	// covers (ADR-0203), a year and a little more by default.
+	DailyNoteDays int
 }
 
 // Default returns the budgets the server uses unless configured otherwise.
@@ -203,6 +210,8 @@ func Default() Budgets {
 		PhotoImports:           200,
 		VideoBytes:             2 << 30,
 		VideoTransferSeconds:   3600,
+		ContextEntries:         50,
+		DailyNoteDays:          400,
 	}
 }
 

@@ -299,7 +299,14 @@ type NewItem struct {
 // firstBody validates the body given with a new item and returns its
 // commit, as CommitBody would for an item without a body.
 func (s *Store) firstBody(created Event, d Doc) (Event, error) {
-	if td, _ := s.latest(created.TypeName); !td.Body {
+	td, _ := s.latest(created.TypeName)
+	return s.firstBodyOf(td, created, d)
+}
+
+// firstBodyOf is firstBody for an item of the type td, which a batch may
+// define together with the item (ADR-0203).
+func (s *Store) firstBodyOf(td TypeDef, created Event, d Doc) (Event, error) {
+	if !td.Body {
 		return Event{}, invalid("type %q has no body", td.Name)
 	}
 	for i, b := range d.Blocks {
