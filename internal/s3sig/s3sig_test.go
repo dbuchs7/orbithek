@@ -61,3 +61,24 @@ func TestClientDo(t *testing.T) {
 		t.Error("a bad endpoint was sent")
 	}
 }
+
+// The example of a presigned URL in AWS's documentation of signature
+// version 4 (query string authentication), virtual-hosted style.
+func TestPresign(t *testing.T) {
+	ep, _ := url.Parse("https://examplebucket.s3.amazonaws.com")
+	got := presign(ep, "", "test.txt", "AKIAIOSFODNN7EXAMPLE", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", "us-east-1",
+		time.Date(2013, 5, 24, 0, 0, 0, 0, time.UTC), 86400*time.Second)
+	if !strings.HasSuffix(got, "X-Amz-Signature=aeeed9bbccd4d02ee5c0109b86d86835f995330da4c265957d157751f604d404") {
+		t.Fatalf("presigned %s", got)
+	}
+	c := Client{Endpoint: ep, Bucket: "photos", Region: "eu-central-1", Access: "AKID", Secret: "SECRET", Now: func() time.Time { return time.Date(2026, 11, 12, 12, 0, 0, 0, time.UTC) }}
+	link, err := c.Presign("2024/a b.jpg", 15*time.Minute)
+	if err != nil || !strings.HasPrefix(link, "https://examplebucket.s3.amazonaws.com/photos/2024/a%20b.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKID%2F20261112%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20261112T120000Z&X-Amz-Expires=900&") {
+		t.Fatalf("link %s %v", link, err)
+	}
+	for _, bad := range []time.Duration{0, 8 * 24 * time.Hour} {
+		if _, err := c.Presign("a.jpg", bad); err == nil {
+			t.Errorf("expires %v accepted", bad)
+		}
+	}
+}

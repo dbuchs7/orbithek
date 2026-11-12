@@ -83,7 +83,7 @@ Choose **Edit** to edit the text and **Done** to finish. Changes are saved conti
 - **Mention** (@): a person or an item;
 - **Undo** and **Redo**.
 
-Markdown that you paste becomes formatted text. Ctrl+Shift+V pastes plain text instead.
+Markdown that you paste becomes formatted text; a table keeps the formatting of its cells. Ctrl+Shift+V pastes plain text instead.
 
 If no item has the title you type after @ or as the address of a link, the list offers *Create «title» as …*. The dialog **Create and mention** asks for the type (the room's page type unless you choose another) and the room (the room of the text you edit unless you choose another); a page made in the same room goes below the page you edit, and is protected as that page is; from a daily note, it goes to the top of the room. The new item is mentioned where you typed. Types that require fields are made with **+ New** instead. When you may not create in a room, or the storage is almost full, the dialog says so and nothing is created.
 
@@ -379,7 +379,9 @@ You do not rename, move or delete it, and you add no pictures to such a folder: 
 A file moved on the share keeps what was set on it, as far as its content is unchanged.
 A file gone from the share disappears from the album; if it comes back within 30 days, it returns with its labels and names.
 Copying such a picture, or exporting it, takes its preview.
-A picture of a format the server shows no picture of, such as a phone's HEIC or a camera's RAW, has a symbol instead of a preview; it offers only **Open original**, and so does a video of a share.
+A camera's RAW shows the picture the camera embedded in it, and a WebP its picture, as previews.
+A picture of a format the server shows no picture of, such as a phone's HEIC, has a symbol instead of a preview; it offers only **Open original**, and so does a video of a share.
+If an administrator lets an S3 share sign links, **Open original** opens the original through a link the server signs for 15 minutes, whatever the share's own permissions say.
 
 ### Moving a folder
 
@@ -560,7 +562,8 @@ Administrators find under **Administration**:
 - **Backup** (also on a schedule to a directory, WebDAV, S3, FTPS or SFTP) and **Storage**;
 - **Calendars of other services**, **Album: older versions**, **File shares**, **Connectors** and **Process engines**.
   Under **File shares** an album folder is bound to a directory the operator allows or to an S3 bucket, read now (**Read now**, **Dry run**) or on its schedule.
-  Whoever may read the folder sees every picture the server can read on the share; a run that would withdraw more than half of a share's pictures withdraws none until **Confirm withdrawals**;
+  Whoever may read the folder sees every picture the server can read on the share; a run that would withdraw more than half of a share's pictures withdraws none until **Confirm withdrawals**.
+  **Open the originals through signed links** lets the readers of an S3 share's folder open its originals through links the server signs for 15 minutes;
 - **Appearance (corporate design)**: logo, colours, background, fonts, and a ready-made theme, among them *Capacity*, a quiet look for notes in light and dark;
 - **Word templates**, **Data protection regulations**, **Import** and the **Audit trail**.
 

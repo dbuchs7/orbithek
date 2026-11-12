@@ -27,7 +27,7 @@ The single binary `cmd/orbithek` opens the data directory and serves the web UI,
 it is released for every common platform and as a container image (ADR-0024).
 A buildless web UI (`internal/web`, ADR-0031) runs on top of the API;
 bodies are edited with ProseMirror, vendored as one pre-built bundle (ADR-0032);
-Markdown pasted or inserted through a dialog becomes blocks of the body in the browser, never stored as Markdown (`assets/markdown.js`, proposed, ADR-0133);
+Markdown pasted or inserted through a dialog becomes blocks of the body in the browser, a table's cells keeping their formats (ADR-0214), never stored as Markdown (`assets/markdown.js`, proposed, ADR-0133);
 drawings are made with Excalidraw on a page of its own with a looser content security policy and stored as PNG attachments that carry their scene (ADR-0053).
 The album lists the pictures of every readable item; inserting one copies it into the edited item (ADR-0054);
 copies carry their source and learn of a changed original (ADR-0055).
@@ -175,7 +175,7 @@ The starmap of all rooms (`#/starmap/*`, `GET /api/starmap`, `Session.StarmapAll
 a label (`?label=`) narrows it to the items that carry it (ADR-0191).
 Within the budget the pictures and drawings of its items fill what the items leave, each joined to its item and a copy to its original when that item is on the map: first those a text shows, each copy's original after it, then the shared labels, then the other pictures;
 in bubbles there are none (`allStarPictures`, ADR-0215).
-A picture's own labels (ADR-0090), those of any version it holds that the reader reads, count on both maps as an item's: a label star joins the pictures that carry it, a star with fewer than two carriers left on the map is dropped (`dropThinLabels`), and on the map of all rooms a label also brings in the pictures that carry it with the items that hold them, and the UI suggests the labels of items and pictures (`mergeLabelCounts`, proposed, ADR-0223).
+A picture's own labels (ADR-0090), those of any version it holds that the reader reads, count on both maps as an item's: a label star joins the pictures that carry it, a star with fewer than two carriers left on the map is dropped (`dropThinLabels`), and on the map of all rooms a label also brings in the pictures that carry it with the items that hold them, and the UI suggests the labels of items and pictures (`mergeLabelCounts`, proposed, ADR-draft-album-labels-on-the-starmap).
 The map moves under a live force simulation that cools to rest (Barnes–Hut above a few dozen nodes, settled at once for reduced motion);
 a dragged node pulls its neighbours, pointing lights a neighbourhood, captions fade with the zoom, and a double-click separates a node with its neighbourhood at a depth of one to three, with a drill path in the address that Escape steps back (`assets/starmap-sim.js`, ADR-0158).
 From a node's panel, an impact view shows what depends on an item or picture, or what it depends on — children on their parent, a relation's source on its target, mentions and embeds, pictures on their item, copies on their original, never shared labels — walked by the server across rooms, breadth first to a depth of one to five or all, within the budget `ImpactNodes`, never through an unreadable item;
@@ -572,6 +572,7 @@ Before adding a dependency, check that its license is compatible with AGPL-3.0, 
 Current dependencies: go-oidc, go-jose (Apache-2.0) and x/oauth2 (BSD-3-Clause), for OIDC only (ADR-0030);
 x/crypto (BSD-3-Clause), for its SSH client, used by backups to SFTP only (ADR-0073);
 go.yaml.in/yaml/v3 (MIT and Apache-2.0), to read API descriptions in YAML (ADR-0130). goldmark (MIT), as the Markdown parser only, never its renderer (ADR-0138). golang.org/x/net (BSD-3-Clause), for its HTML parser only, to read web pages (ADR-0208).
+golang.org/x/image (BSD-3-Clause), for its WebP decoder only, to scale WebP pictures (ADR-0223).
 Never copy code from sources whose license is incompatible or unknown.
 
 ## Pointers

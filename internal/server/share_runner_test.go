@@ -3,9 +3,11 @@ package server
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"image"
 	"image/color"
+	"image/jpeg"
 	"image/png"
 	"net/http"
 	"os"
@@ -428,23 +430,35 @@ func TestHEICAndRAWOfAShareAreListed(t *testing.T) {
 	defer budget.Set(budget.Default())
 	put(t, dir, "phone.heic", append([]byte("\x00\x00\x00\x18ftypheic\x00\x00\x00\x00mif1heic"), make([]byte, 3000)...))
 	put(t, dir, "camera.cr2", append([]byte("II*\x00\x10\x00\x00\x00CR\x02\x00"), make([]byte, 3000)...))
+	// A RAW whose camera embedded a JPEG, and a WebP, get previews
+	// (ADR-0223).
+	var embedded bytes.Buffer
+	if err := jpeg.Encode(&embedded, image.NewGray(image.Rect(0, 0, 32, 24)), nil); err != nil {
+		t.Fatal(err)
+	}
+	put(t, dir, "camera.dng", append(append([]byte("II*\x00\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00"), embedded.Bytes()...), make([]byte, 2000)...))
+	tinyWebP, _ := base64.StdEncoding.DecodeString("UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA==")
+	put(t, dir, "web.webp", tinyWebP)
 	put(t, dir, "notes.txt", []byte("no picture"))
 	run := mustRun(t, sh, false, false)
-	if run.Linked != 2 || run.NoPreview != 2 || run.Skipped != 1 || run.TooLarge != 0 {
+	if run.Linked != 4 || run.NoPreview != 2 || run.Skipped != 1 || run.TooLarge != 0 {
 		t.Fatalf("run %+v", run)
 	}
 	entries := entriesOf(t, w, folder)
-	if entries["phone.heic"].Type != "image/heic" || entries["camera.cr2"].Type != "image/tiff" || entries["camera.cr2"].Size != 3012 {
+	if entries["phone.heic"].Type != "image/heic" || entries["camera.cr2"].Type != "image/tiff" || entries["camera.cr2"].Size != 3012 || entries["web.webp"].Type != "image/webp" {
 		t.Fatalf("entries %+v", entries)
 	}
 	album := field(w.admin.expect("GET", "/api/album?folder="+folder, "", http.StatusOK), "pictures").([]any)
-	if len(album) != 2 {
+	if len(album) != 4 {
 		t.Fatalf("album %d", len(album))
 	}
+	previews := map[string]any{}
 	for _, p := range album {
-		if field(p.(map[string]any), "attachment", "share", "preview") != false {
-			t.Errorf("a preview claimed for %s", jsonOf(p))
-		}
+		a := p.(map[string]any)["attachment"].(map[string]any)
+		previews[a["name"].(string)] = field(a, "share", "preview")
+	}
+	if previews["phone.heic"] != false || previews["camera.cr2"] != false || previews["camera.dng"] != true || previews["web.webp"] != true {
+		t.Fatalf("previews %v", previews)
 	}
 	if got := w.admin.do("GET", "/api/items/"+folder+"/attachments/"+string(entries["phone.heic"].ID), ""); got.Code == http.StatusOK {
 		t.Errorf("a HEIC of a share gives out %d: the original is not here, and it has no preview", got.Code)

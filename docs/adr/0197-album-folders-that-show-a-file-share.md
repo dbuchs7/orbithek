@@ -177,3 +177,4 @@ Strongest form: no mount on the host, so a container needs no privileges or host
 
 - amends [ADR-0090](0090-album-folders-uploads-and-picture-labels.md) (a folder may be bound to a share) and [ADR-0177](0177-photo-management-in-the-album.md) (pictures whose original is on a share)
 - relates to ADR-0026 (erasure), ADR-0045 (attachments), ADR-0054 (the album), ADR-0055 (copies carry their source), ADR-0073 (backup destinations and credentials), ADR-0077 and ADR-0127 (connectors, public addresses only), ADR-0163 (critical storage), ADR-0188 (a moved file keeps its identity), ADR-0189 (posters beside a file), ADR-0194 (faces)
+- amended by [ADR-0223](0223-signed-links-to-a-shares-originals-and-previews-of-raw-and-webp.md) (its open questions settled: signed links per S3 share, previews of RAW and WebP)
