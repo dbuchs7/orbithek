@@ -16,6 +16,7 @@ Orbithek is licensed under AGPL-3.0-only (see `LICENSE`). The binary includes th
 | github.com/yuin/goldmark | v1.8.6 | MIT |
 | go.yaml.in/yaml/v3 | v3.0.4 | MIT and Apache-2.0 |
 | golang.org/x/crypto | v0.58.0 | BSD-3-Clause |
+| golang.org/x/net | v0.62.0 | BSD-3-Clause |
 | golang.org/x/oauth2 | v0.37.0 | BSD-3-Clause |
 | golang.org/x/sys | v0.49.0 | BSD-3-Clause |
 | google.golang.org/protobuf | v1.36.11 | BSD-3-Clause |
@@ -229,6 +230,12 @@ The form viewer and the DMN viewer (ADR-0144) are two more bundles, `internal/we
 | table-js | 9.4.0 | MIT |
 | tiny-svg | 4.1.4 | MIT |
 | w3c-keyname | 2.2.8 | MIT |
+
+The PDF reader (ADR-0210) draws PDF files in the browser with pdf.js: `internal/web/static/vendor/pdf.js` and its worker `pdf.worker.js` are the prebuilt legacy modules `legacy/build/pdf.min.mjs` and `legacy/build/pdf.worker.min.mjs` of the package below (Copyright Mozilla Foundation), taken unchanged by `internal/web/vendor/build.sh`; the legacy build carries polyfills of core-js 3.50.0 (MIT License, Copyright (c) 2013–2025 Denis Pushkarev, 2025–2026 CoreJS Company), so that browsers without the newest JavaScript methods read PDF files too. With them, in `internal/web/static/vendor/pdfjs/`, ship what the worker loads when a document needs it, also from that package: the JPEG 2000 decoder (OpenJPEG, BSD 2-clause license, Copyright Université catholique de Louvain and others) and the JBIG2 decoder (PDFium, BSD 3-clause license, Copyright PDFium Authors), each compiled to JavaScript by Mozilla, in `wasm/`; the fonts by Foxit for the standard fonts of PDF (PDFium, BSD 3-clause license) in `standard_fonts/`; and Adobe's character maps (BSD 3-clause license, Copyright Adobe Systems Incorporated) in `cmaps/`. The package's Liberation fonts are left out. `pdf.LICENSE.txt` ships next to them with every license text. The rules for pdf.js's text layer in `internal/web/static/assets/style.css` are adapted from its viewer stylesheet `web/pdf_viewer.css` (Apache License 2.0).
+
+| Package | Version | License |
+|---|---|---|
+| pdfjs-dist | 6.4.299 | Apache-2.0 |
 
 The faces of the album (ADR-0194) are found and recognised in the browser with `internal/web/static/vendor/face-api.js`, the bundle `dist/face-api.esm.js` of @vladmandic/face-api 1.7.15 (MIT License, Copyright (c) Vladimir Mandic), a fork of face-api.js (MIT License, Copyright (c) 2018 Vincent Mühler), which includes TensorFlow.js 4.22.0 (Apache License 2.0, Copyright 2018 Google LLC). The bundle is taken unchanged from the npm package. Three of its networks ship in `internal/web/static/vendor/face-models/`: tiny_face_detector and face_landmark_68_tiny, whose weights come with face-api.js under its MIT license, and face_recognition, whose weights are dlib's `dlib_face_recognition_resnet_model_v1`, released into the public domain by Davis King (github.com/davisking/dlib-models), trained in part on the FaceScrub and VGG datasets. `face-api.LICENSE.txt` ships next to them with these license texts and statements.
 
@@ -514,6 +521,38 @@ Apache License
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+```
+
+## BSD-3-Clause (golang.org/x/net)
+
+```text
+Copyright 2009 The Go Authors.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+   * Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+   * Redistributions in binary form must reproduce the above
+copyright notice, this list of conditions and the following disclaimer
+in the documentation and/or other materials provided with the
+distribution.
+   * Neither the name of Google LLC nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
 ## BSD-3-Clause (golang.org/x/oauth2)

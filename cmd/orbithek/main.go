@@ -40,6 +40,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/extcal"
 	"github.com/dbuchs7/orbithek/internal/item"
 	"github.com/dbuchs7/orbithek/internal/linkcheck"
+	"github.com/dbuchs7/orbithek/internal/linkpreview"
 	"github.com/dbuchs7/orbithek/internal/mcp"
 	"github.com/dbuchs7/orbithek/internal/notify"
 	"github.com/dbuchs7/orbithek/internal/photosource"
@@ -201,6 +202,30 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 		return 1
 	}
 
+	// Reading what web pages say about themselves is an outgoing call,
+	// off until an operator switches it on (ADR-0208); pages in the
+	// server's own network are read only when allowed besides.
+	var previews *server.LinkPreviews
+	switch v := os.Getenv("OT_LINK_PREVIEWS"); v {
+	case "", "off":
+	case "on":
+		opts := linkpreview.Options{}
+		switch p := os.Getenv("OT_LINK_PREVIEWS_ALLOW_PRIVATE"); p {
+		case "", "off":
+		case "on":
+			opts.Allowed = func(netip.Addr) bool { return true }
+			log.Warn("link previews may read pages in the server's own network")
+		default:
+			log.Error("OT_LINK_PREVIEWS_ALLOW_PRIVATE is unusable", "value", p, "want", "on or off")
+			return 1
+		}
+		previews = server.NewLinkPreviews(linkpreview.New(opts))
+		log.Info("link previews are on; the server reads what web pages say about themselves for editors")
+	default:
+		log.Error("OT_LINK_PREVIEWS is unusable", "value", v, "want", "on or off")
+		return 1
+	}
+
 	registration := false
 	switch v := os.Getenv("OT_OAUTH_DYNAMIC_REGISTRATION"); v {
 	case "", "off":
@@ -331,7 +356,7 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 	if os.Getenv(server.PhotosGoogleVar) == "on" && photos.Google == nil {
 		log.Warn("imports from Google Photos are turned on but not set up: they need OT_GOOGLE_CLIENT_ID, OT_GOOGLE_CLIENT_SECRET and OT_PUBLIC_URL", "variable", server.PhotosGoogleVar)
 	}
-	routes := server.Routes(server.Deps{UI: web.FS(), DB: db, Log: log, SSO: providers, Collab: live, Whiteboards: boards, LinkCheck: links, Messages: messages, OAuthRegistration: registration, CalendarFeeds: feeds, Calendars: calendars, CalendarAllowPrivate: calendarsPrivate, Backups: backups, Connectors: catalog, Engines: engines, TaskLinks: taskLinks, Connect: connect, Disk: disk, Photos: photos})
+	routes := server.Routes(server.Deps{UI: web.FS(), DB: db, Log: log, SSO: providers, Collab: live, Whiteboards: boards, LinkCheck: links, LinkPreviews: previews, Messages: messages, OAuthRegistration: registration, CalendarFeeds: feeds, Calendars: calendars, CalendarAllowPrivate: calendarsPrivate, Backups: backups, Connectors: catalog, Engines: engines, TaskLinks: taskLinks, Connect: connect, Disk: disk, Photos: photos})
 	if err := server.Serve(ctx, ln, server.BehindProxies(proxies, server.WithPublicURL(notifier.PublicURL(), server.Handler(routes, db.Accounts))), log); err != nil {
 		log.Error("server failed", "err", err)
 		return 1

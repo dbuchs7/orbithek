@@ -28,12 +28,42 @@ import { taskLinksCard } from "./tasklinks.js";
 import { connectionsCard, silentConnect } from "./engineconn.js";
 import { freshNotice, taskDialog, taskPanel } from "./taskdialog.js";
 import { finishing } from "./taskparts.js";
+import { noteImportCard } from "./noteimport.js";
 import { documentView, upgradeTemplate, wordTemplatesCard } from "./wordtemplates.js";
 import { manualBlocks, manualLanguage, manualLanguages, manualPath } from "./manual.js";
+import { configureViews, labelItems, viewScreen } from "./itemview.js";
+import { pdfView } from "./pdfview.js";
+import { attachmentLink, isPdf, onPdf, readerHref } from "./pdfparts.js";
+import { bookmarklet, captureAddress, readCapture } from "./capture.js";
+import { captureView } from "./captureview.js";
+import { isWebLink, webLinkCard } from "./weblink.js";
+import { fieldInput, fieldView, isRich } from "./fields.js";
+import { typeEditor, roomTypesCard } from "./typeeditor.js";
+import { usableIn, valueText } from "./typeparts.js";
+import { dailyView, installDailyKeys } from "./daily.js";
+import { installPalette, rememberItem } from "./palette.js";
+import { besidePane, installBeside, openBeside } from "./beside.js";
+import { contextSection } from "./context.js";
+import { mentionCreator } from "./mentioncreate.js";
 
 const app = document.getElementById("app");
 const nav = document.getElementById("nav");
 let me = null; // the signed-in principal, from GET /api/me
+
+// The views of items (ADR-0203) draw themselves with the item page's
+// inputs of fields, its names of people and its listing, wherever they
+// are shown; whether one may edit in a room is read once in a while.
+let viewRoles = null, viewRolesAt = 0;
+configureViews({
+  readAll, favouritesFirst, propertyInput, readProperty, person, learnNames, formDialog, route,
+  loadRoles: async () => {
+    if (viewRoles && Date.now() - viewRolesAt < 30000) return;
+    const { spaces } = await get("/api/spaces");
+    viewRoles = new Map(spaces.map((s) => [s.key, s.role]));
+    viewRolesAt = Date.now();
+  },
+  mayEditSpace: (key) => mayEdit(viewRoles?.get(key)),
+});
 
 // --- shared pieces -------------------------------------------------------
 
@@ -255,6 +285,8 @@ async function commentsView(tab = "") {
             link("#/item/" + encodeURIComponent(e.key), `${e.key} ${e.title}`),
             h("span", { class: "muted", text: " · " + when(c.created) })),
           c.anchor ? h("blockquote", { class: "comment-quote", text: c.anchor.quote }) : "",
+          // A highlight in a PDF leads to its place in the reader (ADR-0210).
+          onPdf(c) ? h("p", {}, link(readerHref(e.key, c.anchor.file, { comment: c.reply || c.id }), t("pdf.showInPdf"), "pdf-show")) : "",
           h("p", { class: "comment-text", text: c.text }),
           h("div", { class: "comment-entry-why" },
             ...e.why.map((w) => h("span", { class: "chip why-" + w, text: kinds[w] })),
@@ -432,11 +464,14 @@ function labelsLine(path, item, live) {
   return h("div", { class: "labels", id: "labels" }, chips, add, status);
 }
 
-// labelView lists the readable items that carry a label.
+// labelView lists the readable items that carry a label, below the
+// label's page when one reads one, or with a button that makes it
+// (ADR-0204).
 async function labelView(label) {
   const show = screen();
   // The items of a label are paged, so the server filters them (ADR-0098).
-  const [{ spaces }, { types }] = await Promise.all([get("/api/spaces"), get("/api/types")]);
+  const [{ spaces }, { types }, topic] = await Promise.all([get("/api/spaces"), get("/api/types"),
+    get("/api/labels/" + encodeURIComponent(label) + "/page").catch(() => ({ page: null }))]);
   const filter = serverFilter({ id: "labelled", label: t("label.heading"),
     choices: [
       { key: "space", label: t("col.space"), options: favouritesFirst(spaces).map((s) => [s.key, `${s.name} (${s.key})`]) },
@@ -471,9 +506,89 @@ async function labelView(label) {
         link(`#/roadmap?labels=${encodeURIComponent(label)}`, t("roadmap.open"), "button secondary", "label-roadmap"),
         link(`#/calendar?labels=${encodeURIComponent(label)}`, t("calendar.open"), "button secondary", "label-calendar"),
         link(`#/labelmap?labels=${encodeURIComponent(label)}`, t("labelmap.openFromLabel"), "button secondary", "label-labelmap"), csv)),
+    topicCard(label, topic.page, spaces),
     filter.el,
     table, none, more,
   );
+}
+
+// textOf is the plain text of a body's first blocks of text, for a short
+// excerpt.
+function excerptOf(body, n = 3) {
+  return (body || []).filter((b) => ["paragraph", "heading", "bullet", "ordered", "quote", "panel"].includes(b.kind) && b.text && !b.secret)
+    .slice(0, n).map((b) => h("p", { class: b.kind === "heading" ? "topic-heading" : null, text: b.text }));
+}
+
+// topicCard shows the page of a label on top of its items (ADR-0204): its
+// title, the beginning of its text and a link to it; without one, where
+// one may create, a button that describes the label in a chosen room.
+function topicCard(label, page, spaces) {
+  if (page) {
+    const href = "#/item/" + encodeURIComponent(page.key);
+    return h("section", { class: "card label-topic", id: "label-topic" },
+      h("h2", {}, link(href, page.title || page.key, null, "label-topic-link")),
+      ...excerptOf(page.body),
+      h("p", { class: "actions-row" }, link(href, t("topic.read"), "button secondary", "label-topic-open")));
+  }
+  const rooms = favouritesFirst(spaces.filter((s) => mayEdit(s.role)));
+  if (!rooms.length) return null;
+  const describe = async () => {
+    const room = h("select", { name: "space", id: "describe-space" }, rooms.map((s) => h("option", { value: s.key, text: `${s.name} (${s.key})` })));
+    const title = h("input", { name: "title", id: "describe-title", value: label, maxlength: 200 });
+    const made = await formDialog(t("topic.describe"), "describe-dialog", [
+      field(t("col.space"), room), field(t("col.title"), title), h("p", { class: "muted", text: t("topic.describeHint", { label }) }),
+    ], async () => (await post("/api/labels/" + encodeURIComponent(label) + "/page", { space: room.value, title: title.value.trim() })).item);
+    if (made) location.hash = "#/item/" + encodeURIComponent(made.key) + "?edit";
+  };
+  return h("section", { class: "card label-topic label-topic-none", id: "label-topic" },
+    h("p", { class: "muted", text: t("topic.none") }),
+    h("button", { type: "button", class: "secondary", id: "label-describe", text: t("topic.describe"), onclick: describe }));
+}
+
+// topicItems shows, on a label's page, the items that carry its label as
+// a view (ADR-0203), its layout, grouping and sort in the page's address;
+// whoever may edit the page orders them by hand (ADR-0204).
+async function topicItems(item, label, params, status) {
+  const { order, orderable } = await get(`/api/items/${item.id}/order`).catch(() => ({ order: [], orderable: false }));
+  const state = { layout: ["table", "gallery", "list"].includes(params.get("layout")) ? params.get("layout") : "list", group: params.get("group") || "",
+    sort: params.get("sort") || "", columns: [], space: "", type: "", query: "" };
+  const change = (patch) => {
+    const p = new URLSearchParams(params);
+    for (const [k, v] of Object.entries(patch)) if (v) p.set(k, v); else p.delete(k);
+    location.hash = "#/item/" + encodeURIComponent(item.key) + (p.toString() ? "?" + p : "");
+  };
+  return h("section", { class: "topic-items", id: "topic-items" },
+    h("div", { class: "topic-items-head" }, h("h2", {}, t("topic.items") + " ", labelChip(label)),
+      orderable && order.length ? h("button", { type: "button", class: "link", id: "topic-order-clear", text: t("topic.clearOrder"),
+        onclick: () => action(async () => { await del(`/api/items/${item.id}/order`); route(); }, status) }) : null),
+    await labelItems(label, { state, order, topic: item, orderable, change }));
+}
+
+// topicLabelOf is the label an item of a label's page names (ADR-0204):
+// a type with a text and a text field label; empty for other items.
+function topicLabelOf(item, type) {
+  if (!type.body || !(type.fields || []).some((f) => f.name === "label" && f.kind === "text")) return "";
+  const l = normalLabel(String(item.properties.label || ""));
+  return labelRule.test(l) ? l : "";
+}
+
+// addToCollection gives an item the label of a label's page the reader
+// chooses: it then stands among that page's items (ADR-0204).
+async function addToCollection(item, path, status) {
+  const { items } = await get("/api/items?type=topic&limit=500").catch(() => ({ items: [] }));
+  const seen = new Set(item.labels);
+  const topics = [];
+  for (const it of items) {
+    const l = normalLabel(String(it.properties?.label || ""));
+    if (labelRule.test(l) && !seen.has(l)) {
+      seen.add(l);
+      topics.push({ label: l, title: it.title });
+    }
+  }
+  if (!topics.length) return status.replaceChildren(h("p", { class: "muted", id: "collect-none", text: t("topic.noCollections") }));
+  const choice = h("select", { name: "label", id: "collect-label" }, topics.map((x) => h("option", { value: x.label, text: `${x.title} (${x.label})` })));
+  const label = await formDialog(t("topic.addTo"), "collect-dialog", [field(t("topic.collection"), choice)], async () => choice.value, t("topic.add"));
+  if (label) await action(async () => { await put(path + "/labels", { labels: [...item.labels, label] }); route(); }, status);
 }
 
 // withTree lays a space's page tree beside a view's content.
@@ -594,11 +709,13 @@ function embedLoader(chain) {
     await learnNames((item.secrets || []).map((sc) => sc.by).filter((p) => !p.startsWith("@"))).catch(() => {});
     const resolve = async (r) => (await get("/api/items/" + encodeURIComponent(r))).item;
     const props = Object.entries(item.properties || {}).filter(([, v]) => v !== null && v !== "" && !(Array.isArray(v) && !v.length));
+    // An embedded web link is a link card (ADR-0208).
+    const card = isWebLink(item) ? webLinkCard(item, (await get(`/api/items/${encodeURIComponent(ref)}/attachments`).catch(() => ({ attachments: [] }))).attachments) : null;
     return h("div", { class: "pm-embed-content", "data-embedded": item.key },
       h("p", { class: "muted pm-embed-meta" }, t("item.meta", { type: item.type, presence: item.presence }), item.state ? t("item.state", { state: item.state }) : ""),
       item.origin?.system === "git:file" ? h("p", { class: "muted pm-embed-meta pm-embed-source" }, ...fileSource(item.origin)) : null,
-      props.length ? h("dl", { class: "pm-embed-props" }, props.flatMap(([k, v]) => [h("dt", { text: k }),
-        h("dd", { text: (Array.isArray(v) ? v : [v]).map((x) => (names.has(x) ? names.get(x) : String(x))).join(", ") })])) : null,
+      card || (props.length ? h("dl", { class: "pm-embed-props" }, props.flatMap(([k, v]) => [h("dt", { text: k }),
+        h("dd", { text: (Array.isArray(v) ? v : [v]).map((x) => (names.has(x) ? names.get(x) : String(x))).join(", ") })])) : null),
       item.body.length ? createEditor({ blocks: item.body, embeds, editable: false, resolve, childPages: childPagesOf(item), files: filesOf(item),
         embedContent: embedLoader([...chain, ref]), tasks: taskTools(item, false) }).element : null);
   };
@@ -823,6 +940,9 @@ function attachmentsSection(path, files, live) {
       : t("att.copyOfUnknown"),
     a.origin.newer ? [" ", h("span", { class: "chip", text: t("att.originChanged") })] : null) : null,
     isDrawing(a.name) ? [" · ", link(whiteboardHref(path, a.id), t("wb.open"), "wb-open")] : null,
+    // A PDF opens in the reader (ADR-0210).
+    isPdf(a) ? [" · ", h("a", { href: readerHref(decodeURIComponent(path.split("/").pop()), a.id), class: "pdf-read", text: t("pdf.read"),
+      "aria-label": t("pdf.readLabel", { name: a.name }) })] : null,
     // Renaming keeps the file type and renames every version (ADR-0182).
     live ? h("button", { class: "link att-rename", text: t("att.rename"), "aria-label": t("att.renameOf", { name: a.name }),
       onclick: (e) => renameInPlace(e.currentTarget.closest("li")?.querySelector("a"), { value: captionOf(a.name),
@@ -944,6 +1064,9 @@ const modules = [
   { id: "spaces", name: "nav.spaces", href: "#/", match: ["", "space", "item", "board", "links", "search", "query", "label"], icon: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" },
   { id: "new", name: "nav.new", href: "#/new", match: ["new"], icon: "M12 8v8M8 12h8M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" },
   { id: "tasks", name: "nav.tasks", href: "#/tasks", match: ["tasks", "kanbans", "kanban", "roadmap", "calendar"], icon: "M9 11l3 3 8-8M20 12v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h11" },
+  // Today's daily note (ADR-0205); on a phone, where the top bar has no
+  // room for its button, it is reached here.
+  { id: "daily", name: "daily.today", href: "#/daily", match: ["daily"], icon: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4M9 15l2 2 4-4" },
   { id: "comments", name: "nav.comments", href: "#/comments", match: ["comments"], icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" },
   { id: "album", name: "nav.album", href: "#/album", match: ["album"], icon: "M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15 8h.01" },
   { id: "whiteboards", name: "nav.whiteboards", href: "#/whiteboards", match: ["whiteboards", "whiteboard"], icon: "M3 4h18v12H3zM8 20l4-4 4 4M7 8h6M7 12h10" },
@@ -1262,6 +1385,8 @@ function renderNav() {
   mount(nav,
     search,
     newButton(),
+    // Today's daily note (ADR-0205).
+    h("button", { type: "button", id: "nav-today", class: "nav-today", title: t("daily.todayHint"), text: t("daily.today"), onclick: () => { location.hash = "#/daily"; } }),
     bell,
     lookToggles(),
     accountMenu(),
@@ -1619,7 +1744,9 @@ async function route() {
     // An assistant's consent page survives signing in, single sign-on
     // included, which returns to the start page (ADR-0068).
     if (!me) {
-      if (section === "oauth") try { sessionStorage.setItem("ot-after-login", location.hash); } catch { /* not kept */ }
+      // So does a capture shared to the app or sent by the bookmarklet
+      // (ADR-0209).
+      if (section === "oauth" || section === "capture") try { sessionStorage.setItem("ot-after-login", location.hash); } catch { /* not kept */ }
       return loginView();
     }
     let after = null;
@@ -1639,6 +1766,8 @@ async function route() {
       case "labelboard": return await labelBoardView(arg, params.get("space") || "");
       case "roadmap": return await roadmapScreen(params);
       case "calendar": return await calendarScreen(params);
+      case "view": return await viewRoute(params);
+      case "daily": return await dailyScreen(arg, params);
       case "space": return await spaceView(arg);
       case "board": return await boardView(arg, arg2);
       case "links": return await linksView(arg);
@@ -1653,16 +1782,19 @@ async function route() {
       case "show": return showScreen(params);
       case "whiteboards": return await whiteboardsView();
       case "whiteboard": return await whiteboardView(arg, arg2);
+      case "pdf": return await pdfScreen(arg, arg2, params);
       case "labelmap": return await labelmapScreen(params);
       case "starmap": return await starmapScreen(arg || "", hash.split("?")[0].split("/").slice(3).map(decodeURIComponent), params);
       case "search": return await searchView(arg || "");
       case "query": return await queryView(params);
       case "account": return await accountView();
+      case "capture": return await captureScreen(params);
       case "mcp": return await mcpView();
       case "manual": return await manualView(params);
       case "oauth": return await oauthView(params);
       case "admin": return await adminView();
       case "members": return await membersView(arg);
+      case "import": return await importView(arg);
       default: return await homeView();
     }
   } catch (err) {
@@ -1745,6 +1877,11 @@ const topBar = document.querySelector("header.top");
 if (topBar && "ResizeObserver" in window) {
   new ResizeObserver(() => document.documentElement.style.setProperty("--top-offset", topBar.offsetHeight + "px")).observe(topBar);
 }
+// The command palette, an item beside another and today's note
+// (ADR-0205, ADR-0207).
+installPalette(paletteCommands);
+installBeside();
+installDailyKeys();
 window.addEventListener("hashchange", route);
 applyTheme();
 applyBranding();
@@ -2408,8 +2545,8 @@ function setupCard(types) {
     outdated.length ? h("button", { class: missing.length ? "secondary" : "primary", id: "setup-fields", text: t("setup.addFields"),
       onclick: () => action(async () => {
         for (const { ty, add } of outdated) {
-          const { name, body, fields, workflow, review } = ty;
-          await post("/api/types", { name, body, workflow, review, fields: [...fields, ...add] });
+          const { version, editable, ...def } = ty;
+          await post("/api/types", { ...def, fields: [...ty.fields, ...add] });
         }
       }, status) }) : null,
     status);
@@ -2449,6 +2586,9 @@ async function newView(params) {
   show(
     h("h1", { text: t("new.title") }),
     pageCard,
+    // Capturing a note, a quote or a web page (ADR-0209).
+    h("section", { class: "card", id: "new-capture" }, h("h2", { text: t("capture.heading") }), h("p", { text: t("capture.newText") }),
+      link(captureAddress({}), t("capture.open"), "button secondary", "new-capture-open")),
     h("section", { class: "card" }, h("h2", { text: t("new.withAssistant") }), h("p", { text: t("new.withAssistantText") }),
       link("#/mcp", t("new.withAssistantLink"), "button secondary")),
     me.admin ? setupCard(types) : null,
@@ -2537,6 +2677,12 @@ async function spaceView(key) {
   addRows(first);
   const boards = types.filter((ty) => ty.workflow)
     .map((ty) => link(`#/board/${encodeURIComponent(key)}/${encodeURIComponent(ty.name)}`, t("space.board", { type: ty.name })));
+  // The room's items as a table, a gallery or a list, of every type or of
+  // one chosen (ADR-0203).
+  const viewOf = (type) => `#/view?space=${encodeURIComponent(key)}${type ? "&type=" + encodeURIComponent(type) : ""}`;
+  const views = [link(viewOf(""), t("views.tab"), null, "space-view"),
+    h("select", { id: "space-view-type", "aria-label": t("views.ofTypeChoice"), onchange: (ev) => { if (ev.target.value) location.hash = viewOf(ev.target.value); } },
+      h("option", { value: "", text: t("views.ofTypeChoice") }), types.map((ty) => h("option", { value: ty.name, text: t("views.ofType", { type: ty.name }) })))];
   const tree = pageTree({ space: key, taskTypes: new Set(types.filter(isTaskType).map((ty) => ty.name)), onMoved: () => route(), onError: (err) => status.replaceChildren(errorBox(err)) });
   show(withTree(tree,
     h("p", {}, link("#/", t("nav.spaces")), " / " + key),
@@ -2547,8 +2693,9 @@ async function spaceView(key) {
         create && types.length ? h("button", { class: "primary", id: "space-new-page", text: t("space.newPage"), onclick: toForm }) : null,
         csv,
         watchButton("/api/spaces/" + encodeURIComponent(key), watches.some((w) => !w.item && w.space === key), status))),
-    h("nav", { class: "subnav", "aria-label": t("space.views") }, [...boards, link(`#/roadmap?space=${encodeURIComponent(key)}`, t("roadmap.tab")), link(`#/calendar?space=${encodeURIComponent(key)}`, t("calendar.tab")), link(`#/links/${encodeURIComponent(key)}`, t("space.linkCheck")), link(`#/governance/${encodeURIComponent(key)}`, t("nav.governance")),
-      sp.role === "space-admin" ? link(`#/members/${encodeURIComponent(key)}`, t("members.title")) : null].filter(Boolean)),
+    h("nav", { class: "subnav", "aria-label": t("space.views") }, [...boards, ...views, link(`#/roadmap?space=${encodeURIComponent(key)}`, t("roadmap.tab")), link(`#/calendar?space=${encodeURIComponent(key)}`, t("calendar.tab")), link(`#/links/${encodeURIComponent(key)}`, t("space.linkCheck")), link(`#/governance/${encodeURIComponent(key)}`, t("nav.governance")),
+      sp.role === "space-admin" ? link(`#/members/${encodeURIComponent(key)}`, t("members.title")) : null,
+      sp.role === "space-admin" ? link(`#/import/${encodeURIComponent(key)}`, t("notesImport.title"), null, "space-import") : null].filter(Boolean)),
     status,
     home,
     labels.length ? h("section", { id: "space-labels" }, h("h2", { text: t("label.title") }),
@@ -3635,6 +3782,10 @@ function cardChip(name, f, v, done) {
   const chip = (...content) => h("span", { class: "card-chip", title: `${name}: ${v}` }, h("span", { class: "visually-hidden", text: `${name}: ` }), ...content);
   if (f?.kind === "bool") return chip(`✓ ${name}`);
   if (!f || f.kind === "enum") return chip(String(v));
+  // A rating as stars, a multi field's values joined (ADR-0202); an item
+  // field by its target's key and title, once read.
+  if (f.kind === "item") return chip(h("span", { class: "card-chip-name", "aria-hidden": "true", text: name }), " ", fieldView(f, v));
+  if (isRich(f)) return chip(h("span", { class: "card-chip-name", "aria-hidden": "true", text: name }), " ", valueText(f, v));
   return chip(h("span", { class: "card-chip-name", "aria-hidden": "true", text: name }), " ", String(v));
 }
 
@@ -3862,6 +4013,19 @@ async function roadmapScreen(params) {
   await roadmapView(section, params, { readAll, favouritesFirst });
 }
 
+// viewRoute shows the items of a type as a table, a gallery or a list,
+// grouped by a field (ADR-0203); its state is the address.
+async function viewRoute(params) {
+  const section = h("section", { id: "view" });
+  const space = params.get("space");
+  screen()(
+    h("p", {}, link("#/", t("nav.spaces")), space ? [" / ", link("#/space/" + encodeURIComponent(space), space)] : null, " / " + t("views.tab")),
+    h("div", { class: "page-head" }, h("h1", { text: params.get("type") ? t("views.titleOf", { type: params.get("type") }) : t("views.title") })),
+    h("p", { class: "muted", text: t("views.intro") }),
+    section);
+  await viewScreen(section, params);
+}
+
 // calendarScreen shows readable items with dates on the days of a month,
 // a week or an agenda (ADR-0166); its state is the address.
 async function calendarScreen(params) {
@@ -3874,6 +4038,44 @@ async function calendarScreen(params) {
   // A new entry is made from the calendar with the inputs of item fields
   // the item page uses.
   await calendarView(section, params, { readAll, favouritesFirst, propertyInput, readProperty });
+}
+
+// dailyScreen shows one's daily note of a day (ADR-0205).
+async function dailyScreen(arg, params) {
+  await dailyView(screen(), arg || "", params, { ...textTools(), favouritesFirst, reload: () => route() });
+}
+
+// storagePaused tells that nothing new is made now (ADR-0163).
+function storagePaused() {
+  return storageNow === "critical" || storageNow === "full";
+}
+
+// textTools are the item page's helpers for a text, for the views that
+// show one besides it: a daily note and an item beside another.
+function textTools() {
+  return { files: filesOf, childPages: childPagesOf, embeds: embedLoader, tasks: taskTools, markdown: markdownTools,
+    create: (item) => mentionCreator(item, storagePaused), onLeave };
+}
+
+// paletteCommands are the commands the palette offers now (ADR-0207): a
+// new item where one is, today's note, the modules and rooms, the views
+// and the look.
+async function paletteCommands() {
+  if (!me) return [];
+  const { spaces } = await get("/api/spaces").catch(() => ({ spaces: [] }));
+  const go = (href) => () => { location.hash = href; };
+  const cmds = [
+    { id: "new", name: t("palette.new"), hint: t("nav.newButton"), run: go(newHref()) },
+    { id: "today", name: t("palette.today"), hint: "Alt+Shift+D", run: go("#/daily") },
+    { id: "query", name: t("palette.query"), run: go("#/query") },
+    { id: "calendar", name: t("palette.calendar"), run: go("#/calendar") },
+    ...modules.filter((m) => m.id !== "new" && m.id !== "daily" && (!m.admin || me.admin)).map((m) => ({ id: "module-" + m.id, name: t("palette.goTo", { name: t(m.name) }), run: go(m.href) })),
+    { id: "look", name: t("palette.look"), run: () => document.getElementById("theme-toggle")?.click() },
+    { id: "reading", name: t("palette.reading"), hint: "Ctrl+Shift+F", run: () => readingMode.set(true) },
+    { id: "manual", name: t("palette.manual"), run: go("#/manual") },
+  ];
+  for (const sp of favouritesFirst(spaces)) cmds.push({ id: "space-" + sp.key, name: t("palette.room", { name: sp.name }), hint: sp.key, run: go("#/space/" + encodeURIComponent(sp.key)) });
+  return cmds;
 }
 
 // starmapScreen shows the starmap of a room (ADR-0157): its items,
@@ -3949,6 +4151,12 @@ async function whiteboardView(ref, file) {
       link("#/item/" + encodeURIComponent(item.key), "← " + (item.title || item.key), "", "whiteboard-back"),
       h("span", { class: "muted", text: t("wb.heading") })),
     frame));
+}
+
+// pdfScreen shows a PDF file of an item in the reader, with its
+// highlights (ADR-0210).
+async function pdfScreen(ref, file, params) {
+  await pdfView(ref, file, params, { show: screen(), person, nameOf: (id) => names.get(id) ?? person(id), learnNames, onLeave, here, errorBox, user: me.user.id });
 }
 
 // whiteboardsView lists the whiteboards with a live session and the
@@ -4190,9 +4398,11 @@ async function linksView(key) {
 }
 
 // propertyInput is the input for a field of a type; it reads back with
-// readProperty.
-function propertyInput(f, value) {
+// readProperty. The kinds item, multi, rating and file are fields.js's;
+// ctx gives it the item and its files (ADR-0202).
+function propertyInput(f, value, ctx = {}) {
   const name = "p:" + f.name;
+  if (isRich(f)) return fieldInput(f, value, ctx);
   switch (f.kind) {
     case "bool":
       return h("input", { name, type: "checkbox", checked: value === true });
@@ -4360,6 +4570,7 @@ function recurrenceInput(name, value) {
 }
 
 function readProperty(f, el) {
+  if (el.readValue) return el.readValue();
   if (f.kind === "recurrence") return el.ruleValue ? el.ruleValue() : el.value || null;
   if (f.kind === "bool") return el.checked;
   if (f.kind === "user") {
@@ -4391,12 +4602,20 @@ function newItemForm({ space, spaces = null, types, parent = null, heading = t("
     });
   }
   const fields = h("div");
-  const typeSelect = h("select", { name: "type" }, types.map((ty) => h("option", { value: ty.name, text: ty.name, selected: ty.name === type })));
+  const typeSelect = h("select", { name: "type" });
+  // A room's own types are offered in that room only (ADR-0201).
+  const offerTypes = () => {
+    const here = usableIn(types, spaceSelect ? spaceSelect.value : space);
+    const keep = typeSelect.value || type;
+    typeSelect.replaceChildren(...here.map((ty) => h("option", { value: ty.name, text: ty.space ? `${ty.name} (${ty.space})` : ty.name, selected: ty.name === keep })));
+  };
   const showFields = () => {
     const ty = types.find((x) => x.name === typeSelect.value);
-    fields.replaceChildren(...ty.fields.map((f) => field(f.name + (f.required ? " *" : ""), propertyInput(f))));
+    fields.replaceChildren(...(ty?.fields || []).map((f) => field(f.name + (f.required ? " *" : ""), propertyInput(f))));
   };
   typeSelect.addEventListener("change", showFields);
+  spaceSelect?.addEventListener("change", () => { offerTypes(); showFields(); });
+  offerTypes();
   showFields();
   const f = form({ class: "card", id }, [
     h("h2", { text: heading }),
@@ -4408,6 +4627,7 @@ function newItemForm({ space, spaces = null, types, parent = null, heading = t("
     h("button", { type: "submit", text: t("common.create") }),
   ], async () => {
     const ty = types.find((x) => x.name === typeSelect.value);
+    if (!ty) throw new Error(t("types.noneHere"));
     const properties = {};
     for (const fd of ty.fields) {
       const v = readProperty(fd, f.querySelector(`[name="p:${CSS.escape(fd.name)}"]`));
@@ -4422,6 +4642,118 @@ function newItemForm({ space, spaces = null, types, parent = null, heading = t("
   return f;
 }
 
+// webLinkPanel shows an item whose url field holds a web address as a
+// card of its page (ADR-0208). Who may edit it reads the page again, or
+// takes the page's text below the body, where the server reads pages.
+function webLinkPanel(item, attachments, type, canEdit, status) {
+  if (!isWebLink(item) || !type.fields.some((f) => f.name === "url" && f.kind === "url")) return null;
+  const buttons = h("span", { class: "weblink-buttons" });
+  const card = webLinkCard(item, attachments, { id: "weblink-card", actions: [buttons] });
+  if (!canEdit || item.presence !== "live") return card;
+  get("/api/linkpreview").then(({ enabled }) => {
+    if (!enabled) return;
+    const run = async (text, button) => {
+      button.disabled = true;
+      status.replaceChildren();
+      try {
+        const res = await post(`/api/items/${encodeURIComponent(item.id)}/weblink`, { text });
+        // A picture that could not be kept is told; the fields are read.
+        if (res.problem) status.replaceChildren(h("p", { class: "notice", id: "weblink-problem", text: t("capture.problem", { problem: res.problem }) }));
+        else route();
+      } catch (err) {
+        status.replaceChildren(errorBox(err));
+      } finally {
+        button.disabled = false;
+      }
+    };
+    const again = h("button", { type: "button", id: "weblink-refresh", text: t("weblink.refresh"), onclick: () => run(false, again) });
+    const take = h("button", { type: "button", id: "weblink-text", text: t("weblink.takeText"), title: t("weblink.takeTextHint"),
+      onclick: () => (!item.body.length || confirm(t("weblink.takeTextConfirm"))) && run(true, take) });
+    buttons.append(again, take);
+  }).catch(() => {});
+  return card;
+}
+
+// weblinkTools save a page a link in the text leads to as a web link item
+// (ADR-0208), below the item or in another room, and answer it, or null
+// when cancelled. The text then shows it as a card, an embed.
+function weblinkTools(item) {
+  const save = async (address) => {
+    const [{ spaces }, previews] = await Promise.all([get("/api/spaces"), get("/api/linkpreview").catch(() => ({ enabled: false }))]);
+    const editable = favouritesFirst(spaces.filter((s) => mayEdit(s.role)));
+    const title = h("input", { name: "title", id: "weblink-title", maxlength: 300, placeholder: t("weblink.titleHint") });
+    const below = h("input", { type: "radio", name: "place", value: "below", id: "weblink-below", checked: true });
+    const room = h("input", { type: "radio", name: "place", value: "room", id: "weblink-room" });
+    const spaceSelect = h("select", { name: "space", id: "weblink-space", onchange: () => { room.checked = true; } },
+      editable.map((sp) => h("option", { value: sp.key, text: `${sp.name} (${sp.key})`, selected: sp.key === item.space })));
+    const text = previews.enabled ? h("input", { type: "checkbox", name: "text", id: "weblink-pagetext" }) : null;
+    const found = h("p", { class: "muted", id: "weblink-found", role: "status" });
+    if (previews.enabled) {
+      found.textContent = t("capture.reading");
+      post("/api/linkpreview", { url: address }).then((p) => {
+        if (!title.value && p.title) title.placeholder = p.title;
+        found.textContent = [p.site, p.description].filter(Boolean).join(" · ");
+      }).catch((err) => { found.textContent = err.message; });
+    }
+    let problem = "";
+    const made = await formDialog(t("weblink.save"), "weblink-dialog", [
+      h("p", { class: "weblink-address" }, h("a", { href: address, target: "_blank", rel: "noopener noreferrer", text: address })),
+      found,
+      field(t("capture.title"), title),
+      h("fieldset", { class: "newtask-display" }, h("legend", { text: t("capture.where") }),
+        h("label", { class: "check" }, below, " ", t("weblink.below", { title: item.title || item.key })),
+        h("label", { class: "check" }, room, " ", t("weblink.inRoom"), " ", spaceSelect)),
+      text ? h("label", { class: "check" }, text, " ", t("capture.pageText")) : null,
+    ], async () => {
+      const inRoom = room.checked;
+      const res = await post("/api/weblinks", { url: address, title: title.value.trim(), space: inRoom ? spaceSelect.value : item.space,
+        parent: inRoom ? "" : item.id, text: Boolean(text?.checked) });
+      problem = res.problem || "";
+      return res.item;
+    }, t("weblink.saveButton"));
+    return made ? { item: made, problem } : null;
+  };
+  return { save };
+}
+
+// --- capturing (ADR-0209) -------------------------------------------------------
+
+// captureScreen shows what a share, the bookmarklet or a link passed on,
+// to be saved as a web link, a new item or at the end of an item.
+async function captureScreen(params) {
+  const show = screen();
+  const [{ spaces }, { types }, previews] = await Promise.all([get("/api/spaces"), get("/api/types"),
+    get("/api/linkpreview").catch(() => ({ enabled: false }))]);
+  const editable = favouritesFirst(spaces.filter((s) => mayEdit(s.role)));
+  if (!editable.length) return show(h("h1", { text: t("capture.heading") }), h("p", { class: "muted", text: me.admin ? t("new.noSpaceAdmin") : t("new.noSpace") }));
+  show(captureView(readCapture(params), { spaces: editable, space: editable[0].key, types, previews: previews.enabled }));
+  document.getElementById("capture-title")?.focus();
+}
+
+// bookmarkletCard offers the bookmark that opens the capture view with
+// the page one reads, its address and the text selected on it. It is
+// dragged to the bookmarks or copied into a new bookmark; this page's
+// content security policy keeps it from running here.
+function bookmarkletCard() {
+  const code = bookmarklet(location.origin);
+  const drag = h("a", { class: "button secondary bookmarklet", id: "bookmarklet", text: t("capture.bookmarklet"), title: t("capture.bookmarkletDrag"),
+    onclick: (ev) => ev.preventDefault() });
+  // The one address of this UI that is code: a constant written in
+  // capture.js around this site's own origin, never built from content.
+  drag.setAttribute("href", code);
+  const copied = h("span", { class: "muted", role: "status" });
+  const box = h("input", { readonly: true, value: code, id: "bookmarklet-code", "aria-label": t("capture.bookmarkletCode"), onfocus: (ev) => ev.target.select() });
+  return h("section", { class: "card", id: "capture-bookmarklet" },
+    h("h2", { text: t("capture.bookmarkletTitle") }),
+    h("p", { text: t("capture.bookmarkletText") }),
+    h("p", { class: "actions-row" }, drag,
+      h("button", { type: "button", id: "bookmarklet-copy", text: t("capture.bookmarkletCopy"), onclick: async () => {
+        try { await navigator.clipboard.writeText(code); copied.textContent = t("capture.copied"); } catch { box.select(); }
+      } }), copied),
+    field(t("capture.bookmarkletCode"), box),
+    h("p", { class: "muted", text: t("capture.installHint") }));
+}
+
 // --- one item ---------------------------------------------------------------
 
 // itemView shows an item for reading; with ?edit its title and body are
@@ -4432,6 +4764,8 @@ async function itemView(ref, params = new URLSearchParams()) {
   const show = screen();
   const { item, editable, may = {} } = await get("/api/items/" + encodeURIComponent(ref));
   const path = "/api/items/" + item.id;
+  // The palette offers the items opened recently (ADR-0207).
+  rememberItem(item);
   const [{ types }, history, out, inc, embeds, comments, { attachments }, { watches }, { spaces }, myNotes] = await Promise.all([
     get("/api/types"),
     get(path + "/history"),
@@ -4467,7 +4801,7 @@ async function itemView(ref, params = new URLSearchParams()) {
   const itemHref = "#/item/" + encodeURIComponent(item.key);
   here.space = item.space;
   here.parent = item.id;
-  const threads = commentThreads(path, comments, canEdit);
+  const threads = commentThreads(path, comments, canEdit, attachments, item.key);
   // One's own notes on passages, seen by no one else (ADR-0107).
   const notes = live ? personalNotes(path, myNotes.notes) : null;
   // Who edits the text now, as faces beside the bell, for readers too
@@ -4511,7 +4845,7 @@ async function itemView(ref, params = new URLSearchParams()) {
 
   // A field is saved as soon as it changes; a mark beside it says so.
   const props = h("table", { class: "props" }, type.fields.map((f) => {
-    const input = propertyInput(f, item.properties[f.name]);
+    const input = propertyInput(f, item.properties[f.name], { item, attachments });
     input.disabled = !canEdit;
     const mark = h("span", { class: "save-mark", role: "status" });
     if (canEdit) {
@@ -4647,6 +4981,7 @@ async function itemView(ref, params = new URLSearchParams()) {
   const relocateButtons = live ? [
     h("button", { type: "button", id: "item-copy", text: t("copy.open"), onclick: () => relocateForm(relocate, item, "copy", spaces, status) }),
     canEdit ? h("button", { type: "button", id: "item-move", text: t("move.open"), onclick: () => relocateForm(relocate, item, "move", spaces, status) }) : null,
+    canEdit ? h("button", { type: "button", id: "item-collect", text: t("topic.addTo"), onclick: () => addToCollection(item, path, status) }) : null,
   ] : [];
   const more = reorder.length || actions.length || relocateButtons.length
     ? card("item-actions", h("p", { class: "actions-row" }, reorder, relocateButtons, actions), relocate) : null;
@@ -4660,6 +4995,8 @@ async function itemView(ref, params = new URLSearchParams()) {
     h("p", { class: "muted" }, t("item.meta", { type: item.type, presence: item.presence }), item.state ? t("item.state", { state: item.state }) : "", t("item.version", { n: item.version })),
     // An item mirrored from another system says where it is kept, the
     // system of record (ADR-0023, ADR-0074).
+    // A web link shows its page as a card (ADR-0208).
+    webLinkPanel(item, attachments, type, canEdit, status),
     item.origin?.system === "git:file" ? fileOrigin(item, path, canEdit, status) : item.origin ? h("p", { class: "notice origin", id: "item-origin" },
       t("item.origin", { system: item.origin.system }), " ",
       item.origin.url ? h("a", { href: item.origin.url, target: "_blank", rel: "noopener noreferrer", text: t("item.originOpen") }) : "",
@@ -4668,7 +5005,9 @@ async function itemView(ref, params = new URLSearchParams()) {
     h("div", { class: "item-layout" },
       // The text has the main column to itself; the owner and details
       // lead the column beside it (ADR-0102).
-      h("div", { class: "item-main" }, protecting, body || h("p", { class: "muted", text: t("item.noBody") })),
+      h("div", { class: "item-main" }, protecting, body || h("p", { class: "muted", text: t("item.noBody") }),
+        // A label's page shows the items that carry its label (ADR-0204).
+        live && !editing && topicLabelOf(item, type) ? await topicItems(item, topicLabelOf(item, type), params, status) : null),
       h("aside", { class: "item-side", "aria-label": t("item.side") },
         columnToggle("side"),
         engineTask,
@@ -4681,7 +5020,12 @@ async function itemView(ref, params = new URLSearchParams()) {
         await relationsSection(path, out.relations, inc.relations, item.id, canEdit),
         await accessSection(path, item, canEdit, spaceAdmin),
         historySection(path, history.events, canEdit, readsAll),
+        // What refers to it, shares its labels, names it in a daily note
+        // (ADR-0207).
+        contextSection(item, openBeside),
         more)),
+    // An item beside this one, kept in the address (ADR-0207).
+    besidePane(params, textTools()),
   ));
 }
 
@@ -4758,6 +5102,15 @@ function bodySection(item, embeds, editing, threads, attachments, protect, edit,
     // the list of passages.
     const open = (ev) => {
       if (ev.target.closest?.("button")) return;
+      // A link in the text to a PDF of the item opens it in the reader
+      // (ADR-0210); other files download as before.
+      const a = ev.type === "click" ? ev.target.closest?.("a[href]") : null;
+      const target = a ? attachmentLink(a.href, location.origin) : null;
+      if (target && [item.id, item.key].includes(target.item) && isPdf(attachments.find((x) => x.id === target.file))) {
+        ev.preventDefault();
+        location.hash = readerHref(item.key, target.file);
+        return;
+      }
       const el = ev.target.closest?.(".pm-secret, .pm-veiled");
       if (!el || (ev.type === "keydown" && ev.key !== "Enter" && ev.key !== " ")) return;
       const shown = shownSecrets.get(el.dataset.secret);
@@ -4778,8 +5131,9 @@ function bodySection(item, embeds, editing, threads, attachments, protect, edit,
     return { element: section, session: null };
   }
   const session = liveBody({ ref: item.id, embeds, resolve, childPages: childPagesOf(item), files: filesOf(item, attachments),
-    extra: [threads.plugin], comment: threads.start, actions: edit ? [edit] : [], embedContent: embedLoader([item.id]), tasks: taskTools(item, true), markdown: markdownTools(item), onPresence });
-  onLeave(session.close);
+    extra: [threads.plugin], comment: threads.start, actions: edit ? [edit] : [], embedContent: embedLoader([item.id]), tasks: taskTools(item, true), markdown: markdownTools(item), weblinks: weblinkTools(item), onPresence,
+    create: mentionCreator(item, storagePaused) });
+  onLeave(session.dispose);
   return { element: h("section", { id: "body", class: "editing" }, session.element), session };
 }
 
@@ -5185,14 +5539,14 @@ function protectForm(path, read, edit, spaceAdmin, named) {
 // It returns the section, a plugin highlighting the passages of the open
 // threads in the body, and start(anchor), which begins a comment on a
 // passage.
-function commentThreads(path, page, live) {
+function commentThreads(path, page, live, files = [], key = "") {
   const author = (c) => person(c.author);
   const roots = page.comments.filter((c) => !c.reply);
   const replies = new Map();
   for (const c of page.comments.filter((c) => c.reply)) replies.set(c.reply, [...(replies.get(c.reply) || []), c]);
-  // A comment on an element of a whiteboard is on no passage of the body
-  // (ADR-0171).
-  const anchored = roots.filter((c) => c.anchor && !c.anchor.element && !c.deleted && !c.resolved);
+  // A comment on an element of a whiteboard (ADR-0171) or a highlight in a
+  // PDF (ADR-0210) is on no passage of the body.
+  const anchored = roots.filter((c) => c.anchor && !c.anchor.element && !onPdf(c) && !c.deleted && !c.resolved);
   const threadEls = new Map(); // root id -> its element
 
   const row = (c) => {
@@ -5227,9 +5581,16 @@ function commentThreads(path, page, live) {
 
   const thread = (c) => {
     const status = h("div", { class: "status" });
+    // A highlight names its PDF and page, and leads to it in the reader.
+    const pdfName = onPdf(c) ? files.find((a) => a.id === c.anchor.file)?.name : "";
     const quote = c.anchor?.element && !c.deleted
       ? h("blockquote", { class: "comment-quote comment-element" }, t("wb.onElement"), " ",
         link(whiteboardHref(path, c.anchor.drawing), c.anchor.quote || t("wb.openWhiteboard")))
+      : onPdf(c) && !c.deleted
+        ? h("blockquote", { class: `comment-quote comment-pdf hl-${c.anchor.color || "yellow"}` },
+          h("span", { class: "muted", text: t("pdf.onHighlight", { name: pdfName || t("pdf.aPdf"), page: c.anchor.page }) }), " ",
+          h("span", { text: c.anchor.quote }), " ",
+          link(readerHref(key || decodeURIComponent(path.split("/").pop()), c.anchor.file, { comment: c.id }), t("pdf.showInPdf"), "pdf-show"))
       : c.anchor && !c.deleted
         ? h("blockquote", { class: "comment-quote" },
           h("button", { type: "button", class: "link", text: c.anchor.quote, title: t("comment.showPassage"), onclick: () => reveal(c.id) }))
@@ -5359,6 +5720,8 @@ async function accountView() {
     contactsCard(contacts),
     // One's connections to process engines (ADR-0151).
     connectionsCard(),
+    // Capturing from any page of the web (ADR-0209).
+    bookmarkletCard(),
     form({ class: "card", id: "language" }, [
       field(t("account.language"), h("select", { name: "language", onchange: (ev) => ev.target.form.requestSubmit() },
         languages.filter((l) => !me.languages || me.languages.includes(l.code))
@@ -5781,9 +6144,17 @@ async function adminView() {
       h("button", { type: "submit", text: t("admin.createSpace") }),
     ], async (d) => { await post("/api/spaces", { key: d.get("key"), name: d.get("name") }); route(); }));
 
-  const typeText = h("textarea", { name: "type", rows: 8, required: true },
-    '{"name":"page","body":true,"fields":[{"name":"owner","kind":"user"}]}');
+  // Types are edited in a form (ADR-0201); hand-written JSON stays in it,
+  // folded away. A room's own type says so, and its room's administrators
+  // edit it too.
+  const typeEditorBox = h("div", { id: "type-editor-box" });
+  const openTypeEditor = (opts) => {
+    typeEditorBox.replaceChildren(typeEditor({ types, spaces, ...opts, onSaved: () => route(), onCancel: () => typeEditorBox.replaceChildren() }));
+    typeEditorBox.scrollIntoView({ block: "start" });
+    typeEditorBox.querySelector("input:not([disabled])")?.focus();
+  };
   const describe = (ty) => [
+    ty.space ? t("types.ofRoom", { key: ty.space }) : null,
     ty.body ? t("admin.typeBody") : null,
     ty.fields.length ? t("admin.typeFields", { list: ty.fields.map((f) => `${f.name} (${f.kind}${f.required ? ", *" : ""})`).join(", ") }) : null,
     ty.workflow ? t("admin.typeStates", { list: ty.workflow.states.join(" → ") }) : null,
@@ -5791,35 +6162,17 @@ async function adminView() {
   ].filter(Boolean).join(" · ");
   const typesSection = section("types", t("admin.types"),
     setupCard(types),
-    types.length ? filtered(h("table", { id: "types" }, types.map((ty) => h("tr", { "data-f-kind": ty.workflow ? t("admin.typeWithWorkflow") : t("admin.typeWithoutWorkflow") },
+    types.length ? filtered(h("table", { id: "types" }, types.map((ty) => h("tr", { "data-f-kind": ty.workflow ? t("admin.typeWithWorkflow") : t("admin.typeWithoutWorkflow"),
+      "data-f-room": ty.space || t("types.wholeInstallation") },
       h("td", {}, h("strong", { text: ty.name }), ` v${ty.version}`), h("td", { class: "muted", text: describe(ty) }),
-      h("td", {}, h("button", { type: "button", class: "link", text: t("common.edit"), onclick: () => {
-        // The start text is edited as Markdown (ADR-0167).
-        const { version, start, ...def } = ty;
-        typeText.value = JSON.stringify(def, null, 2);
-        typeText.scrollIntoView({ block: "center" });
-        typeText.focus();
-      } }), " ",
+      h("td", {}, h("button", { type: "button", class: "link", text: t("common.edit"), onclick: () => openTypeEditor({ type: ty }) }), " ",
       // A type no item and no kanban uses can be removed (ADR-0094).
       h("button", { type: "button", class: "link danger", text: t("admin.removeType"), onclick: () =>
         confirm(t("admin.removeTypeConfirm", { name: ty.name })) &&
         action(async () => { await del(`/api/types/${encodeURIComponent(ty.name)}`); route(); }, status) }))))),
-      { id: "admin-types", label: t("admin.types"), choices: [{ key: "kind", label: t("filter.kind") }] }) : null,
-    form({ id: "new-type" }, [
-      h("h3", { text: t("admin.defineType") }),
-      h("p", { class: "muted", text: t("admin.typeHelp") }),
-      field(t("admin.typeJson"), typeText),
-      h("button", { type: "submit", text: t("admin.define") }),
-    ], async (d) => {
-      let def;
-      try {
-        def = JSON.parse(d.get("type"));
-      } catch (err) {
-        throw new Error(t("admin.badJson", { error: err.message }));
-      }
-      await post("/api/types", def);
-      route();
-    }));
+      { id: "admin-types", label: t("admin.types"), choices: [{ key: "kind", label: t("filter.kind") }, { key: "room", label: t("types.belongsTo") }] }) : null,
+    h("p", {}, h("button", { type: "button", class: "primary", id: "new-type", text: t("types.new"), onclick: () => openTypeEditor({}) })),
+    typeEditorBox);
 
   const sysToggle = (u, role, label) => {
     const box = h("input", { type: "checkbox", checked: rolesOf(u.id).includes(role), "aria-label": `${label}: ${u.username}` });
@@ -5949,6 +6302,9 @@ async function adminView() {
   const regulationsSection = section("regulations", t("dp.adminTitle"), await regulationsCard());
 
   const importSection = section("import", t("admin.import"),
+    h("h3", { text: t("notesImport.title") }),
+    noteImportCard({ spaces: favouritesFirst(spaces), types: types.filter((ty) => ty.body), lang: language(), keyLink: itemLink }),
+    h("h3", { text: t("notesImport.otherWiki") }),
     h("p", { text: t("admin.importText") }),
     h("pre", { class: "snippet", text: "orbithek import -help" }));
 
@@ -6496,6 +6852,8 @@ function connectorEditor(c, data, spaces, users, list, reopen) {
   const k = c.ckan || { formats: [], organizations: [], baseURL: "", portalURL: "", language: "de" };
   const j = c.json;
   const g = c.git;
+  // A reading service's highlights (ADR-0212).
+  const hl = c.highlights;
   // An Atlassian import names its spaces, types and fields itself
   // (ADR-0128): it has no space, type or steward of its own.
   const a = c.atlassian;
@@ -6674,6 +7032,15 @@ function connectorEditor(c, data, spaces, users, list, reopen) {
     field(t("connector.language"), languageSelect(g.language)),
     h("p", { class: "muted", text: t("git.languageHelp") }),
   ];
+  // The service whose highlights become items, and how often a run reads
+  // them all instead of what changed (ADR-0212).
+  const highlightsSource = () => [
+    field(t("highlights.url"), h("input", { name: "url", type: "url", required: true, value: hl.url, maxlength: 512 })),
+    h("p", { class: "muted", text: t("highlights.urlHelp") }),
+    field(t("highlights.fullDays"), h("input", { name: "fullDays", type: "number", min: 1, max: 365, required: true, value: hl.fullDays || 7 })),
+    h("p", { class: "muted", text: t("highlights.fullDaysHelp") }),
+    field(t("connector.language"), languageSelect(hl.language)),
+  ];
   // The source accounts, groups and roles of an Atlassian import, one a
   // line: "accountId username", "source group @local-group", "username=role".
   const lines = (v) => v.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#"));
@@ -6729,7 +7096,7 @@ function connectorEditor(c, data, spaces, users, list, reopen) {
       { id: "run-problems-" + Date.parse(r.started), label: t("catalog.problems") }) : "");
   editor.replaceChildren(
     h("h3", { text: c.isNew ? t("connector.newTitle") : c.name }),
-    h("p", { class: "muted", text: a ? t("atlassian.note") : j ? t("json.note") : g ? t("git.note") : t("catalog.note") }),
+    h("p", { class: "muted", text: a ? t("atlassian.note") : j ? t("json.note") : g ? t("git.note") : hl ? t("highlights.note") : t("catalog.note") }),
     h("p", { class: "muted", text: t("connector.publicOnly") }),
     form({ id: "connector-settings" }, [
       field(t("connector.id"), h("input", { name: "id", value: c.id, required: true, readonly: !c.isNew, pattern: "[a-z0-9][a-z0-9.\\-]{0,39}", maxlength: 40 })),
@@ -6738,7 +7105,7 @@ function connectorEditor(c, data, spaces, users, list, reopen) {
       h("label", { class: "check" }, h("input", { type: "checkbox", name: "enabled", checked: c.enabled }), " ", t("catalog.enabled")),
       a ? "" : field(t("catalog.space"), h("select", { name: "space", required: true }, h("option", { value: "", text: "—" }),
         favouritesFirst(spaces).map((sp) => h("option", { value: sp.key, text: `${sp.name} (${sp.key})`, selected: sp.key === c.space })))),
-      a ? atlassianSource() : j ? jsonSource() : g ? gitSource() : ckanSource(),
+      a ? atlassianSource() : j ? jsonSource() : g ? gitSource() : hl ? highlightsSource() : ckanSource(),
       a ? "" : h("fieldset", { class: "connector-target" }, h("legend", { text: t("connector.target") }),
         field(t("connector.type"), typeSelect),
         h("p", { class: "muted", text: t("connector.targetHelp") }),
@@ -6748,7 +7115,7 @@ function connectorEditor(c, data, spaces, users, list, reopen) {
         users.map((u) => h("option", { value: u.id, text: u.username, selected: u.id === c.steward })))),
       a ? "" : h("p", { class: "muted", text: t("catalog.stewardHelp") }),
       field(t("catalog.interval"), h("input", { name: "intervalHours", type: "number", min: 1, max: 744, required: true, value: c.intervalHours })),
-      j || a || g ? "" : h("details", {}, h("summary", { text: t("catalog.source") }),
+      j || a || g || hl ? "" : h("details", {}, h("summary", { text: t("catalog.source") }),
         field(t("catalog.baseURL"), h("input", { name: "baseURL", type: "url", required: true, value: k.baseURL })),
         field(t("catalog.portalURL"), h("input", { name: "portalURL", type: "url", required: true, value: k.portalURL }))),
       c.isNew ? "" : h("p", { class: "muted", id: "connector-credential",
@@ -6773,6 +7140,8 @@ function connectorEditor(c, data, spaces, users, list, reopen) {
       };
       if (g) {
         body.git = { url: d.get("url").trim(), language: d.get("language") };
+      } else if (hl) {
+        body.highlights = { url: d.get("url").trim(), language: d.get("language"), fullDays: Number(d.get("fullDays")) || 7 };
       } else if (a) {
         body.atlassian = { site: d.get("site").trim(), spaces: list(d.get("spaces")), projects: list(d.get("projects")), users: pairs(d.get("users")),
           groups: pairs(d.get("groups")), grants: lines(d.get("grants")) };
@@ -6791,7 +7160,7 @@ function connectorEditor(c, data, spaces, users, list, reopen) {
     }),
     c.isNew ? "" : h("p", { id: "connector-next" }, st.running ? t("catalog.running") : st.next ? t("catalog.next", { when: when(st.next) }) : t("catalog.off")),
     c.isNew ? "" : h("div", { class: "actions-row" }, run(true, "connector-dry-run", t("catalog.dryRunNow")), run(false, "connector-run-now", t("catalog.runNow")),
-      j?.since ? run(false, "connector-run-full", t("since.runFull"), true) : "",
+      j?.since || hl ? run(false, "connector-run-full", t("since.runFull"), true) : "",
       c.space ? link("#/space/" + encodeURIComponent(c.space), t("catalog.openSpace"), "button") : "", a ? release() : ""),
     c.isNew || !a ? "" : h("p", { class: "muted", text: t("atlassian.releaseHelp") }),
     runStatus,
@@ -6996,6 +7365,7 @@ async function designCard() {
     night: { name: t("design.theme.night"), note: t("design.theme.nightNote"), colours: ["#070a10", "#121722", "#22d3ee"] },
     comic: { name: t("design.theme.comic"), note: t("design.theme.comicNote"), colours: ["#ffd23f", "#fff6d6", "#e3262f"] },
     sketch: { name: t("design.theme.sketch"), note: t("design.theme.sketchNote"), colours: ["#fffefa", "#2b2b2b", "#2856b6"] },
+    capacity: { name: t("design.theme.capacity"), note: t("design.theme.capacityNote"), colours: ["#ffffff", "#f7f7f8", "#4f5fe6"] },
   };
   const themePicker = h("fieldset", { class: "design-themes", id: "design-themes" }, h("legend", { text: t("design.theme") }),
     ["", ...(b.themes || [])].filter((id) => themes[id]).map((id) => {
@@ -7049,13 +7419,31 @@ async function designCard() {
     status);
 }
 
+// itemLink links an item by its key.
+const itemLink = (key, text) => link("#/item/" + encodeURIComponent(key), text);
+
+// importView imports a ZIP archive of notes into a room, for its
+// administrators (ADR-0211).
+async function importView(key) {
+  const show = screen();
+  const [{ spaces }, { types }] = await Promise.all([get("/api/spaces"), get("/api/types")]);
+  here.space = key;
+  const sp = spaces.find((s) => s.key === key) || { name: key };
+  show(
+    h("p", {}, link("#/", t("nav.spaces")), " / ", link("#/space/" + encodeURIComponent(key), key), " / " + t("notesImport.title")),
+    h("h1", { text: t("notesImport.heading", { space: sp.name }) }),
+    noteImportCard({ space: key, types: types.filter((ty) => ty.body), lang: language(), keyLink: itemLink }),
+  );
+}
+
 // membersView lists who holds which role in a space, for its
 // administrators (ADR-0048): change a role, take it back, grant one to a
 // person or a group.
 async function membersView(key) {
   const show = screen();
-  const [{ roles }, { users }, { spaces }] = await Promise.all([
-    get(`/api/spaces/${encodeURIComponent(key)}/roles`), get("/api/users"), get("/api/spaces"),
+  await loadTypeTemplates();
+  const [{ roles }, { users }, { spaces }, { types }] = await Promise.all([
+    get(`/api/spaces/${encodeURIComponent(key)}/roles`), get("/api/users"), get("/api/spaces"), get(`/api/types?space=${encodeURIComponent(key)}`),
   ]);
   for (const u of users) names.set(u.id, u.username);
   await learnNames(roles.map((r) => r.principal).filter((p) => !p.startsWith("@")));
@@ -7084,6 +7472,8 @@ async function membersView(key) {
     status,
     sp.role === "space-admin" ? spaceNameCard(sp, key) : null,
     sp.role === "space-admin" ? spaceIconCard(sp, status) : null,
+    // The room's own types (ADR-0201).
+    sp.role === "space-admin" ? roomTypesCard({ space: key, types, templates: typeTemplates, onChange: () => route() }) : null,
     h("h2", { text: t("members.roles") }),
     roles.length ? filtered(h("table", { id: "members" }, roles.map(row)), { id: "members", label: t("members.roles"),
       choices: [{ key: "role", label: t("admin.role"), name: roleText }] }) : empty(t("members.none")),

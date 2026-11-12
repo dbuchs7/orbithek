@@ -2,6 +2,7 @@ package item
 
 import (
 	"errors"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -306,7 +307,7 @@ func TestAPassageIsErasedForGood(t *testing.T) {
 	for _, c := range cs {
 		switch c.ID {
 		case quote.ID:
-			if *c.Anchor != (Anchor{Quote: SecretPlaceholder}) {
+			if !reflect.DeepEqual(*c.Anchor, Anchor{Quote: SecretPlaceholder}) {
 				t.Errorf("the quote of the passage reads %+v", c.Anchor)
 			}
 		case other.ID:

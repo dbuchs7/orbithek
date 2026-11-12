@@ -44,6 +44,12 @@ var classified = map[string]string{
 		"not memory a caller of this server can claim",
 	"internal/connector.maxPictures": "the shape of a page written from a Git repository (ADR-0138): how many pictures it keeps; " +
 		"each picture is bounded by AttachmentBytes",
+	"internal/noteimport.maxNote": "the shape of a page written from an imported note (ADR-0211), like a Markdown file of a repository; " +
+		"what an archive makes the server read is bounded by NoteUnpackedBytes",
+	"internal/noteimport.maxTable": "the shape of a database of an imported workspace (ADR-0211): the CSV file its rows are read from; " +
+		"what an archive makes the server read is bounded by NoteUnpackedBytes",
+	"internal/noteimport.maxPictures": "the shape of a page written from an imported note (ADR-0211): how many pictures it keeps; " +
+		"each picture is bounded by AttachmentBytes",
 	"internal/gitrepo.maxListing": "an answer of the API of a Git host the server reads (ADR-0138), not a caller's input to this server; " +
 		"it guards against a host that misbehaves",
 	"internal/gitrepo/gitrepo.go:maxListing + 1": "the same bound, where the answer is read",
@@ -82,11 +88,14 @@ var classified = map[string]string{
 	"internal/item.maxSecretReaders":                   "the shape of a protected passage (ADR-0088): how many people and groups it names, like the lists of a restriction",
 	"internal/item.maxPictureLabels":                   "the shape of a picture (ADR-0090): how many labels it carries, a list a person types, not a memory setting",
 	"internal/item.MaxFaces":                           "the shape of a picture (ADR-0194): how many faces it shows, like the labels it carries, not a memory setting",
+	"internal/item.MaxRating":                          "the scale of a rating field (ADR-0202): one to five stars, a property of the field kind, not memory a caller claims",
 	"internal/item.maxPersonRunes":                     "the shape of a face (ADR-0194): the length of a person's name, like the length of a title",
 	"internal/server.maxKeptVectors":                   "a bound of the face vectors kept in memory for suggestions (ADR-0194), at most a few hundred bytes a picture; past it they are read again, so nothing a caller claims grows with it",
 	"internal/storage.maxFaceVectorBytes":              "the size of a file of face vectors (ADR-0194), fixed by MaxFaces and the 128 numbers of a face; written by this server, not a caller's upload",
 	"internal/storage/faces.go:maxFaceVectorBytes + 1": "the same bound, where the file is read",
 	"internal/item.MaxPrefill":                         "the shape of a start form (ADR-0148): how many of its fields it fills in beforehand, a list a person chooses, like the labels of a picture",
+	"internal/item.MaxViewColumns":                     "the shape of a view in a text (ADR-0203): how many columns it names, a list a person chooses, like the fields a start form fills in",
+	"internal/item.maxViewName":                        "the shape of a view in a text (ADR-0203): the length of the name of a type or field it names, like the length of a title",
 	"internal/engine/grant.go:4096": "an engine's answer that a task ended (ADR-0152), a small fixed object read only for the word it says; " +
 		"not memory a caller of this server can claim",
 	"internal/engine/engine.go:4096": "the start of an engine's refusal of a start link's submission, quoted in the error message (ADR-0148); " +
@@ -171,6 +180,8 @@ var classified = map[string]string{
 		"not a caller's input to this server",
 	"internal/notify/hooks.go:maxHookAnswer":    "the same bound, where the answer is dropped",
 	"internal/migrate/cloud.go:maxSourceAnswer": "the same bound, where the import reads (ADR-0023)",
+	"internal/linkpreview.maxField": "the shape of a web link's fields (ADR-0208): how long one value a page names may be, like the length of a title; " +
+		"the page itself is bounded by LinkPreviewPageBytes",
 }
 
 // TestNoCeilingWithoutAName keeps the budgets complete (ADR-0015). Every

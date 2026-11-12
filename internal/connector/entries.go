@@ -51,6 +51,23 @@ type Entry struct {
 	// new entry, or when Blob does not tell that the content is unchanged;
 	// nil means Title and Body are the content.
 	Load func() (Content, error)
+
+	// The fields below serve sources whose entries carry labels, are read
+	// for what changed, and have a text people continue below the
+	// source's: a reading service's highlights (ADR-0212).
+
+	// Labels are labels the source gives the entry; a run adds them to the
+	// item's and never takes one away.
+	Labels []string
+	// Update reads the entry's content as Load does, given the raw content
+	// kept in the item's origin, empty for a new item, so a source read for
+	// what changed merges it with what it gave before. It takes Load's
+	// place.
+	Update func(kept string) (Content, error)
+	// Below, if set, finds the block that ends the source's part of the
+	// page: what people wrote below it is kept when the page is written
+	// anew.
+	Below func(item.Block) bool
 }
 
 // ErrLeftOut is an entry Load leaves out for what it is, e.g. a file too

@@ -268,7 +268,7 @@ func TestStartMarkdownRoundTrips(t *testing.T) {
 	if startMarkdown(nil) != "" || len(startFromMarkdown("  \n")) != 0 {
 		t.Error("empty start text")
 	}
-	if got := controls(item.Item{Title: "T", Key: "K-1", Labels: []string{"a", "b"}, Properties: item.Props{"Owner": "u1"}}, item.TypeDef{Fields: []item.FieldDef{{Name: "Owner", Kind: item.KindUser}}}, "Raum", nil); got["owner"] != "u1" || got["labels"] != "a, b" || got["space"] != "Raum" {
+	if got := controls(nil, item.Item{Title: "T", Key: "K-1", Labels: []string{"a", "b"}, Properties: item.Props{"Owner": "u1"}}, item.TypeDef{Fields: []item.FieldDef{{Name: "Owner", Kind: item.KindUser}}}, "Raum", nil); got["owner"] != "u1" || got["labels"] != "a, b" || got["space"] != "Raum" {
 		t.Errorf("controls %v", got)
 	}
 }

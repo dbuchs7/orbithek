@@ -9,7 +9,7 @@
 
 The web UI, the MCP adapter (ADR-0012), automation and integrations all reach the product through an HTTP API. Two failures are typical for such APIs: the documentation drifts away from what is served, and a route ends up public because nobody said otherwise.
 
-Adapted from atlas [ADR-0043](https://github.com/pblumer/atlas/blob/main/docs/adr/0043-openapi-spec-and-embedded-api-explorer.md) and [ADR-0199](https://github.com/pblumer/atlas/blob/main/docs/adr/0199-route-access-classes.md).
+Adapted from atlas [ADR-0043](https://github.com/pblumer/atlas/blob/main/docs/adr/0043-openapi-spec-and-embedded-api-explorer.md) and [ADR-0201](https://github.com/pblumer/atlas/blob/main/docs/adr/0201-route-access-classes.md).
 
 ## Decision drivers
 
@@ -64,5 +64,5 @@ Strongest form: established tooling (e.g. swag) produces a complete document wit
 
 ## Links
 
-- atlas [ADR-0043](https://github.com/pblumer/atlas/blob/main/docs/adr/0043-openapi-spec-and-embedded-api-explorer.md), [ADR-0199](https://github.com/pblumer/atlas/blob/main/docs/adr/0199-route-access-classes.md)
+- atlas [ADR-0043](https://github.com/pblumer/atlas/blob/main/docs/adr/0043-openapi-spec-and-embedded-api-explorer.md), [ADR-0201](https://github.com/pblumer/atlas/blob/main/docs/adr/0201-route-access-classes.md)
 - relates to ADR-0012 (MCP), ADR-0013 (authentication)

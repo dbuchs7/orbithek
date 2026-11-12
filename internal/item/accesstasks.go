@@ -130,9 +130,12 @@ func MentionParagraph(before string, item ID, label, after string) Block {
 }
 
 // TypeTemplates are the ready-made types an installation starts from
-// (types are data, ADR-0001): the UI offers them to administrators, and a
+// (types are data, ADR-0001): the UI offers them to administrators, a
 // request's task is of the first of them that can hold one when the
-// installation has no such type yet (ADR-0162).
+// installation has no such type yet (ADR-0162), a label's page is of
+// the type topic (ADR-0204), a web link is saved as an item of the
+// weblink type, defined when it is first needed (ADR-0208), and a person's
+// first daily note defines the daily note type when it is missing (ADR-0205).
 func TypeTemplates() []TypeDef {
 	return []TypeDef{
 		{Name: "page", Body: true, Fields: []FieldDef{{Name: "owner", Kind: KindUser}}},
@@ -146,6 +149,11 @@ func TypeTemplates() []TypeDef {
 			Workflow: &Workflow{Initial: "proposed", States: []string{"proposed", "accepted", "rejected"}, Transitions: []Transition{
 				{Name: "accept", From: []string{"proposed"}, To: "accepted"},
 				{Name: "reject", From: []string{"proposed"}, To: "rejected"}}}},
+		// The page of a label (ADR-0204).
+		topicType(),
+		webLinkTemplate(),
+		// A daily note per person and day (ADR-0205).
+		dailyTemplate(),
 	}
 }
 
@@ -194,7 +202,7 @@ func finishing(w *Workflow, from string, props Props) (string, bool) {
 // type that can and is most like it. With neither, and the ready-made type's
 // name free, the ready-made type is to be defined (define). ok is false
 // when no type can be had: the request is then made without a task.
-func (s *Store) requestType() (td TypeDef, define, ok bool) {
+func (s *Store) requestType(space string) (td TypeDef, define, ok bool) {
 	var tmpl TypeDef
 	for _, t := range TypeTemplates() {
 		if holdsRequests(t) {
@@ -203,14 +211,15 @@ func (s *Store) requestType() (td TypeDef, define, ok bool) {
 		}
 	}
 	cur, exists := s.latest(tmpl.Name)
-	if exists && holdsRequests(cur) {
+	if exists && holdsRequests(cur) && cur.UsableIn(space) {
 		return cur, false, true
 	}
 	// Of the others, the one most like the template: the most of its
 	// fields and states, then by name.
 	best, score := TypeDef{}, -1
 	for _, t := range s.Types() {
-		if n := likeness(t, tmpl); holdsRequests(t) && n > score {
+		// A type of another room cannot hold a task here (ADR-0201).
+		if n := likeness(t, tmpl); holdsRequests(t) && t.UsableIn(space) && n > score {
 			best, score = t, n
 		}
 	}
@@ -288,7 +297,7 @@ func (s *Store) requestTask(it *Item, sec Secret, requester string) ([]Event, ID
 	if it.Presence != Live {
 		return nil, "", nil
 	}
-	td, define, ok := s.requestType()
+	td, define, ok := s.requestType(it.Space)
 	if !ok {
 		return nil, "", nil
 	}

@@ -99,14 +99,15 @@ func (h itemHandlers) templateRef(it item.Item, td item.TypeDef) *item.TemplateR
 
 // controls are the texts a template's content controls show of an item:
 // its title, key, type, state, room, labels and properties, by name in
-// lower case, as a reader reads them.
-func controls(it item.Item, td item.TypeDef, spaceName string, names map[auth.UserID]string) map[string]string {
+// lower case, as a reader reads them: a referenced item by its key and
+// title, a file by its name (ADR-0202).
+func controls(s *item.Store, it item.Item, td item.TypeDef, spaceName string, names map[auth.UserID]string) map[string]string {
 	out := map[string]string{
 		"title": it.Title, "key": it.Key, "type": it.Type, "state": it.State, "space": spaceName,
 		"labels": strings.Join(it.Labels, ", "),
 	}
 	for _, f := range td.Fields {
-		out[strings.ToLower(f.Name)] = propertyText(it.Properties[f.Name], f.Kind, names)
+		out[strings.ToLower(f.Name)] = propertyText(shownValue(s, it, f.Kind, it.Properties[f.Name], true), f.Kind, names)
 	}
 	return out
 }
@@ -426,7 +427,7 @@ func (h itemHandlers) itemDocument(w http.ResponseWriter, r *http.Request) {
 				spaceName = sp.Name
 			}
 		}
-		values = controls(it, td, spaceName, names)
+		values = controls(s, it, td, spaceName, names)
 	})
 	if err != nil {
 		h.fail(w, err)

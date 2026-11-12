@@ -163,7 +163,7 @@ func (h *htmlBuilder) block(bl item.Block, p Page, base int) {
 			h.printf("<figcaption>%s</figcaption>", html.EscapeString(bl.Text))
 		}
 		h.out.WriteString("</figure>")
-	case item.BPMN, item.Process, item.Form, item.Decision, item.Architecture, item.StartForm:
+	case item.BPMN, item.Process, item.Form, item.Decision, item.Architecture, item.StartForm, item.ItemsView:
 		// A printed page does not draw a diagram, a form, a decision or a
 		// sketch; it names the file, the process, the form, the decision,
 		// the sketch or the start form (ADR-0129, ADR-0144, ADR-0146,

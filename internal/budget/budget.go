@@ -105,6 +105,14 @@ type Budgets struct {
 	// (ADR-0159), the start included, across every space. Beyond it the
 	// walk keeps the nearest nodes and says it was cut.
 	ImpactNodes int
+	// NoteImportBytes, NoteImportFiles and NoteUnpackedBytes bound one
+	// import of notes (ADR-0211): the uploaded ZIP archive, which the
+	// server holds while it reads it, the files it may hold, and the bytes
+	// all files read from it may hold unpacked, together, so a small
+	// archive cannot unpack into much.
+	NoteImportBytes   int64
+	NoteImportFiles   int
+	NoteUnpackedBytes int64
 	// WhiteboardSessions, WhiteboardClients, WhiteboardElements and
 	// WhiteboardSceneBytes bound live whiteboards (ADR-0169): sessions on
 	// the server, clients per session (browsers and agents), elements one
@@ -151,6 +159,28 @@ type Budgets struct {
 	// may take, beyond the server's usual minute.
 	VideoBytes           int64
 	VideoTransferSeconds int
+	// HighlightRects bounds the rectangles one highlight in a PDF draws on
+	// its page (ADR-0210): a selection over many lines makes one per line.
+	HighlightRects int
+	// LinkPreviewPageBytes bounds what the server reads of one web page
+	// whose metadata or text it takes (ADR-0208), LinkPreviewImageBytes
+	// the picture a page names, kept as a file of its item, and
+	// LinkPreviewSeconds each of those requests, redirects included.
+	// LinkPreviewsAtOnce bounds the pages and pictures read at once,
+	// across all people, LinkPreviewBlocks the blocks one page's text
+	// becomes.
+	LinkPreviewPageBytes  int64
+	LinkPreviewImageBytes int64
+	LinkPreviewSeconds    int
+	LinkPreviewsAtOnce    int
+	LinkPreviewBlocks     int
+	// ContextEntries bounds each list of an item's context (ADR-0207):
+	// what refers to it, what shares its labels, and the daily notes that
+	// name it. Beyond it a list keeps the first and says it was cut.
+	ContextEntries int
+	// DailyNoteDays bounds the days one listing of a person's daily notes
+	// covers (ADR-0205), a year and a little more by default.
+	DailyNoteDays int
 }
 
 // Default returns the budgets the server uses unless configured otherwise.
@@ -184,6 +214,9 @@ func Default() Budgets {
 		MarkdownPictureBytes:   50 << 20,
 		StarmapNodes:           600,
 		ImpactNodes:            1000,
+		NoteImportBytes:        100 << 20,
+		NoteImportFiles:        5000,
+		NoteUnpackedBytes:      512 << 20,
 		WhiteboardSessions:     200,
 		WhiteboardClients:      20,
 		WhiteboardElements:     20_000,
@@ -203,6 +236,14 @@ func Default() Budgets {
 		PhotoImports:           200,
 		VideoBytes:             2 << 30,
 		VideoTransferSeconds:   3600,
+		HighlightRects:         200,
+		LinkPreviewPageBytes:   2 << 20,
+		LinkPreviewImageBytes:  5 << 20,
+		LinkPreviewSeconds:     10,
+		LinkPreviewsAtOnce:     8,
+		LinkPreviewBlocks:      500,
+		ContextEntries:         50,
+		DailyNoteDays:          400,
 	}
 }
 

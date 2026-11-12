@@ -26,7 +26,10 @@ func TestEmbeddedUIHasEntryPointAndAssets(t *testing.T) {
 		"vendor/face-api.js", "vendor/face-api.LICENSE.txt", "vendor/face-models/tiny_face_detector_model-weights_manifest.json",
 		"vendor/face-models/tiny_face_detector_model.bin", "vendor/face-models/face_landmark_68_tiny_model-weights_manifest.json",
 		"vendor/face-models/face_landmark_68_tiny_model.bin", "vendor/face-models/face_recognition_model-weights_manifest.json",
-		"vendor/face-models/face_recognition_model.bin"} {
+		"vendor/face-models/face_recognition_model.bin",
+		"vendor/pdf.js", "vendor/pdf.worker.js", "vendor/pdf.LICENSE.txt", "vendor/pdfjs/standard_fonts/FoxitSerif.pfb",
+		"vendor/pdfjs/standard_fonts/LICENSE_FOXIT", "vendor/pdfjs/cmaps/UniJIS-UCS2-H.bcmap", "vendor/pdfjs/cmaps/LICENSE",
+		"vendor/pdfjs/wasm/openjpeg_nowasm_fallback.js", "vendor/pdfjs/wasm/jbig2_nowasm_fallback.js"} {
 		if _, err := fs.Stat(FS(), name); err != nil {
 			t.Errorf("%s: %v", name, err)
 		}
@@ -51,6 +54,8 @@ func TestNoMarkupFromStrings(t *testing.T) {
 		// bpmn-js (ADR-0129), which renders diagrams as SVG it builds itself,
 		// and form-js and dmn-js (ADR-0144), which render forms and decision
 		// tables with Preact and Inferno and sanitize the Markdown of a form.
+		// pdf.js (ADR-0210) draws pages on canvases and lays their text out
+		// in elements it makes itself.
 		if strings.HasPrefix(path, "vendor/") {
 			return nil
 		}

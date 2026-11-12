@@ -9,7 +9,7 @@
 
 ## Context and problem statement
 
-Pages leave the wiki as Word documents and PDFs, tables and lists as CSV (ADR-0071). Documentation is also kept beside code in repositories, written in editors such as VS Code or Obsidian, and handed to AI assistants; Markdown is the format all of them read. Agents read pages over MCP only as the block document of `get_item` (ADR-0012), which is exact but not the text a person reads.
+Pages leave the wiki as Word documents and PDFs, tables and lists as CSV (ADR-0071). Documentation is also kept beside code in repositories, written in code editors and Markdown notes applications, and handed to AI assistants; Markdown is the format all of them read. Agents read pages over MCP only as the block document of `get_item` (ADR-0012), which is exact but not the text a person reads.
 
 How do pages export as Markdown, how do pictures travel with the text, and how do agents read a page as Markdown?
 
