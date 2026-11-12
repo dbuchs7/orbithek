@@ -9,7 +9,7 @@
 // The view itself is in e2e/smoke.cjs.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NO_LABEL, address, autoScale, dateFields, dayString, frame, ganttRows, guessFields, isoWeek, lanes, normalLabel, pack, parseDay, place, readState,
+import { NO_LABEL, address, autoScale, dateFields, dayString, frame, ganttRows, guessFields, isStartName, isoWeek, lanes, normalLabel, pack, parseDay, place, readState,
   schedule, span, suggest, todayDay } from "../static/assets/timeline.js";
 
 const d = (s) => parseDay(s);
@@ -37,6 +37,11 @@ test("the date fields of the types are offered once each, and start and end are 
   assert.deepEqual(guessFields(["decided"]), { start: "", end: "decided" });
   assert.deepEqual(guessFields(["begin"]), { start: "begin", end: "" });
   assert.deepEqual(guessFields([]), { start: "", end: "" });
+});
+
+test("a field named like a beginning is a start, never a deadline", () => {
+  for (const n of ["start", "Start", "begin", "start_date", "planned_start", "kickoff"]) assert.ok(isStartName(n), n);
+  for (const n of ["due", "deadline", "decided", "end", "restart", ""]) assert.ok(!isStartName(n), n);
 });
 
 test("items become bars, milestones or unscheduled items", () => {

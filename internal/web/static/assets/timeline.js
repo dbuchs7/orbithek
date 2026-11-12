@@ -79,6 +79,12 @@ export function dateFields(types) {
 const startNames = /^(start|starts|begin|begins|from|since|kickoff|start_?date|begin_?date|planned_?start)$/i;
 const endNames = /^(due|end|ends|until|deadline|finish|finishes|target|end_?date|due_?date|planned_?end|release|delivery)$/i;
 
+// isStartName reports whether a field is named like a beginning: a start
+// date says when work begins, so it is never a deadline that can pass.
+export function isStartName(name) {
+  return startNames.test(name);
+}
+
 // guessFields picks the fields a view is scheduled by when the address
 // names none: a start among the names that mean a beginning, an end among
 // those that mean an end, else the only or the first other date field.

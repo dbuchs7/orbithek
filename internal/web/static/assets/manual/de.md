@@ -269,6 +269,8 @@ Die Seite eines Labels zeigt die Einträge mit ihrem Label als Ansicht: **Tabell
 
 Das Modul **Aufgaben** listet die offene Arbeit in den eigenen Räumen auf: Einträge vom Typ *task* sowie jedes Typs mit Workflow und einem Feld *assignee* oder *due*. Die Reiter zeigen **Mir zugewiesen**, **Nicht zugewiesen** und **Alle offenen**; Filter schränken nach Raum, Status, Person, Fälligkeit und Labels ein. **Übernehmen** weist eine Aufgabe sich selbst zu, **Zurückgeben** gibt sie frei. Überfällige Aufgaben sind markiert.
 
+Der vorgefertigte Typ *task* hat neben dem Datum *due* ein Datum *start*. Kalender und Roadmap zeigen eine Aufgabe mit beiden Daten als Balken vom Beginn bis zur Fälligkeit. Ein Startdatum ist keine Frist: Auf einem Kanban wird ein vergangenes Startdatum nicht als überfällig markiert. Bereits angelegte Typen erhalten das Feld, wenn eine Administratorin oder ein Administrator auf der Startseite die neuen Felder der vorgefertigten Typen hinzufügt.
+
 ### Boards und Kanbans
 
 Ein **Board** zeigt die Einträge eines Typs in einem Raum als Spalten ihrer Workflow-Status. Das Ziehen einer Karte in eine andere Spalte führt den Übergang des Workflows aus.
