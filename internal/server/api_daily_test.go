@@ -76,6 +76,10 @@ func TestADailyNoteThroughTheAPI(t *testing.T) {
 		t.Fatalf("body %v", body)
 	}
 	b.expect("POST", "/api/daily/2026-11-13/paragraphs", `{"text":"  "}`, http.StatusBadRequest)
+	b.expect("POST", "/api/daily/2026-11-13/paragraphs", `{"text":`, http.StatusBadRequest)
+	b.expect("POST", "/api/daily/2026-13-13/paragraphs", `{"text":"x"}`, http.StatusBadRequest)
+	b.expect("POST", "/api/daily/2026-11-13", `{"title":`, http.StatusBadRequest)
+	b.expect("PUT", "/api/daily/room", `{"space":`, http.StatusBadRequest)
 
 	days := b.expect("GET", "/api/daily?from=2026-11-01&to=2026-11-30", "", http.StatusOK)
 	if days["space"] != "PLAT" || fmt.Sprint(days["days"]) != "[2026-11-12 2026-11-13]" || days["mayCreate"] != true {

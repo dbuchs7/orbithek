@@ -93,14 +93,12 @@ func (h itemHandlers) setDailyRoom(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	switch err := h.d.DB.Accounts.SetDailyRoom(auth.UserID(who(r)), space); {
-	case errors.Is(err, auth.ErrInvalid):
-		writeError(w, http.StatusBadRequest, err.Error())
-	case err != nil:
+	// The room exists and one holds a role in it, so its key is valid.
+	if err := h.d.DB.Accounts.SetDailyRoom(auth.UserID(who(r)), space); err != nil {
 		h.fail(w, err)
-	default:
-		writeJSON(w, http.StatusOK, map[string]string{"space": space})
+		return
 	}
+	writeJSON(w, http.StatusOK, map[string]string{"space": space})
 }
 
 func (h itemHandlers) getDailyNote(w http.ResponseWriter, r *http.Request) {
