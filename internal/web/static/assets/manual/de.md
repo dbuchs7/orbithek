@@ -111,6 +111,26 @@ Bilder lassen sich links oder rechts mit Text daneben oder zentriert platzieren 
 
 Der **Verlauf** listet jede Änderung eines Eintrags mit Person und Zeitpunkt auf. Eine Fassung des Textes zeigt ihre **Änderungen**; **Diese Fassung wiederherstellen** holt einen früheren Text als neue Version zurück. Durch das Wiederherstellen geht nichts verloren.
 
+## Weblinks und Erfassen
+
+### Einen Weblink speichern
+
+Eine Seite aus dem Web lässt sich als eigener Eintrag aufbewahren, als *Weblink*: ihre Adresse und was die Seite über sich selbst sagt, etwa Website, Beschreibung, Autorin oder Autor und Erscheinungstag, in seinen Feldern; ihr Bild als Datei; und Ihre eigenen Notizen in seinem Text, wo Kommentare und persönliche Notizen wie auf jeder Seite funktionieren.
+
+Fügen Sie beim Bearbeiten eines Textes eine Adresse auf einer eigenen Zeile ein. Die Blase unter dem Link bietet **Als Weblink-Eintrag speichern** an: Der Eintrag kommt unter die Seite, an der Sie schreiben, oder in einen anderen Raum, und die Zeile mit der Adresse wird zu einer Karte der Seite mit Bild, Titel, Website und Beschreibung. Ein Weblink-Eintrag zeigt dieselbe Karte zuoberst, ebenso jeder Text, der ihn einbettet.
+
+Liest Ihr Server Webseiten (das entscheidet eine Administratorin oder ein Administrator), werden die Felder und das Bild eines Weblinks aus der Seite gefüllt. Auf dem Weblink-Eintrag bringt **Seite neu lesen** sie auf den neuesten Stand und behält ein früheres Bild als frühere Version; **Text der Seite übernehmen** fügt den Haupttext der Seite unter dem Text des Eintrags an, um ihn zu kommentieren und mit persönlichen Notizen zu versehen. Ohne dies behält ein Weblink seine Adresse, und Sie füllen seine Felder selbst aus.
+
+### Von überall erfassen
+
+**Erfassen** speichert eine Seite aus dem Web, ein Zitat oder einen Gedanken, wo immer Sie gerade sind. Es öffnet sich:
+
+- unter **Neu** mit der Karte **Erfassen**;
+- von jeder Seite im Web aus mit dem Lesezeichen, das unter **Konto und Passwort** im Kontomenü angeboten wird: Ziehen Sie die Schaltfläche **Erfassen** in die Lesezeichen Ihres Browsers, oder verwenden Sie **Lesezeichen kopieren**. Auf einer Seite öffnet es die Erfassung mit dem Titel der Seite, ihrer Adresse und dem markierten Text;
+- auf dem Telefon, indem Sie eine Seite oder einen Text mit Orbithek teilen, sobald Sie es über das Menü des Browsers als App installiert haben.
+
+Die Erfassung zeigt Titel, Adresse und Text, die Sie ändern können, und fragt, wo sie gespeichert werden: als **Weblink** (wenn es eine Adresse gibt), als **neuer Eintrag** eines Typs und in einem Raum Ihrer Wahl oder als **Ergänzung eines Eintrags**, den Sie über die Suche finden. Der Text wird zu Zitaten, die Adresse folgt als ihre Quelle. Gespeichert wird erst mit **Speichern**. Wer sich zuerst anmelden muss, verliert das Geteilte nicht.
+
 ## Zusammenarbeiten
 
 ### Kommentare
