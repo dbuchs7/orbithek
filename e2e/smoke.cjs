@@ -2244,7 +2244,10 @@ function gitSource() {
       await page.check("#faces-recognition");
       await page.click("#faces-form button[type=submit]");
       await page.waitForSelector("#faces-search-hint a#faces-search-link[href='#/album?view=people']");
+      // The album opens at its top again; the folder Talk is opened, as
+      // the steps after this one begin there.
       await page.goto(back);
+      await page.click("#album .album-folder:has-text('Talk')");
       await page.waitForSelector("#album .album-card .album-name:text-is('2 Plan')");
       const pics = await page.evaluate(async () => (await (await fetch("/api/album")).json()).pictures);
       const plan = pics.find((p) => p.attachment.name === "2 Plan.png");
