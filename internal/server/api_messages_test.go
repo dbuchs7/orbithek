@@ -159,7 +159,18 @@ func TestMessagesAroundAccountRequests(t *testing.T) {
 	anon.expect("POST", "/api/signup", `{"username":"egon","password":"egon's password","email":"egon@example.org"}`, http.StatusAccepted)
 	anon.expect("POST", "/api/signup", `{"username":"fritz","password":"fritz's password","email":"fritz@example.org"}`, http.StatusAccepted)
 	w.deps.Messages.Wait()
-	if got := box.to("admin@example.org"); len(got) != 2 || !strings.Contains(got[0].Subject, "egon") || got[0].Link != "https://wiki.example.org/#/admin" {
+	// Each message is sent in the background on its own, so the two arrive
+	// in either order.
+	got := box.to("admin@example.org")
+	told := map[string]bool{}
+	for _, m := range got {
+		for _, name := range []string{"egon", "fritz"} {
+			if strings.Contains(m.Subject, name) && m.Link == "https://wiki.example.org/#/admin" {
+				told[name] = true
+			}
+		}
+	}
+	if len(got) != 2 || !told["egon"] || !told["fritz"] {
 		t.Fatalf("admins are told: %+v", got)
 	}
 	reqs := w.admin.expect("GET", "/api/account-requests", "", http.StatusOK)["requests"].([]any)

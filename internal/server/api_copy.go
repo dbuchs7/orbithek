@@ -186,8 +186,12 @@ func (h itemHandlers) copyOne(r *http.Request, space string, t copyTask) (item.I
 		a.Name, a.Source, a.AsGiven = f.Name, &item.Source{Item: src.ID, Attachment: f.ID}, hidden || timeWritten(f)
 		// A copy of an entry of a file share is its preview (ADR-0197).
 		a.FromPreview = f.Linked()
-		// A copy looks as its original does (ADR-0196).
+		// A copy looks as its original does (ADR-0196), and sound stays
+		// sound (ADR-0219).
 		a.Fingerprint = f.Fingerprint
+		if at := h.audioType(made.ID, a); at != "" {
+			a.Type = at
+		}
 		err = h.d.DB.Write(func(s *item.Store) error {
 			got, err := s.As(who(r)).AddAttachment(made.ID, a)
 			renamed[f.ID] = got.ID

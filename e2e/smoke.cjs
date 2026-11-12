@@ -749,7 +749,10 @@ function webSource() {
   const engine = engineSource();
   const feed = feedSource();
   const repo = gitSource();
-  const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
+  // A simulated microphone, allowed without asking, records sound into
+  // an item's files (ADR-0219).
+  const browser = await chromium.launch({ ...(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {}),
+    args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"] });
   const page = await browser.newPage();
   await page.addInitScript(recordLiveStatus);
   const problems = [];
@@ -1450,6 +1453,9 @@ function webSource() {
     // (ADR-0214).
     await page.click("#body .pm-table tr:nth-child(2) td:first-child");
     await page.waitForSelector("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-editor");
+    // The cell being edited keeps the height of a line, not the page's.
+    const editedHeight = await page.locator("#body .pm-table tr:nth-child(2) td:first-child").evaluate((td) => td.getBoundingClientRect().height);
+    if (editedHeight > 80) throw new Error(`the cell being edited is ${editedHeight}px high`);
     await page.keyboard.type("db1, the primary database server of the cluster in the main data centre");
     await page.keyboard.press("Control+a");
     await page.keyboard.press("Control+b");
@@ -6355,6 +6361,34 @@ function webSource() {
       check(wide <= 0, `${view} is ${wide}px wider than a phone's screen`);
     }
     await dailyPhoneCtx.close();
+
+    step("sound: recorded into an item's files, told as sound, played in the list and kept out of the album (ADR-0219)");
+    await page.goto(base + "/#/item/" + dailyKey);
+    await page.waitForSelector("#attachments #record-sound");
+    const filesBefore = await page.locator("#attachments li").count();
+    await page.click("#record-sound");
+    await page.waitForSelector("#record-stop");
+    await page.waitForSelector(".recorder-clock:not(:text-is('0:00'))");
+    await page.click("#record-stop");
+    await page.waitForSelector("#attachments li audio.att-audio[controls]");
+    check(await page.locator("#attachments li").count() === filesBefore + 1, "the recording is a file of the item");
+    const recorded = await page.evaluate(async (key) => (await (await fetch(`/api/items/${encodeURIComponent(key)}/attachments`)).json())
+      .attachments.find((a) => /^Recording \d{4}-\d\d-\d\d \d\d-\d\d\.webm$/.test(a.name)), dailyKey);
+    check(recorded && recorded.type === "audio/webm", "the recording is told as sound: " + JSON.stringify(recorded));
+    const playedFor = await page.evaluate(async () => {
+      const a = document.querySelector("#attachments li audio.att-audio");
+      await a.play();
+      await new Promise((r) => setTimeout(r, 700));
+      a.pause();
+      return a.currentTime;
+    });
+    check(playedFor > 0, "the recording plays from the file list");
+    const albumVideos = await page.evaluate(async () => (await (await fetch("/api/album?kind=video")).json()).pictures);
+    check(!albumVideos.some((p) => p.attachment.id === recorded.id), "a recording is no video of the album");
+    await page.click("#record-sound");
+    await page.click("#record-discard");
+    await page.waitForSelector("#record-sound:not([hidden])");
+    check(await page.locator("#attachments li").count() === filesBefore + 1, "a discarded recording is not attached");
 
     step("file shares: an administrator binds an album folder to a directory; its pictures show as previews that open where they lie (ADR-0197)");
     // The server may bind directories below SHARE_DIR's parent

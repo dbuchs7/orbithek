@@ -654,7 +654,16 @@ func (h itemHandlers) uploadAttachment(w http.ResponseWriter, r *http.Request) {
 	a.Name = name
 	// A video is told by its own bytes (ADR-0189): QuickTime, and some
 	// MP4 brands, read as an octet stream to the standard detection.
-	if vt := h.videoType(id, a); vt != "" {
+	// Sound alone is told by its tracks, so a recording in a container
+	// that also holds videos is no video (ADR-0219).
+	if at := h.audioType(id, a); at != "" {
+		a.Type = at
+		if video && a.Size > budget.Get().AttachmentBytes {
+			h.d.DB.DiscardAttachment(id, a.ID)
+			writeError(w, http.StatusRequestEntityTooLarge, fmt.Sprintf("a file other than a video may have at most %d bytes", budget.Get().AttachmentBytes))
+			return
+		}
+	} else if vt := h.videoType(id, a); vt != "" {
 		a.Type = vt
 	} else if video && a.Size > budget.Get().AttachmentBytes {
 		h.d.DB.DiscardAttachment(id, a.ID)
@@ -746,7 +755,7 @@ func (h itemHandlers) downloadAttachment(w http.ResponseWriter, r *http.Request)
 	defer content.Close()
 	hd := w.Header()
 	disposition := "attachment"
-	if inlineTypes[a.Type] || slices.Contains(item.VideoTypes, a.Type) {
+	if inlineTypes[a.Type] || slices.Contains(item.VideoTypes, a.Type) || slices.Contains(item.AudioTypes, a.Type) {
 		disposition = "inline"
 		hd.Set("Content-Type", a.Type)
 	} else {

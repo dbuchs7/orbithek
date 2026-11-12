@@ -50,6 +50,9 @@ a copy uploaded as given is accepted (`Attachment.AsGiven`), and a video keeps i
 HEIC is not taken.
 Videos (MP4, WebM, QuickTime) are taken into the album and handled as its pictures, up to the budget `VideoBytes` with `VideoTransferSeconds` to upload or download (`video=1`): `photo.VideoType` tells them by their bytes, `photo.ReadVideo` reads time, place, duration (`Photo.Duration`, codec version 50), size and camera from the movie header by seeking, the browser takes a poster when it uploads one, sealed beside the video as `<id>.poster` (`PUT …/poster`, `storage.StorePoster`), moved, backed up and removed with it and served as its thumbnail, and a place is removed or kept private by reading its texts as zeros (`photo.VideoWithoutPlace`), streamed;
 videos are not exported as pictures (ADR-0189).
+Whoever may edit an item records sound into its files from the file list (`assets/recorder.js`, `assets/recorderparts.js`: `MediaRecorder`, Opus in WebM or Ogg, AAC in MP4, at most 30 minutes, nothing kept in the browser);
+a file of sound alone is told by its tracks (`photo.AudioType`: WebM tracks, MP4 handlers, Ogg's first packet), so it is no video and not in the album, and files of `item.AudioTypes` are sent inline in parts and played in the file list;
+nothing is transcribed (proposed, ADR-0219).
 A video is a slide that plays from the presentation's state (`playing`), with sound in the presentation window only and neither zoom nor laser;
 Google Photos (`=dv`, poster `=w1600-h1600`) and shared iCloud albums (largest video derivative, poster frame as poster) bring videos within `VideoBytes` (ADR-0192).
 A collection is deleted from the album alone, into the trash (ADR-0193).
@@ -504,8 +507,16 @@ Update this section whenever a top-level directory is added.
 
 ## Parallel pull requests and merge conflicts
 
-Several agents work on this repository at once, so conflicts between pull requests are the normal case.
-These rules keep them small and keep two sessions from resolving the same one:
+Several agents work on this repository, and pull requests that run side by side conflict in the files they share: the catalogues, the manuals, the ADR index, `style.css` and `e2e/smoke.cjs`.
+Pull requests are therefore opened one at a time.
+This is the maintainer's decision of 2026-11-12.
+
+- **Open a pull request only when no other is open.** Before opening one, list the repository's open pull requests; every open pull request counts, whoever opened it.
+  While any is open, keep the work on its branch, committed and pushed, and open the pull request once the others are merged or closed, after merging the then current `main` into the branch.
+  Two exceptions: a pull request that repairs a broken `main`, and one the person asking for the work explicitly wants opened alongside another.
+  A pull request opened under an exception follows the rules below.
+
+Where pull requests overlap all the same, these rules keep conflicts small and keep two sessions from resolving the same one:
 
 - **One session owns a pull request.** The session that opened it brings it up to date with `main` and resolves its conflicts.
   Another session pushes to its branch only when the person who asked for the work hands it over;

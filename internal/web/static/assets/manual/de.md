@@ -121,6 +121,8 @@ Formatierung, Farben und Grössen bleiben im Word- und PDF-Export erhalten; ein 
 
 **Dateien** werden mit **Dateien hochladen** angehängt. Wer den Eintrag bearbeiten darf, benennt eine Datei in der Liste mit **Umbenennen** um: Alle Versionen erhalten den neuen Namen, der Dateityp bleibt. Bilder und Zeichnungen aller Einträge erscheinen zudem im Album.
 
+Wer den Eintrag bearbeiten darf, nimmt mit **Ton aufnehmen** auch Ton in seine Dateien auf: Der Browser fragt einmal nach dem Mikrofon, die Aufnahme läuft mit angezeigter Zeit, **Beenden und anhängen** fügt sie als *Aufnahme <Datum> <Uhrzeit>* den Dateien hinzu, **Verwerfen** verwirft sie. Eine Aufnahme endet nach 30 Minuten von selbst und wird angehängt. Wer die Seite während der Aufnahme verlässt, verwirft sie. Die Schaltfläche erscheint nur, wo der Browser aufnehmen kann; dafür muss die Adresse mit `https://` beginnen (oder `localhost` sein). Tondateien – Aufnahmen, MP3, WAV, M4A und Ogg – werden in der Dateiliste abgespielt; sie erscheinen nicht im Album, und nichts wird transkribiert.
+
 ### PDF-Dateien lesen
 
 Eine PDF-Datei eines Eintrags öffnet sich im PDF-Leser mit **Lesen** in der Dateiliste oder mit einem Klick auf einen Link zu ihr im Text des Eintrags. Der Leser zeigt die Seiten mit ihrem Text, der sich markieren und kopieren lässt. Die Leiste darüber blättert von Seite zu Seite, vergrössert und verkleinert oder passt auf **Seitenbreite** an, durchsucht das Dokument (Enter für den nächsten Treffer) und bietet **Herunterladen**. Seitlich zeigt *Seiten* kleine Bilder der Seiten, *Inhalt* das Inhaltsverzeichnis des Dokuments, falls es eines hat, und *Markierungen* die darin gesetzten Markierungen. Die Adresse nennt die Seite, sodass ein Link andere zur selben Seite führt.

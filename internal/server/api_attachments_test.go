@@ -522,3 +522,84 @@ func TestBPMNDiagramsShowTheirFile(t *testing.T) {
 	w.bert.expect("PUT", "/api/items/"+key+"/body", `{"blocks":[{"kind":"process","engine":"atlas","process":"p","view":"all"}]}`, http.StatusBadRequest)
 	w.bert.expect("PUT", "/api/items/"+key+"/body", `{"blocks":[{"kind":"paragraph","text":"x","view":"both"}]}`, http.StatusBadRequest)
 }
+
+// TestRecordingsPlayFromTheFileList: sound recorded in the browser is told
+// by its tracks, not taken into the album as a video, and sent inline in
+// parts so that the file list plays it
+// (ADR-0219).
+func TestRecordingsPlayFromTheFileList(t *testing.T) {
+	w := newWorld(t)
+	it := w.bert.expect("POST", "/api/items", `{"space":"PLAT","type":"task","title":"Call notes","properties":{"priority":"low"}}`, http.StatusCreated)
+	key := field(it, "item", "key").(string)
+	base := "/api/items/" + key + "/attachments"
+	// el is an EBML element with a size of one byte.
+	el := func(id string, content ...string) string {
+		c := strings.Join(content, "")
+		return id + string([]byte{0x80 | byte(len(c))}) + c
+	}
+	track := func(kind byte) string { return el("\xAE", el("\x83", string([]byte{kind}))) }
+	webm := func(kinds ...byte) []byte {
+		var entries []string
+		for _, k := range kinds {
+			entries = append(entries, track(k))
+		}
+		head := el("\x1A\x45\xDF\xA3", el("\x42\x82", "webm"))
+		seg := "\x18\x53\x80\x67\x01\xFF\xFF\xFF\xFF\xFF\xFF\xFF" + el("\x16\x54\xAE\x6B", entries...) + "\x1F\x43\xB6\x75\x01\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
+		return append([]byte(head+seg), bytes.Repeat([]byte{5}, 50000)...)
+	}
+	cases := []struct {
+		name, want string
+		data       []byte
+	}{
+		{"Recording 2026-11-12 08-14.webm", "audio/webm", webm(2)},
+		{"clip.webm", "video/webm", webm(1, 2)},
+		{"memo.ogg", "audio/ogg", append([]byte("OggS\x00\x02"+strings.Repeat("\x00", 20)+"\x01\x13OpusHead"), bytes.Repeat([]byte{3}, 400)...)},
+		{"song.mp3", "audio/mpeg", append([]byte("ID3\x04\x00\x00\x00\x00\x00\x00"), bytes.Repeat([]byte{1}, 400)...)},
+	}
+	ids := map[string]item.ID{}
+	for _, c := range cases {
+		var up struct{ Attachment attachmentJSON }
+		rec := w.bert.upload(base+"?name="+strings.ReplaceAll(c.name, " ", "%20"), "application/octet-stream", c.data)
+		_ = json.Unmarshal(rec.Body.Bytes(), &up)
+		if rec.Code != http.StatusCreated || up.Attachment.Type != c.want {
+			t.Fatalf("%s: %d %s, want the type %s", c.name, rec.Code, rec.Body, c.want)
+		}
+		ids[c.name] = up.Attachment.ID
+	}
+	// Sent inline, with its type, in parts.
+	req := httptest.NewRequest(http.MethodGet, base+"/"+string(ids["Recording 2026-11-12 08-14.webm"]), nil)
+	req.RemoteAddr = "192.0.2.1:4000"
+	req.AddCookie(w.bert.cookie)
+	req.Header.Set("Range", "bytes=100-109")
+	part := httptest.NewRecorder()
+	w.bert.h.ServeHTTP(part, req)
+	if part.Code != http.StatusPartialContent || part.Header().Get("Content-Type") != "audio/webm" ||
+		!strings.HasPrefix(part.Header().Get("Content-Disposition"), "inline") || part.Header().Get("X-Content-Type-Options") != "nosniff" ||
+		!strings.Contains(part.Header().Get("Content-Security-Policy"), "sandbox") {
+		t.Fatalf("a part of the recording: %d %v", part.Code, part.Header())
+	}
+	for _, name := range []string{"memo.ogg", "song.mp3"} {
+		rec := w.bert.do("GET", base+"/"+string(ids[name]), "")
+		if !strings.HasPrefix(rec.Header().Get("Content-Disposition"), "inline") || !strings.HasPrefix(rec.Header().Get("Content-Type"), "audio/") {
+			t.Fatalf("%s is sent as %v", name, rec.Header())
+		}
+	}
+	// The album takes the video, not the recording.
+	pictures := field(w.bert.expect("GET", "/api/album?kind=video", "", http.StatusOK), "pictures").([]any)
+	if len(pictures) != 1 || pictures[0].(map[string]any)["attachment"].(map[string]any)["name"] != "clip.webm" {
+		t.Fatalf("the album's videos: %v", pictures)
+	}
+	// A copy of the item keeps the recording sound.
+	copied := field(w.bert.expect("POST", "/api/items/"+key+"/copy", `{"space":"PLAT","title":"Call notes (copy)"}`, http.StatusCreated), "item", "key").(string)
+	var files struct{ Attachments []attachmentJSON }
+	_ = json.Unmarshal(w.bert.do("GET", "/api/items/"+copied+"/attachments", "").Body.Bytes(), &files)
+	types := map[string]string{}
+	for _, a := range files.Attachments {
+		types[a.Name] = a.Type
+	}
+	if types["Recording 2026-11-12 08-14.webm"] != "audio/webm" || types["clip.webm"] != "video/webm" {
+		t.Fatalf("the copy's files: %v", types)
+	}
+	// A recording is no video a text plays.
+	w.bert.expect("PUT", "/api/items/"+key+"/body", `{"blocks":[{"kind":"video","ref":"`+string(ids["Recording 2026-11-12 08-14.webm"])+`"}]}`, http.StatusBadRequest)
+}
