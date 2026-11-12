@@ -125,8 +125,11 @@ func TestFlatAndTinyPicturesHaveNoFingerprint(t *testing.T) {
 }
 
 func TestFingerprintRefusesWhatItCannotDecode(t *testing.T) {
-	if _, err := Fingerprint(bytes.NewReader([]byte("RIFF")), "image/webp", 1, 100); !errors.Is(err, ErrUnsupported) {
-		t.Errorf("WebP: %v, want ErrUnsupported", err)
+	if _, err := Fingerprint(bytes.NewReader([]byte("RIFF")), "image/webp", 1, 100); err == nil {
+		t.Error("broken WebP: no error")
+	}
+	if _, err := Fingerprint(bytes.NewReader([]byte("no picture")), "image/heic", 1, 100); !errors.Is(err, ErrUnsupported) {
+		t.Errorf("HEIC: %v, want ErrUnsupported", err)
 	}
 	if _, err := Fingerprint(bytes.NewReader(jpegAt(t, scene(100, 100, 1), 80)), "image/jpeg", 1, 99); !errors.Is(err, ErrTooLarge) {
 		t.Errorf("too many pixels: %v, want ErrTooLarge", err)

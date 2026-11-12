@@ -83,7 +83,7 @@ A PowerPoint presentation (`.pptx`, `.ppsx`) chosen under the album's *Upload* o
 it uploads each slide named by its place and title and sets its notes as the picture's speaker's notes;
 the presentation file never reaches the server, and nothing on the server is new (proposed, ADR-0186).
 Pictures are added where one is: files chosen, dropped or pasted go into the open folder, or, in a collection or at the top, into a folder chosen each time (the folder listing says which are `editable`), each with the collection's labels;
-**Add from the album…** copies or moves pictures into a folder, as its dialog's choice says (remembered in the browser, copy by default; proposed, ADR-0222), or gives them a collection's labels;
+**Add from the album…** copies or moves pictures into a folder, as its dialog's choice says (remembered in the browser, copy by default; ADR-0222), or gives them a collection's labels;
 a change shows the album again as far as it was shown (`assets/album.js`, ADR-0187). A collection keeps the folder its new pictures go into, for everyone who adds to it: an optional `folder` item field its type gains as its next version when first set (`PUT /api/album/collections/{ref}/folder`, ADR-0221).
 Administrators set the corporate design (logo, colours, background, fonts, own stylesheet), kept in `site.wal` (`internal/site`, ADR-0052).
 Full-text search scans the in-memory state through the permission check (ADR-0033).
@@ -571,6 +571,7 @@ Before adding a dependency, check that its license is compatible with AGPL-3.0, 
 Current dependencies: go-oidc, go-jose (Apache-2.0) and x/oauth2 (BSD-3-Clause), for OIDC only (ADR-0030);
 x/crypto (BSD-3-Clause), for its SSH client, used by backups to SFTP only (ADR-0073);
 go.yaml.in/yaml/v3 (MIT and Apache-2.0), to read API descriptions in YAML (ADR-0130). goldmark (MIT), as the Markdown parser only, never its renderer (ADR-0138). golang.org/x/net (BSD-3-Clause), for its HTML parser only, to read web pages (ADR-0208).
+golang.org/x/image (BSD-3-Clause), for its WebP decoder only, to scale WebP pictures (ADR-0223).
 Never copy code from sources whose license is incompatible or unknown.
 
 ## Pointers
