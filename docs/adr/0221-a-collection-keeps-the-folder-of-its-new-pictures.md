@@ -1,9 +1,9 @@
 # ADR-0221: A collection keeps the folder of its new pictures, for everyone
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-12
-- **Deciders:** Project initiators (request of 2026-11-12 to keep the target folder per collection for everyone, settling the first open question of ADR-0187)
+- **Deciders:** Project initiators (request of 2026-11-12 to keep the target folder per collection for everyone, settling the first open question of ADR-0187; accepted on 2026-11-12)
 - **Open question:** whether uploads in a collection with a kept folder should skip the question; whether someone who may not edit the collection should be able to keep a folder for it
 - **Question checked:** 2026-11
 
