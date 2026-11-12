@@ -29,6 +29,9 @@ import { freshNotice, taskDialog, taskPanel } from "./taskdialog.js";
 import { finishing } from "./taskparts.js";
 import { documentView, upgradeTemplate, wordTemplatesCard } from "./wordtemplates.js";
 import { manualBlocks, manualLanguage, manualLanguages, manualPath } from "./manual.js";
+import { bookmarklet, captureAddress, readCapture } from "./capture.js";
+import { captureView } from "./captureview.js";
+import { isWebLink, webLinkCard } from "./weblink.js";
 
 const app = document.getElementById("app");
 const nav = document.getElementById("nav");
@@ -593,11 +596,13 @@ function embedLoader(chain) {
     await learnNames((item.secrets || []).map((sc) => sc.by).filter((p) => !p.startsWith("@"))).catch(() => {});
     const resolve = async (r) => (await get("/api/items/" + encodeURIComponent(r))).item;
     const props = Object.entries(item.properties || {}).filter(([, v]) => v !== null && v !== "" && !(Array.isArray(v) && !v.length));
+    // An embedded web link is a link card (ADR-0206).
+    const card = isWebLink(item) ? webLinkCard(item, (await get(`/api/items/${encodeURIComponent(ref)}/attachments`).catch(() => ({ attachments: [] }))).attachments) : null;
     return h("div", { class: "pm-embed-content", "data-embedded": item.key },
       h("p", { class: "muted pm-embed-meta" }, t("item.meta", { type: item.type, presence: item.presence }), item.state ? t("item.state", { state: item.state }) : ""),
       item.origin?.system === "git:file" ? h("p", { class: "muted pm-embed-meta pm-embed-source" }, ...fileSource(item.origin)) : null,
-      props.length ? h("dl", { class: "pm-embed-props" }, props.flatMap(([k, v]) => [h("dt", { text: k }),
-        h("dd", { text: (Array.isArray(v) ? v : [v]).map((x) => (names.has(x) ? names.get(x) : String(x))).join(", ") })])) : null,
+      card || (props.length ? h("dl", { class: "pm-embed-props" }, props.flatMap(([k, v]) => [h("dt", { text: k }),
+        h("dd", { text: (Array.isArray(v) ? v : [v]).map((x) => (names.has(x) ? names.get(x) : String(x))).join(", ") })])) : null),
       item.body.length ? createEditor({ blocks: item.body, embeds, editable: false, resolve, childPages: childPagesOf(item), files: filesOf(item),
         embedContent: embedLoader([...chain, ref]), tasks: taskTools(item, false) }).element : null);
   };
@@ -1618,7 +1623,9 @@ async function route() {
     // An assistant's consent page survives signing in, single sign-on
     // included, which returns to the start page (ADR-0068).
     if (!me) {
-      if (section === "oauth") try { sessionStorage.setItem("ot-after-login", location.hash); } catch { /* not kept */ }
+      // So does a capture shared to the app or sent by the bookmarklet
+      // (ADR-0207).
+      if (section === "oauth" || section === "capture") try { sessionStorage.setItem("ot-after-login", location.hash); } catch { /* not kept */ }
       return loginView();
     }
     let after = null;
@@ -1657,6 +1664,7 @@ async function route() {
       case "search": return await searchView(arg || "");
       case "query": return await queryView(params);
       case "account": return await accountView();
+      case "capture": return await captureScreen(params);
       case "mcp": return await mcpView();
       case "manual": return await manualView(params);
       case "oauth": return await oauthView(params);
@@ -2448,6 +2456,9 @@ async function newView(params) {
   show(
     h("h1", { text: t("new.title") }),
     pageCard,
+    // Capturing a note, a quote or a web page (ADR-0207).
+    h("section", { class: "card", id: "new-capture" }, h("h2", { text: t("capture.heading") }), h("p", { text: t("capture.newText") }),
+      link(captureAddress({}), t("capture.open"), "button secondary", "new-capture-open")),
     h("section", { class: "card" }, h("h2", { text: t("new.withAssistant") }), h("p", { text: t("new.withAssistantText") }),
       link("#/mcp", t("new.withAssistantLink"), "button secondary")),
     me.admin ? setupCard(types) : null,
@@ -4421,6 +4432,118 @@ function newItemForm({ space, spaces = null, types, parent = null, heading = t("
   return f;
 }
 
+// webLinkPanel shows an item whose url field holds a web address as a
+// card of its page (ADR-0206). Who may edit it reads the page again, or
+// takes the page's text below the body, where the server reads pages.
+function webLinkPanel(item, attachments, type, canEdit, status) {
+  if (!isWebLink(item) || !type.fields.some((f) => f.name === "url" && f.kind === "url")) return null;
+  const buttons = h("span", { class: "weblink-buttons" });
+  const card = webLinkCard(item, attachments, { id: "weblink-card", actions: [buttons] });
+  if (!canEdit || item.presence !== "live") return card;
+  get("/api/linkpreview").then(({ enabled }) => {
+    if (!enabled) return;
+    const run = async (text, button) => {
+      button.disabled = true;
+      status.replaceChildren();
+      try {
+        const res = await post(`/api/items/${encodeURIComponent(item.id)}/weblink`, { text });
+        // A picture that could not be kept is told; the fields are read.
+        if (res.problem) status.replaceChildren(h("p", { class: "notice", id: "weblink-problem", text: t("capture.problem", { problem: res.problem }) }));
+        else route();
+      } catch (err) {
+        status.replaceChildren(errorBox(err));
+      } finally {
+        button.disabled = false;
+      }
+    };
+    const again = h("button", { type: "button", id: "weblink-refresh", text: t("weblink.refresh"), onclick: () => run(false, again) });
+    const take = h("button", { type: "button", id: "weblink-text", text: t("weblink.takeText"), title: t("weblink.takeTextHint"),
+      onclick: () => (!item.body.length || confirm(t("weblink.takeTextConfirm"))) && run(true, take) });
+    buttons.append(again, take);
+  }).catch(() => {});
+  return card;
+}
+
+// weblinkTools save a page a link in the text leads to as a web link item
+// (ADR-0206), below the item or in another room, and answer it, or null
+// when cancelled. The text then shows it as a card, an embed.
+function weblinkTools(item) {
+  const save = async (address) => {
+    const [{ spaces }, previews] = await Promise.all([get("/api/spaces"), get("/api/linkpreview").catch(() => ({ enabled: false }))]);
+    const editable = favouritesFirst(spaces.filter((s) => mayEdit(s.role)));
+    const title = h("input", { name: "title", id: "weblink-title", maxlength: 300, placeholder: t("weblink.titleHint") });
+    const below = h("input", { type: "radio", name: "place", value: "below", id: "weblink-below", checked: true });
+    const room = h("input", { type: "radio", name: "place", value: "room", id: "weblink-room" });
+    const spaceSelect = h("select", { name: "space", id: "weblink-space", onchange: () => { room.checked = true; } },
+      editable.map((sp) => h("option", { value: sp.key, text: `${sp.name} (${sp.key})`, selected: sp.key === item.space })));
+    const text = previews.enabled ? h("input", { type: "checkbox", name: "text", id: "weblink-pagetext" }) : null;
+    const found = h("p", { class: "muted", id: "weblink-found", role: "status" });
+    if (previews.enabled) {
+      found.textContent = t("capture.reading");
+      post("/api/linkpreview", { url: address }).then((p) => {
+        if (!title.value && p.title) title.placeholder = p.title;
+        found.textContent = [p.site, p.description].filter(Boolean).join(" · ");
+      }).catch((err) => { found.textContent = err.message; });
+    }
+    let problem = "";
+    const made = await formDialog(t("weblink.save"), "weblink-dialog", [
+      h("p", { class: "weblink-address" }, h("a", { href: address, target: "_blank", rel: "noopener noreferrer", text: address })),
+      found,
+      field(t("capture.title"), title),
+      h("fieldset", { class: "newtask-display" }, h("legend", { text: t("capture.where") }),
+        h("label", { class: "check" }, below, " ", t("weblink.below", { title: item.title || item.key })),
+        h("label", { class: "check" }, room, " ", t("weblink.inRoom"), " ", spaceSelect)),
+      text ? h("label", { class: "check" }, text, " ", t("capture.pageText")) : null,
+    ], async () => {
+      const inRoom = room.checked;
+      const res = await post("/api/weblinks", { url: address, title: title.value.trim(), space: inRoom ? spaceSelect.value : item.space,
+        parent: inRoom ? "" : item.id, text: Boolean(text?.checked) });
+      problem = res.problem || "";
+      return res.item;
+    }, t("weblink.saveButton"));
+    return made ? { item: made, problem } : null;
+  };
+  return { save };
+}
+
+// --- capturing (ADR-0207) -------------------------------------------------------
+
+// captureScreen shows what a share, the bookmarklet or a link passed on,
+// to be saved as a web link, a new item or at the end of an item.
+async function captureScreen(params) {
+  const show = screen();
+  const [{ spaces }, { types }, previews] = await Promise.all([get("/api/spaces"), get("/api/types"),
+    get("/api/linkpreview").catch(() => ({ enabled: false }))]);
+  const editable = favouritesFirst(spaces.filter((s) => mayEdit(s.role)));
+  if (!editable.length) return show(h("h1", { text: t("capture.heading") }), h("p", { class: "muted", text: me.admin ? t("new.noSpaceAdmin") : t("new.noSpace") }));
+  show(captureView(readCapture(params), { spaces: editable, space: editable[0].key, types, previews: previews.enabled }));
+  document.getElementById("capture-title")?.focus();
+}
+
+// bookmarkletCard offers the bookmark that opens the capture view with
+// the page one reads, its address and the text selected on it. It is
+// dragged to the bookmarks or copied into a new bookmark; this page's
+// content security policy keeps it from running here.
+function bookmarkletCard() {
+  const code = bookmarklet(location.origin);
+  const drag = h("a", { class: "button secondary bookmarklet", id: "bookmarklet", text: t("capture.bookmarklet"), title: t("capture.bookmarkletDrag"),
+    onclick: (ev) => ev.preventDefault() });
+  // The one address of this UI that is code: a constant written in
+  // capture.js around this site's own origin, never built from content.
+  drag.setAttribute("href", code);
+  const copied = h("span", { class: "muted", role: "status" });
+  const box = h("input", { readonly: true, value: code, id: "bookmarklet-code", "aria-label": t("capture.bookmarkletCode"), onfocus: (ev) => ev.target.select() });
+  return h("section", { class: "card", id: "capture-bookmarklet" },
+    h("h2", { text: t("capture.bookmarkletTitle") }),
+    h("p", { text: t("capture.bookmarkletText") }),
+    h("p", { class: "actions-row" }, drag,
+      h("button", { type: "button", id: "bookmarklet-copy", text: t("capture.bookmarkletCopy"), onclick: async () => {
+        try { await navigator.clipboard.writeText(code); copied.textContent = t("capture.copied"); } catch { box.select(); }
+      } }), copied),
+    field(t("capture.bookmarkletCode"), box),
+    h("p", { class: "muted", text: t("capture.installHint") }));
+}
+
 // --- one item ---------------------------------------------------------------
 
 // itemView shows an item for reading; with ?edit its title and body are
@@ -4659,6 +4782,8 @@ async function itemView(ref, params = new URLSearchParams()) {
     h("p", { class: "muted" }, t("item.meta", { type: item.type, presence: item.presence }), item.state ? t("item.state", { state: item.state }) : "", t("item.version", { n: item.version })),
     // An item mirrored from another system says where it is kept, the
     // system of record (ADR-0023, ADR-0074).
+    // A web link shows its page as a card (ADR-0206).
+    webLinkPanel(item, attachments, type, canEdit, status),
     item.origin?.system === "git:file" ? fileOrigin(item, path, canEdit, status) : item.origin ? h("p", { class: "notice origin", id: "item-origin" },
       t("item.origin", { system: item.origin.system }), " ",
       item.origin.url ? h("a", { href: item.origin.url, target: "_blank", rel: "noopener noreferrer", text: t("item.originOpen") }) : "",
@@ -4777,7 +4902,7 @@ function bodySection(item, embeds, editing, threads, attachments, protect, edit,
     return { element: section, session: null };
   }
   const session = liveBody({ ref: item.id, embeds, resolve, childPages: childPagesOf(item), files: filesOf(item, attachments),
-    extra: [threads.plugin], comment: threads.start, actions: edit ? [edit] : [], embedContent: embedLoader([item.id]), tasks: taskTools(item, true), markdown: markdownTools(item), onPresence });
+    extra: [threads.plugin], comment: threads.start, actions: edit ? [edit] : [], embedContent: embedLoader([item.id]), tasks: taskTools(item, true), markdown: markdownTools(item), weblinks: weblinkTools(item), onPresence });
   onLeave(session.close);
   return { element: h("section", { id: "body", class: "editing" }, session.element), session };
 }
@@ -5358,6 +5483,8 @@ async function accountView() {
     contactsCard(contacts),
     // One's connections to process engines (ADR-0151).
     connectionsCard(),
+    // Capturing from any page of the web (ADR-0207).
+    bookmarkletCard(),
     form({ class: "card", id: "language" }, [
       field(t("account.language"), h("select", { name: "language", onchange: (ev) => ev.target.form.requestSubmit() },
         languages.filter((l) => !me.languages || me.languages.includes(l.code))

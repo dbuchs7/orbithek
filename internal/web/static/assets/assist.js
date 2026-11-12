@@ -46,8 +46,9 @@ const markdownFileRE = /^https?:\/\/[^\s]+\/(blob|raw|src|browse|-\/blob|-\/raw)
 
 // assist makes the aids for a schema; isSafe decides which link targets
 // the model keeps (ADR-0014). showFile(href), if given, shows a Markdown
-// file a link leads to instead of the link (ADR-0138).
-export function assist(schema, isSafe, { showFile } = {}) {
+// file a link leads to instead of the link (ADR-0138); saveLink(href)
+// saves the web page a link leads to as a web link item (ADR-0206).
+export function assist(schema, isSafe, { showFile, saveLink } = {}) {
   const link = schema.marks.link;
 
   // autolink marks the address before pos as a link, as typing a space or
@@ -256,8 +257,13 @@ export function assist(schema, isSafe, { showFile } = {}) {
         const r = linkRange(view.state, view.state.selection.from, link);
         if (r) showFile(r.mark.attrs.href);
       } });
+      const save = h("button", { type: "button", class: "link", id: "pm-link-save", hidden: true, text: t("weblink.save"), onmousedown: (ev) => {
+        ev.preventDefault();
+        const r = linkRange(view.state, view.state.selection.from, link);
+        if (r) saveLink(r.mark.attrs.href);
+      } });
       const bubble = h("div", { class: "pm-bubble", id: "pm-link-bubble", hidden: true },
-        href, file,
+        href, file, save,
         h("button", { type: "button", class: "link", text: t("assist.edit"), onmousedown: (ev) => { ev.preventDefault(); openLink(view); } }),
         h("button", { type: "button", class: "link danger", text: t("assist.remove"), onmousedown: (ev) => {
           ev.preventDefault();
@@ -275,6 +281,9 @@ export function assist(schema, isSafe, { showFile } = {}) {
         href.href = r.mark.attrs.href;
         href.textContent = r.mark.attrs.href.replace(/^mailto:/, "");
         file.hidden = !showFile || !markdownFileRE.test(r.mark.attrs.href);
+        // A pasted address stands alone with the cursor after it, so the
+        // bubble offers to save its page at once.
+        save.hidden = !saveLink || !/^https?:\/\//i.test(r.mark.attrs.href);
         const at = v.coordsAtPos(r.from);
         bubble.hidden = false;
         bubble.style.left = Math.max(8, Math.min(at.left, window.innerWidth - bubble.offsetWidth - 8)) + "px";

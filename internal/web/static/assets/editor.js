@@ -876,8 +876,10 @@ function imageView(node, view, getPos, files) {
 // embedContent(ref), if given, returns the content of an embedded item,
 // shown in its block (ADR-0106). markdown.insert(address), if given, makes
 // a page from a Markdown file of a repository below the item and returns
-// it, or null when cancelled (ADR-0138).
-export function createEditor({ blocks, embeds, editable, resolve, childPages, files, extra = [], viewProps = {}, comment, protect, note, actions = [], embedContent, tasks, markdown }) {
+// it, or null when cancelled (ADR-0138). weblinks.save(address), if given,
+// saves the page a link leads to as a web link item and returns {item,
+// problem}, or null when cancelled (ADR-0206).
+export function createEditor({ blocks, embeds, editable, resolve, childPages, files, extra = [], viewProps = {}, comment, protect, note, actions = [], embedContent, tasks, markdown, weblinks }) {
   const mount = h("div", { class: "pm-editor" });
   const tocs = new Set();
   const tocPlugin = new Plugin({ view: () => ({ update: (v, prev) => { if (!v.state.doc.eq(prev.doc)) tocs.forEach((f) => f()); } }) });
@@ -888,7 +890,8 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
   // Links, "@" and embedding as in a word processor (ADR-0096); a link to
   // a Markdown file offers to show the file instead (ADR-0138).
   let showFile = null;
-  const aids = assist(schema, isSafeLink, { showFile: markdown ? (href) => showFile(href) : null });
+  let saveLink = null;
+  const aids = assist(schema, isSafeLink, { showFile: markdown ? (href) => showFile(href) : null, saveLink: weblinks ? (href) => saveLink(href) : null });
   const aidKeys = keymap({ "Mod-k": (state, dispatch, v) => { aids.openLink(v); return true; } });
   // Pictures pasted into the text (ADR-0108): one copied in the album
   // becomes a copy of its original file, any other image an upload.
@@ -1194,6 +1197,25 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
       status.textContent = err.message;
     }
   };
+  // An item made from a link takes the place of a paragraph that holds
+  // the link alone, shown whole; elsewhere it goes after the paragraph.
+  const placeEmbed = (it, address) => {
+    const node = schema.nodes.embed.create({ ref: it.id, label: `${it.key} ${it.title}`, href: "#/item/" + encodeURIComponent(it.key) });
+    const { $from } = view.state.selection;
+    const block = $from.depth >= 1 ? $from.node(1) : null;
+    // The paragraph holds the link alone when all its text but spaces
+    // is the link.
+    let alone = Boolean(address && block?.isTextblock && block.childCount);
+    block?.forEach((n) => {
+      if (!n.isText || (n.text.trim() && !n.marks.some((m) => m.type === schema.marks.link && m.attrs.href === address))) alone = false;
+    });
+    if (alone) {
+      view.dispatch(view.state.tr.replaceWith($from.before(1), $from.after(1), node));
+      view.focus();
+    } else {
+      insertBlock(node);
+    }
+  };
   // A Markdown file of a repository becomes a page below this item, which
   // the text shows whole (ADR-0138). From a link's bubble, it takes the
   // place of a paragraph that holds the link alone.
@@ -1202,21 +1224,21 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     try {
       const it = await markdown.insert(address);
       if (!it) return view.focus();
-      const node = schema.nodes.embed.create({ ref: it.id, label: `${it.key} ${it.title}`, href: "#/item/" + encodeURIComponent(it.key) });
-      const { $from } = view.state.selection;
-      const block = $from.depth >= 1 ? $from.node(1) : null;
-      // The paragraph holds the link alone when all its text but spaces
-      // is the link.
-      let alone = Boolean(address && block?.isTextblock && block.childCount);
-      block?.forEach((n) => {
-        if (!n.isText || (n.text.trim() && !n.marks.some((m) => m.type === schema.marks.link && m.attrs.href === address))) alone = false;
-      });
-      if (alone) {
-        view.dispatch(view.state.tr.replaceWith($from.before(1), $from.after(1), node));
-        view.focus();
-      } else {
-        insertBlock(node);
-      }
+      placeEmbed(it, address);
+    } catch (err) {
+      status.textContent = err.message;
+    }
+  };
+  // The page a link leads to becomes a web link item, which the text
+  // shows as its card (ADR-0206), in place of a paragraph that holds the
+  // link alone.
+  saveLink = async (address) => {
+    status.textContent = "";
+    try {
+      const made = await weblinks.save(address);
+      if (!made) return view.focus();
+      placeEmbed(made.item, address);
+      if (made.problem) status.textContent = made.problem;
     } catch (err) {
       status.textContent = err.message;
     }

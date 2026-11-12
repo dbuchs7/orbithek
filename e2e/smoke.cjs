@@ -4,6 +4,10 @@
 // user content ran as code (ADR-0014).
 //
 //   BASE_URL=http://127.0.0.1:8080 ADMIN_PASSWORD=... node smoke.cjs
+//
+// With OT_LINK_PREVIEWS=on and OT_LINK_PREVIEWS_ALLOW_PRIVATE=on on the
+// server, the web link steps also read the pages of a local site
+// (ADR-0206); without, they save links without reading them.
 const { chromium } = require("playwright");
 
 const base = process.env.BASE_URL || "http://127.0.0.1:8080";
@@ -658,8 +662,34 @@ function gitSource() {
   return server;
 }
 
+// webSource serves pages of the web for the web link steps (ADR-0206): a
+// story that names itself, its picture and its text, with a description
+// a step changes. The server reads it only with OT_LINK_PREVIEWS=on and
+// OT_LINK_PREVIEWS_ALLOW_PRIVATE=on, as it is local.
+function webSource() {
+  // A 1×1 PNG.
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64");
+  const web = { description: "What it is about", url: "" };
+  const server = require("http").createServer((req, res) => {
+    if (req.url === "/card.png") {
+      res.writeHead(200, { "Content-Type": "image/png" });
+      return res.end(png);
+    }
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    res.end(`<!doctype html><html><head><title>The story</title><meta property="og:site_name" content="Example News">
+<meta property="og:description" content="${web.description}"><meta property="og:image" content="/card.png">
+<script>window.parent && alert("never runs")</script></head>
+<body><nav>Menu</nav><article><h2>Part one</h2><p>Some <b>words</b>.</p><p><img src=x onerror="alert('xss')">Safe.</p></article></body></html>`);
+  });
+  server.listen(0, "127.0.0.1");
+  server.on("listening", () => { web.url = "http://127.0.0.1:" + server.address().port; });
+  web.close = () => server.close();
+  return web;
+}
+
 (async () => {
   const sink = mailSink(process.env.SMTP_SINK_PORT);
+  const web = webSource();
   const atlassian = atlassianSource();
   const ckan = ckanSource();
   const engine = engineSource();
@@ -5468,6 +5498,127 @@ function gitSource() {
     await page.click("#edit-done");
     await page.waitForSelector("#body.reading");
 
+    step("web links: a pasted address is saved as a web link item, shown as a card in the text; its page is read again (ADR-0206)");
+    // A room of its own, and a page to write in.
+    await page.request.post(base + "/api/spaces", { data: { key: "LINKS", name: "Links" } });
+    if (!(await (await page.request.get(base + "/api/types")).json()).types.some((ty) => ty.name === "page")) {
+      await page.request.post(base + "/api/types", { data: { name: "page", body: true, fields: [{ name: "owner", kind: "user" }] } });
+    }
+    const readingList = (await (await page.request.post(base + "/api/items", { data: { space: "LINKS", type: "page", title: "Reading list",
+      body: [{ kind: "paragraph", text: "To read:" }] } })).json()).item;
+    const linkPreviews = (await (await page.request.get(base + "/api/linkpreview")).json()).enabled;
+    const storyURL = web.url + "/story";
+    await page.goto(base + "/#/item/" + readingList.key + "?edit");
+    await page.waitForSelector("#body .ProseMirror[contenteditable=true]");
+    // The live session may draw its editor anew once it joined; the
+    // cursor is placed after "To read:" in the editor that stays.
+    for (let i = 0; i < 20; i++) {
+      await page.click("#body .ProseMirror p:has-text('To read:')");
+      await page.keyboard.press("End");
+      await painted(page);
+      if (await page.evaluate(() => getSelection().anchorNode?.textContent === "To read:" && document.activeElement?.classList.contains("ProseMirror"))) break;
+      await page.waitForTimeout(200);
+    }
+    await page.keyboard.press("Enter");
+    await painted(page);
+    // Pasting an address alone links it and offers to save its page.
+    await page.evaluate((url) => {
+      const dt = new DataTransfer();
+      dt.setData("text/plain", url);
+      document.querySelector("#body .ProseMirror").dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+    }, storyURL);
+    await page.waitForSelector("#pm-link-bubble:not([hidden]) #pm-link-save:not([hidden])");
+    await page.dispatchEvent("#pm-link-save", "mousedown");
+    await page.waitForSelector("dialog #weblink-dialog-ok");
+    check(await page.isChecked("#weblink-below"), "a web link goes below the page by default");
+    if (linkPreviews) await page.waitForSelector("#weblink-found:has-text('Example News')");
+    await page.click("#weblink-dialog-ok");
+    // The paragraph that held the address alone is the link's card now.
+    await page.waitForSelector("#body .pm-embed .weblink-card");
+    await page.waitForFunction((url) => ![...document.querySelectorAll("#body .ProseMirror p")].some((p) => p.textContent.includes(url)), storyURL)
+      .catch(async () => { throw new Error("the address alone became the card: " + await page.textContent("#body .ProseMirror")); });
+    await page.click("#edit-done");
+    await page.waitForSelector("#body.reading .pm-embed .weblink-card");
+    const linkItems = (await (await page.request.get(base + "/api/items?space=LINKS&type=weblink")).json()).items.filter((it) => it.parent === readingList.id);
+    check(linkItems.length === 1, "the web link item lives below the page: " + JSON.stringify(linkItems));
+    const linkItem = (await (await page.request.get(base + "/api/items/" + linkItems[0].key)).json()).item;
+    if (linkPreviews) {
+      check(linkItem.title === "The story" && linkItem.properties.site === "Example News" && linkItem.properties.description === "What it is about", "the page named itself: " + JSON.stringify(linkItem));
+      await page.waitForSelector("#body.reading .weblink-card img.weblink-picture");
+      check(await page.locator("#body.reading .weblink-card .weblink-description:has-text('What it is about')").count() === 1, "the card shows the description");
+    } else {
+      check(linkItem.properties.url === storyURL, "the link keeps its address");
+    }
+    // The item itself shows its page as a card; its page is read again.
+    await page.goto(base + "/#/item/" + linkItem.key);
+    await page.waitForSelector("#weblink-card a.weblink-title[target=_blank]");
+    check(await page.getAttribute("#weblink-card a.weblink-title", "href") === storyURL, "the card leads to the page");
+    if (linkPreviews) {
+      web.description = "Read again";
+      await page.click("#weblink-refresh");
+      await page.waitForSelector("#weblink-card .weblink-description:has-text('Read again')");
+      // The page's text goes below the body, to be annotated; its markup
+      // stays text and nothing of it runs.
+      await page.click("#weblink-text");
+      await page.waitForSelector("#body.reading .ProseMirror h3:has-text('Part one')");
+      await page.waitForSelector("#body.reading .ProseMirror p:has-text('Some words.')");
+    }
+
+    step("capture: a share to the installed app, the capture view's targets and the bookmarklet (ADR-0207)");
+    const appManifest = await (await page.request.get(base + "/manifest.webmanifest")).json();
+    check(appManifest.share_target.action === "/capture" && appManifest.display === "standalone" && appManifest.icons.length === 3, "the app's manifest: " + JSON.stringify(appManifest));
+    check(await page.locator("link[rel=manifest]").count() === 1, "the page names its manifest");
+    // A share to the app arrives as a form; it opens the capture view.
+    await page.goto(base + "/");
+    await page.evaluate(({ url }) => {
+      const f = document.createElement("form");
+      f.method = "POST";
+      f.action = "/capture";
+      for (const [k, v] of Object.entries({ title: "Shared page", text: "A quote worth keeping.\n\nAnd a second one.", url })) {
+        const i = document.createElement("textarea"); // an input would drop the line breaks
+        i.name = k;
+        i.value = v;
+        f.append(i);
+      }
+      document.body.append(f);
+      f.submit();
+    }, { url: web.url + "/shared" });
+    await page.waitForSelector("#capture-form");
+    check(page.url().includes("#/capture?") && (await page.inputValue("#capture-title")) === "Shared page", "the share fills the capture view: " + page.url());
+    check(await page.isChecked("#capture-target-weblink"), "a share with an address becomes a web link");
+    await page.selectOption("#capture-weblink-space", "LINKS");
+    await page.click("#capture-save");
+    await page.waitForSelector("#capture-saved a#capture-open");
+    const sharedLink = (await (await page.request.get(base + "/api/items/" + (await page.textContent("#capture-open")).split(" ")[0])).json()).item;
+    check(sharedLink.type === "weblink" && sharedLink.space === "LINKS" && sharedLink.body.filter((b) => b.kind === "quote").length === 2,
+      "the shared text became quotes of the web link: " + JSON.stringify(sharedLink.body));
+    // Without an address, a thought becomes a new item, or is added to one.
+    await page.goto(base + "/#/capture?" + new URLSearchParams({ title: "A thought", text: "Worth remembering." }));
+    await page.waitForSelector("#capture-form");
+    check(await page.locator("#capture-target-weblink").count() === 0 && await page.isChecked("#capture-target-item"), "no web link without an address");
+    await page.selectOption("#capture-type", "page");
+    await page.selectOption("#capture-item-space", "LINKS");
+    await page.click("#capture-save");
+    await page.waitForSelector("#capture-saved");
+    await page.goto(base + "/#/capture?" + new URLSearchParams({ text: "Added from elsewhere.", url: web.url + "/elsewhere" }));
+    await page.waitForSelector("#capture-form");
+    await page.check("#capture-target-append");
+    await page.fill("#capture-search", readingList.key);
+    await page.check(`#capture-results input[value="${readingList.id}"]`);
+    await page.click("#capture-save");
+    await page.waitForSelector("#capture-saved");
+    const readingAfter = (await (await page.request.get(base + "/api/items/" + readingList.key)).json()).item;
+    const lastBlock = readingAfter.body[readingAfter.body.length - 1];
+    check(readingAfter.body.some((b) => b.kind === "quote" && b.text === "Added from elsewhere.") && lastBlock.marks?.[0]?.href === web.url + "/elsewhere",
+      "the capture was added at the end with its source: " + JSON.stringify(readingAfter.body));
+    // The account page offers the bookmarklet; New leads to the capture view.
+    await page.goto(base + "/#/account");
+    await page.waitForSelector("#capture-bookmarklet #bookmarklet");
+    check((await page.getAttribute("#bookmarklet", "href")).startsWith("javascript:") && (await page.inputValue("#bookmarklet-code")).includes(base + "/#/capture?"), "the bookmarklet opens this site's capture view");
+    await page.goto(base + "/#/new");
+    await page.click("#new-capture-open");
+    await page.waitForSelector("#capture-form");
+
     check(problems.length === 0, problems.join("; "));
     console.log("ok");
   } catch (err) {
@@ -5487,5 +5638,6 @@ function gitSource() {
     feed.close();
     atlassian.close();
     repo.close();
+    web.close();
   }
 })();
