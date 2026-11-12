@@ -5588,6 +5588,110 @@ function gitSource() {
     await page.waitForSelector("#topic-items .iv-gallery .iv-card");
     check(page.url().includes("layout=gallery"), "the page's address keeps the layout of its items");
 
+
+    step("import of notes: a room administrator rehearses a ZIP archive of notes and imports it; links between notes become mentions, a re-run makes nothing twice (ADR-0209)");
+    // A ZIP archive of stored files, written here without a library.
+    const crcTable = Array.from({ length: 256 }, (_, n) => {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+      return c >>> 0;
+    });
+    const crc32 = (buf) => {
+      let c = 0xffffffff;
+      for (const b of buf) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8);
+      return (c ^ 0xffffffff) >>> 0;
+    };
+    const zipOf = (files) => {
+      const parts = [], central = [];
+      let offset = 0;
+      for (const [name, text] of Object.entries(files)) {
+        const nameBuf = Buffer.from(name), data = Buffer.from(text), crc = crc32(data);
+        const local = Buffer.alloc(30);
+        local.writeUInt32LE(0x04034b50, 0); local.writeUInt16LE(20, 4); local.writeUInt16LE(0x0800, 6);
+        local.writeUInt32LE(crc, 14); local.writeUInt32LE(data.length, 18); local.writeUInt32LE(data.length, 22); local.writeUInt16LE(nameBuf.length, 26);
+        const entry = Buffer.alloc(46);
+        entry.writeUInt32LE(0x02014b50, 0); entry.writeUInt16LE(20, 4); entry.writeUInt16LE(20, 6); entry.writeUInt16LE(0x0800, 8);
+        entry.writeUInt32LE(crc, 16); entry.writeUInt32LE(data.length, 20); entry.writeUInt32LE(data.length, 24); entry.writeUInt16LE(nameBuf.length, 28);
+        entry.writeUInt32LE(offset, 42);
+        parts.push(local, nameBuf, data);
+        central.push(entry, nameBuf);
+        offset += 30 + nameBuf.length + data.length;
+      }
+      const dir = Buffer.concat(central), end = Buffer.alloc(22);
+      end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(central.length / 2, 8); end.writeUInt16LE(central.length / 2, 10);
+      end.writeUInt32LE(dir.length, 12); end.writeUInt32LE(offset, 16);
+      return Buffer.concat([...parts, dir, end]);
+    };
+    const vaultZip = zipOf({
+      "Vault/Home.md": "---\ntags: [smoke]\n---\n# Home of the vault\n\nRead [[Other note|the other note]] first. `" + hostile + "`\n",
+      "Vault/Notes/Other note.md": "The other note links [[Home]] and [[Nowhere]].\n",
+    });
+    await page.goto(base + "/#/space/PLAT");
+    await page.click("#space-import");
+    await page.waitForSelector("#note-import-file");
+    await page.setInputFiles("#note-import-file", { name: "Vault.zip", mimeType: "application/zip", buffer: vaultZip });
+    check(await page.inputValue("#note-import-name") === "Vault", "the import is named after its archive");
+    await page.click("#note-import-dry-run");
+    await page.waitForSelector("#note-import-report[data-dry=true]:has-text('3 new')");
+    await page.waitForSelector("#note-import-report .note-import-problems li:has-text('[[Nowhere]]')");
+    check(!(await (await page.request.get(base + "/api/items?space=PLAT&q=Home%20of%20the%20vault")).json()).items.length, "the dry run wrote nothing");
+    await page.click("#note-import-run");
+    await page.waitForSelector("#note-import-report[data-dry=false]:has-text('3 new')");
+    await page.waitForSelector("#note-import-earlier:has-text('Vault (3)')");
+    await page.click("#note-import-report a:has-text('Home of the vault')");
+    await page.waitForSelector(".item-main a.pm-mention:has-text('the other note')");
+    await page.waitForSelector(".item-main :text('" + hostile.slice(0, 8) + "')");
+    await page.click(".item-main a.pm-mention:has-text('the other note')");
+    await page.waitForSelector(".item-main a.pm-mention:has-text('Home')");
+    // The same archive again makes nothing twice; the form is also in the
+    // administration.
+    await page.goto(base + "/#/admin");
+    await page.waitForSelector("#note-import-space");
+    await page.selectOption("#note-import-space", "PLAT");
+    await page.setInputFiles("#note-import-file", { name: "Vault.zip", mimeType: "application/zip", buffer: vaultZip });
+    await page.click("#note-import-run");
+    await page.waitForSelector("#note-import-report[data-dry=false]:has-text('0 new'):has-text('3 unchanged')");
+
+    step("connectors: the highlights of a reading service become items, their quotes above a line people write below (ADR-0210)");
+    // The service's export, which the server under test reads with
+    // OT_CONNECTOR_READING_TOKEN=e2e-reading-token; without that variable
+    // the run fails and names it.
+    const reading = require("http").createServer((req, res) => {
+      const ok = req.headers.authorization === "Token e2e-reading-token" && req.url.startsWith("/api/v2/export/");
+      res.writeHead(ok ? 200 : 401, { "Content-Type": "application/json" });
+      res.end(ok ? JSON.stringify({ count: 1, nextPageCursor: null, results: [{ user_book_id: 7, title: "Walden", readable_title: "Walden", author: "H. D. Thoreau",
+        book_tags: [{ id: 1, name: "nature" }], source_url: "https://books.example/walden",
+        highlights: [{ id: 1, text: "Simplify, simplify.", note: hostile, location: 12, location_type: "page" }] }] }) : '{"detail":"no"}');
+    });
+    await new Promise((resolve) => reading.listen(0, "127.0.0.1", resolve));
+    try {
+      await page.goto(base + "/#/admin");
+      await page.click("#connector-new-highlights");
+      await page.waitForSelector("#connector-settings [name=fullDays]");
+      await page.fill("#connector-settings [name=id]", "reading");
+      await page.fill("#connector-settings [name=name]", "Reading");
+      await page.selectOption("#connector-settings [name=space]", "PLAT");
+      await page.fill("#connector-settings [name=url]", `http://127.0.0.1:${reading.address().port}`);
+      await page.selectOption("#connector-settings [name=language]", "en");
+      await page.click("#connector-settings button[type=submit]");
+      await page.waitForSelector("#connector-list tr[data-connector='reading']");
+      await page.waitForSelector("#connector-run-full");
+      const tokenSet = (await page.textContent("#connector-credential")).includes("OT_CONNECTOR_READING_TOKEN is set");
+      await page.click("#connector-dry-run");
+      if (tokenSet) {
+        await page.waitForSelector("#connector-history .catalog-run:has-text('Dry run'):has-text('1 new')");
+        await page.click("#connector-run-now");
+        await page.waitForSelector("#connector-history .catalog-run:has-text('Sync'):has-text('1 new') a");
+        await page.click("#connector-history .catalog-run a:has-text('Walden')");
+        await page.waitForSelector(".item-main blockquote:has-text('Simplify, simplify.')");
+        await page.waitForSelector(".item-main :text('" + hostile.slice(0, 8) + "')");
+        await page.waitForSelector(".item-main :text('Write your own notes below this line')");
+      } else {
+        await page.waitForSelector("#connector-history .catalog-run .error:has-text('OT_CONNECTOR_READING_TOKEN')");
+      }
+    } finally {
+      reading.close();
+    }
     check(problems.length === 0, problems.join("; "));
     console.log("ok");
   } catch (err) {

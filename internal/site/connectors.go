@@ -43,6 +43,38 @@ type Connector struct {
 	Atlassian *Atlassian `json:"atlassian,omitempty"`
 	// Git holds the settings of a connector of the kind git.
 	Git *GitSource `json:"git,omitempty"`
+	// Highlights holds the settings of a connector of the kind highlights.
+	Highlights *HighlightsSource `json:"highlights,omitempty"`
+}
+
+// HighlightsSource is an account at a reading service whose highlights
+// become items, one per book or article (ADR-0210): the service's
+// address, the language of the page's own words, and how often a full
+// run reads everything again, as a run otherwise reads only what changed.
+// The account is the one whose token the environment holds.
+type HighlightsSource struct {
+	URL string `json:"url"`
+	// Language is the one of the page's own words; empty is German.
+	Language string `json:"language,omitempty"`
+	// FullDays is how many days may pass between full runs; 0 is 7.
+	FullDays int `json:"fullDays,omitempty"`
+}
+
+// HighlightsValues are the values a reading service gives of each book or
+// article (ADR-0210): its author, category, cover picture's address,
+// where it was read, its address, its page at the service and its tags.
+var HighlightsValues = []string{"author", "category", "cover", "link", "source", "tags", "url"}
+
+func (h HighlightsSource) validate() error {
+	switch {
+	case !httpURL(h.URL):
+		return fmt.Errorf("%w: %q is not an http or https address", ErrInvalid, h.URL)
+	case h.Language != "" && !slices.Contains(ConnectorLanguages, h.Language):
+		return fmt.Errorf("%w: %q is not a language of the pages (%s)", ErrInvalid, h.Language, strings.Join(ConnectorLanguages, ", "))
+	case h.FullDays < 0 || h.FullDays > 365:
+		return fmt.Errorf("%w: a full run comes every 1 to 365 days", ErrInvalid)
+	}
+	return nil
 }
 
 // Atlassian is an Atlassian Cloud site whose spaces and projects are
@@ -220,10 +252,13 @@ const (
 	KindJSON      = "json"
 	KindAtlassian = "atlassian"
 	KindGit       = "git"
+	// KindHighlights reads one's highlights from a reading service
+	// (ADR-0210).
+	KindHighlights = "highlights"
 )
 
 // ConnectorKinds are the kinds of source a connector reads.
-var ConnectorKinds = []string{KindCKAN, KindJSON, KindAtlassian, KindGit}
+var ConnectorKinds = []string{KindCKAN, KindJSON, KindAtlassian, KindGit, KindHighlights}
 
 // maxConnectors bounds how many connectors a site keeps.
 const maxConnectors = 20
@@ -249,7 +284,9 @@ func ConnectorTemplates() []Connector {
 	}}, {Name: "OpenAPI", Kind: KindJSON, IntervalHours: 24, JSON: &JSONSource{
 		// A JSON source whose settings an API description gives (ADR-0130).
 		URL: "https://", ID: "id", Title: "title", Values: map[string]string{}, Language: "de", Spec: "https://",
-	}}, {Name: "Git", Kind: KindGit, IntervalHours: 1, Git: &GitSource{URL: "https://", Language: "de"}}}
+	}}, {Name: "Git", Kind: KindGit, IntervalHours: 1, Git: &GitSource{URL: "https://", Language: "de"}},
+		// A reading service's highlights, its export API at its address.
+		{Name: "Readwise", Kind: KindHighlights, IntervalHours: 24, Highlights: &HighlightsSource{URL: "https://readwise.io", Language: "de", FullDays: 7}}} // ADR-0210
 }
 
 var connectorIDRE = regexp.MustCompile(`^[a-z0-9][a-z0-9.-]{0,39}$`)
@@ -317,6 +354,11 @@ func (c Connector) Validate() error {
 			return fmt.Errorf("%w: a Git connector needs its source", ErrInvalid)
 		}
 		err = c.Git.validate()
+	case KindHighlights:
+		if c.Highlights == nil {
+			return fmt.Errorf("%w: a connector of highlights needs its service", ErrInvalid)
+		}
+		err = c.Highlights.validate()
 	}
 	if err != nil {
 		return err
@@ -349,6 +391,8 @@ func (c Connector) Values() []string {
 		return slices.Sorted(maps.Keys(c.JSON.Values))
 	case c.Kind == KindGit:
 		return GitValues
+	case c.Kind == KindHighlights:
+		return HighlightsValues
 	}
 	return nil
 }
@@ -541,6 +585,14 @@ func (c Connector) Normalize() Connector {
 		g.URL = strings.TrimSpace(g.URL)
 		c.Git = &g
 	}
+	if c.Highlights != nil {
+		h := *c.Highlights
+		h.URL = strings.TrimRight(strings.TrimSpace(h.URL), "/")
+		if h.FullDays == 0 {
+			h.FullDays = 7
+		}
+		c.Highlights = &h
+	}
 	clean := func(in []string, f func(string) string) []string {
 		out := []string{}
 		for _, s := range in {
@@ -626,6 +678,10 @@ func (c Connector) clone() Connector {
 	if c.Git != nil {
 		g := *c.Git
 		c.Git = &g
+	}
+	if c.Highlights != nil {
+		h := *c.Highlights
+		c.Highlights = &h
 	}
 	return c
 }

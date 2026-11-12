@@ -105,6 +105,14 @@ type Budgets struct {
 	// (ADR-0159), the start included, across every space. Beyond it the
 	// walk keeps the nearest nodes and says it was cut.
 	ImpactNodes int
+	// NoteImportBytes, NoteImportFiles and NoteUnpackedBytes bound one
+	// import of notes (ADR-0209): the uploaded ZIP archive, which the
+	// server holds while it reads it, the files it may hold, and the bytes
+	// all files read from it may hold unpacked, together, so a small
+	// archive cannot unpack into much.
+	NoteImportBytes   int64
+	NoteImportFiles   int
+	NoteUnpackedBytes int64
 	// WhiteboardSessions, WhiteboardClients, WhiteboardElements and
 	// WhiteboardSceneBytes bound live whiteboards (ADR-0169): sessions on
 	// the server, clients per session (browsers and agents), elements one
@@ -184,6 +192,9 @@ func Default() Budgets {
 		MarkdownPictureBytes:   50 << 20,
 		StarmapNodes:           600,
 		ImpactNodes:            1000,
+		NoteImportBytes:        100 << 20,
+		NoteImportFiles:        5000,
+		NoteUnpackedBytes:      512 << 20,
 		WhiteboardSessions:     200,
 		WhiteboardClients:      20,
 		WhiteboardElements:     20_000,

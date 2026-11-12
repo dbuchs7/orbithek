@@ -166,6 +166,13 @@ var (
 // photo was taken by hand (ADR-0198) is not offered either: it changes
 // every file of the picture given out, and an agent that cannot list the
 // album would date pictures it never saw.
+//
+// The import of notes (ADR-0209) is not offered: its body is a ZIP
+// archive a person uploads, which no tool argument carries, and it
+// writes a whole tree of pages into a room as a room administrator's
+// decision. An agent writes pages one at a time with create_item and
+// commit_body, converting the Markdown itself. Connectors, the one to a
+// reading service (ADR-0210) included, are administration.
 var tools = []tool{
 	{Name: "list_spaces", Description: "List the spaces the caller holds a role in.", Method: "GET", Path: "/api/spaces"},
 	{Name: "get_own_roles", Description: "The caller's own roles: the system roles held, and every space role granted to the caller, directly or through a group (via), one entry per grant.",

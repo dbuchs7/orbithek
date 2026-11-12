@@ -27,6 +27,7 @@ import { taskLinksCard } from "./tasklinks.js";
 import { connectionsCard, silentConnect } from "./engineconn.js";
 import { freshNotice, taskDialog, taskPanel } from "./taskdialog.js";
 import { finishing } from "./taskparts.js";
+import { noteImportCard } from "./noteimport.js";
 import { documentView, upgradeTemplate, wordTemplatesCard } from "./wordtemplates.js";
 import { manualBlocks, manualLanguage, manualLanguages, manualPath } from "./manual.js";
 import { configureViews, labelItems, viewScreen } from "./itemview.js";
@@ -1762,6 +1763,7 @@ async function route() {
       case "oauth": return await oauthView(params);
       case "admin": return await adminView();
       case "members": return await membersView(arg);
+      case "import": return await importView(arg);
       default: return await homeView();
     }
   } catch (err) {
@@ -2653,7 +2655,8 @@ async function spaceView(key) {
         csv,
         watchButton("/api/spaces/" + encodeURIComponent(key), watches.some((w) => !w.item && w.space === key), status))),
     h("nav", { class: "subnav", "aria-label": t("space.views") }, [...boards, ...views, link(`#/roadmap?space=${encodeURIComponent(key)}`, t("roadmap.tab")), link(`#/calendar?space=${encodeURIComponent(key)}`, t("calendar.tab")), link(`#/links/${encodeURIComponent(key)}`, t("space.linkCheck")), link(`#/governance/${encodeURIComponent(key)}`, t("nav.governance")),
-      sp.role === "space-admin" ? link(`#/members/${encodeURIComponent(key)}`, t("members.title")) : null].filter(Boolean)),
+      sp.role === "space-admin" ? link(`#/members/${encodeURIComponent(key)}`, t("members.title")) : null,
+      sp.role === "space-admin" ? link(`#/import/${encodeURIComponent(key)}`, t("notesImport.title"), null, "space-import") : null].filter(Boolean)),
     status,
     home,
     labels.length ? h("section", { id: "space-labels" }, h("h2", { text: t("label.title") }),
@@ -6070,6 +6073,9 @@ async function adminView() {
   const regulationsSection = section("regulations", t("dp.adminTitle"), await regulationsCard());
 
   const importSection = section("import", t("admin.import"),
+    h("h3", { text: t("notesImport.title") }),
+    noteImportCard({ spaces: favouritesFirst(spaces), types: types.filter((ty) => ty.body), lang: language(), keyLink: itemLink }),
+    h("h3", { text: t("notesImport.otherWiki") }),
     h("p", { text: t("admin.importText") }),
     h("pre", { class: "snippet", text: "orbithek import -help" }));
 
@@ -6611,6 +6617,8 @@ function connectorEditor(c, data, spaces, users, list, reopen) {
   const k = c.ckan || { formats: [], organizations: [], baseURL: "", portalURL: "", language: "de" };
   const j = c.json;
   const g = c.git;
+  // A reading service's highlights (ADR-0210).
+  const hl = c.highlights;
   // An Atlassian import names its spaces, types and fields itself
   // (ADR-0128): it has no space, type or steward of its own.
   const a = c.atlassian;
@@ -6789,6 +6797,15 @@ function connectorEditor(c, data, spaces, users, list, reopen) {
     field(t("connector.language"), languageSelect(g.language)),
     h("p", { class: "muted", text: t("git.languageHelp") }),
   ];
+  // The service whose highlights become items, and how often a run reads
+  // them all instead of what changed (ADR-0210).
+  const highlightsSource = () => [
+    field(t("highlights.url"), h("input", { name: "url", type: "url", required: true, value: hl.url, maxlength: 512 })),
+    h("p", { class: "muted", text: t("highlights.urlHelp") }),
+    field(t("highlights.fullDays"), h("input", { name: "fullDays", type: "number", min: 1, max: 365, required: true, value: hl.fullDays || 7 })),
+    h("p", { class: "muted", text: t("highlights.fullDaysHelp") }),
+    field(t("connector.language"), languageSelect(hl.language)),
+  ];
   // The source accounts, groups and roles of an Atlassian import, one a
   // line: "accountId username", "source group @local-group", "username=role".
   const lines = (v) => v.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#"));
@@ -6844,7 +6861,7 @@ function connectorEditor(c, data, spaces, users, list, reopen) {
       { id: "run-problems-" + Date.parse(r.started), label: t("catalog.problems") }) : "");
   editor.replaceChildren(
     h("h3", { text: c.isNew ? t("connector.newTitle") : c.name }),
-    h("p", { class: "muted", text: a ? t("atlassian.note") : j ? t("json.note") : g ? t("git.note") : t("catalog.note") }),
+    h("p", { class: "muted", text: a ? t("atlassian.note") : j ? t("json.note") : g ? t("git.note") : hl ? t("highlights.note") : t("catalog.note") }),
     h("p", { class: "muted", text: t("connector.publicOnly") }),
     form({ id: "connector-settings" }, [
       field(t("connector.id"), h("input", { name: "id", value: c.id, required: true, readonly: !c.isNew, pattern: "[a-z0-9][a-z0-9.\\-]{0,39}", maxlength: 40 })),
@@ -6853,7 +6870,7 @@ function connectorEditor(c, data, spaces, users, list, reopen) {
       h("label", { class: "check" }, h("input", { type: "checkbox", name: "enabled", checked: c.enabled }), " ", t("catalog.enabled")),
       a ? "" : field(t("catalog.space"), h("select", { name: "space", required: true }, h("option", { value: "", text: "—" }),
         favouritesFirst(spaces).map((sp) => h("option", { value: sp.key, text: `${sp.name} (${sp.key})`, selected: sp.key === c.space })))),
-      a ? atlassianSource() : j ? jsonSource() : g ? gitSource() : ckanSource(),
+      a ? atlassianSource() : j ? jsonSource() : g ? gitSource() : hl ? highlightsSource() : ckanSource(),
       a ? "" : h("fieldset", { class: "connector-target" }, h("legend", { text: t("connector.target") }),
         field(t("connector.type"), typeSelect),
         h("p", { class: "muted", text: t("connector.targetHelp") }),
@@ -6863,7 +6880,7 @@ function connectorEditor(c, data, spaces, users, list, reopen) {
         users.map((u) => h("option", { value: u.id, text: u.username, selected: u.id === c.steward })))),
       a ? "" : h("p", { class: "muted", text: t("catalog.stewardHelp") }),
       field(t("catalog.interval"), h("input", { name: "intervalHours", type: "number", min: 1, max: 744, required: true, value: c.intervalHours })),
-      j || a || g ? "" : h("details", {}, h("summary", { text: t("catalog.source") }),
+      j || a || g || hl ? "" : h("details", {}, h("summary", { text: t("catalog.source") }),
         field(t("catalog.baseURL"), h("input", { name: "baseURL", type: "url", required: true, value: k.baseURL })),
         field(t("catalog.portalURL"), h("input", { name: "portalURL", type: "url", required: true, value: k.portalURL }))),
       c.isNew ? "" : h("p", { class: "muted", id: "connector-credential",
@@ -6888,6 +6905,8 @@ function connectorEditor(c, data, spaces, users, list, reopen) {
       };
       if (g) {
         body.git = { url: d.get("url").trim(), language: d.get("language") };
+      } else if (hl) {
+        body.highlights = { url: d.get("url").trim(), language: d.get("language"), fullDays: Number(d.get("fullDays")) || 7 };
       } else if (a) {
         body.atlassian = { site: d.get("site").trim(), spaces: list(d.get("spaces")), projects: list(d.get("projects")), users: pairs(d.get("users")),
           groups: pairs(d.get("groups")), grants: lines(d.get("grants")) };
@@ -6906,7 +6925,7 @@ function connectorEditor(c, data, spaces, users, list, reopen) {
     }),
     c.isNew ? "" : h("p", { id: "connector-next" }, st.running ? t("catalog.running") : st.next ? t("catalog.next", { when: when(st.next) }) : t("catalog.off")),
     c.isNew ? "" : h("div", { class: "actions-row" }, run(true, "connector-dry-run", t("catalog.dryRunNow")), run(false, "connector-run-now", t("catalog.runNow")),
-      j?.since ? run(false, "connector-run-full", t("since.runFull"), true) : "",
+      j?.since || hl ? run(false, "connector-run-full", t("since.runFull"), true) : "",
       c.space ? link("#/space/" + encodeURIComponent(c.space), t("catalog.openSpace"), "button") : "", a ? release() : ""),
     c.isNew || !a ? "" : h("p", { class: "muted", text: t("atlassian.releaseHelp") }),
     runStatus,
@@ -7163,6 +7182,23 @@ async function designCard() {
       st.replaceChildren(h("p", { class: "notice", text: t("design.saved") }));
     }),
     status);
+}
+
+// itemLink links an item by its key.
+const itemLink = (key, text) => link("#/item/" + encodeURIComponent(key), text);
+
+// importView imports a ZIP archive of notes into a room, for its
+// administrators (ADR-0209).
+async function importView(key) {
+  const show = screen();
+  const [{ spaces }, { types }] = await Promise.all([get("/api/spaces"), get("/api/types")]);
+  here.space = key;
+  const sp = spaces.find((s) => s.key === key) || { name: key };
+  show(
+    h("p", {}, link("#/", t("nav.spaces")), " / ", link("#/space/" + encodeURIComponent(key), key), " / " + t("notesImport.title")),
+    h("h1", { text: t("notesImport.heading", { space: sp.name }) }),
+    noteImportCard({ space: key, types: types.filter((ty) => ty.body), lang: language(), keyLink: itemLink }),
+  );
 }
 
 // membersView lists who holds which role in a space, for its

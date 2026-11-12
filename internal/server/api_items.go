@@ -102,6 +102,7 @@ func itemRoutes(d Deps) []Route {
 	routes = append(routes, duplicateRoutes(h)...)
 	routes = append(routes, retentionRoutes(h)...)
 	routes = append(routes, noteRoutes(h)...)
+	routes = append(routes, noteImportRoutes(h)...)
 	routes = append(routes, watchRoutes(h)...)
 	routes = append(routes, changeRoutes(h)...)
 	routes = append(routes, whiteboardRoutes(h)...)
