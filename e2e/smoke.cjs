@@ -1453,6 +1453,9 @@ function webSource() {
     // (ADR-0214).
     await page.click("#body .pm-table tr:nth-child(2) td:first-child");
     await page.waitForSelector("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-editor");
+    // The cell being edited keeps the height of a line, not the page's.
+    const editedHeight = await page.locator("#body .pm-table tr:nth-child(2) td:first-child").evaluate((td) => td.getBoundingClientRect().height);
+    if (editedHeight > 80) throw new Error(`the cell being edited is ${editedHeight}px high`);
     await page.keyboard.type("db1, the primary database server of the cluster in the main data centre");
     await page.keyboard.press("Control+a");
     await page.keyboard.press("Control+b");
