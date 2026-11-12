@@ -153,6 +153,9 @@ type user struct {
 	// pictures are the pictures of the album the user marked as
 	// favourites (ADR-0177).
 	pictures map[PictureRef]bool
+	// dailyRoom is the key of the space the user's daily notes go to, or
+	// empty (ADR-0203).
+	dailyRoom string
 }
 
 type token struct {
@@ -240,6 +243,8 @@ type event struct {
 	// is now a favourite (ADR-0177).
 	Picture *PictureRef `json:"picture,omitempty"`
 	On      bool        `json:"on,omitempty"`
+	// Room is the space of a DailyRoomSet, empty to clear it (ADR-0203).
+	Room string `json:"room,omitempty"`
 }
 
 const (
@@ -279,6 +284,9 @@ const (
 	// pictureFavouriteSet marks one picture of the album as a favourite of
 	// a user, or unmarks it (ADR-0177).
 	pictureFavouriteSet = "PictureFavouriteSet"
+	// dailyRoomSet records the space a user's daily notes go to
+	// (ADR-0203).
+	dailyRoomSet = "DailyRoomSet"
 )
 
 // apply is the only code that changes accounts; it runs live and on load.
@@ -340,6 +348,12 @@ func (a *Accounts) apply(e event) error {
 		u.favourites = slices.Clone(e.Spaces)
 	case calendarViewsSet:
 		return a.applyViews(e)
+	case dailyRoomSet:
+		u, ok := a.users[e.User]
+		if !ok {
+			return fmt.Errorf("daily room of unknown user %s", e.User)
+		}
+		u.dailyRoom = e.Room
 	case pictureFavouriteSet:
 		return a.applyPictureFavourite(e)
 	case digestSent:

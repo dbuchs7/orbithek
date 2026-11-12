@@ -133,8 +133,9 @@ func MentionParagraph(before string, item ID, label, after string) Block {
 // (types are data, ADR-0001): the UI offers them to administrators, a
 // request's task is of the first of them that can hold one when the
 // installation has no such type yet (ADR-0162), a label's page is of
-// the type topic (ADR-0202), and a web link is saved as an item of the
-// last, defined when it is first needed (ADR-0206).
+// the type topic (ADR-0202), a web link is saved as an item of the
+// weblink type, defined when it is first needed (ADR-0206), and a person's
+// first daily note defines the daily note type when it is missing (ADR-0203).
 func TypeTemplates() []TypeDef {
 	return []TypeDef{
 		{Name: "page", Body: true, Fields: []FieldDef{{Name: "owner", Kind: KindUser}}},
@@ -151,6 +152,8 @@ func TypeTemplates() []TypeDef {
 		// The page of a label (ADR-0202).
 		topicType(),
 		webLinkTemplate(),
+		// A daily note per person and day (ADR-0203).
+		dailyTemplate(),
 	}
 }
 

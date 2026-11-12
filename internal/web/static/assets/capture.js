@@ -84,6 +84,8 @@ export function captureBlocks(capture, sourceLabel) {
 export const TARGETS = [
   // A page of the web becomes a web link item (ADR-0206).
   { id: "weblink", takes: (c) => Boolean(c.url) },
+  // Paragraphs added to one's daily note of today (ADR-0203).
+  { id: "daily", takes: (c) => Boolean(c.title || c.text || c.url) },
   // A new item of a chosen type in a chosen room, the capture its text.
   { id: "item", takes: (c) => Boolean(c.title || c.text || c.url) },
   // The capture added at the end of an item found by searching.

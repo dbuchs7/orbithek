@@ -919,7 +919,7 @@ function imageView(node, view, getPos, files) {
 // it, or null when cancelled (ADR-0138). weblinks.save(address), if given,
 // saves the page a link leads to as a web link item and returns {item,
 // problem}, or null when cancelled (ADR-0206).
-export function createEditor({ blocks, embeds, editable, resolve, childPages, files, extra = [], viewProps = {}, comment, protect, note, actions = [], embedContent, tasks, markdown, weblinks }) {
+export function createEditor({ blocks, embeds, editable, resolve, childPages, files, extra = [], viewProps = {}, comment, protect, note, actions = [], embedContent, tasks, markdown, weblinks, create }) {
   const mount = h("div", { class: "pm-editor" });
   const tocs = new Set();
   const tocPlugin = new Plugin({ view: () => ({ update: (v, prev) => { if (!v.state.doc.eq(prev.doc)) tocs.forEach((f) => f()); } }) });
@@ -931,7 +931,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
   // a Markdown file offers to show the file instead (ADR-0138).
   let showFile = null;
   let saveLink = null;
-  const aids = assist(schema, isSafeLink, { showFile: markdown ? (href) => showFile(href) : null, saveLink: weblinks ? (href) => saveLink(href) : null });
+  const aids = assist(schema, isSafeLink, { showFile: markdown ? (href) => showFile(href) : null, saveLink: weblinks ? (href) => saveLink(href) : null, create });
   const aidKeys = keymap({ "Mod-k": (state, dispatch, v) => { aids.openLink(v); return true; } });
   // Pictures pasted into the text (ADR-0108): one copied in the album
   // becomes a copy of its original file, any other image an upload.

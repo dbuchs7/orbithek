@@ -215,6 +215,9 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0200](0200-field-kinds-for-an-item-several-values-a-rating-and-a-file.md) | Field kinds for an item, several values, a rating and a file | Proposed | Partial |
 | [0201](0201-views-of-the-items-of-a-type-as-a-table-a-gallery-or-a-list.md) | Views of the items of a type as a table, a gallery or a list, grouped by a field, also placed in a text | Proposed | Partial |
 | [0202](0202-a-labels-page-and-collections-ordered-by-hand.md) | A label's page, and collections ordered by hand | Proposed | Partial |
+| [0203](0203-a-daily-note-per-person-and-day.md) | A daily note per person and day | Proposed | Partial |
+| [0204](0204-an-item-is-created-where-it-is-mentioned.md) | An item is created where it is mentioned | Proposed | Partial |
+| [0205](0205-a-command-palette-an-item-beside-another-and-the-context-of-an-item.md) | A command palette, an item beside another, and the context of an item | Proposed | Partial |
 | [0206](0206-a-web-link-becomes-an-item-with-what-its-page-says-about-itself.md) | A web link becomes an item with what its page says about itself | Proposed | Partial |
 | [0207](0207-capturing-into-the-wiki-from-anywhere.md) | Capturing into the wiki from anywhere | Proposed | Partial |
 | [0208](0208-a-pdf-reader-with-highlights-anchored-as-comments.md) | A PDF reader with highlights anchored as comments | Proposed | Partial |

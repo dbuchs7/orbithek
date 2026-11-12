@@ -306,8 +306,8 @@ func (s *Store) firstBody(created Event, d Doc) (Event, error) {
 	return s.firstBodyOf(td, created, d)
 }
 
-// firstBodyOf is firstBody for an item of td, a type that may be defined
-// in the same batch (ADR-0206).
+// firstBodyOf is firstBody for an item of the type td, which a batch may
+// define together with the item (ADR-0203, ADR-0206).
 func (s *Store) firstBodyOf(td TypeDef, created Event, d Doc) (Event, error) {
 	if !td.Body {
 		return Event{}, invalid("type %q has no body", td.Name)

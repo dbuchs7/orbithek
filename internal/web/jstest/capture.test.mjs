@@ -50,9 +50,9 @@ test("a capture adds its text as quotes and names its source", () => {
 });
 
 test("the targets are data, and a web link needs an address", () => {
-  assert.deepEqual(TARGETS.map((tg) => tg.id), ["weblink", "item", "append"]);
-  assert.deepEqual(targetsFor({ title: "t", text: "", url: "https://example.org" }).map((tg) => tg.id), ["weblink", "item", "append"]);
-  assert.deepEqual(targetsFor({ title: "t", text: "", url: "" }).map((tg) => tg.id), ["item", "append"]);
+  assert.deepEqual(TARGETS.map((tg) => tg.id), ["weblink", "daily", "item", "append"]);
+  assert.deepEqual(targetsFor({ title: "t", text: "", url: "https://example.org" }).map((tg) => tg.id), ["weblink", "daily", "item", "append"]);
+  assert.deepEqual(targetsFor({ title: "t", text: "", url: "" }).map((tg) => tg.id), ["daily", "item", "append"]);
   assert.deepEqual(targetsFor({ title: "", text: "", url: "" }), []);
   // One more target is one more entry.
   const daily = { id: "daily", takes: () => true };

@@ -1232,7 +1232,7 @@ function webSource() {
     await page.click("#app-switcher");
     await page.waitForSelector("#drawer:not([hidden])");
     const modules = (await page.locator("#drawer-apps a").allTextContents()).join(",");
-    check(modules === "Rooms,Create,Tasks,Comments,Album,Whiteboards,Starmap,AI access,Governance,Account,Administration", "the modules of an administrator: " + modules);
+    check(modules === "Rooms,Create,Tasks,Today,Comments,Album,Whiteboards,Starmap,AI access,Governance,Account,Administration", "the modules of an administrator: " + modules);
     await page.keyboard.press("Escape");
     await page.waitForSelector("#drawer", { state: "hidden" });
     await page.click("#app-switcher");
@@ -6070,6 +6070,138 @@ function webSource() {
       check(!elsewhere.includes("incident"), "a room's type is not offered elsewhere");
       await rtCtx.close();
     }
+    step("daily notes: Today opens one's own note for the day, made in the room one chose, written in place (ADR-0203)");
+    await page.goto(base + "/#/");
+    await page.click("#nav-today");
+    await page.waitForSelector("#daily-title");
+    if (await page.locator("#daily-note.daily-empty").count()) {
+      // The room is chosen once; the note is made then.
+      await page.selectOption("#daily-room", "PLAT");
+      await page.waitForSelector("#daily-note.editing .ProseMirror");
+    }
+    await page.waitForSelector("#daily-note.editing .ProseMirror");
+    check(await page.inputValue("#daily-room") === "PLAT", "the room of the daily notes is kept");
+    const dailyKey = (await page.getAttribute("#daily-item", "href")).replace("#/item/", "");
+    const dailyNote = (await (await page.request.get(base + "/api/items/" + dailyKey)).json()).item;
+    check(dailyNote.labels.includes("daily-note") && dailyNote.restriction.read.length === 1, "the note is labelled and restricted to its author");
+    await page.locator("#daily-note .ProseMirror").click();
+    await page.keyboard.type("Planned the day. ");
+    await page.waitForSelector("#daily-month .daily-day.today.noted.shown");
+    // Another day's note is made only when one starts it.
+    await page.click("#daily-prev");
+    await page.waitForSelector("#daily-note.daily-empty #daily-start");
+    check(await page.locator("#daily-today").count() === 1, "a day before today offers to go back to today");
+    await page.click("#daily-start");
+    await page.waitForSelector("#daily-note.editing .ProseMirror");
+    await page.waitForSelector("#daily-month .daily-day.shown.noted");
+    await page.click("#daily-next");
+    await page.waitForSelector("#daily-note.editing .ProseMirror");
+    await page.waitForSelector("#daily-calendar ul, #daily-calendar p.muted");
+    await page.waitForSelector("#daily-activity ul, #daily-activity p.muted");
+
+    step("create from a mention: a title that matches nothing is created where it is mentioned (ADR-0204)");
+    await page.locator("#daily-note .ProseMirror").click();
+    await page.keyboard.press("End");
+    await page.keyboard.type(" @Brandnewtopic");
+    await page.waitForSelector("#pm-at:not([hidden]) .pm-at-create");
+    await page.keyboard.press("ArrowUp"); // the offer to create comes last
+    await page.keyboard.press("Enter");
+    await page.waitForSelector("dialog#mention-create[open]");
+    check(await page.inputValue("#mention-create-title") === "Brandnewtopic", "the title typed is proposed");
+    check(await page.inputValue("#mention-create-space") === "PLAT", "the edited item's room is proposed");
+    await page.click("#mention-create-ok");
+    await page.waitForSelector("dialog#mention-create", { state: "detached" });
+    await page.waitForSelector("#daily-note .ProseMirror .pm-mention:has-text('Brandnewtopic')");
+    await page.click("#daily-title"); // leaving the editor saves the text
+    await page.waitForSelector("#daily-note .live[data-pending='0']");
+    const fromMention = (await (await page.request.get(base + "/api/items?q=Brandnewtopic")).json()).items[0];
+    check(fromMention && fromMention.space === "PLAT", "the mentioned item was created in the room");
+    // The link dialog offers it as well.
+    await page.locator("#daily-note .ProseMirror").click();
+    await page.keyboard.press("End");
+    await page.keyboard.press("Control+k");
+    await page.fill("dialog.pm-dialog [name=address]", "Another fresh topic");
+    await page.waitForSelector("dialog.pm-dialog #pm-link-create");
+    await page.click("dialog.pm-dialog #pm-link-create");
+    await page.waitForSelector("dialog#mention-create[open]");
+    check(await page.inputValue("#mention-create-title") === "Another fresh topic", "the link dialog proposes the address typed as the title");
+    await page.click("dialog#mention-create button:has-text('Cancel')");
+    await page.waitForSelector("dialog#mention-create", { state: "detached" });
+    check(!(await (await page.request.get(base + "/api/items?q=Another%20fresh%20topic")).json()).items.length, "nothing is created when cancelled");
+
+    step("context: an item names what refers to it, with its sentence, and the daily notes that name it (ADR-0205)");
+    await page.goto(base + "/#/item/" + fromMention.key);
+    await page.waitForSelector("#context-daily .context-entry");
+    check((await page.textContent("#context-daily")).includes(dailyKey), "today's note names the item");
+    check((await page.textContent("#context-daily .context-sentence")).includes("Brandnewtopic"), "with the sentence it stands in");
+
+    step("an item beside another: Shift+click opens it in a pane kept in the address; Esc closes it (ADR-0205)");
+    await page.click(`#context-daily a[href='#/item/${dailyKey}']`, { modifiers: ["Shift"] });
+    await page.waitForSelector("#beside-pane .beside-title");
+    check(page.url().includes("beside=" + dailyKey), "the item beside is kept in the address");
+    check((await page.textContent("#beside-pane .beside-title")) === dailyNote.title, "the pane shows the item");
+    await page.waitForSelector("#beside-pane .beside-text .ProseMirror");
+    await page.click("#beside-edit");
+    await page.waitForSelector("#beside-pane .beside-text.editing .ProseMirror[contenteditable=true]");
+    await page.click("#beside-edit");
+    await page.waitForSelector("#beside-pane .beside-text.reading");
+    await page.locator("#context h2").click();
+    await page.keyboard.press("Escape");
+    await page.waitForSelector("#beside-pane", { state: "detached" });
+    check(!page.url().includes("beside="), "Esc closes the pane and the address forgets it");
+    await page.click(`#context-daily .context-beside`);
+    await page.waitForSelector("#beside-pane .beside-title");
+    await page.click("#beside-close");
+    await page.waitForSelector("#beside-pane", { state: "detached" });
+
+    step("command palette: Ctrl+K outside the editor and Ctrl+Shift+P find items, recent ones and commands (ADR-0205)");
+    await page.locator("#context h2").click();
+    await page.keyboard.press("Control+k");
+    await page.waitForSelector("dialog#palette[open] #palette-input:focus");
+    check(await page.getAttribute("#palette-input", "role") === "combobox" && await page.getAttribute("#palette-list", "role") === "listbox", "a combobox and a listbox");
+    check(await page.locator("#palette-group-recent").count() === 1, "recently opened items are offered");
+    await page.keyboard.type("Brandnew");
+    await page.waitForSelector(`#palette-list .palette-option:has-text('${fromMention.key}')`);
+    await page.keyboard.press("Escape");
+    await page.waitForSelector("dialog#palette", { state: "detached" });
+    await page.keyboard.press("Control+Shift+P");
+    await page.waitForSelector("dialog#palette[open]");
+    await page.keyboard.type("today");
+    await page.waitForSelector("#palette-list .palette-command[aria-selected=true]:has-text(\"Today's daily note\")");
+    await page.keyboard.press("Enter");
+    await page.waitForSelector("#daily-title");
+    check(/#\/daily$/.test(page.url()), "the command opened today's note");
+    // In a text being edited, Ctrl+K stays the link dialog.
+    await page.waitForSelector("#daily-note.editing .ProseMirror");
+    await page.locator("#daily-note .ProseMirror").click();
+    await page.keyboard.press("Control+k");
+    await page.waitForSelector("dialog.pm-dialog[open]");
+    check(await page.locator("dialog#palette").count() === 0, "the palette does not open in the editor");
+    await page.click("dialog.pm-dialog button:has-text('Cancel')");
+    await page.keyboard.press("Alt+Shift+D");
+    await page.waitForSelector("#daily-title");
+    // On a phone, Today is in the modules and the view fits the screen (ADR-0116).
+    const dailyPhoneCtx = await browser.newContext({ viewport: { width: 375, height: 700 }, isMobile: true, hasTouch: true });
+    const dailyPhone = await dailyPhoneCtx.newPage();
+    dailyPhone.on("pageerror", (e) => problems.push("phone page error: " + e.message));
+    await dailyPhone.goto(base + "/");
+    await dailyPhone.fill("#login [name=username]", "bert");
+    await dailyPhone.fill("#login [name=password]", "bert's password");
+    await dailyPhone.press("#login [name=password]", "Enter");
+    await dailyPhone.waitForSelector("#account-button");
+    check(!(await dailyPhone.isVisible("#nav-today")), "the top bar of a phone keeps its rows: Today is in the modules");
+    await dailyPhone.click("#app-switcher");
+    await dailyPhone.click("#drawer-apps a:has-text('Today')");
+    await dailyPhone.waitForSelector("#daily-note.editing .ProseMirror");
+    await dailyPhone.goto(base + "/#/item/" + fromMention.key + "?beside=" + dailyKey);
+    await dailyPhone.waitForSelector("#beside-pane .beside-title");
+    for (const view of ["#/daily", "#/item/" + fromMention.key + "?beside=" + dailyKey]) {
+      await dailyPhone.goto(base + "/" + view);
+      await dailyPhone.waitForTimeout(400);
+      const wide = await dailyPhone.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      check(wide <= 0, `${view} is ${wide}px wider than a phone's screen`);
+    }
+    await dailyPhoneCtx.close();
 
     check(problems.length === 0, problems.join("; "));
     console.log("ok");

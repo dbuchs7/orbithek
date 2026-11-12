@@ -12,6 +12,7 @@ import { h } from "./dom.js";
 import { t } from "./i18n.js";
 import { get, post } from "./api.js";
 import { TARGETS, captureBlocks, isWebAddress, readCapture } from "./capture.js";
+import { appendToDailyNote } from "./daily.js";
 
 const field = (label, input) => h("label", { class: "field" }, h("span", { text: label }), input);
 
@@ -46,6 +47,13 @@ export const TARGET_VIEWS = {
       };
     },
     run: (c, v) => post("/api/weblinks", { url: c.url, title: c.title, quote: c.text, space: v.space, parent: v.parent, text: v.text }),
+  },
+  // Today's daily note, made when missing in the room chosen for daily
+  // notes; without that room the server says so (ADR-0203).
+  daily: {
+    label: () => t("capture.toDaily"),
+    fields: () => ({ elements: [], values: () => ({}) }),
+    run: (c) => appendToDailyNote([c.title, c.text, c.url].filter(Boolean).join("\n")).then(({ item }) => ({ item })),
   },
   item: {
     label: () => t("capture.toItem"),

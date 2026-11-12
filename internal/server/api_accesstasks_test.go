@@ -15,7 +15,7 @@ import (
 func TestARequestBecomesATaskThroughTheAPI(t *testing.T) {
 	w := newWorld(t)
 	tmpl := w.admin.expect("GET", "/api/types/templates", "", http.StatusOK)["templates"].([]any)
-	if len(tmpl) != 5 || tmpl[1].(map[string]any)["name"] != "task" || tmpl[3].(map[string]any)["name"] != "topic" || tmpl[4].(map[string]any)["name"] != "weblink" {
+	if len(tmpl) != 6 || tmpl[1].(map[string]any)["name"] != "task" || tmpl[3].(map[string]any)["name"] != "topic" || tmpl[4].(map[string]any)["name"] != "weblink" || tmpl[5].(map[string]any)["name"] != "daily-note" {
 		t.Fatalf("templates %v", tmpl)
 	}
 	page, _ := json.Marshal(tmpl[0])

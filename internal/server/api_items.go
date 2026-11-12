@@ -37,7 +37,7 @@ func itemRoutes(d Deps) []Route {
 	get, post, put, del := http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete
 	routes := []Route{
 		{Method: get, Pattern: "/api/types", Summary: "List the item types one sees: the installation's and those of one's spaces; space narrows to those its items may have", Handler: http.HandlerFunc(h.listTypes)},
-		{Method: get, Pattern: "/api/types/templates", Summary: "The ready-made types an installation starts from: page, task, decision, topic (ADR-0202) and weblink (ADR-0206); a request to read protected content makes its task of the task type when no type can hold it (ADR-0162)", Handler: http.HandlerFunc(h.typeTemplates)},
+		{Method: get, Pattern: "/api/types/templates", Summary: "The ready-made types an installation starts from: page, task, decision, topic (ADR-0202), weblink (ADR-0206) and daily note (ADR-0203); a request to read protected content makes its task of the task type when no type can hold it (ADR-0162)", Handler: http.HandlerFunc(h.typeTemplates)},
 		{Method: post, Pattern: "/api/types", Summary: "Define a type or a new version of it: of the whole installation (administrators), or with space a room type of that space (its space administrators)", Handler: http.HandlerFunc(h.defineType)},
 		{Method: del, Pattern: "/api/types/{name}", Summary: "Remove a type that no item and no kanban uses (administrators; a room type also its space administrators)", Handler: http.HandlerFunc(h.removeType)},
 		{Method: get, Pattern: "/api/spaces", Summary: "List the spaces one holds a role in", Handler: http.HandlerFunc(h.listSpaces)},
@@ -107,6 +107,8 @@ func itemRoutes(d Deps) []Route {
 	routes = append(routes, noteImportRoutes(h)...)
 	routes = append(routes, watchRoutes(h)...)
 	routes = append(routes, changeRoutes(h)...)
+	routes = append(routes, dailyRoutes(h)...)
+	routes = append(routes, contextRoutes(h)...)
 	routes = append(routes, whiteboardRoutes(h)...)
 	return append(routes, liveRoutes(h)...)
 }

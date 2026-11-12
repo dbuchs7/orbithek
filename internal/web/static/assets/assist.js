@@ -2,6 +2,8 @@
 // (ADR-0096): a dialog for links (Ctrl+K), web addresses that become links
 // as they are typed or pasted, "@" that suggests people and items, a bubble
 // on a link to open, edit or remove it, and a dialog to embed an item.
+// Where "@" or the link dialog finds no item of the title typed, they
+// offer to create one and mention it (ADR-0204).
 import { Plugin } from "../vendor/prosemirror.js";
 import { get } from "./api.js";
 import { h } from "./dom.js";
@@ -40,6 +42,13 @@ function linkRange(state, pos, type) {
   return runs.find((r) => r.from <= pos && pos <= r.to) || null;
 }
 
+// matchesTitle tells whether one of the items found has the title typed,
+// letter case aside: then nothing is offered to be created.
+export function matchesTitle(found, typed) {
+  const q = String(typed || "").trim().toLowerCase();
+  return found.some((it) => String(it.title || "").trim().toLowerCase() === q);
+}
+
 // markdownFileRE is the address of a Markdown file as a repository's host
 // shows it (ADR-0138).
 const markdownFileRE = /^https?:\/\/[^\s]+\/(blob|raw|src|browse|-\/blob|-\/raw)\/[^\s]*\.(md|markdown)([?#][^\s]*)?$|^https:\/\/raw\.githubusercontent\.com\/[^\s]+\.(md|markdown)$/i;
@@ -48,7 +57,9 @@ const markdownFileRE = /^https?:\/\/[^\s]+\/(blob|raw|src|browse|-\/blob|-\/raw)
 // the model keeps (ADR-0014). showFile(href), if given, shows a Markdown
 // file a link leads to instead of the link (ADR-0138); saveLink(href)
 // saves the web page a link leads to as a web link item (ADR-0206).
-export function assist(schema, isSafe, { showFile, saveLink } = {}) {
+// create(title), if given, makes an item of a title that matches nothing
+// and returns it, or null when it was not made (ADR-0204).
+export function assist(schema, isSafe, { showFile, saveLink, create } = {}) {
   const link = schema.marks.link;
 
   // autolink marks the address before pos as a link, as typing a space or
@@ -145,8 +156,9 @@ export function assist(schema, isSafe, { showFile, saveLink } = {}) {
   });
 
   // results lists items found for what is typed in input; a choice calls
-  // pick(item).
-  const results = (input, pick) => {
+  // pick(item). With make, a title no item has is offered to be created:
+  // make(title) is called then.
+  const results = (input, pick, make) => {
     const list = h("ul", { class: "pm-results", role: "listbox", "aria-label": t("assist.pages") });
     let timer = 0;
     let asked = 0;
@@ -165,6 +177,10 @@ export function assist(schema, isSafe, { showFile, saveLink } = {}) {
           h("button", { type: "button", class: "pm-result", "data-key": it.key, onclick: () => pick(it) },
             h("strong", { text: it.title || it.key }), " ", h("span", { class: "muted", text: `${it.key} · ${it.type}` })))));
         if (!found.length) list.append(h("li", { class: "muted", text: t("assist.noPages") }));
+        if (make && !matchesTitle(found, q)) {
+          list.append(h("li", { role: "option" }, h("button", { type: "button", class: "pm-result pm-create", id: "pm-link-create", onclick: () => make(q) },
+            t("assist.createAs", { title: q }))));
+        }
       }, 150);
     };
     input.addEventListener("input", find);
@@ -193,7 +209,7 @@ export function assist(schema, isSafe, { showFile, saveLink } = {}) {
       if (!text.value.trim()) text.value = it.title || it.key;
       list.replaceChildren();
       address.focus();
-    });
+    }, create ? (title) => address.closest("dialog").closeWith({ make: title, text: text.value }) : null);
     address.addEventListener("input", () => { chosen = null; });
     const remove = existing ? h("button", { type: "button", class: "link danger", id: "pm-link-remove", text: t("assist.removeLink"), onclick: () => {
       view.dispatch(view.state.tr.removeMark(existing.from, existing.to, link));
@@ -214,8 +230,14 @@ export function assist(schema, isSafe, { showFile, saveLink } = {}) {
       },
     });
     setTimeout(() => (shown ? address : text).focus(), 0);
-    const v = await result;
+    let v = await result;
     view.focus();
+    if (v?.make) {
+      // The title matched nothing: the item is created, then linked.
+      const made = await create(v.make);
+      view.focus();
+      v = made ? { item: made, text: v.text.trim() || made.title || made.key } : null;
+    }
     if (!v) return;
     const tr = view.state.tr;
     if (v.item) {
@@ -323,6 +345,20 @@ export function assist(schema, isSafe, { showFile, saveLink } = {}) {
       const choose = (o) => {
         const cur = typedAt(view.state);
         if (!cur) return;
+        if (o.make) {
+          // The item is created first; the mention replaces what was
+          // typed after "@" if it is still there, else it goes where the
+          // cursor is (ADR-0204).
+          hide();
+          create(o.make).then((made) => {
+            view.focus();
+            if (!made) return;
+            const now = typedAt(view.state);
+            const { from, to } = now && now.query === o.make ? now : view.state.selection;
+            view.dispatch(view.state.tr.replaceWith(from, to, [schema.nodes.mention.create({ ref: made.id, label: "@" + (made.title || made.key) }), schema.text(" ")]).scrollIntoView());
+          });
+          return;
+        }
         const tr = view.state.tr;
         if (o.person) tr.insertText("@" + o.person.username + " ", cur.from, cur.to);
         else tr.replaceWith(cur.from, cur.to, [schema.nodes.mention.create({ ref: o.item.id, label: "@" + (o.item.title || o.item.key) }), schema.text(" ")]);
@@ -347,6 +383,9 @@ export function assist(schema, isSafe, { showFile, saveLink } = {}) {
           ...(found.people.length ? [group(t("assist.people")), ...found.people.map((p) => option({ person: p }, h("strong", { text: "@" + p.username })))] : []),
           ...(found.items.length ? [group(t("assist.pages")), ...found.items.map((it) => option({ item: it },
             h("strong", { text: it.title || it.key }), " ", h("span", { class: "muted", text: it.key })))] : []));
+        if (create && at.query && !matchesTitle(found.items, at.query)) {
+          list.append(option({ make: at.query }, h("span", { class: "pm-at-create", text: t("assist.createAs", { title: at.query }) })));
+        }
         if (!options.length) list.append(h("li", { class: "muted pm-at-none", text: at.query ? t("assist.noneFound") : t("assist.typeName") }));
         mark(0);
         const c = view.coordsAtPos(at.from);

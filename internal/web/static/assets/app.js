@@ -39,6 +39,11 @@ import { isWebLink, webLinkCard } from "./weblink.js";
 import { fieldInput, fieldView, isRich } from "./fields.js";
 import { typeEditor, roomTypesCard } from "./typeeditor.js";
 import { usableIn, valueText } from "./typeparts.js";
+import { dailyView, installDailyKeys } from "./daily.js";
+import { installPalette, rememberItem } from "./palette.js";
+import { besidePane, installBeside, openBeside } from "./beside.js";
+import { contextSection } from "./context.js";
+import { mentionCreator } from "./mentioncreate.js";
 
 const app = document.getElementById("app");
 const nav = document.getElementById("nav");
@@ -1058,6 +1063,9 @@ const modules = [
   { id: "spaces", name: "nav.spaces", href: "#/", match: ["", "space", "item", "board", "links", "search", "query", "label"], icon: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" },
   { id: "new", name: "nav.new", href: "#/new", match: ["new"], icon: "M12 8v8M8 12h8M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" },
   { id: "tasks", name: "nav.tasks", href: "#/tasks", match: ["tasks", "kanbans", "kanban", "roadmap", "calendar"], icon: "M9 11l3 3 8-8M20 12v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h11" },
+  // Today's daily note (ADR-0203); on a phone, where the top bar has no
+  // room for its button, it is reached here.
+  { id: "daily", name: "daily.today", href: "#/daily", match: ["daily"], icon: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4M9 15l2 2 4-4" },
   { id: "comments", name: "nav.comments", href: "#/comments", match: ["comments"], icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" },
   { id: "album", name: "nav.album", href: "#/album", match: ["album"], icon: "M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15 8h.01" },
   { id: "whiteboards", name: "nav.whiteboards", href: "#/whiteboards", match: ["whiteboards", "whiteboard"], icon: "M3 4h18v12H3zM8 20l4-4 4 4M7 8h6M7 12h10" },
@@ -1376,6 +1384,8 @@ function renderNav() {
   mount(nav,
     search,
     newButton(),
+    // Today's daily note (ADR-0203).
+    h("button", { type: "button", id: "nav-today", class: "nav-today", title: t("daily.todayHint"), text: t("daily.today"), onclick: () => { location.hash = "#/daily"; } }),
     bell,
     lookToggles(),
     accountMenu(),
@@ -1756,6 +1766,7 @@ async function route() {
       case "roadmap": return await roadmapScreen(params);
       case "calendar": return await calendarScreen(params);
       case "view": return await viewRoute(params);
+      case "daily": return await dailyScreen(arg, params);
       case "space": return await spaceView(arg);
       case "board": return await boardView(arg, arg2);
       case "links": return await linksView(arg);
@@ -1865,6 +1876,11 @@ const topBar = document.querySelector("header.top");
 if (topBar && "ResizeObserver" in window) {
   new ResizeObserver(() => document.documentElement.style.setProperty("--top-offset", topBar.offsetHeight + "px")).observe(topBar);
 }
+// The command palette, an item beside another and today's note
+// (ADR-0203, ADR-0205).
+installPalette(paletteCommands);
+installBeside();
+installDailyKeys();
 window.addEventListener("hashchange", route);
 applyTheme();
 applyBranding();
@@ -4023,6 +4039,44 @@ async function calendarScreen(params) {
   await calendarView(section, params, { readAll, favouritesFirst, propertyInput, readProperty });
 }
 
+// dailyScreen shows one's daily note of a day (ADR-0203).
+async function dailyScreen(arg, params) {
+  await dailyView(screen(), arg || "", params, { ...textTools(), favouritesFirst, reload: () => route() });
+}
+
+// storagePaused tells that nothing new is made now (ADR-0163).
+function storagePaused() {
+  return storageNow === "critical" || storageNow === "full";
+}
+
+// textTools are the item page's helpers for a text, for the views that
+// show one besides it: a daily note and an item beside another.
+function textTools() {
+  return { files: filesOf, childPages: childPagesOf, embeds: embedLoader, tasks: taskTools, markdown: markdownTools,
+    create: (item) => mentionCreator(item, storagePaused), onLeave };
+}
+
+// paletteCommands are the commands the palette offers now (ADR-0205): a
+// new item where one is, today's note, the modules and rooms, the views
+// and the look.
+async function paletteCommands() {
+  if (!me) return [];
+  const { spaces } = await get("/api/spaces").catch(() => ({ spaces: [] }));
+  const go = (href) => () => { location.hash = href; };
+  const cmds = [
+    { id: "new", name: t("palette.new"), hint: t("nav.newButton"), run: go(newHref()) },
+    { id: "today", name: t("palette.today"), hint: "Alt+Shift+D", run: go("#/daily") },
+    { id: "query", name: t("palette.query"), run: go("#/query") },
+    { id: "calendar", name: t("palette.calendar"), run: go("#/calendar") },
+    ...modules.filter((m) => m.id !== "new" && m.id !== "daily" && (!m.admin || me.admin)).map((m) => ({ id: "module-" + m.id, name: t("palette.goTo", { name: t(m.name) }), run: go(m.href) })),
+    { id: "look", name: t("palette.look"), run: () => document.getElementById("theme-toggle")?.click() },
+    { id: "reading", name: t("palette.reading"), hint: "Ctrl+Shift+F", run: () => readingMode.set(true) },
+    { id: "manual", name: t("palette.manual"), run: go("#/manual") },
+  ];
+  for (const sp of favouritesFirst(spaces)) cmds.push({ id: "space-" + sp.key, name: t("palette.room", { name: sp.name }), hint: sp.key, run: go("#/space/" + encodeURIComponent(sp.key)) });
+  return cmds;
+}
+
 // starmapScreen shows the starmap of a room (ADR-0157): its items,
 // pictures and shared labels in their context, filtered in the browser;
 // the rest of the address is the drill path into it (ADR-0158), and its
@@ -4709,6 +4763,8 @@ async function itemView(ref, params = new URLSearchParams()) {
   const show = screen();
   const { item, editable, may = {} } = await get("/api/items/" + encodeURIComponent(ref));
   const path = "/api/items/" + item.id;
+  // The palette offers the items opened recently (ADR-0205).
+  rememberItem(item);
   const [{ types }, history, out, inc, embeds, comments, { attachments }, { watches }, { spaces }, myNotes] = await Promise.all([
     get("/api/types"),
     get(path + "/history"),
@@ -4963,7 +5019,12 @@ async function itemView(ref, params = new URLSearchParams()) {
         await relationsSection(path, out.relations, inc.relations, item.id, canEdit),
         await accessSection(path, item, canEdit, spaceAdmin),
         historySection(path, history.events, canEdit, readsAll),
+        // What refers to it, shares its labels, names it in a daily note
+        // (ADR-0205).
+        contextSection(item, openBeside),
         more)),
+    // An item beside this one, kept in the address (ADR-0205).
+    besidePane(params, textTools()),
   ));
 }
 
@@ -5069,7 +5130,8 @@ function bodySection(item, embeds, editing, threads, attachments, protect, edit,
     return { element: section, session: null };
   }
   const session = liveBody({ ref: item.id, embeds, resolve, childPages: childPagesOf(item), files: filesOf(item, attachments),
-    extra: [threads.plugin], comment: threads.start, actions: edit ? [edit] : [], embedContent: embedLoader([item.id]), tasks: taskTools(item, true), markdown: markdownTools(item), weblinks: weblinkTools(item), onPresence });
+    extra: [threads.plugin], comment: threads.start, actions: edit ? [edit] : [], embedContent: embedLoader([item.id]), tasks: taskTools(item, true), markdown: markdownTools(item), weblinks: weblinkTools(item), onPresence,
+    create: mentionCreator(item, storagePaused) });
   onLeave(session.close);
   return { element: h("section", { id: "body", class: "editing" }, session.element), session };
 }

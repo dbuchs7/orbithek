@@ -174,6 +174,13 @@ type Budgets struct {
 	LinkPreviewSeconds    int
 	LinkPreviewsAtOnce    int
 	LinkPreviewBlocks     int
+	// ContextEntries bounds each list of an item's context (ADR-0205):
+	// what refers to it, what shares its labels, and the daily notes that
+	// name it. Beyond it a list keeps the first and says it was cut.
+	ContextEntries int
+	// DailyNoteDays bounds the days one listing of a person's daily notes
+	// covers (ADR-0203), a year and a little more by default.
+	DailyNoteDays int
 }
 
 // Default returns the budgets the server uses unless configured otherwise.
@@ -235,6 +242,8 @@ func Default() Budgets {
 		LinkPreviewSeconds:     10,
 		LinkPreviewsAtOnce:     8,
 		LinkPreviewBlocks:      500,
+		ContextEntries:         50,
+		DailyNoteDays:          400,
 	}
 }
 
