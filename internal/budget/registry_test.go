@@ -87,6 +87,8 @@ var classified = map[string]string{
 	"internal/storage.maxFaceVectorBytes":              "the size of a file of face vectors (ADR-0194), fixed by MaxFaces and the 128 numbers of a face; written by this server, not a caller's upload",
 	"internal/storage/faces.go:maxFaceVectorBytes + 1": "the same bound, where the file is read",
 	"internal/item.MaxPrefill":                         "the shape of a start form (ADR-0148): how many of its fields it fills in beforehand, a list a person chooses, like the labels of a picture",
+	"internal/item.MaxViewColumns":                     "the shape of a view in a text (ADR-0201): how many columns it names, a list a person chooses, like the fields a start form fills in",
+	"internal/item.maxViewName":                        "the shape of a view in a text (ADR-0201): the length of the name of a type or field it names, like the length of a title",
 	"internal/engine/grant.go:4096": "an engine's answer that a task ended (ADR-0152), a small fixed object read only for the word it says; " +
 		"not memory a caller of this server can claim",
 	"internal/engine/engine.go:4096": "the start of an engine's refusal of a start link's submission, quoted in the error message (ADR-0148); " +

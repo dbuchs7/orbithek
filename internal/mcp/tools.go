@@ -61,6 +61,9 @@ const blockFormat = "A body is a list of blocks, each an object with kind and te
 	"startform (engine: a process engine's ID, link: the token of a public start link there, 32-128 lower-case hexadecimal digits, process: the BPMN ID of the process it starts, or absent, " +
 	"prefill: a list of {\"field\": a field's key, \"from\": username, email, page or url} filled in beforehand with what this site knows of the reader, or absent, text the caption; " +
 	"shows the link's form, which a reader fills in and sends to start the process); " +
+	"view (layout table, gallery or list; itemType: a type name, or absent for every type; space: a space key, or absent for every space the reader reads; query: a query, or absent; " +
+	"group: state, labels or field:<name>, or absent; columns: a list of key, title, state, labels, space, type, updated and field:<name>, or absent for the default; sort: a column, - before it for descending, or absent; " +
+	"shows the items the reader may read, computed when shown); " +
 	"a bpmn or process block may have view both (the diagram and below it the description of its tasks and decisions) or text (the description only), or none for the diagram alone; " +
 	"a form block alike, with the list of its fields as its description. " +
 	"Paragraphs, headings, quotes and panels may have align center, right or justify. " +
@@ -135,6 +138,14 @@ var (
 // the checkpoints are a browser's, and starting or ending a vote, the
 // timer and a presentation are a person's (ADR-0170).
 //
+// Of a label's page (ADR-0202), reading it is offered: it tells an agent
+// what a label is about and the order its items were put in by hand.
+// Describing a label is creating an item, which create_item does with the
+// type topic; ordering the items by hand is a person's arrangement and
+// is not offered, nor is forgetting it. The views of ADR-0201 are the
+// browser's: an agent reads the same items with query_items, and a view
+// placed in a text is a block that commit_body writes.
+//
 // The album (ADR-0054) is not offered, and with it neither the speaker's
 // notes of its pictures (ADR-0176): an agent that cannot list the
 // pictures would write notes for slides it never saw; whether agents
@@ -181,6 +192,11 @@ var tools = []tool{
 		Method: "GET", Path: "/api/items", Params: append([]param{
 			{"query", str, inQuery, true, "The query, e.g. type = task AND assignee = currentUser() AND state != done ORDER BY due."},
 		}, paging...)},
+	{Name: "get_label_page", Description: "The page of a label: the first item of the type topic your caller reads that describes it, with the items carrying the label in the order set by hand on it (order, IDs of items your caller reads; the others come after, in the order they were made). " +
+		"page is null when the label has no page; find the items carrying it with find_items by label.",
+		Method: "GET", Path: "/api/labels/{label}/page", Params: []param{
+			{"label", str, inPath, true, "The label, e.g. onboarding."},
+		}},
 	{Name: "get_governance", Description: "The governance check of a space: sensitive data, stale items, implausible values and empty recommended fields, and items due for review, " +
 		"each with the person responsible. Fix what can be fixed, e.g. a missing contact; a review is a person's decision.",
 		Method: "GET", Path: "/api/spaces/{space}/governance", Params: []param{

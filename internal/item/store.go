@@ -1026,6 +1026,8 @@ func (s *Store) apply(e Event) {
 		s.applyKanban(e)
 	case PicturesOrdered:
 		s.applyPictureOrder(e, touch)
+	case ItemsOrdered:
+		s.applyItemOrder(e, touch)
 	case SpaceTrashed, SpaceRestored, SpacePurged, SpaceRenamed:
 		s.applySpace(e, touch)
 	case SecretSet, SecretRemoved, SecretRequested, SecretGranted, SecretDeclined, SecretErased:
@@ -1466,6 +1468,10 @@ func checkBlock(b Block, self ID) error {
 		case len(b.Marks) > 0 || len(b.Mentions) > 0:
 			return invalid("a start form has a plain caption")
 		}
+	case ItemsView:
+		if err := checkViewBlock(b); err != nil {
+			return err
+		}
 	case Architecture:
 		switch {
 		case !ValidEngineID(b.Engine):
@@ -1497,8 +1503,11 @@ func checkBlock(b Block, self ID) error {
 	if b.Kind != Architecture && (b.Application != "" || b.Release != 0 || b.Layers != nil) {
 		return invalid("only an architecture sketch names an application, a release and layers")
 	}
-	if b.Kind != TaskList && b.Query != "" {
-		return invalid("only a task list has a query")
+	if b.Kind != TaskList && b.Kind != ItemsView && b.Query != "" {
+		return invalid("only a task list or a view has a query")
+	}
+	if b.Kind != ItemsView && (b.Layout != "" || b.ItemType != "" || b.Space != "" || b.Group != "" || b.Columns != nil || b.Sort != "") {
+		return invalid("only a view names a layout, a type, a room, a grouping, columns and a sort")
 	}
 	if b.View != "" && ((b.Kind != BPMN && b.Kind != Process && b.Kind != Form) || !slices.Contains(DiagramViews, b.View)) {
 		return invalid("view %q: a BPMN diagram, a process or a form shows %s, or its diagram or form alone; other blocks have no view", b.View, strings.Join(DiagramViews, ", "))

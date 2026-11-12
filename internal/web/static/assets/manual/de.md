@@ -88,6 +88,7 @@ Das Menü **Einfügen…** fügt Blöcke nach dem Cursor ein:
 - **Bild**, **Video**, **Zeichnung**, ein Bild **Aus dem Album** oder ein **Kopiertes Bild**;
 - **Eintrag einbetten…**: zeigt einen anderen Eintrag vollständig im Text;
 - **Neue Aufgabe…** (wird unter der Seite angelegt und als Link oder vollständig gezeigt) und **Aufgabenliste…** (alle Aufgaben mit einem Label oder das Ergebnis einer Abfrage);
+- **Ansicht von Einträgen…**: die Einträge eines Typs als Tabelle, Galerie oder Liste, gruppiert nach einem Feld (siehe *Ansichten von Einträgen*);
 - **Markdown einfügen…** und **Markdown-Datei aus einem Repository…** (sofern eingeschaltet);
 - BPMN-Diagramme sowie Prozesse, Formulare, Entscheidungen, Startformulare und Architekturskizzen einer Prozess-Engine (siehe *Prozess-Engines*).
 
@@ -95,7 +96,7 @@ Bilder lassen sich links oder rechts mit Text daneben oder zentriert platzieren 
 
 ### Labels, Beziehungen und Dateien
 
-**Labels** sind kurze Begriffe, die Einträge über Räume hinweg gruppieren, etwa `release-2` oder `security`. Man fügt sie in der Seitenleiste hinzu; ein Klick auf ein Label listet alle Einträge damit auf und bietet es **Als Board** an.
+**Labels** sind kurze Begriffe, die Einträge über Räume hinweg gruppieren, etwa `release-2` oder `security`. Man fügt sie in der Seitenleiste hinzu; ein Klick auf ein Label listet alle Einträge damit auf und bietet es **Als Board** an. Ein Label kann eine Seite haben, die es beschreibt (siehe *Seiten von Labels und Sammlungen*).
 
 **Beziehungen** verknüpfen einen Eintrag mit einem anderen unter einem benannten Typ, zum Beispiel *blocks* oder *depends on*: Beziehung und Schlüssel des anderen Eintrags eingeben und **Verknüpfen** wählen. Links und Erwähnungen im Text erscheinen ebenfalls als Beziehungen.
 
@@ -159,7 +160,21 @@ Ctrl+Enter führt eine Abfrage aus. Die Ergebnisse lassen sich als CSV exportier
 
 ### Ansichten eines Raums
 
-Ein Raum bietet mehrere Ansichten: seinen Seitenbaum, **Alle Einträge**, ein **Board** je Typ mit Workflow, den **Kalender**, die **Roadmap** und, je nach Rolle, **Governance** und **Linkprüfung**. **Beobachten** in einem Raum meldet alles, was darin geschieht.
+Ein Raum bietet mehrere Ansichten: seinen Seitenbaum, **Alle Einträge**, ein **Board** je Typ mit Workflow, **Ansichten** seiner Einträge, den **Kalender**, die **Roadmap** und, je nach Rolle, **Governance** und **Linkprüfung**. **Beobachten** in einem Raum meldet alles, was darin geschieht.
+
+### Ansichten von Einträgen
+
+**Ansichten** in einem Raum, oder **Ansicht eines Typs…** daneben, zeigt die Einträge, die Sie lesen dürfen, als **Tabelle**, als **Galerie** von Karten oder als **Liste** kompakter Zeilen. Wählen Sie den **Raum** (oder alle Räume), den **Typ** und nach Wunsch eine **Abfrage** in der Abfragesprache, dann **Anwenden**. **Gruppieren nach** ordnet die Einträge unter Überschriften mit ihrer Anzahl: nach Status, nach Label oder nach einem Feld mit einer Auswahl, einer Person oder ja und nein; ein Klick auf eine Überschrift klappt die Gruppe zu. **Sortierung** ordnet sie nach einer Spalte, ebenso ein Klick auf eine Spaltenüberschrift, ein zweiter Klick umgekehrt. **Spalten** wählt, was die Tabelle zeigt; die Karten einer Galerie zeigen das erste Bild des Texts oder die Datei eines Dateifelds, mit dem Titel und den gewählten Feldern.
+
+Wo Sie einen Eintrag bearbeiten dürfen, ändert der Stift neben einer Zelle sie direkt: den Titel, ein Feld oder den Status, über einen Übergang des Workflows. Die Adresse hält die ganze Ansicht fest, so zeigt ein Link sie anderen, so weit sie die Einträge lesen dürfen.
+
+In einem Text fügt **Einfügen…** → **Ansicht von Einträgen…** eine solche Ansicht ein; **Ansicht ändern…** ändert sie beim Bearbeiten, und **Als Ansicht öffnen** zeigt sie auf einer eigenen Seite. Alle sehen nur die Einträge, die sie lesen dürfen.
+
+### Seiten von Labels und Sammlungen
+
+Ein Label kann eine Seite haben, die sagt, worum es geht. In der Liste der Einträge eines Labels erstellt **Dieses Label beschreiben** diese Seite, vom Typ *topic*, in einem Raum Ihrer Wahl; danach zeigt die Liste des Labels sie oben mit **Seite lesen**. Haben mehrere Räume eine Seite zum selben Label, sehen Sie die älteste, die Sie lesen dürfen.
+
+Die Seite eines Labels zeigt die Einträge mit ihrem Label als Ansicht: **Tabelle**, **Galerie** oder **Liste**, gruppiert und sortiert nach Wahl. Mit **Von Hand festgelegte Reihenfolge** zieht, wer die Seite bearbeiten darf, einen Eintrag vor einen anderen oder verschiebt ihn mit den Pfeilen (Alt+↑ und Alt+↓); später hinzugekommene Einträge folgen nach den geordneten, und Einträge, die Sie nicht lesen dürfen, behalten ihren Platz, ohne gezeigt zu werden. **Von Hand festgelegte Reihenfolge vergessen** listet sie wieder in der Reihenfolge ihrer Erstellung. Eine solche Seite mit ihrer Reihenfolge ist eine Sammlung: **Zu Sammlung hinzufügen…** bei einem Eintrag gibt ihm das Label einer Seite Ihrer Wahl.
 
 ## Aufgaben
 
