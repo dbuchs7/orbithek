@@ -595,6 +595,14 @@ ul.attachments { list-style: none; padding: 0; margin: 0 0 8px; }
 li.attachment { padding: 4px 0; border-bottom: 1px solid var(--border); }
 li.attachment button.link { margin-left: 8px; }
 label.upload { display: inline-flex; align-items: center; gap: 8px; }
+/* Sound in the file list and its recorder (ADR-0219). */
+li.attachment audio.att-audio { display: block; width: 100%; max-width: 28rem; margin-top: 6px; }
+.recorder { margin: 8px 0; }
+.recorder-live { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.recorder-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger, #c62828); animation: recorder-pulse 1.2s ease-in-out infinite; }
+.recorder-clock { font-variant-numeric: tabular-nums; }
+@keyframes recorder-pulse { 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) { .recorder-dot { animation: none; } }
 .pm-image { margin: 10px 0; text-align: center; }
 .pm-image img { max-width: 100%; height: auto; border-radius: 4px; border: 1px solid var(--border); }
 .pm-image figcaption { margin-top: 4px; color: var(--muted); font-size: 13px; }

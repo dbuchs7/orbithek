@@ -124,6 +124,8 @@ var classified = map[string]string{
 	"internal/photo.maxEntries":                        "the shape of an EXIF directory (ADR-0177): more entries than any camera writes mark a damaged file, read from a file already bounded by AttachmentBytes",
 	"internal/photo.maxVideoBoxes":                     "the shape of a video's boxes (ADR-0189): more boxes than any camera writes mark a damaged file; each box is visited by seeking, not held",
 	"internal/photo.maxVideoDepth":                     "the shape of a video's boxes (ADR-0189): how deep the boxes the album reads are nested",
+	"internal/photo.maxAudioElements":                  "the shape of a WebM file's elements (ADR-0219): more elements before the first Cluster than any recorder writes mark a damaged file; each is visited by seeking, not held",
+	"internal/photo.maxAudioDepth":                     "the shape of a WebM file's elements (ADR-0219): how deep the Tracks element is nested",
 	"internal/photo.maxVideoBoxRead":                   "the shape of a small box of a video's header (ADR-0189), read whole; larger boxes are skipped, never read",
 	"internal/photo.maxExifBytes":                      "the shape of a picture's EXIF chunk (ADR-0177), read from a file already bounded by AttachmentBytes",
 	"internal/photo.maxExposureSecs":                   "the shape of photo data (ADR-0177): an exposure no camera takes is no exposure",

@@ -121,6 +121,8 @@ Formatting, colours and sizes are kept in Word and PDF exports; a Markdown expor
 
 **Files** are attached with **Upload files**. Whoever may edit the item renames a file in the list with **Rename**: every version takes the new name, and the file type stays. Pictures and drawings of every item also appear in the album.
 
+Whoever may edit an item also records sound into its files with **Record sound**: the browser asks once for the microphone, the recording runs with its time shown, and **Stop and attach** adds it to the files as *Recording <date> <time>*, while **Discard** throws it away. A recording stops by itself after 30 minutes and is attached. Leaving the page while recording discards it. The button appears only where the browser can record, which needs the address to start with `https://` (or `localhost`). Sound files — recordings, MP3, WAV, M4A and Ogg — play in the file list; they do not appear in the album, and nothing is transcribed.
+
 ### Reading PDF files
 
 A PDF file of an item opens in the reader with **Read** in the file list, or with a click on a link to it in the item's text. The reader shows the pages with their text, which can be selected and copied. The bar above them moves from page to page, zooms in and out or to **Fit width**, searches the document (Enter for the next match) and offers **Download**. At the side, *Pages* shows small pictures of the pages, *Contents* the document's table of contents when it has one, and *Highlights* the highlights made in it. The address names the page, so a link leads others to the same page.
