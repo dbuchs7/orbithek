@@ -259,10 +259,16 @@ func (m *mdBuilder) block(bl item.Block, p Page, base int) []string {
 			alt = baseName(img.Name)
 		}
 		return append([]string{"![" + inlineMarkdown(alt, nil) + "](" + target + ")"}, captionPart()...)
-	case item.Video:
+	case item.Video, item.Audio:
+		// A video or a sound is linked by its name (ADR-0097,
+		// ADR-draft-sound-in-the-text).
 		var out []string
 		if v, ok := p.Images[bl.Ref]; ok {
-			label := inlineMarkdown("▶ "+baseName(v.Name), nil)
+			mark := "▶ "
+			if bl.Kind == item.Audio {
+				mark = "♪ "
+			}
+			label := inlineMarkdown(mark+baseName(v.Name), nil)
 			if target := m.picture(p, bl.Ref, true); target != "" {
 				label = "[" + label + "](" + target + ")"
 			}

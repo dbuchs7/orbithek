@@ -313,8 +313,8 @@ func (s *Store) firstBodyOf(td TypeDef, created Event, d Doc) (Event, error) {
 		return Event{}, invalid("type %q has no body", td.Name)
 	}
 	for i, b := range d.Blocks {
-		if b.Kind == Image || b.Kind == Video || b.Kind == BPMN {
-			return Event{}, wrapf(invalid("an image, a video or a BPMN diagram shows a file of the item; add it after creating the item"), "block %d", i+1)
+		if b.Kind == Image || b.Kind == Video || b.Kind == Audio || b.Kind == BPMN {
+			return Event{}, wrapf(invalid("an image, a video, a sound or a BPMN diagram shows a file of the item; add it after creating the item"), "block %d", i+1)
 		}
 		if err := checkBlock(b, created.Item); err != nil {
 			return Event{}, wrapf(err, "block %d", i+1)
@@ -742,7 +742,7 @@ func (s *Store) CommitBody(actor string, id ID, d Doc) error {
 		}
 		// An image shows an attachment of this item; one deleted since
 		// may stay if the current body still shows it (ADR-0045).
-		if b.Kind == Image || b.Kind == Video || b.Kind == BPMN {
+		if b.Kind == Image || b.Kind == Video || b.Kind == Audio || b.Kind == BPMN {
 			a, ok := it.attachment(b.Ref)
 			kept := slices.ContainsFunc(it.Body.Blocks, func(o Block) bool { return o.Kind == b.Kind && o.Ref == b.Ref })
 			if !ok || (a.Deleted && !kept) {
@@ -750,6 +750,9 @@ func (s *Store) CommitBody(actor string, id ID, d Doc) error {
 			}
 			if b.Kind == Video && !slices.Contains(VideoTypes, a.Type) {
 				return wrapf(invalid("%s is no video a browser plays (%s)", a.Name, strings.Join(VideoTypes, ", ")), "block %d", i+1)
+			}
+			if b.Kind == Audio && !slices.Contains(AudioTypes, a.Type) {
+				return wrapf(invalid("%s is no sound a browser plays (%s)", a.Name, strings.Join(AudioTypes, ", ")), "block %d", i+1)
 			}
 			if b.Kind == BPMN && !slices.Contains(BPMNTypes, a.Type) {
 				return wrapf(invalid("%s is no BPMN model: its bytes do not read as text (%s)", a.Name, a.Type), "block %d", i+1)
@@ -1470,9 +1473,9 @@ func checkBlock(b Block, self ID) error {
 		if l, ok := NormalLabel(b.Text); !ok || l != b.Text || len(b.Marks) > 0 || len(b.Mentions) > 0 {
 			return invalid("a task list names one label, as stored (ADR-0044), or a query, and nothing else")
 		}
-	case Image, Video, BPMN:
+	case Image, Video, Audio, BPMN:
 		if !ValidAttachmentID(string(b.Ref)) || len(b.Marks) > 0 || len(b.Mentions) > 0 {
-			return invalid("an image, a video or a BPMN diagram names an attachment and has a plain caption")
+			return invalid("an image, a video, a sound or a BPMN diagram names an attachment and has a plain caption")
 		}
 	case Process:
 		switch {
@@ -1529,8 +1532,8 @@ func checkBlock(b Block, self ID) error {
 	default:
 		return invalid("unknown block kind %q", b.Kind)
 	}
-	if b.Kind != Embed && b.Kind != Image && b.Kind != Video && b.Kind != BPMN && b.Ref != "" {
-		return invalid("only an embed, an image, a video or a BPMN diagram has a reference")
+	if b.Kind != Embed && b.Kind != Image && b.Kind != Video && b.Kind != Audio && b.Kind != BPMN && b.Ref != "" {
+		return invalid("only an embed, an image, a video, a sound or a BPMN diagram has a reference")
 	}
 	if b.Kind != Process && b.Kind != Form && b.Kind != Decision && b.Kind != Architecture && b.Kind != StartForm && b.Engine != "" {
 		return invalid("only a process, a form, a decision, an architecture sketch or a start form names an engine")

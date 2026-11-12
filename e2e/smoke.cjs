@@ -6387,6 +6387,31 @@ function webSource() {
     await page.waitForSelector("#record-sound:not([hidden])");
     check(await page.locator("#attachments li").count() === filesBefore + 1, "a discarded recording is not attached");
 
+    step("sound in the text: recorded into today's note from the editor and played there (ADR-draft-sound-in-the-text)");
+    await page.goto(base + "/#/daily");
+    await page.waitForSelector("#daily-note.editing .ProseMirror");
+    await page.locator("#daily-note .ProseMirror").click();
+    await page.selectOption("#daily-note .pm-toolbar select[aria-label='Insert…']", "record");
+    await page.waitForSelector("dialog.pm-record[open] #pm-record-stop");
+    await page.waitForSelector("#pm-recorder .recorder-clock:not(:text-is('0:00'))");
+    await page.click("#pm-record-stop");
+    await page.waitForSelector("#daily-note figure.pm-audio audio[src*='/attachments/']");
+    check(await page.locator("dialog.pm-record").count() === 0, "the dialog closes once the recording is in the text");
+    let soundSaved = false;
+    for (let i = 0; i < 30 && !soundSaved; i++) {
+      soundSaved = await page.evaluate(async (key) => (await (await fetch(`/api/items/${encodeURIComponent(key)}`)).json()).item.body.some((b) => b.kind === "audio"), dailyKey);
+      if (!soundSaved) await page.waitForTimeout(500);
+    }
+    check(soundSaved, "today's note keeps the sound in its text");
+    const soundPlayed = await page.evaluate(async () => {
+      const a = document.querySelector("#daily-note figure.pm-audio audio");
+      await a.play();
+      await new Promise((r) => setTimeout(r, 700));
+      a.pause();
+      return a.currentTime;
+    });
+    check(soundPlayed > 0, "the sound plays in the text");
+
     check(problems.length === 0, problems.join("; "));
     console.log("ok");
   } catch (err) {

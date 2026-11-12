@@ -310,3 +310,40 @@ func TestDiagramsAreNamedInDocuments(t *testing.T) {
 		}
 	}
 }
+
+// TestSoundIsPlayedOrNamed: a sound in the text plays in the page printed
+// as PDF, is named in a Word file and linked by its name in Markdown
+// (ADR-draft-sound-in-the-text).
+func TestSoundIsPlayedOrNamed(t *testing.T) {
+	page := Page{ID: "p", Title: "Call", Body: []item.Block{
+		{Kind: item.Audio, Ref: "s", Text: "The <call>"},
+		{Kind: item.Audio, Ref: "gone"},
+	}, Images: map[item.ID]Image{"s": {Name: "Recording 2026-11-12 08-14.webm", Type: "audio/webm"}}}
+	var b bytes.Buffer
+	if err := HTML(&b, Document{Pages: []Page{page}}, "en"); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`<audio controls preload="metadata" src="/api/items/p/attachments/s" title="Recording 2026-11-12 08-14.webm"></audio>`,
+		`<figcaption>The &lt;call&gt;</figcaption>`} {
+		if !strings.Contains(b.String(), want) {
+			t.Errorf("the HTML lacks %q:\n%s", want, b.String())
+		}
+	}
+	if strings.Count(b.String(), "<audio") != 1 {
+		t.Errorf("a sound without its file plays nothing:\n%s", b.String())
+	}
+	var w bytes.Buffer
+	if err := DOCX(&w, Document{Pages: []Page{page}}); err != nil {
+		t.Fatal(err)
+	}
+	if doc := documentXML(t, w.Bytes()); !strings.Contains(doc, "[Audio: Recording 2026-11-12 08-14.webm]") || !strings.Contains(doc, "The &lt;call&gt;") {
+		t.Errorf("the Word file does not name the sound:\n%s", doc)
+	}
+	var m bytes.Buffer
+	if err := Markdown(&m, Document{Pages: []Page{page}}); err != nil {
+		t.Fatal(err)
+	}
+	if md := m.String(); !strings.Contains(md, "♪ Recording 2026-11-12 08-14.webm") || !strings.Contains(md, "call") {
+		t.Errorf("the Markdown does not name the sound:\n%s", md)
+	}
+}

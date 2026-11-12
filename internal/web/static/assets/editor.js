@@ -20,6 +20,8 @@ import { formView, decisionView, pickFromEngine, startFormView, pickStartLink, e
 import { architectureView, pickArchitecture } from "./architecture.js";
 import { pickFromAlbum, pictureFile, captionOf, copiedPicture, clipMark } from "./album.js";
 import { VIDEO_TYPES } from "./photoparts.js";
+import { recorderControl, canRecordHere } from "./recorder.js";
+import { AUDIO_TYPES } from "./recorderparts.js";
 import { assist } from "./assist.js";
 import { markdownToBlocks, pastesAsMarkdown } from "./markdown.js";
 import {
@@ -89,6 +91,9 @@ export const schema = new Schema({
     image: { group: "block", atom: true, selectable: true, attrs: { ...bid, ref: {}, text: { default: "" }, width: { default: 0 }, align: { default: "" } }, toDOM: (n) => ["figure", { class: "pm-image" }, ["figcaption", n.attrs.text]] },
     // A video plays in the text, sized and placed like a picture (ADR-0097).
     video: { group: "block", atom: true, selectable: true, attrs: { ...bid, ref: {}, text: { default: "" }, width: { default: 0 }, align: { default: "" } }, toDOM: (n) => ["figure", { class: "pm-image pm-video" }, ["figcaption", n.attrs.text]] },
+    // A sound plays in the text with a plain caption, such as a recording
+    // (ADR-draft-sound-in-the-text); it has neither a width nor a place.
+    audio: { group: "block", atom: true, selectable: true, attrs: { ...bid, ref: {}, text: { default: "" } }, toDOM: (n) => ["figure", { class: "pm-audio" }, ["figcaption", n.attrs.text]] },
     // A BPMN diagram (ADR-0129): a model kept as a file of the item, or the
     // newest version of a process of a process engine; with a plain caption.
     // view is what a diagram shows: "" the diagram, "both" the diagram and
@@ -249,6 +254,7 @@ function plainNode(b, embeds) {
     group: b.group || "", columns: b.columns?.length ? [...b.columns] : null, sort: b.sort || "" });
   if (b.kind === "image" || b.kind === "video") return schema.nodes[b.kind].create({ bid: id, ref: b.ref, text: b.text || "", width: b.width || 0, align: b.align || "" });
   if (b.kind === "bpmn") return schema.nodes.bpmn.create({ bid: id, ref: b.ref, text: b.text || "", view: b.view || "" });
+  if (b.kind === "audio") return schema.nodes.audio.create({ bid: id, ref: b.ref, text: b.text || "" });
   if (b.kind === "process") return schema.nodes.process.create({ bid: id, engine: b.engine, process: b.process, text: b.text || "", view: b.view || "" });
   if (b.kind === "form") return schema.nodes.form.create({ bid: id, engine: b.engine, form: b.form, process: b.process || "", view: b.view || "", text: b.text || "" });
   if (b.kind === "startform") {
@@ -349,6 +355,7 @@ function plainBlock(node) {
     const a = node.attrs;
     return { kind: "architecture", text: a.text, engine: a.engine, application: a.application, ...(a.release ? { release: a.release } : {}), ...(a.layers?.length ? { layers: [...a.layers] } : {}) };
   }
+  if (node.type === schema.nodes.audio) return { kind: "audio", text: node.attrs.text, ref: node.attrs.ref };
   if (node.type === schema.nodes.image || node.type === schema.nodes.video) {
     const b = { kind: node.type.name, text: node.attrs.text, ref: node.attrs.ref };
     if (node.attrs.width) b.width = node.attrs.width;
@@ -1193,6 +1200,51 @@ function imageView(node, view, getPos, files) {
   };
 }
 
+// audioView plays a sound file of the item with the browser's own controls
+// (ADR-draft-sound-in-the-text); an editor edits its caption and removes
+// it. The player keeps its clicks, so playing does not select the block.
+function audioView(node, view, getPos, files) {
+  const player = h("audio", { class: "pm-audio-player", controls: true, preload: "metadata" });
+  const caption = h("figcaption");
+  const dom = h("figure", { class: "pm-audio", contenteditable: "false" }, player, caption);
+  let shown = null;
+  const change = (attrs) => {
+    const pos = getPos();
+    if (pos === undefined || dom.classList.contains("pm-locked")) return false;
+    view.dispatch(view.state.tr.setNodeMarkup(pos, null, { ...node.attrs, ...attrs }));
+    return true;
+  };
+  const render = () => {
+    const key = node.attrs.ref + node.attrs.text + view.editable;
+    if (shown === key) return;
+    shown = key;
+    dom.dataset.ref = node.attrs.ref;
+    const src = files ? files.url(node.attrs.ref) : "";
+    // The player keeps its place while only the caption changes.
+    if (player.getAttribute("src") !== src) player.src = src;
+    player.setAttribute("aria-label", node.attrs.text || t("editor.audio"));
+    if (!view.editable) return caption.replaceChildren(node.attrs.text);
+    const input = h("input", { value: node.attrs.text, placeholder: t("editor.caption"), "aria-label": t("editor.caption") });
+    input.addEventListener("change", () => {
+      if (!change({ text: input.value.replace(/[\r\n]+/g, " ") })) render(shown = null);
+    });
+    const remove = h("button", { type: "button", class: "link pm-audio-remove", text: t("editor.audioRemove"), onclick: () => {
+      const pos = getPos();
+      if (pos === undefined || dom.classList.contains("pm-locked")) return;
+      view.dispatch(view.state.tr.delete(pos, pos + node.nodeSize));
+      view.focus();
+    } });
+    caption.replaceChildren(input, " ", remove);
+  };
+  render();
+  return {
+    dom, ignoreMutation: () => true,
+    stopEvent: (ev) => caption.contains(ev.target) || player.contains(ev.target),
+    update: (n) => { if (n.type !== node.type) return false; node = n; render(); return true; },
+    destroy: () => player.pause(),
+  };
+}
+
 // createEditor mounts an editor for blocks and returns its element and a
 // function reading the blocks back. With editable false it is a viewer.
 // resolve(keyOrId) returns an item (for mentions and embeds) or throws;
@@ -1246,6 +1298,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
       children: (node) => childrenView(node, childPages),
       image: (node, v, getPos) => imageView(node, v, getPos, files),
       video: (node, v, getPos) => imageView(node, v, getPos, files),
+      audio: (node, v, getPos) => audioView(node, v, getPos, files),
       bpmn: (node, v, getPos) => diagramView(node, v, getPos, files),
       process: (node, v, getPos) => diagramView(node, v, getPos, files),
       form: (node, v, getPos) => formView(node, v, getPos),
@@ -1283,6 +1336,8 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     if (kind === "table") insertBlock(schema.nodes.table.create({ text: `${t("editor.heading", { n: 1 })}\t${t("editor.heading", { n: 2 })}\n\t` }));
     else if (kind === "image") picker.click();
     else if (kind === "video") videoPicker.click();
+    else if (kind === "audio") audioPicker.click();
+    else if (kind === "record") recordSound();
     else if (kind === "drawing") draw();
     else if (kind === "bpmnnew") newModel();
     else if (kind === "bpmnfile") modelPicker.click();
@@ -1300,7 +1355,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     else if (kind === "markdownfile") markdownFile("");
     else if (kind) insertBlock(schema.nodes[kind].create());
   } }, [["", t("editor.insert")], ["embed", t("assist.embedItem")], ["markdown", t("editor.markdown")], markdown ? ["markdownfile", t("editor.markdownFile")] : null, tasks?.create ? ["newtask", t("editor.newTask")] : null, tasks?.pickLabel ? ["tasklist", t("editor.taskList")] : null, viewsReady() ? ["itemview", t("views.insert")] : null, ["table", t("editor.table")], ["divider", t("editor.divider")], ["toc", t("editor.toc")], ["figures", t("editor.figures")], ["tables", t("editor.tables")], ["children", t("editor.children")],
-    files ? ["image", t("editor.image")] : null, files ? ["video", t("editor.video")] : null, files ? ["drawing", t("draw.insert")] : null, files ? ["album", t("album.fromAlbum")] : null, files ? ["clip", t("editor.copiedPicture")] : null,
+    files ? ["image", t("editor.image")] : null, files ? ["video", t("editor.video")] : null, files ? ["audio", t("editor.audio")] : null, files && canRecordHere() ? ["record", t("editor.record")] : null, files ? ["drawing", t("draw.insert")] : null, files ? ["album", t("album.fromAlbum")] : null, files ? ["clip", t("editor.copiedPicture")] : null,
     files ? ["bpmnnew", t("bpmn.insertNew")] : null, files ? ["bpmnfile", t("bpmn.insertFile")] : null, ["process", t("bpmn.insertProcess")],
     ["form", t("form.insert")], ["startform", t("start.insert")], ["decision", t("decision.insert")], ["architecture", t("arch.insert")]].filter(Boolean)
     .map(([v, label]) => h("option", { value: v, text: label })));
@@ -1338,6 +1393,49 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
       status.textContent = err.message;
     }
   });
+  // A sound is uploaded as an attachment of the item, then played in the
+  // text (ADR-draft-sound-in-the-text); the server reads its format from
+  // its bytes (ADR-0219).
+  const placeSound = async (file) => {
+    status.textContent = t("editor.uploading");
+    const a = await files.upload(file);
+    if (!AUDIO_TYPES.includes(a.type)) throw new Error(t("editor.notASound"));
+    status.textContent = "";
+    insertBlock(schema.nodes.audio.create({ ref: a.id, text: a.name.replace(/\.[^.]*$/, "") }));
+  };
+  const audioPicker = h("input", { type: "file", accept: "audio/*,.webm,.ogg,.opus,.m4a,.mp3,.wav", hidden: true, "aria-label": t("editor.audio") });
+  audioPicker.addEventListener("change", async () => {
+    const file = audioPicker.files[0];
+    audioPicker.value = "";
+    if (!file) return;
+    try {
+      await placeSound(file);
+    } catch (err) {
+      status.textContent = err.message;
+    }
+  });
+  // Sound recorded here is uploaded and played in the text: a dialog
+  // records at once, and closing it discards what is not attached.
+  const recordSound = () => {
+    status.textContent = "";
+    const problem = h("div", { class: "pm-record-status" });
+    const dialog = h("dialog", { class: "pm-dialog pm-record", "aria-labelledby": "pm-record-title" });
+    const close = () => { if (dialog.open) dialog.close(); dialog.remove(); view.focus(); };
+    const recorder = recorderControl(async (file) => {
+      try {
+        await placeSound(file);
+        close();
+      } catch (err) {
+        status.textContent = "";
+        problem.replaceChildren(h("p", { class: "error", role: "alert", text: err.message }));
+      }
+    }, problem, { prefix: "pm-", autostart: true });
+    dialog.append(h("h2", { id: "pm-record-title", text: t("editor.recordTitle") }), recorder, problem,
+      h("div", { class: "pm-dialog-actions" }, h("button", { type: "button", class: "link", id: "pm-record-close", text: t("common.cancel"), onclick: close })));
+    dialog.addEventListener("cancel", (ev) => { ev.preventDefault(); close(); });
+    document.body.append(dialog);
+    dialog.showModal();
+  };
   // A drawing (ADR-0053) is made in the drawing editor, stored as an
   // attachment that carries its scene, and shown like an image.
   const draw = async () => {
@@ -1688,7 +1786,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
         view.dispatch(view.state.tr.insertText(before && !/\s/.test(before) ? " @" : "@", from, to));
         view.focus();
       } })),
-    group(insertSelect, picker, videoPicker, modelPicker),
+    group(insertSelect, picker, videoPicker, audioPicker, modelPicker),
     commentButton,
     h("button", { type: "button", title: t("editor.undo"), text: "↶", onclick: run(undo) }),
     h("button", { type: "button", title: t("editor.redo"), text: "↷", onclick: run(redo) }),

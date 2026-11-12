@@ -250,7 +250,7 @@ func (h itemHandlers) exportDocument(r *http.Request, children, withData bool) (
 			}
 			shown := map[item.ID]item.BlockKind{}
 			for _, b := range it.Body.Blocks {
-				if b.Kind == item.Image || b.Kind == item.Video || b.Kind == item.BPMN {
+				if b.Kind == item.Image || b.Kind == item.Video || b.Kind == item.Audio || b.Kind == item.BPMN {
 					shown[b.Ref] = b.Kind
 				}
 			}
@@ -258,8 +258,9 @@ func (h itemHandlers) exportDocument(r *http.Request, children, withData bool) (
 				for _, a := range atts {
 					if kind, ok := shown[a.ID]; ok && !a.Deleted {
 						p.Images[a.ID] = export.Image{Name: a.Name, Type: a.Type}
-						// A video or a BPMN diagram is named, not copied into
-						// the document (ADR-0097, ADR-0129).
+						// A video, a sound or a BPMN diagram is named, not
+						// copied into the document (ADR-0097, ADR-0129,
+						// ADR-draft-sound-in-the-text).
 						if kind == item.Image {
 							files = append(files, file{it.ID, a})
 						}

@@ -5260,7 +5260,7 @@ function protectPassageForm(box, path, item, sel, status) {
 function blockSummary(b) {
   const text = (b.text || "").split("\n")[0].slice(0, 80);
   if (b.kind === "heading") return t("secret.blockHeading", { text });
-  if (["image", "video", "bpmn"].includes(b.kind)) return t("secret.blockPicture", { text: text || "—" });
+  if (["image", "video", "audio", "bpmn"].includes(b.kind)) return t("secret.blockPicture", { text: text || "—" });
   return text || t("secret.blockOther", { kind: b.kind });
 }
 

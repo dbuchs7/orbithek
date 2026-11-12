@@ -74,6 +74,10 @@ const (
 	// Video plays a video attachment of the item, like an image shows a
 	// picture: Ref names it and Text is its caption (ADR-0097).
 	Video BlockKind = "video"
+	// Audio plays a sound file of the item, such as a recording made in
+	// the browser (ADR-0219): Ref names it and Text is its caption
+	// (ADR-draft-sound-in-the-text).
+	Audio BlockKind = "audio"
 	// TaskList lists the tasks that carry a label, in every space the
 	// reader may read; Text is the label (ADR-0114). Or it lists the tasks
 	// a query selects, and Query is the query (ADR-0136, ADR-0151). Like a

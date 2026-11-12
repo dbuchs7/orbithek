@@ -147,6 +147,16 @@ func (h *htmlBuilder) block(bl item.Block, p Page, base int) {
 			h.printf("<figcaption>%s</figcaption>", html.EscapeString(bl.Text))
 		}
 		h.out.WriteString("</figure>")
+	case item.Audio:
+		// A sound plays in the printed page's browser (ADR-draft-sound-in-the-text).
+		h.out.WriteString(`<figure class="audio">`)
+		if a, ok := p.Images[bl.Ref]; ok {
+			h.printf(`<audio controls preload="metadata" src="/api/items/%s/attachments/%s" title="%s"></audio>`, url.PathEscape(string(p.ID)), url.PathEscape(string(bl.Ref)), html.EscapeString(a.Name))
+		}
+		if strings.TrimSpace(bl.Text) != "" {
+			h.printf("<figcaption>%s</figcaption>", html.EscapeString(bl.Text))
+		}
+		h.out.WriteString("</figure>")
 	case item.BPMN, item.Process, item.Form, item.Decision, item.Architecture, item.StartForm, item.ItemsView:
 		// A printed page does not draw a diagram, a form, a decision or a
 		// sketch; it names the file, the process, the form, the decision,

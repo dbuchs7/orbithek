@@ -93,6 +93,7 @@ Das Menü **Einfügen…** fügt Blöcke nach dem Cursor ein:
 
 - **Tabelle**, **Trennlinie**, **Inhaltsverzeichnis**, **Bildverzeichnis**, **Tabellenverzeichnis** und **Unterseiten**;
 - **Bild**, **Video**, **Zeichnung**, ein Bild **Aus dem Album** oder ein **Kopiertes Bild**;
+- **Tondatei** und **Ton aufnehmen**: ein Ton, der im Text abgespielt wird (siehe unten);
 - **Eintrag einbetten…**: zeigt einen anderen Eintrag vollständig im Text;
 - **Neue Aufgabe…** (wird unter der Seite angelegt und als Link oder vollständig gezeigt) und **Aufgabenliste…** (alle Aufgaben mit einem Label oder das Ergebnis einer Abfrage);
 - **Ansicht von Einträgen…**: die Einträge eines Typs als Tabelle, Galerie oder Liste, gruppiert nach einem Feld (siehe *Ansichten von Einträgen*);
@@ -100,6 +101,8 @@ Das Menü **Einfügen…** fügt Blöcke nach dem Cursor ein:
 - BPMN-Diagramme sowie Prozesse, Formulare, Entscheidungen, Startformulare und Architekturskizzen einer Prozess-Engine (siehe *Prozess-Engines*).
 
 Bilder lassen sich links oder rechts mit Text daneben oder zentriert platzieren und durch Ziehen in der Grösse ändern; eine Bildunterschrift nummeriert sie im Bildverzeichnis.
+
+Ein Ton wird im Text mit dem Player des Browsers und einer Beschriftung abgespielt, etwa eine Aufnahme, die man in eine Seite, einen Task oder die Tagesnotiz unter **Heute** spricht. **Tondatei** lädt eine Datei hoch (WebM, Ogg, M4A, MP3 oder WAV); **Ton aufnehmen** öffnet ein Fenster, das sofort aufnimmt, **Beenden und anhängen** setzt die Aufnahme an der Stelle des Cursors in den Text, **Abbrechen** verwirft sie. Die Aufnahme ist zugleich eine Datei des Eintrags. **Entfernen** nimmt den Ton aus dem Text; die Datei bleibt bei den Dateien des Eintrags, bis man sie dort löscht. Ein Word-Dokument nennt den Ton, eine als PDF gedruckte Seite spielt ihn ab, und Markdown verlinkt ihn mit seinem Namen. Nichts wird transkribiert.
 
 ### Tabellen
 

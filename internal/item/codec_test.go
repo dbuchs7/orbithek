@@ -78,7 +78,7 @@ func TestAChangeThatIsNotPersistedDoesNotHappen(t *testing.T) {
 
 func TestDecodeRejectsWhatItCannotReadExactly(t *testing.T) {
 	cases := map[string]string{
-		"newer format":       `[{"v":61,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
+		"newer format":       `[{"v":62,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"no format version":  `[{"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"unknown field":      `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated","colour":"red"}]`,
 		"unknown role":       `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"RoleGranted","role":"owner"}]`,
@@ -201,8 +201,9 @@ func TestPersistedFormatIsStable(t *testing.T) {
 	highlights := pdfHighlightLog(t)
 	styledTables := tableStyleLog(t)
 	shareFiles := shareFileLog(t)
+	sounds := audioLog(t)
 	kinds := map[EventKind]bool{}
-	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments, notes, photos, places, renames, geotags, moves, albumVideos, faces, slideOrders, fingerprints, times, highlights, itemViews, kinds55, styledTables, shareFiles) {
+	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments, notes, photos, places, renames, geotags, moves, albumVideos, faces, slideOrders, fingerprints, times, highlights, itemViews, kinds55, styledTables, shareFiles, sounds) {
 		kinds[e.Kind] = true
 	}
 	for _, k := range allEventKinds {
@@ -312,6 +313,8 @@ func TestPersistedFormatIsStable(t *testing.T) {
 		{"events.current.tablestyle.plain.golden.jsonl", nil, styledTables},
 		{"events.current.sharefiles.golden.jsonl", fakeSealer{}, shareFiles},
 		{"events.current.sharefiles.plain.golden.jsonl", nil, shareFiles},
+		{"events.current.audio.golden.jsonl", fakeSealer{}, sounds},
+		{"events.current.audio.plain.golden.jsonl", nil, sounds},
 	}
 	for _, c := range cases {
 		name, sl, log := c.name, c.sl, c.log
@@ -1817,6 +1820,20 @@ func videoLog(t *testing.T) []Event {
 	_, err := anna.AddAttachment(page.ID, Attachment{ID: clip, Name: "demo.mp4", Type: "video/mp4", Size: 3, SHA256: strings.Repeat("cd", 32)})
 	noErr(t, err)
 	noErr(t, anna.CommitBody(page.ID, Doc{Blocks: []Block{{Kind: Video, Ref: clip, Text: "The demo", Width: 60, Align: "center"}}}))
+	return s.Log()
+}
+
+// audioLog plays a recording in a text, so the golden files pin the block
+// kind audio (ADR-draft-sound-in-the-text).
+func audioLog(t *testing.T) []Event {
+	s := setup(t)
+	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))
+	anna := s.As("anna")
+	page := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Call"}))
+	const take = "abcdef0123456789abcdef0123456789"
+	_, err := anna.AddAttachment(page.ID, Attachment{ID: take, Name: "Recording 2026-11-12 08-14.webm", Type: "audio/webm", Size: 3, SHA256: strings.Repeat("ef", 32)})
+	noErr(t, err)
+	noErr(t, anna.CommitBody(page.ID, Doc{Blocks: []Block{{Kind: Paragraph, Text: "What we agreed:"}, {Kind: Audio, Ref: take, Text: "The call"}}}))
 	return s.Log()
 }
 

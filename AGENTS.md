@@ -53,6 +53,9 @@ videos are not exported as pictures (ADR-0189).
 Whoever may edit an item records sound into its files from the file list (`assets/recorder.js`, `assets/recorderparts.js`: `MediaRecorder`, Opus in WebM or Ogg, AAC in MP4, at most 30 minutes, nothing kept in the browser);
 a file of sound alone is told by its tracks (`photo.AudioType`: WebM tracks, MP4 handlers, Ogg's first packet), so it is no video and not in the album, and files of `item.AudioTypes` are sent inline in parts and played in the file list;
 nothing is transcribed (proposed, ADR-0219).
+A sound plays in a text as a block of the kind `audio` (a sound file of the item with a plain caption, `item.AudioTypes` only, codec version 61);
+the editor's *Insert…* offers a sound file and, where the browser can record, a dialog that records at once (`audioView`, `recorderControl` with `prefix` and `autostart`), so the daily view records into today's note too;
+Word names it, PDF plays it, Markdown links it (proposed, ADR-draft-sound-in-the-text).
 A video is a slide that plays from the presentation's state (`playing`), with sound in the presentation window only and neither zoom nor laser;
 Google Photos (`=dv`, poster `=w1600-h1600`) and shared iCloud albums (largest video derivative, poster frame as poster) bring videos within `VideoBytes` (ADR-0192).
 A collection is deleted from the album alone, into the trash (ADR-0193).

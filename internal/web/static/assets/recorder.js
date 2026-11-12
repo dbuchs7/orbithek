@@ -1,8 +1,8 @@
-// Recording sound into an item's files
-// (ADR-0219): the browser records from
+// Recording sound into an item's files (ADR-0219): the browser records from
 // the microphone and the recording is uploaded as a file of the item, which
-// its file list then plays. Nothing is transcribed, and nothing is kept in
-// the browser: a recording not attached is discarded.
+// its file list plays, or a block of the text (ADR-draft-sound-in-the-text).
+// Nothing is transcribed, and nothing is kept in the browser: a recording
+// not attached is discarded.
 import { h } from "./dom.js";
 import { t } from "./i18n.js";
 import { RECORDING_BITS, RECORDING_SECONDS, canRecord, clockText, failureKey, recordingName, recordingType } from "./recorderparts.js";
@@ -10,16 +10,23 @@ import { RECORDING_BITS, RECORDING_SECONDS, canRecord, clockText, failureKey, re
 // recorderControl is the button that records sound, or null where this
 // browser cannot record. attach(file) uploads the recording; it is called
 // once, after the person stops and attaches it. status shows what failed.
-export function recorderControl(attach, status) {
+// prefix goes before the IDs of its controls, so a text's recorder and the
+// file list's may stand on one page; with autostart the recording begins
+// at once, as the text's dialog wants it.
+export function recorderControl(attach, status, { prefix = "", autostart = false } = {}) {
   if (!canRecord(globalThis)) return null;
-  const box = h("div", { class: "recorder", id: "recorder" });
-  const start = h("button", { type: "button", class: "secondary", id: "record-sound", text: t("att.record") });
+  const box = h("div", { class: "recorder", id: prefix + "recorder" });
+  const start = h("button", { type: "button", class: "secondary", id: prefix + "record-sound", text: t("att.record") });
   box.append(start);
-  start.addEventListener("click", () => record(box, start, attach, status));
+  start.addEventListener("click", () => record(box, start, attach, status, prefix));
+  if (autostart) queueMicrotask(() => record(box, start, attach, status, prefix));
   return box;
 }
 
-async function record(box, start, attach, status) {
+// canRecordHere reports whether this browser can record sound here.
+export const canRecordHere = () => canRecord(globalThis);
+
+async function record(box, start, attach, status, prefix) {
   status.replaceChildren();
   start.disabled = true;
   let stream;
@@ -45,8 +52,8 @@ async function record(box, start, attach, status) {
   let keep = false;
   let timer = 0;
   const clock = h("span", { class: "recorder-clock", role: "timer", "aria-live": "off", text: clockText(0) });
-  const stop = h("button", { type: "button", class: "primary", id: "record-stop", text: t("att.recordStop") });
-  const discard = h("button", { type: "button", class: "link danger", id: "record-discard", text: t("att.recordDiscard") });
+  const stop = h("button", { type: "button", class: "primary", id: prefix + "record-stop", text: t("att.recordStop") });
+  const discard = h("button", { type: "button", class: "link danger", id: prefix + "record-discard", text: t("att.recordDiscard") });
   const panel = h("div", { class: "recorder-live", role: "group", "aria-label": t("att.recording") },
     h("span", { class: "recorder-dot", "aria-hidden": "true" }), " ", h("span", { text: t("att.recording") }), " ", clock, " ", stop, " ", discard);
   start.hidden = true;

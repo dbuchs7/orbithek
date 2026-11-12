@@ -183,7 +183,10 @@ import (
 //     AttachmentRestored with attachment, sealed, and AttachmentWithdrawn
 //     with the attachment's ID only (ADR-0197). Versions 1 to 59 are
 //     still read; they hold no entry of a share.
-const CodecVersion = 60
+//   - 61: the block kind audio, a sound file of the item with a plain
+//     caption, sealed with the body (ADR-draft-sound-in-the-text).
+//     Versions 1 to 60 are still read; their bodies play no sound.
+const CodecVersion = 61
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,
