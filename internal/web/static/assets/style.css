@@ -1200,6 +1200,9 @@ dialog.album-target h2 { margin: 0 0 8px; font-size: 1.1rem; }
 .album-cleanup-row { margin: 0 0 12px; }
 .album-cleanup-warning { font-weight: 600; }
 .album-add-hint { margin: 8px 12px 0; }
+/* Copy or move what is added to a folder (ADR-0222). */
+.album-add-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 8px 12px 0; }
+.album-add-head .album-add-hint { margin: 0; flex: 1 1 24ch; }
 
 /* Contrast warnings of the corporate design (ADR-0052). */
 .notice.warning { background: var(--danger-soft); border-color: var(--danger); }

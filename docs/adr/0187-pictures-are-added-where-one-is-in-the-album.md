@@ -4,8 +4,6 @@
 - **Implementation:** Landed
 - **Date:** 2026-11-10
 - **Deciders:** Project initiators (request of 2026-11-10 to make loading photos into a folder or a collection as simple as possible; asked how pictures reach a collection, the requester chose uploading and choosing pictures already in the album; asked where uploads to a collection are kept, to be asked for a folder each time, the last one first; and chose a large drop area, adding from the album, dropping at the top and pasting with Ctrl+V; accepted on 2026-11-11)
-- **Open question:** whether pictures added from the album to a folder should be moved rather than copied
-- **Question checked:** 2026-11
 
 ## Context and problem statement
 
@@ -84,6 +82,7 @@ Strongest form: nothing changes in what the album does; only the texts explain t
 
 ## Links
 
+- amended by [ADR-0222](0222-pictures-added-from-the-album-to-a-folder-are-copied-or-moved.md) (added pictures are copied or moved, as one chooses)
 - amended by [ADR-0221](0221-a-collection-keeps-the-folder-of-its-new-pictures.md) (a collection keeps the folder of its new pictures, for everyone)
 - amends [ADR-0175](0175-a-collection-in-the-album-gathers-labelled-pictures-of-every-room.md) (a collection is filled by giving its labels) and [ADR-0090](0090-album-folders-uploads-and-picture-labels.md) (uploads)
 - relates to ADR-0054 (copies with their source), ADR-0177 (photo imports), ADR-0184 (moving by dragging), ADR-0186 (presentations)
