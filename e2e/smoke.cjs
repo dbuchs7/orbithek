@@ -863,16 +863,24 @@ function webSource() {
     await page.fill("#new-space [name=name]", "Platform");
     await page.click("#new-space button[type=submit]");
     await page.waitForSelector("#grant option[value=PLAT]", { state: "attached" });
-    await page.fill("#new-type [name=type]", JSON.stringify({
+    // A type is defined in the type editor (ADR-0199); hand-written JSON
+    // stays in it, folded away, and is applied to the form.
+    await page.click("#new-type");
+    await page.click("#type-editor details.type-json summary");
+    await page.fill("#type-json", JSON.stringify({
       name: "task", body: true,
       fields: [{ name: "priority", kind: "enum", required: true, values: ["low", "high"] }, { name: "estimate", kind: "number" }],
       workflow: { initial: "open", states: ["open", "done"], transitions: [{ name: "finish", from: ["open"], to: "done" }] },
     }));
-    await page.click("#new-type button[type=submit]");
+    await page.click("#type-json-apply");
+    check(await page.inputValue("#type-name") === "task" && await page.locator("#type-editor .type-field").count() === 2,
+      "JSON applied to the form fills the name and the fields");
+    await page.click("#type-save");
     await page.waitForSelector("text=task v1");
     // A type nothing uses is removed (ADR-0094).
-    await page.fill("#new-type [name=type]", JSON.stringify({ name: "scratch", body: true }));
-    await page.click("#new-type button[type=submit]");
+    await page.click("#new-type");
+    await page.fill("#type-name", "scratch");
+    await page.click("#type-save");
     await page.waitForSelector("text=scratch v1");
     answer = true;
     await page.click("#types tr:has-text('scratch v1') button:has-text('Remove')");
@@ -5986,6 +5994,82 @@ function webSource() {
     await page.goto(base + "/#/new");
     await page.click("#new-capture-open");
     await page.waitForSelector("#capture-form");
+
+    step("room types and the field kinds item, multi, rating and file: a room's administrator defines a type of the room in the type editor; an item of it refers to another, chooses several values and gives stars; the referenced item lists it as a relation and cannot be trashed (ADR-0199, ADR-0200)");
+    {
+      // As the administrator, who administers every room, in a window of
+      // its own.
+      const rtCtx = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
+      const rt = await rtCtx.newPage();
+      rt.on("dialog", (d) => d.accept());
+      await rt.goto(base + "/");
+      await rt.fill("#login [name=username]", "admin");
+      await rt.fill("#login [name=password]", adminPassword);
+      await rt.click("#login button[type=submit]");
+      await rt.waitForSelector("#nav a");
+      const epic = await rt.evaluate(async () => (await (await fetch("/api/items", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ space: "PLAT", type: "task", title: "Epic for room types", properties: { priority: "low" } }) })).json()).item);
+      await rt.goto(base + "/#/members/PLAT");
+      await rt.waitForSelector("#room-types");
+      await rt.click("#room-new-type");
+      check(await rt.textContent("#type-belongs") === "Type of the room PLAT", "a room's new type belongs to the room");
+      await rt.fill("#type-name", "incident");
+      for (const [name, kind] of [["about", "item"], ["platforms", "multi"], ["stars", "rating"], ["cover", "file"]]) {
+        await rt.click("#type-add-field");
+        const row = rt.locator("#type-editor .type-field").last();
+        await row.locator("[name=field-name]").fill(name);
+        await row.locator("[name=field-kind]").selectOption(kind);
+      }
+      await rt.locator("#type-editor .type-field").nth(1).locator("[name=field-values]").fill("web\nios\nandroid");
+      // An empty multi field is refused before anything is sent.
+      await rt.locator("#type-editor .type-field").nth(1).locator("[name=field-values]").fill("");
+      await rt.click("#type-save");
+      await rt.waitForSelector("#type-editor .error:has-text('needs at least one value')");
+      await rt.locator("#type-editor .type-field").nth(1).locator("[name=field-values]").fill("web\nios\nandroid");
+      await rt.check("#type-workflow");
+      check(await rt.locator("#type-editor .type-state").count() === 2, "the simple workflow open → done is preset");
+      await rt.fill("#type-start", "## Impact\n\nWho is affected?");
+      await rt.click("#type-save");
+      await rt.waitForSelector("#room-type-list:has-text('incident')");
+      const types = await rt.evaluate(async () => (await (await fetch("/api/types?space=PLAT")).json()).types);
+      const incident = types.find((ty) => ty.name === "incident");
+      check(incident && incident.space === "PLAT" && incident.editable && incident.workflow.states.join() === "open,done" && incident.start?.length === 2,
+        "the room type is defined with its fields, workflow and start text: " + JSON.stringify(incident));
+
+      await rt.goto(base + "/#/new?space=PLAT&type=incident");
+      await rt.waitForSelector("#new-item fieldset[name='p:platforms']");
+      await rt.fill("#new-item [name=title]", "Outage of the login");
+      await rt.check("#new-item fieldset[name='p:platforms'] input[value=ios]");
+      await rt.check("#new-item fieldset[name='p:platforms'] input[value=web]");
+      await rt.click("#new-item fieldset[name='p:stars'] .star >> nth=3");
+      await rt.fill("#new-item fieldset[name='p:about'] input[type=search]", "Epic for room");
+      await rt.click(`#new-item .item-suggestions li button:has-text('${epic.key}')`);
+      await rt.waitForSelector(`#new-item fieldset[name='p:about'] a.field-ref:has-text('${epic.key}')`);
+      check((await rt.textContent("#new-item fieldset[name='p:cover']")).includes("once the item has files"), "a file is chosen once the item has files");
+      await rt.click("#new-item button[type=submit]");
+      await rt.waitForSelector("tr[data-field=stars]");
+      const made = await rt.evaluate(async () => (await (await fetch("/api/items/" + location.hash.split("/")[2].split("?")[0])).json()).item);
+      check(made.properties.about === epic.id && made.properties.platforms.join() === "web,ios" && made.properties.stars === 4 && made.body.length === 2,
+        "the item holds the reference by ID, the values in their order, four stars and the start text: " + JSON.stringify(made.properties));
+      // The stars change on the item page, saved at once.
+      await rt.goto(base + "/#/item/" + made.key);
+      await rt.waitForSelector("tr[data-field=stars] .star");
+      await rt.click("tr[data-field=stars] .star >> nth=1");
+      await rt.waitForSelector("tr[data-field=stars] .saved");
+      check((await rt.evaluate(async (k) => (await (await fetch("/api/items/" + k)).json()).item.properties.stars, made.key)) === 2, "two stars are saved");
+      // The referenced item lists it among its relations and is protected
+      // from deletion while it does (D8).
+      const incoming = await rt.evaluate(async (id) => (await (await fetch(`/api/items/${id}/relations?direction=incoming`)).json()).relations, epic.id);
+      check(incoming.some((r) => r.type === "about" && r.from === made.id && r.derived), "the item field is a relation of its target: " + JSON.stringify(incoming));
+      const trash = await rt.evaluate(async (id) => (await fetch(`/api/items/${id}/trash`, { method: "POST" })).status, epic.id);
+      check(trash === 409, "a referenced item is not trashed: " + trash);
+      const found = await rt.evaluate(async () => (await (await fetch("/api/items?query=" + encodeURIComponent("platforms = ios AND stars >= 2"))).json()).items);
+      check(found.length === 1 && found[0].id === made.id, "the query finds the item by one of its values and its stars");
+      // The type is not offered in another room.
+      const elsewhere = await rt.evaluate(async () => (await (await fetch("/api/types?space=OTHER")).json()).types.map((ty) => ty.name));
+      check(!elsewhere.includes("incident"), "a room's type is not offered elsewhere");
+      await rtCtx.close();
+    }
 
     check(problems.length === 0, problems.join("; "));
     console.log("ok");

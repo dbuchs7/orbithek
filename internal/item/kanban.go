@@ -154,6 +154,9 @@ func (x *Session) SetKanban(space string, k Kanban) (Kanban, error) {
 		if !ok || td.Workflow == nil {
 			return Kanban{}, invalid("type %q has no workflow; a kanban's columns are its states", k.Type)
 		}
+		if !td.UsableIn(space) {
+			return Kanban{}, invalid("type %q belongs to the space %s; a kanban of %s cannot show it", k.Type, td.Space, space)
+		}
 		if k.Label == "" {
 			k.Label = k.Name
 		}
@@ -481,10 +484,11 @@ func (x *Session) PlaceCard(space string, kanban, card ID, column, before ID) er
 // <state>", from the given state; an existing one of that name gains the
 // state to start from. Administrators may, as they define types.
 func (x *Session) AddTransition(typeName, from, to string) (TypeDef, error) {
-	if !x.s.HasSystemRole(x.who, RoleAdmin) {
+	td, ok := x.s.latest(typeName)
+	// A room type is changed by its room's administrators too (ADR-0199).
+	if !x.MayDefineTypes("") && (!ok || td.Space == "" || !x.MayDefineTypes(td.Space)) {
 		return TypeDef{}, forbidden("%s may not change types", x.who)
 	}
-	td, ok := x.s.latest(typeName)
 	if !ok || td.Workflow == nil {
 		return TypeDef{}, notFound("type %q with a workflow", typeName)
 	}

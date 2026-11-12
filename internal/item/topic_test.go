@@ -71,7 +71,7 @@ func TestTheTopicTemplateIsReadyMade(t *testing.T) {
 	}
 	// A request's task is never made of the topic type.
 	s := newTestStore(t)
-	td, define, ok := s.requestType()
+	td, define, ok := s.requestType("PLAT")
 	if !ok || !define || td.Name != "task" {
 		t.Errorf("request type %s %v %v", td.Name, define, ok)
 	}

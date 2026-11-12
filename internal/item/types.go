@@ -2,6 +2,7 @@ package item
 
 import (
 	"fmt"
+	"maps"
 	"math"
 	"net/url"
 	"regexp"
@@ -27,7 +28,23 @@ const (
 	// KindDateTime is a point in time, held in UTC to the second; a
 	// KindDate names a whole day (ADR-0166).
 	KindDateTime FieldKind = "datetime"
+	// KindItem refers to another item by its immutable ID (D2), held as a
+	// value of the type ID; the reference is a relation derived from the
+	// property and named by the field (D4, ADR-0200).
+	KindItem FieldKind = "item"
+	// KindMulti holds several of the field's Values, as a []string in the
+	// order of Values (ADR-0200).
+	KindMulti FieldKind = "multi"
+	// KindRating is a whole number from 1 to MaxRating (ADR-0200).
+	KindRating FieldKind = "rating"
+	// KindFile names one file of the same item by its attachment ID, such
+	// as a cover picture (ADR-0200).
+	KindFile FieldKind = "file"
 )
+
+// MaxRating is the highest value of a rating field: a rating is one to
+// five stars, a fixed scale of the field kind, not a budget.
+const MaxRating = 5
 
 // maxURL is the longest web address a url field holds.
 const maxURL = 2048
@@ -45,6 +62,9 @@ type FieldDef struct {
 	// Recommended says that the field should be set; the governance report
 	// lists items where it is empty (ADR-0074).
 	Recommended bool
+	// Targets limits an item field to items of these types; empty allows
+	// every type (ADR-0200).
+	Targets []string `json:",omitempty"`
 }
 
 // Review is a type's rule for checking its items again (ADR-0074): an
@@ -94,6 +114,12 @@ type TypeDef struct {
 	// of an item.
 	Template string `json:",omitempty"`
 	Start    *Doc   `json:",omitempty"`
+	// Space, if set, makes this a room type: only items of that space are
+	// of it, and that space's administrators define, redefine and remove
+	// it (ADR-0199). Empty for a type of the whole installation. A type
+	// keeps its space across its versions; names stay unique across every
+	// space.
+	Space string `json:",omitempty"`
 }
 
 // validTemplateID admits the IDs of Word templates (ADR-0167).
@@ -127,6 +153,10 @@ func checkStart(d *Doc) error {
 	return nil
 }
 
+// UsableIn reports whether items of the type may live in a space: an
+// installation type everywhere, a room type in its room only (ADR-0199).
+func (t TypeDef) UsableIn(space string) bool { return t.Space == "" || t.Space == space }
+
 // reservedFields are intrinsic to every item and cannot be declared as
 // properties. "state" in particular is reserved so that it can only change
 // through transitions (D3).
@@ -141,6 +171,7 @@ func ReservedField(name string) bool { return reservedFields[name] }
 
 var validKinds = map[FieldKind]bool{
 	KindText: true, KindNumber: true, KindBool: true, KindDate: true, KindUser: true, KindEnum: true, KindURL: true, KindDateTime: true, KindRecurrence: true,
+	KindItem: true, KindMulti: true, KindRating: true, KindFile: true,
 }
 
 func (t TypeDef) field(name string) (FieldDef, bool) {
@@ -200,6 +231,16 @@ func (t TypeDef) validate() error {
 			return invalid("field %q has unknown kind %q", f.Name, f.Kind)
 		case f.Kind == KindEnum && len(f.Values) == 0:
 			return invalid("enum field %q has no values", f.Name)
+		case f.Kind == KindMulti && len(f.Values) == 0:
+			return invalid("multi field %q has no values", f.Name)
+		case f.Kind == KindMulti && hasDuplicates(f.Values):
+			return invalid("multi field %q lists a value twice or an empty one", f.Name)
+		case f.Kind != KindEnum && f.Kind != KindMulti && len(f.Values) > 0:
+			return invalid("field %q: only enum and multi fields have values", f.Name)
+		case f.Kind != KindItem && len(f.Targets) > 0:
+			return invalid("field %q: only item fields name the types they refer to", f.Name)
+		case hasDuplicates(f.Targets):
+			return invalid("field %q names a type twice or an empty one", f.Name)
 		case f.Unique && f.Kind != KindText && f.Kind != KindURL && f.Kind != KindNumber:
 			return invalid("field %q: only text, url and number fields can be unique", f.Name)
 		}
@@ -250,6 +291,59 @@ func (t TypeDef) validate() error {
 	return nil
 }
 
+// hasDuplicates reports whether a list names something twice, or holds an
+// empty or blank entry.
+func hasDuplicates(list []string) bool {
+	seen := map[string]bool{}
+	for _, v := range list {
+		if seen[v] || strings.TrimSpace(v) == "" {
+			return true
+		}
+		seen[v] = true
+	}
+	return false
+}
+
+// normalProps brings the values of multi fields into the order of the
+// field's Values, so that an item reads the same whichever order they were
+// chosen in; an empty choice unsets the field. It never changes the
+// caller's map.
+func normalProps(t TypeDef, props Props) Props {
+	var out Props
+	for name, v := range props {
+		f, ok := t.field(name)
+		list, isList := v.([]string)
+		if !ok || f.Kind != KindMulti || !isList {
+			continue
+		}
+		if out == nil {
+			out = maps.Clone(props)
+		}
+		var sorted []string
+		for _, allowed := range f.Values {
+			if slices.Contains(list, allowed) {
+				sorted = append(sorted, allowed)
+			}
+		}
+		// Values the field does not list stay, last, for checkValue to
+		// refuse.
+		for _, x := range list {
+			if !slices.Contains(f.Values, x) {
+				sorted = append(sorted, x)
+			}
+		}
+		if len(sorted) == 0 {
+			delete(out, name)
+			continue
+		}
+		out[name] = sorted
+	}
+	if out == nil {
+		return props
+	}
+	return out
+}
+
 // checkValue validates one property value against its field. A nil value
 // means "unset" and is only refused for required fields.
 func checkValue(f FieldDef, v any) error {
@@ -295,6 +389,25 @@ func checkValue(f FieldDef, v any) error {
 			}
 			ok = true
 		}
+	case KindItem:
+		// Whether the target exists, is live and of an allowed type, the
+		// store checks (checkRefs).
+		id, isID := v.(ID)
+		ok = isID && id != ""
+	case KindMulti:
+		list, isList := v.([]string)
+		ok = isList && len(list) > 0 && !hasDuplicates(list)
+		for _, x := range list {
+			ok = ok && slices.Contains(f.Values, x)
+		}
+	case KindRating:
+		n, isInt := v.(int)
+		ok = isInt && n >= 1 && n <= MaxRating
+	case KindFile:
+		// Whether the file belongs to the item, the store checks
+		// (checkRefs).
+		s, isString := v.(string)
+		ok = isString && ValidAttachmentID(s)
 	}
 	if !ok {
 		return invalid("field %q: value %#v is not a valid %s", f.Name, v, f.Kind)
@@ -323,13 +436,19 @@ func FormatField(f FieldDef, v any) string {
 
 // FormatValue is a property value as text: as typed for text, url, enum
 // and user fields, a date as YYYY-MM-DD, a number in its shortest form.
-// A point in time is written by FormatField, which knows its kind.
+// The values of a multi field are joined by ", ", a reference is the ID
+// it holds. A point in time is written by FormatField, which knows its
+// kind.
 func FormatValue(v any) string {
 	switch x := v.(type) {
 	case nil:
 		return ""
 	case string:
 		return x
+	case ID:
+		return string(x)
+	case []string:
+		return strings.Join(x, ", ")
 	case time.Time:
 		return x.Format(time.DateOnly)
 	case int:

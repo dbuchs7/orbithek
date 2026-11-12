@@ -400,6 +400,10 @@ type Relation struct {
 	// only those who read one of them learn of the relation. Empty when a
 	// block anyone reads implies it. It follows from the body (D4).
 	secrets []ID
+	// field names the item field a derived relation follows from; empty
+	// for one derived from a body (ADR-0200). It follows from the
+	// property (D4) and is never persisted.
+	field string
 }
 
 // Direction selects relations by end.

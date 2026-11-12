@@ -81,6 +81,9 @@ func TestDecodeRejectsWhatItCannotReadExactly(t *testing.T) {
 		"unknown role":       `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"RoleGranted","role":"owner"}]`,
 		"unknown value type": `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"PropertySet","value":{"t":"x","v":"1"}}]`,
 		"bad prop value":     `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"ItemCreated","props":{"n":{"t":"i","v":"1.5"}}}]`,
+		"list in version 40": `[{"v":40,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"PropertySet","value":{"t":"l","v":"[\"a\"]"}}]`,
+		"ref in version 54":  `[{"v":54,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"ItemCreated","props":{"n":{"t":"r","v":"x"}}}]`,
+		"bad list":           `[{"v":55,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"PropertySet","value":{"t":"l","v":"a"}}]`,
 		"empty batch":        `[]`,
 		"not json":           `{`,
 	}
@@ -94,7 +97,7 @@ func TestDecodeRejectsWhatItCannotReadExactly(t *testing.T) {
 func TestEncodeRejectsWhatItCannotStore(t *testing.T) {
 	cases := map[string]Event{
 		"unknown role":      {Kind: RoleGranted, Role: 99},
-		"unsupported value": {Kind: PropertySet, Value: []string{"x"}},
+		"unsupported value": {Kind: PropertySet, Value: []int{1}},
 		"unsupported prop":  {Kind: ItemCreated, Props: Props{"x": struct{}{}}},
 		"NaN":               {Kind: PropertySet, Value: math.NaN()},
 	}
@@ -183,10 +186,11 @@ func TestPersistedFormatIsStable(t *testing.T) {
 	slideOrders := pictureOrderLog(t)
 	fingerprints := fingerprintLog(t)
 	times := takenLog(t)
+	kinds55 := fieldKindsLog(t)
 	itemViews := itemViewsLog(t)
 	highlights := pdfHighlightLog(t)
 	kinds := map[EventKind]bool{}
-	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments, notes, photos, places, renames, geotags, moves, albumVideos, faces, slideOrders, fingerprints, times, highlights, itemViews) {
+	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments, notes, photos, places, renames, geotags, moves, albumVideos, faces, slideOrders, fingerprints, times, highlights, itemViews, kinds55) {
 		kinds[e.Kind] = true
 	}
 	for _, k := range allEventKinds {
@@ -234,6 +238,8 @@ func TestPersistedFormatIsStable(t *testing.T) {
 		{"events.v58.pdfhighlights.plain.golden.jsonl", nil, highlights},
 		{"events.v58.itemviews.golden.jsonl", fakeSealer{}, itemViews},
 		{"events.v58.itemviews.plain.golden.jsonl", nil, itemViews},
+		{"events.v58.fieldkinds.golden.jsonl", fakeSealer{}, kinds55},
+		{"events.v58.fieldkinds.plain.golden.jsonl", nil, kinds55},
 		{"events.v58.sealed.golden.jsonl", fakeSealer{}, log},
 		{"events.v58.richtext.golden.jsonl", fakeSealer{}, rich},
 		{"events.v58.comments.golden.jsonl", fakeSealer{}, comments},

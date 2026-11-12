@@ -9,7 +9,7 @@ This manual explains how to work with Orbithek: reading and writing pages, keepi
 
 ### Rooms, items and types
 
-Everything people write in Orbithek is an **item**: a wiki page, a task, a decision, a meeting note. What an item consists of is set by its **type**. A type defines the item's fields (for example *assignee*, *due* or *priority*), whether it has a text, and whether it moves through a **workflow** of states such as *open* and *done*. Pages and tasks are therefore not separate systems, but items of different types.
+Everything people write in Orbithek is an **item**: a wiki page, a task, a decision, a meeting note. What an item consists of is set by its **type**. A type defines the item's fields (for example *assignee*, *due* or *priority*), whether it has a text, and whether it moves through a **workflow** of states such as *open* and *done*. Pages and tasks are therefore not separate systems, but items of different types. A type belongs to the whole installation or to one room: a room's own types are used only for items in that room.
 
 Items live in **rooms**. A room holds the work of a team, a project or a topic. Every room has a short **key** in capitals, such as `PLAT`; every item in it has a key made of the room's key and a number, such as `PLAT-12`. Pages form a tree: every item has at most one parent page.
 
@@ -54,7 +54,7 @@ The start page greets you, shows counts of pages, tasks and pictures, and offers
 
 ### Creating a page or item
 
-Choose **+ New** in the top bar or **New page** in a room. The creation view asks for the room, the type and the title, and places the new item below the page you came from. On a page, **New child page** creates a page below it. If a type has a start text, a new item begins with it.
+Choose **+ New** in the top bar or **New page** in a room. The creation view asks for the room, the type and the title, and places the new item below the page you came from. On a page, **New child page** creates a page below it. If a type has a start text, a new item begins with it. A room's own types are offered only when that room is chosen.
 
 ### Reading an item
 
@@ -107,6 +107,14 @@ Pictures can be placed left or right with text beside them, centred, and resized
 A PDF file of an item opens in the reader with **Read** in the file list, or with a click on a link to it in the item's text. The reader shows the pages with their text, which can be selected and copied. The bar above them moves from page to page, zooms in and out or to **Fit width**, searches the document (Enter for the next match) and offers **Download**. At the side, *Pages* shows small pictures of the pages, *Contents* the document's table of contents when it has one, and *Highlights* the highlights made in it. The address names the page, so a link leads others to the same page.
 
 Whoever may comment on the item highlights text: select it on one page, then choose a colour to highlight it at once, or **Highlight with a note**, choose a colour, write the note and **Save highlight**. A highlight is a comment on the item: it appears among the item's comments with its file, page and quote, and **Show in the PDF** leads to it. Highlights are answered, resolved and deleted in the reader's list as in the comments; **Open in the comments** leads to the item. When a newer version of the file is uploaded, the reader shows the newest version and finds each highlight again by its text; a highlight whose text is no longer in the file says so. **Export as Markdown** saves the highlights with their quote, page and note. A PDF with highlights stays in its item: it cannot be moved to another one.
+### Fields of an item
+
+The fields of an item stand in the panel at the side and are saved as soon as they change. Besides text, numbers, dates, people and lists, a field can be:
+
+- **Item**: a reference to another item, chosen by typing a few letters of its key or title. It is shown by key and title and counts as a relation: the other item lists it among its relations, the starmap and the impact view show it, and the other item cannot be deleted while it is referred to. An item you may not read is not shown.
+- **Several of a list**: any of the field's values, ticked.
+- **Rating**: one to five stars.
+- **File**: one of the item's own files, such as a cover picture, shown as a small picture. Upload the file first, then choose it.
 
 ### Moving, copying and deleting
 
@@ -195,6 +203,7 @@ A **query** selects items by their fields. Open it from the search results (**Qu
 - `IS EMPTY` and `IS NOT EMPTY` find items without or with a value.
 - Dates are written `2026-10-01`; `-7d`, `2w`, `+12h` and `-1y` count from now; `now()`, `startOfWeek()` and similar functions are available.
 - `currentUser()` stands for you.
+- An item field takes an item's key, such as `epic = PLAT-3`; `platforms = web` finds items that have *web* among several values; a rating compares as a number, such as `rating >= 4`.
 - `ORDER BY` sorts, `ASC` or `DESC`.
 
 Examples:
@@ -490,13 +499,13 @@ Administrators find under **Administration**:
 
 - **Account requests**, **Users and system roles**, **Groups** and **Grant a room role**;
 - **Rooms**: create rooms, open their settings, move a room to the trash and restore or delete it for good;
-- **Item types**: create types from the ready-made templates or as JSON, with fields, workflow, Word template and start text;
+- **Item types**: create and change types in a form — name, text, fields with their kind and options, workflow with states and transitions (or simply *open → done*) and start text — for the whole installation or for one room; the type as JSON stays under **Advanced**. Types are also made from the ready-made templates;
 - **Backup** (also on a schedule to a directory, WebDAV, S3, FTPS or SFTP) and **Storage**;
 - **Calendars of other services**, **Album: older versions**, **Connectors** and **Process engines**;
 - **Appearance (corporate design)**: logo, colours, background, fonts, and a ready-made theme, among them *Capacity*, a quiet look for notes in light and dark;
 - **Word templates**, **Data protection regulations**, **Import** and the **Audit trail**.
 
-Room administrators manage members and roles of their room under the room's **Settings**.
+Room administrators manage members and roles of their room under the room's **Settings**. There, under **Item types of this room**, they also define, change and remove the room's own types with the same form, or start from a ready-made template. A type is removed only when no item and no kanban uses it.
 
 ## Keyboard shortcuts
 

@@ -224,6 +224,9 @@ func (s *Store) DefineType(actor string, td TypeDef) error {
 	if err := td.validate(); err != nil {
 		return err
 	}
+	if err := s.checkTypeDef(td); err != nil {
+		return err
+	}
 	if err := s.duplicatesAmong(td); err != nil {
 		return err
 	}
@@ -366,9 +369,9 @@ func (s *Store) prepareCreate(n NewItem) (Event, error) {
 	if !s.HasSpace(n.Space) {
 		return Event{}, notFound("space %q", n.Space)
 	}
-	td, ok := s.latest(n.Type)
-	if !ok {
-		return Event{}, notFound("type %q", n.Type)
+	td, err := s.usable(n.Type, n.Space)
+	if err != nil {
+		return Event{}, err
 	}
 	return s.prepareCreateOf(n, td)
 }
@@ -382,6 +385,7 @@ func (s *Store) prepareCreateOf(n NewItem, td TypeDef) (Event, error) {
 	if strings.TrimSpace(n.Title) == "" {
 		return Event{}, invalid("title is empty")
 	}
+	n.Properties = normalProps(td, n.Properties)
 	if n.Parent != "" {
 		p, err := s.live(n.Parent)
 		if err != nil {
@@ -398,6 +402,9 @@ func (s *Store) prepareCreateOf(n NewItem, td TypeDef) (Event, error) {
 		if f.Required && n.Properties[f.Name] == nil {
 			return Event{}, invalid("field %q is required", f.Name)
 		}
+	}
+	if err := s.checkRefs(td, nil, n.Properties); err != nil {
+		return Event{}, err
 	}
 	if err := s.duplicate(n.Space, td, "", n.Properties); err != nil {
 		return Event{}, err
@@ -559,10 +566,16 @@ func (s *Store) SetProperty(actor string, id ID, field string, value any) error 
 		return err
 	}
 	td, _ := s.latest(it.Type)
-	if err := checkProps(td, Props{field: value}); err != nil {
+	// An empty choice of a multi field unsets it.
+	value = normalProps(td, Props{field: value})[field]
+	props := Props{field: value}
+	if err := checkProps(td, props); err != nil {
 		return err
 	}
-	if err := s.duplicate(it.Space, td, id, Props{field: value}); err != nil {
+	if err := s.checkRefs(td, it, props); err != nil {
+		return err
+	}
+	if err := s.duplicate(it.Space, td, id, props); err != nil {
 		return err
 	}
 	return s.record(actor, Event{Kind: PropertySet, Item: id, Field: field, Value: value})
@@ -702,6 +715,13 @@ func (s *Store) checkMove(id ID, toSpace string, newParent ID) error {
 		}
 		if slices.Contains(s.subtree(id), newParent) {
 			return invalid("cannot move an item below itself")
+		}
+	}
+	// An item of a room type stays in its room (ADR-0199).
+	for _, m := range s.subtree(id) {
+		it := s.items[m]
+		if td, ok := s.latest(it.Type); ok && it.Presence == Live && !td.UsableIn(toSpace) {
+			return invalid("%s is of the type %s, which belongs to the space %s; it cannot move to %s", it.Key, td.Name, td.Space, toSpace)
 		}
 	}
 	return s.duplicatesMoving(id, toSpace)
@@ -941,6 +961,7 @@ func (s *Store) apply(e Event) {
 		s.items[it.ID] = it
 		s.assignKey(it)
 		touch(it.ID)
+		s.relateFields(it, nil, e.Seq, touch)
 	case TitleSet:
 		it := s.items[e.Item]
 		it.Title = e.Title
@@ -958,13 +979,15 @@ func (s *Store) apply(e Event) {
 		touch(it.ID)
 	case PropertySet:
 		it := s.items[e.Item]
+		touch(it.ID)
+		s.unrelateField(it, e.Field, it.Properties[e.Field], touch)
 		if e.Value == nil {
 			delete(it.Properties, e.Field)
 		} else {
 			it.Properties[e.Field] = e.Value
 		}
 		it.Version++
-		touch(it.ID)
+		s.relateField(it, e.Field, e.Value, e.Seq, touch)
 	case Transitioned:
 		it := s.items[e.Item]
 		it.State, it.StateSince = e.To, e.At
@@ -991,7 +1014,9 @@ func (s *Store) apply(e Event) {
 		it := s.items[e.Item]
 		touch(it.ID)
 		for id, r := range s.rels {
-			if r.Derived && r.From == it.ID {
+			// The relations of item fields follow the properties, not the
+			// body (ADR-0200).
+			if r.Derived && r.From == it.ID && r.field == "" {
 				touch(r.To)
 				delete(s.rels, id)
 			}

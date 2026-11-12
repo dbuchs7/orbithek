@@ -199,7 +199,7 @@ func finishing(w *Workflow, from string, props Props) (string, bool) {
 // type that can and is most like it. With neither, and the ready-made type's
 // name free, the ready-made type is to be defined (define). ok is false
 // when no type can be had: the request is then made without a task.
-func (s *Store) requestType() (td TypeDef, define, ok bool) {
+func (s *Store) requestType(space string) (td TypeDef, define, ok bool) {
 	var tmpl TypeDef
 	for _, t := range TypeTemplates() {
 		if holdsRequests(t) {
@@ -208,14 +208,15 @@ func (s *Store) requestType() (td TypeDef, define, ok bool) {
 		}
 	}
 	cur, exists := s.latest(tmpl.Name)
-	if exists && holdsRequests(cur) {
+	if exists && holdsRequests(cur) && cur.UsableIn(space) {
 		return cur, false, true
 	}
 	// Of the others, the one most like the template: the most of its
 	// fields and states, then by name.
 	best, score := TypeDef{}, -1
 	for _, t := range s.Types() {
-		if n := likeness(t, tmpl); holdsRequests(t) && n > score {
+		// A type of another room cannot hold a task here (ADR-0199).
+		if n := likeness(t, tmpl); holdsRequests(t) && t.UsableIn(space) && n > score {
 			best, score = t, n
 		}
 	}
@@ -293,7 +294,7 @@ func (s *Store) requestTask(it *Item, sec Secret, requester string) ([]Event, ID
 	if it.Presence != Live {
 		return nil, "", nil
 	}
-	td, define, ok := s.requestType()
+	td, define, ok := s.requestType(it.Space)
 	if !ok {
 		return nil, "", nil
 	}

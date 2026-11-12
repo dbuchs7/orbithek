@@ -9,7 +9,7 @@ Dieses Handbuch erklärt die Arbeit mit Orbithek: Seiten lesen und schreiben, Au
 
 ### Räume, Einträge und Typen
 
-Alles, was in Orbithek geschrieben wird, ist ein **Eintrag**: eine Wiki-Seite, eine Aufgabe, eine Entscheidung, ein Sitzungsprotokoll. Woraus ein Eintrag besteht, legt sein **Typ** fest. Ein Typ bestimmt die Felder des Eintrags (zum Beispiel *assignee*, *due* oder *priority*), ob er einen Text hat und ob er einen **Workflow** mit Status wie *open* und *done* durchläuft. Seiten und Aufgaben sind deshalb keine getrennten Systeme, sondern Einträge unterschiedlicher Typen.
+Alles, was in Orbithek geschrieben wird, ist ein **Eintrag**: eine Wiki-Seite, eine Aufgabe, eine Entscheidung, ein Sitzungsprotokoll. Woraus ein Eintrag besteht, legt sein **Typ** fest. Ein Typ bestimmt die Felder des Eintrags (zum Beispiel *assignee*, *due* oder *priority*), ob er einen Text hat und ob er einen **Workflow** mit Status wie *open* und *done* durchläuft. Seiten und Aufgaben sind deshalb keine getrennten Systeme, sondern Einträge unterschiedlicher Typen. Ein Typ gehört der ganzen Installation oder einem Raum: Die eigenen Typen eines Raums werden nur für Einträge in diesem Raum verwendet.
 
 Einträge liegen in **Räumen**. Ein Raum enthält die Arbeit eines Teams, eines Projekts oder eines Themas. Jeder Raum hat einen kurzen **Schlüssel** in Grossbuchstaben, etwa `PLAT`; jeder Eintrag darin hat einen Schlüssel aus dem Raumschlüssel und einer Nummer, etwa `PLAT-12`. Seiten bilden einen Baum: Jeder Eintrag hat höchstens eine übergeordnete Seite.
 
@@ -54,7 +54,7 @@ Die Startseite begrüsst, zeigt die Anzahl Seiten, Aufgaben und Bilder und biete
 
 ### Eine Seite oder einen Eintrag erstellen
 
-Man wählt **+ Neu** in der oberen Leiste oder **Neue Seite** in einem Raum. Die Erstellungsansicht fragt nach Raum, Typ und Titel und legt den neuen Eintrag unterhalb der Seite an, von der man kam. Auf einer Seite erstellt **Neue Unterseite** eine Seite darunter. Hat ein Typ einen Starttext, beginnt ein neuer Eintrag damit.
+Man wählt **+ Neu** in der oberen Leiste oder **Neue Seite** in einem Raum. Die Erstellungsansicht fragt nach Raum, Typ und Titel und legt den neuen Eintrag unterhalb der Seite an, von der man kam. Auf einer Seite erstellt **Neue Unterseite** eine Seite darunter. Hat ein Typ einen Starttext, beginnt ein neuer Eintrag damit. Die eigenen Typen eines Raums werden nur angeboten, wenn dieser Raum gewählt ist.
 
 ### Einen Eintrag lesen
 
@@ -107,6 +107,14 @@ Bilder lassen sich links oder rechts mit Text daneben oder zentriert platzieren 
 Eine PDF-Datei eines Eintrags öffnet sich im PDF-Leser mit **Lesen** in der Dateiliste oder mit einem Klick auf einen Link zu ihr im Text des Eintrags. Der Leser zeigt die Seiten mit ihrem Text, der sich markieren und kopieren lässt. Die Leiste darüber blättert von Seite zu Seite, vergrössert und verkleinert oder passt auf **Seitenbreite** an, durchsucht das Dokument (Enter für den nächsten Treffer) und bietet **Herunterladen**. Seitlich zeigt *Seiten* kleine Bilder der Seiten, *Inhalt* das Inhaltsverzeichnis des Dokuments, falls es eines hat, und *Markierungen* die darin gesetzten Markierungen. Die Adresse nennt die Seite, sodass ein Link andere zur selben Seite führt.
 
 Wer den Eintrag kommentieren darf, markiert Text: Man wählt ihn auf einer Seite aus und wählt dann eine Farbe, um ihn sofort zu markieren, oder **Mit Notiz markieren**, wählt eine Farbe, schreibt die Notiz und wählt **Markierung speichern**. Eine Markierung ist ein Kommentar zum Eintrag: Sie erscheint unter den Kommentaren des Eintrags mit Datei, Seite und Zitat, und **Im PDF zeigen** führt zu ihr. Markierungen werden in der Liste des Lesers wie in den Kommentaren beantwortet, erledigt und gelöscht; **In den Kommentaren öffnen** führt zum Eintrag. Wird eine neuere Version der Datei hochgeladen, zeigt der Leser die neueste Version und findet jede Markierung an ihrem Text wieder; eine Markierung, deren Text nicht mehr in der Datei steht, sagt das. **Als Markdown exportieren** speichert die Markierungen mit Zitat, Seite und Notiz. Ein PDF mit Markierungen bleibt in seinem Eintrag: Es lässt sich nicht in einen anderen verschieben.
+### Felder eines Eintrags
+
+Die Felder eines Eintrags stehen in der Spalte an der Seite und werden gespeichert, sobald sie sich ändern. Neben Text, Zahlen, Datum, Personen und Listen kann ein Feld sein:
+
+- **Eintrag**: ein Verweis auf einen anderen Eintrag, gewählt durch Eintippen einiger Buchstaben seines Schlüssels oder Titels. Er wird mit Schlüssel und Titel angezeigt und zählt als Beziehung: Der andere Eintrag führt ihn unter seinen Beziehungen, die Sternkarte und die Auswirkungen zeigen ihn, und der andere Eintrag lässt sich nicht löschen, solange auf ihn verwiesen wird. Ein Eintrag, den man nicht lesen darf, wird nicht angezeigt.
+- **Mehrere aus einer Liste**: beliebige Werte des Felds, angekreuzt.
+- **Bewertung**: ein bis fünf Sterne.
+- **Datei**: eine der eigenen Dateien des Eintrags, etwa ein Titelbild, als kleines Bild gezeigt. Zuerst die Datei hochladen, dann wählen.
 
 ### Verschieben, kopieren und löschen
 
@@ -195,6 +203,7 @@ Eine **Abfrage** wählt Einträge nach ihren Feldern aus. Man öffnet sie aus de
 - `IS EMPTY` und `IS NOT EMPTY` finden Einträge ohne bzw. mit Wert.
 - Ein Datum schreibt man `2026-10-01`; `-7d`, `2w`, `+12h` und `-1y` zählen ab jetzt; `now()`, `startOfWeek()` und ähnliche Funktionen stehen zur Verfügung.
 - `currentUser()` steht für die eigene Person.
+- Ein Eintragsfeld nimmt den Schlüssel eines Eintrags, etwa `epic = PLAT-3`; `platforms = web` findet Einträge, die *web* unter mehreren Werten haben; eine Bewertung vergleicht wie eine Zahl, etwa `rating >= 4`.
 - `ORDER BY` sortiert, `ASC` oder `DESC`.
 
 Beispiele:
@@ -490,13 +499,13 @@ Die Administration findet unter **Administration**:
 
 - **Kontoanträge**, **Benutzer und Systemrollen**, **Gruppen** und **Raumrolle vergeben**;
 - **Räume**: Räume erstellen, ihre Einstellungen öffnen, einen Raum in den Papierkorb legen und wiederherstellen oder endgültig löschen;
-- **Typen**: Typen aus den Vorlagen oder als JSON erstellen, mit Feldern, Workflow, Word-Vorlage und Starttext;
+- **Typen**: Typen in einem Formular anlegen und ändern — Name, Text, Felder mit ihrer Art und ihren Optionen, Workflow mit Status und Übergängen (oder einfach *offen → erledigt*) und Starttext — für die ganze Installation oder für einen Raum; der Typ als JSON bleibt unter **Erweitert**. Typen entstehen auch aus den Vorlagen;
 - **Backup** (auch zeitgesteuert in ein Verzeichnis, per WebDAV, S3, FTPS oder SFTP) und **Speicher**;
 - **Kalender anderer Dienste**, **Album: ältere Versionen**, **Konnektoren** und **Prozess-Engines**;
 - **Erscheinungsbild (Corporate Design)**: Logo, Farben, Hintergrund, Schriften und ein fertiges Theme, darunter *Capacity*, ein ruhiges Erscheinungsbild für Notizen in Hell und Dunkel;
 - **Word-Vorlagen**, **Datenschutz-Regelwerke**, **Import** und das **Audit-Protokoll**.
 
-Die Raumadministration verwaltet Mitglieder und Rollen ihres Raums unter den **Einstellungen** des Raums.
+Die Raumadministration verwaltet Mitglieder und Rollen ihres Raums unter den **Einstellungen** des Raums. Dort legt sie unter **Eintragstypen dieses Raums** mit demselben Formular auch die eigenen Typen des Raums an, ändert und entfernt sie oder beginnt mit einer Vorlage. Entfernt wird ein Typ erst, wenn kein Eintrag und kein Kanban ihn nutzt.
 
 ## Tastenkürzel
 

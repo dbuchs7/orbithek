@@ -438,7 +438,9 @@ func (x *Session) History(id ID) ([]Event, error) {
 			}
 		}
 		if visible {
-			out = append(out, e)
+			// A reference to an item the principal may not read is not
+			// revealed, not even by its ID (D10, ADR-0200).
+			out = append(out, x.s.hideEventRefs(x.who, e))
 		}
 	}
 	return out, nil
@@ -561,6 +563,9 @@ func (x *Session) Create(n NewItem) (Item, error) {
 	if err := x.canCreateIn(n.Space, n.Parent); err != nil {
 		return Item{}, err
 	}
+	if err := x.readableRefs(nil, n.Properties); err != nil {
+		return Item{}, err
+	}
 	if n.Body != nil {
 		for _, r := range n.Body.refs() {
 			if _, err := x.readable(r.To); err != nil {
@@ -576,6 +581,9 @@ func (x *Session) Create(n NewItem) (Item, error) {
 // CreateEmbedded creates an item inline in a host the principal may edit.
 func (x *Session) CreateEmbedded(host ID, n NewItem) (Item, error) {
 	if _, err := x.editable(host); err != nil {
+		return Item{}, err
+	}
+	if err := x.readableRefs(nil, n.Properties); err != nil {
 		return Item{}, err
 	}
 	n.Watch = true
@@ -731,6 +739,9 @@ func (x *Session) SetProperty(id ID, field string, value any) error {
 		}
 	}
 	if err := x.mayChangeOwner(it, field); err != nil {
+		return err
+	}
+	if err := x.readableRefs(it, Props{field: value}); err != nil {
 		return err
 	}
 	return x.s.SetProperty(x.who, id, field, value)

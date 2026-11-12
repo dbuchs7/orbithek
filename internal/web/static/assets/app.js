@@ -36,6 +36,9 @@ import { attachmentLink, isPdf, onPdf, readerHref } from "./pdfparts.js";
 import { bookmarklet, captureAddress, readCapture } from "./capture.js";
 import { captureView } from "./captureview.js";
 import { isWebLink, webLinkCard } from "./weblink.js";
+import { fieldInput, fieldView, isRich } from "./fields.js";
+import { typeEditor, roomTypesCard } from "./typeeditor.js";
+import { usableIn, valueText } from "./typeparts.js";
 
 const app = document.getElementById("app");
 const nav = document.getElementById("nav");
@@ -2525,8 +2528,8 @@ function setupCard(types) {
     outdated.length ? h("button", { class: missing.length ? "secondary" : "primary", id: "setup-fields", text: t("setup.addFields"),
       onclick: () => action(async () => {
         for (const { ty, add } of outdated) {
-          const { name, body, fields, workflow, review } = ty;
-          await post("/api/types", { name, body, workflow, review, fields: [...fields, ...add] });
+          const { version, editable, ...def } = ty;
+          await post("/api/types", { ...def, fields: [...ty.fields, ...add] });
         }
       }, status) }) : null,
     status);
@@ -3762,6 +3765,10 @@ function cardChip(name, f, v, done) {
   const chip = (...content) => h("span", { class: "card-chip", title: `${name}: ${v}` }, h("span", { class: "visually-hidden", text: `${name}: ` }), ...content);
   if (f?.kind === "bool") return chip(`✓ ${name}`);
   if (!f || f.kind === "enum") return chip(String(v));
+  // A rating as stars, a multi field's values joined (ADR-0200); an item
+  // field by its target's key and title, once read.
+  if (f.kind === "item") return chip(h("span", { class: "card-chip-name", "aria-hidden": "true", text: name }), " ", fieldView(f, v));
+  if (isRich(f)) return chip(h("span", { class: "card-chip-name", "aria-hidden": "true", text: name }), " ", valueText(f, v));
   return chip(h("span", { class: "card-chip-name", "aria-hidden": "true", text: name }), " ", String(v));
 }
 
@@ -4336,9 +4343,11 @@ async function linksView(key) {
 }
 
 // propertyInput is the input for a field of a type; it reads back with
-// readProperty.
-function propertyInput(f, value) {
+// readProperty. The kinds item, multi, rating and file are fields.js's;
+// ctx gives it the item and its files (ADR-0200).
+function propertyInput(f, value, ctx = {}) {
   const name = "p:" + f.name;
+  if (isRich(f)) return fieldInput(f, value, ctx);
   switch (f.kind) {
     case "bool":
       return h("input", { name, type: "checkbox", checked: value === true });
@@ -4506,6 +4515,7 @@ function recurrenceInput(name, value) {
 }
 
 function readProperty(f, el) {
+  if (el.readValue) return el.readValue();
   if (f.kind === "recurrence") return el.ruleValue ? el.ruleValue() : el.value || null;
   if (f.kind === "bool") return el.checked;
   if (f.kind === "user") {
@@ -4537,12 +4547,20 @@ function newItemForm({ space, spaces = null, types, parent = null, heading = t("
     });
   }
   const fields = h("div");
-  const typeSelect = h("select", { name: "type" }, types.map((ty) => h("option", { value: ty.name, text: ty.name, selected: ty.name === type })));
+  const typeSelect = h("select", { name: "type" });
+  // A room's own types are offered in that room only (ADR-0199).
+  const offerTypes = () => {
+    const here = usableIn(types, spaceSelect ? spaceSelect.value : space);
+    const keep = typeSelect.value || type;
+    typeSelect.replaceChildren(...here.map((ty) => h("option", { value: ty.name, text: ty.space ? `${ty.name} (${ty.space})` : ty.name, selected: ty.name === keep })));
+  };
   const showFields = () => {
     const ty = types.find((x) => x.name === typeSelect.value);
-    fields.replaceChildren(...ty.fields.map((f) => field(f.name + (f.required ? " *" : ""), propertyInput(f))));
+    fields.replaceChildren(...(ty?.fields || []).map((f) => field(f.name + (f.required ? " *" : ""), propertyInput(f))));
   };
   typeSelect.addEventListener("change", showFields);
+  spaceSelect?.addEventListener("change", () => { offerTypes(); showFields(); });
+  offerTypes();
   showFields();
   const f = form({ class: "card", id }, [
     h("h2", { text: heading }),
@@ -4554,6 +4572,7 @@ function newItemForm({ space, spaces = null, types, parent = null, heading = t("
     h("button", { type: "submit", text: t("common.create") }),
   ], async () => {
     const ty = types.find((x) => x.name === typeSelect.value);
+    if (!ty) throw new Error(t("types.noneHere"));
     const properties = {};
     for (const fd of ty.fields) {
       const v = readProperty(fd, f.querySelector(`[name="p:${CSS.escape(fd.name)}"]`));
@@ -4769,7 +4788,7 @@ async function itemView(ref, params = new URLSearchParams()) {
 
   // A field is saved as soon as it changes; a mark beside it says so.
   const props = h("table", { class: "props" }, type.fields.map((f) => {
-    const input = propertyInput(f, item.properties[f.name]);
+    const input = propertyInput(f, item.properties[f.name], { item, attachments });
     input.disabled = !canEdit;
     const mark = h("span", { class: "save-mark", role: "status" });
     if (canEdit) {
@@ -6062,9 +6081,17 @@ async function adminView() {
       h("button", { type: "submit", text: t("admin.createSpace") }),
     ], async (d) => { await post("/api/spaces", { key: d.get("key"), name: d.get("name") }); route(); }));
 
-  const typeText = h("textarea", { name: "type", rows: 8, required: true },
-    '{"name":"page","body":true,"fields":[{"name":"owner","kind":"user"}]}');
+  // Types are edited in a form (ADR-0199); hand-written JSON stays in it,
+  // folded away. A room's own type says so, and its room's administrators
+  // edit it too.
+  const typeEditorBox = h("div", { id: "type-editor-box" });
+  const openTypeEditor = (opts) => {
+    typeEditorBox.replaceChildren(typeEditor({ types, spaces, ...opts, onSaved: () => route(), onCancel: () => typeEditorBox.replaceChildren() }));
+    typeEditorBox.scrollIntoView({ block: "start" });
+    typeEditorBox.querySelector("input:not([disabled])")?.focus();
+  };
   const describe = (ty) => [
+    ty.space ? t("types.ofRoom", { key: ty.space }) : null,
     ty.body ? t("admin.typeBody") : null,
     ty.fields.length ? t("admin.typeFields", { list: ty.fields.map((f) => `${f.name} (${f.kind}${f.required ? ", *" : ""})`).join(", ") }) : null,
     ty.workflow ? t("admin.typeStates", { list: ty.workflow.states.join(" → ") }) : null,
@@ -6072,35 +6099,17 @@ async function adminView() {
   ].filter(Boolean).join(" · ");
   const typesSection = section("types", t("admin.types"),
     setupCard(types),
-    types.length ? filtered(h("table", { id: "types" }, types.map((ty) => h("tr", { "data-f-kind": ty.workflow ? t("admin.typeWithWorkflow") : t("admin.typeWithoutWorkflow") },
+    types.length ? filtered(h("table", { id: "types" }, types.map((ty) => h("tr", { "data-f-kind": ty.workflow ? t("admin.typeWithWorkflow") : t("admin.typeWithoutWorkflow"),
+      "data-f-room": ty.space || t("types.wholeInstallation") },
       h("td", {}, h("strong", { text: ty.name }), ` v${ty.version}`), h("td", { class: "muted", text: describe(ty) }),
-      h("td", {}, h("button", { type: "button", class: "link", text: t("common.edit"), onclick: () => {
-        // The start text is edited as Markdown (ADR-0167).
-        const { version, start, ...def } = ty;
-        typeText.value = JSON.stringify(def, null, 2);
-        typeText.scrollIntoView({ block: "center" });
-        typeText.focus();
-      } }), " ",
+      h("td", {}, h("button", { type: "button", class: "link", text: t("common.edit"), onclick: () => openTypeEditor({ type: ty }) }), " ",
       // A type no item and no kanban uses can be removed (ADR-0094).
       h("button", { type: "button", class: "link danger", text: t("admin.removeType"), onclick: () =>
         confirm(t("admin.removeTypeConfirm", { name: ty.name })) &&
         action(async () => { await del(`/api/types/${encodeURIComponent(ty.name)}`); route(); }, status) }))))),
-      { id: "admin-types", label: t("admin.types"), choices: [{ key: "kind", label: t("filter.kind") }] }) : null,
-    form({ id: "new-type" }, [
-      h("h3", { text: t("admin.defineType") }),
-      h("p", { class: "muted", text: t("admin.typeHelp") }),
-      field(t("admin.typeJson"), typeText),
-      h("button", { type: "submit", text: t("admin.define") }),
-    ], async (d) => {
-      let def;
-      try {
-        def = JSON.parse(d.get("type"));
-      } catch (err) {
-        throw new Error(t("admin.badJson", { error: err.message }));
-      }
-      await post("/api/types", def);
-      route();
-    }));
+      { id: "admin-types", label: t("admin.types"), choices: [{ key: "kind", label: t("filter.kind") }, { key: "room", label: t("types.belongsTo") }] }) : null,
+    h("p", {}, h("button", { type: "button", class: "primary", id: "new-type", text: t("types.new"), onclick: () => openTypeEditor({}) })),
+    typeEditorBox);
 
   const sysToggle = (u, role, label) => {
     const box = h("input", { type: "checkbox", checked: rolesOf(u.id).includes(role), "aria-label": `${label}: ${u.username}` });
@@ -7363,8 +7372,9 @@ async function importView(key) {
 // person or a group.
 async function membersView(key) {
   const show = screen();
-  const [{ roles }, { users }, { spaces }] = await Promise.all([
-    get(`/api/spaces/${encodeURIComponent(key)}/roles`), get("/api/users"), get("/api/spaces"),
+  await loadTypeTemplates();
+  const [{ roles }, { users }, { spaces }, { types }] = await Promise.all([
+    get(`/api/spaces/${encodeURIComponent(key)}/roles`), get("/api/users"), get("/api/spaces"), get(`/api/types?space=${encodeURIComponent(key)}`),
   ]);
   for (const u of users) names.set(u.id, u.username);
   await learnNames(roles.map((r) => r.principal).filter((p) => !p.startsWith("@")));
@@ -7393,6 +7403,8 @@ async function membersView(key) {
     status,
     sp.role === "space-admin" ? spaceNameCard(sp, key) : null,
     sp.role === "space-admin" ? spaceIconCard(sp, status) : null,
+    // The room's own types (ADR-0199).
+    sp.role === "space-admin" ? roomTypesCard({ space: key, types, templates: typeTemplates, onChange: () => route() }) : null,
     h("h2", { text: t("members.roles") }),
     roles.length ? filtered(h("table", { id: "members" }, roles.map(row)), { id: "members", label: t("members.roles"),
       choices: [{ key: "role", label: t("admin.role"), name: roleText }] }) : empty(t("members.none")),
