@@ -12,7 +12,7 @@ const maxEmbeddedCandidates = 512
 // EmbeddedJPEG finds the largest JPEG a camera embedded in its RAW that
 // the standard library decodes, within maxPixels, and the orientation the
 // RAW tells, for a preview of it
-// (ADR-draft-signed-links-to-a-shares-originals-and-previews-of-raw-and-webp). A TIFF-based RAW
+// (ADR-0223). A TIFF-based RAW
 // (DNG, CR2, NEF, ARW and others) holds it in an IFD, CR3 in a box of its
 // own, RAF at an offset of its header; every one of them starts with the
 // markers of a JPEG, which is what is looked for. The RAW data themselves,

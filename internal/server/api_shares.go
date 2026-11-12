@@ -368,7 +368,7 @@ const signedLinkTTL = 15 * time.Minute
 
 // originalRoutes open an S3 share's originals through links the server
 // signs when they are followed, where an administrator turned that on for
-// the share (ADR-draft-signed-links-to-a-shares-originals-and-previews-of-raw-and-webp). Not offered to agents:
+// the share (ADR-0223). Not offered to agents:
 // the route hands out an original to a browser.
 func originalRoutes(h itemHandlers) []Route {
 	return []Route{

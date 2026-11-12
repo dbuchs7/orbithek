@@ -172,7 +172,7 @@ func statusError(resp *http.Response, what string) error {
 
 // SignedLink answers a GET of a file of an S3 share signed in its query,
 // valid for ttl: whoever holds it reads the original until then, without
-// the keys (ADR-draft-signed-links-to-a-shares-originals-and-previews-of-raw-and-webp).
+// the keys (ADR-0223).
 func SignedLink(a Address, id, p string, env Env, ttl time.Duration) (string, error) {
 	if a.Kind != S3 {
 		return "", fmt.Errorf("%w: only an S3 share signs links", ErrInvalid)

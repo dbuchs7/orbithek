@@ -437,7 +437,7 @@ func BenchmarkRead(b *testing.B) {
 const tinyWebP = "UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA=="
 
 // TestThumbnailOfAWebP: a WebP is decoded and scaled as a JPEG or PNG is
-// (ADR-draft-signed-links-to-a-shares-originals-and-previews-of-raw-and-webp); a broken one is refused.
+// (ADR-0223); a broken one is refused.
 func TestThumbnailOfAWebP(t *testing.T) {
 	data, _ := base64.StdEncoding.DecodeString(tinyWebP)
 	out, ct, err := Thumbnail(bytes.NewReader(data), "image/webp", 400, 1, 1<<20)

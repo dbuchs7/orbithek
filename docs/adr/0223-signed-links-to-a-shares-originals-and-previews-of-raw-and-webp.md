@@ -1,4 +1,4 @@
-# ADR-DRAFT: Signed links to an S3 share's originals, and previews of RAW and WebP
+# ADR-0223: Signed links to an S3 share's originals, and previews of RAW and WebP
 
 - **Status:** Proposed
 - **Implementation:** Not started

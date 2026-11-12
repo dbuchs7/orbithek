@@ -177,7 +177,7 @@ func TestABoundFolderShowsItsShare(t *testing.T) {
 // TestSignedLinksOpenAnS3SharesOriginals: where an administrator turned it
 // on, an entry of an S3 share links to the wiki, which answers a redirect
 // to the object signed for minutes; elsewhere there is no such original
-// (ADR-draft-signed-links-to-a-shares-originals-and-previews-of-raw-and-webp).
+// (ADR-0223).
 func TestSignedLinksOpenAnS3SharesOriginals(t *testing.T) {
 	t.Setenv("OT_SHARE_BUCKET_ACCESS_KEY", "AKID")
 	t.Setenv("OT_SHARE_BUCKET_SECRET_KEY", "SECRET")

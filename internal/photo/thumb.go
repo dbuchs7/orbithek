@@ -75,7 +75,7 @@ func decodePicture(r io.Reader, mediaType string, maxPixels int) (image.Image, e
 		decodeConfig, decodeImage = gif.DecodeConfig, gif.Decode
 	case "image/webp":
 		// golang.org/x/image/webp, pure Go from the Go project
-		// (ADR-draft-signed-links-to-a-shares-originals-and-previews-of-raw-and-webp).
+		// (ADR-0223).
 		decodeConfig, decodeImage = webpcodec.DecodeConfig, webpcodec.Decode
 	default:
 		return nil, ErrUnsupported

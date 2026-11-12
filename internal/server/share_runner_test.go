@@ -431,7 +431,7 @@ func TestHEICAndRAWOfAShareAreListed(t *testing.T) {
 	put(t, dir, "phone.heic", append([]byte("\x00\x00\x00\x18ftypheic\x00\x00\x00\x00mif1heic"), make([]byte, 3000)...))
 	put(t, dir, "camera.cr2", append([]byte("II*\x00\x10\x00\x00\x00CR\x02\x00"), make([]byte, 3000)...))
 	// A RAW whose camera embedded a JPEG, and a WebP, get previews
-	// (ADR-draft-signed-links-to-a-shares-originals-and-previews-of-raw-and-webp).
+	// (ADR-0223).
 	var embedded bytes.Buffer
 	if err := jpeg.Encode(&embedded, image.NewGray(image.Rect(0, 0, 32, 24)), nil); err != nil {
 		t.Fatal(err)

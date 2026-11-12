@@ -34,7 +34,7 @@ type Share struct {
 	Device uint64 `json:"device,omitempty"`
 	// SignedLinks lets readers of the folder open an S3 share's originals
 	// through links the server signs for minutes, when they follow them
-	// (ADR-draft-signed-links-to-a-shares-originals-and-previews-of-raw-and-webp); off by default.
+	// (ADR-0223); off by default.
 	SignedLinks bool `json:"signedLinks,omitempty"`
 }
 

@@ -571,7 +571,7 @@ Before adding a dependency, check that its license is compatible with AGPL-3.0, 
 Current dependencies: go-oidc, go-jose (Apache-2.0) and x/oauth2 (BSD-3-Clause), for OIDC only (ADR-0030);
 x/crypto (BSD-3-Clause), for its SSH client, used by backups to SFTP only (ADR-0073);
 go.yaml.in/yaml/v3 (MIT and Apache-2.0), to read API descriptions in YAML (ADR-0130). goldmark (MIT), as the Markdown parser only, never its renderer (ADR-0138). golang.org/x/net (BSD-3-Clause), for its HTML parser only, to read web pages (ADR-0208).
-golang.org/x/image (BSD-3-Clause), for its WebP decoder only, to scale WebP pictures (ADR-draft-signed-links-to-a-shares-originals-and-previews-of-raw-and-webp).
+golang.org/x/image (BSD-3-Clause), for its WebP decoder only, to scale WebP pictures (ADR-0223).
 Never copy code from sources whose license is incompatible or unknown.
 
 ## Pointers
