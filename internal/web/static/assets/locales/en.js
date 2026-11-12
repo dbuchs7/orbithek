@@ -826,6 +826,7 @@ export default {
   "album.targetTitleCollection": {"one": "Add a picture to {name}", "other": "Add {n} pictures to {name}"},
   "album.targetHint": "Pictures are kept in a folder. Choose one, or make a new one.",
   "album.targetHintCollection": "A collection holds no files of its own: the pictures are kept in the folder chosen here and get the labels {labels}, so the collection shows them.",
+  "album.targetKeptCollection": "The folder chosen is kept for this collection and proposed to everyone who adds to it.",
   "album.targetFolder": "Folder",
   "album.targetNew": "New folder…",
   "album.targetOk": "Upload",

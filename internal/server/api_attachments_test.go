@@ -438,6 +438,22 @@ func TestAlbumCollectionsThroughTheAPI(t *testing.T) {
 	w.carla.expect("GET", "/api/album?collection="+id, "", http.StatusNotFound)
 	w.bert.expect("GET", "/api/album?collection="+page, "", http.StatusNotFound)
 
+	// The collection keeps the folder its new pictures go into, for
+	// everyone who adds to it (ADR-0221).
+	if listed[0].(map[string]any)["folder"] != "" {
+		t.Fatalf("a new collection keeps a folder: %v", listed[0])
+	}
+	shelf := field(w.bert.expect("POST", "/api/album/folders", `{"space":"PLAT","name":"Shelf"}`, http.StatusCreated), "item").(map[string]any)["id"].(string)
+	w.vera.expect("PUT", "/api/album/collections/"+id+"/folder", `{"folder":"`+shelf+`"}`, http.StatusForbidden)
+	w.bert.expect("PUT", "/api/album/collections/"+id+"/folder", `{"folder":"`+id+`"}`, http.StatusBadRequest) // a collection is no folder
+	if got := field(w.bert.expect("PUT", "/api/album/collections/"+id+"/folder", `{"folder":"`+shelf+`"}`, http.StatusOK), "folder"); got != shelf {
+		t.Errorf("the folder kept %v", got)
+	}
+	if kept := field(w.vera.expect("GET", "/api/album/folders?space=PLAT", "", http.StatusOK), "collections").([]any)[0].(map[string]any)["folder"]; kept != shelf {
+		t.Errorf("another reader sees the folder %v", kept)
+	}
+	w.bert.expect("PUT", "/api/album/collections/"+id+"/folder", `{"folder":""}`, http.StatusOK)
+
 	w.vera.expect("PUT", "/api/album/collections/"+id, `{"labels":["logo"],"items":true}`, http.StatusForbidden)
 	w.bert.expect("PUT", "/api/album/collections/"+id, `{"labels":["logo"],"items":true}`, http.StatusOK)
 	if got := names(w.bert, "?collection="+id); !slices.Equal(got, []string{"ops.png", "plat.png", "style.png"}) {

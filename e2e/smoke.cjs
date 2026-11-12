@@ -1930,10 +1930,17 @@ function webSource() {
     await page.setInputFiles("#album-files", { name: "collected.png", mimeType: "image/png", buffer: own("collected") });
     await page.waitForSelector("dialog#album-target[open] #album-target-folder option:has-text('Logos')", { state: "attached" });
     check((await page.textContent("dialog#album-target")).includes("nothing-here"), "the folder's question names the labels the pictures get");
+    check((await page.textContent("dialog#album-target")).includes("kept for this collection"), "the question says the folder is kept for the collection (ADR-0221)");
     await page.selectOption("#album-target-folder", { label: "PLAT › Logos" });
     await page.click("#album-target-ok");
     const collected = "#album .album-card:has(.album-name:text-is('collected'))";
     await page.waitForSelector(collected + " .album-label:text-is('nothing-here')");
+    // The collection keeps the folder chosen, for everyone who adds to it (ADR-0221).
+    const keptFolder = await page.evaluate(async () => {
+      const r = await (await fetch("/api/album/folders?space=PLAT")).json();
+      return [r.collections.find((c) => c.name === "Print")?.folder, r.folders.find((f) => f.name === "Logos")?.id];
+    });
+    check(keptFolder[0] && keptFolder[0] === keptFolder[1], "the collection keeps the folder chosen: " + JSON.stringify(keptFolder));
     check((await page.textContent("#album .status")).includes("Kept in the folder Logos."), "the album says which folder keeps the pictures");
     // A picture already in the album is added by giving it the collection's labels.
     await page.click("#album-add-existing");
