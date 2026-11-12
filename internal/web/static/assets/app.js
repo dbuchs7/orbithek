@@ -6989,6 +6989,7 @@ async function designCard() {
     night: { name: t("design.theme.night"), note: t("design.theme.nightNote"), colours: ["#070a10", "#121722", "#22d3ee"] },
     comic: { name: t("design.theme.comic"), note: t("design.theme.comicNote"), colours: ["#ffd23f", "#fff6d6", "#e3262f"] },
     sketch: { name: t("design.theme.sketch"), note: t("design.theme.sketchNote"), colours: ["#fffefa", "#2b2b2b", "#2856b6"] },
+    capacity: { name: t("design.theme.capacity"), note: t("design.theme.capacityNote"), colours: ["#ffffff", "#f7f7f8", "#4f5fe6"] },
   };
   const themePicker = h("fieldset", { class: "design-themes", id: "design-themes" }, h("legend", { text: t("design.theme") }),
     ["", ...(b.themes || [])].filter((id) => themes[id]).map((id) => {

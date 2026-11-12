@@ -1580,6 +1580,8 @@ export default {
   "design.theme.comicNote": "Ink outlines, hard shadows, pop colours. Light only.",
   "design.theme.sketch": "Sketch",
   "design.theme.sketchNote": "Pencil on ruled paper, hand-drawn boxes. Light only.",
+  "design.theme.capacity": "Capacity",
+  "design.theme.capacityNote": "A quiet place for notes: white paper, a soft grey side, large titles and a blue-violet accent. Light and dark.",
   "design.logo": "Logo",
   "design.logoDark": "Logo for dark mode",
   "design.background": "Background image",

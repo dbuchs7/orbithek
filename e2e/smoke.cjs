@@ -3773,6 +3773,11 @@ function gitSource() {
     await page.waitForSelector("#design-dark:has-text('The dark scheme is off')");
     check((await (await page.request.get(base + "/branding.css")).text()).includes("/* The theme comic"), "the theme is in the design's stylesheet");
     check((await (await page.request.get(base + "/branding.json")).json()).theme === "comic", "the theme is kept");
+    // The Capacity theme has a light and a dark scheme (ADR-0211).
+    await page.click("#design-themes label.theme-capacity");
+    await page.click("#design button[type=submit]");
+    await page.waitForSelector("#design-dark:has-text('stays on')");
+    check((await (await page.request.get(base + "/branding.css")).text()).includes("/* The theme capacity"), "the Capacity theme is in the design's stylesheet");
     await page.click("#design-themes label.theme-none");
     await page.click("#design button[type=submit]");
     await page.waitForSelector("#design-dark:has-text('stays on')");

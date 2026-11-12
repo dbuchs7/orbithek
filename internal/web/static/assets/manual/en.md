@@ -429,7 +429,7 @@ Administrators find under **Administration**:
 - **Item types**: create types from the ready-made templates or as JSON, with fields, workflow, Word template and start text;
 - **Backup** (also on a schedule to a directory, WebDAV, S3, FTPS or SFTP) and **Storage**;
 - **Calendars of other services**, **Album: older versions**, **Connectors** and **Process engines**;
-- **Appearance (corporate design)**: logo, colours, background, fonts;
+- **Appearance (corporate design)**: logo, colours, background, fonts, and a ready-made theme, among them *Capacity*, a quiet look for notes in light and dark;
 - **Word templates**, **Data protection regulations**, **Import** and the **Audit trail**.
 
 Room administrators manage members and roles of their room under the room's **Settings**.

@@ -429,7 +429,7 @@ Die Administration findet unter **Administration**:
 - **Typen**: Typen aus den Vorlagen oder als JSON erstellen, mit Feldern, Workflow, Word-Vorlage und Starttext;
 - **Backup** (auch zeitgesteuert in ein Verzeichnis, per WebDAV, S3, FTPS oder SFTP) und **Speicher**;
 - **Kalender anderer Dienste**, **Album: ältere Versionen**, **Konnektoren** und **Prozess-Engines**;
-- **Erscheinungsbild (Corporate Design)**: Logo, Farben, Hintergrund, Schriften;
+- **Erscheinungsbild (Corporate Design)**: Logo, Farben, Hintergrund, Schriften und ein fertiges Theme, darunter *Capacity*, ein ruhiges Erscheinungsbild für Notizen in Hell und Dunkel;
 - **Word-Vorlagen**, **Datenschutz-Regelwerke**, **Import** und das **Audit-Protokoll**.
 
 Die Raumadministration verwaltet Mitglieder und Rollen ihres Raums unter den **Einstellungen** des Raums.

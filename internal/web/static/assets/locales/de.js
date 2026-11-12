@@ -1578,6 +1578,8 @@ export default {
   "design.theme.comicNote": "Tuschekonturen, harte Schatten, Pop-Farben. Nur hell.",
   "design.theme.sketch": "Handskizze",
   "design.theme.sketchNote": "Bleistift auf liniertem Papier, handgezeichnete Rahmen. Nur hell.",
+  "design.theme.capacity": "Capacity",
+  "design.theme.capacityNote": "Ein ruhiger Ort für Notizen: weisses Papier, eine sanft graue Seite, grosse Titel und ein blauvioletter Akzent. Hell und dunkel.",
   "design.logo": "Logo",
   "design.logoDark": "Logo für den dunklen Modus",
   "design.background": "Hintergrundbild",
