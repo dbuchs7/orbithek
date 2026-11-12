@@ -1,9 +1,9 @@
 # ADR-0214: Tables with formatted cells, sized columns and rows, and coloured cells
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-12
-- **Deciders:** Project initiators (request of 2026-11-12 that tables can be edited further: cells and borders coloured, columns and rows made wider or narrower by drag and drop, text that overflows a cell wrapped, and text in cells formatted)
+- **Deciders:** Project initiators (request of 2026-11-12 that tables can be edited further: cells and borders coloured, columns and rows made wider or narrower by drag and drop, text that overflows a cell wrapped, and text in cells formatted; accepted 2026-11-12)
 - **Open question:** whether a table needs merged cells, a header column or several header rows; whether colours beyond the eight named tones are wanted; whether the Markdown conversions (ADR-0133, ADR-0138) and the import (ADR-0023) should keep the formatting of cells they read; whether a dragged column should take its width from its neighbour instead of widening the table
 - **Question checked:** 2026-11
 

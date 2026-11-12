@@ -226,5 +226,5 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0211](0211-importing-a-folder-of-markdown-notes-and-exported-note-workspaces.md) | Importing a folder of Markdown notes and exported note workspaces | Proposed | Partial |
 | [0212](0212-highlights-from-a-reading-service-as-a-connector.md) | Highlights from a reading service as a connector | Proposed | Partial |
 | [0213](0213-the-capacity-theme-a-quiet-look-for-notes.md) | The Capacity theme, a quiet look for notes in light and dark | Proposed | Partial |
-| [0214](0214-tables-with-formatted-cells-sizes-and-colours.md) | Tables with formatted cells, sized columns and rows, and coloured cells | Proposed | Partial |
+| [0214](0214-tables-with-formatted-cells-sizes-and-colours.md) | Tables with formatted cells, sized columns and rows, and coloured cells | Accepted | Landed |
 | [0215](0215-pictures-on-the-starmap-of-all-rooms.md) | Pictures and drawings on the starmap of all rooms, joined to the items that use them | Proposed | Partial |
