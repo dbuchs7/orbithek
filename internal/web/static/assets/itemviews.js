@@ -230,7 +230,7 @@ export function moveWithin(ids, moved, before) {
 // editableColumn says whether a cell of a column is changed in place: the
 // title, a field of a kind the item page edits, and the state, by its
 // workflow's transitions (D3).
-export const EDIT_KINDS = ["text", "number", "date", "datetime", "enum", "user", "bool", "url"];
+export const EDIT_KINDS = ["text", "number", "date", "datetime", "enum", "user", "bool", "url", "item", "multi", "rating"];
 export function editableColumn(column, type) {
   if (column === "title") return true;
   if (column === "state") return Boolean(type?.workflow);

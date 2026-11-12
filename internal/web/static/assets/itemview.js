@@ -17,6 +17,7 @@
 // whether one may edit in a room, formDialog asks in a modal, and route
 // shows the address again.
 import { h } from "./dom.js";
+import { fieldView, isRich } from "./fields.js";
 import { t, language } from "./i18n.js";
 import { get, post, put } from "./api.js";
 import { BUILTINS, FIELD, LAYOUTS, address, columnsOf, coverOf, editableColumn, fieldOf, fieldText, fromBlock, groupChoices, groupItems, listURL,
@@ -60,6 +61,10 @@ function valueText(it, column, type, helpers) {
 // a view draws a field, to be pointed at a shared renderer of fields.
 export function renderField(field, value, helpers) {
   const kind = field?.kind || "text";
+  // References, choices of several values and ratings are drawn as the
+  // item page draws them (ADR-0200); a file field needs the item's files,
+  // which a listing does not carry, and stays text.
+  if (isRich(field) && kind !== "file") return h("span", { class: "iv-value", "data-kind": kind }, fieldView(field, value));
   const text = fieldText(field, value, { person: helpers.person, yes: t("views.yes"), no: t("views.no"), moment });
   if (kind === "url" && typeof value === "string" && /^https?:\/\//.test(value)) {
     return h("a", { class: "iv-value", "data-kind": kind, href: value, rel: "noopener noreferrer", target: "_blank", text });
