@@ -619,3 +619,48 @@ func TestRecordingsPlayFromTheFileList(t *testing.T) {
 	// A recording is no video a text plays.
 	w.bert.expect("PUT", "/api/items/"+key+"/body", `{"blocks":[{"kind":"video","ref":"`+string(ids["Recording 2026-11-12 08-14.webm"])+`"}]}`, http.StatusBadRequest)
 }
+
+// TestSoundPlaysInTheText: a block of the kind audio plays a sound file of
+// its item, refuses a video or a picture and a file before the item exists,
+// and a copy of the item plays its own copy of the sound
+// (ADR-0224).
+func TestSoundPlaysInTheText(t *testing.T) {
+	w := newWorld(t)
+	it := w.bert.expect("POST", "/api/items", `{"space":"PLAT","type":"task","title":"Call","properties":{"priority":"low"}}`, http.StatusCreated)
+	key := field(it, "item", "key").(string)
+	base := "/api/items/" + key + "/attachments"
+	upload := func(name string, data []byte) item.ID {
+		var up struct{ Attachment attachmentJSON }
+		rec := w.bert.upload(base+"?name="+name, "application/octet-stream", data)
+		_ = json.Unmarshal(rec.Body.Bytes(), &up)
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("upload %s: %d %s", name, rec.Code, rec.Body)
+		}
+		return up.Attachment.ID
+	}
+	sound := upload("memo.ogg", append([]byte("OggS\x00\x02"+strings.Repeat("\x00", 20)+"\x01\x13OpusHead"), bytes.Repeat([]byte{3}, 400)...))
+	clip := upload("clip.mp4", append([]byte("\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00mp42isom"), bytes.Repeat([]byte{9}, 400)...))
+	still := upload("still.png", append([]byte("\x89PNG\r\n\x1a\n"), bytes.Repeat([]byte{7}, 100)...))
+	body := func(ref item.ID, extra string) string {
+		return `{"blocks":[{"kind":"audio","ref":"` + string(ref) + `","text":"The call"` + extra + `}]}`
+	}
+	for _, ref := range []item.ID{clip, still} {
+		w.bert.expect("PUT", "/api/items/"+key+"/body", body(ref, ""), http.StatusBadRequest)
+	}
+	// A sound has neither a width nor an alignment, and a plain caption.
+	w.bert.expect("PUT", "/api/items/"+key+"/body", body(sound, `,"width":50`), http.StatusBadRequest)
+	w.bert.expect("PUT", "/api/items/"+key+"/body", body(sound, `,"align":"center"`), http.StatusBadRequest)
+	w.bert.expect("PUT", "/api/items/"+key+"/body", body(sound, `,"marks":[{"type":"bold","start":0,"end":3}]`), http.StatusBadRequest)
+	got := w.bert.expect("PUT", "/api/items/"+key+"/body", body(sound, ""), http.StatusOK)
+	if b := field(got, "item", "body").([]any)[0].(map[string]any); b["kind"] != "audio" || b["ref"] != string(sound) || b["text"] != "The call" {
+		t.Fatalf("the sound block %v", b)
+	}
+	// A new item has no files yet.
+	w.bert.expect("POST", "/api/items", `{"space":"PLAT","type":"task","title":"x","properties":{"priority":"low"},"body":`+body(sound, "")+`}`, http.StatusBadRequest)
+	// A copy plays its own file.
+	copied := field(w.bert.expect("POST", "/api/items/"+key+"/copy", `{"space":"PLAT","title":"Call (copy)"}`, http.StatusCreated), "item", "key").(string)
+	cb := field(w.bert.expect("GET", "/api/items/"+copied, "", http.StatusOK), "item", "body").([]any)[0].(map[string]any)
+	if cb["kind"] != "audio" || cb["ref"] == string(sound) || cb["ref"] == "" {
+		t.Fatalf("the copy's sound block %v", cb)
+	}
+}

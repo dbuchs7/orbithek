@@ -33,6 +33,7 @@ ul.tasks { list-style: none; padding-left: 1em; }
 .align-center { text-align: center; } .align-right { text-align: right; } .align-justify { text-align: justify; }
 figure { margin: .8em 0; text-align: center; break-inside: avoid; }
 figure img { max-width: 100%; height: auto; }
+figure.audio audio { width: 100%; max-width: 32rem; }
 figure.align-left { text-align: left; } figure.align-right { text-align: right; }
 .w-10 img { width: 10%; } .w-20 img { width: 20%; } .w-30 img { width: 30%; } .w-40 img { width: 40%; } .w-50 img { width: 50%; }
 .w-60 img { width: 60%; } .w-70 img { width: 70%; } .w-80 img { width: 80%; } .w-90 img { width: 90%; } .w-100 img { width: 100%; }
