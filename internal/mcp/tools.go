@@ -55,6 +55,7 @@ const blockFormat = "A body is a list of blocks, each an object with kind and te
 	"cells: a list of {\"row\": 0, \"col\": 1, \"fill\": a tone, \"border\": a tone} in the order of rows and columns, counted from 0 with the header row, " +
 	"each tone one of blue, green, yellow, orange, red, purple, teal, gray; text that does not fit wraps), toc, children and divider (no text: a table of contents, a list of child pages, a horizontal rule), embed (ref: an item ID), " +
 	"image (ref: an attachment ID of the item, text the caption, width 10-100 percent of the column or absent for its own size, align left or right to let text flow beside it, or center), " +
+	"audio (ref: an attachment ID of the item holding sound a browser plays, such as a recording: WebM, Ogg, MP4, MP3 or WAV; text the caption), " +
 	"bpmn (ref: an attachment ID of the item holding a BPMN 2.0 model, text the caption), process (engine: a process engine's ID, process: a BPMN process ID, text the caption; shows the process's newest version), " +
 	"form (engine: a process engine's ID, form: the form's ID there, process: the BPMN ID of the process whose steps name it, or absent, text the caption; shows the form as the engine keeps it), " +
 	"decision (engine: a process engine's ID, decision: the decision's ID there, text the caption; shows the decision's newest deployed version), " +
