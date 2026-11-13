@@ -11,7 +11,7 @@
 //
 // The decisions that need no browser are in present-parts.js, tested in
 // Node (jstest/present.test.mjs).
-import { h } from "./dom.js";
+import { h, mount } from "./dom.js";
 import { t } from "./i18n.js";
 import { get, put } from "./api.js";
 import { moveWithin, orderDrop } from "./photoparts.js";
@@ -347,7 +347,7 @@ export async function presenterView({ params, show, onLeave, done }) {
     const s = state.slides[state.index];
     if (editing) return;
     const text = s.notes ? h("div", { class: "present-notes-text", text: s.notes }) : h("p", { class: "muted", text: t("present.noNotes") });
-    notesBox.replaceChildren(text, s.editable ? h("button", { type: "button", class: "link", id: "present-notes-edit",
+    mount(notesBox, text, s.editable ? h("button", { type: "button", class: "link", id: "present-notes-edit",
       text: s.notes ? t("present.notesEdit") : t("present.notesAdd"), onclick: editNotes }) : null);
   };
   const editNotes = () => {
