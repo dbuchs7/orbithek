@@ -53,6 +53,10 @@ videos are not exported as pictures (ADR-0189).
 Whoever may edit an item records sound into its files from the file list (`assets/recorder.js`, `assets/recorderparts.js`: `MediaRecorder`, Opus in WebM or Ogg, AAC in MP4, at most 30 minutes, nothing kept in the browser);
 a file of sound alone is told by its tracks (`photo.AudioType`: WebM tracks, MP4 handlers, Ogg's first packet), so it is no video and not in the album, and files of `item.AudioTypes` are sent inline in parts and played in the file list;
 nothing is transcribed (proposed, ADR-0219).
+A sound plays in a text as a block of the kind `audio` (a sound file of the item with a plain caption, `item.AudioTypes` only, codec version 61);
+the editor's *Insert…* offers a sound file and, where the browser can record, a dialog that records at once (`audioView`, `recorderControl` with `prefix` and `autostart`), so the daily view records into today's note too;
+removing the last block that plays a file asks whether to delete the file too, a removal kept out of the undo history (`playsElsewhere`, `files.remove`);
+Word names it, PDF plays it, Markdown links it (proposed, ADR-0224).
 A video is a slide that plays from the presentation's state (`playing`), with sound in the presentation window only and neither zoom nor laser;
 Google Photos (`=dv`, poster `=w1600-h1600`) and shared iCloud albums (largest video derivative, poster frame as poster) bring videos within `VideoBytes` (ADR-0192).
 A collection is deleted from the album alone, into the trash (ADR-0193).
@@ -175,7 +179,7 @@ The starmap of all rooms (`#/starmap/*`, `GET /api/starmap`, `Session.StarmapAll
 a label (`?label=`) narrows it to the items that carry it (ADR-0191).
 Within the budget the pictures and drawings of its items fill what the items leave, each joined to its item and a copy to its original when that item is on the map: first those a text shows, each copy's original after it, then the shared labels, then the other pictures;
 in bubbles there are none (`allStarPictures`, ADR-0215).
-A picture's own labels (ADR-0090), those of any version it holds that the reader reads, count on both maps as an item's: a label star joins the pictures that carry it, a star with fewer than two carriers left on the map is dropped (`dropThinLabels`), and on the map of all rooms a label also brings in the pictures that carry it with the items that hold them, and the UI suggests the labels of items and pictures (`mergeLabelCounts`, proposed, ADR-0224).
+A picture's own labels (ADR-0090), those of any version it holds that the reader reads, count on both maps as an item's: a label star joins the pictures that carry it, a star with fewer than two carriers left on the map is dropped (`dropThinLabels`), and on the map of all rooms a label also brings in the pictures that carry it with the items that hold them, and the UI suggests the labels of items and pictures (`mergeLabelCounts`, proposed, ADR-draft-album-labels-on-the-starmap).
 The map moves under a live force simulation that cools to rest (Barnes–Hut above a few dozen nodes, settled at once for reduced motion);
 a dragged node pulls its neighbours, pointing lights a neighbourhood, captions fade with the zoom, and a double-click separates a node with its neighbourhood at a depth of one to three, with a drill path in the address that Escape steps back (`assets/starmap-sim.js`, ADR-0158).
 From a node's panel, an impact view shows what depends on an item or picture, or what it depends on — children on their parent, a relation's source on its target, mentions and embeds, pictures on their item, copies on their original, never shared labels — walked by the server across rooms, breadth first to a depth of one to five or all, within the budget `ImpactNodes`, never through an unreadable item;
