@@ -2123,7 +2123,7 @@ export default {
   "starmap.readLess": "Less",
   "starmap.loading": "Loading…",
   "starmap.unavailable": "Not available: it may have been removed, or you may no longer read it.",
-  "starmap.labelItems": {"one": "{n} item carries this label", "other": "{n} items carry this label"},
+  "starmap.labelItems": {"one": "{n} item or picture carries this label", "other": "{n} items and pictures carry this label"},
   "starmap.intro": "The items and pictures of a room in their context: the tree, relations and mentions, pictures and where they came from, and the labels several items share.",
   "starmap.space": "Room",
   "starmap.search": "Find on the map",

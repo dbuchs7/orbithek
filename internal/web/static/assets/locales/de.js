@@ -2121,7 +2121,7 @@ export default {
   "starmap.readLess": "Weniger",
   "starmap.loading": "Wird geladen …",
   "starmap.unavailable": "Nicht verfügbar: Es wurde vielleicht entfernt, oder Sie dürfen es nicht mehr lesen.",
-  "starmap.labelItems": {"one": "{n} Element trägt dieses Label", "other": "{n} Elemente tragen dieses Label"},
+  "starmap.labelItems": {"one": "{n} Element oder Bild trägt dieses Label", "other": "{n} Elemente und Bilder tragen dieses Label"},
   "starmap.intro": "Die Einträge und Bilder eines Raums in ihrem Zusammenhang: der Baum, Beziehungen und Erwähnungen, Bilder und ihre Herkunft und die Labels, die mehrere Einträge teilen.",
   "starmap.space": "Raum",
   "starmap.search": "Auf der Karte suchen",

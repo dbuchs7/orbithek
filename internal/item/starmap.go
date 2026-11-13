@@ -46,7 +46,8 @@ type StarNode struct {
 	// Outside marks a node of another space than the one shown, there
 	// because it is connected to a node of that space.
 	Outside bool
-	// Labels are an item's labels.
+	// Labels are an item's labels, or a picture's own labels (ADR-0090):
+	// those of every version of it the principal reads.
 	Labels []string
 	// Item is the ID of a picture's item.
 	Item ID
@@ -88,8 +89,9 @@ func pictureNodeID(item, attachment ID) string {
 // Starmap returns the graph of a space (ADR-0157): its readable live
 // items with their containment, their relations, their pictures and the
 // copies' originals, and the labels that at least two of the map's items
-// carry. Readable items of other spaces related to an item of the space
-// are on the map too, marked Outside. Nothing on it names an item the
+// and pictures carry, a picture's being its own (ADR-0090). Readable
+// items of other spaces related to an item of the space are on the map
+// too, marked Outside. Nothing on it names an item the
 // principal may not read, not even as a count (D10). Beyond maxNodes the
 // items of the space are kept first, in tree order, then the outside
 // nodes, the pictures and the labels, and Truncated is set. The result is
@@ -210,7 +212,9 @@ func (x *Session) Starmap(space string, maxNodes int) (Starmap, error) {
 		if !b.has(string(o.owner.ID)) || !slices.ContainsFunc(o.copies, b.has) {
 			continue
 		}
-		b.add(StarNode{ID: id, Kind: StarPicture, Space: o.owner.Space, Item: o.owner.ID, Name: o.top.Name, Outside: true})
+		n := x.pictureNodeFor(o.owner, o.top)
+		n.Outside = true
+		b.add(n)
 		picEdges = append(picEdges, StarEdge{From: id, To: string(o.owner.ID), Kind: StarOwner})
 	}
 	for _, e := range relEdges {
@@ -221,11 +225,12 @@ func (x *Session) Starmap(space string, maxNodes int) (Starmap, error) {
 	}
 	b.dropLoose()
 
-	// 4. The labels that at least two items of the map carry, the most
-	// carried first. A picture's labels are the album's (ADR-0090).
+	// 4. The labels that at least two items or pictures of the map carry,
+	// the most carried first. A picture's labels are its own, the album's
+	// (ADR-0090), not its item's.
 	carriers := map[string][]string{}
 	for _, n := range b.nodes {
-		if n.Kind == StarItem {
+		if n.Kind == StarItem || n.Kind == StarPicture {
 			for _, l := range n.Labels {
 				carriers[l] = append(carriers[l], n.ID)
 			}
@@ -291,6 +296,9 @@ type starPicture struct {
 	used bool
 }
 
+// carries reports whether a picture carries a label of its own.
+func (p starPicture) carries(label string) bool { return slices.Contains(p.node.Labels, label) }
+
 // ownerEdge joins a picture to its item.
 func (p starPicture) ownerEdge() StarEdge {
 	return StarEdge{From: p.node.ID, To: string(p.node.Item), Kind: StarOwner}
@@ -308,8 +316,9 @@ func (p starPicture) copyEdge() (StarEdge, bool) {
 // starPictures are the picture nodes of the readable live items of a
 // space, or of every space for "": the newest version of each file, as
 // the album shows it (ADR-0054, ADR-0103), newest first, each with the
-// original of a copy when the principal may read it, and whether the
-// text of its item shows one of its versions.
+// original of a copy when the principal may read it, whether the text of
+// its item shows one of its versions, and the labels of its own that any
+// of its versions carries (ADR-0090).
 func (x *Session) starPictures(space string) []starPicture {
 	type stackKey struct{ item, first ID }
 	at := map[stackKey]int{}
@@ -317,14 +326,24 @@ func (x *Session) starPictures(space string) []starPicture {
 	for _, p := range x.Pictures(space, IsPicture) {
 		k := stackKey{p.Item.ID, p.First}
 		if i, ok := at[k]; ok {
-			out[i].used = out[i].used || p.Used // an older version of a stack listed already
+			// An older version of a stack listed already.
+			out[i].used = out[i].used || p.Used
+			out[i].node.Labels = append(out[i].node.Labels, p.Attachment.Labels...)
 			continue
 		}
 		at[k] = len(out)
 		it := x.s.items[p.Item.ID]
-		sp := starPicture{node: StarNode{ID: pictureNodeID(it.ID, p.Attachment.ID), Kind: StarPicture, Space: it.Space, Item: it.ID, Name: p.Attachment.Name}, used: p.Used}
+		sp := starPicture{node: StarNode{ID: pictureNodeID(it.ID, p.Attachment.ID), Kind: StarPicture, Space: it.Space, Item: it.ID, Name: p.Attachment.Name,
+			Labels: slices.Clone(p.Attachment.Labels)}, used: p.Used}
 		sp.src, sp.srcTop = x.copyOrigin(it, p.First)
 		out = append(out, sp)
+	}
+	for i := range out {
+		slices.Sort(out[i].node.Labels)
+		out[i].node.Labels = slices.Compact(out[i].node.Labels)
+		if len(out[i].node.Labels) == 0 {
+			out[i].node.Labels = nil
+		}
 	}
 	return out
 }
@@ -397,6 +416,26 @@ func (b *starBuilder) edge(e StarEdge) {
 	}
 }
 
+// dropThinLabels removes the labels left with fewer than two carriers on
+// the map, and their edges: the budget left the others out.
+func (b *starBuilder) dropThinLabels() {
+	carried := map[string]int{}
+	for _, e := range b.edges {
+		if e.Kind == StarLabelled {
+			carried[e.From]++
+		}
+	}
+	thin := func(id string) bool { return b.kept[id] && strings.HasPrefix(id, "label:") && carried[id] < 2 }
+	b.edges = slices.DeleteFunc(b.edges, func(e StarEdge) bool { return thin(e.From) })
+	b.nodes = slices.DeleteFunc(b.nodes, func(n StarNode) bool {
+		if n.Kind == StarLabel && carried[n.ID] < 2 {
+			delete(b.kept, n.ID)
+			return true
+		}
+		return false
+	})
+}
+
 // dropLoose removes the outside nodes left without an edge: the item of
 // a copy's original whose copy the budget left out is on the map only by
 // it. Their edges are gone already, so no other node loses one.
@@ -413,4 +452,23 @@ func (b *starBuilder) dropLoose() {
 		}
 		return false
 	})
+}
+
+// pictureNodeFor is the node of the newest version of a file of an item,
+// with the labels of its own that the versions the principal reads carry
+// (ADR-0090).
+func (x *Session) pictureNodeFor(it *Item, top *Attachment) StarNode {
+	first := firstVersion(it, *top)
+	var labels []string
+	for _, a := range it.Attachments {
+		if !a.Deleted && firstVersion(it, a) == first && x.s.readsFile(x.who, it, a.ID) {
+			labels = append(labels, a.Labels...)
+		}
+	}
+	slices.Sort(labels)
+	labels = slices.Compact(labels)
+	if len(labels) == 0 {
+		labels = nil
+	}
+	return StarNode{ID: pictureNodeID(it.ID, top.ID), Kind: StarPicture, Space: it.Space, Item: it.ID, Name: top.Name, Labels: labels}
 }
