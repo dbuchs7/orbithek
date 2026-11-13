@@ -8,7 +8,7 @@
 //
 // The decisions that need no browser are in faceparts.js, tested in Node
 // (jstest/faces.test.mjs).
-import { h } from "./dom.js";
+import { h, mount } from "./dom.js";
 import { t } from "./i18n.js";
 import { get, put } from "./api.js";
 import { boxOf, mergeFaces, facesBody, coverCut, nameFaces, needsSearch } from "./faceparts.js";
@@ -201,7 +201,7 @@ export function facesPanel({ p, image, layer, still, changed = () => {} }) {
           try { await save(faces.filter((_, j) => j !== i)); await suggest(); render(); } catch (err) { say(err.message, "error"); }
         } }));
     }).filter(Boolean);
-    box.replaceChildren(
+    mount(box,
       h("h3", { class: "photo-faces-title", text: t("faces.title") }),
       rows.length ? h("ul", { class: "photo-face-list" }, ...rows) : h("p", { class: "muted", text: p.attachment.facesSeen ? t("faces.none") : t("faces.notSearched") }),
       p.editable ? h("div", { class: "actions-row" },

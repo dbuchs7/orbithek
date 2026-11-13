@@ -34,6 +34,15 @@ export function kindOf(node) {
 // groupRadius is how big a group of the starmap of all rooms is drawn
 // (ADR-0191): its area grows with the number of its items, from an
 // item's size up to a bound.
+// mergeLabelCounts joins lists of {label, count}, the labels of items and
+// of pictures (ADR-0090), into one list counting each label once, the most
+// carried first, then by name.
+export function mergeLabelCounts(...lists) {
+  const count = new Map();
+  for (const list of lists) for (const { label, count: n } of list) count.set(label, (count.get(label) || 0) + n);
+  return [...count].map(([label, n]) => ({ label, count: n })).sort((a, b) => b.count - a.count || (a.label < b.label ? -1 : a.label > b.label ? 1 : 0));
+}
+
 export function groupRadius(count) {
   return Math.min(64, 11 + 4 * Math.sqrt(Math.max(0, Number(count) || 0)));
 }

@@ -229,7 +229,11 @@ func (h itemHandlers) withShare(id item.ID, a attachmentJSON) attachmentJSON {
 		return a
 	}
 	f := *a.Share
-	if sh, ok := h.d.DB.Site.Share(f.Share); ok && sh.Link != "" {
+	// A share that signs links opens its originals through the wiki,
+	// signed when followed; another through its link template.
+	if sh, ok := h.d.DB.Site.Share(f.Share); ok && h.d.Shares.signsLinks(sh) {
+		f.Link = "/api/items/" + string(id) + "/attachments/" + string(a.ID) + "/original"
+	} else if ok && sh.Link != "" {
 		f.Link = share.Link(sh.Link, f.Path)
 	}
 	f.Preview = h.d.DB.HasPreview(id, a.ID)

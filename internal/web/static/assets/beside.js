@@ -11,7 +11,7 @@
 // editor as a reader sees it; Edit joins the item's live session
 // (ADR-0010), with the same writing aids as on its page.
 import { get } from "./api.js";
-import { h } from "./dom.js";
+import { h, mount } from "./dom.js";
 import { t } from "./i18n.js";
 import { createEditor } from "./editor.js";
 import { liveBody } from "./live.js";
@@ -113,7 +113,7 @@ export function besidePane(params, tools) {
         draw(!editing).catch((err) => body.replaceChildren(h("p", { class: "error", text: err.message })));
       } }) : null;
     const props = type.fields.filter((f) => item.properties[f.name] !== undefined && item.properties[f.name] !== null);
-    body.replaceChildren(
+    mount(body,
       h("h2", { class: "beside-title" }, h("a", { href, text: item.title || item.key })),
       h("p", { class: "muted beside-meta" }, `${item.key} · ${item.type}`, item.state ? " · " + item.state : "",
         " · ", h("a", { href, id: "beside-open", text: t("beside.openFull") })),

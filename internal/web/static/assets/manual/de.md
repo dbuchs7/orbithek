@@ -83,7 +83,7 @@ Mit **Bearbeiten** wird der Text bearbeitet, mit **Fertig** abgeschlossen. Ände
 - **Erwähnen** (@): eine Person oder einen Eintrag;
 - **Rückgängig** und **Wiederholen**.
 
-Eingefügtes Markdown wird zu formatiertem Text. Ctrl+Shift+V fügt stattdessen reinen Text ein.
+Eingefügtes Markdown wird zu formatiertem Text; eine Tabelle behält die Formatierung ihrer Zellen. Ctrl+Shift+V fügt stattdessen reinen Text ein.
 
 Hat kein Eintrag den Titel, den man nach @ oder als Adresse eines Links tippt, bietet die Liste *«Titel» erstellen als …* an. Der Dialog **Erstellen und erwähnen** fragt nach dem Typ (dem Seitentyp des Raums, wenn man keinen anderen wählt) und dem Raum (dem Raum des bearbeiteten Texts, wenn man keinen anderen wählt); eine Seite im selben Raum kommt unter die bearbeitete Seite und ist wie diese geschützt; aus einer Tagesnotiz kommt sie zuoberst in den Raum. Der neue Eintrag wird dort erwähnt, wo man getippt hat. Typen mit Pflichtfeldern erstellt man stattdessen mit **+ Neu**. Darf man in einem Raum nichts erstellen oder ist der Speicher fast voll, sagt es der Dialog, und es wird nichts erstellt.
 
@@ -93,6 +93,7 @@ Das Menü **Einfügen…** fügt Blöcke nach dem Cursor ein:
 
 - **Tabelle**, **Trennlinie**, **Inhaltsverzeichnis**, **Bildverzeichnis**, **Tabellenverzeichnis** und **Unterseiten**;
 - **Bild**, **Video**, **Zeichnung**, ein Bild **Aus dem Album** oder ein **Kopiertes Bild**;
+- **Tondatei** und **Ton aufnehmen**: ein Ton, der im Text abgespielt wird (siehe unten);
 - **Eintrag einbetten…**: zeigt einen anderen Eintrag vollständig im Text;
 - **Neue Aufgabe…** (wird unter der Seite angelegt und als Link oder vollständig gezeigt) und **Aufgabenliste…** (alle Aufgaben mit einem Label oder das Ergebnis einer Abfrage);
 - **Ansicht von Einträgen…**: die Einträge eines Typs als Tabelle, Galerie oder Liste, gruppiert nach einem Feld (siehe *Ansichten von Einträgen*);
@@ -100,6 +101,8 @@ Das Menü **Einfügen…** fügt Blöcke nach dem Cursor ein:
 - BPMN-Diagramme sowie Prozesse, Formulare, Entscheidungen, Startformulare und Architekturskizzen einer Prozess-Engine (siehe *Prozess-Engines*).
 
 Bilder lassen sich links oder rechts mit Text daneben oder zentriert platzieren und durch Ziehen in der Grösse ändern; eine Bildunterschrift nummeriert sie im Bildverzeichnis.
+
+Ein Ton wird im Text mit dem Player des Browsers und einer Beschriftung abgespielt, etwa eine Aufnahme, die man in eine Seite, einen Task oder die Tagesnotiz unter **Heute** spricht. **Tondatei** lädt eine Datei hoch (WebM, Ogg, M4A, MP3 oder WAV); **Ton aufnehmen** öffnet ein Fenster, das sofort aufnimmt, **Beenden und anhängen** setzt die Aufnahme an der Stelle des Cursors in den Text, **Abbrechen** verwirft sie. Die Aufnahme ist zugleich eine Datei des Eintrags. **Entfernen** nimmt den Ton aus dem Text. Spielt ihn keine andere Stelle im Text ab, fragt der Editor, ob auch die Datei gelöscht werden soll, damit keine Aufnahme unbemerkt zurückbleibt: **Entfernen und Datei löschen** vernichtet sie und lässt sich nicht rückgängig machen, **Entfernen, Datei behalten** lässt sie bei den Dateien des Eintrags, **Abbrechen** lässt den Ton im Text. Ein Word-Dokument nennt den Ton, eine als PDF gedruckte Seite spielt ihn ab, und Markdown verlinkt ihn mit seinem Namen. Nichts wird transkribiert.
 
 ### Tabellen
 
@@ -379,7 +382,9 @@ Man benennt es nicht um, verschiebt oder löscht es nicht und fügt einem solche
 Eine auf dem Share verschobene Datei behält, was auf ihr gesetzt wurde, solange ihr Inhalt gleich bleibt.
 Eine vom Share verschwundene Datei verschwindet aus dem Album; kommt sie innert 30 Tagen zurück, kehrt sie mit ihren Labels und Namen zurück.
 Wer ein solches Bild kopiert oder exportiert, erhält seine Vorschau.
-Ein Bild in einem Format, von dem der Server kein Bild zeigt, etwa HEIC eines Telefons oder RAW einer Kamera, hat statt einer Vorschau ein Symbol; es bietet nur **Original öffnen** an, ebenso ein Video eines Shares.
+Ein RAW einer Kamera zeigt als Vorschau das Bild, das die Kamera darin eingebettet hat, ein WebP sein Bild.
+Ein Bild in einem Format, von dem der Server kein Bild zeigt, etwa HEIC eines Telefons, hat statt einer Vorschau ein Symbol; es bietet nur **Original öffnen** an, ebenso ein Video eines Shares.
+Erlaubt ein Administrator einem S3-Share signierte Links, öffnet **Original öffnen** das Original über einen Link, den der Server für 15 Minuten signiert, unabhängig von den Berechtigungen des Shares.
 
 ### Einen Ordner verschieben
 
@@ -473,7 +478,7 @@ Solange Personen an einem Whiteboard arbeiten, lässt sich die Zeichnung nicht a
 
 Die **Sternkarte** zeichnet die Einträge, Bilder und gemeinsamen Labels eines Raums als Karte: Kreise für Einträge (nach Typ eingefärbt), Quadrate für Bilder, Rauten für Labels, gestrichelte Ränder für Einträge anderer Räume. Linien zeigen Seitenbaum, Beziehungen, Erwähnungen, Einbettungen und Kopien. Ziehen verschiebt die Karte, ein gezogener Knoten nimmt seine Nachbarn mit; das Mausrad zoomt. Wählt man einen Knoten, erscheinen seine Angaben. Ein Doppelklick auf einen Knoten (oder Umschalt+Enter) zeigt nur ihn mit seiner Nachbarschaft bis zu einer gewählten **Tiefe** (**Vertiefen**); Escape geht einen Schritt zurück.
 
-Mit **Alle Räume** in der Raumauswahl zeigt die Karte die Einträge aller Räume, die man lesen darf, mit Baum, Beziehungen und gemeinsamen Labels. Auch ihre Fotos und Zeichnungen stehen darauf, jedes mit der Seite oder Aufgabe verbunden, die es enthält, eine Kopie mit ihrem Original; zuerst kommen jene, die ein Text zeigt, damit ein grosses Album sie nicht verdrängt. Sind es mehr, als eine Karte zeigt, steht jede Blase für die Einträge eines Typs in einem Raum, so gross wie ihre Anzahl, und Linien zählen die Verbindungen zwischen ihnen; **Karte des Raums öffnen** führt von einer Blase zur Karte ihres Raums. **Label in allen Räumen zeigen** grenzt die Karte auf die Einträge ein, die ein Label tragen, in allen Räumen; vorgeschlagen werden die verwendeten Labels.
+Mit **Alle Räume** in der Raumauswahl zeigt die Karte die Einträge aller Räume, die man lesen darf, mit Baum, Beziehungen und gemeinsamen Labels. Auch ihre Fotos und Zeichnungen stehen darauf, jedes mit der Seite oder Aufgabe verbunden, die es enthält, eine Kopie mit ihrem Original; zuerst kommen jene, die ein Text zeigt, damit ein grosses Album sie nicht verdrängt. Sind es mehr, als eine Karte zeigt, steht jede Blase für die Einträge eines Typs in einem Raum, so gross wie ihre Anzahl, und Linien zählen die Verbindungen zwischen ihnen; **Karte des Raums öffnen** führt von einer Blase zur Karte ihres Raums. **Label in allen Räumen zeigen** grenzt die Karte auf die Einträge ein, die ein Label tragen, in allen Räumen, und auf die Bilder, die es als Album-Label tragen, jedes mit der Seite oder Aufgabe, die es enthält; vorgeschlagen werden die verwendeten Labels von Einträgen und Bildern. Auf beiden Karten verbindet die Raute eines Labels auch die Bilder, die es als Album-Label tragen.
 
 ### Auswirkungen
 
@@ -560,7 +565,8 @@ Die Administration findet unter **Administration**:
 - **Backup** (auch zeitgesteuert in ein Verzeichnis, per WebDAV, S3, FTPS oder SFTP) und **Speicher**;
 - **Kalender anderer Dienste**, **Album: ältere Versionen**, **Fileshares**, **Konnektoren** und **Prozess-Engines**.
   Unter **Fileshares** wird ein Album-Ordner an ein vom Betrieb freigegebenes Verzeichnis oder an einen S3-Bucket gebunden und sofort (**Jetzt lesen**, **Probelauf**) oder nach Zeitplan gelesen.
-  Wer den Ordner lesen darf, sieht jedes Bild, das der Server auf dem Share lesen kann; ein Lauf, der mehr als die Hälfte der Bilder eines Shares zurückziehen würde, zieht keines zurück bis **Rückzug bestätigen**;
+  Wer den Ordner lesen darf, sieht jedes Bild, das der Server auf dem Share lesen kann; ein Lauf, der mehr als die Hälfte der Bilder eines Shares zurückziehen würde, zieht keines zurück bis **Rückzug bestätigen**.
+  **Originale über signierte Links öffnen** lässt die Leserinnen und Leser des Ordners eines S3-Shares dessen Originale über Links öffnen, die der Server für 15 Minuten signiert;
 - **Erscheinungsbild (Corporate Design)**: Logo, Farben, Hintergrund, Schriften und ein fertiges Theme, darunter *Capacity*, ein ruhiges Erscheinungsbild für Notizen in Hell und Dunkel;
 - **Word-Vorlagen**, **Datenschutz-Regelwerke**, **Import** und das **Audit-Protokoll**.
 

@@ -83,7 +83,7 @@ Choose **Edit** to edit the text and **Done** to finish. Changes are saved conti
 - **Mention** (@): a person or an item;
 - **Undo** and **Redo**.
 
-Markdown that you paste becomes formatted text. Ctrl+Shift+V pastes plain text instead.
+Markdown that you paste becomes formatted text; a table keeps the formatting of its cells. Ctrl+Shift+V pastes plain text instead.
 
 If no item has the title you type after @ or as the address of a link, the list offers *Create «title» as …*. The dialog **Create and mention** asks for the type (the room's page type unless you choose another) and the room (the room of the text you edit unless you choose another); a page made in the same room goes below the page you edit, and is protected as that page is; from a daily note, it goes to the top of the room. The new item is mentioned where you typed. Types that require fields are made with **+ New** instead. When you may not create in a room, or the storage is almost full, the dialog says so and nothing is created.
 
@@ -93,6 +93,7 @@ The menu **Insert…** adds blocks after the cursor:
 
 - **Table**, **Divider**, **Table of contents**, **List of figures**, **List of tables** and **Child pages**;
 - **Image**, **Video**, **Drawing**, a picture **From the album** or a **Copied picture**;
+- **Sound file** and **Record sound**: a sound that plays in the text (see below);
 - **Embed an item…**: shows another item whole inside the text;
 - **New task…** (created below the page and shown as a link or whole) and **Task list…** (every task with a label, or the result of a query);
 - **View of items…**: the items of a type as a table, a gallery or a list, grouped by a field (see *Views of items*);
@@ -100,6 +101,8 @@ The menu **Insert…** adds blocks after the cursor:
 - BPMN diagrams, and processes, forms, decisions, start forms and architecture sketches of a process engine (see *Process engines*).
 
 Pictures can be placed left or right with text beside them, centred, and resized by dragging; a caption numbers them in the list of figures.
+
+A sound plays in the text with the browser's own player and a caption, such as a recording spoken into a page, a task or **Today**'s daily note. **Sound file** uploads one (WebM, Ogg, M4A, MP3 or WAV); **Record sound** opens a window that records at once, and **Stop and attach** puts the recording into the text where the cursor is, while **Cancel** throws it away. The recording is also a file of the item. **Remove** takes the sound out of the text. If no other place in the text plays it, the editor asks whether to delete its file too, so that no recording stays behind unseen: **Remove and delete the file** destroys it and cannot be undone, **Remove, keep the file** leaves it in the item's files, **Cancel** keeps the sound in the text. A Word file names the sound, a page printed as PDF plays it, and Markdown links it by its name. Nothing is transcribed.
 
 ### Tables
 
@@ -379,7 +382,9 @@ You do not rename, move or delete it, and you add no pictures to such a folder: 
 A file moved on the share keeps what was set on it, as far as its content is unchanged.
 A file gone from the share disappears from the album; if it comes back within 30 days, it returns with its labels and names.
 Copying such a picture, or exporting it, takes its preview.
-A picture of a format the server shows no picture of, such as a phone's HEIC or a camera's RAW, has a symbol instead of a preview; it offers only **Open original**, and so does a video of a share.
+A camera's RAW shows the picture the camera embedded in it, and a WebP its picture, as previews.
+A picture of a format the server shows no picture of, such as a phone's HEIC, has a symbol instead of a preview; it offers only **Open original**, and so does a video of a share.
+If an administrator lets an S3 share sign links, **Open original** opens the original through a link the server signs for 15 minutes, whatever the share's own permissions say.
 
 ### Moving a folder
 
@@ -473,7 +478,7 @@ While people work on a whiteboard, the drawing cannot be edited alone; the page 
 
 The **Starmap** draws a room's items, pictures and shared labels as a map: circles for items (coloured by type), squares for pictures, diamonds for labels, dashed outlines for items of other rooms. Lines show the page tree, relations, mentions, embeds and copies. Drag the map to move it and a node to pull it with its neighbours; turn the mouse wheel to zoom. Choose a node to see its panel. A double-click on a node (or Shift+Enter) shows only it with its neighbourhood at a chosen **Depth** (**Separate**); Escape steps back.
 
-Choose **All rooms** in the room list to see the items of every room you may read on one map, with their tree, relations and shared labels. Their pictures and drawings are on it too, each joined to the page or task that holds it and a copy to its original; those a text shows come first, so a large album does not crowd them out. When they are more than one map shows, each bubble stands for the items of one type in one room, as big as their number, and lines count the links between them; a bubble opens its room's map with **Open the room's map**. **Show a label in every room** narrows the map to the items that carry a label, in every room; its suggestions are the labels in use.
+Choose **All rooms** in the room list to see the items of every room you may read on one map, with their tree, relations and shared labels. Their pictures and drawings are on it too, each joined to the page or task that holds it and a copy to its original; those a text shows come first, so a large album does not crowd them out. When they are more than one map shows, each bubble stands for the items of one type in one room, as big as their number, and lines count the links between them; a bubble opens its room's map with **Open the room's map**. **Show a label in every room** narrows the map to the items that carry a label, in every room, and to the pictures that carry it as an album label, each with the page or task that holds it; its suggestions are the labels of items and pictures in use. On both maps, a label's diamond also joins the pictures that carry it as an album label.
 
 ### Impact
 
@@ -560,7 +565,8 @@ Administrators find under **Administration**:
 - **Backup** (also on a schedule to a directory, WebDAV, S3, FTPS or SFTP) and **Storage**;
 - **Calendars of other services**, **Album: older versions**, **File shares**, **Connectors** and **Process engines**.
   Under **File shares** an album folder is bound to a directory the operator allows or to an S3 bucket, read now (**Read now**, **Dry run**) or on its schedule.
-  Whoever may read the folder sees every picture the server can read on the share; a run that would withdraw more than half of a share's pictures withdraws none until **Confirm withdrawals**;
+  Whoever may read the folder sees every picture the server can read on the share; a run that would withdraw more than half of a share's pictures withdraws none until **Confirm withdrawals**.
+  **Open the originals through signed links** lets the readers of an S3 share's folder open its originals through links the server signs for 15 minutes;
 - **Appearance (corporate design)**: logo, colours, background, fonts, and a ready-made theme, among them *Capacity*, a quiet look for notes in light and dark;
 - **Word templates**, **Data protection regulations**, **Import** and the **Audit trail**.
 

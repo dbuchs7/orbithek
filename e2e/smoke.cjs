@@ -2927,7 +2927,7 @@ function webSource() {
       "# Installationsanleitung", "", "## Voraussetzungen", "", "- Docker installieren", "- Go installieren", "- **Zugriffsrechte** prüfen 😀", "",
       "### Konfiguration", "", "1. Repository klonen", "2. Konfigurationsdatei anpassen", "3. Anwendung starten", "",
       "> Hinweis: Die Konfiguration ist erforderlich.", "", "Weitere Informationen findest du in der", "[Dokumentation](https://example.com).", "",
-      "```bash", "docker compose up -d", "```", "", "---", "", "- [x] Backups prüfen", "", "| Name | Status |", "|---|---|", "| Atlas | Aktiv |",
+      "```bash", "docker compose up -d", "```", "", "---", "", "- [x] Backups prüfen", "", "| Name | Status |", "|---|---|", "| Atlas | **Aktiv** |",
     ].join("\n");
     const clip = (text, html) => page.evaluate(([t, hm]) => navigator.clipboard.write([new ClipboardItem({
       "text/plain": new Blob([t], { type: "text/plain" }), ...(hm ? { "text/html": new Blob([hm], { type: "text/html" }) } : {}) })]), [text, html]);
@@ -2943,7 +2943,7 @@ function webSource() {
       check((await page.textContent("#body .ProseMirror pre")) === "docker compose up -d", "the code block " + when);
       check(await page.locator("#body .ProseMirror hr.pm-divider").count() === 1, "the divider " + when);
       check(await page.locator("#body .pm-task[data-checked='true']:has-text('Backups prüfen')").count() === 1, "the checked task " + when);
-      check((await page.textContent("#body .pm-table tr:nth-child(2) td:nth-child(2) .pm-cell-text")) === "Aktiv", "the table " + when);
+      check((await page.textContent("#body .pm-table tr:nth-child(2) td:nth-child(2) .pm-cell-text strong")) === "Aktiv", "the table, its cell still bold (ADR-0214), " + when);
       const order = await bodyOrder();
       check(order[0] === "p:Before" && order[order.length - 1] === "p:After" && order[1] === "h2:Installationsanleitung", "inserted between the paragraphs, which stay: " + order.join(" | "));
     };
@@ -6458,6 +6458,46 @@ function webSource() {
     await page.click("#record-discard");
     await page.waitForSelector("#record-sound:not([hidden])");
     check(await page.locator("#attachments li").count() === filesBefore + 1, "a discarded recording is not attached");
+
+    step("sound in the text: recorded into today's note from the editor and played there (ADR-0224)");
+    await page.goto(base + "/#/daily");
+    await page.waitForSelector("#daily-note.editing .ProseMirror");
+    await page.locator("#daily-note .ProseMirror").click();
+    await page.selectOption("#daily-note .pm-toolbar select[aria-label='Insert…']", "record");
+    await page.waitForSelector("dialog.pm-record[open] #pm-record-stop");
+    await page.waitForSelector("#pm-recorder .recorder-clock:not(:text-is('0:00'))");
+    await page.click("#pm-record-stop");
+    await page.waitForSelector("#daily-note figure.pm-audio audio[src*='/attachments/']");
+    check(await page.locator("dialog.pm-record").count() === 0, "the dialog closes once the recording is in the text");
+    let soundSaved = false;
+    for (let i = 0; i < 30 && !soundSaved; i++) {
+      soundSaved = await page.evaluate(async (key) => (await (await fetch(`/api/items/${encodeURIComponent(key)}`)).json()).item.body.some((b) => b.kind === "audio"), dailyKey);
+      if (!soundSaved) await page.waitForTimeout(500);
+    }
+    check(soundSaved, "today's note keeps the sound in its text");
+    const soundPlayed = await page.evaluate(async () => {
+      const a = document.querySelector("#daily-note figure.pm-audio audio");
+      await a.play();
+      await new Promise((r) => setTimeout(r, 700));
+      a.pause();
+      return a.currentTime;
+    });
+    check(soundPlayed > 0, "the sound plays in the text");
+    // Removing the last block that plays it offers to delete the recording too.
+    const soundRef = await page.getAttribute("#daily-note figure.pm-audio", "data-ref");
+    await page.click("#daily-note figure.pm-audio .pm-audio-remove");
+    await page.click("#daily-note .pm-audio-delete-file");
+    await page.waitForSelector("#daily-note figure.pm-audio", { state: "detached" });
+    let recordingGone = false;
+    for (let i = 0; i < 30 && !recordingGone; i++) {
+      recordingGone = await page.evaluate(async ([key, ref]) => {
+        const it = (await (await fetch(`/api/items/${encodeURIComponent(key)}`)).json()).item;
+        const files = (await (await fetch(`/api/items/${encodeURIComponent(key)}/attachments`)).json()).attachments;
+        return !it.body.some((b) => b.kind === "audio") && !files.some((a) => a.id === ref && !a.deleted);
+      }, [dailyKey, soundRef]);
+      if (!recordingGone) await page.waitForTimeout(500);
+    }
+    check(recordingGone, "the recording is out of the text and its file is deleted");
 
     step("file shares: an administrator binds an album folder to a directory; its pictures show as previews that open where they lie (ADR-0197)");
     // The server may bind directories below SHARE_DIR's parent

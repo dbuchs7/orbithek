@@ -10,6 +10,8 @@ import (
 	"image/jpeg"
 	"image/png"
 	"io"
+
+	webpcodec "golang.org/x/image/webp"
 )
 
 var (
@@ -71,6 +73,10 @@ func decodePicture(r io.Reader, mediaType string, maxPixels int) (image.Image, e
 		decodeConfig, decodeImage = png.DecodeConfig, png.Decode
 	case "image/gif":
 		decodeConfig, decodeImage = gif.DecodeConfig, gif.Decode
+	case "image/webp":
+		// golang.org/x/image/webp, pure Go from the Go project
+		// (ADR-0223).
+		decodeConfig, decodeImage = webpcodec.DecodeConfig, webpcodec.Decode
 	default:
 		return nil, ErrUnsupported
 	}

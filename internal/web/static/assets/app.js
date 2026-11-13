@@ -666,6 +666,12 @@ const filesOf = (item, attachments = [], canEdit = false) => {
       return a;
     },
     isDrawing: (id) => isDrawing(known.get(id)?.name),
+    // remove deletes a file of the item, as its file list does: a
+    // recording the text no longer plays (ADR-0224).
+    remove: async (id) => {
+      await del(`/api/items/${item.id}/attachments/${id}`);
+      known.delete(id);
+    },
     // A drawing opens as a live whiteboard, or alone in the drawing editor
     // for one who may edit (ADR-0172); live says how many people work on
     // it now with a browser (an agent does not keep anyone from it), asked
@@ -5262,7 +5268,7 @@ function protectPassageForm(box, path, item, sel, status) {
 function blockSummary(b) {
   const text = (b.text || "").split("\n")[0].slice(0, 80);
   if (b.kind === "heading") return t("secret.blockHeading", { text });
-  if (["image", "video", "bpmn"].includes(b.kind)) return t("secret.blockPicture", { text: text || "—" });
+  if (["image", "video", "audio", "bpmn"].includes(b.kind)) return t("secret.blockPicture", { text: text || "—" });
   return text || t("secret.blockOther", { kind: b.kind });
 }
 
@@ -6492,6 +6498,7 @@ async function sharesCard() {
     return h("li", { class: "share-row", "data-share": s.id },
       h("strong", { text: s.name }), " ",
       h("span", { class: "chip", text: s.kind === "s3" ? "S3" : t("shares.kindDir") }), " ",
+      s.signedLinks ? h("span", { class: "chip share-signed-chip", text: t("shares.signedChip") }) : null, s.signedLinks ? " " : null,
       h("code", { text: s.address }),
       h("p", { class: "muted" }, t("shares.folder") + " ", h("span", { text: s.folderTitle || s.folder }),
         " · " + t("shares.entries", { n: s.entries, withdrawn: s.withdrawn }),
@@ -6525,18 +6532,20 @@ async function sharesCard() {
     intervalHours: input("intervalHours", { type: "number", min: 1, max: 168, value: 6 }),
   };
   const enabled = h("input", { type: "checkbox", name: "enabled", id: "share-enabled" });
+  const signed = h("input", { type: "checkbox", name: "signedLinks", id: "share-signed" });
   const fill = (s) => {
     editing = s;
     for (const [k, el] of Object.entries(fields)) el.value = s[k] ?? "";
     fields.id.readOnly = fields.folder.readOnly = true;
     enabled.checked = s.enabled;
+    signed.checked = !!s.signedLinks;
     fields.name.focus();
   };
   const clear = () => {
     editing = null;
     for (const el of Object.values(fields)) { el.value = ""; el.readOnly = false; }
     fields.intervalHours.value = 6;
-    enabled.checked = false;
+    enabled.checked = signed.checked = false;
   };
   const load = async () => {
     const d = await get("/api/shares");
@@ -6553,13 +6562,15 @@ async function sharesCard() {
         field(t("shares.address"), fields.address), field(t("shares.folderKey"), fields.folder),
         field(t("shares.link"), fields.link), field(t("shares.interval"), fields.intervalHours),
         h("label", { class: "check" }, enabled, t("shares.enabled")),
+        h("label", { class: "check" }, signed, t("shares.signedLinks")),
+        h("p", { class: "muted", id: "share-signed-help", text: t("shares.signedHelp") }),
         h("p", { class: "muted", text: t("shares.formHelp") }),
         h("div", { class: "row" },
           h("button", { type: "submit", text: t("common.save") }),
           h("button", { type: "button", class: "link", text: t("common.cancel"), onclick: clear })),
       ], async (f) => {
         const body = { id: f.get("id"), name: f.get("name"), address: f.get("address"), folder: f.get("folder"), link: f.get("link"),
-          intervalHours: Number(f.get("intervalHours")) || 0, enabled: f.get("enabled") === "on" };
+          intervalHours: Number(f.get("intervalHours")) || 0, enabled: f.get("enabled") === "on", signedLinks: f.get("signedLinks") === "on" };
         if (editing) await put(`/api/shares/${encodeURIComponent(editing.id)}`, body);
         else await post("/api/shares", body);
         done.replaceChildren(h("p", { class: "notice", text: t("shares.saved", { name: body.name }) }));

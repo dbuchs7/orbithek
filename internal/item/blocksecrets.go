@@ -26,7 +26,7 @@ import (
 // accident (Item.secretFiles).
 
 // showsFile reports whether a block kind shows a file of its item in Ref.
-func showsFile(k BlockKind) bool { return k == Image || k == Video || k == BPMN }
+func showsFile(k BlockKind) bool { return k == Image || k == Video || k == Audio || k == BPMN }
 
 // blockSecrets returns the Secrets the blocks of a body name.
 func blockSecrets(d Doc) map[ID]bool {
