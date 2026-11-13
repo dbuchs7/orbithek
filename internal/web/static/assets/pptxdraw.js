@@ -7,6 +7,7 @@
 // function with the measuring passed in, so node --test runs it; drawing
 // needs a canvas.
 import { css, geometry, mul, slideScene } from "./pptxscene.js";
+import { formatNumber, niceScale, valueRange } from "./pptxchart.js";
 
 // SLIDE_EDGE is the length in pixels of a slide picture's longer side.
 export const SLIDE_EDGE = 1920;
@@ -305,6 +306,335 @@ function drawTable(c, item, base) {
   });
 }
 
+// ---- charts ----
+
+// chartLayout places a chart's parts in a frame of w × h pixels: title,
+// legend and plot area, given measure(font, text) and the font sizes in
+// pixels. It gives the rectangles and the legend's entries.
+export function chartLayout(chart, w, h, measure, px) {
+  const pad = Math.min(w, h) * 0.04;
+  let top = pad, bottom = h - pad, left = pad, right = w - pad;
+  const out = { title: null, legend: null, plot: null };
+  if (chart.title) {
+    const size = px(chart.title.size);
+    const lines = chart.title.text.split("\n");
+    out.title = { x: w / 2, y: top, size, lines };
+    top += lines.length * size * 1.25 + pad / 2;
+  }
+  if (chart.legend) {
+    const size = px(chart.legend.size);
+    const entries = legendEntries(chart);
+    const font = fontCSS(chart.legend, size);
+    const sw = size * 0.8, gap = size * 0.5;
+    const widths = entries.map((e) => sw + gap + measure(font, e.name));
+    if (chart.legend.pos === "b" || chart.legend.pos === "t") {
+      const rows = [[]];
+      let rowW = 0;
+      for (const [i, e] of entries.entries()) {
+        const ew = widths[i] + size * 1.2;
+        if (rowW + ew > right - left && rows.at(-1).length) { rows.push([]); rowW = 0; }
+        rows.at(-1).push({ ...e, w: ew });
+        rowW += ew;
+      }
+      const height = rows.length * size * 1.5;
+      const y = chart.legend.pos === "b" ? bottom - height : top;
+      out.legend = { size, sw, gap, rows: rows.map((r, i) => {
+        const rw = r.reduce((a, e) => a + e.w, 0);
+        let x = (left + right - rw) / 2;
+        return r.map((e) => { const it = { ...e, x, y: y + i * size * 1.5 + size * 0.75 }; x += e.w; return it; });
+      }).flat() };
+      if (chart.legend.pos === "b") bottom -= height + pad / 2; else top += height + pad / 2;
+    } else {
+      const width = Math.min((right - left) * 0.4, Math.max(0, ...widths) + gap);
+      const height = entries.length * size * 1.5;
+      const x = chart.legend.pos === "l" ? left : right - width;
+      const y0 = (top + bottom) / 2 - height / 2;
+      out.legend = { size, sw, gap, rows: entries.map((e, i) => ({ ...e, x, y: y0 + i * size * 1.5 + size * 0.75 })) };
+      if (chart.legend.pos === "l") left += width + pad / 2; else right -= width + pad / 2;
+    }
+  }
+  out.plot = { x: left, y: top, w: Math.max(1, right - left), h: Math.max(1, bottom - top) };
+  return out;
+}
+
+// legendEntries are a chart's legend: its categories for a pie or doughnut
+// whose slices vary in colour, its series otherwise.
+export function legendEntries(chart) {
+  const p = chart.plots[0];
+  if ((p.kind === "pie" || p.kind === "doughnut") && p.vary) {
+    const s = p.series[0];
+    return s.categories.map((name, i) => ({ name: String(name), color: s.colors[i], kind: "box" }));
+  }
+  const kindOf = (pl, s) => {
+    if (pl.kind !== "line" && pl.kind !== "scatter") return "box";
+    const line = s.line?.color !== null && (pl.kind === "line" || /line/i.test(pl.scatterStyle));
+    return line ? "line" : "dot";
+  };
+  return chart.plots.flatMap((pl) => pl.series.map((s) => ({ name: s.name, color: s.color, kind: kindOf(pl, s) })));
+}
+
+function drawChart(c, item, base) {
+  const m = mul(base, item.m);
+  const s = Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2])) || 1;
+  toCanvas(c, mul(m, [1 / s, 0, 0, 1 / s, 0, 0]));
+  const W = item.w * s, H = item.h * s, ch = item.chart;
+  const px = (pt) => pt * EMU_PT * s;
+  const measure = (font, text) => { c.font = font; return c.measureText(text).width; };
+  if (ch.background && paint(c, ch.background, W, H, new Map()) === true) c.fillRect(0, 0, W, H);
+  const lay = chartLayout(ch, W, H, measure, px);
+  c.textBaseline = "middle";
+  if (lay.title) {
+    c.font = fontCSS({ ...ch.title, bold: ch.title.bold }, lay.title.size);
+    c.fillStyle = css(ch.title.color);
+    c.textAlign = "center";
+    lay.title.lines.forEach((l, i) => c.fillText(l, lay.title.x, lay.title.y + (i + 0.5) * lay.title.size * 1.25));
+  }
+  if (lay.legend) {
+    const L = lay.legend;
+    c.textAlign = "left";
+    c.font = fontCSS(ch.legend, L.size);
+    for (const e of L.rows) {
+      c.fillStyle = css(e.color);
+      if (e.kind === "line") c.fillRect(e.x, e.y - L.size * 0.06, L.sw, Math.max(1, L.size * 0.12));
+      else if (e.kind === "dot") { c.beginPath(); c.arc(e.x + L.sw / 2, e.y, L.sw * 0.32, 0, Math.PI * 2); c.fill(); }
+      else c.fillRect(e.x, e.y - L.sw / 2, L.sw, L.sw);
+      c.fillStyle = css(ch.legend.color);
+      c.fillText(e.name, e.x + L.sw + L.gap, e.y);
+    }
+  }
+  const pies = ch.plots.filter((p) => p.kind === "pie" || p.kind === "doughnut");
+  if (pies.length) drawPie(c, pies[0], lay.plot, ch, px, measure);
+  else drawAxes(c, ch, lay.plot, px, measure);
+  c.textAlign = "left";
+  c.textBaseline = "alphabetic";
+}
+
+function drawPie(c, plot, r, ch, px, measure) {
+  const s = plot.series[0];
+  const values = s.values.map((v) => Math.max(0, v || 0));
+  const total = values.reduce((a, b) => a + b, 0) || 1;
+  const labels = s.labels;
+  const out = labels && labels.pos === "outEnd";
+  const fontPx = px(ch.font.size);
+  // Labels outside the slices take room on every side of the circle.
+  const labelW = out ? Math.max(0, ...values.map((v, i) => measure(fontCSS(ch.font, fontPx), labelText(labels, s, i, v, total)))) + fontPx * 0.9 : 0;
+  const radius = Math.max(1, Math.min(r.w / 2 - labelW, r.h / 2 - (out ? fontPx * 1.6 : 0)));
+  const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+  const inner = plot.kind === "doughnut" ? radius * plot.hole / 100 : 0;
+  let a = -Math.PI / 2 + (plot.firstAngle * Math.PI) / 180;
+  values.forEach((v, i) => {
+    const sweep = (v / total) * Math.PI * 2;
+    c.beginPath();
+    c.arc(cx, cy, radius, a, a + sweep);
+    if (inner) c.arc(cx, cy, inner, a + sweep, a, true);
+    else c.lineTo(cx, cy);
+    c.closePath();
+    c.fillStyle = css(plot.vary ? s.colors[i] : s.color);
+    c.fill();
+    c.strokeStyle = "#ffffff";
+    c.lineWidth = Math.max(1, radius * 0.01);
+    c.stroke();
+    if (labels && v > 0) {
+      const mid = a + sweep / 2;
+      const d = out ? radius + fontPx * 0.9 : inner ? (radius + inner) / 2 : radius * 0.65;
+      const text = labelText(labels, s, i, v, total);
+      c.font = fontCSS(ch.font, fontPx);
+      c.textAlign = out ? (Math.cos(mid) >= 0 ? "left" : "right") : "center";
+      c.fillStyle = out ? css(ch.font.color) : "#ffffff";
+      c.fillText(text, cx + Math.cos(mid) * d, cy + Math.sin(mid) * d);
+    }
+    a += sweep;
+  });
+}
+
+// labelText is a data label: the category, series, value and percent asked.
+function labelText(labels, s, i, v, total) {
+  const parts = [];
+  if (labels.series) parts.push(s.name);
+  if (labels.category) parts.push(String(s.categories[i] ?? ""));
+  if (labels.value) parts.push(formatNumber(v, labels.format || s.format));
+  if (labels.percent) parts.push(formatNumber(v / total, labels.value || !labels.format ? "0%" : labels.format));
+  return parts.join("; ");
+}
+
+function drawAxes(c, ch, r, px, measure) {
+  const plots = ch.plots;
+  const fontPx = px(ch.font.size);
+  const font = fontCSS(ch.font, fontPx);
+  const horizontal = plots.some((p) => p.kind === "bar" && p.dir === "bar");
+  const scatter = plots.every((p) => p.kind === "scatter");
+  const percent = plots.some((p) => p.grouping === "percentStacked");
+  const n = Math.max(1, ...plots.flatMap((p) => p.series.map((s) => Math.max(s.values.length, s.categories.length))));
+  const va = ch.valAx || {};
+  const { lo, hi } = valueRange(plots);
+  const valLen = horizontal ? r.w : r.h;
+  const scale = niceScale(lo, hi, Math.max(2, Math.min(10, Math.round(valLen / (fontPx * 3)))), { min: va.min ?? undefined, max: va.max ?? undefined, unit: va.unit ?? undefined });
+  const vfmt = va.format || (percent ? "0%" : plots[0].series[0].format || "General");
+  const vLabels = va.deleted || !va.labels ? [] : scale.ticks.map((t) => formatNumber(t, vfmt));
+  let xs = null;
+  if (scatter) {
+    const xr = valueRange(plots, "x");
+    const xa = ch.xAx || {};
+    xs = niceScale(xr.lo, xr.hi, Math.max(2, Math.min(10, Math.round(r.w / (fontPx * 4)))), { min: xa.min ?? undefined, max: xa.max ?? undefined, unit: xa.unit ?? undefined });
+  }
+  const cats = (plots[0].series[0].categories || []).map((x) => String(x));
+  const ca = ch.catAx || {};
+  const catLabels = scatter ? xs.ticks.map((t) => formatNumber(t, (ch.xAx || {}).format || "General")) : ca.deleted || !ca.labels ? [] : cats;
+  // Room for the labels: the value axis's beside the plot, the categories'
+  // below it (beside it for horizontal bars).
+  const vW = Math.max(0, ...vLabels.map((l) => measure(font, l))) + (vLabels.length ? fontPx * 0.6 : 0);
+  const cW = horizontal ? Math.min(r.w * 0.35, Math.max(0, ...catLabels.map((l) => measure(font, l))) + fontPx * 0.6) : 0;
+  const lowH = fontPx * 1.6;
+  const P = horizontal ? { x: r.x + cW, y: r.y, w: Math.max(1, r.w - cW), h: Math.max(1, r.h - (vLabels.length ? lowH : 0)) }
+    : { x: r.x + vW, y: r.y, w: Math.max(1, r.w - vW), h: Math.max(1, r.h - (catLabels.length ? lowH : 0)) };
+  if (ch.plotBackground && paint(c, ch.plotBackground, P.w, P.h, new Map()) === true) { c.save(); c.translate(P.x, P.y); c.fillRect(0, 0, P.w, P.h); c.restore(); }
+  const toV = (v) => (horizontal ? P.x + ((v - scale.min) / (scale.max - scale.min)) * P.w : P.y + P.h - ((v - scale.min) / (scale.max - scale.min)) * P.h);
+  const grid = { ...ch.font.color, a: 0.18 };
+  c.strokeStyle = css(grid);
+  c.lineWidth = Math.max(1, fontPx * 0.06);
+  c.font = font;
+  c.fillStyle = css(ch.font.color);
+  scale.ticks.forEach((t, i) => {
+    const p = toV(t);
+    if (va.gridlines !== false && (va.gridlines || !scatter)) {
+      c.beginPath();
+      if (horizontal) { c.moveTo(p, P.y); c.lineTo(p, P.y + P.h); } else { c.moveTo(P.x, p); c.lineTo(P.x + P.w, p); }
+      c.stroke();
+    }
+    if (!vLabels.length) return;
+    if (horizontal) { c.textAlign = "center"; c.fillText(vLabels[i], p, P.y + P.h + lowH / 2); } else { c.textAlign = "right"; c.fillText(vLabels[i], P.x - fontPx * 0.4, p); }
+  });
+  // The category axis: a line at zero and the categories' names.
+  const zero = toV(Math.min(Math.max(0, scale.min), scale.max));
+  c.strokeStyle = css({ ...ch.font.color, a: 0.45 });
+  c.beginPath();
+  if (horizontal) { c.moveTo(zero, P.y); c.lineTo(zero, P.y + P.h); } else { c.moveTo(P.x, zero); c.lineTo(P.x + P.w, zero); }
+  c.stroke();
+  const band = (horizontal ? P.h : P.w) / n;
+  const toX = scatter ? (x) => P.x + ((x - xs.min) / (xs.max - xs.min)) * P.w : null;
+  if (scatter) {
+    c.textAlign = "center";
+    xs.ticks.forEach((t, i) => c.fillText(catLabels[i], toX(t), P.y + P.h + lowH / 2));
+  } else if (catLabels.length) {
+    const every = horizontal ? Math.max(1, Math.ceil((fontPx * 1.2) / band)) : Math.max(1, Math.ceil((Math.max(...catLabels.map((l) => measure(font, l))) + fontPx) / band));
+    catLabels.forEach((l, i) => {
+      if (i % every) return;
+      if (horizontal) { c.textAlign = "right"; c.fillText(l, P.x - fontPx * 0.4, P.y + P.h - (i + 0.5) * band); } else { c.textAlign = "center"; c.fillText(l, P.x + (i + 0.5) * band, P.y + P.h + lowH / 2); }
+    });
+  }
+  c.save();
+  c.beginPath();
+  c.rect(P.x - fontPx, P.y - fontPx, P.w + fontPx * 2, P.h + fontPx * 2);
+  c.clip();
+  for (const plot of plots) {
+    if (plot.kind === "bar") drawBars(c, plot, P, n, band, toV, horizontal, fontPx, ch);
+    else if (plot.kind === "line" || plot.kind === "area") drawLines(c, plot, P, n, band, toV, fontPx);
+    else if (plot.kind === "scatter") drawScatter(c, plot, toX, toV, fontPx);
+  }
+  c.restore();
+}
+
+// stackOf gives each series' values at each category as from and to, on
+// top of the series before it when the plot stacks them, as a share of the
+// category's sum when it stacks them to 100 %.
+export function stackOf(plot, n) {
+  const stacked = plot.grouping === "stacked" || plot.grouping === "percentStacked";
+  const pos = new Array(n).fill(0), neg = new Array(n).fill(0);
+  const sums = new Array(n).fill(0).map((_, i) => plot.series.reduce((a, s) => a + Math.abs(s.values[i] ?? 0), 0) || 1);
+  return plot.series.map((s) => Array.from({ length: n }, (_, i) => {
+    const raw = s.values[i];
+    if (raw === null || raw === undefined) return null;
+    const v = plot.grouping === "percentStacked" ? raw / sums[i] : raw;
+    if (!stacked) return { from: 0, to: v, v: raw };
+    const base = v >= 0 ? pos[i] : neg[i];
+    if (v >= 0) pos[i] += v; else neg[i] += v;
+    return { from: base, to: base + v, v: raw };
+  }));
+}
+
+function drawBars(c, plot, P, n, band, toV, horizontal, fontPx, ch) {
+  const stacks = stackOf(plot, n);
+  const k = plot.series.length;
+  const stacked = plot.grouping !== "clustered";
+  const group = band / (1 + plot.gap / 100);
+  const ov = stacked ? 1 : Math.min(1, Math.max(-1, plot.overlap / 100));
+  const bw = stacked ? group : group / (k - (k - 1) * ov);
+  plot.series.forEach((s, si) => {
+    stacks[si].forEach((b, i) => {
+      if (!b) return;
+      const off = (band - group) / 2 + (stacked ? 0 : si * bw * (1 - ov));
+      const a = toV(b.from), z = toV(b.to);
+      c.fillStyle = css(s.colors[i]);
+      let x, y, w, h;
+      if (horizontal) { y = P.y + P.h - i * band - off - bw; h = bw; x = Math.min(a, z); w = Math.abs(z - a); } else { x = P.x + i * band + off; w = bw; y = Math.min(a, z); h = Math.abs(z - a); }
+      if (!s.noFill) c.fillRect(x, y, w, h);
+      if (s.labels) {
+        c.font = fontCSS(ch.font, fontPx);
+        const text = labelText(s.labels, s, i, b.v, 1);
+        const inside = stacked || s.labels.pos === "ctr" || s.labels.pos === "inEnd";
+        c.fillStyle = inside ? "#ffffff" : css(ch.font.color);
+        c.textAlign = "center";
+        if (horizontal) {
+          c.textAlign = inside ? "center" : "left";
+          c.fillText(text, inside ? x + w / 2 : x + w + fontPx * 0.3, y + h / 2);
+        } else c.fillText(text, x + w / 2, inside ? y + h / 2 : y - fontPx * 0.6);
+      }
+    });
+  });
+}
+
+function drawLines(c, plot, P, n, band, toV, fontPx) {
+  const stacks = stackOf(plot, n);
+  const area = plot.kind === "area";
+  const xOf = (i) => (area && n > 1 ? P.x + (i / (n - 1)) * P.w : P.x + (i + 0.5) * band);
+  plot.series.forEach((s, si) => {
+    const pts = stacks[si].map((b, i) => (b ? [xOf(i), toV(b.to), toV(b.from)] : null));
+    if (area) {
+      const run = pts.filter(Boolean);
+      if (run.length < 2) return;
+      c.beginPath();
+      run.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));
+      for (let i = run.length - 1; i >= 0; i--) c.lineTo(run[i][0], run[i][2]);
+      c.closePath();
+      c.fillStyle = css(s.color);
+      c.fill();
+      return;
+    }
+    c.strokeStyle = css(s.color);
+    c.lineWidth = Math.max(1.5, fontPx * 0.16);
+    c.lineJoin = "round";
+    if (s.line?.color !== null) {
+      c.beginPath();
+      let pen = false;
+      for (const p of pts) {
+        if (!p) { pen = false; continue; }
+        if (pen) c.lineTo(p[0], p[1]); else c.moveTo(p[0], p[1]);
+        pen = true;
+      }
+      c.stroke();
+    }
+    if (s.marker ?? plot.markers) {
+      c.fillStyle = css(s.color);
+      for (const p of pts) if (p) { c.beginPath(); c.arc(p[0], p[1], fontPx * 0.28, 0, Math.PI * 2); c.fill(); }
+    }
+  });
+}
+
+function drawScatter(c, plot, toX, toV, fontPx) {
+  for (const s of plot.series) {
+    const pts = s.values.map((v, i) => (v === null || s.categories[i] === "" ? null : [toX(Number(s.categories[i] ?? i + 1)), toV(v)]));
+    const lines = /line/i.test(plot.scatterStyle) && s.line?.color !== null;
+    c.strokeStyle = c.fillStyle = css(s.color);
+    if (lines) {
+      c.lineWidth = Math.max(1.5, fontPx * 0.16);
+      c.beginPath();
+      pts.filter(Boolean).forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));
+      c.stroke();
+    }
+    if (s.marker ?? true) for (const p of pts) if (p) { c.beginPath(); c.arc(p[0], p[1], fontPx * 0.3, 0, Math.PI * 2); c.fill(); }
+  }
+}
+
 function drawMissing(c, item, base) {
   toCanvas(c, mul(base, item.m));
   c.fillStyle = "rgba(127,127,127,0.08)";
@@ -345,6 +675,7 @@ export function drawSlide(scene, images, canvas) {
         } else drawMissing(c, item, base);
         if (strokeLine(c, item.line, k)) { trace(c, geometry(item.geom, item.w, item.h).paths[0].cmds); c.stroke(); }
       } else if (item.kind === "table") drawTable(c, item, base);
+      else if (item.kind === "chart") drawChart(c, item, base);
       else drawMissing(c, item, base);
     } finally {
       c.restore();

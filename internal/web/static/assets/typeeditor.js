@@ -5,7 +5,7 @@
 // Administration → Item types for every type; a room's administrators in
 // the room's settings for the room's own types. What it sends is checked
 // again by the server.
-import { h } from "./dom.js";
+import { h, mount } from "./dom.js";
 import { post, del } from "./api.js";
 import { t } from "./i18n.js";
 import {
@@ -35,7 +35,7 @@ export function typeEditor({ type = null, template = null, space = "", spaces = 
   const status = h("div", { class: "status", role: "status" });
 
   const render = () => {
-    root.replaceChildren(
+    mount(root,
       h("h2", { text: draft.existing ? t("types.editTitle", { name: draft.name }) : t("types.newTitle") }),
       h("p", { class: "muted", text: t("types.help") }),
       basics(),

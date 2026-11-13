@@ -40,7 +40,7 @@ Chosen option: **1**.
 - **Positive:** tidying one's photos into folders takes one choice; pictures of pages stay unless a move is chosen.
 - **Positive:** nothing changes on the server.
 - **Negative / trade-offs accepted:** one more control in the dialog; the choice is per browser, not per person.
-- **Follow-ups / risks to watch:** whether dragging should offer the choice too, settled by ADR-0225.
+- **Follow-ups / risks to watch:** whether dragging should offer the choice too, settled by ADR-0226.
 
 ## Pros and cons of the options
 
@@ -72,6 +72,6 @@ Strongest form: nothing is ever taken away.
 
 ## Links
 
-- amended by [ADR-0225](0225-pictures-dropped-onto-a-folder-are-moved-or-copied-as-a-menu-asks.md) (the choice when dropping onto a folder)
+- amended by [ADR-0226](0226-pictures-dropped-onto-a-folder-are-moved-or-copied-as-a-menu-asks.md) (the choice when dropping onto a folder)
 - amends [ADR-0187](0187-pictures-are-added-where-one-is-in-the-album.md) (its last open question)
 - relates to ADR-0054 (copies with their source), ADR-0184 (moving by dragging), ADR-0188 (a moved file keeps its identity), ADR-0196 (duplicates)
