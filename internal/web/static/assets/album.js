@@ -777,12 +777,51 @@ export function albumBrowser({ pick, pickText } = {}) {
     trail.replaceChildren(dropOnto(step(t("album.top"), 0), null), ...path.flatMap((f, i) => [" › ", i === path.length - 1 ? h("strong", { text: f.name }) : dropOnto(step(f.name, i + 1), f)]));
   };
 
+  // dropChoice asks, where pictures were dropped onto a folder, whether to
+  // move or copy them there (ADR-0226). Move has the focus; Escape, a
+  // click elsewhere or Cancel answers null.
+  const dropChoice = (x, y, folder, n) => new Promise((resolve) => {
+    let done = false;
+    const finish = (how) => {
+      if (done) return;
+      done = true;
+      document.removeEventListener("pointerdown", outside, true);
+      document.removeEventListener("keydown", keys, true);
+      box.remove();
+      resolve(how);
+    };
+    const item = (id, text, how) => h("button", { type: "button", role: "menuitem", class: how ? "link" : "link muted", id, text, onclick: () => finish(how) });
+    const move = item("album-drop-move", t("album.dropMove"), "move");
+    const box = h("div", { class: "album-drop-menu", id: "album-drop-menu", role: "menu", "aria-label": t("album.dropMenu", { n, name: folder.name }) },
+      move, item("album-drop-copy", t("album.dropCopy"), "copy"), item("album-drop-cancel", t("common.cancel"), null));
+    const outside = (e) => { if (!box.contains(e.target)) finish(null); };
+    const keys = (e) => {
+      if (e.key === "Escape") { e.preventDefault(); finish(null); }
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const items = [...box.querySelectorAll("button")];
+        const i = items.indexOf(document.activeElement);
+        items[(i + (e.key === "ArrowDown" ? 1 : items.length - 1)) % items.length].focus();
+      }
+    };
+    document.body.append(box);
+    // The menu stands where the pictures were dropped, inside the window.
+    const r = box.getBoundingClientRect();
+    box.style.left = `${Math.max(8, Math.min(x, innerWidth - r.width - 8))}px`;
+    box.style.top = `${Math.max(8, Math.min(y, innerHeight - r.height - 8))}px`;
+    document.addEventListener("pointerdown", outside, true);
+    document.addEventListener("keydown", keys, true);
+    move.focus();
+  });
+
   // dropOnto makes a folder's button take pictures dragged onto it, and
   // moves them there as "Move" does for chosen pictures, each with all its
-  // versions, keeping what it is (ADR-0184, ADR-0188). A picture already in
-  // the folder stays. It also takes a folder dragged onto it, which goes
-  // into it with what it holds; the top (folder null) takes only a folder,
-  // which goes to the top of its room (ADR-0200).
+  // versions, keeping what it is (ADR-0184, ADR-0188), or copies them, as
+  // the menu shown where they are dropped asks; Ctrl or Alt copies and
+  // Shift moves without it (ADR-0226). A picture already in the folder
+  // stays. It also takes a folder dragged onto it, which goes into it with
+  // what it holds; the top (folder null) takes only a folder, which goes to
+  // the top of its room (ADR-0200).
   const dropOnto = (el, folder) => {
     if (pick) return el;
     if (folder) el.title = t("photos.dropOnFolder", { name: folder.name });
@@ -790,7 +829,7 @@ export function albumBrowser({ pick, pickText } = {}) {
     const over = (e) => {
       if (!takes()) return;
       e.preventDefault();
-      e.dataTransfer.dropEffect = "move";
+      e.dataTransfer.dropEffect = dragging && (e.ctrlKey || e.altKey) ? "copy" : "move";
       el.classList.add("drop-target");
     };
     el.addEventListener("dragenter", over);
@@ -815,7 +854,10 @@ export function albumBrowser({ pick, pickText } = {}) {
       dragging = null;
       root.classList.remove("dragging-pictures");
       if (!list.length) return;
-      await together("photos.moved", async (p) => { await moveTo(p, folder.id); return true; }, list, "photos.notMoved");
+      const how = e.ctrlKey || e.altKey ? "copy" : e.shiftKey ? "move" : await dropChoice(e.clientX, e.clientY, folder, list.length);
+      if (!how) return;
+      if (how === "copy") await together("photos.copiedTo", async (p) => { await copyTo(p, folder.id); return true; }, list);
+      else await together("photos.moved", async (p) => { await moveTo(p, folder.id); return true; }, list, "photos.notMoved");
       for (const p of list) chosen.delete(key(p));
       markChosen();
       refresh();

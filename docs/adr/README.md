@@ -238,3 +238,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0223](0223-signed-links-to-a-shares-originals-and-previews-of-raw-and-webp.md) | Signed links to an S3 share's originals, and previews of RAW and WebP | Accepted | Landed |
 | [0224](0224-sound-in-the-text.md) | Sound in the text | Proposed | Partial |
 | [0225](0225-album-labels-on-the-starmap.md) | A picture's own labels on the starmap | Proposed | Partial |
+| [0226](0226-pictures-dropped-onto-a-folder-are-moved-or-copied-as-a-menu-asks.md) | Pictures dropped onto a folder are moved or copied, as a menu asks | Proposed | Partial |
