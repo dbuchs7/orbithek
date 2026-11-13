@@ -93,6 +93,7 @@ The menu **Insert…** adds blocks after the cursor:
 
 - **Table**, **Divider**, **Table of contents**, **List of figures**, **List of tables** and **Child pages**;
 - **Image**, **Video**, **Drawing**, a picture **From the album** or a **Copied picture**;
+- **Sound file** and **Record sound**: a sound that plays in the text (see below);
 - **Embed an item…**: shows another item whole inside the text;
 - **New task…** (created below the page and shown as a link or whole) and **Task list…** (every task with a label, or the result of a query);
 - **View of items…**: the items of a type as a table, a gallery or a list, grouped by a field (see *Views of items*);
@@ -100,6 +101,8 @@ The menu **Insert…** adds blocks after the cursor:
 - BPMN diagrams, and processes, forms, decisions, start forms and architecture sketches of a process engine (see *Process engines*).
 
 Pictures can be placed left or right with text beside them, centred, and resized by dragging; a caption numbers them in the list of figures.
+
+A sound plays in the text with the browser's own player and a caption, such as a recording spoken into a page, a task or **Today**'s daily note. **Sound file** uploads one (WebM, Ogg, M4A, MP3 or WAV); **Record sound** opens a window that records at once, and **Stop and attach** puts the recording into the text where the cursor is, while **Cancel** throws it away. The recording is also a file of the item. **Remove** takes the sound out of the text. If no other place in the text plays it, the editor asks whether to delete its file too, so that no recording stays behind unseen: **Remove and delete the file** destroys it and cannot be undone, **Remove, keep the file** leaves it in the item's files, **Cancel** keeps the sound in the text. A Word file names the sound, a page printed as PDF plays it, and Markdown links it by its name. Nothing is transcribed.
 
 ### Tables
 

@@ -53,6 +53,10 @@ videos are not exported as pictures (ADR-0189).
 Whoever may edit an item records sound into its files from the file list (`assets/recorder.js`, `assets/recorderparts.js`: `MediaRecorder`, Opus in WebM or Ogg, AAC in MP4, at most 30 minutes, nothing kept in the browser);
 a file of sound alone is told by its tracks (`photo.AudioType`: WebM tracks, MP4 handlers, Ogg's first packet), so it is no video and not in the album, and files of `item.AudioTypes` are sent inline in parts and played in the file list;
 nothing is transcribed (proposed, ADR-0219).
+A sound plays in a text as a block of the kind `audio` (a sound file of the item with a plain caption, `item.AudioTypes` only, codec version 61);
+the editor's *Insert…* offers a sound file and, where the browser can record, a dialog that records at once (`audioView`, `recorderControl` with `prefix` and `autostart`), so the daily view records into today's note too;
+removing the last block that plays a file asks whether to delete the file too, a removal kept out of the undo history (`playsElsewhere`, `files.remove`);
+Word names it, PDF plays it, Markdown links it (proposed, ADR-0224).
 A video is a slide that plays from the presentation's state (`playing`), with sound in the presentation window only and neither zoom nor laser;
 Google Photos (`=dv`, poster `=w1600-h1600`) and shared iCloud albums (largest video derivative, poster frame as poster) bring videos within `VideoBytes` (ADR-0192).
 A collection is deleted from the album alone, into the trash (ADR-0193).
@@ -83,7 +87,7 @@ A PowerPoint presentation (`.pptx`, `.ppsx`) chosen under the album's *Upload* o
 it uploads each slide named by its place and title and sets its notes as the picture's speaker's notes;
 the presentation file never reaches the server, and nothing on the server is new (proposed, ADR-0186).
 Pictures are added where one is: files chosen, dropped or pasted go into the open folder, or, in a collection or at the top, into a folder chosen each time (the folder listing says which are `editable`), each with the collection's labels;
-**Add from the album…** copies or moves pictures into a folder, as its dialog's choice says (remembered in the browser, copy by default; ADR-0222); pictures dropped onto a folder are moved or copied as a menu where they land asks, Ctrl or Alt copying and Shift moving without it (proposed, ADR-0224), or gives them a collection's labels;
+**Add from the album…** copies or moves pictures into a folder, as its dialog's choice says (remembered in the browser, copy by default; ADR-0222); pictures dropped onto a folder are moved or copied as a menu where they land asks, Ctrl or Alt copying and Shift moving without it (proposed, ADR-0225), or gives them a collection's labels;
 a change shows the album again as far as it was shown (`assets/album.js`, ADR-0187). A collection keeps the folder its new pictures go into, for everyone who adds to it: an optional `folder` item field its type gains as its next version when first set (`PUT /api/album/collections/{ref}/folder`, ADR-0221).
 Administrators set the corporate design (logo, colours, background, fonts, own stylesheet), kept in `site.wal` (`internal/site`, ADR-0052).
 Full-text search scans the in-memory state through the permission check (ADR-0033).

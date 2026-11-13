@@ -567,7 +567,7 @@ func (w *writer) body(t *item.Store, it item.Item) item.Doc {
 		b.Mentions = slices.Clone(b.Mentions)
 		b.Marks = slices.Clone(b.Marks)
 		switch b.Kind {
-		case item.Image, item.Video, item.BPMN:
+		case item.Image, item.Video, item.Audio, item.BPMN:
 			to, ok := w.files[it.ID][b.Ref]
 			if !ok {
 				w.p.note("%s: a %s of the text is left out: its file did not come back", it.Key, b.Kind)

@@ -607,6 +607,13 @@ li.attachment audio.att-audio { display: block; width: 100%; max-width: 28rem; m
 .recorder-clock { font-variant-numeric: tabular-nums; }
 @keyframes recorder-pulse { 50% { opacity: 0.3; } }
 @media (prefers-reduced-motion: reduce) { .recorder-dot { animation: none; } }
+/* Sound in the text (ADR-0224). */
+figure.pm-audio { margin: 12px 0; }
+figure.pm-audio audio { display: block; width: 100%; max-width: 32rem; }
+figure.pm-audio figcaption { margin-top: 4px; color: var(--muted, #6b7280); font-size: .9em; }
+figure.pm-audio figcaption input { min-width: 12rem; max-width: 100%; }
+figure.pm-audio .pm-audio-ask { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--text, inherit); }
+dialog.pm-record .recorder { margin: 12px 0; }
 .pm-image { margin: 10px 0; text-align: center; }
 .pm-image img { max-width: 100%; height: auto; border-radius: 4px; border: 1px solid var(--border); }
 .pm-image figcaption { margin-top: 4px; color: var(--muted); font-size: 13px; }
@@ -1026,7 +1033,7 @@ dialog.drawing::backdrop { background: rgba(20, 22, 26, .45); }
 /* A folder being dragged goes into another folder or up the trail (ADR-0200). */
 .album.dragging-folder .album-folder:not(.album-collection), .album.dragging-folder .album-trail button { outline: 1px dashed var(--accent); outline-offset: 2px; }
 .album .drop-target, .album.dragging-pictures .drop-target { outline: 2px solid var(--accent); outline-offset: 2px; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
-/* Move or copy pictures dropped onto a folder (ADR-0224). */
+/* Move or copy pictures dropped onto a folder (ADR-0225). */
 .album-drop-menu { position: fixed; z-index: 50; display: flex; flex-direction: column; min-width: 12rem; padding: 4px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); box-shadow: 0 6px 24px rgba(0, 0, 0, .18); }
 .album-drop-menu button { text-align: left; padding: 6px 10px; border-radius: 6px; }
 .album-drop-menu button:focus-visible, .album-drop-menu button:hover { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }

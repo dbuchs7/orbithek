@@ -1,4 +1,4 @@
-# ADR-0224: Pictures dropped onto a folder are moved or copied, as a menu asks
+# ADR-0225: Pictures dropped onto a folder are moved or copied, as a menu asks
 
 - **Status:** Proposed
 - **Implementation:** Partial
