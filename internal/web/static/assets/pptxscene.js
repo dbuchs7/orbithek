@@ -8,6 +8,7 @@
 // the scene's missing list, so the import can say so. It needs no browser,
 // so node --test runs it.
 import { all, attrOf, child, kids, rootOf, isType } from "./pptx.js";
+import { readChart } from "./pptxchart.js";
 
 const num = (v, d = 0) => (v === undefined || v === null || v === "" || Number.isNaN(Number(v)) ? d : Number(v));
 const on = (v) => v === "1" || v === "true" || v === "on";
@@ -666,6 +667,13 @@ async function frameItem(frame, env, m, out) {
     const denv = { ...env, rels: await env.pkg.rels(drawingPart), level: "slide", layoutPh: [], masterPh: [] };
     await walk(tree, denv, mul(m, translate(t.x, t.y)), out);
     return;
+  }
+  if (uri.endsWith("/chart")) {
+    const ref = child(data, "chart");
+    const part = ref ? env.rels.get(attrOf(ref, "id", true))?.part : null;
+    const doc = part ? await env.pkg.xml(part, false) : null;
+    const chart = doc ? readChart(doc, env.ctx, { colorOf, fillOf, lineOf }) : null;
+    if (chart) { out.push({ kind: "chart", m: fm, w: t.w, h: t.h, chart }); return; }
   }
   const fallback = all(data || { children: [] }, "pic")[0];
   if (fallback) {
