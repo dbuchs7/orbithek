@@ -1208,6 +1208,10 @@ const moduleGlyphs = {
     ["circle", { cx: "5", cy: "7", r: "1.9", fill: "#fff" }], ["circle", { cx: "19", cy: "6", r: "1.9", fill: "#fff" }],
     ["circle", { cx: "12", cy: "11", r: "2.4", fill: "#fff" }], ["circle", { cx: "8", cy: "19", r: "1.9", fill: "#fff" }],
     ["circle", { cx: "18", cy: "17", r: "1.9", fill: "#fff" }]],
+  // The rooms: four tiles, as the rooms' symbol behind the nine dots.
+  spaces: [
+    ["rect", { x: "4", y: "4", width: "7", height: "7", rx: "1.6", fill: "#fff" }], ["rect", { x: "13", y: "4", width: "7", height: "7", rx: "1.6", fill: "#fff" }],
+    ["rect", { x: "4", y: "13", width: "7", height: "7", rx: "1.6", fill: "#fff" }], ["rect", { x: "13", y: "13", width: "7", height: "7", rx: "1.6", fill: "#fff" }]],
   // A whiteboard on its stand, a note stuck on it and lines written (ADR-0169).
   whiteboard: [
     ["rect", { x: "3", y: "4", width: "18", height: "12.5", rx: "2", fill: "none", stroke: "#fff", "stroke-width": "1.8" }],
@@ -2389,6 +2393,16 @@ async function homeView() {
       // The starmap first: one's rooms as a map of connections (ADR-0157);
       // the view picks the favourite or first room.
       quick("#/starmap", t("nav.starmap"), t("home.starmapText"), "home-starmap", null, "starmap"),
+      // The rooms follow the starmap: the tile leads to their list further
+      // down this page, which takes the focus; no view of their own.
+      Object.assign(quick("#/", t("spaces.title"), t("home.spacesText", { n: spaces.length }), "home-spaces", null, "spaces"), {
+        onclick: (e) => {
+          e.preventDefault();
+          const list = document.getElementById("home-spaces-title");
+          list.scrollIntoView({ block: "start" });
+          list.focus({ preventScroll: true });
+        },
+      }),
       // My day: today's daily note, made in one's daily room on opening
       // when there is none (ADR-0205).
       quick("#/daily", t("home.today"), t("home.todayText", { date: todayText }), "home-today", null, "day", [todayNumber]),
@@ -2403,7 +2417,7 @@ async function homeView() {
       quick("#/whiteboards", t("nav.whiteboards"), boards.whiteboards.length ? t("home.whiteboardsLive", { n: boards.whiteboards.length }) : t("home.whiteboardsText"),
         "home-whiteboards", null, "whiteboard"),
       quick("#/mcp", t("nav.mcp"), t("home.mcpText"), "home-mcp", null, "protection")),
-    h("h2", { text: t("spaces.title") }),
+    h("h2", { id: "home-spaces-title", tabindex: "-1", text: t("spaces.title") }),
     spaces.length === 0
       ? h("div", { class: "card first-steps" },
         h("p", { text: me.admin ? t("spaces.noneAdmin") : t("spaces.none") }),

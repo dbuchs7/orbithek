@@ -1305,6 +1305,7 @@ export default {
   "home.notesUnread": {"one": "{n} unread change", "other": "{n} unread changes"},
   "home.notesNone": "Nothing new",
   "home.starmapText": "Your rooms as a map of connections",
+  "home.spacesText": {"one": "1 room, as tiles or a list", "other": "{n} rooms, as tiles or a list"},
   "home.today": "My day",
   "home.todayText": "Your daily note for {date}",
   "home.albumText": "Images and drawings",

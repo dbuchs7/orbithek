@@ -813,15 +813,21 @@ function webSource() {
     await page.waitForSelector("#welcome h1:has-text('admin')");
     await page.waitForSelector("#welcome img.welcome-art");
     await page.waitForSelector("#welcome #home-version:has-text('Version')");
-    check(await page.locator(".home-tiles a").count() === 8, "eight quick accesses, one's day, one's notes, the starmap and the whiteboards among them");
+    check(await page.locator(".home-tiles a").count() === 9, "nine quick accesses, the rooms, one's day, one's notes, the starmap and the whiteboards among them");
     check(await page.getAttribute("#home-whiteboards", "href") === "#/whiteboards", "a quick access leads to the whiteboards (ADR-0169)");
-    check(await page.locator(".home-tiles a .module-icon svg").count() === 8, "each quick access wears the symbol of its module on the station");
+    check(await page.locator(".home-tiles a .module-icon svg").count() === 9, "each quick access wears the symbol of its module on the station");
     check(await page.getAttribute(".home-tiles a:first-child", "id") === "home-starmap" && await page.getAttribute("#home-starmap", "href") === "#/starmap"
       && await page.locator("#home-starmap .module-icon.module-starmap").count() === 1, "the starmap is the first quick access, with its module's symbol");
-    // My day follows the starmap: today's daily note, its date and its
+    // The rooms follow the starmap, and the tile leads to their list on
+    // this page, which takes the focus.
+    check(await page.getAttribute(".home-tiles a:nth-child(2)", "id") === "home-spaces"
+      && await page.locator("#home-spaces .module-icon.module-spaces").count() === 1, "the rooms are the second quick access, with their module's symbol");
+    await page.click("#home-spaces");
+    check(await page.evaluate(() => document.activeElement?.id) === "home-spaces-title" && page.url().endsWith("#/"), "the rooms tile leads to the list of rooms on the start page: " + page.url());
+    // My day follows the rooms: today's daily note, its date and its
     // day of the month on the calendar sheet (ADR-0205).
-    check(await page.getAttribute(".home-tiles a:nth-child(2)", "id") === "home-today" && await page.getAttribute("#home-today", "href") === "#/daily"
-      && (await page.textContent("#home-today .module-icon.module-day svg text")) === String(new Date().getDate()), "my day is the second quick access and leads to today's daily note");
+    check(await page.getAttribute(".home-tiles a:nth-child(3)", "id") === "home-today" && await page.getAttribute("#home-today", "href") === "#/daily"
+      && (await page.textContent("#home-today .module-icon.module-day svg text")) === String(new Date().getDate()), "my day is the third quick access and leads to today's daily note");
     await page.click("#home-starmap");
     await page.waitForSelector("h1:has-text('Starmap')");
     check(page.url().endsWith("#/starmap"), "the starmap tile leads to the starmap: " + page.url());
