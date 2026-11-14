@@ -1,9 +1,9 @@
 # ADR-0186: A presentation is imported into the album as slides with their notes
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-10
-- **Deciders:** Project initiators (request of 2026-11-10: a PowerPoint importer that puts the slides as pictures into the album and their notes into the pictures' speaker's notes, through the album's Upload; asked how the slides become pictures and where they go, the requester first chose the presentation file together with the slides exported as PNG, and a new folder per presentation; on 2026-11-11, finding two exports too cumbersome, the requester asked for the presentation file alone, chose a renderer of our own in the browser and kept the exported pictures as the exact way; on 2026-11-12 the requester asked for charts to be drawn from their stored values)
+- **Deciders:** Project initiators (request of 2026-11-10: a PowerPoint importer that puts the slides as pictures into the album and their notes into the pictures' speaker's notes, through the album's Upload; asked how the slides become pictures and where they go, the requester first chose the presentation file together with the slides exported as PNG, and a new folder per presentation; on 2026-11-11, finding two exports too cumbersome, the requester asked for the presentation file alone, chose a renderer of our own in the browser and kept the exported pictures as the exact way; on 2026-11-12 the requester asked for charts to be drawn from their stored values; accepted 2026-11-14)
 - **Open question:** whether hidden slides should be imported as well, at the end or marked; whether a presentation imported again should replace the pictures of its folder as new versions instead of making a second folder; whether radar, bubble, stock, surface and the newer chart kinds (waterfall, treemap, funnel) should be drawn too; whether an external converter (an office suite behind an HTTP interface) should be offered, behind a setting, for exact slides from one file
 - **Question checked:** 2026-11
 
@@ -32,7 +32,7 @@ How does a presentation become pictures in the album with its notes, from one fi
 
 ## Decision outcome
 
-Chosen option: **3, with 1 kept as the exact way** (the requester's choice of 2026-11-11). Option 1 alone was the first version (#263): exact, but two exports proved too cumbersome. A renderer of our own gives the one step without a dependency, a service or content leaving the browser; where a slide holds what it cannot draw, the import says so and the exported pictures still give exact slides.
+Chosen option: **3, with 1 kept as the exact way** (the requester's choice of 2026-11-11; accepted 2026-11-14 after the implementation in #263, #281 and #326). Option 1 alone was the first version (#263): exact, but two exports proved too cumbersome. A renderer of our own gives the one step without a dependency, a service or content leaving the browser; where a slide holds what it cannot draw, the import says so and the exported pictures still give exact slides.
 
 ### How it works
 
