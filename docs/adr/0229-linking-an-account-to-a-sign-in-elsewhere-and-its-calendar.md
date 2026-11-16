@@ -1,10 +1,10 @@
-# ADR-0229: Linking an existing account to a sign-in at Google, Microsoft or Apple, and showing that account's calendar
+# ADR-0229: Linking an existing account to a sign-in at Google or Microsoft, and showing that account's calendar
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-16
-- **Deciders:** Project initiators (request of 2026-11-16: people shall sign in with Google, and an existing account must be linked to the Google or Microsoft account for that; once one's Google or Apple account is linked, one shall be able to show its calendar)
-- **Open question:** whether two accounts of one person, one of them made at a first sign-in, can ever be merged; whether a sign-in that matches no account should become an account request (ADR-0061) instead of being refused; and whether Apple accepts a sign-in without a form post when only `openid` is asked for, which is assumed below and must be verified against Apple's documentation before Apple is built
+- **Deciders:** Project initiators (request of 2026-11-16: people shall sign in with Google, and an existing account must be linked to the Google or Microsoft account for that; once one's Google or Apple account is linked, one shall be able to show its calendar; accepted on 2026-11-16, with Apple as a sign-in provider left out and the default of new accounts at a first sign-in confirmed as on, both at the requester's choice)
+- **Open question:** whether two accounts of one person, one of them made at a first sign-in, can ever be merged, and whether a sign-in that matches no account should become an account request (ADR-0061) instead of being refused
 - **Question checked:** 2026-11
 
 ## Context and problem statement
@@ -22,9 +22,10 @@ This has three effects that the request runs into:
   An operator who sets `OT_GOOGLE_CLIENT_ID` for calendars turns on sign-in with Google, and with it new accounts at a first sign-in.
 
 The request adds Apple, for which there is no provider yet, and asks that a linked account lead to its calendar.
+Apple is left out of this decision (option 5).
 Signing in and reading a calendar are different grants: Google grants them by separate scopes, and Apple's sign-in grants no access to iCloud data at all; iCloud calendars are read over CalDAV with an app-specific password (ADR-0174).
 
-How does a person tie an identity at Google, Microsoft or Apple to the account they already have, so that only they can do it, and how does that lead to the calendar of the same service?
+How does a person tie an identity at a configured provider to the account they already have, so that only they can do it, and how does that lead to the calendar of the same service?
 
 ## Decision drivers
 
@@ -35,7 +36,7 @@ How does a person tie an identity at Google, Microsoft or Apple to the account t
 - The installation decides whether a sign-in may create accounts at all, as it decides whether it takes account requests (ADR-0061).
 - A calendar grant is the person's own decision and stays revocable on its own (ADR-0174).
   A sign-in must not depend on whether calendars are allowed, nor ask for more than a sign-in needs.
-- No new dependency (AGENTS.md); `go-oidc` and `golang.org/x/oauth2` are already used, and an ES256 signature is in the standard library.
+- No new dependency (AGENTS.md); `go-oidc` and `golang.org/x/oauth2` are already used.
 - One callback address for every provider stays (ADR-0066), so linking needs no new redirect registration.
 
 ## Considered options
@@ -44,10 +45,12 @@ How does a person tie an identity at Google, Microsoft or Apple to the account t
 2. **Automatic linking by a verified e-mail address.**
 3. **An administrator binds an identity to an account.**
 4. **One consent for sign-in and calendar.**
+5. **Apple as a further sign-in provider.**
 
 ## Decision outcome
 
 Chosen option: **1**, because it is the only one in which the person who holds the account also proves they hold the identity (options 2 and 3 each trust a third party for that), and because it keeps the sign-in independent of the calendar, which option 4 does not.
+Apple (option 5) is not added: its sign-in would lead to no calendar, which the request was about, and it costs a paid membership.
 
 - **Linking:** the account page lists the configured providers and, for each, whether the account is linked.
   *Link* starts at `POST /api/me/identities/{provider}` with the current password; an account without a password gives none, but its session must have begun with a sign-in no older than ten minutes.
@@ -71,12 +74,6 @@ Chosen option: **1**, because it is the only one in which the person who holds t
   The setting exists whether a provider is configured or not, so it can be turned off before an operator sets a client.
   Off, such a sign-in is refused (`login_error=unlinked`, audited as `login.failed` with the reason `no linked account`) with a message that says to sign in with the password; once linking is built, it also points to the account page. It says nothing about whether an account exists.
   Its default is *on*, so installations that rely on accounts made at a first sign-in (ADR-0030) keep working.
-- **Apple as a provider:** `OT_APPLE_CLIENT_ID` (a Services ID), `OT_APPLE_TEAM_ID`, `OT_APPLE_KEY_ID` and `OT_APPLE_PRIVATE_KEY` (the PEM of the key Apple issues) add a provider with the issuer `https://appleid.apple.com`.
-  Apple's client secret is a JSON Web Token signed with ES256; the server signs a new one for each token request, valid for five minutes.
-  Only `openid` is asked for, so that Apple returns to the callback by a redirect, as the others do, and the state cookie stays `SameSite=Lax`.
-  This is the assumption named under *Open question*.
-  An account made at a first sign-in with Apple therefore gets a username without a name in it.
-  Apple requires a paid developer membership for a Services ID; that is the operator's choice.
 - **Microsoft** links as Google does, through the Entra ID provider of ADR-0066, which signs in only accounts of one tenant.
   Its calendars are not read through the link: Microsoft Graph is left open by ADR-0174.
 - **The calendar after linking:** when calendars of other services are allowed (`site.Calendars`, ADR-0174), the account page offers next to a linked identity what its service allows.
@@ -85,13 +82,13 @@ Chosen option: **1**, because it is the only one in which the person who holds t
     `GET /api/me/identities` says per provider whether the offer stands (`calendar`): a linked Google identity, while calendars of other services are allowed and Google is set up for them.
     If the person chooses another Google account there, that account's calendars are connected as before; the hint is a proposal, not a constraint.
     The calendar flow asks for `calendar.readonly` only, as before; it does not ask for `openid`, so a connected calendar account does not record the Google subject it belongs to (see below).
-  - Apple: the CalDAV form of ADR-0174 already has the server `https://caldav.icloud.com` filled in and says where Apple issues app-specific passwords.
-    The Apple ID and the app-specific password are entered there; a sign-in with Apple would give neither, so the offer next to an Apple identity waits for Apple as a provider.
+  - Apple: iCloud calendars are connected in the calendar, through the CalDAV form of ADR-0174, which has the server `https://caldav.icloud.com` filled in and says where Apple issues app-specific passwords.
+    The Apple ID and the app-specific password are entered there; no sign-in is needed for it.
   - Removing a link leaves calendar accounts as they are, as the two grants are separate; they are disconnected in the calendar.
     Asking on removal whether the calendar account of the same Google account goes too would need the calendar flow to record the subject, through `openid` and a verified ID token; that is left for later.
 - **Audit:** `identity.link`, `identity.link-refused`, `identity.unlink` (with the actor, the account, the provider's ID and the issuer, never the subject's tokens) and `signin.change`.
 
-**Implementation is Partial:** the setting for new accounts at sign-in, linking with removing links (`internal/auth/identities.go`, `internal/server/api_identities.go`, `assets/identities.js`) and the offer of a linked Google account's calendars (`extcal.Google.BeginFor`) are built; Apple as a provider is not.
+**Implementation is Landed:** the setting for new accounts at sign-in (`site.SignIn`, dbuchs7/orbithek#338), linking with removing links (`internal/auth/identities.go`, `internal/server/api_identities.go`, `assets/identities.js`, dbuchs7/orbithek#342) and the offer of a linked Google account's calendars (`extcal.Google.BeginFor`, dbuchs7/orbithek#346).
 The browser smoke test checks only that the card stays hidden without a provider, as the server under test has none; the flow itself is tested against the fake provider of `sso/ssotest` in `internal/server`.
 - **API and MCP:** the routes above are authenticated; the identity and setting routes change how an account is reached and are not offered over MCP (ADR-0012, `internal/mcp/tools.go`).
 - **UI:** catalogue keys in `en.js` and `de.js`, the account page (*Sign-in with other accounts*) and the user list of the administration, in both manuals.
@@ -106,10 +103,10 @@ The browser smoke test checks only that the card stays hidden without a provider
 - **Negative / trade-offs accepted:** an account made at a first sign-in before linking existed keeps its identity until an administrator removes the link; it is then an account with no way to sign in.
   Merging the two is not decided (*Open question*).
 - **Negative / trade-offs accepted:** the default *on* keeps today's exposure for installations that do not change the setting; the administration page and the start-up warning of ADR-0066 say so.
-- **Negative / trade-offs accepted:** an Apple account's calendar still needs an app-specific password; the link only fills in the server.
+- **Negative / trade-offs accepted:** there is no sign-in with Apple; an iCloud calendar is connected with an app-specific password, as before (ADR-0174).
 - **Negative / trade-offs accepted:** asking Google for `calendar.readonly` remains a sensitive scope; until Google verifies the client, the calendar consent shows Google's warning about an unverified app.
   The sign-in does not, because it never asks for that scope.
-- **Follow-ups / risks to watch:** turning a refused sign-in into an account request (ADR-0061); merging accounts; Microsoft calendars through Graph (ADR-0174); revoking a provider session at sign-out (ADR-0030).
+- **Follow-ups / risks to watch:** turning a refused sign-in into an account request (ADR-0061); merging accounts; Microsoft calendars through Graph (ADR-0174); revoking a provider session at sign-out (ADR-0030); recording which Google account a calendar account belongs to, so that unlinking can offer to disconnect its calendars; Apple as a provider, should a sign-in with Apple be wanted for its own sake, in a decision of its own.
 
 ## Pros and cons of the options
 
@@ -147,6 +144,16 @@ Strongest form: one click and one consent screen give both; one refresh token se
 - Bad: the sign-in would depend on whether an administrator allows calendars, and would ask for more than it needs where they are not allowed.
 - Bad: the provider path of single sign-on would keep a long-lived credential that it does not keep today; withdrawing the calendar would have to keep the sign-in working, and the other way round.
 - Bad: Apple's sign-in grants no calendar access, so it would work for Google only.
+
+### Option 5: Apple as a further sign-in provider
+
+Strongest form: many people hold an Apple ID; a sign-in with Apple needs no password here, Apple hides the person's mail address if they wish, and go-oidc verifies Apple's tokens as any other.
+The requester named Apple beside Google.
+
+- Bad: Apple's sign-in grants no access to iCloud data, so it does not lead to the calendar, which the request was about; iCloud calendars need an app-specific password over CalDAV in any case (ADR-0174), and that works without a sign-in.
+- Bad: a Services ID needs a paid developer membership; the client secret is a token signed with a key Apple issues, which the server must keep and renew.
+- Bad: Apple returns by a form post whenever a name or mail address is asked for; a form post across sites does not carry a `SameSite=Lax` state cookie, so the binding of a started sign-in would have to be weakened or the sign-in kept to `openid` alone, which Apple's documentation would first have to confirm.
+- Good: nothing in this decision closes the way; a provider is added as ADR-0066 added Google.
 
 ## Links
 
