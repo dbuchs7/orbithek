@@ -14,7 +14,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DEPTHS, GROUPS, IMPACT_DEPTHS, IMPACT_DIRECTIONS, around, captionShown, distanceClass, drillBack, drillInto, filter, fitView, groupOf, impactAddress, impactGraph,
-  impactList, impactParams, impactPath, impactSummary, kinds, kindOf, groupRadius, CLOUD_BOTTOM, CLOUD_MARGIN, CLOUD_REACH, cloudPath, cloudReach, layout, roomAddress, startRoom, matches, mergeLabelCounts, neighbourhood, size, nodeRadii, roomClusters, roomLinks, roomHull, roomStart, roomToneOf, toneOf, visible, zoomBand } from "../static/assets/starmap-graph.js";
+  impactList, impactParams, impactPath, impactSummary, kinds, kindOf, groupRadius, CLOUD_BOTTOM, CLOUD_MARGIN, CLOUD_REACH, cloudPath, cloudReach, layout, roomAddress, startRoom, matches, mergeLabelCounts, neighbourhood, size, linkWeight, nodeRadii, ROOM_LINK_WEIGHT, ROOM_TIE_STRENGTH, roomClusters, roomLinks, roomHull, roomStart, roomToneOf, toneOf, visible, zoomBand } from "../static/assets/starmap-graph.js";
 import { DEFAULTS, chargeExact, chargeTree, quadtree, simulation } from "../static/assets/starmap-sim.js";
 
 const graph = {
@@ -457,8 +457,8 @@ test("the clouds of one room are tied together, the first of the room to each ot
     { id: "group:HR/page", kind: "group", space: "HR" },
   ];
   assert.deepEqual(roomLinks(nodes), [
-    { from: "group:OPS/page", to: "group:OPS/task", kind: "room", rest: 43 },
-    { from: "group:OPS/page", to: "group:OPS/note", kind: "room", rest: 43 },
+    { from: "group:OPS/page", to: "group:OPS/task", kind: "room", rest: 43, strength: ROOM_TIE_STRENGTH },
+    { from: "group:OPS/page", to: "group:OPS/note", kind: "room", rest: 43, strength: ROOM_TIE_STRENGTH },
   ]);
   assert.deepEqual(roomLinks(nodes.filter((n) => n.space !== "OPS")), [], "a room with one cloud needs no tie");
 });
@@ -616,4 +616,71 @@ test("a cloud keeps its caption at a middle zoom, as an item does", () => {
   assert.equal(captionShown("far", { kind: "group" }), false);
   assert.equal(captionShown("mid", { kind: "label" }), false, "labels as before");
   assert.equal(captionShown("mid", { kind: "item" }), true, "items as before");
+});
+
+test("a room's tie keeps its strength however many links its clouds have", () => {
+  // Clouds 0 and 1 are tied, and each has eight links to clouds far away
+  // on its own side; with d3's strength the tie weakens to a ninth, with a
+  // fixed one not.
+  const left = Array.from({ length: 8 }, (_, k) => [-600, -280 + 70 * k]), right = left.map(([x, y]) => [-x, y]);
+  const run = (strength) => {
+    const far = [...left, ...right];
+    const x0 = [-30, 30, ...far.map((p) => p[0])], y0 = [0, 0, ...far.map((p) => p[1])];
+    const links = [[0, 1, 50, strength], ...left.map((_, k) => [0, 2 + k]), ...right.map((_, k) => [1, 10 + k])];
+    const sim = simulation({ x0, y0, links, center: { x: 0, y: 0 }, charge: 0, gravity: 0, alpha: 1 });
+    for (let k = 2; k < 18; k++) sim.pin(k);
+    for (let i = 0; i < 600 && sim.tick(); i++);
+    return Math.hypot(sim.x[1] - sim.x[0], sim.y[1] - sim.y[0]);
+  };
+  const weak = run(undefined), firm = run(ROOM_TIE_STRENGTH);
+  assert.ok(firm < weak - 50, `the fixed tie holds its cloud nearer: ${firm.toFixed(0)} against ${weak.toFixed(0)}`);
+});
+
+test("the seeded layout keeps a room's clouds together against many links to other rooms", () => {
+  const nodes = [];
+  for (const space of ["A", "B", "C", "D"]) for (const type of ["page", "task", "note"]) nodes.push({ id: `group:${space}/${type}`, kind: "group", space, type, count: 9 });
+  // Each room's task cloud is linked to every cloud of the other rooms.
+  const edges = [];
+  for (const a of ["A", "B", "C", "D"]) for (const b of ["A", "B", "C", "D"]) if (a < b) for (const type of ["page", "task", "note"]) edges.push({ from: `group:${a}/task`, to: `group:${b}/${type}`, kind: "group", count: 3 });
+  const spread = (ties) => {
+    const at = layout({ nodes, edges: [...edges, ...ties] }, { start: roomStart(nodes, 400) });
+    return Math.max(...["A", "B", "C", "D"].map((r) => { const p = at.get(`group:${r}/page`), q = at.get(`group:${r}/task`); return Math.hypot(p.x - q.x, p.y - q.y); }));
+  };
+  const firm = spread(roomLinks(nodes));
+  const weak = spread(roomLinks(nodes).map(({ strength, ...l }) => l));
+  assert.ok(firm < weak, `stronger ties keep rooms tighter: ${firm.toFixed(0)} against ${weak.toFixed(0)}`);
+});
+
+test("clusters push each other off by a bounded amount", () => {
+  // Two rooms laid wholly on each other, each spread wide: the overlap is
+  // in the hundreds, the push per tick is not.
+  const x0 = [-300, 300, -240, 240], y0 = [0, 0, 60, 60];
+  const step = (alpha) => {
+    const sim = simulation({ x0, y0, radii: [15, 15, 15, 15], clusters: [[0, 1], [2, 3]], clusterGap: 20, center: { x: 0, y: 0 }, charge: 0, gravity: 0, alpha, alphaDecay: 0 });
+    // Neither links nor charge here: the velocities are the push alone.
+    sim.tick();
+    return Math.max(...[0, 1, 2, 3].map((i) => Math.hypot(sim.vx[i], sim.vy[i]) / (1 - DEFAULTS.velocityDecay)));
+  };
+  assert.ok(step(1) <= 0.2 * DEFAULTS.clusterPush + 0.01, "at most a fifth of clusterPush per tick: " + step(1));
+  assert.ok(Math.abs(step(0.001) - step(1)) < 1e-9 && step(1) > 0, "and as much at rest, so rooms part there too");
+});
+
+test("a link between clouds of two rooms pulls weakly, every other link fully", () => {
+  const nodes = [
+    { id: "group:A/page", kind: "group", space: "A" }, { id: "group:A/task", kind: "group", space: "A" },
+    { id: "group:B/page", kind: "group", space: "B" }, { id: "a", kind: "item", space: "A" }, { id: "b", kind: "item", space: "B" },
+  ];
+  const byID = new Map(nodes.map((n) => [n.id, n]));
+  assert.equal(linkWeight({ from: "group:A/page", to: "group:B/page" }, byID), ROOM_LINK_WEIGHT);
+  assert.equal(linkWeight({ from: "group:A/page", to: "group:A/task" }, byID), 1, "within a room");
+  assert.equal(linkWeight({ from: "a", to: "b" }, byID), 1, "items of two rooms on a map of items pull as before");
+});
+
+test("a weighted link pulls by its share of d3's strength", () => {
+  const run = (weight) => {
+    const sim = simulation({ x0: [0, 300], y0: [0, 0], links: [[0, 1, 50, undefined, weight]], center: { x: 0, y: 0 }, charge: 0, gravity: 0, alpha: 1, alphaDecay: 0 });
+    sim.pin(0); sim.tick();
+    return Math.abs(sim.vx[1]);
+  };
+  assert.ok(Math.abs(run(0.1) - run(1) * 0.1) < 1e-9, `a tenth: ${run(0.1)} against ${run(1)}`);
 });

@@ -104,6 +104,25 @@ export function roomToneOf(nodes) {
 // the two clouds side by side. They are not drawn: the layout and the
 // simulation pull a room's clouds together so its outline encloses them
 // alone (ADR-0233).
+// ROOM_TIE_STRENGTH is the fixed strength of a room's tie: in the
+// simulation it is not weakened by the links its clouds have, as d3
+// weakens every other link, and in the seeded layout it pulls this many
+// times as hard as a link (ADR-draft-room-ties-have-a-fixed-strength).
+export const ROOM_TIE_STRENGTH = 1;
+const ROOM_TIE_LAYOUT = 4;
+
+// ROOM_LINK_WEIGHT is how hard a link between clouds of two rooms pulls
+// in the simulation, as a share of a link's usual strength: links between
+// rooms pulled their clouds out of their rooms, against their ties.
+export const ROOM_LINK_WEIGHT = 0.1;
+
+// linkWeight is the weight of a drawn edge in the simulation: an edge
+// between clouds of different rooms ROOM_LINK_WEIGHT, every other 1.
+export function linkWeight(edge, byID) {
+  const a = byID.get(edge.from), b = byID.get(edge.to);
+  return a?.kind === "group" && b?.kind === "group" && a.space !== b.space ? ROOM_LINK_WEIGHT : 1;
+}
+
 export function roomLinks(nodes) {
   const first = new Map();
   const links = [];
@@ -112,7 +131,7 @@ export function roomLinks(nodes) {
     if (!first.has(n.space)) first.set(n.space, n);
     else {
       const f = first.get(n.space);
-      links.push({ from: f.id, to: n.id, kind: "room", rest: Math.round(cloudReach(f.count) + cloudReach(n.count) + 2 * CLOUD_MARGIN + 2) });
+      links.push({ from: f.id, to: n.id, kind: "room", rest: Math.round(cloudReach(f.count) + cloudReach(n.count) + 2 * CLOUD_MARGIN + 2), strength: ROOM_TIE_STRENGTH });
     }
   }
   return links;
@@ -464,7 +483,7 @@ export function layout(graph, { iterations = 300, seed = 0x5EED, start = null } 
   const links = [];
   for (const e of graph.edges) {
     const a = index.get(e.from), b = index.get(e.to);
-    if (a !== undefined && b !== undefined && a !== b) links.push([a, b, e.rest]);
+    if (a !== undefined && b !== undefined && a !== b) links.push([a, b, e.rest, e.strength === undefined ? 1 : ROOM_TIE_LAYOUT * e.strength]);
   }
   const rest = 90;
   const repulsion = 4200;
@@ -485,10 +504,10 @@ export function layout(graph, { iterations = 300, seed = 0x5EED, start = null } 
         dx[j] -= (ux / d) * f; dy[j] -= (uy / d) * f;
       }
     }
-    for (const [a, b, own] of links) {
+    for (const [a, b, own, pull] of links) {
       const ux = x[b] - x[a], uy = y[b] - y[a];
       const d = Math.sqrt(ux * ux + uy * uy) || 0.1;
-      const f = (d - (own ?? rest)) * 0.04;
+      const f = (d - (own ?? rest)) * 0.04 * pull;
       dx[a] += (ux / d) * f; dy[a] += (uy / d) * f;
       dx[b] -= (ux / d) * f; dy[b] -= (uy / d) * f;
     }

@@ -16,7 +16,7 @@ import { h, mount } from "./dom.js";
 import { t } from "./i18n.js";
 import { get } from "./api.js";
 import { DEPTHS, GROUPS, IMPACT_DEPTHS, distanceClass, drillBack, drillInto, fitView, groupOf, impactAddress, impactGraph, impactList, impactParams, impactPath,
-  CLOUD_BOTTOM, cloudPath, cloudReach, groupRadius, impactSummary, kinds, layout, mergeLabelCounts, HULL_PAD, neighbourhood, nodeRadii, ROOM_GAP, roomAddress, roomClusters, roomHull, roomLinks, roomStart, roomToneOf, size, startRoom, toneOf, visible, zoomBand } from "./starmap-graph.js";
+  CLOUD_BOTTOM, cloudPath, cloudReach, groupRadius, impactSummary, kinds, layout, mergeLabelCounts, HULL_PAD, linkWeight, neighbourhood, nodeRadii, ROOM_GAP, roomAddress, roomClusters, roomHull, roomLinks, roomStart, roomToneOf, size, startRoom, toneOf, visible, zoomBand } from "./starmap-graph.js";
 import { DEFAULTS as SIM, simulation } from "./starmap-sim.js";
 
 const NS = "http://www.w3.org/2000/svg";
@@ -179,7 +179,8 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
   const mid = size(n) / 2;
   const sim = simulation({
     x0: graph.nodes.map((node) => at.get(node.id).x), y0: graph.nodes.map((node) => at.get(node.id).y),
-    links: [...graph.edges, ...ties].map((e) => [index.get(e.from), index.get(e.to), e.rest]), center: { x: mid, y: mid }, alpha: 0.6,
+    // Links between rooms pull weakly, so rooms stay whole (ADR-draft-room-ties-have-a-fixed-strength).
+    links: [...graph.edges, ...ties].map((e) => [index.get(e.from), index.get(e.to), e.rest, e.strength, linkWeight(e, byID)]), center: { x: mid, y: mid }, alpha: 0.6,
     // A cloud keeps others off by its own size (ADR-0234).
     radii: nodeRadii(graph.nodes, SIM.radius),
     // Rooms keep apart as wholes, so their outlines do not overlap (ADR-0235).

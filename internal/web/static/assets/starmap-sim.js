@@ -30,6 +30,9 @@ export const DEFAULTS = {
   linkDistance: 70,
   gravity: 0.08,
   radius: 18,
+  // How far two clusters are pushed apart at most per tick, by a fifth of
+  // their overlap up to this (keepApart).
+  clusterPush: 120,
 };
 
 // quadtree builds a Barnes–Hut tree over the points i of active (an array
@@ -205,13 +208,17 @@ export function simulation({ x0, y0, links = [], center = { x: 0, y: 0 }, radii 
   const wire = (linkOn) => {
     const degree = new Float64Array(n);
     const live = [];
-    links.forEach(([a, b, distance], k) => {
+    // A link is [a, b, distance, strength, weight]. One with a strength of
+    // its own keeps it however many links its ends have; every other link
+    // takes d3's strength times its weight (1 if none). Each counts toward
+    // its ends' degree.
+    links.forEach(([a, b, distance, strength, weight], k) => {
       if (a === b || !on[a] || !on[b] || (linkOn && !linkOn(k))) return;
-      live.push([a, b, distance]);
+      live.push([a, b, distance, strength, weight]);
       degree[a]++; degree[b]++;
     });
-    springs = live.map(([a, b, distance]) => ({ a, b, distance: distance ?? o.linkDistance,
-      strength: 1 / Math.min(degree[a], degree[b]), bias: degree[a] / (degree[a] + degree[b]) }));
+    springs = live.map(([a, b, distance, strength, weight = 1]) => ({ a, b, distance: distance ?? o.linkDistance,
+      strength: strength ?? weight / Math.min(degree[a], degree[b]), bias: degree[a] / (degree[a] + degree[b]) }));
   };
   wire();
 
@@ -268,7 +275,7 @@ export function simulation({ x0, y0, links = [], center = { x: 0, y: 0 }, radii 
         vy[i] += fy[i] * alpha + (center.y - y[i]) * o.gravity * alpha;
       }
       collide(sim, o.radius, radii);
-      if (clusters) keepApart(sim, clusters, radii, o.radius, clusterGap);
+      if (clusters) keepApart(sim, clusters, radii, o.radius, clusterGap, o.clusterPush);
       for (const i of active) {
         if (!Number.isNaN(px[i])) { x[i] = px[i]; y[i] = py[i]; vx[i] = 0; vy[i] = 0; continue; }
         vx[i] *= 1 - o.velocityDecay; vy[i] *= 1 - o.velocityDecay;
@@ -298,8 +305,11 @@ export function simulation({ x0, y0, links = [], center = { x: 0, y: 0 }, radii 
 // farthest node's radius beyond it, and two circles closer than their
 // reaches and the gap are pushed apart along the line between their
 // middles, every node of a cluster by the same amount, so a cluster moves
-// without changing its shape. Pinned nodes stay.
-function keepApart(sim, clusters, radii, r, gap) {
+// without changing its shape. Pinned nodes stay. The push is bounded by
+// cap per pair and tick: a room spread wide has a wide circle, and an
+// unbounded push grew with it, flung rooms against their links and spread
+// them further (ADR-draft-room-ties-have-a-fixed-strength).
+function keepApart(sim, clusters, radii, r, gap, cap) {
   const { x, y, vx, vy } = sim;
   const circles = [];
   for (const members of clusters) {
@@ -321,7 +331,7 @@ function keepApart(sim, clusters, radii, r, gap) {
       if (l2 >= min * min) continue;
       if (l2 === 0) { dx = (a % 2 ? 1 : -1) * 0.1; dy = 0.1; l2 = dx * dx + dy * dy; }
       const l = Math.sqrt(l2);
-      const k = ((min - l) / l) * 0.2;
+      const k = (Math.min(min - l, cap) / l) * 0.2;
       // The smaller cluster gives way more, as a lighter body would.
       const wa = B.on.length / (A.on.length + B.on.length), wb = 1 - wa;
       for (const i of A.on) if (!sim.pinned(i)) { vx[i] += dx * k * wa; vy[i] += dy * k * wa; }
