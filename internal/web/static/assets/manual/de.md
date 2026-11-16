@@ -29,7 +29,9 @@ Die Administration der Installation hat in jedem Raum die Rechte der Raumadminis
 
 ### Anmelden
 
-Die Anmeldung erfolgt mit Benutzername und Passwort oder per Single Sign-on, sofern die Organisation es eingerichtet hat. Sind Selbstregistrierungen erlaubt, sendet **Konto beantragen** auf der Anmeldeseite einen Antrag, den die Administration bewilligt. Wird eine Anmeldung per Single Sign-on abgewiesen, weil sie mit keinem Konto hier verknüpft ist, meldet man sich mit dem Passwort an. Bei vergessenem Passwort fordert man einen Link zum Zurücksetzen per E-Mail an; damit wählt man ein neues Passwort, und die übrigen Sitzungen werden beendet.
+Die Anmeldung erfolgt mit Benutzername und Passwort oder per Single Sign-on, sofern die Organisation es eingerichtet hat. Sind Selbstregistrierungen erlaubt, sendet **Konto beantragen** auf der Anmeldeseite einen Antrag, den die Administration bewilligt. Wird eine Anmeldung per Single Sign-on abgewiesen, weil sie mit keinem Konto hier verknüpft ist, meldet man sich mit dem Passwort an.
+
+Um sich mit einem Konto bei einem von der Organisation eingerichteten Anbieter anzumelden, verknüpft man es einmal: unter **Konto** im Abschnitt **Anmeldung mit anderen Konten** das Passwort eingeben und **Verknüpfen** wählen; der Anbieter verlangt die Anmeldung dort und leitet zurück. Danach meldet jenes Konto einen am bestehenden Konto an. **Verknüpfung lösen** beendet die Verknüpfung; ein Konto ohne Passwort behält seinen einzigen Anmeldeweg. Ein Konto beim Anbieter ist mit nur einem Konto hier verknüpft; hat es bereits ein eigenes Konto, entfernt die Administration diese Verknüpfung zuerst in der Benutzerliste unter **Administration**. Bei vergessenem Passwort fordert man einen Link zum Zurücksetzen per E-Mail an; damit wählt man ein neues Passwort, und die übrigen Sitzungen werden beendet.
 
 ### Die obere Leiste
 

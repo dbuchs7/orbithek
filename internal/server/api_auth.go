@@ -60,6 +60,9 @@ type userJSON struct {
 	// Email and Channels are listed to administrators only (ADR-0061).
 	Email    string   `json:"email,omitempty"`
 	Channels []string `json:"channels,omitempty"`
+	// Identities names the sign-in providers the account is linked to,
+	// for administrators only (ADR-0229).
+	Identities []string `json:"identities,omitempty"`
 }
 
 type tokenJSON struct {
@@ -263,6 +266,7 @@ func (h authHandlers) listUsers(w http.ResponseWriter, r *http.Request) {
 		if admin {
 			c := h.d.DB.Accounts.Contacts(u.ID)
 			j.Email, j.Channels = c.Email, c.Channels()
+			j.Identities = oidcHandlers{d: h.d}.providerIDs(u.ID)
 		}
 		out = append(out, j)
 	}

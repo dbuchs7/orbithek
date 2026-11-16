@@ -3887,11 +3887,20 @@ function webSource() {
     await page.waitForSelector("#login-env-help[open] >> text=OT_SMTP_HOST");
     await Promise.all([page.waitForResponse((r) => r.url().endsWith("/api/settings/access") && r.request().method() === "PUT"), page.check("#requests-open")]);
     // Whether a first sign-in with single sign-on creates an account
-    // (ADR-0229): on by default, turned off and on again here.
+    // (ADR-0229): on by default, turned off and on again here. Every change
+    // on this page shows it again; one shown again after a change that came
+    // before can land after the next click and show the earlier state, so
+    // the page is read afresh after each change before the next.
     const signInSaved = () => page.waitForResponse((r) => r.url().endsWith("/api/settings/sign-in") && r.request().method() === "PUT" && r.ok());
-    if (!(await page.isChecked("#signin-new-accounts"))) problems.push("a first sign-in creates no account by default");
+    const signInShown = async (on) => {
+      await page.reload();
+      await page.waitForSelector(on ? "#signin-new-accounts:checked" : "#signin-new-accounts:not(:checked)");
+    };
+    await signInShown(true); // on by default
     await Promise.all([signInSaved(), page.uncheck("#signin-new-accounts")]);
+    await signInShown(false);
     await Promise.all([signInSaved(), page.check("#signin-new-accounts")]);
+    await signInShown(true);
     const guestCtx = await browser.newContext();
     const guest = await guestCtx.newPage();
     guest.on("pageerror", (e) => problems.push("guest page error: " + e.message));
@@ -4251,6 +4260,13 @@ function webSource() {
     await page.click("#new-token button[type=submit]");
     await page.waitForSelector("text=Copy this token now");
     check(/ot_[0-9a-f]{64}/.test(await page.textContent("code")), "the token secret is shown once");
+
+    step("account: sign-in with other accounts is offered only where a provider is set up (ADR-0229)");
+    // The server under test has no sign-in provider: the card stays hidden,
+    // and the way back of a link that went wrong is still told and cleaned.
+    check(await page.isHidden("#identities"), "no sign-in provider, no card to link one");
+    const identities = await page.evaluate(() => fetch("/api/me/identities").then((r) => r.json()));
+    check(Array.isArray(identities.providers) && identities.providers.length === 0 && identities.password === true, "the account's identities are listed without providers");
 
     step("account: a profile picture replaces the initials in the header, and goes again");
     check((await page.getAttribute("#account-button .avatar", "data-initials")) === "A", "without a picture the header shows the initials");
