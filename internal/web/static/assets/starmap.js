@@ -16,8 +16,8 @@ import { h, mount } from "./dom.js";
 import { t } from "./i18n.js";
 import { get } from "./api.js";
 import { DEPTHS, GROUPS, IMPACT_DEPTHS, distanceClass, drillBack, drillInto, fitView, groupOf, impactAddress, impactGraph, impactList, impactParams, impactPath,
-  CLOUD_BOTTOM, cloudPath, groupRadius, impactSummary, kinds, layout, mergeLabelCounts, neighbourhood, roomAddress, roomHull, roomLinks, roomStart, roomToneOf, size, startRoom, toneOf, visible, zoomBand } from "./starmap-graph.js";
-import { simulation } from "./starmap-sim.js";
+  CLOUD_BOTTOM, cloudPath, cloudReach, groupRadius, impactSummary, kinds, layout, mergeLabelCounts, neighbourhood, nodeRadii, roomAddress, roomHull, roomLinks, roomStart, roomToneOf, size, startRoom, toneOf, visible, zoomBand } from "./starmap-graph.js";
+import { DEFAULTS as SIM, simulation } from "./starmap-sim.js";
 
 const NS = "http://www.w3.org/2000/svg";
 
@@ -180,6 +180,8 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
   const sim = simulation({
     x0: graph.nodes.map((node) => at.get(node.id).x), y0: graph.nodes.map((node) => at.get(node.id).y),
     links: [...graph.edges, ...ties].map((e) => [index.get(e.from), index.get(e.to), e.rest]), center: { x: mid, y: mid }, alpha: 0.6,
+    // A cloud keeps others off by its own size (ADR-0234).
+    radii: nodeRadii(graph.nodes, SIM.radius),
   });
 
   // --- the canvas ---
@@ -271,7 +273,7 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
     // A room's outline encloses its shown clouds, when it shows two or more.
     for (const h of hullEls) {
       const circles = h.members.filter((i) => !nodeEls[i].hasAttribute("hidden"))
-        .map((i) => ({ x: x[i], y: y[i], r: groupRadius(graph.nodes[i].count) }));
+        .map((i) => ({ x: x[i], y: y[i], r: cloudReach(graph.nodes[i].count) }));
       if (circles.length > 1) { h.el.setAttribute("d", roomHull(circles)); h.el.removeAttribute("hidden"); }
       else h.el.setAttribute("hidden", "");
     }

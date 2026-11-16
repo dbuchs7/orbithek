@@ -187,7 +187,7 @@ export function chargeTree(x, y, active, fx, fy, { charge = DEFAULTS.charge, cha
 // point the nodes are pulled to. Every node and link takes part until
 // setActive says otherwise. Pinning a node (pin) holds it where it is put
 // while the others move; unpin lets it go.
-export function simulation({ x0, y0, links = [], center = { x: 0, y: 0 }, ...options }) {
+export function simulation({ x0, y0, links = [], center = { x: 0, y: 0 }, radii = null, ...options }) {
   const o = { ...DEFAULTS, ...options };
   const n = x0.length;
   const x = Float64Array.from(x0), y = Float64Array.from(y0);
@@ -267,7 +267,7 @@ export function simulation({ x0, y0, links = [], center = { x: 0, y: 0 }, ...opt
         vx[i] += fx[i] * alpha + (center.x - x[i]) * o.gravity * alpha;
         vy[i] += fy[i] * alpha + (center.y - y[i]) * o.gravity * alpha;
       }
-      collide(sim, o.radius);
+      collide(sim, o.radius, radii);
       for (const i of active) {
         if (!Number.isNaN(px[i])) { x[i] = px[i]; y[i] = py[i]; vx[i] = 0; vy[i] = 0; continue; }
         vx[i] *= 1 - o.velocityDecay; vy[i] *= 1 - o.velocityDecay;
@@ -292,12 +292,14 @@ export function simulation({ x0, y0, links = [], center = { x: 0, y: 0 }, ...opt
   return sim;
 }
 
-// collide keeps active nodes at least two radii apart: overlapping pairs,
-// found through a grid of cells one diameter wide, are pushed apart along
-// the line between them by half the overlap each.
-function collide(sim, r) {
+// collide keeps active nodes at least two radii apart, or, given radii,
+// a node's radius and the other's: overlapping pairs, found through a
+// grid of cells one largest diameter wide, are pushed apart along the line
+// between them by half the overlap each.
+function collide(sim, r, radii = null) {
   const { x, y, vx, vy, active } = sim;
-  const d = 2 * r, d2 = d * d;
+  const reach = radii ? Math.max(r, ...active.map((i) => radii[i])) : r;
+  const d = 2 * reach;
   const grid = new Map();
   const keyOf = (cx, cy) => cx * 65536 + cy;
   for (const i of active) {
@@ -317,10 +319,11 @@ function collide(sim, r) {
           if (j <= i) continue;
           let dx = xi - x[j] - vx[j], dy = yi - y[j] - vy[j];
           let l2 = dx * dx + dy * dy;
-          if (l2 >= d2) continue;
+          const min = radii ? radii[i] + radii[j] : d;
+          if (l2 >= min * min) continue;
           if (l2 === 0) { [dx, dy] = apart(j, i); l2 = dx * dx + dy * dy; }
           const l = Math.sqrt(l2);
-          const k = ((d - l) / l) * 0.35;
+          const k = ((min - l) / l) * 0.35;
           dx *= k; dy *= k;
           const pi = sim.pinned(i), pj = sim.pinned(j);
           const si = pi ? 0 : pj ? 1 : 0.5, sj = pj ? 0 : pi ? 1 : 0.5;

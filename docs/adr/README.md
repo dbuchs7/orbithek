@@ -246,3 +246,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0231](0231-pictures-turned-by-hand.md) | Pictures and drawings turned by hand, and the orientation written into the files given out | Proposed | Partial |
 | [0232](0232-clouds-take-the-tone-of-their-room.md) | The clouds of the starmap of all rooms take the tone of their room | Accepted | Landed |
 | [0233](0233-the-clouds-of-a-room-are-outlined.md) | The clouds of a room lie together and are outlined | Accepted | Landed |
+| [0234](0234-a-cloud-collides-by-its-size.md) | A cloud keeps other nodes off by its own size | Accepted | Landed |
