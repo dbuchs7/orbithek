@@ -1269,6 +1269,16 @@ function webSource() {
     check(modules === "Rooms,Create,Tasks,Today,Comments,Album,Whiteboards,Starmap,AI access,Governance,Account,Administration", "the modules of an administrator: " + modules);
     await page.keyboard.press("Escape");
     await page.waitForSelector("#drawer", { state: "hidden" });
+    // On a low window the list scrolls, so the last module is still reached.
+    const fullSize = page.viewportSize();
+    await page.setViewportSize({ width: fullSize.width, height: 320 });
+    await page.click("#app-switcher");
+    check(await page.evaluate(() => { const l = document.getElementById("drawer-apps"); return l.scrollHeight > l.clientHeight; }), "the modules scroll in a low window");
+    await page.locator("#drawer-apps a:has-text('Administration')").scrollIntoViewIfNeeded();
+    check(await page.evaluate(() => { const r = document.querySelector("#drawer-apps a:last-child").getBoundingClientRect(); return r.bottom <= innerHeight; }), "the last module scrolls into sight");
+    await page.keyboard.press("Escape");
+    await page.waitForSelector("#drawer", { state: "hidden" });
+    await page.setViewportSize(fullSize);
     await page.click("#app-switcher");
     await page.click("#drawer-apps a:has-text('Tasks')");
     await page.waitForSelector("#drawer", { state: "hidden" });
