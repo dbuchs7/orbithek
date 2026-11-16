@@ -841,8 +841,6 @@ function webSource() {
     await page.click("#home-starmap");
     await page.waitForSelector("h1:has-text('Starmap')");
     check(page.url().endsWith("#/starmap"), "the starmap tile leads to the starmap: " + page.url());
-    await page.waitForSelector("#starmap-space");
-    check(await page.inputValue("#starmap-space") === "*", "the starmap opens on every room");
     await page.goBack();
     await page.waitForSelector("#home-starmap");
 
@@ -2821,6 +2819,10 @@ function webSource() {
     await page.waitForSelector("#starmap-panel", { state: "hidden" });
 
     step("starmap of all rooms: every readable item of every room, or a bubble per room and type; a label shown across the rooms (ADR-0191)");
+    // Without a room in the address the starmap opens on every room (ADR-0228).
+    await page.goto(base + "/#/starmap");
+    await page.waitForSelector("#starmap-canvas .star-node");
+    check(await page.inputValue("#starmap-space") === "*", "the starmap opens on every room");
     await page.goto(base + "/#/starmap/*");
     await page.waitForSelector("#starmap-canvas .star-node");
     check(await page.inputValue("#starmap-space") === "*", "the room chooser offers every room");
