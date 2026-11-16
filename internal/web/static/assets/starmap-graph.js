@@ -139,6 +139,19 @@ export function drillInto(trail, id) {
   return seen >= 0 ? trail.slice(0, seen + 1) : [...trail, id];
 }
 
+// startRoom is the room the starmap opens on: the one the address names
+// when one reads it, else every room ("*", ADR-0191, ADR-0228).
+export function startRoom(space, rooms) {
+  return space === "*" || rooms.some((r) => r.key === space) ? space : "*";
+}
+
+// roomAddress is where a double-click on a node leads instead of
+// separating it: a bubble of the starmap of every room opens the map of
+// its room, as its panel's button does; any other node has none (null).
+export function roomAddress(node) {
+  return node.kind === "group" && node.space ? "#/starmap/" + encodeURIComponent(node.space) : null;
+}
+
 // drillBack is the drill path one step back, or back to the station at
 // index to (-1 for the whole room).
 export function drillBack(trail, to = trail.length - 2) {

@@ -2392,7 +2392,7 @@ async function homeView() {
       t("storage.free", { free: sizeText(storage.free), total: sizeText(storage.total), share: storage.total ? Math.round((storage.free * 1000) / storage.total) / 10 : "?" })) : "",
     h("section", { class: "home-tiles", "aria-label": t("home.quick") },
       // The starmap first: one's rooms as a map of connections (ADR-0157);
-      // the view picks the favourite or first room.
+      // the view opens on every room (ADR-0228).
       quick("#/starmap", t("nav.starmap"), t("home.starmapText"), t("home.tip.starmap"), "home-starmap", null, "starmap"),
       // The rooms follow the starmap and lead to their own overview.
       quick("#/spaces", t("spaces.title"), t("home.spacesText", { n: spaces.length }), t("home.tip.spaces"), "home-spaces", null, "spaces"),
