@@ -58,7 +58,7 @@ type videoCloser struct {
 // (ADR-0178); a picture whose place cannot be removed is not given. A
 // picture whose time was set by hand carries that time in its EXIF
 // (ADR-0198), and one turned by hand its orientation
-// (ADR-draft-pictures-turned-by-hand).
+// (ADR-0231).
 func (h itemHandlers) openFor(hidden bool, id item.ID, a item.Attachment) (io.ReadSeekCloser, error) {
 	c, err := h.openWithoutPlace(hidden, id, a)
 	if err != nil || !rewritten(a) {
@@ -95,7 +95,7 @@ func timeWritten(a item.Attachment) bool {
 
 // orientationWritten reports whether a file is given with the
 // orientation set by hand written into it
-// (ADR-draft-pictures-turned-by-hand): a picture whose EXIF the server
+// (ADR-0231): a picture whose EXIF the server
 // writes (JPEG, PNG, WebP). A GIF tells no orientation and is given as it
 // is stored.
 func orientationWritten(a item.Attachment) bool {
@@ -141,7 +141,7 @@ func (h itemHandlers) openWithoutPlace(hidden bool, id item.ID, a item.Attachmen
 // givenSHA is the SHA-256 of a stored picture as the caller is given it:
 // the content of a copy made by a reader from whom its uploader keeps the
 // place (ADR-0178), or of a picture whose time was set by hand (ADR-0198)
-// or which was turned by hand (ADR-draft-pictures-turned-by-hand).
+// or which was turned by hand (ADR-0231).
 func (h itemHandlers) givenSHA(hidden bool, id item.ID, a item.Attachment) (string, error) {
 	c, err := h.openFor(hidden, id, a)
 	if err != nil {
@@ -158,7 +158,7 @@ func (h itemHandlers) givenSHA(hidden bool, id item.ID, a item.Attachment) (stri
 // markCopyAsGiven tells the item model that an uploaded copy is its
 // source as the caller is given it — without the place its uploader keeps
 // from them (ADR-0178), or with the time (ADR-0198) or the orientation
-// (ADR-draft-pictures-turned-by-hand) set by hand written into it — when
+// (ADR-0231) set by hand written into it — when
 // the server finds the copy's content to be exactly that.
 func (h itemHandlers) markCopyAsGiven(r *http.Request, id item.ID, a *item.Attachment) {
 	if a.Source == nil || a.Source.Item == id {

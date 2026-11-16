@@ -381,7 +381,7 @@ func (x *Session) AddAttachment(id ID, a Attachment) (Attachment, error) {
 			a.Photo = &p
 		}
 		// A copy takes over a turn by hand on its original
-		// (ADR-draft-pictures-turned-by-hand): its file, as given or as
+		// (ADR-0231): its file, as given or as
 		// stored, is shown as the original is.
 		if from.Photo != nil && from.Photo.OrientationManual {
 			var p Photo

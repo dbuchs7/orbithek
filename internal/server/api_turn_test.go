@@ -29,7 +29,7 @@ func thumbSize(t *testing.T, body []byte) (int, int) {
 // given out tells the orientation in its EXIF, while the stored file stays
 // as it was; turned back, the download is the stored file again; a reader
 // may not turn it, nor is a file that is no picture turned
-// (ADR-draft-pictures-turned-by-hand).
+// (ADR-0231).
 func TestAPictureTurnedThroughTheAPI(t *testing.T) {
 	w := newPhotoWorld(t)
 	original := exifJPEG(t, "2024:05:01 13:22:10", 0, 0, 64) // 64 × 32
@@ -97,7 +97,7 @@ func TestAPictureTurnedThroughTheAPI(t *testing.T) {
 
 // TestACopyOfAPictureTurnedByHand: a copy uploaded as it was downloaded,
 // with the orientation written into it, is taken as a copy and is shown
-// turned as its original is (ADR-draft-pictures-turned-by-hand).
+// turned as its original is (ADR-0231).
 func TestACopyOfAPictureTurnedByHand(t *testing.T) {
 	w := newPhotoWorld(t)
 	lake := w.put(t, "lake.jpg", exifJPEG(t, "2024:05:01 13:22:10", 0, 0, 64))

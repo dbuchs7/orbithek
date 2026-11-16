@@ -17,7 +17,7 @@ import { turnTag, withTag } from "./photoparts.js";
 const MODELS = "/vendor/face-models";
 const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
 // A picture turned by hand is searched as it is turned now
-// (ADR-draft-pictures-turned-by-hand).
+// (ADR-0231).
 const thumbURL = (p, edge) => withTag(`${fileURL(p)}/thumbnail?edge=${edge}`, turnTag(p.attachment?.photo));
 
 // recognition says whether administrators turned recognition on, asked

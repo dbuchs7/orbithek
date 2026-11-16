@@ -45,7 +45,7 @@ type Photo struct {
 	Width       int `json:"width,omitempty"`
 	Height      int `json:"height,omitempty"`
 	// OrientationManual says the picture was turned by hand
-	// (ADR-draft-pictures-turned-by-hand), so Orientation, not the file's
+	// (ADR-0231), so Orientation, not the file's
 	// own, counts: every file given out carries it in its EXIF.
 	OrientationManual bool `json:"orientationManual,omitempty"`
 	// PlacePrivate keeps the place to the one who added the picture
@@ -189,12 +189,12 @@ func timeWritten(a Attachment) bool { return a.Photo != nil && a.Photo.TakenManu
 
 // orientationWritten reports whether every file given out of a picture
 // carries an orientation set by hand in its EXIF rather than the file's
-// own (ADR-draft-pictures-turned-by-hand).
+// own (ADR-0231).
 func orientationWritten(a Attachment) bool { return a.Photo != nil && a.Photo.OrientationManual }
 
 // fileAsGiven reports whether who gets a file other than as it is stored:
 // without its place (ADR-0178, ADR-0181), with a time set by hand
-// (ADR-0198) or turned by hand (ADR-draft-pictures-turned-by-hand).
+// (ADR-0198) or turned by hand (ADR-0231).
 func fileAsGiven(who string, a Attachment) bool {
 	return fileWithoutPlace(who, a) || timeWritten(a) || orientationWritten(a)
 }
@@ -361,7 +361,7 @@ func (x *Session) SetTaken(id, attachment ID, taken, offset string, file *Photo)
 
 // Turn turns a picture by quarter turns as it is shown: clockwise for 1,
 // counter-clockwise for -1, upside down for 2
-// (ADR-draft-pictures-turned-by-hand). Who may edit the picture's item
+// (ADR-0231). Who may edit the picture's item
 // may. file is the photo data the server read from the stored file: the
 // orientation it tells, and everything else for a picture stored before
 // photo data was recorded. A picture turned back to the orientation its

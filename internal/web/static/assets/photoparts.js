@@ -354,7 +354,7 @@ export function shiftTaken(taken, minutes) {
 }
 
 // turnTag is what the address of a picture's thumbnail or file adds once
-// it was turned by hand (ADR-draft-pictures-turned-by-hand): its
+// it was turned by hand (ADR-0231): its
 // orientation, so the browser asks for the picture as it is turned now
 // and does not show its copy of the picture as it was. A picture not
 // turned by hand adds nothing.

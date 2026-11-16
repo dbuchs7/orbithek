@@ -586,7 +586,7 @@ export function albumBrowser({ pick, pickText } = {}) {
   };
 
   // refreshThumb shows a picture's card with its thumbnail as it is now,
-  // after it was turned by hand (ADR-draft-pictures-turned-by-hand).
+  // after it was turned by hand (ADR-0231).
   const refreshThumb = (p) => {
     for (const img of root.querySelectorAll(`li[data-attachment="${p.attachment.id}"] .album-thumb img:not(.album-behind)`)) img.src = thumbURL(p);
   };
@@ -1414,7 +1414,7 @@ export function albumBrowser({ pick, pickText } = {}) {
     if (done) refresh();
   };
   // turnAll turns every chosen picture one may edit by a quarter turn
-  // (ADR-draft-pictures-turned-by-hand); videos and entries of a file
+  // (ADR-0231); videos and entries of a file
   // share are left as they are.
   const turnAll = async (by) => {
     await together("photos.turnedMany", async (p) => {
@@ -1470,7 +1470,7 @@ export function albumBrowser({ pick, pickText } = {}) {
         } })),
       // One time, or one shift, for every chosen picture (ADR-0198).
       h("button", { type: "button", class: "secondary", id: "album-bulk-time", disabled: !any, text: t("photos.timeBulk"), onclick: timeAll }),
-      // A quarter turn for every chosen picture (ADR-draft-pictures-turned-by-hand).
+      // A quarter turn for every chosen picture (ADR-0231).
       h("span", { class: "album-bulk-group album-bulk-turn" },
         h("button", { type: "button", class: "secondary", id: "album-bulk-turn-left", disabled: !any, title: t("photos.turnLeftTitle"), onclick: () => turnAll(-1) },
           h("span", { "aria-hidden": "true", text: "↺" }), " ", t("photos.turnBulkLeft")),

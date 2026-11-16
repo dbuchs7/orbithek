@@ -1656,7 +1656,7 @@ func takenLog(t *testing.T) []Event {
 // turnLog turns a photo with a face on it by hand and back to the
 // orientation its file tells, so the golden files pin the kind
 // AttachmentTurned and the photo data's OrientationManual
-// (ADR-draft-pictures-turned-by-hand).
+// (ADR-0231).
 func turnLog(t *testing.T) []Event {
 	s := setup(t)
 	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))

@@ -3,7 +3,7 @@
 // clusters and zoom, the timeline's groups, choosing a range, what a
 // picture dragged onto a folder takes with it, where a folder may be moved
 // (ADR-0200), where pictures dropped
-// among others go in the order of slides (ADR-0195), which files the album takes, the times set by hand (ADR-0198), pictures turned by hand (ADR-draft-pictures-turned-by-hand), and reading ZIP archives exported from photo apps.
+// among others go in the order of slides (ADR-0195), which files the album takes, the times set by hand (ADR-0198), pictures turned by hand (ADR-0231), and reading ZIP archives exported from photo apps.
 // They run in Node.js without a browser and without dependencies:
 //
 //   node --test "internal/web/jstest/*.test.mjs"

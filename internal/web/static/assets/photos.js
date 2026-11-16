@@ -18,7 +18,7 @@ import { timeFields } from "./phototime.js";
 
 export const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
 // A picture turned by hand is asked for as it is turned now
-// (ADR-draft-pictures-turned-by-hand).
+// (ADR-0231).
 export const thumbURL = (p, edge = 400) => withTag(`${fileURL(p)}/thumbnail?edge=${edge}`, turnTag(p.attachment?.photo));
 
 // turnPicture turns a picture a quarter turn clockwise (1) or
@@ -227,7 +227,7 @@ export function openViewer(list, index, changed = () => {}) {
           } }) : null));
     };
     // Who may edit the picture turns it by quarter turns
-    // (ADR-draft-pictures-turned-by-hand); it is shown again as turned.
+    // (ADR-0231); it is shown again as turned.
     const turnFail = (err) => info.append(h("p", { class: "error", role: "alert", text: err.message }));
     const turnButton = (by, id, label, title, symbol) => h("button", { type: "button", class: "secondary photo-turn", id, title, "aria-label": title,
       onclick: async () => {
@@ -246,7 +246,7 @@ export function openViewer(list, index, changed = () => {}) {
       h("a", { class: "button secondary", id: "photo-download", href: fileURL(p), download: p.attachment.name, text: t("photos.original"),
         // A file whose time was set by hand, or which was turned by hand,
         // is fetched anew, not from the browser's cache (ADR-0198,
-        // ADR-draft-pictures-turned-by-hand).
+        // ADR-0231).
         onclick: (e) => {
           let href = fileURL(p);
           if (photo?.takenManual) href = `${href}?taken=${encodeURIComponent(photo.taken + (photo.offset || ""))}`;

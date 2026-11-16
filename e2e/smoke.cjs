@@ -2162,7 +2162,7 @@ function webSource() {
     await page.click("#photo-time-reset");
     await page.waitForSelector("#photo-time-reset", { state: "detached" });
     // A quarter turn by hand shows the picture turned, and back again
-    // (ADR-draft-pictures-turned-by-hand).
+    // (ADR-0231).
     const viewerSrc = () => page.getAttribute("dialog.photo-viewer .photo-viewer-img", "src");
     await page.click("#photo-turn-right");
     await page.waitForFunction(() => document.querySelector("dialog.photo-viewer .photo-facts")?.textContent.includes("turned by hand"));
@@ -2185,7 +2185,7 @@ function webSource() {
     await page.click("#album-time-ok");
     await page.waitForSelector("dialog.photo-time-dialog", { state: "detached" });
     await page.waitForFunction(() => /Time set for \d+ pictures?\./.test(document.querySelector("#album")?.textContent || ""));
-    // The chosen pictures are turned and turned back (ADR-draft-pictures-turned-by-hand).
+    // The chosen pictures are turned and turned back (ADR-0231).
     await page.click("#album-bulk-turn-right");
     await page.waitForFunction(() => /\d+ pictures? turned\./.test(document.querySelector("#album")?.textContent || ""));
     check(await page.locator("#album .album-thumb img[src*='o=']").count() > 0, "the cards of turned pictures show them turned");

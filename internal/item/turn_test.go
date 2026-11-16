@@ -10,7 +10,7 @@ import (
 // quarter turns, and the photo data say how it is shown; turned back to the
 // orientation its file tells, it is no longer turned by hand; the rest of
 // the photo data stays; who may only read may not turn it, and other turns
-// are refused (ADR-draft-pictures-turned-by-hand).
+// are refused (ADR-0231).
 func TestAPictureTurnedByHand(t *testing.T) {
 	s := setup(t)
 	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))

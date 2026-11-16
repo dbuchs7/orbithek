@@ -25,7 +25,7 @@ var orientationOf = [2][4]int{{1, 6, 3, 8}, {2, 7, 4, 5}}
 
 // Turned is the EXIF orientation that shows a picture of orientation o as
 // it is shown upright, turned by quarters quarter turns clockwise, or
-// counter-clockwise when negative (ADR-draft-pictures-turned-by-hand). A picture that tells
+// counter-clockwise when negative (ADR-0231). A picture that tells
 // no orientation, or one no EXIF writes, is read as upright.
 func Turned(o, quarters int) int {
 	if o < 1 || o > 8 {
@@ -36,7 +36,7 @@ func Turned(o, quarters int) int {
 }
 
 // SetOrientation writes a picture's EXIF orientation, 1 to 8, into IFD0
-// (ADR-draft-pictures-turned-by-hand): an orientation IFD0 holds is set where it is, and an
+// (ADR-0231): an orientation IFD0 holds is set where it is, and an
 // IFD0 without one is written again after the TIFF structure with it; a
 // picture without EXIF is given EXIF that tells its orientation. It works
 // as SetTaken does, on the whole file in memory, in JPEG, PNG and WebP,

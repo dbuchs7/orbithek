@@ -188,7 +188,7 @@ import (
 //     Versions 1 to 60 are still read; their bodies play no sound.
 //   - 62: photo data may carry OrientationManual, a picture turned by
 //     hand, and the kind AttachmentTurned with attachment, sealed
-//     (ADR-draft-pictures-turned-by-hand). Versions 1 to 61 are still
+//     (ADR-0231). Versions 1 to 61 are still
 //     read; their pictures are shown as their files tell.
 const CodecVersion = 62
 

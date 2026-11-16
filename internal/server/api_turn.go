@@ -6,7 +6,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/item"
 )
 
-// Pictures turned by hand (ADR-draft-pictures-turned-by-hand): a picture
+// Pictures turned by hand (ADR-0231): a picture
 // or drawing is turned by quarter turns by its item's editors. Its
 // thumbnails are made turned, and every JPEG, PNG and WebP given out of it
 // carries the orientation in its EXIF (openFor); the stored file is never

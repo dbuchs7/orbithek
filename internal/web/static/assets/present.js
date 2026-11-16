@@ -22,7 +22,7 @@ import {
 
 const fileURL = (s) => `/api/items/${s.item.id}/attachments/${s.attachment.id}`;
 // pictureURL is a picture slide's file, asked for as it is turned now
-// (ADR-draft-pictures-turned-by-hand).
+// (ADR-0231).
 const pictureURL = (s) => (s.turn ? `${fileURL(s)}?o=${s.turn}` : fileURL(s));
 // posterURL is the picture of a video slide shown until it plays (ADR-0192).
 const posterURL = (s) => `${fileURL(s)}/thumbnail?edge=1600`;

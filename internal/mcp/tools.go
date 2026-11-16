@@ -179,7 +179,7 @@ var (
 // photo was taken by hand (ADR-0198) is not offered either: it changes
 // every file of the picture given out, and an agent that cannot list the
 // album would date pictures it never saw. Nor is turning a picture by hand
-// (ADR-draft-pictures-turned-by-hand), for the same reasons: it changes
+// (ADR-0231), for the same reasons: it changes
 // every file of the picture given out, and an agent would turn pictures it
 // never saw.
 //

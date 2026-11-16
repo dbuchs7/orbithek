@@ -183,7 +183,7 @@ func (h itemHandlers) thumbnail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// A picture turned by hand is another thumbnail
-	// (ADR-draft-pictures-turned-by-hand); the album asks for it by its
+	// (ADR-0231); the album asks for it by its
 	// orientation, so the browser's copy of the former is not shown.
 	turn := ""
 	if a.Photo != nil && a.Photo.OrientationManual {

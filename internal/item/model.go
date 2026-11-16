@@ -504,7 +504,7 @@ const (
 	// they are afterwards.
 	AttachmentTakenSet EventKind = "AttachmentTakenSet"
 	// AttachmentTurned turns a picture by hand, or back to the orientation
-	// its file tells (ADR-draft-pictures-turned-by-hand): it carries the
+	// its file tells (ADR-0231): it carries the
 	// photo data as they are afterwards.
 	AttachmentTurned EventKind = "AttachmentTurned"
 	// AttachmentLinked records a file of a file share as an entry of an

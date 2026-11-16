@@ -12,7 +12,7 @@ import (
 // TestTurnedComposesQuarterTurns: a picture's orientation turned by quarter
 // turns is the orientation that shows it upright and then turned that far,
 // mirrored ones included; four turns, or none, give it back, and a picture
-// that tells no orientation is read as upright (ADR-draft-pictures-turned-by-hand).
+// that tells no orientation is read as upright (ADR-0231).
 func TestTurnedComposesQuarterTurns(t *testing.T) {
 	cases := []struct{ o, q, want int }{
 		{0, 0, 1}, {0, 1, 6}, {1, 1, 6}, {6, 1, 3}, {3, 1, 8}, {8, 1, 1},
