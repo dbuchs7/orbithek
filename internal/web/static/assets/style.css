@@ -2933,3 +2933,9 @@ dialog.palette::backdrop { background: rgba(20, 22, 26, .45); }
 .album-share-symbol::after { content: ""; position: absolute; left: 14px; top: 12px; width: 28px; height: 20px; border: 2px solid var(--surface); border-radius: 3px; }
 .photo-viewer-absent { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 240px; text-align: center; }
 .photo-viewer-absent[hidden] { display: none; }
+
+/* Sign-in with other accounts (ADR-0229): one row per provider, the
+   password beside the button that links it. */
+.identity-list { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 8px; }
+.identity-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.identity-link-form { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; }
