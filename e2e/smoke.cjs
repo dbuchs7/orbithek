@@ -821,6 +821,9 @@ function webSource() {
     check(await page.locator(".home-tiles a").count() === 9, "nine quick accesses, the rooms, one's day, one's notes, the starmap and the whiteboards among them");
     check(await page.getAttribute("#home-whiteboards", "href") === "#/whiteboards", "a quick access leads to the whiteboards (ADR-0169)");
     check(await page.locator(".home-tiles a .module-icon svg").count() === 9, "each quick access wears the symbol of its module on the station");
+    const tileTips = await page.locator(".home-tiles a").evaluateAll((tiles) => tiles.map((a) => a.title));
+    check(tileTips.length === 9 && tileTips.every((tip) => tip.length > 40 && !tip.startsWith("home.")) && new Set(tileTips).size === 9,
+      "each quick access says on hover what it offers, in a text of its own");
     check(await page.getAttribute(".home-tiles a:first-child", "id") === "home-starmap" && await page.getAttribute("#home-starmap", "href") === "#/starmap"
       && await page.locator("#home-starmap .module-icon.module-starmap").count() === 1, "the starmap is the first quick access, with its module's symbol");
     // The rooms follow the starmap and lead to their own overview.
