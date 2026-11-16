@@ -14,7 +14,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DEPTHS, GROUPS, IMPACT_DEPTHS, IMPACT_DIRECTIONS, around, captionShown, distanceClass, drillBack, drillInto, filter, fitView, groupOf, impactAddress, impactGraph,
-  impactList, impactParams, impactPath, impactSummary, kinds, kindOf, groupRadius, CLOUD_BOTTOM, cloudPath, layout, roomAddress, startRoom, matches, mergeLabelCounts, neighbourhood, size, roomToneOf, toneOf, visible, zoomBand } from "../static/assets/starmap-graph.js";
+  impactList, impactParams, impactPath, impactSummary, kinds, kindOf, groupRadius, CLOUD_BOTTOM, cloudPath, layout, roomAddress, startRoom, matches, mergeLabelCounts, neighbourhood, size, roomLinks, roomHull, roomStart, roomToneOf, toneOf, visible, zoomBand } from "../static/assets/starmap-graph.js";
 import { DEFAULTS, chargeExact, chargeTree, quadtree, simulation } from "../static/assets/starmap-sim.js";
 
 const graph = {
@@ -445,4 +445,74 @@ test("the clouds of one room share a tone, rooms in the order of their keys", ()
   const many = Array.from({ length: 8 }, (_, i) => ({ id: "group:R" + i + "/page", kind: "group", space: "R" + i, type: "page", count: 1 }));
   const manyTone = roomToneOf(many);
   assert.deepEqual(many.map((n) => manyTone(n.space)), [0, 1, 2, 3, 4, 5, 0, 1], "beyond six rooms the tones repeat");
+});
+
+test("the clouds of one room are tied together, the first of the room to each other", () => {
+  const nodes = [
+    { id: "group:OPS/page", kind: "group", space: "OPS" },
+    { id: "group:API/page", kind: "group", space: "API" },
+    { id: "group:OPS/task", kind: "group", space: "OPS" },
+    { id: "label:x", kind: "label", name: "x" },
+    { id: "group:OPS/note", kind: "group", space: "OPS" },
+    { id: "group:HR/page", kind: "group", space: "HR" },
+  ];
+  assert.deepEqual(roomLinks(nodes), [
+    { from: "group:OPS/page", to: "group:OPS/task", kind: "room", rest: 30 },
+    { from: "group:OPS/page", to: "group:OPS/note", kind: "room", rest: 30 },
+  ]);
+  assert.deepEqual(roomLinks(nodes.filter((n) => n.space !== "OPS")), [], "a room with one cloud needs no tie");
+});
+
+test("a room's outline encloses its clouds with a margin", () => {
+  assert.equal(roomHull([]), "", "no clouds, no outline");
+  const circles = [{ x: 100, y: 100, r: 20 }, { x: 220, y: 140, r: 35 }, { x: 150, y: 230, r: 15 }];
+  const d = roomHull(circles, 12);
+  assert.match(d, /^M[-\d.]+ [-\d.]+(L[-\d.]+ [-\d.]+)+Z$/, d);
+  const pts = d.slice(1, -1).split("L").map((p) => p.split(" ").map(Number));
+  assert.ok(pts.length >= 3);
+  // Convex and counter-clockwise or clockwise throughout: every point of
+  // every cloud's margin lies on the inner side of every edge.
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const sign = Math.sign(cross(pts[0], pts[1], pts[2]));
+  for (const c of circles) for (let k = 0; k < 8; k++) {
+    const q = [c.x + (c.r + 11) * Math.cos(k * Math.PI / 4), c.y + (c.r + 11) * Math.sin(k * Math.PI / 4)];
+    for (let i = 0; i < pts.length; i++) {
+      const v = cross(pts[i], pts[(i + 1) % pts.length], q);
+      assert.ok(v === 0 || Math.sign(v) === sign, `(${q}) lies inside the outline`);
+    }
+  }
+  assert.equal(roomHull(circles, 12), d, "the same clouds draw the same outline");
+  assert.match(roomHull([{ x: 50, y: 60, r: 10 }], 5), /^M/, "one cloud gets a ring");
+});
+
+test("the clouds of one room start together, each room around a centre of its own", () => {
+  const nodes = [];
+  for (const space of ["OPS", "HR", "API", "FIN"]) for (const type of ["page", "task"]) nodes.push({ id: `group:${space}/${type}`, kind: "group", space, type, count: 5 });
+  nodes.push({ id: "label:x", kind: "label", name: "x" });
+  const start = roomStart(nodes, 400);
+  assert.equal(start.size, 8, "every cloud has a start, nothing else");
+  const d = (a, b) => Math.hypot(start.get(a).x - start.get(b).x, start.get(a).y - start.get(b).y);
+  for (const space of ["OPS", "HR", "API", "FIN"]) for (const other of ["OPS", "HR", "API", "FIN"]) {
+    if (space === other) continue;
+    assert.ok(d(`group:${space}/page`, `group:${space}/task`) < d(`group:${space}/page`, `group:${other}/page`),
+      `${space}'s clouds start nearer each other than to ${other}'s`);
+  }
+  assert.deepEqual(roomStart(nodes, 400), start, "the same map starts the same");
+  // The seeded layout keeps a room's clouds together.
+  const graph = { nodes, edges: roomLinks(nodes) };
+  const at = layout(graph, { start });
+  const dl = (a, b) => Math.hypot(at.get(a).x - at.get(b).x, at.get(a).y - at.get(b).y);
+  for (const space of ["OPS", "HR", "API", "FIN"]) for (const other of ["OPS", "HR", "API", "FIN"]) {
+    if (space === other) continue;
+    assert.ok(dl(`group:${space}/page`, `group:${space}/task`) < dl(`group:${space}/page`, `group:${other}/task`),
+      `after the layout ${space}'s clouds lie nearer each other than to ${other}'s`);
+  }
+});
+
+test("a link of the simulation may rest at a length of its own", () => {
+  const sim = simulation({ x0: [0, 300, 600, 900], y0: [0, 0, 0, 0], links: [[0, 1], [2, 3, 50]], center: { x: 450, y: 0 }, charge: 0, gravity: 0, alpha: 1 });
+  for (let i = 0; i < 600 && sim.tick(); i++);
+  const d = (a, b) => Math.hypot(sim.x[a] - sim.x[b], sim.y[a] - sim.y[b]);
+  assert.ok(Math.abs(d(0, 1) - DEFAULTS.linkDistance) < 3, "the default rest: " + d(0, 1));
+  assert.ok(Math.abs(d(2, 3) - 50) < 3, "its own rest: " + d(2, 3));
 });

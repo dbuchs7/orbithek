@@ -99,6 +99,71 @@ export function roomToneOf(nodes) {
   return (space) => Math.max(0, rooms.indexOf(space)) % 6;
 }
 
+// roomLinks ties the clouds of each room together, the room's first
+// cloud to each of the others, as edges of the kind room whose rest is
+// the two clouds side by side. They are not drawn: the layout and the
+// simulation pull a room's clouds together so its outline encloses them
+// alone (ADR-0233).
+export function roomLinks(nodes) {
+  const first = new Map();
+  const links = [];
+  for (const n of nodes) {
+    if (n.kind !== "group") continue;
+    if (!first.has(n.space)) first.set(n.space, n);
+    else {
+      const f = first.get(n.space);
+      links.push({ from: f.id, to: n.id, kind: "room", rest: Math.round(groupRadius(f.count) + groupRadius(n.count) + 8) });
+    }
+  }
+  return links;
+}
+
+// roomStart is where the clouds of the starmap of all rooms start the
+// layout: each room around a centre of its own, the centres on a spiral
+// round mid in the order of the rooms' keys, so a room's clouds start
+// together and its outline does not cross another's.
+export function roomStart(nodes, mid) {
+  const rooms = new Map();
+  for (const n of nodes) if (n.kind === "group") (rooms.get(n.space) || rooms.set(n.space, []).get(n.space)).push(n.id);
+  const start = new Map();
+  [...rooms.keys()].sort().forEach((space, k) => {
+    const angle = k * 2.399963, r = k ? 160 * Math.sqrt(k) : 0;
+    const cx = mid + r * Math.cos(angle), cy = mid + r * Math.sin(angle);
+    const ids = rooms.get(space);
+    ids.forEach((id, j) => {
+      const a = (j * 2 * Math.PI) / ids.length, rr = ids.length > 1 ? 45 : 0;
+      start.set(id, { x: cx + rr * Math.cos(a), y: cy + rr * Math.sin(a) });
+    });
+  });
+  return start;
+}
+
+// roomHull is the SVG path of a room's outline: the convex hull of its
+// clouds' circles, each widened by pad, sampled at sixteen points; empty
+// when the room shows no cloud.
+export function roomHull(circles, pad = 14) {
+  if (!circles.length) return "";
+  const pts = [];
+  for (const c of circles) for (let k = 0; k < 16; k++) {
+    const a = (k * Math.PI) / 8;
+    pts.push([c.x + (c.r + pad) * Math.cos(a), c.y + (c.r + pad) * Math.sin(a)]);
+  }
+  pts.sort((p, q) => p[0] - q[0] || p[1] - q[1]);
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const half = (list) => {
+    const h = [];
+    for (const p of list) {
+      while (h.length >= 2 && cross(h[h.length - 2], h[h.length - 1], p) <= 0) h.pop();
+      h.push(p);
+    }
+    h.pop();
+    return h;
+  };
+  const hull = [...half(pts), ...half([...pts].reverse())];
+  const r1 = (v) => Math.round(v * 10) / 10;
+  return "M" + hull.map(([x, y]) => `${r1(x)} ${r1(y)}`).join("L") + "Z";
+}
+
 const fold = (s) => String(s || "").normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase();
 
 // matches reports whether a node holds every word of the query in its
@@ -335,7 +400,7 @@ export function size(n) {
 // a spiral in the map's order with a seeded jitter, and the steps are
 // fixed, so the result depends on the map alone. It returns a Map of id to
 // {x, y}, rounded to tenths.
-export function layout(graph, { iterations = 300, seed = 0x5EED } = {}) {
+export function layout(graph, { iterations = 300, seed = 0x5EED, start = null } = {}) {
   const n = graph.nodes.length;
   const side = size(n);
   const mid = side / 2;
@@ -347,11 +412,15 @@ export function layout(graph, { iterations = 300, seed = 0x5EED } = {}) {
     const r = 18 * Math.sqrt(i + 1);
     x[i] = mid + r * Math.cos(angle) + (random() - 0.5) * 4;
     y[i] = mid + r * Math.sin(angle) + (random() - 0.5) * 4;
+    // A given start (the clouds of a room, roomStart) takes the place of
+    // the spiral's.
+    const at = start?.get(graph.nodes[i].id);
+    if (at) { x[i] = at.x; y[i] = at.y; }
   }
   const links = [];
   for (const e of graph.edges) {
     const a = index.get(e.from), b = index.get(e.to);
-    if (a !== undefined && b !== undefined && a !== b) links.push([a, b]);
+    if (a !== undefined && b !== undefined && a !== b) links.push([a, b, e.rest]);
   }
   const rest = 90;
   const repulsion = 4200;
@@ -372,10 +441,10 @@ export function layout(graph, { iterations = 300, seed = 0x5EED } = {}) {
         dx[j] -= (ux / d) * f; dy[j] -= (uy / d) * f;
       }
     }
-    for (const [a, b] of links) {
+    for (const [a, b, own] of links) {
       const ux = x[b] - x[a], uy = y[b] - y[a];
       const d = Math.sqrt(ux * ux + uy * uy) || 0.1;
-      const f = (d - rest) * 0.04;
+      const f = (d - (own ?? rest)) * 0.04;
       dx[a] += (ux / d) * f; dy[a] += (uy / d) * f;
       dx[b] -= (ux / d) * f; dy[b] -= (uy / d) * f;
     }

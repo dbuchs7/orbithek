@@ -2851,6 +2851,15 @@ function webSource() {
         [el.dataset.id.replace(/^group:/, "").split("/")[0], [...el.classList].find((c) => c.startsWith("tone-"))]));
       const toneOfRoom = new Map();
       check(tones.every(([room, t]) => t && (toneOfRoom.get(room) ?? (toneOfRoom.set(room, t), t)) === t), "the clouds of one room share a tone: " + JSON.stringify(tones));
+      // Every room with two clouds or more has one outline in its tone (ADR-0233).
+      await page.waitForSelector("#starmap-canvas[data-settled=true]");
+      const clouds = new Map();
+      for (const [room] of tones) clouds.set(room, (clouds.get(room) || 0) + 1);
+      for (const [room, n] of clouds) {
+        const outline = page.locator(`#starmap-canvas .star-hull[data-space="${room}"]:not([hidden])`);
+        check(await outline.count() === (n > 1 ? 1 : 0), `room ${room} with ${n} cloud(s) has ${n > 1 ? "one outline" : "none"}`);
+        if (n > 1) check((await outline.getAttribute("class")).includes(toneOfRoom.get(room)) && /^M.+Z$/.test(await outline.getAttribute("d")), `room ${room}'s outline is drawn in its tone`);
+      }
       // A double-click on a cloud opens the map of its room.
       const bubble = page.locator("#starmap-canvas .star-node.kind-group").first();
       const room = (await bubble.getAttribute("data-id")).replace(/^group:/, "").split("/")[0];

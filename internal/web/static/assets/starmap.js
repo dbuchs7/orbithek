@@ -16,7 +16,7 @@ import { h, mount } from "./dom.js";
 import { t } from "./i18n.js";
 import { get } from "./api.js";
 import { DEPTHS, GROUPS, IMPACT_DEPTHS, distanceClass, drillBack, drillInto, fitView, groupOf, impactAddress, impactGraph, impactList, impactParams, impactPath,
-  CLOUD_BOTTOM, cloudPath, groupRadius, impactSummary, kinds, layout, mergeLabelCounts, neighbourhood, roomAddress, roomToneOf, size, startRoom, toneOf, visible, zoomBand } from "./starmap-graph.js";
+  CLOUD_BOTTOM, cloudPath, groupRadius, impactSummary, kinds, layout, mergeLabelCounts, neighbourhood, roomAddress, roomHull, roomLinks, roomStart, roomToneOf, size, startRoom, toneOf, visible, zoomBand } from "./starmap-graph.js";
 import { simulation } from "./starmap-sim.js";
 
 const NS = "http://www.w3.org/2000/svg";
@@ -172,11 +172,14 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
   const reduced = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // --- the simulation: it starts from the seeded layout and moves on ---
-  const at = layout(graph);
+  // The clouds of a room are tied by springs that are not drawn, so they
+  // lie together within their room's outline (ADR-0233).
+  const ties = roomLinks(graph.nodes);
+  const at = layout({ nodes: graph.nodes, edges: [...graph.edges, ...ties] }, { start: ties.length ? roomStart(graph.nodes, size(n) / 2) : null });
   const mid = size(n) / 2;
   const sim = simulation({
     x0: graph.nodes.map((node) => at.get(node.id).x), y0: graph.nodes.map((node) => at.get(node.id).y),
-    links: graph.edges.map((e) => [index.get(e.from), index.get(e.to)]), center: { x: mid, y: mid }, alpha: 0.6,
+    links: [...graph.edges, ...ties].map((e) => [index.get(e.from), index.get(e.to), e.rest]), center: { x: mid, y: mid }, alpha: 0.6,
   });
 
   // --- the canvas ---
@@ -234,7 +237,20 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
     g.addEventListener("pointerdown", (ev) => grab(ev, i, g));
     return g;
   });
-  const view = s("g", { class: "star-view" }, s("g", { class: "star-edges" }, ...edgeEls), s("g", { class: "star-nodes" }, ...nodeEls));
+  // The outline of each room with more than one cloud, below the edges.
+  const hulls = [];
+  for (const node of graph.nodes) {
+    if (node.kind !== "group") continue;
+    let hull = hulls.find((h) => h.space === node.space);
+    if (!hull) hulls.push(hull = { space: node.space, members: [] });
+    hull.members.push(index.get(node.id));
+  }
+  const hullEls = hulls.filter((h) => h.members.length > 1).map((h) => {
+    h.el = s("path", { class: "star-hull tone-" + roomTone(h.space), "data-space": h.space, "aria-hidden": "true" });
+    return h;
+  });
+  const view = s("g", { class: "star-view" }, s("g", { class: "star-hulls" }, ...hullEls.map((h) => h.el)),
+    s("g", { class: "star-edges" }, ...edgeEls), s("g", { class: "star-nodes" }, ...nodeEls));
   const svg = s("svg", { viewBox: "0 0 800 560", class: "starmap-canvas zoom-mid", id: "starmap-canvas", role: "group",
     "aria-label": space === ALL ? t("starmap.canvasAll") : t("starmap.canvas", { space }), "aria-describedby": "starmap-legend", "data-settled": "false" }, markers, view);
 
@@ -251,6 +267,13 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
       line.setAttribute("x1", r1(x[a])); line.setAttribute("y1", r1(y[a]));
       line.setAttribute("x2", r1(x[b])); line.setAttribute("y2", r1(y[b]));
       if (edgeLabels[k]) { edgeLabels[k].setAttribute("x", r1((x[a] + x[b]) / 2)); edgeLabels[k].setAttribute("y", r1((y[a] + y[b]) / 2 - 3)); }
+    }
+    // A room's outline encloses its shown clouds, when it shows two or more.
+    for (const h of hullEls) {
+      const circles = h.members.filter((i) => !nodeEls[i].hasAttribute("hidden"))
+        .map((i) => ({ x: x[i], y: y[i], r: groupRadius(graph.nodes[i].count) }));
+      if (circles.length > 1) { h.el.setAttribute("d", roomHull(circles)); h.el.removeAttribute("hidden"); }
+      else h.el.setAttribute("hidden", "");
     }
   }
 
@@ -623,7 +646,7 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
     const next = shown.edges.join(",") + "|" + [...shown.nodes].join(",");
     if (next !== signature) {
       signature = next;
-      sim.setActive((i) => shown.nodes.has(graph.nodes[i].id), (k) => edgeOn.has(k));
+      sim.setActive((i) => shown.nodes.has(graph.nodes[i].id), (k) => k >= graph.edges.length || edgeOn.has(k));
       draw();
       if (started) reheat(trail.length ? 0.5 : 0.3);
     } else if (follow && started && !reduced) wake();
