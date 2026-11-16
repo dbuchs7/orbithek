@@ -259,15 +259,28 @@ func (h itemHandlers) makeThumbnail(ctx context.Context, p *Photos, id item.ID, 
 	}
 	defer c.Close()
 	orientation := 0
-	if a.Photo != nil {
-		orientation = a.Photo.Orientation
-	} else {
+	switch {
+	case a.Photo != nil:
+		orientation = storedOrientation(a)
+	default:
 		orientation = photo.Read(c, a.Type).Orientation
 		if _, err := c.Seek(0, io.SeekStart); err != nil {
 			return nil, "", err
 		}
 	}
 	return photo.Thumbnail(c, a.Type, edge, orientation, budget.Get().ThumbnailPixels)
+}
+
+// storedOrientation is the orientation that turns what the server holds
+// of a picture upright, by its photo data: the file's own, or one set by
+// hand (ADR-0231). An entry of a file share holds only its preview, which
+// a run made upright from the original (ADR-0197), so it is not turned
+// again by the orientation the original tells.
+func storedOrientation(a item.Attachment) int {
+	if a.Photo == nil || a.Linked() {
+		return 0
+	}
+	return a.Photo.Orientation
 }
 
 // --- the album's views ----------------------------------------------------
