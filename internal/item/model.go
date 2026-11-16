@@ -503,6 +503,10 @@ const (
 	// to the time its file tells (ADR-0198): it carries the photo data as
 	// they are afterwards.
 	AttachmentTakenSet EventKind = "AttachmentTakenSet"
+	// AttachmentTurned turns a picture by hand, or back to the orientation
+	// its file tells (ADR-0231): it carries the
+	// photo data as they are afterwards.
+	AttachmentTurned EventKind = "AttachmentTurned"
 	// AttachmentLinked records a file of a file share as an entry of an
 	// album folder, with no content of its own but a preview (ADR-0197);
 	// AttachmentRelinked records what a run read of it again: new content
@@ -664,7 +668,7 @@ type Event struct {
 func (e Event) HasContent() bool {
 	switch e.Kind {
 	case ItemCreated, TitleSet, PropertySet, BodyCommitted, ItemImported, CommentAdded, CommentEdited, LabelsSet, AttachmentAdded,
-		AttachmentLabelled, AttachmentRetentionSet, AttachmentNotesSet, AttachmentPlaceSet, AttachmentTakenSet, AttachmentRenamed, AttachmentMovedIn, AttachmentFacesSet, HoldSet, HoldReleased,
+		AttachmentLabelled, AttachmentRetentionSet, AttachmentNotesSet, AttachmentPlaceSet, AttachmentTakenSet, AttachmentTurned, AttachmentRenamed, AttachmentMovedIn, AttachmentFacesSet, HoldSet, HoldReleased,
 		AttachmentLinked, AttachmentRelinked, AttachmentRestored:
 		return true
 	}
@@ -683,7 +687,7 @@ func (e *Event) erase() {
 		e.Hold = &Hold{Savers: e.Hold.Savers}
 	}
 	if e.Kind == AttachmentAdded || e.Kind == AttachmentLabelled || e.Kind == AttachmentRetentionSet || e.Kind == AttachmentNotesSet || e.Kind == AttachmentPlaceSet ||
-		e.Kind == AttachmentTakenSet || e.Kind == AttachmentRenamed || e.Kind == AttachmentMovedIn || e.Kind == AttachmentFacesSet ||
+		e.Kind == AttachmentTakenSet || e.Kind == AttachmentTurned || e.Kind == AttachmentRenamed || e.Kind == AttachmentMovedIn || e.Kind == AttachmentFacesSet ||
 		e.Kind == AttachmentLinked || e.Kind == AttachmentRelinked || e.Kind == AttachmentRestored {
 		e.Attachment = nil
 	}

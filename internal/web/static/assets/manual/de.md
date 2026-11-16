@@ -339,6 +339,12 @@ Nennt ein Bild keinen oder einen falschen Ort, setzt ihn, wer das Bild bearbeite
 
 Nennt ein Bild keine oder eine falsche Aufnahmezeit, etwa ein Scan oder ein Foto einer Kamera mit falsch gestellter Uhr, setzt sie, wer das Bild bearbeiten darf, von Hand als **Aufnahmezeit**. Im Betrachter werden Datum und Uhrzeit sowie, falls bekannt, die **Abweichung von UTC** eingegeben und mit **Zeit setzen** übernommen; **Zurück zur Zeit der Datei** stellt die Zeit wieder her, welche die Datei selbst nennt. Für mehrere ausgewählte Bilder bietet **Zeit setzen…** die Wahl **Setzen auf**, die allen dieselbe Zeit gibt, und **Verschieben um**, die jedes Bild um dieselben Tage, Stunden und Minuten später oder früher legt; Bilder ohne Zeit werden nicht verschoben. Das Album, die Zeitachse und *An diesem Tag* verwenden danach die von Hand gesetzte Zeit, und jeder Download, jedes ZIP-Archiv und jede Kopie trägt sie in den EXIF-Daten des Bildes, während die gespeicherte Datei unverändert bleibt. Ein Video behält in seiner Datei die eigene Zeit.
 
+Ein Bild oder eine Zeichnung, die auf der Seite oder auf dem Kopf steht, dreht, wer das Bild bearbeiten darf.
+Im Betrachter drehen **Nach links drehen** und **Nach rechts drehen** das Bild um eine Vierteldrehung; für mehrere ausgewählte Bilder drehen dieselben Schaltflächen alle, wobei Videos und Bilder eines Datei-Shares bleiben, wie sie sind.
+Das Album, seine Vorschaubilder und Präsentationen zeigen das Bild danach gedreht, die darauf gefundenen Gesichter drehen sich mit, und jeder Download, jedes ZIP-Archiv und jede Kopie eines JPEG, PNG oder WebP trägt die Drehung in den EXIF-Daten des Bildes, während die gespeicherte Datei unverändert bleibt; die Angaben nennen *von Hand gedreht*.
+Zurückgedreht, wie die Datei steht, gilt das Bild nicht mehr als von Hand gedreht.
+Der Zeicheneditor zeigt eine Zeichnung so, wie sie gezeichnet wurde, und eine daraus gespeicherte neue Version steht wie gezeichnet.
+
 ### Videos
 
 Videos kommen auf denselben Wegen ins Album wie Bilder: hochgeladen, abgelegt, eingefügt, in einem ZIP-Archiv oder aus Google Fotos und geteilten iCloud-Alben, als MP4, WebM oder MOV (iPhone), je bis 2 GB, sofern die Administration keine andere Grenze gesetzt hat. Das Album behandelt sie danach wie Bilder: in Ordnern und Sammlungen, in der Zeitachse und auf der Karte, als Favoriten und Erinnerungen, mit Labels, Umbenennen, Verschieben, Löschen und dem ZIP-Download.

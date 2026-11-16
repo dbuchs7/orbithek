@@ -39,15 +39,28 @@ func SetTaken(data []byte, mediaType, taken, offset string) ([]byte, bool) {
 			return data, false
 		}
 	}
+	return editExif(data, mediaType, func(tiff []byte) ([]byte, bool) { return timeTIFF(tiff, stamp, offset) })
+}
+
+// tiffEdit changes a picture's TIFF structure, nil for a picture without
+// EXIF, and answers the changed structure; ok is false when it cannot.
+type tiffEdit func(tiff []byte) ([]byte, bool)
+
+// editExif changes the EXIF of a JPEG, PNG or WebP held whole in memory by
+// edit, giving a picture without EXIF a new structure, and answers the
+// changed file and true; data is not changed. A format it does not know, a
+// file it cannot walk, or an edit that fails, is answered as it is with
+// false.
+func editExif(data []byte, mediaType string, edit tiffEdit) ([]byte, bool) {
 	var out []byte
-	ok = false
+	ok := false
 	switch normType(mediaType) {
 	case "image/jpeg":
-		out, ok = takenJPEG(data, stamp, offset)
+		out, ok = exifJPEG(data, edit)
 	case "image/png":
-		out, ok = takenPNG(data, stamp, offset)
+		out, ok = exifPNG(data, edit)
 	case "image/webp":
-		out, ok = takenWebP(data, stamp, offset)
+		out, ok = exifWebP(data, edit)
 	}
 	if !ok {
 		return data, false
@@ -197,10 +210,9 @@ func timeTIFF(b []byte, stamp, offset string) ([]byte, bool) {
 	return out, true
 }
 
-// takenJPEG writes the time into the first Exif segment, or into a new one
-// after the SOI and the APP0 segments that follow it, before the image
-// data.
-func takenJPEG(data []byte, stamp, offset string) ([]byte, bool) {
+// exifJPEG edits the first Exif segment, or writes a new one after the SOI
+// and the APP0 segments that follow it, before the image data.
+func exifJPEG(data []byte, edit tiffEdit) ([]byte, bool) {
 	if len(data) < 4 || data[0] != 0xFF || data[1] != 0xD8 {
 		return nil, false
 	}
@@ -221,7 +233,7 @@ func takenJPEG(data []byte, stamp, offset string) ([]byte, bool) {
 		}
 		body := data[at+4 : end]
 		if code == 0xE1 && len(body) >= 6 && bytes.HasPrefix(body, []byte("Exif\x00")) {
-			tiff, ok := timeTIFF(body[6:], stamp, offset)
+			tiff, ok := edit(body[6:])
 			if !ok {
 				return nil, false
 			}
@@ -238,8 +250,14 @@ func takenJPEG(data []byte, stamp, offset string) ([]byte, bool) {
 		}
 		at = end
 	}
-	tiff, _ := timeTIFF(nil, stamp, offset)
-	seg, _ := exifSegment([]byte("Exif\x00\x00"), tiff)
+	tiff, ok := edit(nil)
+	if !ok {
+		return nil, false
+	}
+	seg, ok := exifSegment([]byte("Exif\x00\x00"), tiff)
+	if !ok {
+		return nil, false
+	}
 	return slices.Concat(data[:insert], seg, data[insert:]), true
 }
 
@@ -261,9 +279,8 @@ func pngChunk(kind string, data []byte) []byte {
 	return binary.BigEndian.AppendUint32(b, crc32.ChecksumIEEE(b[4:]))
 }
 
-// takenPNG writes the time into the eXIf chunk, or into a new one right
-// after IHDR.
-func takenPNG(data []byte, stamp, offset string) ([]byte, bool) {
+// exifPNG edits the eXIf chunk, or writes a new one right after IHDR.
+func exifPNG(data []byte, edit tiffEdit) ([]byte, bool) {
 	const sig = "\x89PNG\r\n\x1a\n"
 	if !bytes.HasPrefix(data, []byte(sig)) || len(data) < 8+12 || string(data[12:16]) != "IHDR" {
 		return nil, false
@@ -285,13 +302,16 @@ func takenPNG(data []byte, stamp, offset string) ([]byte, bool) {
 		}
 		switch kind {
 		case "eXIf":
-			tiff, ok := timeTIFF(data[at+8:at+8+int(n)], stamp, offset)
+			tiff, ok := edit(data[at+8 : at+8+int(n)])
 			if !ok || len(tiff) > maxTIFFBytes {
 				return nil, false
 			}
 			return slices.Concat(data[:at], pngChunk("eXIf", tiff), data[end:]), true
 		case "IEND":
-			tiff, _ := timeTIFF(nil, stamp, offset)
+			tiff, ok := edit(nil)
+			if !ok || len(tiff) > maxTIFFBytes {
+				return nil, false
+			}
 			return slices.Concat(data[:afterIHDR], pngChunk("eXIf", tiff), data[afterIHDR:]), true
 		}
 		at = int(end)
@@ -309,10 +329,10 @@ func webpChunk(fourcc string, data []byte) []byte {
 	return b
 }
 
-// takenWebP writes the time into the EXIF chunk, or into a new one after
-// the image and before XMP, with the flag in VP8X that says EXIF follows.
-// A simple WebP, which has no VP8X, is given one for its canvas.
-func takenWebP(data []byte, stamp, offset string) ([]byte, bool) {
+// exifWebP edits the EXIF chunk, or writes a new one after the image and
+// before XMP, with the flag in VP8X that says EXIF follows. A simple WebP,
+// which has no VP8X, is given one for its canvas.
+func exifWebP(data []byte, edit tiffEdit) ([]byte, bool) {
 	if len(data) < 20 || string(data[:4]) != "RIFF" || string(data[8:12]) != "WEBP" {
 		return nil, false
 	}
@@ -346,7 +366,7 @@ func takenWebP(data []byte, stamp, offset string) ([]byte, bool) {
 			break
 		}
 	}
-	tiff, ok := timeTIFF(tiff, stamp, offset)
+	tiff, ok := edit(tiff)
 	if !ok || len(tiff) > maxTIFFBytes {
 		return nil, false
 	}

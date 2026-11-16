@@ -12,10 +12,13 @@ import { h, mount } from "./dom.js";
 import { t } from "./i18n.js";
 import { get, put } from "./api.js";
 import { boxOf, mergeFaces, facesBody, coverCut, nameFaces, needsSearch } from "./faceparts.js";
+import { turnTag, withTag } from "./photoparts.js";
 
 const MODELS = "/vendor/face-models";
 const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
-const thumbURL = (p, edge) => `${fileURL(p)}/thumbnail?edge=${edge}`;
+// A picture turned by hand is searched as it is turned now
+// (ADR-0231).
+const thumbURL = (p, edge) => withTag(`${fileURL(p)}/thumbnail?edge=${edge}`, turnTag(p.attachment?.photo));
 
 // recognition says whether administrators turned recognition on, asked
 // once and kept; forgetRecognition asks again next time, where the

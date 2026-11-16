@@ -1061,7 +1061,7 @@ func (s *Store) apply(e Event) {
 		s.applyImport(e, touch)
 	case CommentAdded, CommentEdited, CommentDeleted, CommentResolved, CommentReopened:
 		s.applyComment(e, touch)
-	case AttachmentAdded, AttachmentDeleted, AttachmentLabelled, AttachmentRetentionSet, AttachmentNotesSet, AttachmentPlaceSet, AttachmentTakenSet, AttachmentRenamed,
+	case AttachmentAdded, AttachmentDeleted, AttachmentLabelled, AttachmentRetentionSet, AttachmentNotesSet, AttachmentPlaceSet, AttachmentTakenSet, AttachmentTurned, AttachmentRenamed,
 		AttachmentMovedIn, AttachmentMovedOut, AttachmentFacesSet, AttachmentLinked, AttachmentRelinked, AttachmentWithdrawn, AttachmentRestored:
 		s.applyAttachment(e, touch)
 	case HoldSet, HoldReleased:
