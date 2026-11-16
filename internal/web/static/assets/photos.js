@@ -10,14 +10,26 @@ import { h, shareHref, when } from "./dom.js";
 import { t } from "./i18n.js";
 import { askDuplicates, findDuplicates } from "./duplicates.js";
 import { get, post, put, del, upload, download } from "./api.js";
-import { baseName, durationText, exposureText, hidden, isVideo, onShare, placeText, posterTime, shareLink, sorts, typeOf } from "./photoparts.js";
+import { baseName, durationText, exposureText, hidden, isVideo, onShare, placeText, posterTime, shareLink, sorts, turnable, turnTag, typeOf, withTag } from "./photoparts.js";
 import { entries as zipEntries, read as zipRead } from "./zipread.js";
 import { folderName, isDeck, pair, readDeck, slideName, widthOf } from "./pptx.js";
 import { pickPlace, placeInput } from "./places.js";
 import { timeFields } from "./phototime.js";
 
 export const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
-export const thumbURL = (p, edge = 400) => `${fileURL(p)}/thumbnail?edge=${edge}`;
+// A picture turned by hand is asked for as it is turned now
+// (ADR-0231).
+export const thumbURL = (p, edge = 400) => withTag(`${fileURL(p)}/thumbnail?edge=${edge}`, turnTag(p.attachment?.photo));
+
+// turnPicture turns a picture a quarter turn clockwise (1) or
+// counter-clockwise (-1) and keeps what the server answers: its photo
+// data, and its faces, which turn with it.
+export async function turnPicture(p, by) {
+  const r = await post(`${fileURL(p)}/turn`, { by });
+  p.attachment.photo = r.attachment.photo;
+  p.attachment.faces = r.attachment.faces || [];
+  return p;
+}
 // whoAmI is the signed-in person's ID, asked once.
 let me = null;
 const whoAmI = async () => {
@@ -134,7 +146,7 @@ export function openViewer(list, index, changed = () => {}) {
         row(t("photos.lens"), photo?.lens),
         row(t("photos.exposure"), exposureText(photo)),
         row(t("photos.duration"), durationText(photo?.duration)),
-        row(t("photos.size"), [photo?.width && `${photo.width} × ${photo.height}`, p.attachment.size && bytesText(p.attachment.size)].filter(Boolean).join(" · ")),
+        row(t("photos.size"), [photo?.width && `${photo.width} × ${photo.height}`, p.attachment.size && bytesText(p.attachment.size), photo?.orientationManual && t("photos.turnedByHand")].filter(Boolean).join(" · ")),
         row(t("photos.place"), place && h("span", {}, photo.placeName ? photo.placeName + " · " : "",
           h("a", { href: `https://www.openstreetmap.org/?mlat=${photo.lat}&mlon=${photo.lon}#map=15/${photo.lat}/${photo.lon}`,
             target: "_blank", rel: "noopener noreferrer", text: place, title: t("photos.placeOpen") }))),
@@ -214,13 +226,32 @@ export function openViewer(list, index, changed = () => {}) {
             try { timed(await del(`${fileURL(p)}/taken`)); } catch (err) { fail(err); }
           } }) : null));
     };
+    // Who may edit the picture turns it by quarter turns
+    // (ADR-0231); it is shown again as turned.
+    const turnFail = (err) => info.append(h("p", { class: "error", role: "alert", text: err.message }));
+    const turnButton = (by, id, label, title, symbol) => h("button", { type: "button", class: "secondary photo-turn", id, title, "aria-label": title,
+      onclick: async () => {
+        try {
+          await turnPicture(p, by);
+          changed(p);
+          if (list[i] === p) show();
+        } catch (err) { turnFail(err); }
+      } }, h("span", { "aria-hidden": "true", text: symbol }), " ", label);
+    const turnRow = turnable(p) && !missing ? h("div", { class: "actions-row photo-turn-row" },
+      turnButton(-1, "photo-turn-left", t("photos.turnLeft"), t("photos.turnLeftTitle"), "↺"),
+      turnButton(1, "photo-turn-right", t("photos.turnRight"), t("photos.turnRightTitle"), "↻")) : null;
     faces?.stop();
     faces = playing ? null : facesPanel({ p, image: img, layer, still: () => list[i] === p && dialog.open, changed });
-    info.replaceChildren(facts(), faces ? faces.element : "", placeRow, placeEdit, timeEdit, h("div", { class: "actions-row" }, fav,
+    info.replaceChildren(facts(), turnRow || "", faces ? faces.element : "", placeRow, placeEdit, timeEdit, h("div", { class: "actions-row" }, fav,
       h("a", { class: "button secondary", id: "photo-download", href: fileURL(p), download: p.attachment.name, text: t("photos.original"),
-        // A file whose time was set by hand is fetched anew, not from
-        // the browser's cache (ADR-0198).
-        onclick: (e) => { if (photo?.takenManual) e.currentTarget.href = `${fileURL(p)}?taken=${encodeURIComponent(photo.taken + (photo.offset || ""))}`; } })));
+        // A file whose time was set by hand, or which was turned by hand,
+        // is fetched anew, not from the browser's cache (ADR-0198,
+        // ADR-0231).
+        onclick: (e) => {
+          let href = fileURL(p);
+          if (photo?.takenManual) href = `${href}?taken=${encodeURIComponent(photo.taken + (photo.offset || ""))}`;
+          e.currentTarget.href = withTag(href, turnTag(photo));
+        } })));
     // A picture stored before photo data was recorded is read now.
     if (!photo && p.item.id) {
       try {

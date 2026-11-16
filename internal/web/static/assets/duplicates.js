@@ -9,6 +9,7 @@ import { t } from "./i18n.js";
 import { get, post } from "./api.js";
 import { earlierTwins, fingerprintOf, fitWithin } from "./fingerprint.js";
 import { cleanupPlan } from "./duplicateparts.js";
+import { turnTag, withTag } from "./photoparts.js";
 
 // READ_EDGE is the longer edge a picture is drawn at to read how it looks;
 // the grid of 9×8 cells hardly changes below the full size.
@@ -87,7 +88,7 @@ export async function findDuplicates(queue, progress) {
   return found;
 }
 
-const thumb = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}/thumbnail?edge=400`;
+const thumb = (p) => withTag(`/api/items/${p.item.id}/attachments/${p.attachment.id}/thumbnail?edge=400`, turnTag(p.attachment?.photo));
 
 // matchText says how a picture found matches and where it is.
 export function matchText(m) {

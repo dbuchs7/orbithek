@@ -231,8 +231,11 @@ func relinkedPhoto(old, read *Photo) *Photo {
 	if old.TakenManual {
 		p.Taken, p.Offset, p.TakenManual = old.Taken, old.Offset, true
 	}
+	if old.OrientationManual {
+		p.Orientation, p.OrientationManual = old.Orientation, true
+	}
 	p.PlacePrivate = old.PlacePrivate
-	if read == nil && !old.PlaceManual && !old.TakenManual && !old.PlacePrivate {
+	if read == nil && !old.PlaceManual && !old.TakenManual && !old.OrientationManual && !old.PlacePrivate {
 		return nil
 	}
 	return &p
