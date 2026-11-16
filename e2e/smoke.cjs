@@ -841,6 +841,8 @@ function webSource() {
     await page.click("#home-starmap");
     await page.waitForSelector("h1:has-text('Starmap')");
     check(page.url().endsWith("#/starmap"), "the starmap tile leads to the starmap: " + page.url());
+    await page.waitForSelector("#starmap-space");
+    check(await page.inputValue("#starmap-space") === "*", "the starmap opens on every room");
     await page.goBack();
     await page.waitForSelector("#home-starmap");
 
@@ -2824,6 +2826,14 @@ function webSource() {
     check(await page.inputValue("#starmap-space") === "*", "the room chooser offers every room");
     if (await page.locator("#starmap-grouped").count()) {
       check(await page.locator("#starmap-canvas .star-node.kind-group").count() > 0, "too many items show as bubbles per room and type");
+      // A double-click on a bubble opens the map of its room.
+      const bubble = page.locator("#starmap-canvas .star-node.kind-group").first();
+      const room = (await bubble.getAttribute("data-id")).replace(/^group:/, "").split("/")[0];
+      await bubble.locator(".star-shape").dblclick();
+      await page.waitForFunction((want) => document.querySelector("#starmap-space")?.value === want, room);
+      check(page.url().endsWith("#/starmap/" + encodeURIComponent(room)), "a double-click on a bubble opens its room's map: " + page.url());
+      await page.goto(base + "/#/starmap/*");
+      await page.waitForSelector("#starmap-canvas .star-node");
     } else {
       check(await page.locator("#starmap-canvas .star-node.kind-item[data-key='PLAT-1']").count() === 1, "the map shows the items of the rooms");
       check(await page.locator("#starmap-canvas .star-node.outside").count() === 0, "on the map of all rooms no item stands outside");

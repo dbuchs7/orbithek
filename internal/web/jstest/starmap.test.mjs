@@ -14,7 +14,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DEPTHS, GROUPS, IMPACT_DEPTHS, IMPACT_DIRECTIONS, around, captionShown, distanceClass, drillBack, drillInto, filter, fitView, groupOf, impactAddress, impactGraph,
-  impactList, impactParams, impactPath, impactSummary, kinds, kindOf, groupRadius, layout, matches, mergeLabelCounts, neighbourhood, size, toneOf, visible, zoomBand } from "../static/assets/starmap-graph.js";
+  impactList, impactParams, impactPath, impactSummary, kinds, kindOf, groupRadius, layout, roomAddress, startRoom, matches, mergeLabelCounts, neighbourhood, size, toneOf, visible, zoomBand } from "../static/assets/starmap-graph.js";
 import { DEFAULTS, chargeExact, chargeTree, quadtree, simulation } from "../static/assets/starmap-sim.js";
 
 const graph = {
@@ -390,4 +390,21 @@ test("the labels of items and of pictures are suggested as one list, the most ca
   assert.deepEqual(mergeLabelCounts([{ label: "q4", count: 2 }, { label: "ops", count: 1 }], [{ label: "q4", count: 3 }, { label: "beach", count: 1 }]),
     [{ label: "q4", count: 5 }, { label: "beach", count: 1 }, { label: "ops", count: 1 }]);
   assert.deepEqual(mergeLabelCounts([], []), []);
+});
+
+test("the starmap opens on every room unless the address names a readable one", () => {
+  const rooms = [{ key: "PLAT" }, { key: "OPS" }];
+  assert.equal(startRoom("", rooms), "*");
+  assert.equal(startRoom(undefined, rooms), "*");
+  assert.equal(startRoom("*", rooms), "*");
+  assert.equal(startRoom("OPS", rooms), "OPS");
+  assert.equal(startRoom("GONE", rooms), "*", "a room one does not read falls back to every room");
+});
+
+test("a double-click on a bubble opens its room, on any other node it separates", () => {
+  assert.equal(roomAddress({ id: "group:API/page", kind: "group", space: "API", count: 1548 }), "#/starmap/API");
+  assert.equal(roomAddress({ id: "group:a b/page", kind: "group", space: "a b" }), "#/starmap/a%20b");
+  assert.equal(roomAddress({ id: "a", kind: "item", key: "PLAT-1", space: "PLAT" }), null);
+  assert.equal(roomAddress({ id: "label:runbook", kind: "label", name: "runbook" }), null);
+  assert.equal(roomAddress({ id: "group:x", kind: "group" }), null, "a bubble without a room opens nothing");
 });
