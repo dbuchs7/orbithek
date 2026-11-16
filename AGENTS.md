@@ -23,7 +23,7 @@ Item content is encrypted with a key per item; purge and redaction destroy the k
 Authentication exists (`internal/auth`; ADR-0013, ADR-0027): local accounts, sessions and API tokens;
 the first start creates an administrator; security events go to a persisted audit trail (ADR-0029), a hash chain whose newest link the log lines witness (ADR-0123);
 OpenID Connect single sign-on is optional (ADR-0030);
-administrators decide whether a first sign-in creates an account or only identities linked to an account sign in (`site.SignIn`), and a person links their existing account to an identity at a configured provider after giving the password again, which administrators may remove (`IdentityLinked`, `IdentityUnlinked`, `/api/me/identities`, `assets/identities.js`; proposed, partial, ADR-0229).
+administrators decide whether a first sign-in creates an account or only identities linked to an account sign in (`site.SignIn`), and a person links their existing account to an identity at a configured provider after giving the password again, which administrators may remove (`IdentityLinked`, `IdentityUnlinked`, `/api/me/identities`, `assets/identities.js`); a linked Google account offers its calendars, connected with Google proposing that account (`login_hint`, `linked=1`; proposed, partial, ADR-0229).
 The single binary `cmd/orbithek` opens the data directory and serves the web UI, a liveness probe, the authentication API and the item API (ADR-0028, described at `/api/openapi.json`);
 it is released for every common platform and as a container image (ADR-0024).
 A buildless web UI (`internal/web`, ADR-0031) runs on top of the API;
