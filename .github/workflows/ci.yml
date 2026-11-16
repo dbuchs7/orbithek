@@ -88,7 +88,10 @@ jobs:
   # ADR-0031: the embedded UI, driven in Chromium against the real binary.
   e2e:
     name: e2e (browser)
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest is Ubuntu 26.04 now, which the pinned Playwright
+    # does not support; back to ubuntu-latest once Playwright is updated to a
+    # version that does.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
