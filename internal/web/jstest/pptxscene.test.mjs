@@ -211,7 +211,7 @@ const rels = (list) => `<Relationships xmlns="http://schemas.openxmlformats.org/
   `<Relationship Id="${id}" Type="${type.startsWith("http") ? type : REL + "/" + type}" Target="${target}"/>`).join("")}</Relationships>`;
 const xfrm = (x, y, w, h, more = "") => `<a:xfrm${more}><a:off x="${x}" y="${y}"/><a:ext cx="${w}" cy="${h}"/></a:xfrm>`;
 
-function deck() {
+function deck(more = "", moreRels = [], moreFiles = []) {
   const master = `<p:sldMaster ${NS}><p:cSld><p:bg><p:bgRef idx="1001"><a:schemeClr val="bg1"/></p:bgRef></p:bg><p:spTree>
     <p:sp><p:nvSpPr><p:cNvPr id="2" name="t"/><p:cNvSpPr/><p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr><p:spPr>${xfrm(100, 100, 8000, 1000)}</p:spPr><p:txBody><a:bodyPr anchor="b"/><a:p/></p:txBody></p:sp>
     <p:sp><p:nvSpPr><p:cNvPr id="3" name="b"/><p:cNvSpPr/><p:nvPr><p:ph type="body" idx="1"/></p:nvPr></p:nvSpPr><p:spPr>${xfrm(100, 1200, 8000, 4000)}</p:spPr><p:txBody><a:bodyPr/><a:p/></p:txBody></p:sp>
@@ -239,19 +239,20 @@ function deck() {
       </a:tbl></a:graphicData></a:graphic></p:graphicFrame>
     <p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="10" name="Chart"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr><p:xfrm><a:off x="3000" y="6000"/><a:ext cx="1000" cy="600"/></p:xfrm>
       <a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart"><c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" r:id="rId9"/></a:graphicData></a:graphic></p:graphicFrame>
-    </p:spTree></p:cSld></p:sld>`;
+    ${more}</p:spTree></p:cSld></p:sld>`;
   return zipOf([
     { name: "_rels/.rels", data: rels([["rId1", "officeDocument", "ppt/presentation.xml"]]) },
     { name: "ppt/presentation.xml", data: `<p:presentation ${NS}><p:sldIdLst><p:sldId id="256" r:id="rId1"/></p:sldIdLst><p:sldSz cx="9144000" cy="6858000"/><p:defaultTextStyle><a:lvl1pPr><a:defRPr sz="1800"/></a:lvl1pPr></p:defaultTextStyle></p:presentation>` },
     { name: "ppt/_rels/presentation.xml.rels", data: rels([["rId1", "slide", "slides/slide1.xml"]]) },
     { name: "ppt/slides/slide1.xml", data: slide },
-    { name: "ppt/slides/_rels/slide1.xml.rels", data: rels([["rId1", "slideLayout", "../slideLayouts/slideLayout1.xml"], ["rId2", "image", "../media/image1.png"], ["rId3", "image", "../media/image2.emf"]]) },
+    { name: "ppt/slides/_rels/slide1.xml.rels", data: rels([["rId1", "slideLayout", "../slideLayouts/slideLayout1.xml"], ["rId2", "image", "../media/image1.png"], ["rId3", "image", "../media/image2.emf"], ...moreRels]) },
     { name: "ppt/slideLayouts/slideLayout1.xml", data: layout },
     { name: "ppt/slideLayouts/_rels/slideLayout1.xml.rels", data: rels([["rId1", "slideMaster", "../slideMasters/slideMaster1.xml"]]) },
     { name: "ppt/slideMasters/slideMaster1.xml", data: master },
     { name: "ppt/slideMasters/_rels/slideMaster1.xml.rels", data: rels([["rId1", "theme", "../theme/theme1.xml"]]) },
     { name: "ppt/theme/theme1.xml", data: THEME },
     { name: "ppt/media/image1.png", data: Buffer.from([0x89, 0x50, 0x4e, 0x47]) },
+    ...moreFiles,
   ]);
 }
 
@@ -291,6 +292,33 @@ test("a slide's scene draws its master's shapes, inherits its placeholders and n
   assert.equal(chart.what, "chart");
   assert.deepEqual([...scene.missing].sort(), ["chart", "picture"]);
   assert.deepEqual([...scene.media], ["ppt/media/image1.png"]);
+});
+
+test("a newer chart is drawn from its choice, not from the notice in its fallback", async () => {
+  const frame = (id, uri, el) => `<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="${id}" name="Neu"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr><p:xfrm><a:off x="4000" y="100"/><a:ext cx="3000" cy="2000"/></p:xfrm>
+    <a:graphic><a:graphicData uri="${uri}">${el}</a:graphicData></a:graphic></p:graphicFrame>`;
+  const notice = `<mc:Fallback><p:sp><p:nvSpPr><p:cNvPr id="12" name="Hinweis"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr>${xfrm(4000, 100, 3000, 2000)}<a:prstGeom prst="rect"/></p:spPr><p:txBody><a:bodyPr/><a:p><a:r><a:t>Nicht verfügbar</a:t></a:r></a:p></p:txBody></p:sp></mc:Fallback>`;
+  const alt = (uri, el) => `<mc:AlternateContent xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"><mc:Choice xmlns:cx1="http://schemas.microsoft.com/office/drawing/2015/9/8/chartex" Requires="cx1">${frame(11, uri, el)}</mc:Choice>${notice}</mc:AlternateContent>`;
+  const CHARTEX = "http://schemas.microsoft.com/office/drawing/2014/chartex";
+  const part = `<cx:chartSpace xmlns:cx="${CHARTEX}"><cx:chartData><cx:data id="0">
+    <cx:strDim type="cat"><cx:lvl ptCount="2"><cx:pt idx="0">A</cx:pt><cx:pt idx="1">B</cx:pt></cx:lvl></cx:strDim>
+    <cx:numDim type="val"><cx:lvl ptCount="2"><cx:pt idx="0">5</cx:pt><cx:pt idx="1">-2</cx:pt></cx:lvl></cx:numDim></cx:data></cx:chartData>
+    <cx:chart><cx:plotArea><cx:plotAreaRegion><cx:series layoutId="waterfall"><cx:dataId val="0"/></cx:series></cx:plotAreaRegion></cx:plotArea></cx:chart></cx:chartSpace>`;
+  const d = await readDeck(deck(alt("http://schemas.microsoft.com/office/drawing/2014/chartex", `<cx:chart xmlns:cx="${CHARTEX}" r:id="rId10"/>`),
+    [["rId10", "http://schemas.microsoft.com/office/2014/relationships/chartEx", "../charts/chartEx1.xml"]],
+    [{ name: "ppt/charts/chartEx1.xml", data: part }]));
+  const scene = await slideScene(d.pkg, d, d.slides[0].part, 1);
+  const chart = scene.items[8];
+  assert.equal(scene.items.length, 9);
+  assert.equal(chart.kind, "chart");
+  assert.equal(chart.chart.plots[0].kind, "waterfall");
+  assert.deepEqual(chart.chart.plots[0].series[0].values, [5, -2]);
+  assert.deepEqual([chart.m[4], chart.m[5], chart.w, chart.h], [4000, 100, 3000, 2000]);
+
+  // Any other choice still gives way to its fallback.
+  const other = await readDeck(deck(alt("http://example.com/other", "<x/>")));
+  const shown = (await slideScene(other.pkg, other, other.slides[0].part, 1)).items[8];
+  assert.equal(shown.text.paragraphs[0].runs[0].text, "Nicht verfügbar");
 });
 
 // ---- text layout ----

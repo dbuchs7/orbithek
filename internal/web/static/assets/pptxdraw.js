@@ -7,7 +7,7 @@
 // function with the measuring passed in, so node --test runs it; drawing
 // needs a canvas.
 import { css, geometry, mul, slideScene } from "./pptxscene.js";
-import { formatNumber, niceScale, valueRange } from "./pptxchart.js";
+import { formatNumber, niceScale, valueRange, waterfallSteps } from "./pptxchart.js";
 
 // SLIDE_EDGE is the length in pixels of a slide picture's longer side.
 export const SLIDE_EDGE = 1920;
@@ -366,6 +366,7 @@ export function legendEntries(chart) {
     return s.categories.map((name, i) => ({ name: String(name), color: s.colors[i], kind: "box" }));
   }
   const kindOf = (pl, s) => {
+    if (pl.kind === "radar") return pl.radarStyle === "filled" ? "box" : "line";
     if (pl.kind !== "line" && pl.kind !== "scatter") return "box";
     const line = s.line?.color !== null && (pl.kind === "line" || /line/i.test(pl.scatterStyle));
     return line ? "line" : "dot";
@@ -403,7 +404,9 @@ function drawChart(c, item, base) {
     }
   }
   const pies = ch.plots.filter((p) => p.kind === "pie" || p.kind === "doughnut");
+  const radars = ch.plots.filter((p) => p.kind === "radar");
   if (pies.length) drawPie(c, pies[0], lay.plot, ch, px, measure);
+  else if (radars.length) drawRadar(c, radars, lay.plot, ch, px, measure);
   else drawAxes(c, ch, lay.plot, px, measure);
   c.textAlign = "left";
   c.textBaseline = "alphabetic";
@@ -530,6 +533,7 @@ function drawAxes(c, ch, r, px, measure) {
     if (plot.kind === "bar") drawBars(c, plot, P, n, band, toV, horizontal, fontPx, ch);
     else if (plot.kind === "line" || plot.kind === "area") drawLines(c, plot, P, n, band, toV, fontPx);
     else if (plot.kind === "scatter") drawScatter(c, plot, toX, toV, fontPx);
+    else if (plot.kind === "waterfall") drawWaterfall(c, plot, P, band, toV, fontPx, ch);
   }
   c.restore();
 }
@@ -633,6 +637,111 @@ function drawScatter(c, plot, toX, toV, fontPx) {
     }
     if (s.marker ?? true) for (const p of pts) if (p) { c.beginPath(); c.arc(p[0], p[1], fontPx * 0.3, 0, Math.PI * 2); c.fill(); }
   }
+}
+
+// radarLayout places a radar chart in a rectangle: its centre, the radius
+// left once the category labels have room, and each category's spoke
+// angle, the first straight up, the others clockwise.
+export function radarLayout(r, n, labelW, fontPx) {
+  const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+  const radius = Math.max(1, Math.min(r.w / 2 - labelW - fontPx * 0.6, r.h / 2 - fontPx * 1.6));
+  const angles = Array.from({ length: n }, (_, i) => -Math.PI / 2 + (2 * Math.PI * i) / Math.max(1, n));
+  return { cx, cy, radius, angles };
+}
+
+function drawRadar(c, plots, r, ch, px, measure) {
+  const fontPx = px(ch.font.size);
+  const font = fontCSS(ch.font, fontPx);
+  const n = Math.max(1, ...plots.flatMap((p) => p.series.map((s) => Math.max(s.values.length, s.categories.length))));
+  const cats = (plots[0].series[0].categories || []).map(String);
+  const va = ch.valAx || {};
+  const { lo, hi } = valueRange(plots);
+  const scale = niceScale(lo, hi, 4, { min: va.min ?? undefined, max: va.max ?? undefined, unit: va.unit ?? undefined });
+  const labelW = Math.max(0, ...cats.map((l) => measure(font, l)));
+  const { cx, cy, radius, angles } = radarLayout(r, n, labelW, fontPx);
+  const at = (i, v) => {
+    const d = ((v - scale.min) / (scale.max - scale.min)) * radius;
+    return [cx + Math.cos(angles[i]) * d, cy + Math.sin(angles[i]) * d];
+  };
+  // The web: a polygon at each step of the scale, and a spoke for each
+  // category.
+  c.strokeStyle = css({ ...ch.font.color, a: 0.18 });
+  c.lineWidth = Math.max(1, fontPx * 0.06);
+  for (const t of scale.ticks) {
+    c.beginPath();
+    angles.forEach((_, i) => { const [x, y] = at(i, t); if (i) c.lineTo(x, y); else c.moveTo(x, y); });
+    c.closePath();
+    c.stroke();
+  }
+  angles.forEach((_, i) => { const [x, y] = at(i, scale.max); c.beginPath(); c.moveTo(cx, cy); c.lineTo(x, y); c.stroke(); });
+  for (const plot of plots) {
+    for (const s of plot.series) {
+      const pts = s.values.map((v, i) => (v === null || i >= n ? null : at(i, v)));
+      const run = pts.filter(Boolean);
+      if (run.length < 2) continue;
+      c.beginPath();
+      run.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)));
+      c.closePath();
+      if (plot.radarStyle === "filled") { c.fillStyle = css({ ...s.color, a: 0.75 }); c.fill(); }
+      else {
+        c.strokeStyle = css(s.color);
+        c.lineWidth = Math.max(1.5, fontPx * 0.16);
+        c.lineJoin = "round";
+        c.stroke();
+        if (s.marker ?? plot.radarStyle === "marker") {
+          c.fillStyle = css(s.color);
+          for (const [x, y] of run) { c.beginPath(); c.arc(x, y, fontPx * 0.28, 0, Math.PI * 2); c.fill(); }
+        }
+      }
+    }
+  }
+  // The labels come last, so a filled series does not hide them; a spoke
+  // straight up or down keeps its category clear of the value labels.
+  c.font = font;
+  c.fillStyle = css(ch.font.color);
+  if (!va.deleted && va.labels !== false) {
+    const vfmt = va.format || plots[0].series[0].format || "General";
+    c.textAlign = "right";
+    for (const t of scale.ticks) { const [, y] = at(0, t); c.fillText(formatNumber(t, vfmt), cx - fontPx * 0.3, y); }
+  }
+  cats.forEach((l, i) => {
+    const a = angles[i], cos = Math.cos(a);
+    const upright = Math.abs(cos) < 0.2;
+    c.textAlign = upright ? "center" : cos > 0 ? "left" : "right";
+    c.fillText(l, cx + cos * (radius + fontPx * 0.6), cy + Math.sin(a) * (radius + fontPx * (upright ? 1.4 : 0.9)));
+  });
+}
+
+function drawWaterfall(c, plot, P, band, toV, fontPx, ch) {
+  const s = plot.series[0];
+  const steps = waterfallSteps(s.values, s.subtotals);
+  const bw = band / (1 + plot.gap / 100);
+  let prev = null;
+  steps.forEach((st, i) => {
+    if (!st) { prev = null; return; }
+    const x = P.x + i * band + (band - bw) / 2;
+    const a = toV(st.from), z = toV(st.to);
+    c.fillStyle = css(s.colors[i]);
+    c.fillRect(x, Math.min(a, z), bw, Math.max(1, Math.abs(z - a)));
+    // A thin line joins where one bar ends and the next begins.
+    if (s.connectors && prev) {
+      c.strokeStyle = css({ ...ch.font.color, a: 0.45 });
+      c.lineWidth = Math.max(1, fontPx * 0.05);
+      c.beginPath();
+      c.moveTo(prev.x + bw, toV(prev.st.to));
+      c.lineTo(x, toV(prev.st.to));
+      c.stroke();
+    }
+    if (s.labels) {
+      c.font = fontCSS(ch.font, fontPx);
+      c.fillStyle = css(ch.font.color);
+      c.textAlign = "center";
+      const text = formatNumber(st.v, s.labels.format || s.format || "General");
+      const up = st.to >= st.from;
+      c.fillText(text, x + bw / 2, up ? Math.min(a, z) - fontPx * 0.6 : Math.max(a, z) + fontPx * 0.6);
+    }
+    prev = { x, st };
+  });
 }
 
 function drawMissing(c, item, base) {

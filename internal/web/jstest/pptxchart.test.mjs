@@ -12,8 +12,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseXML } from "../static/assets/pptx.js";
 import { colorOf, fillOf, lineOf, readTheme } from "../static/assets/pptxscene.js";
-import { readChart, niceScale, valueRange, formatNumber } from "../static/assets/pptxchart.js";
-import { chartLayout, legendEntries, stackOf } from "../static/assets/pptxdraw.js";
+import { readChart, readChartEx, niceScale, valueRange, formatNumber, waterfallSteps } from "../static/assets/pptxchart.js";
+import { chartLayout, legendEntries, stackOf, radarLayout } from "../static/assets/pptxdraw.js";
 
 const NS = `xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"`;
 const theme = readTheme(parseXML(`<a:theme ${NS}><a:themeElements><a:clrScheme name="t">
@@ -83,7 +83,7 @@ test("line, stacked area and scatter plots are read; kinds that are not read mak
   assert.deepEqual(xy.plots[0].series[0].categories, ["1", "2"]);
   assert.equal(xy.plots[0].series[0].line.color, null);
   assert.equal(legendEntries(xy)[0].kind, "dot", "points without a line show a dot in the legend");
-  assert.equal(readChart(space(`<c:radarChart>${ser(0, "A", ["x"], [1])}</c:radarChart>`), ctx, helpers), null);
+  assert.equal(readChart(space(`<c:bubbleChart>${ser(0, "A", ["x"], [1])}</c:bubbleChart>`), ctx, helpers), null);
   assert.equal(readChart(parseXML(`<c:chartSpace ${NS}/>`), ctx, helpers), null);
   assert.equal(readChart(null, ctx, helpers), null);
 });
@@ -149,4 +149,65 @@ test("title, legend and plot area share a chart's frame", () => {
   assert.ok(bottom.plot.y + bottom.plot.h < bottom.legend.rows[0].y, "a legend below stands under the plot");
   assert.equal(new Set(bottom.legend.rows.map((r) => r.y)).size, 1, "short entries share one row");
   assert.ok(bottom.legend.rows[0].x > 0 && bottom.legend.rows[1].x > bottom.legend.rows[0].x);
+});
+
+test("a radar chart is read with its style; its legend shows lines, or boxes when filled", () => {
+  const radar = (style) => readChart(space(`<c:radarChart><c:radarStyle val="${style}"/>${ser(0, "Wir", ["A", "B", "C"], [4, 3, 5])}${ser(1, "Sie", ["A", "B", "C"], [3, 4, 2])}</c:radarChart>`), ctx, helpers);
+  const r = radar("marker");
+  assert.deepEqual([r.plots[0].kind, r.plots[0].radarStyle], ["radar", "marker"]);
+  assert.deepEqual(r.plots[0].series.map((s) => s.values), [[4, 3, 5], [3, 4, 2]]);
+  assert.deepEqual(legendEntries(r).map((e) => e.kind), ["line", "line"]);
+  assert.deepEqual(legendEntries(radar("filled")).map((e) => e.kind), ["box", "box"]);
+  assert.deepEqual(valueRange(r.plots), { lo: 0, hi: 5 });
+});
+
+test("a radar's spokes start straight up and turn clockwise, its radius leaves room for the labels", () => {
+  const lay = radarLayout({ x: 0, y: 0, w: 200, h: 100 }, 4, 20, 10);
+  assert.deepEqual([lay.cx, lay.cy], [100, 50]);
+  assert.equal(lay.radius, 34, "the height, less room above and below for the labels, decides");
+  assert.deepEqual(lay.angles.map((a) => +(a / Math.PI).toFixed(2)), [-0.5, 0, 0.5, 1]);
+  assert.equal(radarLayout({ x: 0, y: 0, w: 100, h: 400 }, 3, 30, 10).radius, 14, "wide labels narrow it");
+});
+
+const CX = `xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"`;
+const chartex = (layout = "waterfall", more = "") => parseXML(`<cx:chartSpace ${CX}><cx:chartData><cx:data id="0">
+  <cx:strDim type="cat"><cx:f>x</cx:f><cx:lvl ptCount="5"><cx:pt idx="0">Start</cx:pt><cx:pt idx="1">Plus</cx:pt><cx:pt idx="2">Minus</cx:pt><cx:pt idx="3">Summe</cx:pt><cx:pt idx="4">Rest</cx:pt></cx:lvl></cx:strDim>
+  <cx:numDim type="val"><cx:f>y</cx:f><cx:lvl ptCount="5" formatCode="#,##0"><cx:pt idx="0">100</cx:pt><cx:pt idx="1">60</cx:pt><cx:pt idx="2">-40</cx:pt><cx:pt idx="3">120</cx:pt><cx:pt idx="4">-25</cx:pt></cx:lvl></cx:numDim>
+  </cx:data></cx:chartData><cx:chart><cx:title><cx:tx><cx:txData><cx:v>Brücke</cx:v></cx:txData></cx:tx></cx:title><cx:plotArea><cx:plotAreaRegion>
+  <cx:series layoutId="${layout}"><cx:tx><cx:txData><cx:v>Wert</cx:v></cx:txData></cx:tx>${more}
+  <cx:dataLabels pos="outEnd"><cx:visibility seriesName="0" categoryName="0" value="1"/></cx:dataLabels><cx:dataId val="0"/>
+  <cx:layoutPr><cx:visibility connectorLines="0"/><cx:subtotals><cx:idx val="0"/><cx:idx val="3"/></cx:subtotals></cx:layoutPr></cx:series></cx:plotAreaRegion>
+  <cx:axis id="0"><cx:catScaling gapWidth="0.8"/><cx:tickLabels/></cx:axis><cx:axis id="1"><cx:valScaling max="200"/><cx:majorGridlines/><cx:tickLabels/></cx:axis>
+  </cx:plotArea><cx:legend pos="t"/></cx:chart></cx:chartSpace>`);
+
+test("a waterfall of the newer chart parts is read: points, subtotals, colours, labels, title and axes", () => {
+  const ch = readChartEx(chartex(), ctx, helpers);
+  assert.equal(ch.title.text, "Brücke");
+  assert.equal(ch.legend, null, "the legend's words are the program's, not the presentation's");
+  const [p] = ch.plots;
+  assert.equal(p.kind, "waterfall");
+  assert.equal(p.gap, 80);
+  const [s] = p.series;
+  assert.equal(s.name, "Wert");
+  assert.deepEqual(s.categories, ["Start", "Plus", "Minus", "Summe", "Rest"]);
+  assert.deepEqual(s.values, [100, 60, -40, 120, -25]);
+  assert.deepEqual([...s.subtotals], [0, 3]);
+  assert.equal(s.format, "#,##0");
+  assert.equal(s.connectors, false);
+  assert.deepEqual(s.colors.map(rgb), [[165, 165, 165], [68, 114, 196], [237, 125, 49], [165, 165, 165], [237, 125, 49]], "totals the third accent, rises the first, falls the second");
+  assert.equal(s.labels.value, true);
+  assert.equal(ch.valAx.max, 200);
+  assert.equal(ch.valAx.gridlines, true);
+  const own = readChartEx(chartex("waterfall", `<cx:dataPt idx="1"><cx:spPr><a:solidFill><a:srgbClr val="00B050"/></a:solidFill></cx:spPr></cx:dataPt>`), ctx, helpers);
+  assert.deepEqual(rgb(own.plots[0].series[0].colors[1]), [0, 176, 80], "a point's own fill wins");
+  assert.equal(readChartEx(chartex("treemap"), ctx, helpers), null, "other layouts are not read");
+  assert.equal(readChartEx(null, ctx, helpers), null);
+});
+
+test("a waterfall's bars run from the running total, its subtotals from zero", () => {
+  const steps = waterfallSteps([100, 60, -40, 120, -25, null], new Set([0, 3]));
+  assert.deepEqual(steps.slice(0, 5).map((s) => [s.from, s.to, s.total]), [[0, 100, true], [100, 160, false], [160, 120, false], [0, 120, true], [120, 95, false]]);
+  assert.equal(steps[5], null);
+  assert.deepEqual(valueRange([{ kind: "waterfall", series: [{ values: [100, 60, -40, 120, -25], subtotals: new Set([0, 3]) }] }]), { lo: 0, hi: 160 }, "the axis spans the running totals");
+  assert.deepEqual(valueRange([{ kind: "waterfall", series: [{ values: [-10, -20], subtotals: new Set() }] }]), { lo: -30, hi: 0 });
 });
