@@ -14,7 +14,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DEPTHS, GROUPS, IMPACT_DEPTHS, IMPACT_DIRECTIONS, around, captionShown, distanceClass, drillBack, drillInto, filter, fitView, groupOf, impactAddress, impactGraph,
-  impactList, impactParams, impactPath, impactSummary, kinds, kindOf, groupRadius, CLOUD_BOTTOM, cloudPath, layout, roomAddress, startRoom, matches, mergeLabelCounts, neighbourhood, size, roomLinks, roomHull, roomStart, roomToneOf, toneOf, visible, zoomBand } from "../static/assets/starmap-graph.js";
+  impactList, impactParams, impactPath, impactSummary, kinds, kindOf, groupRadius, CLOUD_BOTTOM, CLOUD_MARGIN, CLOUD_REACH, cloudPath, cloudReach, layout, roomAddress, startRoom, matches, mergeLabelCounts, neighbourhood, size, nodeRadii, roomClusters, roomLinks, roomHull, roomStart, roomToneOf, toneOf, visible, zoomBand } from "../static/assets/starmap-graph.js";
 import { DEFAULTS, chargeExact, chargeTree, quadtree, simulation } from "../static/assets/starmap-sim.js";
 
 const graph = {
@@ -457,8 +457,8 @@ test("the clouds of one room are tied together, the first of the room to each ot
     { id: "group:HR/page", kind: "group", space: "HR" },
   ];
   assert.deepEqual(roomLinks(nodes), [
-    { from: "group:OPS/page", to: "group:OPS/task", kind: "room", rest: 30 },
-    { from: "group:OPS/page", to: "group:OPS/note", kind: "room", rest: 30 },
+    { from: "group:OPS/page", to: "group:OPS/task", kind: "room", rest: 43 },
+    { from: "group:OPS/page", to: "group:OPS/note", kind: "room", rest: 43 },
   ]);
   assert.deepEqual(roomLinks(nodes.filter((n) => n.space !== "OPS")), [], "a room with one cloud needs no tie");
 });
@@ -515,4 +515,105 @@ test("a link of the simulation may rest at a length of its own", () => {
   const d = (a, b) => Math.hypot(sim.x[a] - sim.x[b], sim.y[a] - sim.y[b]);
   assert.ok(Math.abs(d(0, 1) - DEFAULTS.linkDistance) < 3, "the default rest: " + d(0, 1));
   assert.ok(Math.abs(d(2, 3) - 50) < 3, "its own rest: " + d(2, 3));
+});
+
+test("a cloud keeps others off by its own size, every other node by the default", () => {
+  assert.equal(nodeRadii(graph.nodes, 18), null, "a map without clouds keeps one radius for all");
+  const nodes = [{ id: "group:A/page", kind: "group", space: "A", count: 1548 }, { id: "group:A/task", kind: "group", space: "A", count: 1 }, { id: "label:x", kind: "label", name: "x" }];
+  assert.deepEqual(nodeRadii(nodes, 18), [cloudReach(1548) + CLOUD_MARGIN, cloudReach(1) + CLOUD_MARGIN, 18]);
+  // A room's tie rests outside the clouds' collision, so the two do not fight.
+  const [tie] = roomLinks(nodes);
+  const r = nodeRadii(nodes, 18);
+  assert.ok(tie.rest >= r[0] + r[1], `rest ${tie.rest} keeps the clouds apart (${r[0] + r[1]})`);
+});
+
+test("the simulation keeps nodes apart by their own radii when it has them", () => {
+  const sim = simulation({ x0: [0, 5, 400, 405], y0: [0, 0, 0, 0], radii: [40, 30, 18, 18], center: { x: 200, y: 0 }, charge: 0, gravity: 0.2, alpha: 1 });
+  for (let i = 0; i < 800 && sim.tick(); i++);
+  const d = (a, b) => Math.hypot(sim.x[a] - sim.x[b], sim.y[a] - sim.y[b]);
+  assert.ok(d(0, 1) >= 70 - 2, "large nodes keep the sum of their radii apart: " + d(0, 1));
+  assert.ok(d(1, 2) >= 48 - 2 && d(0, 3) >= 58 - 2, "a large and a small node too");
+  assert.ok(d(2, 3) >= 36 - 2, "small nodes as before: " + d(2, 3));
+});
+
+// arcExtent samples an SVG elliptical arc (circular here) from its end
+// points as SVG defines it (endpoint to centre parameterisation, F.6.5)
+// and reports the points on it.
+function arcPoints([x1, y1], r, large, sweep, [x2, y2]) {
+  const mx = (x1 - x2) / 2, my = (y1 - y2) / 2;
+  r = Math.max(r, Math.hypot(mx, my));
+  const f = (large === sweep ? -1 : 1) * Math.sqrt(Math.max(0, (r * r - mx * mx - my * my) / (mx * mx + my * my)));
+  const cx = f * my + (x1 + x2) / 2, cy = -f * mx + (y1 + y2) / 2;
+  let a1 = Math.atan2(y1 - cy, x1 - cx), a2 = Math.atan2(y2 - cy, x2 - cx);
+  let da = a2 - a1;
+  if (sweep && da < 0) da += 2 * Math.PI;
+  if (!sweep && da > 0) da -= 2 * Math.PI;
+  return Array.from({ length: 65 }, (_, k) => [cx + r * Math.cos(a1 + (da * k) / 64), cy + r * Math.sin(a1 + (da * k) / 64)]);
+}
+
+test("a cloud reaches CLOUD_REACH times its radius to its sides, no further", () => {
+  for (const count of [1, 40, 1548]) {
+    const r = groupRadius(count);
+    const nums = cloudPath(r).replace(/[MAZ]/g, " ").trim().split(/[ ,]+/).map(Number);
+    let at = [nums[0], nums[1]];
+    const pts = [at];
+    for (let i = 2; i + 6 < nums.length + 1; i += 7) {
+      const to = [nums[i + 5], nums[i + 6]];
+      pts.push(...arcPoints(at, nums[i], nums[i + 3], nums[i + 4], to));
+      at = to;
+    }
+    const reach = Math.max(...pts.map(([x]) => Math.abs(x)));
+    assert.ok(reach <= cloudReach(count) + 0.5, `the cloud of ${count} reaches ${reach.toFixed(1)}, within ${cloudReach(count).toFixed(1)}`);
+    assert.ok(reach >= cloudReach(count) - 0.03 * r, `CLOUD_REACH (${CLOUD_REACH}) is no wider than the cloud: ${reach.toFixed(1)}`);
+    assert.ok(Math.max(...pts.map(([, y]) => Math.abs(y))) <= r, "upwards and downwards it stays within its radius");
+  }
+});
+
+test("the clouds of each room form a cluster, rooms in the order of their keys", () => {
+  const nodes = [
+    { id: "group:OPS/page", kind: "group", space: "OPS" },
+    { id: "label:x", kind: "label", name: "x" },
+    { id: "group:API/page", kind: "group", space: "API" },
+    { id: "group:OPS/task", kind: "group", space: "OPS" },
+  ];
+  assert.deepEqual(roomClusters(nodes), [[2], [0, 3]]);
+  assert.equal(roomClusters(graph.nodes), null, "a map without clouds has no clusters");
+});
+
+test("clusters keep apart as wholes, each keeping its own shape", () => {
+  // Two rooms of two nodes each, laid into each other.
+  const sim = simulation({ x0: [0, 40, 20, 60], y0: [0, 0, 10, 10], radii: [15, 15, 15, 15], clusters: [[0, 1], [2, 3]], clusterGap: 20,
+    links: [[0, 1, 40], [2, 3, 40]], center: { x: 30, y: 5 }, charge: 0, gravity: 0.05, alpha: 1 });
+  for (let i = 0; i < 1500 && sim.tick(); i++);
+  const c = (m) => [(sim.x[m[0]] + sim.x[m[1]]) / 2, (sim.y[m[0]] + sim.y[m[1]]) / 2];
+  const extent = (m) => { const [cx, cy] = c(m); return Math.max(...m.map((i) => Math.hypot(sim.x[i] - cx, sim.y[i] - cy) + 15)); };
+  const [ax, ay] = c([0, 1]), [bx, by] = c([2, 3]);
+  const d = Math.hypot(ax - bx, ay - by);
+  assert.ok(d >= extent([0, 1]) + extent([2, 3]) + 20 - 3, `the rooms keep apart: ${d.toFixed(1)} against ${(extent([0, 1]) + extent([2, 3]) + 20).toFixed(1)}`);
+  assert.ok(Math.abs(Math.hypot(sim.x[0] - sim.x[1], sim.y[0] - sim.y[1]) - 40) < 4, "a room keeps its shape");
+  // Without clusters nothing keeps the rooms apart beyond their nodes.
+  const free = simulation({ x0: [0, 40, 20, 60], y0: [0, 0, 10, 10], radii: [15, 15, 15, 15], links: [[0, 1, 40], [2, 3, 40]], center: { x: 30, y: 5 }, charge: 0, gravity: 0.05, alpha: 1 });
+  for (let i = 0; i < 1500 && free.tick(); i++);
+  const fd = Math.hypot((free.x[0] + free.x[1] - free.x[2] - free.x[3]) / 2, (free.y[0] + free.y[1] - free.y[2] - free.y[3]) / 2);
+  assert.ok(fd < d, "the clusters are what keeps them apart");
+});
+
+test("the frame takes in a point's reach when it has one", () => {
+  const w = 800, h = 560, pad = 56;
+  const points = [{ x: 0, y: 0, r: 100 }, { x: 400, y: 300, r: 20 }];
+  const { zoom, panX, panY } = fitView(points, w, h, { pad, max: 1.6 });
+  for (const p of points) {
+    for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+      const sx = panX + zoom * (p.x + dx * p.r), sy = panY + zoom * (p.y + dy * p.r);
+      assert.ok(sx >= pad - 0.5 && sx <= w - pad + 0.5 && sy >= pad - 0.5 && sy <= h - pad + 0.5, `(${sx.toFixed(1)}, ${sy.toFixed(1)}) lies in the frame`);
+    }
+  }
+  assert.deepEqual(fitView([{ x: 0, y: 0 }, { x: 400, y: 300 }], w, h, { pad }), fitView([{ x: 0, y: 0, r: 0 }, { x: 400, y: 300, r: 0 }], w, h, { pad }), "points without a reach frame as before");
+});
+
+test("a cloud keeps its caption at a middle zoom, as an item does", () => {
+  assert.equal(captionShown("mid", { kind: "group" }), true, "room, type and count stay readable");
+  assert.equal(captionShown("far", { kind: "group" }), false);
+  assert.equal(captionShown("mid", { kind: "label" }), false, "labels as before");
+  assert.equal(captionShown("mid", { kind: "item" }), true, "items as before");
 });

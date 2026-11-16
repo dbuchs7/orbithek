@@ -2160,7 +2160,7 @@ dialog.note-dialog { max-height: calc(100dvh - 32px); overflow: auto; }
 .starmap-canvas.hovering .star-node.lit, .starmap-canvas.hovering .star-link.lit { opacity: 1; }
 .starmap-canvas.hovering .star-node.lit .star-caption { font-weight: 600; }
 .starmap-canvas.zoom-far .star-node:not(.lit, .focused, .match, .root) .star-caption,
-.starmap-canvas.zoom-mid .star-node:not(.kind-item, .lit, .focused, .match, .root) .star-caption,
+.starmap-canvas.zoom-mid .star-node:not(.kind-item, .kind-group, .lit, .focused, .match, .root) .star-caption,
 .starmap-canvas:is(.zoom-far, .zoom-mid) .star-link:not(.lit) .star-edge-label { opacity: 0; }
 @media (prefers-reduced-motion: reduce) {
   .star-node, .star-link, .star-caption, .star-edge-label { transition: none; }
