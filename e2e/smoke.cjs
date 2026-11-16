@@ -2829,7 +2829,7 @@ function webSource() {
     if (await page.locator("#starmap-grouped").count()) {
       check(await page.locator("#starmap-canvas .star-node.kind-group").count() > 0, "too many items show as clouds per room and type");
       check(await page.locator("#starmap-canvas .star-node.kind-group > path.star-shape.star-cloud").count() === await page.locator("#starmap-canvas .star-node.kind-group").count(),
-        "every group is drawn as a cloud (ADR-draft-groups-are-drawn-as-clouds)");
+        "every group is drawn as a cloud (ADR-0230)");
       // A double-click on a cloud opens the map of its room.
       const bubble = page.locator("#starmap-canvas .star-node.kind-group").first();
       const room = (await bubble.getAttribute("data-id")).replace(/^group:/, "").split("/")[0];

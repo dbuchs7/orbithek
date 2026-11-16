@@ -37,7 +37,7 @@ const short = (value, n = 22) => (value.length > n ? value.slice(0, n - 1) + "â€
 // group of the starmap of all rooms (ADR-0191).
 function shape(kind, node = {}) {
   // A group of the starmap of all rooms is a cloud, as big as its items
-  // (ADR-0191, ADR-draft-groups-are-drawn-as-clouds).
+  // (ADR-0191, ADR-0230).
   if (kind === "group") return s("path", { d: cloudPath(groupRadius(node.count)), class: "star-shape star-cloud" });
   if (kind === "picture") return s("rect", { x: -9, y: -9, width: 18, height: 18, rx: 3, class: "star-shape" });
   if (kind === "label") return s("polygon", { points: "0,-11 11,0 0,11 -11,0", class: "star-shape" });

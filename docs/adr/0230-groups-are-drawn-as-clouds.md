@@ -1,4 +1,4 @@
-# ADR-DRAFT: The groups of the starmap of all rooms are drawn as clouds
+# ADR-0230: The groups of the starmap of all rooms are drawn as clouds
 
 - **Status:** Accepted
 - **Implementation:** Landed

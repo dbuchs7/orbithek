@@ -35,7 +35,7 @@ export function kindOf(node) {
 // (ADR-0191): its area grows with the number of its items, from an
 // item's size up to a bound.
 // CLOUD_BOTTOM is where a group's cloud stands, as a share of its
-// radius below its middle (ADR-draft-groups-are-drawn-as-clouds).
+// radius below its middle (ADR-0230).
 export const CLOUD_BOTTOM = 0.5;
 
 // cloudLobes are the end points of a cloud's arcs in a circle of radius
