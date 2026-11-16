@@ -240,3 +240,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0225](0225-album-labels-on-the-starmap.md) | A picture's own labels on the starmap | Accepted | Landed |
 | [0226](0226-pictures-dropped-onto-a-folder-are-moved-or-copied-as-a-menu-asks.md) | Pictures dropped onto a folder are moved or copied, as a menu asks | Accepted | Landed |
 | [0227](0227-radar-and-waterfall-charts-are-drawn-in-an-imported-presentation.md) | Radar and waterfall charts are drawn in an imported presentation | Proposed | Partial |
+| [0228](0228-starmap-opens-on-every-room.md) | The starmap opens on every room, and a double-click opens a bubble's room | Accepted | Landed |
