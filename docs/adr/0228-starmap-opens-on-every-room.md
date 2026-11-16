@@ -1,4 +1,4 @@
-# ADR-DRAFT: The starmap opens on every room, and a double-click opens a bubble's room
+# ADR-0228: The starmap opens on every room, and a double-click opens a bubble's room
 
 - **Status:** Accepted
 - **Implementation:** Landed

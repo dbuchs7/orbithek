@@ -91,7 +91,7 @@ export async function starmapView(container, space, path = [], params = new URLS
   const rooms = [...spaces.filter((r) => r.favourite), ...spaces.filter((r) => !r.favourite)];
   if (!rooms.length) return mount(container, h("p", { class: "empty", text: t("starmap.noSpaces") }));
   // "*" is every room one reads (ADR-0191); the starmap opens on it
-  // unless the address names a room one reads (ADR-draft-starmap-opens-on-every-room).
+  // unless the address names a room one reads (ADR-0228).
   const key = startRoom(space, rooms);
   const select = h("select", { "aria-label": t("starmap.space"), id: "starmap-space" },
     h("option", { value: ALL, text: t("starmap.allRooms") }),
@@ -213,7 +213,7 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
       focus(node.id);
     });
     // A double-click (or Shift+Enter) separates a node; on a bubble it
-    // opens the map of the bubble's room (ADR-draft-starmap-opens-on-every-room).
+    // opens the map of the bubble's room (ADR-0228).
     const deeper = () => {
       const room = roomAddress(node);
       if (room) location.hash = room;

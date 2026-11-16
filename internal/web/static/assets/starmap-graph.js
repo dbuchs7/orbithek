@@ -140,7 +140,7 @@ export function drillInto(trail, id) {
 }
 
 // startRoom is the room the starmap opens on: the one the address names
-// when one reads it, else every room ("*", ADR-0191, ADR-draft-starmap-opens-on-every-room).
+// when one reads it, else every room ("*", ADR-0191, ADR-0228).
 export function startRoom(space, rooms) {
   return space === "*" || rooms.some((r) => r.key === space) ? space : "*";
 }
