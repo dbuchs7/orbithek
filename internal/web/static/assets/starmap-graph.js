@@ -91,6 +91,14 @@ export function toneOf(nodes) {
   return (type) => Math.max(0, types.indexOf(type)) % 6;
 }
 
+// roomToneOf gives each room with clouds on the map a tone, 0 to 5, by
+// the place of its key among those rooms, so the clouds of one room
+// share a colour; beyond six rooms the tones repeat (ADR-draft-clouds-take-the-tone-of-their-room).
+export function roomToneOf(nodes) {
+  const rooms = [...new Set(nodes.filter((n) => n.kind === "group").map((n) => n.space))].sort();
+  return (space) => Math.max(0, rooms.indexOf(space)) % 6;
+}
+
 const fold = (s) => String(s || "").normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase();
 
 // matches reports whether a node holds every word of the query in its
