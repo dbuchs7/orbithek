@@ -44,6 +44,10 @@ type Photo struct {
 	Orientation int `json:"orientation,omitempty"`
 	Width       int `json:"width,omitempty"`
 	Height      int `json:"height,omitempty"`
+	// OrientationManual says the picture was turned by hand
+	// (ADR-0231), so Orientation, not the file's
+	// own, counts: every file given out carries it in its EXIF.
+	OrientationManual bool `json:"orientationManual,omitempty"`
 	// PlacePrivate keeps the place to the one who added the picture
 	// (ADR-0178): everyone else reads the photo data without it and gets
 	// the file without it.
@@ -120,6 +124,9 @@ func checkPhoto(p *Photo) error {
 	if p.Orientation < 0 || p.Orientation > 8 || p.Width < 0 || p.Height < 0 || p.Width > 1<<20 || p.Height > 1<<20 {
 		return invalid("photo: orientation or size out of range")
 	}
+	if p.OrientationManual && p.Orientation < 1 {
+		return invalid("photo: a picture turned by hand needs an orientation")
+	}
 	if !finite(p.Duration) || p.Duration < 0 || p.Duration > 1e7 {
 		return invalid("photo: the duration is out of range")
 	}
@@ -180,10 +187,17 @@ func fileWithoutPlace(who string, a Attachment) bool {
 // a time set by hand in its EXIF rather than the file's own (ADR-0198).
 func timeWritten(a Attachment) bool { return a.Photo != nil && a.Photo.TakenManual }
 
+// orientationWritten reports whether every file given out of a picture
+// carries an orientation set by hand in its EXIF rather than the file's
+// own (ADR-0231).
+func orientationWritten(a Attachment) bool { return a.Photo != nil && a.Photo.OrientationManual }
+
 // fileAsGiven reports whether who gets a file other than as it is stored:
-// without its place (ADR-0178, ADR-0181) or with a time set by hand
-// (ADR-0198).
-func fileAsGiven(who string, a Attachment) bool { return fileWithoutPlace(who, a) || timeWritten(a) }
+// without its place (ADR-0178, ADR-0181), with a time set by hand
+// (ADR-0198) or turned by hand (ADR-0231).
+func fileAsGiven(who string, a Attachment) bool {
+	return fileWithoutPlace(who, a) || timeWritten(a) || orientationWritten(a)
+}
 
 // seenBy is a file as who may know it: without a place its uploader keeps
 // to themselves, and without saying that there is one.
@@ -343,4 +357,81 @@ func (x *Session) SetTaken(id, attachment ID, taken, offset string, file *Photo)
 		return nil
 	}
 	return x.s.record(x.who, Event{Kind: AttachmentTakenSet, Item: id, Attachment: &Attachment{ID: attachment, Photo: &next}})
+}
+
+// Turn turns a picture by quarter turns as it is shown: clockwise for 1,
+// counter-clockwise for -1, upside down for 2
+// (ADR-0231). Who may edit the picture's item
+// may. file is the photo data the server read from the stored file: the
+// orientation it tells, and everything else for a picture stored before
+// photo data was recorded. A picture turned back to the orientation its
+// file tells is no longer turned by hand. The faces found on it turn with
+// it (ADR-0194); the rest of the photo data stays as it is.
+func (x *Session) Turn(id, attachment ID, quarters int, file *Photo) error {
+	if quarters != 1 && quarters != -1 && quarters != 2 {
+		return invalid("a picture is turned by 1 or -1 quarter turn, or by 2")
+	}
+	it, err := x.editable(id)
+	if err != nil {
+		return err
+	}
+	if it.Presence != Live {
+		return invalid("%s is %s", it.Key, it.Presence)
+	}
+	a, ok := it.attachment(attachment)
+	if !ok || a.Deleted || !x.s.readsFile(x.who, it, attachment) {
+		return notFound("attachment %s of item %s", attachment, it.Key)
+	}
+	var next Photo
+	switch {
+	case a.Photo != nil:
+		next = *a.Photo
+	case file != nil:
+		next = *file
+	}
+	next.Orientation, next.OrientationManual = turned(next.Orientation, quarters), true
+	if file != nil && next.Orientation == turned(file.Orientation, 0) {
+		next.Orientation, next.OrientationManual = file.Orientation, false
+	}
+	if err := checkPhoto(&next); err != nil {
+		return err
+	}
+	events := []Event{{Kind: AttachmentTurned, Item: id, Attachment: &Attachment{ID: attachment, Photo: &next}}}
+	if len(a.Faces) > 0 {
+		faces := make([]Face, len(a.Faces))
+		for i, f := range a.Faces {
+			faces[i] = turnFace(f, quarters)
+		}
+		events = append(events, Event{Kind: AttachmentFacesSet, Item: id, Attachment: &Attachment{ID: attachment, Faces: faces, FacesSeen: a.FacesSeen}})
+	}
+	return x.s.recordBatch(x.who, events...)
+}
+
+// turns gives, for an EXIF orientation 1 to 8, whether it mirrors the
+// stored picture and by how many quarter turns clockwise it then turns it
+// upright; orientationOf is the orientation of a mirror and quarter turns.
+// They are internal/photo's, which the item model does not import.
+var (
+	turns         = [9][2]int{{0, 0}, {0, 0}, {1, 0}, {0, 2}, {1, 2}, {1, 3}, {0, 1}, {1, 1}, {0, 3}}
+	orientationOf = [2][4]int{{1, 6, 3, 8}, {2, 7, 4, 5}}
+)
+
+// turned is the orientation that shows a picture of orientation o, 0 for
+// none, turned by quarters quarter turns clockwise.
+func turned(o, quarters int) int {
+	if o < 1 || o > 8 {
+		o = 1
+	}
+	t := turns[o]
+	return orientationOf[t[0]][((t[1]+quarters)%4+4)%4]
+}
+
+// turnFace is a face's box, as fractions of the picture shown upright, on
+// the picture turned by quarters quarter turns clockwise.
+func turnFace(f Face, quarters int) Face {
+	round := func(v float64) float64 { return math.Round(v*1e4) / 1e4 }
+	for range ((quarters % 4) + 4) % 4 {
+		f.X, f.Y, f.W, f.H = math.Max(0, round(1-f.Y-f.H)), f.X, f.H, f.W
+	}
+	return f
 }

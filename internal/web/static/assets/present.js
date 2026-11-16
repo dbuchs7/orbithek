@@ -21,6 +21,9 @@ import {
 } from "./present-parts.js";
 
 const fileURL = (s) => `/api/items/${s.item.id}/attachments/${s.attachment.id}`;
+// pictureURL is a picture slide's file, asked for as it is turned now
+// (ADR-0231).
+const pictureURL = (s) => (s.turn ? `${fileURL(s)}?o=${s.turn}` : fileURL(s));
 // posterURL is the picture of a video slide shown until it plays (ADR-0192).
 const posterURL = (s) => `${fileURL(s)}/thumbnail?edge=1600`;
 
@@ -202,7 +205,7 @@ function stage({ id, onPoint, onZoom, onPan, onEnded, small = false, sound = fal
       vid.hidden = true;
       img.hidden = false;
       if (!slide) { img.removeAttribute("src"); img.alt = ""; return; }
-      const src = slide.video ? (slide.poster ? posterURL(slide) : "") : fileURL(slide);
+      const src = slide.video ? (slide.poster ? posterURL(slide) : "") : pictureURL(slide);
       if (!src) { img.removeAttribute("src"); img.alt = slide.name; return; }
       if (img.getAttribute("src") !== src) {
         trail = [];
@@ -283,7 +286,7 @@ export async function presenterView({ params, show, onLeave, done }) {
   const fillStrip = () => strip.replaceChildren(...state.slides.map((s, i) => {
     const b = h("button", { type: "button", class: "present-thumb", "data-index": String(i), title: s.name, draggable: canOrder ? "true" : "false",
       "aria-label": t("present.goTo", { n: i + 1, name: s.name }), onclick: () => set({ ...state, index: i, zoom: 1, center: { x: 0.5, y: 0.5 } }) },
-    s.video && !s.poster ? h("span", { class: "present-thumb-video", "aria-hidden": "true" }) : h("img", { src: s.video ? posterURL(s) : fileURL(s), alt: "", loading: "lazy", draggable: "false" }),
+    s.video && !s.poster ? h("span", { class: "present-thumb-video", "aria-hidden": "true" }) : h("img", { src: s.video ? posterURL(s) : pictureURL(s), alt: "", loading: "lazy", draggable: "false" }),
     h("span", { text: String(i + 1) }));
     if (canOrder) {
       const after = (e) => { const r = b.getBoundingClientRect(); return e.clientX > r.left + r.width / 2; };

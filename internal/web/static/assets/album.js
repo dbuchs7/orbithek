@@ -26,8 +26,8 @@ import { t } from "./i18n.js";
 import { get, post, put, del, upload } from "./api.js";
 import { DRAWING } from "./drawing.js";
 import { exportFormats, exportPicture } from "./picexport.js";
-import { allFolders, copyTo, moveTo, dayText, deckText, googleImport, icloudImport, importDeck, importFiles, monthText, openViewer, rememberedAlbum, setFavourite, importPlace, PLACES, summaryText, thumbURL, zipPictures } from "./photos.js";
-import { dragged, durationText, folderDrop, folderTargets, groups, isVideo, onShare, orderDrop, range, shareLink, shiftTaken, yearsAgo } from "./photoparts.js";
+import { allFolders, copyTo, moveTo, dayText, deckText, googleImport, icloudImport, importDeck, importFiles, monthText, openViewer, rememberedAlbum, setFavourite, importPlace, PLACES, summaryText, thumbURL, turnPicture, zipPictures } from "./photos.js";
+import { dragged, durationText, folderDrop, folderTargets, groups, isVideo, onShare, orderDrop, range, shareLink, shiftTaken, turnable, yearsAgo } from "./photoparts.js";
 import { askTime } from "./phototime.js";
 import { photoMap } from "./photomap.js";
 import { pickPlace, placeInput } from "./places.js";
@@ -486,7 +486,7 @@ export function albumBrowser({ pick, pickText } = {}) {
       thumb.setAttribute("role", "button");
       thumb.setAttribute("tabindex", "0");
       thumb.setAttribute("aria-label", t("photos.openOf", { name }));
-      const act = (e) => (choosing ? choose(p, e.shiftKey) : openViewer(shown, Math.max(0, shown.indexOf(p)), () => refreshFavourite(p)));
+      const act = (e) => (choosing ? choose(p, e.shiftKey) : openViewer(shown, Math.max(0, shown.indexOf(p)), (q) => { refreshFavourite(q || p); refreshThumb(q || p); }));
       thumb.addEventListener("click", act);
       thumb.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); act(e); } });
     }
@@ -583,6 +583,12 @@ export function albumBrowser({ pick, pickText } = {}) {
       b.title = t(p.favourite ? "photos.unfavourite" : "photos.favourite");
       b.setAttribute("aria-label", t(p.favourite ? "photos.unfavouriteOf" : "photos.favouriteOf", { name: captionOf(p.attachment.name) }));
     }
+  };
+
+  // refreshThumb shows a picture's card with its thumbnail as it is now,
+  // after it was turned by hand (ADR-0231).
+  const refreshThumb = (p) => {
+    for (const img of root.querySelectorAll(`li[data-attachment="${p.attachment.id}"] .album-thumb img:not(.album-behind)`)) img.src = thumbURL(p);
   };
 
   // choose adds a picture to the chosen ones or takes it out; with range,
@@ -1407,6 +1413,17 @@ export function albumBrowser({ pick, pickText } = {}) {
     });
     if (done) refresh();
   };
+  // turnAll turns every chosen picture one may edit by a quarter turn
+  // (ADR-0231); videos and entries of a file
+  // share are left as they are.
+  const turnAll = async (by) => {
+    await together("photos.turnedMany", async (p) => {
+      if (!turnable(p)) return false;
+      await turnPicture(p, by);
+      refreshThumb(p);
+      return true;
+    });
+  };
   const showBulk = () => {
     bulk.hidden = !choosing;
     if (!choosing) return bulk.replaceChildren();
@@ -1453,6 +1470,12 @@ export function albumBrowser({ pick, pickText } = {}) {
         } })),
       // One time, or one shift, for every chosen picture (ADR-0198).
       h("button", { type: "button", class: "secondary", id: "album-bulk-time", disabled: !any, text: t("photos.timeBulk"), onclick: timeAll }),
+      // A quarter turn for every chosen picture (ADR-0231).
+      h("span", { class: "album-bulk-group album-bulk-turn" },
+        h("button", { type: "button", class: "secondary", id: "album-bulk-turn-left", disabled: !any, title: t("photos.turnLeftTitle"), onclick: () => turnAll(-1) },
+          h("span", { "aria-hidden": "true", text: "↺" }), " ", t("photos.turnBulkLeft")),
+        h("button", { type: "button", class: "secondary", id: "album-bulk-turn-right", disabled: !any, title: t("photos.turnRightTitle"), onclick: () => turnAll(1) },
+          h("span", { "aria-hidden": "true", text: "↻" }), " ", t("photos.turnBulkRight"))),
       h("button", { type: "button", class: "secondary", id: "album-bulk-zip", disabled: !any, text: t("photos.zip"), onclick: async () => {
         say(t("photos.zipping", { n: list.length }));
         try { await zipPictures(list); say(t("photos.zipped", { n: list.length }), "notice"); } catch (err) { fail(err); }

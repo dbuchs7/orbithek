@@ -2161,6 +2161,15 @@ function webSource() {
     check((await page.textContent("dialog.photo-viewer .photo-facts")).includes("UTC+01:00"), "the viewer shows the offset set by hand");
     await page.click("#photo-time-reset");
     await page.waitForSelector("#photo-time-reset", { state: "detached" });
+    // A quarter turn by hand shows the picture turned, and back again
+    // (ADR-0231).
+    const viewerSrc = () => page.getAttribute("dialog.photo-viewer .photo-viewer-img", "src");
+    await page.click("#photo-turn-right");
+    await page.waitForFunction(() => document.querySelector("dialog.photo-viewer .photo-facts")?.textContent.includes("turned by hand"));
+    check(/[?&]o=\d$/.test(await viewerSrc()), "the viewer asks for the turned picture by its orientation");
+    await page.click("#photo-turn-left");
+    await page.waitForFunction(() => !document.querySelector("dialog.photo-viewer .photo-facts")?.textContent.includes("turned by hand"));
+    check(!/[?&]o=/.test(await viewerSrc()), "turned back, the picture is shown as its file stands");
     await page.click("#photo-viewer-close");
     await page.waitForSelector("dialog.photo-viewer", { state: "detached" });
     await page.click("#album-choose");
@@ -2176,6 +2185,12 @@ function webSource() {
     await page.click("#album-time-ok");
     await page.waitForSelector("dialog.photo-time-dialog", { state: "detached" });
     await page.waitForFunction(() => /Time set for \d+ pictures?\./.test(document.querySelector("#album")?.textContent || ""));
+    // The chosen pictures are turned and turned back (ADR-0231).
+    await page.click("#album-bulk-turn-right");
+    await page.waitForFunction(() => /\d+ pictures? turned\./.test(document.querySelector("#album")?.textContent || ""));
+    check(await page.locator("#album .album-thumb img[src*='o=']").count() > 0, "the cards of turned pictures show them turned");
+    await page.click("#album-bulk-turn-left");
+    await page.waitForFunction(() => !document.querySelector("#album .album-thumb img[src*='o=']"));
     await page.click("#album-choose");
     await page.click("#album-view-map");
     await page.waitForSelector("#album .photo-map-note");
@@ -2831,6 +2846,11 @@ function webSource() {
       check(await page.locator("#starmap-canvas .star-node.kind-group > path.star-shape.star-cloud").count() === await page.locator("#starmap-canvas .star-node.kind-group").count(),
         "every group is drawn as a cloud (ADR-0230)");
       check(await page.locator("#starmap-legend-group .star-cloud").count() === 1, "the legend explains the clouds");
+      // The clouds of one room share a tone.
+      const tones = await page.$$eval("#starmap-canvas .star-node.kind-group", (els) => els.map((el) =>
+        [el.dataset.id.replace(/^group:/, "").split("/")[0], [...el.classList].find((c) => c.startsWith("tone-"))]));
+      const toneOfRoom = new Map();
+      check(tones.every(([room, t]) => t && (toneOfRoom.get(room) ?? (toneOfRoom.set(room, t), t)) === t), "the clouds of one room share a tone: " + JSON.stringify(tones));
       // A double-click on a cloud opens the map of its room.
       const bubble = page.locator("#starmap-canvas .star-node.kind-group").first();
       const room = (await bubble.getAttribute("data-id")).replace(/^group:/, "").split("/")[0];
