@@ -173,7 +173,7 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
 
   // --- the simulation: it starts from the seeded layout and moves on ---
   // The clouds of a room are tied by springs that are not drawn, so they
-  // lie together within their room's outline (ADR-draft-the-clouds-of-a-room-are-outlined).
+  // lie together within their room's outline (ADR-0233).
   const ties = roomLinks(graph.nodes);
   const at = layout({ nodes: graph.nodes, edges: [...graph.edges, ...ties] }, { start: ties.length ? roomStart(graph.nodes, size(n) / 2) : null });
   const mid = size(n) / 2;

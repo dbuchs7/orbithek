@@ -103,7 +103,7 @@ export function roomToneOf(nodes) {
 // cloud to each of the others, as edges of the kind room whose rest is
 // the two clouds side by side. They are not drawn: the layout and the
 // simulation pull a room's clouds together so its outline encloses them
-// alone (ADR-draft-the-clouds-of-a-room-are-outlined).
+// alone (ADR-0233).
 export function roomLinks(nodes) {
   const first = new Map();
   const links = [];

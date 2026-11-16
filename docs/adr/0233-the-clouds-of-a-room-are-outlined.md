@@ -1,4 +1,4 @@
-# ADR-DRAFT: The clouds of a room lie together and are outlined
+# ADR-0233: The clouds of a room lie together and are outlined
 
 - **Status:** Accepted
 - **Implementation:** Landed
