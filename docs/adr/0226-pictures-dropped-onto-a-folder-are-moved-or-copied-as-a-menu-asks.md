@@ -1,9 +1,9 @@
 # ADR-0226: Pictures dropped onto a folder are moved or copied, as a menu asks
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-12
-- **Deciders:** Project initiators (request of 2026-11-12 to offer the choice of ADR-0222 when dragging onto a folder too, settling its open question; asked how, the requester chose a menu where the pictures are dropped, with Ctrl or Alt copying and Shift moving without it)
+- **Deciders:** Project initiators (request of 2026-11-12 to offer the choice of ADR-0222 when dragging onto a folder too, settling its open question; asked how, the requester chose a menu where the pictures are dropped, with Ctrl or Alt copying and Shift moving without it; accepted on 2026-11-14)
 - **Open question:** whether the album should also offer the choice when a picture is dropped onto a page's text or a whiteboard, where it is copied today
 - **Question checked:** 2026-11
 
