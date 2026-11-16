@@ -258,17 +258,21 @@ func (h itemHandlers) makeThumbnail(ctx context.Context, p *Photos, id item.ID, 
 		return nil, "", err
 	}
 	defer c.Close()
+	kind, err := pictureType(c, a)
+	if err != nil {
+		return nil, "", err
+	}
 	orientation := 0
 	switch {
 	case a.Photo != nil:
 		orientation = storedOrientation(a)
 	default:
-		orientation = photo.Read(c, a.Type).Orientation
+		orientation = photo.Read(c, kind).Orientation
 		if _, err := c.Seek(0, io.SeekStart); err != nil {
 			return nil, "", err
 		}
 	}
-	return photo.Thumbnail(c, a.Type, edge, orientation, budget.Get().ThumbnailPixels)
+	return photo.Thumbnail(c, kind, edge, orientation, budget.Get().ThumbnailPixels)
 }
 
 // storedOrientation is the orientation that turns what the server holds
@@ -281,6 +285,23 @@ func storedOrientation(a item.Attachment) int {
 		return 0
 	}
 	return a.Photo.Orientation
+}
+
+// pictureType is the media type of what the server holds of a picture:
+// the file's own, or for an entry of a file share that of its preview,
+// which a run stored as JPEG, or PNG when it has transparency, whatever the
+// original's format (ADR-0197). It reads the first bytes of c and seeks
+// back to the start.
+func pictureType(c io.ReadSeeker, a item.Attachment) (string, error) {
+	if !a.Linked() {
+		return a.Type, nil
+	}
+	head := make([]byte, 512)
+	n, _ := io.ReadFull(c, head)
+	if _, err := c.Seek(0, io.SeekStart); err != nil {
+		return "", err
+	}
+	return http.DetectContentType(head[:n]), nil
 }
 
 // --- the album's views ----------------------------------------------------

@@ -68,3 +68,35 @@ func TestAShareEntryIsShownUprightOnce(t *testing.T) {
 		t.Errorf("the fingerprint made from the preview %q is not the original's upright %q", got, want)
 	}
 }
+
+// TestAShareEntryOfAnotherFormatHasAThumbnail: a run stores the preview of
+// an entry as JPEG (PNG when it has transparency), whatever the original's
+// format (ADR-0197). Its thumbnail and fingerprint are made from the
+// preview as what it is, not read as the original's format, so a PNG, GIF
+// or WebP of a share gets a thumbnail of its own size rather than the whole
+// preview.
+func TestAShareEntryOfAnotherFormatHasAThumbnail(t *testing.T) {
+	w, sh, dir, _ := shareWorld(t)
+	put(t, dir, "hut.png", picture(t, 800, 400, 20))
+	mustRun(t, sh, false, false)
+	entry := entriesOf(t, w, "")["hut.png"]
+	if entry.Type != "image/png" {
+		t.Fatalf("the entry's type %q", entry.Type)
+	}
+	folder, _ := folderOfEntry(t, w, entry.ID)
+	r := w.admin.do("GET", "/api/items/"+string(folder)+"/attachments/"+string(entry.ID)+"/thumbnail?edge=400", "")
+	if r.Code != http.StatusOK {
+		t.Fatalf("thumbnail: %d, Location %q", r.Code, r.Header().Get("Location"))
+	}
+	cfg, _, err := image.DecodeConfig(bytes.NewReader(r.Body.Bytes()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Width != 400 || cfg.Height != 200 {
+		t.Errorf("the thumbnail is %d × %d, want 400 × 200", cfg.Width, cfg.Height)
+	}
+	h := itemHandlers{d: w.deps, log: slog.New(slog.DiscardHandler)}
+	if fp := h.makeFingerprint(context.Background(), folder, entry); fp == "" {
+		t.Error("no fingerprint is made from the preview of a PNG")
+	}
+}

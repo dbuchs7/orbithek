@@ -74,7 +74,11 @@ func (h itemHandlers) makeFingerprint(ctx context.Context, id item.ID, a item.At
 		return ""
 	}
 	defer c.Close()
-	fp, err := photo.Fingerprint(c, a.Type, storedOrientation(a), budget.Get().ThumbnailPixels)
+	kind, err := pictureType(c, a)
+	if err != nil {
+		return ""
+	}
+	fp, err := photo.Fingerprint(c, kind, storedOrientation(a), budget.Get().ThumbnailPixels)
 	if err != nil {
 		h.log.Info("no fingerprint made", "item", id, "attachment", a.ID, "err", err)
 		return ""
