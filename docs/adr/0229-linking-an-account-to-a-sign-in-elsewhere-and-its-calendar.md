@@ -1,7 +1,7 @@
 # ADR-0229: Linking an existing account to a sign-in at Google, Microsoft or Apple, and showing that account's calendar
 
 - **Status:** Proposed
-- **Implementation:** Not started
+- **Implementation:** Partial
 - **Date:** 2026-11-16
 - **Deciders:** Project initiators (request of 2026-11-16: people shall sign in with Google, and an existing account must be linked to the Google or Microsoft account for that; once one's Google or Apple account is linked, one shall be able to show its calendar)
 - **Open question:** whether two accounts of one person, one of them made at a first sign-in, can ever be merged; whether a sign-in that matches no account should become an account request (ADR-0061) instead of being refused; and whether Apple accepts a sign-in without a form post when only `openid` is asked for, which is assumed below and must be verified against Apple's documentation before Apple is built
@@ -62,9 +62,9 @@ Chosen option: **1**, because it is the only one in which the person who holds t
   Removal records a new event `IdentityUnlinked`.
   Removing the last way to sign in, the only identity of an account without a password, is refused.
   An administrator never adds a link.
-- **New accounts at sign-in:** administrators choose under *Administration → Sign-in* whether a sign-in that matches no linked identity creates an account (`SignInSet` in `site.wal`, `PUT /api/settings/sign-in`).
+- **New accounts at sign-in:** administrators choose under *Administration → Account requests*, below what the sign-in page offers, whether a sign-in that matches no linked identity creates an account (`site.SignIn`, `SignInSet` in `site.wal`, `GET` and `PUT /api/settings/sign-in` with `newAccounts`, audited as `signin.change`).
   The setting exists whether a provider is configured or not, so it can be turned off before an operator sets a client.
-  Off, such a sign-in is refused with a message that says to sign in with the password and link the identity on the account page; it says nothing about whether an account exists.
+  Off, such a sign-in is refused (`login_error=unlinked`, audited as `login.failed` with the reason `no linked account`) with a message that says to sign in with the password; once linking is built, it also points to the account page. It says nothing about whether an account exists.
   Its default is *on*, so installations that rely on accounts made at a first sign-in (ADR-0030) keep working.
 - **Apple as a provider:** `OT_APPLE_CLIENT_ID` (a Services ID), `OT_APPLE_TEAM_ID`, `OT_APPLE_KEY_ID` and `OT_APPLE_PRIVATE_KEY` (the PEM of the key Apple issues) add a provider with the issuer `https://appleid.apple.com`.
   Apple's client secret is a JSON Web Token signed with ES256; the server signs a new one for each token request, valid for five minutes.
@@ -82,6 +82,8 @@ Chosen option: **1**, because it is the only one in which the person who holds t
     The Apple ID and the app-specific password are entered there; the sign-in gives neither.
   - Removing a link asks whether a calendar account recorded for the same subject is disconnected too; by default it stays, as the two grants are separate.
 - **Audit:** `identity.link`, `identity.link-refused`, `identity.unlink` (with the actor, the account, the provider's ID and the issuer, never the subject's tokens) and `signin.change`.
+
+**Implementation is Partial:** the setting for new accounts at sign-in is built; linking, removing links, Apple and the calendar offer are not.
 - **API and MCP:** the routes above are authenticated; the identity and setting routes change how an account is reached and are not offered over MCP (ADR-0012, `internal/mcp/tools.go`).
 - **UI:** catalogue keys in `en.js` and `de.js`, the account page and the administration page in both manuals, and the linking flow in `e2e/smoke.cjs` against the fake provider of `sso/ssotest`.
 

@@ -29,7 +29,7 @@ Die Administration der Installation hat in jedem Raum die Rechte der Raumadminis
 
 ### Anmelden
 
-Die Anmeldung erfolgt mit Benutzername und Passwort oder per Single Sign-on, sofern die Organisation es eingerichtet hat. Sind Selbstregistrierungen erlaubt, sendet **Konto beantragen** auf der Anmeldeseite einen Antrag, den die Administration bewilligt. Bei vergessenem Passwort fordert man einen Link zum Zurücksetzen per E-Mail an; damit wählt man ein neues Passwort, und die übrigen Sitzungen werden beendet.
+Die Anmeldung erfolgt mit Benutzername und Passwort oder per Single Sign-on, sofern die Organisation es eingerichtet hat. Sind Selbstregistrierungen erlaubt, sendet **Konto beantragen** auf der Anmeldeseite einen Antrag, den die Administration bewilligt. Wird eine Anmeldung per Single Sign-on abgewiesen, weil sie mit keinem Konto hier verknüpft ist, meldet man sich mit dem Passwort an. Bei vergessenem Passwort fordert man einen Link zum Zurücksetzen per E-Mail an; damit wählt man ein neues Passwort, und die übrigen Sitzungen werden beendet.
 
 ### Die obere Leiste
 
@@ -562,6 +562,8 @@ Wer einen Eintrag zuletzt geändert hat, gilt als verantwortlich und sieht die e
 Die Administration findet unter **Administration**:
 
 - **Kontoanträge**, **Benutzer und Systemrollen**, **Gruppen** und **Raumrolle vergeben**;
+  Unter **Kontoanträge** legt die Administration auch fest, ob eine erste Anmeldung über Single Sign-on ein Konto ohne Rollen anlegt.
+  Ausgeschaltet melden sich damit nur Personen an, deren Konto beim Anbieter bereits mit einem Konto hier verknüpft ist; vor dem Einrichten von Single Sign-on ausschalten, wenn es nur bekannten Personen offenstehen soll;
 - **Räume**: Räume erstellen, ihre Einstellungen öffnen, einen Raum in den Papierkorb legen und wiederherstellen oder endgültig löschen;
 - **Typen**: Typen in einem Formular anlegen und ändern — Name, Text, Felder mit ihrer Art und ihren Optionen, Workflow mit Status und Übergängen (oder einfach *offen → erledigt*) und Starttext — für die ganze Installation oder für einen Raum; der Typ als JSON bleibt unter **Erweitert**. Typen entstehen auch aus den Vorlagen;
 - **Backup** (auch zeitgesteuert in ein Verzeichnis, per WebDAV, S3, FTPS oder SFTP) und **Speicher**;

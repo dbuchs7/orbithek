@@ -29,7 +29,7 @@ Administrators of the installation act as room administrators everywhere and als
 
 ### Signing in
 
-Sign in with your username and password, or with single sign-on if your organisation has set it up. If self-service accounts are enabled, **Request an account** on the sign-in page sends a request that an administrator approves. If you forgot your password, ask for a reset link by mail; the link lets you choose a new password and ends your other sessions.
+Sign in with your username and password, or with single sign-on if your organisation has set it up. If self-service accounts are enabled, **Request an account** on the sign-in page sends a request that an administrator approves. If a single sign-on is refused because it is linked to no account here, sign in with your password instead. If you forgot your password, ask for a reset link by mail; the link lets you choose a new password and ends your other sessions.
 
 ### The top bar
 
@@ -562,6 +562,8 @@ The person who changed an item last is named responsible and sees their open fin
 Administrators find under **Administration**:
 
 - **Account requests**, **Users and system roles**, **Groups** and **Grant a room role**;
+  Under **Account requests** administrators also decide whether a first sign-in with single sign-on creates an account without roles.
+  Turned off, only people whose account at the provider is already linked to an account here sign in with it; turn it off before single sign-on is set up if only known people shall use it;
 - **Rooms**: create rooms, open their settings, move a room to the trash and restore or delete it for good;
 - **Item types**: create and change types in a form — name, text, fields with their kind and options, workflow with states and transitions (or simply *open → done*) and start text — for the whole installation or for one room; the type as JSON stays under **Advanced**. Types are also made from the ready-made templates;
 - **Backup** (also on a schedule to a directory, WebDAV, S3, FTPS or SFTP) and **Storage**;
