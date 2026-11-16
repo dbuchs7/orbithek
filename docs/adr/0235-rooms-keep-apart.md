@@ -1,4 +1,4 @@
-# ADR-DRAFT: Rooms on the starmap of all rooms keep apart as wholes
+# ADR-0235: Rooms on the starmap of all rooms keep apart as wholes
 
 - **Status:** Accepted
 - **Implementation:** Landed

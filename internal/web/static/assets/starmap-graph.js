@@ -141,7 +141,7 @@ export function nodeRadii(nodes, base) {
 }
 
 // roomClusters are the indices of each room's clouds, rooms in the order
-// of their keys, for the simulation to keep rooms apart as wholes (ADR-draft-rooms-keep-apart);
+// of their keys, for the simulation to keep rooms apart as wholes (ADR-0235);
 // null on a map without clouds.
 export function roomClusters(nodes) {
   const rooms = new Map();
@@ -399,7 +399,7 @@ export function zoomBand(zoom) {
 
 // captionShown says whether a caption shows at a band; lit is a node that
 // matters now (see zoomBand). A cloud's caption names its room, type and
-// count, so it shows at a middle zoom as an item's does (ADR-draft-rooms-keep-apart).
+// count, so it shows at a middle zoom as an item's does (ADR-0235).
 // The style sheet holds the same rule.
 export function captionShown(band, { kind = "item", lit = false } = {}) {
   if (lit || band === "near") return true;

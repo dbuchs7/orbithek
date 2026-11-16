@@ -182,7 +182,7 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
     links: [...graph.edges, ...ties].map((e) => [index.get(e.from), index.get(e.to), e.rest]), center: { x: mid, y: mid }, alpha: 0.6,
     // A cloud keeps others off by its own size (ADR-0234).
     radii: nodeRadii(graph.nodes, SIM.radius),
-    // Rooms keep apart as wholes, so their outlines do not overlap (ADR-draft-rooms-keep-apart).
+    // Rooms keep apart as wholes, so their outlines do not overlap (ADR-0235).
     clusters: roomClusters(graph.nodes), clusterGap: ROOM_GAP,
   });
 

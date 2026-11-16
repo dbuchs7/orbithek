@@ -2873,7 +2873,7 @@ function webSource() {
         return out;
       });
       check(touching.length === 0, "no two clouds lie on each other: " + touching.join(", "));
-      // Rooms keep apart: no two outlines overlap (convex outlines, by a separating axis; ADR-draft-rooms-keep-apart).
+      // Rooms keep apart: no two outlines overlap (convex outlines, by a separating axis; ADR-0235).
       const crossing = await page.$$eval("#starmap-canvas .star-hull:not([hidden])", (els) => {
         const polys = els.map((el) => ({ space: el.dataset.space, pts: el.getAttribute("d").slice(1, -1).split("L").map((p) => p.split(" ").map(Number)) }));
         const axes = (pts) => pts.map((p, i) => { const q = pts[(i + 1) % pts.length]; return [p[1] - q[1], q[0] - p[0]]; });
