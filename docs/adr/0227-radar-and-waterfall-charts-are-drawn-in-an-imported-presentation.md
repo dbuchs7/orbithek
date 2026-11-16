@@ -1,4 +1,4 @@
-# ADR-DRAFT: Radar and waterfall charts are drawn in an imported presentation
+# ADR-0227: Radar and waterfall charts are drawn in an imported presentation
 
 - **Status:** Proposed
 - **Implementation:** Partial

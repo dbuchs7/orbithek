@@ -90,4 +90,4 @@ Strongest form: an office suite converts faithfully, the person chooses one file
 ## Links
 
 - relates to ADR-0176 (presentations and speaker's notes), ADR-0177 (photo management, imports in the browser, `assets/zipread.js`), ADR-0178 (the place on import), ADR-0187 (pictures added in a collection), ADR-0090 (the album's folders)
-- amended by ADR-draft-radar-and-waterfall-charts-are-drawn-in-an-imported-presentation (radar and waterfall charts are drawn)
+- amended by ADR-0227 (radar and waterfall charts are drawn)
