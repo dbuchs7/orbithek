@@ -2860,7 +2860,7 @@ function webSource() {
         check(await outline.count() === (n > 1 ? 1 : 0), `room ${room} with ${n} cloud(s) has ${n > 1 ? "one outline" : "none"}`);
         if (n > 1) check((await outline.getAttribute("class")).includes(toneOfRoom.get(room)) && /^M.+Z$/.test(await outline.getAttribute("d")), `room ${room}'s outline is drawn in its tone`);
       }
-      // No two clouds lie on each other: their middles keep their reaches apart (ADR-draft-a-cloud-collides-by-its-size).
+      // No two clouds lie on each other: their middles keep their reaches apart (ADR-0234).
       const touching = await page.$$eval("#starmap-canvas .star-node.kind-group:not([hidden])", (els) => {
         const n = els.map((el) => {
           const m = el.transform.baseVal.consolidate().matrix;

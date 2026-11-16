@@ -1,4 +1,4 @@
-# ADR-DRAFT: A cloud keeps other nodes off by its own size
+# ADR-0234: A cloud keeps other nodes off by its own size
 
 - **Status:** Accepted
 - **Implementation:** Landed

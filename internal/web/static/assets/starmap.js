@@ -180,7 +180,7 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
   const sim = simulation({
     x0: graph.nodes.map((node) => at.get(node.id).x), y0: graph.nodes.map((node) => at.get(node.id).y),
     links: [...graph.edges, ...ties].map((e) => [index.get(e.from), index.get(e.to), e.rest]), center: { x: mid, y: mid }, alpha: 0.6,
-    // A cloud keeps others off by its own size (ADR-draft-a-cloud-collides-by-its-size).
+    // A cloud keeps others off by its own size (ADR-0234).
     radii: nodeRadii(graph.nodes, SIM.radius),
   });
 
