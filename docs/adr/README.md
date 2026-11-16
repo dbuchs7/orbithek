@@ -186,7 +186,7 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0171](0171-comments-on-the-elements-of-a-drawing.md) | Comments on the elements of a drawing | Accepted | Landed |
 | [0172](0172-a-drawing-opens-as-a-whiteboard-or-alone.md) | A drawing opens as a whiteboard or alone, and is not saved alone while it is live | Accepted | Landed |
 | [0173](0173-pictures-of-the-album-export-as-png-and-jpeg-drawings-also-as-svg.md) | Pictures of the album export as PNG and JPEG, drawings also as SVG | Accepted | Landed |
-| [0174](0174-calendars-of-other-services-in-the-calendar.md) | Calendars of other services in the calendar | Proposed | Partial |
+| [0174](0174-calendars-of-other-services-in-the-calendar.md) | Calendars of other services in the calendar | Accepted | Landed |
 | [0175](0175-a-collection-in-the-album-gathers-labelled-pictures-of-every-room.md) | A collection in the album gathers the labelled pictures of every room | Accepted | Landed |
 | [0176](0176-pictures-of-the-album-are-presented-as-slides-with-speakers-notes.md) | Pictures of the album are presented as slides, with speaker's notes, in two windows | Accepted | Landed |
 | [0177](0177-photo-management-in-the-album.md) | Photo management in the album, with imports from Google Photos and Apple | Accepted | Landed |
@@ -241,7 +241,7 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0226](0226-pictures-dropped-onto-a-folder-are-moved-or-copied-as-a-menu-asks.md) | Pictures dropped onto a folder are moved or copied, as a menu asks | Accepted | Landed |
 | [0227](0227-radar-and-waterfall-charts-are-drawn-in-an-imported-presentation.md) | Radar and waterfall charts are drawn in an imported presentation | Proposed | Partial |
 | [0228](0228-starmap-opens-on-every-room.md) | The starmap opens on every room, and a double-click opens a bubble's room | Accepted | Landed |
-| [0229](0229-linking-an-account-to-a-sign-in-elsewhere-and-its-calendar.md) | Linking an existing account to a sign-in at Google, Microsoft or Apple, and showing that account's calendar | Proposed | Partial |
+| [0229](0229-linking-an-account-to-a-sign-in-elsewhere-and-its-calendar.md) | Linking an existing account to a sign-in at Google or Microsoft, and showing that account's calendar | Accepted | Landed |
 | [0230](0230-groups-are-drawn-as-clouds.md) | The groups of the starmap of all rooms are drawn as clouds | Accepted | Landed |
 | [0231](0231-pictures-turned-by-hand.md) | Pictures and drawings turned by hand, and the orientation written into the files given out | Proposed | Partial |
 | [0232](0232-clouds-take-the-tone-of-their-room.md) | The clouds of the starmap of all rooms take the tone of their room | Accepted | Landed |

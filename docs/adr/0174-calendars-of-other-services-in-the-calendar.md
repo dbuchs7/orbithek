@@ -1,9 +1,9 @@
 # ADR-0174: Calendars of other services in the calendar
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-09
-- **Deciders:** Project initiators (request of 2026-11-09 to show feeds of Google Calendar or Apple Calendar in the calendar; the three choices below were answered the same day)
+- **Deciders:** Project initiators (request of 2026-11-09 to show feeds of Google Calendar or Apple Calendar in the calendar; the three choices below were answered the same day; accepted on 2026-11-16, everything it decides being built)
 - **Open question:** whether a room should have calendars of its own that all its readers see, whether Microsoft 365 accounts should be connected through Microsoft Graph rather than a published address, and whether the server should ever write back to another service; all three are left out here
 - **Question checked:** 2026-11
 
