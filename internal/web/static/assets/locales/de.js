@@ -1802,6 +1802,7 @@ export default {
   "identities.password": "Ihr Passwort",
   "identities.passwordFor": "Ihr Passwort, um {name} zu verknüpfen",
   "identities.unlink": "Verknüpfung lösen",
+  "identities.calendar": "Kalender dieses Kontos anzeigen",
   "identities.unlinkConfirm": "Die Verknüpfung dieses Kontos mit Ihrem Konto bei {name} lösen? Jenes Konto meldet Sie danach hier nicht mehr an.",
   "identities.linked": "Dieses Konto ist jetzt mit Ihrem Konto bei {name} verknüpft.",
   "identities.errorTaken": "Jenes Konto beim Anbieter ist bereits mit einem anderen Konto hier verknüpft. Bitten Sie die Administration, diese Verknüpfung zuerst zu entfernen.",

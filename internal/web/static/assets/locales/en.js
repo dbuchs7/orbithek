@@ -1804,6 +1804,7 @@ export default {
   "identities.password": "Your password",
   "identities.passwordFor": "Your password, to link {name}",
   "identities.unlink": "Unlink",
+  "identities.calendar": "Show the calendars of this account",
   "identities.unlinkConfirm": "Unlink this account from your account at {name}? It no longer signs you in here.",
   "identities.linked": "This account is now linked to your account at {name}.",
   "identities.errorTaken": "That account at the provider is linked to another account here already. Ask an administrator to remove that link first.",
