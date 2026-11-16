@@ -286,6 +286,7 @@ func Routes(d Deps) []Route {
 	routes = append(routes, wordTemplateRoutes(d)...)
 	routes = append(routes, regulationRoutes(d)...)
 	routes = append(routes, oidcRoutes(d)...)
+	routes = append(routes, signInRoutes(d)...)
 	routes = append(routes, itemRoutes(d)...)
 	routes = append(routes, calendarRoutes(d)...)
 	routes = append(routes, extcalRoutes(d)...)
