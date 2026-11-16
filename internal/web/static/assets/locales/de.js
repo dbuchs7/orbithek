@@ -2167,6 +2167,7 @@ export default {
   "starmap.legendPicture": "Quadrat: ein Bild",
   "starmap.legendLabel": "Raute: ein Label, das mehrere Einträge tragen",
   "starmap.legendOutside": "Gestrichelter Rand: in einem anderen Raum",
+  "starmap.legendGroup": "Wolke: die Einträge eines Typs in einem Raum, so gross wie ihre Anzahl; ein Doppelklick öffnet den Raum",
   "starmap.edgeParent": "enthält",
   "starmap.edgeRelation": "Beziehung, benannt nach ihrem Typ",
   "starmap.edgeMentions": "erwähnt",

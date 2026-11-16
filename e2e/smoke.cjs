@@ -2830,6 +2830,7 @@ function webSource() {
       check(await page.locator("#starmap-canvas .star-node.kind-group").count() > 0, "too many items show as clouds per room and type");
       check(await page.locator("#starmap-canvas .star-node.kind-group > path.star-shape.star-cloud").count() === await page.locator("#starmap-canvas .star-node.kind-group").count(),
         "every group is drawn as a cloud (ADR-0230)");
+      check(await page.locator("#starmap-legend-group .star-cloud").count() === 1, "the legend explains the clouds");
       // A double-click on a cloud opens the map of its room.
       const bubble = page.locator("#starmap-canvas .star-node.kind-group").first();
       const room = (await bubble.getAttribute("data-id")).replace(/^group:/, "").split("/")[0];
@@ -2848,6 +2849,7 @@ function webSource() {
     await page.waitForFunction(() => [...document.querySelectorAll("#starmap-canvas .star-node.kind-item")].map((n) => n.dataset.key).sort().join() === "PLAT-1,PLAT-2");
     await page.goto(base + "/#/starmap/PLAT");
     await page.waitForSelector("#starmap-canvas .star-node[data-key='PLAT-2']");
+    check(await page.locator("#starmap-legend-group").count() === 0, "a room's map shows no clouds and the legend explains none");
 
     step("starmap moves: the map settles, pointing lights a neighbourhood, a dragged node moves, a double-click separates a node, Escape and the trail step back, the address keeps the drill path (ADR-0158)");
     // The map is a live simulation; the canvas says when it rests, so the

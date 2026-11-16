@@ -672,6 +672,10 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
       h("li", {}, swatch(s("g", { class: "star-node kind-picture" }, shape("picture"))), h("span", { text: t("starmap.legendPicture") })),
       h("li", {}, swatch(s("g", { class: "star-node kind-label" }, shape("label"))), h("span", { text: t("starmap.legendLabel") })),
       h("li", {}, swatch(s("g", { class: "star-node kind-item outside" }, shape("item"))), h("span", { text: t("starmap.legendOutside") })),
+      // A cloud is explained where the map shows clouds (ADR-0230).
+      graph.nodes.some((node) => node.kind === "group")
+        ? h("li", { id: "starmap-legend-group" }, swatch(s("g", { class: "star-node kind-group" }, shape("group", { count: 0 }))), h("span", { text: t("starmap.legendGroup") }))
+        : null,
       edgeKinds.map((k) => h("li", {}, lineSwatch(k), h("span", { text: edgeName(k) })))),
     impact ? h("p", { class: "muted", id: "starmap-impact-legend", text: t("starmap.legendImpact") }) : null,
     h("p", { class: "muted", text: t("starmap.help") }));
