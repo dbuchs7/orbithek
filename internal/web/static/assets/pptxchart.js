@@ -2,9 +2,11 @@
 // presentation keeps for it — every chart part caches its categories,
 // series names and numbers beside the reference into its workbook — and
 // gives the scales and number formats it is drawn with. Column, bar,
-// line, area, pie, doughnut and scatter charts are read, their 3-D forms
-// as flat ones; other kinds (radar, bubble, stock, surface) are not, and
-// the slide shows them as grey boxes. assets/pptxdraw.js draws the result.
+// line, area, pie, doughnut, scatter and radar charts are read, their 3-D
+// forms as flat ones, and waterfall charts from the newer chart parts
+// (chartex) that keep them; other kinds (bubble, stock, surface, and the
+// newer treemap, sunburst, funnel, histogram, box and whisker) are not,
+// and the slide shows them as grey boxes. assets/pptxdraw.js draws the result.
 // It needs no browser, so node --test runs it.
 import { all, child, kids } from "./pptx.js";
 
@@ -21,7 +23,7 @@ const isOn = (node, name, d = false) => {
 // KINDS maps the plot elements read to the kind drawn.
 const KINDS = {
   barChart: "bar", bar3DChart: "bar", lineChart: "line", line3DChart: "line", areaChart: "area", area3DChart: "area",
-  pieChart: "pie", pie3DChart: "pie", doughnutChart: "doughnut", scatterChart: "scatter",
+  pieChart: "pie", pie3DChart: "pie", doughnutChart: "doughnut", scatterChart: "scatter", radarChart: "radar",
 };
 
 // cacheOf reads the points a reference or literal keeps: an array by
@@ -126,6 +128,7 @@ export function readChart(doc, ctx, helpers) {
       gap: num(val(p, "gapWidth", 150)), overlap: num(val(p, "overlap", grouping === "clustered" ? 0 : 100)),
       hole: num(val(p, "holeSize", 50)), firstAngle: num(val(p, "firstSliceAng", 0)),
       markers: isOn(p, "marker", kind === "line"), scatterStyle: val(p, "scatterStyle", "marker"),
+      radarStyle: val(p, "radarStyle", "marker"),
     });
   }
   if (!plots.length) return null;
@@ -157,6 +160,90 @@ export function readChart(doc, ctx, helpers) {
     background: helpers.fillOf(child(space, "spPr"), ctx) || null,
     plotBackground: helpers.fillOf(child(area, "spPr"), ctx) || null,
   };
+}
+
+// readChartEx reads a chart of the newer kind (cx:chartSpace, a chartex
+// part): its data keeps categories and values by data ID, its series name
+// a layout. A waterfall is read — its points add to a running total, the
+// subtotals stand from zero — into the model readChart gives; other
+// layouts give null.
+export function readChartEx(doc, ctx, helpers) {
+  const space = doc ? kids(doc)[0] : null;
+  const chart = space ? child(space, "chart") : null;
+  const region = chart ? all(chart, "plotAreaRegion")[0] : null;
+  const ser = region ? kids(region, "series").find((s) => s.attrs.layoutId === "waterfall") : null;
+  if (!ser) return null;
+  const dataId = val(ser, "dataId", "0");
+  const data = all(child(space, "chartData") || { children: [] }, "data").find((d) => (d.attrs.id ?? "0") === String(dataId));
+  if (!data) return null;
+  const dim = (name, type) => kids(data, name).find((d) => !type || d.attrs.type === type) || kids(data, name)[0];
+  const level = (d) => {
+    const lvl = d ? child(d, "lvl") : null;
+    if (!lvl) return { points: [], format: "" };
+    const points = new Array(num(lvl.attrs.ptCount)).fill(null);
+    for (const pt of kids(lvl, "pt")) points[num(pt.attrs.idx)] = pt.children.filter((c) => typeof c === "string").join("");
+    return { points, format: lvl.attrs.formatCode || "" };
+  };
+  const cats = level(dim("strDim", "cat") || dim("numDim", "cat"));
+  const vals = level(dim("numDim", "val"));
+  const values = vals.points.map((v) => (v === null || v === "" ? null : num(v, null)));
+  const subtotals = new Set(all(child(ser, "layoutPr") || { children: [] }, "idx").map((i) => num(i.attrs.val)));
+  const tx1 = ctx.theme.colors[ctx.clrMap?.tx1 || "dk1"];
+  const font = textStyle(child(space, "txPr"), helpers, ctx, { size: 10, bold: false, color: { ...tx1, a: 0.75 }, font: ctx.theme.minor });
+  const accent = (i) => ctx.theme.colors[`accent${i}`] || { r: 0.27, g: 0.45, b: 0.77, a: 1 };
+  // Rises take the first accent, falls the second and totals the third,
+  // as the presentation program colours a waterfall; a point's own fill
+  // wins.
+  const colors = values.map((v, i) => {
+    const own = helpers.fillOf(child(kids(ser, "dataPt").find((d) => num(d.attrs.idx) === i) || { children: [] }, "spPr"), ctx);
+    if (own?.type === "solid") return own.color;
+    return subtotals.has(i) ? accent(3) : (v ?? 0) < 0 ? accent(2) : accent(1);
+  });
+  const vis = all(child(ser, "dataLabels") || { children: [] }, "visibility")[0];
+  const labels = child(ser, "dataLabels") ? {
+    value: vis ? vis.attrs.value !== "0" : true, category: vis?.attrs.categoryName === "1", series: vis?.attrs.seriesName === "1", percent: false,
+    format: all(child(ser, "dataLabels"), "numFmt")[0]?.attrs.formatCode || "", pos: child(ser, "dataLabels").attrs.pos || "outEnd",
+  } : null;
+  const connectors = all(child(ser, "layoutPr") || { children: [] }, "visibility")[0]?.attrs.connectorLines !== "0";
+  const name = all(child(ser, "tx") || { children: [] }, "v")[0]?.children.join("") || "";
+  const titleEl = child(chart, "title");
+  const titleText = titleEl ? (all(titleEl, "v")[0]?.children.join("") || all(titleEl, "t").map((t) => t.children.join("")).join("")) : "";
+  const axes = all(chart, "axis");
+  const valAxis = axes.find((a) => child(a, "valScaling"));
+  const catAxis = axes.find((a) => child(a, "catScaling"));
+  const scaling = valAxis ? child(valAxis, "valScaling") : null;
+  return {
+    title: titleText ? { text: titleText, ...font, size: font.size * 1.4 } : null,
+    // The legend's entries (rise, fall, total) are words of the
+    // presentation program, not of the presentation; it is left out.
+    legend: null, font,
+    plots: [{ kind: "waterfall", grouping: "standard", series: [{ name, idx: 0, color: accent(1), colors, categories: cats.points.map((c) => c ?? ""),
+      values, format: vals.format, subtotals, labels, connectors }], labels,
+      gap: catAxis && child(catAxis, "catScaling").attrs.gapWidth !== undefined ? num(child(catAxis, "catScaling").attrs.gapWidth) * 100 : 50 }],
+    catAx: catAxis ? { deleted: catAxis.attrs.hidden === "1", labels: Boolean(child(catAxis, "tickLabels")), pos: "b" } : { labels: true, pos: "b" },
+    valAx: valAxis ? {
+      deleted: valAxis.attrs.hidden === "1", labels: Boolean(child(valAxis, "tickLabels")), gridlines: Boolean(child(valAxis, "majorGridlines")), pos: "l",
+      min: scaling?.attrs.min !== undefined && scaling.attrs.min !== "auto" ? num(scaling.attrs.min) : null,
+      max: scaling?.attrs.max !== undefined && scaling.attrs.max !== "auto" ? num(scaling.attrs.max) : null,
+      unit: scaling?.attrs.majorUnit !== undefined && scaling.attrs.majorUnit !== "auto" ? num(scaling.attrs.majorUnit) : null,
+      format: all(valAxis, "numFmt")[0]?.attrs.formatCode || "",
+    } : null,
+    xAx: null, background: helpers.fillOf(child(space, "spPr"), ctx) || null, plotBackground: null,
+  };
+}
+
+// waterfallSteps gives each point of a waterfall its bar: from where the
+// running total stood to where it stands after it, a subtotal from zero
+// to its own value, which the total then continues from.
+export function waterfallSteps(values, subtotals) {
+  let total = 0;
+  return values.map((v, i) => {
+    if (v === null || v === undefined) return null;
+    if (subtotals.has(i)) { total = v; return { from: 0, to: v, v, total: true }; }
+    const from = total;
+    total += v;
+    return { from, to: total, v, total: false };
+  });
 }
 
 function labelsOf(d) {
@@ -194,6 +281,11 @@ export function valueRange(plots, which = "y") {
   let zero = false;
   for (const p of plots) {
     if (p.kind === "pie" || p.kind === "doughnut") continue;
+    if (p.kind === "waterfall") {
+      zero = true;
+      for (const st of waterfallSteps(p.series[0].values, p.series[0].subtotals)) if (st) { lo = Math.min(lo, st.from, st.to); hi = Math.max(hi, st.from, st.to); }
+      continue;
+    }
     if (which === "x") {
       for (const s of p.series) for (const c of s.categories) { const v = Number(c); if (c !== "" && Number.isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); } }
       continue;
