@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/dbuchs7/orbithek/internal/audit"
+	"github.com/dbuchs7/orbithek/internal/site"
 	"github.com/dbuchs7/orbithek/internal/sso"
 )
 
@@ -135,6 +136,13 @@ func (h oidcHandlers) callback(w http.ResponseWriter, r *http.Request) {
 	}
 	accounts := h.d.DB.Accounts
 	u, ok := accounts.UserByIdentity(id.Issuer, id.Subject)
+	if !ok && h.d.DB.Site.SignIn().NoNewAccounts {
+		// Administrators allow only identities linked to an account
+		// (ADR-0229). The answer says nothing about whether an account
+		// with the provider's name or address exists.
+		h.fail(w, r, "no linked account", nil, "unlinked")
+		return
+	}
 	if !ok {
 		// Just-in-time provisioning (ADR-0013): a new account without roles.
 		// It is never linked to an existing account by e-mail address,
@@ -154,4 +162,61 @@ func (h oidcHandlers) callback(w http.ResponseWriter, r *http.Request) {
 	h.d.DB.Audit.Record(audit.Entry{Event: audit.Login, Actor: string(p.User), Addr: clientAddr(r), Detail: map[string]string{"method": "oidc", "provider": prov.ID()}})
 	setSessionCookie(w, r, secret)
 	http.Redirect(w, r, "/", http.StatusFound)
+}
+
+// signInRoutes let administrators decide whether a first sign-in through
+// single sign-on creates an account (ADR-0229). The setting exists
+// whether a provider is configured or not, so it can be turned off before
+// an operator sets a client.
+func signInRoutes(d Deps) []Route {
+	h := signInHandlers{authHandlers: authHandlers{d: d}}
+	return []Route{
+		{Method: http.MethodGet, Pattern: "/api/settings/sign-in", Summary: "Whether a first sign-in through single sign-on creates an account without roles, and whether a provider is configured (administrators)", Handler: http.HandlerFunc(h.settings)},
+		{Method: http.MethodPut, Pattern: "/api/settings/sign-in", Summary: "Let a first sign-in through single sign-on create an account, or allow only identities linked to an account: newAccounts (administrators)", Handler: http.HandlerFunc(h.setSettings)},
+	}
+}
+
+type signInHandlers struct{ authHandlers }
+
+// signInSettings is the setting as the API names it: positively, as the
+// administration page asks it.
+type signInSettings struct {
+	NewAccounts *bool `json:"newAccounts"`
+}
+
+func (h signInHandlers) settings(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.adminOnly(w, r); !ok {
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"newAccounts": !h.d.DB.Site.SignIn().NoNewAccounts, "sso": len(h.d.SSO) > 0})
+}
+
+func (h signInHandlers) setSettings(w http.ResponseWriter, r *http.Request) {
+	actor, ok := h.adminOnly(w, r)
+	if !ok {
+		return
+	}
+	var req signInSettings
+	if err := readJSON(w, r, &req); err != nil {
+		badRequest(w, err)
+		return
+	}
+	if req.NewAccounts == nil {
+		writeError(w, http.StatusBadRequest, "newAccounts is required")
+		return
+	}
+	before := h.d.DB.Site.SignIn()
+	next := site.SignIn{NoNewAccounts: !*req.NewAccounts}
+	if err := h.d.DB.Site.SetSignIn(actor, next); err != nil {
+		writeError(w, http.StatusInternalServerError, "setting not saved")
+		return
+	}
+	if before != next {
+		state := "on"
+		if next.NoNewAccounts {
+			state = "off"
+		}
+		h.record(audit.Entry{Event: audit.SignInChanged, Actor: actor, Addr: clientAddr(r), Detail: map[string]string{"newAccounts": state}})
+	}
+	h.settings(w, r)
 }

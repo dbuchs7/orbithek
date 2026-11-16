@@ -112,7 +112,10 @@ const (
 	AccountApproved  = "account.approve"
 	AccountRejected  = "account.reject"
 	AccessChanged    = "access.change"
-	ContactsChanged  = "contacts.change"
+	// SignInChanged records an administrator deciding whether a first
+	// sign-in through single sign-on creates an account (ADR-0229).
+	SignInChanged   = "signin.change"
+	ContactsChanged = "contacts.change"
 	// Password resets (ADR-0064).
 	PasswordResetRequested = "password.reset.request"
 	PasswordReset          = "password.reset"
