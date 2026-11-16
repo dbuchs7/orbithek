@@ -80,15 +80,18 @@ Chosen option: **1**, because it is the only one in which the person who holds t
 - **Microsoft** links as Google does, through the Entra ID provider of ADR-0066, which signs in only accounts of one tenant.
   Its calendars are not read through the link: Microsoft Graph is left open by ADR-0174.
 - **The calendar after linking:** when calendars of other services are allowed (`site.Calendars`, ADR-0174), the account page offers next to a linked identity what its service allows.
-  - Google: *Show the calendars of this Google account* starts the existing calendar connection (`GET /api/me/calendar-accounts/google/connect`) with `login_hint` set to the identity's subject, so that Google proposes the same account.
-    The calendar flow also asks for `openid`, so the connected calendar account records the Google subject it belongs to; the account page shows identity and calendar together.
+  - Google: *Show the calendars of this account* starts the existing calendar connection with `linked=1` (`GET /api/me/calendar-accounts/google/connect?linked=1`); the server sets `login_hint` to the subject of the account's identity at the provider of the kind `google`, whose client also connects calendars, so that Google proposes the same account.
+    The subject is looked up by the server, never taken from the address.
+    `GET /api/me/identities` says per provider whether the offer stands (`calendar`): a linked Google identity, while calendars of other services are allowed and Google is set up for them.
     If the person chooses another Google account there, that account's calendars are connected as before; the hint is a proposal, not a constraint.
-  - Apple: *Show the calendars of this iCloud account* opens the CalDAV form of ADR-0174 with the server `https://caldav.icloud.com` filled in and a link to where Apple issues app-specific passwords.
-    The Apple ID and the app-specific password are entered there; the sign-in gives neither.
-  - Removing a link asks whether a calendar account recorded for the same subject is disconnected too; by default it stays, as the two grants are separate.
+    The calendar flow asks for `calendar.readonly` only, as before; it does not ask for `openid`, so a connected calendar account does not record the Google subject it belongs to (see below).
+  - Apple: the CalDAV form of ADR-0174 already has the server `https://caldav.icloud.com` filled in and says where Apple issues app-specific passwords.
+    The Apple ID and the app-specific password are entered there; a sign-in with Apple would give neither, so the offer next to an Apple identity waits for Apple as a provider.
+  - Removing a link leaves calendar accounts as they are, as the two grants are separate; they are disconnected in the calendar.
+    Asking on removal whether the calendar account of the same Google account goes too would need the calendar flow to record the subject, through `openid` and a verified ID token; that is left for later.
 - **Audit:** `identity.link`, `identity.link-refused`, `identity.unlink` (with the actor, the account, the provider's ID and the issuer, never the subject's tokens) and `signin.change`.
 
-**Implementation is Partial:** the setting for new accounts at sign-in and linking with removing links (`internal/auth/identities.go`, `internal/server/api_identities.go`, `assets/identities.js`) are built; Apple and the calendar offer are not.
+**Implementation is Partial:** the setting for new accounts at sign-in, linking with removing links (`internal/auth/identities.go`, `internal/server/api_identities.go`, `assets/identities.js`) and the offer of a linked Google account's calendars (`extcal.Google.BeginFor`) are built; Apple as a provider is not.
 The browser smoke test checks only that the card stays hidden without a provider, as the server under test has none; the flow itself is tested against the fake provider of `sso/ssotest` in `internal/server`.
 - **API and MCP:** the routes above are authenticated; the identity and setting routes change how an account is reached and are not offered over MCP (ADR-0012, `internal/mcp/tools.go`).
 - **UI:** catalogue keys in `en.js` and `de.js`, the account page (*Sign-in with other accounts*) and the user list of the administration, in both manuals.

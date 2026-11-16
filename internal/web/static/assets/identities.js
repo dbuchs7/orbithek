@@ -71,6 +71,10 @@ export function identitiesCard() {
       h("strong", { text: p.name }), " ",
       h("span", { class: "muted", text: p.linked ? t("identities.isLinked") : t("identities.notLinked") }), " ");
     if (p.linked) {
+      // The calendars of the same account, a grant of their own that Google
+      // asks for (ADR-0229, ADR-0174); Google is proposed this account.
+      if (p.calendar) li.append(h("a", { class: "button secondary identity-calendar", href: "/api/me/calendar-accounts/google/connect?linked=1",
+        text: t("identities.calendar") }), " ");
       li.append(h("button", { type: "button", class: "link identity-unlink", text: t("identities.unlink"),
         onclick: async () => {
           if (!confirm(t("identities.unlinkConfirm", { name: p.name }))) return;

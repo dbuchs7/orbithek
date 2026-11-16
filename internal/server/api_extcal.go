@@ -71,7 +71,7 @@ func extcalRoutes(d Deps) []Route {
 		{Method: http.MethodPost, Pattern: "/api/me/calendar-accounts", Summary: "Connect an account at a CalDAV server (kind caldav: server, username, password — for Apple iCloud https://caldav.icloud.com with the Apple ID and an app-specific password); answers its calendars", Handler: http.HandlerFunc(h.connectCalDAV)},
 		{Method: http.MethodGet, Pattern: "/api/me/calendar-accounts/{id}/calendars", Summary: "The calendars one of one's accounts holds, to choose which are shown", Handler: http.HandlerFunc(h.accountCalendars)},
 		{Method: http.MethodDelete, Pattern: "/api/me/calendar-accounts/{id}", Summary: "Disconnect one of one's accounts: its calendars go, its credential is destroyed, and Google's grant is revoked", Handler: http.HandlerFunc(h.disconnect)},
-		{Method: http.MethodGet, Pattern: "/api/me/calendar-accounts/google/connect", Summary: "Begin connecting one's Google account; redirects to Google, where one signs in and allows this server to read one's calendars", Handler: http.HandlerFunc(h.connectGoogle)},
+		{Method: http.MethodGet, Pattern: "/api/me/calendar-accounts/google/connect", Summary: "Begin connecting one's Google account; redirects to Google, where one signs in and allows this server to read one's calendars; with linked=1 Google is proposed the Google account one's sign-in is linked to", Handler: http.HandlerFunc(h.connectGoogle)},
 		{Method: http.MethodGet, Pattern: GoogleCalendarCallback, Summary: "Google's redirect back after one allowed or refused this server; keeps the account, bound to the browser that began it, and goes on to the calendar", Access: Public, Handler: http.HandlerFunc(h.googleCallback)},
 	}
 }
@@ -417,7 +417,14 @@ func (h extcalHandlers) connectGoogle(w http.ResponseWriter, r *http.Request) {
 		toCalendar(w, r, "calendar_error", "config")
 		return
 	}
-	authURL, state, err := g.Begin(string(p.User))
+	// Asked for the Google account one's sign-in is linked to, Google is
+	// told which account to propose (ADR-0229); one may still choose
+	// another there.
+	hint := ""
+	if r.URL.Query().Get("linked") == "1" {
+		hint = linkedGoogleSubject(h.d, p.User)
+	}
+	authURL, state, err := g.BeginFor(string(p.User), hint)
 	if err != nil {
 		toCalendar(w, r, "calendar_error", "unavailable")
 		return

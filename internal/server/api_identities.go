@@ -129,10 +129,16 @@ func (h oidcHandlers) myIdentities(w http.ResponseWriter, r *http.Request) {
 		Name   string `json:"name"`
 		Kind   string `json:"kind"`
 		Linked bool   `json:"linked"`
+		// Calendar says that the calendars of the linked account can be
+		// shown: a Google identity, while calendars of other services are
+		// allowed and Google is set up for them (ADR-0229, ADR-0174).
+		Calendar bool `json:"calendar"`
 	}
 	list := []providerJSON{}
 	for _, prov := range h.d.SSO {
-		list = append(list, providerJSON{ID: prov.ID(), Name: prov.Name(), Kind: prov.Kind(), Linked: h.linkedAt(p.User, prov)})
+		linked := h.linkedAt(p.User, prov)
+		list = append(list, providerJSON{ID: prov.ID(), Name: prov.Name(), Kind: prov.Kind(), Linked: linked,
+			Calendar: linked && prov.Kind() == "google" && h.googleCalendars()})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"providers": list, "password": h.d.DB.Accounts.HasPassword(p.User)})
 }
@@ -293,4 +299,28 @@ func (h oidcHandlers) unlinkUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.unlink(w, r, auth.UserID(actor), auth.UserID(r.PathValue("id")), true)
+}
+
+// googleCalendars says whether people may connect the calendars of a
+// Google account: calendars of other services are allowed and Google is set
+// up for them (ADR-0174).
+func (h oidcHandlers) googleCalendars() bool {
+	return h.d.Calendars != nil && h.d.Calendars.Google() != nil && h.d.DB.Site.Calendars().External
+}
+
+// linkedGoogleSubject answers the subject of the Google identity an
+// account is linked to, through the provider of the kind google, whose
+// client also connects calendars (ADR-0229).
+func linkedGoogleSubject(d Deps, user auth.UserID) string {
+	for _, p := range d.SSO {
+		if p.Kind() != "google" {
+			continue
+		}
+		for _, x := range d.DB.Accounts.Identities(user) {
+			if x.Issuer == p.Issuer() {
+				return x.Subject
+			}
+		}
+	}
+	return ""
 }

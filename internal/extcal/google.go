@@ -95,6 +95,14 @@ func random() string {
 // browser. Google is asked for a refresh token (offline access) and to
 // ask the person again, so that it hands one out.
 func (g *Google) Begin(user string) (authURL, state string, err error) {
+	return g.BeginFor(user, "")
+}
+
+// BeginFor begins as Begin does and proposes an account to Google: the
+// subject of the Google identity the person's account is linked to
+// (ADR-0229). The hint is a proposal; the person may still choose another
+// account at Google.
+func (g *Google) BeginFor(user, loginHint string) (authURL, state string, err error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	now := g.now()
@@ -108,8 +116,11 @@ func (g *Google) Begin(user string) (authURL, state string, err error) {
 	}
 	state, verifier := random(), oauth2.GenerateVerifier()
 	g.pending[state] = pendingFlow{user: user, verifier: verifier, expires: now.Add(FlowLifetime)}
-	return g.config().AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.S256ChallengeOption(verifier),
-		oauth2.SetAuthURLParam("prompt", "consent")), state, nil
+	opts := []oauth2.AuthCodeOption{oauth2.AccessTypeOffline, oauth2.S256ChallengeOption(verifier), oauth2.SetAuthURLParam("prompt", "consent")}
+	if loginHint != "" {
+		opts = append(opts, oauth2.SetAuthURLParam("login_hint", loginHint))
+	}
+	return g.config().AuthCodeURL(state, opts...), state, nil
 }
 
 // Pending answers whose connection a state begun.
