@@ -146,7 +146,8 @@ Die Felder eines Eintrags stehen in der Spalte an der Seite und werden gespeiche
 
 ### Verschieben, kopieren und löschen
 
-- **Verschieben …** setzt eine Seite mit ihren Unterseiten unter eine andere Seite oder auf die oberste Ebene des Raums. Innerhalb eines Raums ändern **Nach oben** und **Nach unten** die Reihenfolge.
+- **Verschieben …** im Kopf der Seite setzt eine Seite mit ihren Unterseiten auf die oberste Ebene eines Raums oder unter eine Seite dort, im eigenen oder in einem anderen Raum. Man wählt den **Raum**, dann **Oberste Ebene des Raums** oder **Unterhalb einer Seite**; die Seiten des Raums erscheinen als sein Seitenbaum, und **Seite suchen** findet eine Seite nach Titel oder Schlüssel. Die Zeile darunter nennt den gewählten Ort. Ein Verschieben in einen anderen Raum sagt vorher, was sich ändert: Danach entscheiden die Rollen jenes Raums, wer die Seiten lesen und bearbeiten darf, Einschränkungen auf den Seiten bleiben erhalten, und die Seiten erhalten Schlüssel jenes Raums, während Links mit den alten Schlüsseln weiterhin funktionieren.
+- Im Seitenbaum öffnet **⇄** in der Zeile einer Seite denselben Dialog für diese Seite; innerhalb eines Raums lässt sich eine Seite auch auf eine andere ziehen. **Nach oben** und **Nach unten** ändern die Reihenfolge innerhalb eines Raums.
 - **Kopieren …** kopiert eine Seite, auf Wunsch **Mit Unterseiten**.
 - **In den Papierkorb** entfernt einen Eintrag aus der Ansicht. Das ist nur möglich, wenn kein anderer Eintrag ausserhalb seines Teilbaums auf ihn verweist. Aus dem Papierkorb lässt er sich mit **Wiederherstellen** zurückholen oder mit **Endgültig löschen** vernichten; das lässt sich nicht rückgängig machen.
 

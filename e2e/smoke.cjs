@@ -4352,11 +4352,60 @@ function webSource() {
     await page.waitForSelector("h1.item-title:text-is('Runbook template')");
     await page.waitForSelector(".tree a.current:has-text('Runbook template')");
     await page.waitForSelector(".tree li:has(> .tree-row a.current) > ul a:text-is('Install')"); // its child pages came along
-    await page.click("#item-move");
-    await page.selectOption("#relocate-parent", { label: (await page.locator("#relocate-parent option:has-text('Tidy the wiki')").textContent()).trim() });
-    await page.click("#relocate-form button[type=submit]");
+
+    step("moving: from the page's head and the tree, below a page found by its title, into another room after a warning (ADR-draft-a-page-is-moved-into-another-room-from-its-head-and-its-tree)");
+    const moveBelow = async (words, title, place) => {
+      await page.check("#move-below");
+      await page.waitForSelector("#move-pages .move-page");
+      await page.fill("#move-find", words);
+      const hit = `#move-pages > li[data-id] .move-page:has-text('${title}')`;
+      await page.waitForSelector(hit);
+      await page.check(hit + " input");
+      await page.waitForSelector(`#move-place:text-is('Goes to: ${place}')`);
+    };
+    await page.click(".page-head #item-move");
+    await page.waitForSelector("dialog#move-dialog[open]");
+    check(await page.$eval("#move-space", (s) => s.value) === "PLAT", "the dialog starts in the page's own room");
+    check(await page.isHidden("#move-warning") && (await page.textContent("#move-ok")) === "Move", "a move within the room warns of nothing");
+    await page.check("#move-below");
+    await page.waitForSelector("#move-pages .move-level .move-page:has-text('Tidy the wiki')");
+    check(await page.locator("#move-pages .move-page:has-text('Runbook template')").count() === 0, "the room's tree leaves out the page being moved");
+    await moveBelow("tidy", "Tidy the wiki", "Platform › Tidy the wiki");
+    await page.click("#move-ok");
+    await page.waitForSelector("dialog#move-dialog", { state: "detached" });
     await page.waitForSelector("p:has(a[href='#/spaces']) >> text=PLAT"); // the page shown again after moving
     await page.waitForFunction(() => document.querySelector(".tree a.current")?.closest("ul")?.closest("li")?.querySelector(".tree-row a")?.textContent === "Tidy the wiki");
+    check((await page.request.post(base + "/api/spaces", { data: { key: "MOVE", name: "Moving" } })).status() === 201, "a second room is made");
+    await page.goto(base + "/#/space/PLAT");
+    await page.click(".tree a:text-is('Tidy the wiki')");
+    await page.waitForSelector("h1.item-title:text-is('Tidy the wiki')");
+    const templateRow = ".tree-row:has(a:text-is('Runbook template'))";
+    await page.hover(templateRow);
+    await page.click(templateRow + " .tree-move");
+    await page.waitForSelector("dialog#move-dialog[open]");
+    await page.selectOption("#move-space", "MOVE");
+    await page.waitForSelector("#move-warning:not([hidden])");
+    check((await page.textContent("#move-warning")).includes("the roles of Moving decide"), "a move into another room says that its roles then apply");
+    check((await page.textContent("#move-ok")) === "Move into Moving", "the button names the room it moves into");
+    await page.click("#move-ok");
+    await page.waitForSelector("dialog#move-dialog", { state: "detached" });
+    await page.waitForSelector(templateRow, { state: "detached" }); // gone from this room's tree
+    const movedTop = (await (await page.request.get(base + "/api/spaces/MOVE/tree")).json()).items;
+    check(movedTop.length === 1 && movedTop[0].title === "Runbook template" && movedTop[0].key.startsWith("MOVE-") && movedTop[0].hasChildren,
+      "the page is at the top of the other room with its child pages and a key of that room: " + JSON.stringify(movedTop));
+    // And back below the page it came from, from its head, shown at its new key.
+    await page.goto(base + "/#/item/" + movedTop[0].key);
+    await page.waitForSelector("h1.item-title:text-is('Runbook template')");
+    await page.click(".page-head #item-move");
+    await page.waitForSelector("dialog#move-dialog[open]");
+    await page.selectOption("#move-space", "PLAT");
+    await moveBelow("tidy wiki", "Tidy the wiki", "Platform › Tidy the wiki");
+    await page.click("#move-ok");
+    await page.waitForSelector("dialog#move-dialog", { state: "detached" });
+    await page.waitForFunction(() => /^#\/item\/PLAT-/.test(location.hash));
+    await page.waitForFunction(() => document.querySelector(".tree a.current")?.closest("ul")?.closest("li")?.querySelector(".tree-row a")?.textContent === "Tidy the wiki");
+    check((await page.request.delete(base + "/api/spaces/MOVE")).ok() && (await page.request.post(base + "/api/spaces/MOVE/purge", { data: { confirm: "MOVE" } })).ok(),
+      "the second room is deleted again");
 
     step("Word templates: a type's pages begin with its start text, read as the template's document, export into it and stay on their version (ADR-0167)");
     const putTemplate = (label) => page.evaluate(async (bytes) => {

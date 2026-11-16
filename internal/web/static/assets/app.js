@@ -6,6 +6,7 @@ import { createEditor, isSafeLink, setSecretClass, setVeiledContent } from "./ed
 import { protectChoices } from "./protect.js";
 import { liveBody, watchLive } from "./live.js";
 import { pageTree, ancestors } from "./tree.js";
+import { moveDialog } from "./movepage.js";
 import { renderDiff } from "./diff.js";
 import { commentPlugin } from "./anchors.js";
 import { personalNotes } from "./notes.js";
@@ -2743,7 +2744,8 @@ async function spaceView(key) {
   const views = [link(viewOf(""), t("views.tab"), null, "space-view"),
     h("select", { id: "space-view-type", "aria-label": t("views.ofTypeChoice"), onchange: (ev) => { if (ev.target.value) location.hash = viewOf(ev.target.value); } },
       h("option", { value: "", text: t("views.ofTypeChoice") }), types.map((ty) => h("option", { value: ty.name, text: t("views.ofType", { type: ty.name }) })))];
-  const tree = pageTree({ space: key, taskTypes: new Set(types.filter(isTaskType).map((ty) => ty.name)), onMoved: () => route(), onError: (err) => status.replaceChildren(errorBox(err)) });
+  const tree = pageTree({ space: key, taskTypes: new Set(types.filter(isTaskType).map((ty) => ty.name)), onMoved: () => route(),
+    onMove: canEdit ? (it) => movePage(it, spaces, "", status) : null, onError: (err) => status.replaceChildren(errorBox(err)) });
   show(withTree(tree,
     h("p", {}, link("#/spaces", t("nav.spaces")), " / " + key),
     h("div", { class: "page-head" },
@@ -4982,7 +4984,9 @@ async function itemView(ref, params = new URLSearchParams()) {
   const lastRestriction = history.events.filter((e) => e.kind === "RestrictionSet").pop();
   const guarded = item.restriction?.read?.length && lastRestriction?.actor === "governance";
   // The tree opens down to the page and shows the page's own children.
-  const tree = pageTree({ space: item.space, current: item.id, open: [...open, item.id], taskTypes: new Set(types.filter(isTaskType).map((ty) => ty.name)), onMoved: () => route(), onError: (err) => status.replaceChildren(errorBox(err)) });
+  const tree = pageTree({ space: item.space, current: item.id, open: [...open, item.id], taskTypes: new Set(types.filter(isTaskType).map((ty) => ty.name)), onMoved: () => route(),
+    onMove: mayEdit(spaces.find((s) => s.key === item.space)?.role) ? (it) => movePage(it, spaces, item.id, status) : null,
+    onError: (err) => status.replaceChildren(errorBox(err)) });
   // Leaving the editor stores what is not yet saved, then shows the page.
   let session = null;
   const done = h("button", { type: "button", id: "edit-done", class: "primary", text: t("item.done"), onclick: async () => {
@@ -5003,6 +5007,9 @@ async function itemView(ref, params = new URLSearchParams()) {
     // (ADR-0091); an item without a text ends it here.
     editing && !type.body ? done : null,
     canEdit && !editing ? link(newHref(item.space, item.id), t("item.newChild"), "button", "item-new-child") : null,
+    // Moving, also into another room, where it is looked for (ADR-draft-a-page-is-moved-into-another-room-from-its-head-and-its-tree).
+    canEdit && !editing ? h("button", { type: "button", id: "item-move", text: t("move.open"),
+      onclick: () => movePage({ id: item.id, key: item.key, title: item.title, space: item.space }, spaces, item.id, status) }) : null,
     !editing ? exportMenu(item) : null,
     live && type.body ? editors : null,
     live ? watchButton(path, watches.some((w) => w.item === item.id), status) : null);
@@ -5063,12 +5070,11 @@ async function itemView(ref, params = new URLSearchParams()) {
     labelsLine(path, item, canEdit));
   // The task of a linked item, worked at its engine as oneself (ADR-0151).
   const engineTask = item.linked && live ? taskPanel(item, () => route()) : null;
-  // Copying and moving a page with its child pages, to any place one may
-  // create in (ADR-0067); dragging in the tree moves within a space.
+  // Copying a page with its child pages, to any place one may create in
+  // (ADR-0067); moving is offered in the page's head and in the tree.
   const relocate = h("div", { id: "relocate" });
   const relocateButtons = live ? [
-    h("button", { type: "button", id: "item-copy", text: t("copy.open"), onclick: () => relocateForm(relocate, item, "copy", spaces, status) }),
-    canEdit ? h("button", { type: "button", id: "item-move", text: t("move.open"), onclick: () => relocateForm(relocate, item, "move", spaces, status) }) : null,
+    h("button", { type: "button", id: "item-copy", text: t("copy.open"), onclick: () => copyForm(relocate, item, spaces, status) }),
     canEdit ? h("button", { type: "button", id: "item-collect", text: t("topic.addTo"), onclick: () => addToCollection(item, path, status) }) : null,
   ] : [];
   const more = reorder.length || actions.length || relocateButtons.length
@@ -5117,11 +5123,26 @@ async function itemView(ref, params = new URLSearchParams()) {
   ));
 }
 
-// relocateForm copies or moves an item (ADR-0067): to a space one may edit
-// in, below a page there or at its top; a copy takes a title and, if
-// wished, the child pages. The parent list holds the space's pages, found
-// by typing.
-async function relocateForm(box, item, mode, spaces, status) {
+// movePage opens the dialog that moves a page with its child pages
+// (ADR-0067, ADR-draft-a-page-is-moved-into-another-room-from-its-head-and-its-tree). The page open, when it
+// is the one moved, is shown again at its key in its new room; any other
+// move shows the view again.
+async function movePage(it, spaces, openID, status) {
+  try {
+    const moved = await moveDialog(it, spaces);
+    if (!moved) return;
+    const href = "#/item/" + encodeURIComponent(moved.key);
+    if (moved.id === openID && location.hash !== href) location.hash = href;
+    else route();
+  } catch (err) {
+    status.replaceChildren(errorBox(err));
+  }
+}
+
+// copyForm copies an item (ADR-0067): to a space one may edit in, below a
+// page there or at its top, under a title and, if wished, with the child
+// pages.
+async function copyForm(box, item, spaces, status) {
   const editable = spaces.filter((s) => mayEdit(s.role));
   const spaceSelect = h("select", { name: "space", id: "relocate-space" }, favouritesFirst(editable).map((s) => h("option", { value: s.key, text: `${s.name} (${s.key})`, selected: s.key === item.space })));
   const parentSelect = h("select", { name: "parent", id: "relocate-parent" });
@@ -5130,29 +5151,22 @@ async function relocateForm(box, item, mode, spaces, status) {
     parentSelect.replaceChildren(
       h("option", { value: "", text: t("move.top") }),
       ...items.filter((it) => it.id !== item.id).sort((a, b) => a.title.localeCompare(b.title))
-        .map((it) => h("option", { value: it.id, text: `${it.title} (${it.key})`, selected: mode === "copy" && it.id === item.parent })));
+        .map((it) => h("option", { value: it.id, text: `${it.title} (${it.key})`, selected: it.id === item.parent })));
   };
   spaceSelect.addEventListener("change", () => action(fillParents, status));
   await fillParents();
-  const copying = mode === "copy";
   box.replaceChildren(form({ id: "relocate-form", class: "relocate-form" }, [
-    h("h3", { text: copying ? t("copy.title", { title: item.title }) : t("move.title", { title: item.title }) }),
+    h("h3", { text: t("copy.title", { title: item.title }) }),
     field(t("col.space"), spaceSelect),
     field(t("move.parent"), parentSelect),
-    copying ? field(t("col.title"), h("input", { name: "title", id: "relocate-title", required: true, value: t("copy.defaultTitle", { title: item.title }) })) : "",
-    copying ? h("label", { class: "check" }, h("input", { type: "checkbox", name: "children", id: "relocate-children", checked: true }), " ", t("copy.children")) : "",
-    copying ? "" : h("p", { class: "muted", text: t("move.note") }),
+    field(t("col.title"), h("input", { name: "title", id: "relocate-title", required: true, value: t("copy.defaultTitle", { title: item.title }) })),
+    h("label", { class: "check" }, h("input", { type: "checkbox", name: "children", id: "relocate-children", checked: true }), " ", t("copy.children")),
     h("p", { class: "actions-row" },
-      h("button", { type: "submit", text: copying ? t("copy.submit") : t("move.submit") }),
+      h("button", { type: "submit", text: t("copy.submit") }),
       h("button", { type: "button", class: "link", text: t("common.cancel"), onclick: () => box.replaceChildren() })),
   ], async (data) => {
-    if (copying) {
-      const res = await post(`/api/items/${item.id}/copy`, { space: data.get("space"), parent: data.get("parent"), title: data.get("title").trim(), children: Boolean(data.get("children")) });
-      location.hash = "#/item/" + encodeURIComponent(res.item.key);
-    } else {
-      await post(`/api/items/${item.id}/move`, { space: data.get("space"), parent: data.get("parent"), before: "" });
-      route();
-    }
+    const res = await post(`/api/items/${item.id}/copy`, { space: data.get("space"), parent: data.get("parent"), title: data.get("title").trim(), children: Boolean(data.get("children")) });
+    location.hash = "#/item/" + encodeURIComponent(res.item.key);
   }));
   box.querySelector("select")?.focus();
 }

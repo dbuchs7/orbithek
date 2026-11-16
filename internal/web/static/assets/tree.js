@@ -1,7 +1,9 @@
 // The page tree of a space (ADR-0041): one level at a time from
 // GET /api/spaces/{space}/tree, opened down to the page shown. Dragging a
 // page onto the upper edge of another places it before that page; onto the
-// rest of it, as its last child. The server decides who may move what.
+// rest of it, as its last child. A button on each row opens the dialog that
+// moves a page into another room as well (ADR-draft-a-page-is-moved-into-another-room-from-its-head-and-its-tree).
+// The server decides who may move what.
 import { get, post } from "./api.js";
 import { h } from "./dom.js";
 import { t } from "./i18n.js";
@@ -10,11 +12,13 @@ import { treeIconKind, treeIconParts } from "./treeicons.js";
 // pageTree returns the tree as a <details>: a sidebar on wide screens, a
 // block that folds away on narrow ones. current is the ID of the page
 // shown, open the IDs of its ancestors; onMoved runs after a page moved,
-// onError with a failed request. taskTypes names the types whose items
+// onError with a failed request. onMove, given where one may create pages,
+// opens the dialog that moves a page: it is called with the page ({id, key,
+// title, space}). taskTypes names the types whose items
 // show the task's symbol; every other item shows the page's. A new page is
 // made with the buttons of the page head, the bell last among them
 // (ADR-0112).
-export function pageTree({ space, current = "", open = [], taskTypes = new Set(), onMoved, onError }) {
+export function pageTree({ space, current = "", open = [], taskTypes = new Set(), onMoved, onMove, onError }) {
   const opened = new Set(open);
   // A list of links with disclosure buttons, not an ARIA tree: that role
   // promises arrow-key navigation this tree does not have.
@@ -70,7 +74,10 @@ export function pageTree({ space, current = "", open = [], taskTypes = new Set()
     }
     const label = h("a", { href: "#/item/" + encodeURIComponent(n.key), text: n.title || n.key, title: n.key,
       class: n.id === current ? "current" : "", "aria-current": n.id === current ? "page" : "false" });
-    const row = h("div", { class: "tree-row", draggable: "true" }, toggle, treeIcon(treeIconKind(n.type, taskTypes), n.hasChildren), label);
+    const move = onMove ? h("button", { type: "button", class: "tree-move", title: t("tree.move", { title: n.title || n.key }),
+      "aria-label": t("tree.move", { title: n.title || n.key }), text: "⇄",
+      onclick: () => onMove({ id: n.id, key: n.key, title: n.title || n.key, space }) }) : null;
+    const row = h("div", { class: "tree-row", draggable: "true" }, toggle, treeIcon(treeIconKind(n.type, taskTypes), n.hasChildren), label, move);
     wireDrag(row, n, parent);
     li.append(row, kids);
     if (opened.has(n.id) && n.hasChildren) setOpen(true).catch(onError);

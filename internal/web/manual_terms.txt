@@ -28,6 +28,7 @@ en Nine dots — the module switcher's symbol, named by its look
 de Neun Punkte — the module switcher's symbol, named by its look
 en light and dark mode — the switch, named by its two modes; its tooltip names the mode it switches to
 de hellen und dunklen Modus — the switch, named by its two modes; its tooltip names the mode it switches to
+* ⇄ — the button on a row of the page tree that moves the page shows this symbol; its tooltip and label name the page
 
 # Concepts the manual introduces in bold where it explains them.
 en board — the concept; a room's view is labelled "Board: <type>"

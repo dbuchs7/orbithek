@@ -58,3 +58,48 @@ func TestPageTreeThroughTheAPI(t *testing.T) {
 	w.carla.expect("GET", "/api/spaces/PLAT/tree?parent="+home, "", http.StatusNotFound)
 	w.vera.expect("GET", "/api/spaces/NOPE/tree", "", http.StatusNotFound)
 }
+
+// A page moves into another room, to its top or below a page there; it
+// takes its child pages with it and gets a key of the new room, while the
+// old key keeps resolving (ADR-0067, D2, D5).
+func TestMovingAPageIntoAnotherRoom(t *testing.T) {
+	w := newWorld(t)
+	w.admin.expect("POST", "/api/types", `{"name":"page","body":true,"fields":[]}`, http.StatusCreated)
+	w.admin.expect("POST", "/api/spaces", `{"key":"OPS","name":"Operations"}`, http.StatusCreated)
+	w.admin.expect("PUT", "/api/spaces/OPS/roles/"+w.ids["bert"], `{"role":"editor"}`, http.StatusNoContent)
+	create := func(space, title, parent string) (key, id string) {
+		it := w.bert.expect("POST", "/api/items", `{"space":"`+space+`","type":"page","title":"`+title+`","parent":"`+parent+`"}`, http.StatusCreated)
+		return field(it, "item", "key").(string), field(it, "item", "id").(string)
+	}
+	guide, guideID := create("PLAT", "Guide", "")
+	_, _ = create("PLAT", "Install", guideID)
+	target, targetID := create("OPS", "Runbooks", "")
+
+	// Below a page of the other room.
+	w.bert.expect("POST", "/api/items/"+guide+"/move", `{"space":"OPS","parent":"`+targetID+`"}`, http.StatusOK)
+	if got := treeTitles(t, w.bert, "/api/spaces/OPS/tree?parent="+target); !slices.Equal(got, []string{"Guide"}) {
+		t.Fatalf("below the target %v", got)
+	}
+	moved := w.bert.expect("GET", "/api/items/"+guide, "", http.StatusOK)
+	if field(moved, "item", "space") != "OPS" || field(moved, "item", "id") != guideID {
+		t.Fatalf("the old key resolves to %v", moved)
+	}
+	newKey := field(moved, "item", "key").(string)
+	if got := treeTitles(t, w.bert, "/api/spaces/OPS/tree?parent="+newKey); !slices.Equal(got, []string{"Install"}) {
+		t.Fatalf("its child page came along: %v", got)
+	}
+
+	// To the top of a room.
+	w.bert.expect("POST", "/api/items/"+newKey+"/move", `{"space":"PLAT","parent":""}`, http.StatusOK)
+	if got := treeTitles(t, w.bert, "/api/spaces/PLAT/tree"); !slices.Equal(got, []string{"Guide"}) {
+		t.Fatalf("top of PLAT %v", got)
+	}
+
+	// A parent that does not exist is not found; one in another room is refused.
+	w.bert.expect("POST", "/api/items/"+guideID+"/move", `{"space":"OPS","parent":"nope"}`, http.StatusNotFound)
+	w.bert.expect("POST", "/api/items/"+guideID+"/move", `{"space":"PLAT","parent":"`+targetID+`"}`, http.StatusBadRequest)
+	// A viewer of the room the page would go to may not create there.
+	w.admin.expect("PUT", "/api/spaces/OPS/roles/"+w.ids["vera"], `{"role":"viewer"}`, http.StatusNoContent)
+	w.admin.expect("PUT", "/api/spaces/PLAT/roles/"+w.ids["vera"], `{"role":"editor"}`, http.StatusNoContent)
+	w.vera.expect("POST", "/api/items/"+guideID+"/move", `{"space":"OPS","parent":"`+targetID+`"}`, http.StatusForbidden)
+}

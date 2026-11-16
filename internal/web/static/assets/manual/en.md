@@ -146,7 +146,8 @@ The fields of an item stand in the panel at the side and are saved as soon as th
 
 ### Moving, copying and deleting
 
-- **Move…** puts a page with its child pages below another page or at the top of the room. Within a room, **Move up** and **Move down** change the order.
+- **Move…** in the page's head puts a page with its child pages at the top of a room or below a page there, in its own room or another one. Choose the **Room**, then **At the top of the room** or **Below a page**; the room's pages are listed as its page tree, and typing in **Find a page** finds one by its title or key. The line below names the place chosen. A move into another room says first what changes: that room's roles then decide who may read and edit the pages, restrictions set on the pages go with them, and the pages get keys of that room while links with their old keys keep working.
+- In the page tree, **⇄** on a page's row opens the same dialog for that page; within a room, a page can also be dragged onto another one. **Move up** and **Move down** change the order within a room.
 - **Copy…** copies a page, optionally **With its child pages**.
 - **Move to trash** removes an item from sight. It is possible only when no other item outside its subtree refers to it. From the trash it can be restored with **Restore**, or erased with **Delete for good**, which cannot be undone.
 
