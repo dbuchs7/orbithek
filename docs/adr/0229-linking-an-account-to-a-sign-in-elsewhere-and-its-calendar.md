@@ -1,4 +1,4 @@
-# ADR-DRAFT: Linking an existing account to a sign-in at Google, Microsoft or Apple, and showing that account's calendar
+# ADR-0229: Linking an existing account to a sign-in at Google, Microsoft or Apple, and showing that account's calendar
 
 - **Status:** Proposed
 - **Implementation:** Not started
