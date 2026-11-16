@@ -35,7 +35,7 @@ Die Anmeldung erfolgt mit Benutzername und Passwort oder per Single Sign-on, sof
 
 Die Leiste oben auf jeder Seite enthält von links nach rechts:
 
-- **Neun Punkte** (Module): öffnet den Modulwechsler mit Räume, Erstellen, Aufgaben, Heute, Kommentare, Album, Whiteboards, Sternkarte, KI-Zugang, Governance, Konto und, für die Administration, Administration.
+- **Neun Punkte** (Module): öffnet den Modulwechsler mit Räume, Erstellen, Aufgaben, Heute, Kommentare, Album, Whiteboards, Sternenkarte, KI-Zugang, Governance, Konto und, für die Administration, Administration.
 - **Startseite**, **Zurück** und **Vorwärts**.
 - Das **Logo**, das ebenfalls zur Startseite führt.
 - Das **Suchfeld**.
@@ -49,7 +49,7 @@ Die Leiste oben auf jeder Seite enthält von links nach rechts:
 
 ### Die Startseite
 
-Die Startseite begrüsst, zeigt die Anzahl Seiten, Aufgaben und Bilder und bietet einen Schnellzugriff auf die Sternkarte, **Mein Tag** (die Tagesnotiz von heute, mit dem heutigen Datum), die eigenen Aufgaben, Benachrichtigungen, persönlichen Notizen, das Album, die Whiteboards und den KI-Zugang. Darunter stehen die eigenen Räume, als Kacheln oder als Liste; ein Stern markiert einen Raum als Favorit. Gibt es noch keine Räume, findet die Administration dort die ersten Schritte: einen Raum erstellen, mit den Vorlagen Typen hinzufügen (Seite, Aufgabe, Entscheidung, Tagesnotiz) und Personen eine Rolle geben.
+Die Startseite begrüsst, zeigt die Anzahl Seiten, Aufgaben und Bilder und bietet einen Schnellzugriff auf die Sternenkarte, die **Räume** (die Übersicht der eigenen Räume, auch über den Modulwechsler erreichbar), **Mein Tag** (die Tagesnotiz von heute, mit dem heutigen Datum), die eigenen Aufgaben, Benachrichtigungen, persönlichen Notizen, das Album, die Whiteboards und den KI-Zugang. Die Raumübersicht zeigt die eigenen Räume als Kacheln oder als Liste; ein Stern markiert einen Raum als Favorit. Gibt es noch keine Räume, findet die Administration auf der Startseite die ersten Schritte: einen Raum erstellen, mit den Vorlagen Typen hinzufügen (Seite, Aufgabe, Entscheidung, Tagesnotiz) und Personen eine Rolle geben.
 
 ## Seiten und Einträge
 
@@ -135,7 +135,7 @@ Wer den Eintrag kommentieren darf, markiert Text: Man wählt ihn auf einer Seite
 
 Die Felder eines Eintrags stehen in der Spalte an der Seite und werden gespeichert, sobald sie sich ändern. Neben Text, Zahlen, Datum, Personen und Listen kann ein Feld sein:
 
-- **Eintrag**: ein Verweis auf einen anderen Eintrag, gewählt durch Eintippen einiger Buchstaben seines Schlüssels oder Titels. Er wird mit Schlüssel und Titel angezeigt und zählt als Beziehung: Der andere Eintrag führt ihn unter seinen Beziehungen, die Sternkarte und die Auswirkungen zeigen ihn, und der andere Eintrag lässt sich nicht löschen, solange auf ihn verwiesen wird. Ein Eintrag, den man nicht lesen darf, wird nicht angezeigt.
+- **Eintrag**: ein Verweis auf einen anderen Eintrag, gewählt durch Eintippen einiger Buchstaben seines Schlüssels oder Titels. Er wird mit Schlüssel und Titel angezeigt und zählt als Beziehung: Der andere Eintrag führt ihn unter seinen Beziehungen, die Sternenkarte und die Auswirkungen zeigen ihn, und der andere Eintrag lässt sich nicht löschen, solange auf ihn verwiesen wird. Ein Eintrag, den man nicht lesen darf, wird nicht angezeigt.
 - **Mehrere aus einer Liste**: beliebige Werte des Felds, angekreuzt.
 - **Bewertung**: ein bis fünf Sterne.
 - **Datei**: eine der eigenen Dateien des Eintrags, etwa ein Titelbild, als kleines Bild gezeigt. Zuerst die Datei hochladen, dann wählen.
@@ -213,7 +213,7 @@ Beim Lesen markiert man eine Stelle und wählt **Notiz**, um eine Notiz dazu anz
 
 Eine Tagesnotiz ist eine eigene Seite für einen Tag: Nur man selbst liest und bearbeitet sie. **Heute** in der oberen Leiste, **Mein Tag** auf der Startseite, Alt+Shift+D oder die Befehlspalette öffnet die Notiz von heute; sie wird beim ersten Öffnen erstellt, im **Raum für Tagesnotizen**, den man einmal wählt, unter den Räumen, in denen man Seiten erstellen darf. Solange kein Raum gewählt ist, steht die Auswahl an der Stelle der Notiz; später ändert man den Raum in der Spalte an der Seite, die sich mit ihrem Pfeil ein- und ausklappen lässt. Bestehende Notizen bleiben, wo sie sind.
 
-Der Text der Notiz wird an Ort und Stelle bearbeitet. **Vorheriger Tag** und **Nächster Tag** wechseln den Tag, und der Monat daneben markiert die Tage mit Notiz; ein Tag ohne Notiz bietet **Notiz für diesen Tag beginnen** an. Neben der Notiz zeigt **Im Kalender an diesem Tag** die Einträge, deren Daten auf diesen Tag fallen, und **An diesem Tag erstellt oder geändert** die lesbaren Einträge, die an diesem Tag erstellt oder zuletzt geändert wurden. **Als Seite öffnen** zeigt die Notiz als Eintrag, mit Kommentaren, Verlauf und Feldern. Tagesnotizen tragen das Label `daily-note`; eine Abfrage nach diesem Label listet sie alle.
+Der Text der Notiz wird an Ort und Stelle bearbeitet. **Vorheriger Tag** und **Nächster Tag** wechseln den Tag, und der Monat daneben markiert die Tage mit Notiz; ein Tag ohne Notiz bietet **Notiz für diesen Tag beginnen** an. Neben der Notiz zeigt **Benachrichtigungen** die neuesten Benachrichtigungen, die ungelesenen hervorgehoben, ohne sie als gelesen zu markieren, und führt zu allen; **Im Kalender an diesem Tag** zeigt die Einträge, deren Daten auf diesen Tag fallen, und **An diesem Tag erstellt oder geändert** die lesbaren Einträge, die an diesem Tag erstellt oder zuletzt geändert wurden. **Als Seite öffnen** zeigt die Notiz als Eintrag, mit Kommentaren, Verlauf und Feldern. Tagesnotizen tragen das Label `daily-note`; eine Abfrage nach diesem Label listet sie alle.
 
 ### Gleichzeitig bearbeiten
 
@@ -474,9 +474,9 @@ Solange Personen an einem Whiteboard arbeiten, lässt sich die Zeichnung nicht a
 
 ## Karten der Zusammenhänge
 
-### Sternkarte eines Raums
+### Sternenkarte eines Raums
 
-Die **Sternkarte** zeichnet die Einträge, Bilder und gemeinsamen Labels eines Raums als Karte: Kreise für Einträge (nach Typ eingefärbt), Quadrate für Bilder, Rauten für Labels, gestrichelte Ränder für Einträge anderer Räume. Linien zeigen Seitenbaum, Beziehungen, Erwähnungen, Einbettungen und Kopien. Ziehen verschiebt die Karte, ein gezogener Knoten nimmt seine Nachbarn mit; das Mausrad zoomt. Wählt man einen Knoten, erscheinen seine Angaben. Ein Doppelklick auf einen Knoten (oder Umschalt+Enter) zeigt nur ihn mit seiner Nachbarschaft bis zu einer gewählten **Tiefe** (**Vertiefen**); Escape geht einen Schritt zurück.
+Die **Sternenkarte** zeichnet die Einträge, Bilder und gemeinsamen Labels eines Raums als Karte: Kreise für Einträge (nach Typ eingefärbt), Quadrate für Bilder, Rauten für Labels, gestrichelte Ränder für Einträge anderer Räume. Linien zeigen Seitenbaum, Beziehungen, Erwähnungen, Einbettungen und Kopien. Ziehen verschiebt die Karte, ein gezogener Knoten nimmt seine Nachbarn mit; das Mausrad zoomt. Wählt man einen Knoten, erscheinen seine Angaben. Ein Doppelklick auf einen Knoten (oder Umschalt+Enter) zeigt nur ihn mit seiner Nachbarschaft bis zu einer gewählten **Tiefe** (**Vertiefen**); Escape geht einen Schritt zurück.
 
 Mit **Alle Räume** in der Raumauswahl zeigt die Karte die Einträge aller Räume, die man lesen darf, mit Baum, Beziehungen und gemeinsamen Labels. Auch ihre Fotos und Zeichnungen stehen darauf, jedes mit der Seite oder Aufgabe verbunden, die es enthält, eine Kopie mit ihrem Original; zuerst kommen jene, die ein Text zeigt, damit ein grosses Album sie nicht verdrängt. Sind es mehr, als eine Karte zeigt, steht jede Blase für die Einträge eines Typs in einem Raum, so gross wie ihre Anzahl, und Linien zählen die Verbindungen zwischen ihnen; **Karte des Raums öffnen** führt von einer Blase zur Karte ihres Raums. **Label in allen Räumen zeigen** grenzt die Karte auf die Einträge ein, die ein Label tragen, in allen Räumen, und auf die Bilder, die es als Album-Label tragen, jedes mit der Seite oder Aufgabe, die es enthält; vorgeschlagen werden die verwendeten Labels von Einträgen und Bildern. Auf beiden Karten verbindet die Raute eines Labels auch die Bilder, die es als Album-Label tragen.
 

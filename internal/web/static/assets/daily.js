@@ -39,8 +39,8 @@ export function appendToDailyNote(text, day = dayOfAddress("")) {
 
 // dailyView draws the daily note of the day the address names into show.
 // tools are the item page's helpers for a text (see beside.js), with
-// favouritesFirst(spaces), onLeave(fn) and reload(), which draws the view
-// again.
+// favouritesFirst(spaces), onLeave(fn), reload(), which draws the view
+// again, and notifications(), a side card of one's newest notifications.
 export async function dailyView(show, arg, params, tools) {
   const day = dayOfAddress(arg);
   if (day === null) {
@@ -193,7 +193,8 @@ export async function dailyView(show, arg, params, tools) {
     status,
     h("div", { class: "item-layout daily-layout" },
       h("div", { class: "item-main" }, main),
-      h("aside", { class: "item-side", "aria-label": t("daily.side") }, tools.columnToggle ? tools.columnToggle("side") : null, cal, roomCard, agenda, activity)),
+      h("aside", { class: "item-side", "aria-label": t("daily.side") }, tools.columnToggle ? tools.columnToggle("side") : null, cal,
+        tools.notifications ? tools.notifications() : null, roomCard, agenda, activity)),
     besidePane(params, tools)));
 }
 

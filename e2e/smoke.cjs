@@ -818,15 +818,23 @@ function webSource() {
     await page.waitForSelector("#welcome h1:has-text('admin')");
     await page.waitForSelector("#welcome img.welcome-art");
     await page.waitForSelector("#welcome #home-version:has-text('Version')");
-    check(await page.locator(".home-tiles a").count() === 8, "eight quick accesses, one's day, one's notes, the starmap and the whiteboards among them");
+    check(await page.locator(".home-tiles a").count() === 9, "nine quick accesses, the rooms, one's day, one's notes, the starmap and the whiteboards among them");
     check(await page.getAttribute("#home-whiteboards", "href") === "#/whiteboards", "a quick access leads to the whiteboards (ADR-0169)");
-    check(await page.locator(".home-tiles a .module-icon svg").count() === 8, "each quick access wears the symbol of its module on the station");
+    check(await page.locator(".home-tiles a .module-icon svg").count() === 9, "each quick access wears the symbol of its module on the station");
     check(await page.getAttribute(".home-tiles a:first-child", "id") === "home-starmap" && await page.getAttribute("#home-starmap", "href") === "#/starmap"
       && await page.locator("#home-starmap .module-icon.module-starmap").count() === 1, "the starmap is the first quick access, with its module's symbol");
-    // My day follows the starmap: today's daily note, its date and its
+    // The rooms follow the starmap and lead to their own overview.
+    check(await page.getAttribute(".home-tiles a:nth-child(2)", "id") === "home-spaces" && await page.getAttribute("#home-spaces", "href") === "#/spaces"
+      && await page.locator("#home-spaces .module-icon.module-spaces").count() === 1, "the rooms are the second quick access, with their module's symbol");
+    await page.click("#home-spaces");
+    await page.waitForSelector("h1:text-is('Rooms')");
+    check(page.url().endsWith("#/spaces") && await page.locator("#create-space").count() === 1, "the rooms tile leads to the overview of rooms, the first one made there: " + page.url());
+    await page.goBack();
+    await page.waitForSelector("#home-spaces");
+    // My day follows the rooms: today's daily note, its date and its
     // day of the month on the calendar sheet (ADR-0205).
-    check(await page.getAttribute(".home-tiles a:nth-child(2)", "id") === "home-today" && await page.getAttribute("#home-today", "href") === "#/daily"
-      && (await page.textContent("#home-today .module-icon.module-day svg text")) === String(new Date().getDate()), "my day is the second quick access and leads to today's daily note");
+    check(await page.getAttribute(".home-tiles a:nth-child(3)", "id") === "home-today" && await page.getAttribute("#home-today", "href") === "#/daily"
+      && (await page.textContent("#home-today .module-icon.module-day svg text")) === String(new Date().getDate()), "my day is the third quick access and leads to today's daily note");
     await page.click("#home-starmap");
     await page.waitForSelector("h1:has-text('Starmap')");
     check(page.url().endsWith("#/starmap"), "the starmap tile leads to the starmap: " + page.url());
@@ -967,7 +975,8 @@ function webSource() {
 
     step("create an item with a hostile title");
     await page.click("a.brand");
-    await page.click("a:has-text('Platform')");
+    await page.click("#home-spaces");
+    await page.click("#spaces-overview a:has-text('Platform')");
     await page.fill("#new-item [name=title]", hostile);
     await page.selectOption("#new-item [name='p:priority']", "high");
     await page.fill("#new-item [name='p:estimate']", "3");
@@ -1323,7 +1332,8 @@ function webSource() {
 
     step("board: columns are the workflow's states; dragging a card performs the transition");
     await page.click("a.brand");
-    await page.click("a:has-text('Platform')");
+    await page.click("#home-spaces");
+    await page.click("#spaces-overview a:has-text('Platform')");
     await page.click("a:has-text('Board: task')");
     await page.waitForSelector(".board");
     const column = (state) => `.board-column[data-state='${state}']`;
@@ -1363,21 +1373,24 @@ function webSource() {
     // The browser remembers one's choice: the board reached from the space
     // shows it again, and names it in its address (ADR-0141).
     await page.click("a.brand");
-    await page.click("a:has-text('Platform')");
+    await page.click("#home-spaces");
+    await page.click("#spaces-overview a:has-text('Platform')");
     await page.click("a:has-text('Board: task')");
     await page.waitForSelector("#board .board-lanes .lane-cell .card-item.toned");
     check(page.url().includes("color=priority") && page.url().includes("lanes=priority"), "the remembered view is in the address: " + page.url());
     await page.selectOption("#board-lanes", "");
     await page.waitForSelector("#board .board:not(.board-lanes)");
     await page.click("a.brand");
-    await page.click("a:has-text('Platform')");
+    await page.click("#home-spaces");
+    await page.click("#spaces-overview a:has-text('Platform')");
     await page.click("a:has-text('Board: task')");
     await page.waitForSelector("#board .board:not(.board-lanes) .card-item.toned");
     check(!page.url().includes("lanes=") && page.url().includes("color=priority"), "no lanes are remembered once taken off: " + page.url());
 
     step("page tree: child pages, reordered by button and by dragging");
     await page.click("a.brand");
-    await page.click("a:has-text('Platform')");
+    await page.click("#home-spaces");
+    await page.click("#spaces-overview a:has-text('Platform')");
     await page.waitForSelector("#home h2:has-text('PLAT-1'), #home h2 a");
     await page.click(".tree a:has-text('Runbook')");
     await page.waitForSelector(".tree a.current:has-text('Runbook')");
@@ -3141,13 +3154,15 @@ function webSource() {
 
     step("links: the link check page says when checking is off");
     await page.click("a.brand");
-    await page.click("a:has-text('Platform')");
+    await page.click("#home-spaces");
+    await page.click("#spaces-overview a:has-text('Platform')");
     await page.click("a:has-text('Link check')");
     await page.waitForSelector("#linkcheck >> text=switched off");
 
     step("governance: the check of a space lists its three kinds of findings");
     await page.click("a.brand");
-    await page.click("a:has-text('Platform')");
+    await page.click("#home-spaces");
+    await page.click("#spaces-overview a:has-text('Platform')");
     await page.click("main a:has-text('Governance')");
     await page.waitForSelector("#governance h2:has-text('Sensitive data')");
     await page.waitForSelector("#governance h2:has-text('Not changed')");
@@ -3934,8 +3949,8 @@ function webSource() {
     await page.click("#space-name button[type=submit]");
     await page.waitForSelector(`h1:has-text('Settings of ${spaceName}')`);
 
-    step("start page: the spaces as tiles with their icon, or as a list, as each reader chooses");
-    await page.click("a.brand");
+    step("rooms overview: the spaces as tiles with their icon, or as a list, as each reader chooses");
+    await page.goto(base + "/#/spaces");
     await page.waitForSelector("#spaces-overview .space-tile:has-text('Platform') img.space-icon");
     await page.click("#spaces-list");
     await page.waitForSelector("#spaces-overview table.space-list a:has-text('Platform') img.space-icon");
@@ -3944,7 +3959,7 @@ function webSource() {
     await page.click("#spaces-tiles");
     await page.waitForSelector("#spaces-overview .space-tile");
 
-    step("start page: a star marks a space as a favourite; favourites come first, as tiles, in the list and in every choice of a space (ADR-0145)");
+    step("rooms overview: a star marks a space as a favourite; favourites come first, as tiles, in the list and in every choice of a space (ADR-0145)");
     // A second space, last in the order, to bring to the front; removed for
     // good at the end of the step.
     // It is made from the button beside the layout switch, which opens
@@ -3959,9 +3974,9 @@ function webSource() {
     await page.fill("#new-space-dialog [name=name]", "Favourite");
     await page.click("#new-space-dialog-ok");
     await page.waitForFunction(() => location.hash === "#/space/ZFAV");
-    await page.click("a.brand");
+    await page.goto(base + "/#/spaces");
     await page.waitForSelector("#spaces-overview .space-tile:has-text('Favourite')");
-    check(await page.locator("#new-space-card").count() === 0, "with rooms, the start page has no form for a new room below them");
+    check(await page.locator("#new-space-card").count() === 0, "with rooms, the overview has no form for a new room below them");
     const tileKeys = () => page.$$eval("#spaces-overview .space-tiles > li .space-key", (els) => els.map((e) => e.textContent));
     const before = await tileKeys();
     check(before.length >= 2, "more than one space to order");
@@ -3982,7 +3997,7 @@ function webSource() {
     await page.waitForSelector("#new-item select[name=space]");
     check(await page.$eval("#new-item select[name=space]", (e) => e.options[0].value) === last, "the favourite is the first choice of a space");
     check(await page.inputValue("#new-item select[name=space]") === last, "and is chosen for a new page");
-    await page.click("a.brand");
+    await page.goto(base + "/#/spaces");
     await page.waitForSelector(`#spaces-overview .favourite-star[data-space="${last}"]`);
     await page.click(`#spaces-overview .favourite-star[data-space="${last}"]`);
     await page.waitForSelector(`#spaces-overview .favourite-star[data-space="${last}"][aria-pressed=false]`);
@@ -4242,7 +4257,7 @@ function webSource() {
     await page.click("#item-move");
     await page.selectOption("#relocate-parent", { label: (await page.locator("#relocate-parent option:has-text('Tidy the wiki')").textContent()).trim() });
     await page.click("#relocate-form button[type=submit]");
-    await page.waitForSelector("p:has(a[href='#/']) >> text=PLAT"); // the page shown again after moving
+    await page.waitForSelector("p:has(a[href='#/spaces']) >> text=PLAT"); // the page shown again after moving
     await page.waitForFunction(() => document.querySelector(".tree a.current")?.closest("ul")?.closest("li")?.querySelector(".tree-row a")?.textContent === "Tidy the wiki");
 
     step("Word templates: a type's pages begin with its start text, read as the template's document, export into it and stay on their version (ADR-0167)");
@@ -5288,7 +5303,8 @@ function webSource() {
     await page.fill("#login [name=username]", "bert");
     await page.fill("#login [name=password]", "bert's password");
     await page.click("#login button[type=submit]");
-    await page.click("a:has-text('Platform')");
+    await page.click("#home-spaces");
+    await page.click("#spaces-overview a:has-text('Platform')");
     await page.click("a:has-text('PLAT-1')");
     await page.waitForSelector("text=state: done");
     check(await page.$("text=Administration") === null, "bert sees no administration");
@@ -6365,6 +6381,9 @@ function webSource() {
     await page.waitForSelector("#daily-note.editing .ProseMirror");
     await page.waitForSelector("#daily-calendar ul, #daily-calendar p.muted");
     await page.waitForSelector("#daily-activity ul, #daily-activity p.muted");
+    // One's newest notifications stand in the side column too.
+    await page.waitForSelector("#daily-notifications ul, #daily-notifications p.muted");
+    check(await page.getAttribute("#daily-notifications-all", "href") === "#/notifications", "the daily note's side column leads to all notifications");
 
     step("create from a mention: a title that matches nothing is created where it is mentioned (ADR-0206)");
     await page.locator("#daily-note .ProseMirror").click();
