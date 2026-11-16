@@ -782,15 +782,23 @@ func (h itemHandlers) downloadAttachment(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	defer content.Close()
+	// An entry of a file share gives its preview, with the preview's type
+	// and extension (ADR-0197).
+	kind, name, err := givenAs(content, a)
+	if err != nil {
+		h.log.Error("attachment content does not read", "item", it.ID, "attachment", a.ID, "err", err)
+		writeError(w, http.StatusGone, "the content of this file is not available")
+		return
+	}
 	hd := w.Header()
 	disposition := "attachment"
-	if inlineTypes[a.Type] || slices.Contains(item.VideoTypes, a.Type) || slices.Contains(item.AudioTypes, a.Type) {
+	if inlineTypes[kind] || slices.Contains(item.VideoTypes, kind) || slices.Contains(item.AudioTypes, kind) {
 		disposition = "inline"
-		hd.Set("Content-Type", a.Type)
+		hd.Set("Content-Type", kind)
 	} else {
 		hd.Set("Content-Type", "application/octet-stream")
 	}
-	if cd := mime.FormatMediaType(disposition, map[string]string{"filename": a.Name}); cd != "" {
+	if cd := mime.FormatMediaType(disposition, map[string]string{"filename": name}); cd != "" {
 		hd.Set("Content-Disposition", cd)
 	} else {
 		hd.Set("Content-Disposition", disposition)

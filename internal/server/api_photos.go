@@ -11,6 +11,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"path"
 	"regexp"
 	"slices"
 	"strconv"
@@ -258,16 +259,71 @@ func (h itemHandlers) makeThumbnail(ctx context.Context, p *Photos, id item.ID, 
 		return nil, "", err
 	}
 	defer c.Close()
+	kind, err := pictureType(c, a)
+	if err != nil {
+		return nil, "", err
+	}
 	orientation := 0
-	if a.Photo != nil {
-		orientation = a.Photo.Orientation
-	} else {
-		orientation = photo.Read(c, a.Type).Orientation
+	switch {
+	case a.Photo != nil:
+		orientation = storedOrientation(a)
+	default:
+		orientation = photo.Read(c, kind).Orientation
 		if _, err := c.Seek(0, io.SeekStart); err != nil {
 			return nil, "", err
 		}
 	}
-	return photo.Thumbnail(c, a.Type, edge, orientation, budget.Get().ThumbnailPixels)
+	return photo.Thumbnail(c, kind, edge, orientation, budget.Get().ThumbnailPixels)
+}
+
+// storedOrientation is the orientation that turns what the server holds
+// of a picture upright, by its photo data: the file's own, or one set by
+// hand (ADR-0231). An entry of a file share holds only its preview, which
+// a run made upright from the original (ADR-0197), so it is not turned
+// again by the orientation the original tells.
+func storedOrientation(a item.Attachment) int {
+	if a.Photo == nil || a.Linked() {
+		return 0
+	}
+	return a.Photo.Orientation
+}
+
+// pictureType is the media type of what the server holds of a picture:
+// the file's own, or for an entry of a file share that of its preview,
+// which a run stored as JPEG, or PNG when it has transparency, whatever the
+// original's format (ADR-0197). It reads the first bytes of c and seeks
+// back to the start.
+func pictureType(c io.ReadSeeker, a item.Attachment) (string, error) {
+	if !a.Linked() {
+		return a.Type, nil
+	}
+	head := make([]byte, 512)
+	n, _ := io.ReadFull(c, head)
+	if _, err := c.Seek(0, io.SeekStart); err != nil {
+		return "", err
+	}
+	return http.DetectContentType(head[:n]), nil
+}
+
+// previewExtensions name the formats a preview of an entry of a file
+// share is stored in.
+var previewExtensions = map[string]string{"image/jpeg": ".jpg", "image/png": ".png"}
+
+// givenAs is the media type and the file name a file leaves the server
+// with: its own, or for an entry of a file share those of the preview it
+// gives (ADR-0197), its name with the preview's extension when the
+// preview's format is not the original's. It reads the first bytes of c
+// and seeks back to the start.
+func givenAs(c io.ReadSeeker, a item.Attachment) (kind, name string, err error) {
+	kind, err = pictureType(c, a)
+	if err != nil || !a.Linked() || kind == a.Type {
+		return kind, a.Name, err
+	}
+	ext, ok := previewExtensions[kind]
+	if !ok {
+		return kind, a.Name, nil
+	}
+	return kind, strings.TrimSuffix(a.Name, path.Ext(a.Name)) + ext, nil
 }
 
 // --- the album's views ----------------------------------------------------
@@ -626,16 +682,25 @@ func (h itemHandlers) albumZip(w http.ResponseWriter, r *http.Request) {
 	zw := zip.NewWriter(w)
 	names := map[string]bool{}
 	for _, e := range entries {
-		name := uniqueName(names, e.a.Name)
-		// Pictures are compressed already: they are stored as they are.
-		fw, err := zw.CreateHeader(&zip.FileHeader{Name: name, Method: zip.Store, Modified: time.Unix(e.a.Created, 0).UTC()})
-		if err != nil {
-			return
-		}
 		c, err := h.openFor(e.hidden, e.item, e.a)
 		if err != nil {
 			h.log.Error("attachment content not given", "item", e.item, "attachment", e.a.ID, "err", err)
 			continue
+		}
+		// An entry of a file share is named as the preview it gives
+		// (ADR-0197).
+		_, given, err := givenAs(c, e.a)
+		if err != nil {
+			c.Close()
+			h.log.Error("attachment content not given", "item", e.item, "attachment", e.a.ID, "err", err)
+			continue
+		}
+		name := uniqueName(names, given)
+		// Pictures are compressed already: they are stored as they are.
+		fw, err := zw.CreateHeader(&zip.FileHeader{Name: name, Method: zip.Store, Modified: time.Unix(e.a.Created, 0).UTC()})
+		if err != nil {
+			c.Close()
+			return
 		}
 		_, err = io.Copy(fw, c)
 		c.Close()
