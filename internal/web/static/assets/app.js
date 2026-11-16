@@ -29,6 +29,7 @@ import { applyTheme, setTheme, isDark, chosenTheme } from "./theme.js";
 import { filtered, serverFilter, filterParams, norm } from "./filter.js";
 import { taskLinksCard } from "./tasklinks.js";
 import { connectionsCard, silentConnect } from "./engineconn.js";
+import { identitiesCard } from "./identities.js";
 import { freshNotice, taskDialog, taskPanel } from "./taskdialog.js";
 import { finishing } from "./taskparts.js";
 import { noteImportCard } from "./noteimport.js";
@@ -5805,6 +5806,8 @@ async function accountView() {
     h("p", { class: "muted", text: t("account.id", { id: me.user.id, via: me.via }) }),
     avatarCard(),
     contactsCard(contacts),
+    // One's sign-ins at other providers (ADR-0229).
+    identitiesCard(),
     // One's connections to process engines (ADR-0151).
     connectionsCard(),
     // Capturing from any page of the web (ADR-0209).
@@ -6326,12 +6329,22 @@ async function adminView() {
       const email = prompt(t("contacts.editEmail", { name: u.username }), u.email || "");
       if (email !== null) action(() => put(`/api/users/${encodeURIComponent(u.id)}/email`, { email: email.trim() }), status);
     } }));
+  // The sign-in providers an account is linked to (ADR-0229); an
+  // administrator removes a link, also an account's only way to sign in.
+  const providerName = (id) => (sso.providers || []).find((p) => p.id === id)?.name || id;
+  const identitiesCell = (u) => h("td", { class: "user-identities" }, (u.identities || []).map((id) => h("span", { class: "member" },
+    providerName(id),
+    h("button", { type: "button", class: "link", text: "×", title: t("identities.adminRemove", { name: u.username, provider: providerName(id) }),
+      "aria-label": t("identities.adminRemove", { name: u.username, provider: providerName(id) }),
+      onclick: () => confirm(t("identities.adminRemoveConfirm", { name: u.username, provider: providerName(id) })) &&
+        action(() => del(`/api/users/${encodeURIComponent(u.id)}/identities/${encodeURIComponent(id)}`), status) }))));
   const usersSection = section("users", t("admin.users"),
     h("p", { class: "muted", text: t("admin.usersHelp") }),
     filtered(h("table", { id: "users" }, users.map((u) => h("tr", { "data-filter-text": `${u.username} ${u.email || ""}`,
       "data-f-role": [rolesOf(u.id).includes("admin") ? t("admin.roleAdmin") : "", rolesOf(u.id).includes("erasure") ? t("admin.roleErasure") : ""].filter(Boolean).join("|") },
       h("td", { text: u.username }),
       emailCell(u),
+      identitiesCell(u),
       h("td", {}, sysToggle(u, "admin", t("admin.roleAdmin"))),
       h("td", {}, sysToggle(u, "erasure", t("admin.roleErasure"))),
       resetCell(u)))), { id: "admin-users", label: t("admin.users"), choices: [{ key: "role", label: t("admin.role") }] }),

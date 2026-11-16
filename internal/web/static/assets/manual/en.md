@@ -29,7 +29,9 @@ Administrators of the installation act as room administrators everywhere and als
 
 ### Signing in
 
-Sign in with your username and password, or with single sign-on if your organisation has set it up. If self-service accounts are enabled, **Request an account** on the sign-in page sends a request that an administrator approves. If a single sign-on is refused because it is linked to no account here, sign in with your password instead. If you forgot your password, ask for a reset link by mail; the link lets you choose a new password and ends your other sessions.
+Sign in with your username and password, or with single sign-on if your organisation has set it up. If self-service accounts are enabled, **Request an account** on the sign-in page sends a request that an administrator approves. If a single sign-on is refused because it is linked to no account here, sign in with your password instead.
+
+To sign in with an account at a provider your organisation has set up, link it once: open **Account**, find **Sign-in with other accounts**, give your password and choose **Link**; the provider asks you to sign in there and brings you back. From then on that account signs you in to your existing account. **Unlink** ends the link; an account without a password keeps its only way to sign in. An account at the provider is linked to one account here only; if it already holds an account of its own, an administrator removes that link first, in the user list under **Administration**. If you forgot your password, ask for a reset link by mail; the link lets you choose a new password and ends your other sessions.
 
 ### The top bar
 

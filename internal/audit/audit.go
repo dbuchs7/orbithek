@@ -116,6 +116,13 @@ const (
 	// sign-in through single sign-on creates an account (ADR-0229).
 	SignInChanged   = "signin.change"
 	ContactsChanged = "contacts.change"
+	// IdentityLinked records an account linked to an identity at a
+	// sign-in provider by its holder, IdentityLinkRefused a link refused,
+	// and IdentityUnlinked a link removed by the holder or an
+	// administrator (ADR-0229).
+	IdentityLinked      = "identity.link"
+	IdentityLinkRefused = "identity.link-refused"
+	IdentityUnlinked    = "identity.unlink"
 	// Password resets (ADR-0064).
 	PasswordResetRequested = "password.reset.request"
 	PasswordReset          = "password.reset"

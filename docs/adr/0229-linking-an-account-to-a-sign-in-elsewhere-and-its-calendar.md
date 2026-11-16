@@ -51,16 +51,21 @@ Chosen option: **1**, because it is the only one in which the person who holds t
 
 - **Linking:** the account page lists the configured providers and, for each, whether the account is linked.
   *Link* starts at `POST /api/me/identities/{provider}` with the current password; an account without a password gives none, but its session must have begun with a sign-in no older than ten minutes.
-  The server keeps the pending link in memory, bound to the user and the state, for the flow's lifetime (`sso.FlowLifetime`), and sets the state cookie with the purpose `link` beside the provider.
+  The server keeps the pending link in memory, bound to the user and the state, for the flow's lifetime (`sso.FlowLifetime`, at most `SSOPending` at once), and sets a cookie of its own, `ot_oidc_link` (provider and state, `HttpOnly`, `SameSite=Lax`, path `/api/oidc/`), and answers the provider's address, which the browser opens.
   The provider returns to the one callback `/api/oidc/callback` (ADR-0066).
-  The callback finishes a link only when the purpose is `link`, the state matches the pending link, and the session cookie belongs to the same user; otherwise it fails as a sign-in fails.
+  The callback finishes a link only when the link cookie's state is the returned state and names a pending link of the same provider, taken once; the pending link names the account.
+  The session cookie is `SameSite=Strict` and does not come with the provider's cross-site redirect, so it cannot be checked there; the pending link, made by a signed-in session after the password was given again, and the cookie that binds it to the browser take its place.
+  Any other callback is handled as a sign-in.
+  Afterwards the browser goes to `/#/account?linked=<provider>`, or to `/#/account?link_error=<code>` (`taken`, `linked`, `domain`, `expired`, `provider`).
+  An API token does not begin a link.
   A link records `IdentityLinked` in the accounts journal, the event a first sign-in already writes.
 - **Refusals:** an identity already linked to any account, an account made at a first sign-in included, is refused and named as such.
   An account has at most one identity per provider; linking a second one at the same provider is refused until the first is removed.
   Both are policies, not budgets, and are classified in `internal/budget/registry_test.go`.
 - **Removing a link:** the person removes their own link (`DELETE /api/me/identities/{provider}`); an administrator removes any account's link (`DELETE /api/users/{id}/identities/{provider}`), for a lost provider account or to free an identity held by an account made at a first sign-in.
   Removal records a new event `IdentityUnlinked`.
-  Removing the last way to sign in, the only identity of an account without a password, is refused.
+  The person cannot remove their last way to sign in, the only identity of an account without a password; an administrator can, after a warning, and the account then has no way to sign in until an administrator sets a password or makes a reset link.
+  Administrators see in the user list which providers an account is linked to (`identities` in `GET /api/users`, for administrators only).
   An administrator never adds a link.
 - **New accounts at sign-in:** administrators choose under *Administration → Account requests*, below what the sign-in page offers, whether a sign-in that matches no linked identity creates an account (`site.SignIn`, `SignInSet` in `site.wal`, `GET` and `PUT /api/settings/sign-in` with `newAccounts`, audited as `signin.change`).
   The setting exists whether a provider is configured or not, so it can be turned off before an operator sets a client.
@@ -83,9 +88,10 @@ Chosen option: **1**, because it is the only one in which the person who holds t
   - Removing a link asks whether a calendar account recorded for the same subject is disconnected too; by default it stays, as the two grants are separate.
 - **Audit:** `identity.link`, `identity.link-refused`, `identity.unlink` (with the actor, the account, the provider's ID and the issuer, never the subject's tokens) and `signin.change`.
 
-**Implementation is Partial:** the setting for new accounts at sign-in is built; linking, removing links, Apple and the calendar offer are not.
+**Implementation is Partial:** the setting for new accounts at sign-in and linking with removing links (`internal/auth/identities.go`, `internal/server/api_identities.go`, `assets/identities.js`) are built; Apple and the calendar offer are not.
+The browser smoke test checks only that the card stays hidden without a provider, as the server under test has none; the flow itself is tested against the fake provider of `sso/ssotest` in `internal/server`.
 - **API and MCP:** the routes above are authenticated; the identity and setting routes change how an account is reached and are not offered over MCP (ADR-0012, `internal/mcp/tools.go`).
-- **UI:** catalogue keys in `en.js` and `de.js`, the account page and the administration page in both manuals, and the linking flow in `e2e/smoke.cjs` against the fake provider of `sso/ssotest`.
+- **UI:** catalogue keys in `en.js` and `de.js`, the account page (*Sign-in with other accounts*) and the user list of the administration, in both manuals.
 
 ### Consequences
 

@@ -167,6 +167,9 @@ type session struct {
 	user    UserID
 	id      string
 	expires time.Time
+	// started is when the session began; a fresh sign-in stands in for
+	// the password of an account without one (ADR-0229).
+	started time.Time
 }
 
 // Option configures Accounts.
@@ -314,6 +317,8 @@ func (a *Accounts) apply(e event) error {
 			return fmt.Errorf("identity for unknown user %s", e.User)
 		}
 		a.external[e.Issuer+"\x00"+e.Subject] = e.User
+	case identityUnlinked:
+		return a.applyUnlink(e)
 	case languageSet:
 		u, ok := a.users[e.User]
 		if !ok {
@@ -657,7 +662,7 @@ func (a *Accounts) openSession(id UserID) (string, Principal, error) {
 			delete(a.sessions, k)
 		}
 	}
-	a.sessions[hashSecret(secret)] = &session{user: id, id: sid, expires: now.Add(SessionLifetime)}
+	a.sessions[hashSecret(secret)] = &session{user: id, id: sid, expires: now.Add(SessionLifetime), started: now}
 	return secret, a.principal(id, ScopeFull, "session", sid), nil
 }
 

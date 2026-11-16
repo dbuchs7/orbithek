@@ -4232,6 +4232,13 @@ function webSource() {
     await page.waitForSelector("text=Copy this token now");
     check(/ot_[0-9a-f]{64}/.test(await page.textContent("code")), "the token secret is shown once");
 
+    step("account: sign-in with other accounts is offered only where a provider is set up (ADR-0229)");
+    // The server under test has no sign-in provider: the card stays hidden,
+    // and the way back of a link that went wrong is still told and cleaned.
+    check(await page.isHidden("#identities"), "no sign-in provider, no card to link one");
+    const identities = await page.evaluate(() => fetch("/api/me/identities").then((r) => r.json()));
+    check(Array.isArray(identities.providers) && identities.providers.length === 0 && identities.password === true, "the account's identities are listed without providers");
+
     step("account: a profile picture replaces the initials in the header, and goes again");
     check((await page.getAttribute("#account-button .avatar", "data-initials")) === "A", "without a picture the header shows the initials");
     await page.setInputFiles("#avatar-file", { name: "me.png", mimeType: "image/png",

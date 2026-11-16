@@ -19,20 +19,22 @@ const stateCookie = "ot_oidc_state"
 // oidcRoutes are the single sign-on routes (ADR-0030). They are public:
 // the caller has no principal yet.
 func oidcRoutes(d Deps) []Route {
-	h := oidcHandlers{d: d, log: d.Log}
+	h := oidcHandlers{d: d, log: d.Log, links: newLinkFlows()}
 	if h.log == nil {
 		h.log = slog.New(slog.DiscardHandler)
 	}
-	return []Route{
-		{Method: http.MethodGet, Pattern: "/api/oidc", Summary: "Whether single sign-on is configured, and its providers (id, name, kind)", Access: Public, Handler: http.HandlerFunc(h.info)},
-		{Method: http.MethodGet, Pattern: "/api/oidc/login", Summary: "Start single sign-on with the provider given as provider (the first by default); redirects to it", Access: Public, Handler: http.HandlerFunc(h.login)},
-		{Method: http.MethodGet, Pattern: "/api/oidc/callback", Summary: "The identity provider's redirect back; starts a session", Access: Public, Handler: http.HandlerFunc(h.callback)},
-	}
+	return append(identityRoutes(h),
+		Route{Method: http.MethodGet, Pattern: "/api/oidc", Summary: "Whether single sign-on is configured, and its providers (id, name, kind)", Access: Public, Handler: http.HandlerFunc(h.info)},
+		Route{Method: http.MethodGet, Pattern: "/api/oidc/login", Summary: "Start single sign-on with the provider given as provider (the first by default); redirects to it", Access: Public, Handler: http.HandlerFunc(h.login)},
+		Route{Method: http.MethodGet, Pattern: "/api/oidc/callback", Summary: "The identity provider's redirect back; starts a session, or finishes linking an account begun in this browser (ADR-0229)", Access: Public, Handler: http.HandlerFunc(h.callback)},
+	)
 }
 
 type oidcHandlers struct {
 	d   Deps
 	log *slog.Logger
+	// links are the links of identities begun and not finished (ADR-0229).
+	links *linkFlows
 }
 
 // provider finds a configured provider by its ID; an empty ID is the
@@ -103,6 +105,12 @@ func (h oidcHandlers) fail(w http.ResponseWriter, r *http.Request, reason string
 func (h oidcHandlers) callback(w http.ResponseWriter, r *http.Request) {
 	if len(h.d.SSO) == 0 {
 		writeError(w, http.StatusNotFound, "single sign-on is not configured")
+		return
+	}
+	// A link begun in this browser comes back to the same address; its
+	// own cookie tells it from a sign-in (ADR-0229).
+	if provider, state, ok := linkState(r); ok {
+		h.finishLink(w, r, provider, state)
 		return
 	}
 	http.SetCookie(w, &http.Cookie{Name: stateCookie, Value: "", Path: "/api/oidc/", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteLaxMode, Secure: isSecure(r)})
