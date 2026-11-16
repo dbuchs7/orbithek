@@ -2907,6 +2907,7 @@ export default {
   "daily.calendar": "Im Kalender an diesem Tag",
   "daily.noCalendar": "Auf diesen Tag fallen keine Daten.",
   "daily.toCalendar": "Kalender öffnen",
+  "daily.allNotifications": "Alle Benachrichtigungen",
   "context.title": "Zusammenhang",
   "context.loading": "Wird geladen…",
   "context.references": "Verwiesen von",

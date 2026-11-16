@@ -823,12 +823,14 @@ function webSource() {
     check(await page.locator(".home-tiles a .module-icon svg").count() === 9, "each quick access wears the symbol of its module on the station");
     check(await page.getAttribute(".home-tiles a:first-child", "id") === "home-starmap" && await page.getAttribute("#home-starmap", "href") === "#/starmap"
       && await page.locator("#home-starmap .module-icon.module-starmap").count() === 1, "the starmap is the first quick access, with its module's symbol");
-    // The rooms follow the starmap, and the tile leads to their list on
-    // this page, which takes the focus.
-    check(await page.getAttribute(".home-tiles a:nth-child(2)", "id") === "home-spaces"
+    // The rooms follow the starmap and lead to their own overview.
+    check(await page.getAttribute(".home-tiles a:nth-child(2)", "id") === "home-spaces" && await page.getAttribute("#home-spaces", "href") === "#/spaces"
       && await page.locator("#home-spaces .module-icon.module-spaces").count() === 1, "the rooms are the second quick access, with their module's symbol");
     await page.click("#home-spaces");
-    check(await page.evaluate(() => document.activeElement?.id) === "home-spaces-title" && page.url().endsWith("#/"), "the rooms tile leads to the list of rooms on the start page: " + page.url());
+    await page.waitForSelector("h1:text-is('Rooms')");
+    check(page.url().endsWith("#/spaces") && await page.locator("#create-space").count() === 1, "the rooms tile leads to the overview of rooms, the first one made there: " + page.url());
+    await page.goBack();
+    await page.waitForSelector("#home-spaces");
     // My day follows the rooms: today's daily note, its date and its
     // day of the month on the calendar sheet (ADR-0205).
     check(await page.getAttribute(".home-tiles a:nth-child(3)", "id") === "home-today" && await page.getAttribute("#home-today", "href") === "#/daily"
@@ -4248,7 +4250,7 @@ function webSource() {
     await page.click("#item-move");
     await page.selectOption("#relocate-parent", { label: (await page.locator("#relocate-parent option:has-text('Tidy the wiki')").textContent()).trim() });
     await page.click("#relocate-form button[type=submit]");
-    await page.waitForSelector("p:has(a[href='#/']) >> text=PLAT"); // the page shown again after moving
+    await page.waitForSelector("p:has(a[href='#/spaces']) >> text=PLAT"); // the page shown again after moving
     await page.waitForFunction(() => document.querySelector(".tree a.current")?.closest("ul")?.closest("li")?.querySelector(".tree-row a")?.textContent === "Tidy the wiki");
 
     step("Word templates: a type's pages begin with its start text, read as the template's document, export into it and stay on their version (ADR-0167)");
@@ -6371,6 +6373,9 @@ function webSource() {
     await page.waitForSelector("#daily-note.editing .ProseMirror");
     await page.waitForSelector("#daily-calendar ul, #daily-calendar p.muted");
     await page.waitForSelector("#daily-activity ul, #daily-activity p.muted");
+    // One's newest notifications stand in the side column too.
+    await page.waitForSelector("#daily-notifications ul, #daily-notifications p.muted");
+    check(await page.getAttribute("#daily-notifications-all", "href") === "#/notifications", "the daily note's side column leads to all notifications");
 
     step("create from a mention: a title that matches nothing is created where it is mentioned (ADR-0206)");
     await page.locator("#daily-note .ProseMirror").click();

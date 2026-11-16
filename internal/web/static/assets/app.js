@@ -503,7 +503,7 @@ async function labelView(label) {
   const first = await get(url(filter.state));
   fill(first);
   show(
-    h("p", {}, link("#/", t("nav.spaces")), " / " + t("label.title")),
+    h("p", {}, link("#/spaces", t("nav.spaces")), " / " + t("label.title")),
     h("div", { class: "page-head" }, h("h1", {}, t("label.heading") + " ", labelChip(label)),
       h("p", { class: "actions" }, link(`#/labelboard/${encodeURIComponent(label)}`, t("labelboard.open"), "button secondary", "label-board"),
         link(`#/roadmap?labels=${encodeURIComponent(label)}`, t("roadmap.open"), "button secondary", "label-roadmap"),
@@ -1079,7 +1079,7 @@ function renderFooter() {
 // admin marks the modules only administrators see. The notifications are
 // reached through the bell in the header, not here.
 const modules = [
-  { id: "spaces", name: "nav.spaces", href: "#/", match: ["", "space", "item", "board", "links", "search", "query", "label"], icon: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" },
+  { id: "spaces", name: "nav.spaces", href: "#/spaces", match: ["", "spaces", "space", "item", "board", "links", "search", "query", "label"], icon: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" },
   { id: "new", name: "nav.new", href: "#/new", match: ["new"], icon: "M12 8v8M8 12h8M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" },
   { id: "tasks", name: "nav.tasks", href: "#/tasks", match: ["tasks", "kanbans", "kanban", "roadmap", "calendar"], icon: "M9 11l3 3 8-8M20 12v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h11" },
   // Today's daily note (ADR-0205); on a phone, where the top bar has no
@@ -1798,6 +1798,7 @@ async function route() {
       case "calendar": return await calendarScreen(params);
       case "view": return await viewRoute(params);
       case "daily": return await dailyScreen(arg, params);
+      case "spaces": return await spacesView();
       case "space": return await spaceView(arg);
       case "board": return await boardView(arg, arg2);
       case "links": return await linksView(arg);
@@ -2393,16 +2394,8 @@ async function homeView() {
       // The starmap first: one's rooms as a map of connections (ADR-0157);
       // the view picks the favourite or first room.
       quick("#/starmap", t("nav.starmap"), t("home.starmapText"), "home-starmap", null, "starmap"),
-      // The rooms follow the starmap: the tile leads to their list further
-      // down this page, which takes the focus; no view of their own.
-      Object.assign(quick("#/", t("spaces.title"), t("home.spacesText", { n: spaces.length }), "home-spaces", null, "spaces"), {
-        onclick: (e) => {
-          e.preventDefault();
-          const list = document.getElementById("home-spaces-title");
-          list.scrollIntoView({ block: "start" });
-          list.focus({ preventScroll: true });
-        },
-      }),
+      // The rooms follow the starmap and lead to their own overview.
+      quick("#/spaces", t("spaces.title"), t("home.spacesText", { n: spaces.length }), "home-spaces", null, "spaces"),
       // My day: today's daily note, made in one's daily room on opening
       // when there is none (ADR-0205).
       quick("#/daily", t("home.today"), t("home.todayText", { date: todayText }), "home-today", null, "day", [todayNumber]),
@@ -2417,7 +2410,7 @@ async function homeView() {
       quick("#/whiteboards", t("nav.whiteboards"), boards.whiteboards.length ? t("home.whiteboardsLive", { n: boards.whiteboards.length }) : t("home.whiteboardsText"),
         "home-whiteboards", null, "whiteboard"),
       quick("#/mcp", t("nav.mcp"), t("home.mcpText"), "home-mcp", null, "protection")),
-    h("h2", { id: "home-spaces-title", tabindex: "-1", text: t("spaces.title") }),
+    h("h2", { text: t("spaces.title") }),
     spaces.length === 0
       ? h("div", { class: "card first-steps" },
         h("p", { text: me.admin ? t("spaces.noneAdmin") : t("spaces.none") }),
@@ -2426,6 +2419,21 @@ async function homeView() {
     me.admin ? setupCard(types) : null,
     // With rooms, a new one is made from the button beside the layout
     // switch; the first one from the open form here.
+    me.admin && spaces.length === 0 ? newSpaceForm(true) : null,
+  );
+}
+
+// spacesView is the overview of one's rooms at #/spaces: the start page's
+// list of them, as tiles or as a list, with favourites first and, for
+// administrators, a new room; without rooms, the first steps.
+async function spacesView() {
+  const show = screen();
+  const { spaces } = await get("/api/spaces");
+  show(
+    h("h1", { text: t("spaces.title") }),
+    spaces.length === 0
+      ? h("div", { class: "card first-steps" }, h("p", { text: me.admin ? t("spaces.noneAdmin") : t("spaces.none") }))
+      : spacesOverview(spaces),
     me.admin && spaces.length === 0 ? newSpaceForm(true) : null,
   );
 }
@@ -2734,7 +2742,7 @@ async function spaceView(key) {
       h("option", { value: "", text: t("views.ofTypeChoice") }), types.map((ty) => h("option", { value: ty.name, text: t("views.ofType", { type: ty.name }) })))];
   const tree = pageTree({ space: key, taskTypes: new Set(types.filter(isTaskType).map((ty) => ty.name)), onMoved: () => route(), onError: (err) => status.replaceChildren(errorBox(err)) });
   show(withTree(tree,
-    h("p", {}, link("#/", t("nav.spaces")), " / " + key),
+    h("p", {}, link("#/spaces", t("nav.spaces")), " / " + key),
     h("div", { class: "page-head" },
       h("h1", { text: sp.name }),
       // The view's buttons, and the bell always last (ADR-0112).
@@ -2784,7 +2792,7 @@ async function boardView(key, typeName) {
     ...view.look,
   });
   show(
-    h("p", {}, link("#/", t("nav.spaces")), " / ", link("#/space/" + encodeURIComponent(key), key), " / " + t("board.crumb", { type: typeName })),
+    h("p", {}, link("#/spaces", t("nav.spaces")), " / ", link("#/space/" + encodeURIComponent(key), key), " / " + t("board.crumb", { type: typeName })),
     h("div", { class: "page-head" }, h("h1", { text: `${key} · ${typeName}` }),
       h("p", { class: "actions" }, csvLink(`/api/items.csv?space=${encodeURIComponent(key)}&type=${encodeURIComponent(typeName)}`, "board-csv"))),
     found.truncated ? h("p", { class: "notice warning", text: t("board.truncated", { n: found.items.length }) }) : null,
@@ -4070,7 +4078,7 @@ async function viewRoute(params) {
   const section = h("section", { id: "view" });
   const space = params.get("space");
   screen()(
-    h("p", {}, link("#/", t("nav.spaces")), space ? [" / ", link("#/space/" + encodeURIComponent(space), space)] : null, " / " + t("views.tab")),
+    h("p", {}, link("#/spaces", t("nav.spaces")), space ? [" / ", link("#/space/" + encodeURIComponent(space), space)] : null, " / " + t("views.tab")),
     h("div", { class: "page-head" }, h("h1", { text: params.get("type") ? t("views.titleOf", { type: params.get("type") }) : t("views.title") })),
     h("p", { class: "muted", text: t("views.intro") }),
     section);
@@ -4093,7 +4101,32 @@ async function calendarScreen(params) {
 
 // dailyScreen shows one's daily note of a day (ADR-0205).
 async function dailyScreen(arg, params) {
-  await dailyView(screen(), arg || "", params, { ...textTools(), favouritesFirst, columnToggle, reload: () => route() });
+  await dailyView(screen(), arg || "", params, { ...textTools(), favouritesFirst, columnToggle, notifications: notificationsCard, reload: () => route() });
+}
+
+// notificationsCard shows one's newest notifications in a side card, as
+// the notifications page lists them, the unread marked; it marks none as
+// read, which only the notifications page does.
+function notificationsCard() {
+  const card = h("section", { class: "side-card", id: "daily-notifications" },
+    h("h2", { text: t("notif.title") }), h("p", { class: "muted", text: t("daily.loading") }));
+  get("/api/notifications?limit=5").then(async (page) => {
+    await learnNames(page.notifications.map((n) => n.actor));
+    card.replaceChildren(
+      h("h2", { text: t("notif.title") }),
+      page.unread ? h("p", { class: "muted", id: "daily-notifications-unread", text: t("home.notesUnread", { n: page.unread }) }) : null,
+      page.notifications.length
+        ? h("ul", { class: "notifications" }, page.notifications.map((n) => {
+          const governance = n.actor === "governance";
+          return h("li", { class: [n.unread ? "unread" : "", governance ? "governance" : ""].join(" ").trim() },
+            h("span", { text: `${governance ? t("gov.title") : person(n.actor)} ${what(n)} ` }),
+            link("#/item/" + encodeURIComponent(n.key), `${n.key} ${n.title}`),
+            h("span", { class: "muted", text: " · " + when(n.at) }));
+        }))
+        : h("p", { class: "muted", text: t("home.notesNone") }),
+      h("p", {}, link("#/notifications", t("daily.allNotifications"), null, "daily-notifications-all")));
+  }).catch((err) => card.append(h("p", { class: "error", text: err.message })));
+  return card;
 }
 
 // storagePaused tells that nothing new is made now (ADR-0163).
@@ -4357,7 +4390,7 @@ async function governanceView(key) {
     : empty(t("common.nothing"));
   const daysInput = h("input", { type: "number", min: 1, max: 3650, value: days, "aria-label": t("gov.days"), class: "days" });
   show(
-    h("p", {}, link("#/", t("nav.spaces")), " / ", link("#/space/" + encodeURIComponent(key), key), " / " + t("gov.crumb")),
+    h("p", {}, link("#/spaces", t("nav.spaces")), " / ", link("#/space/" + encodeURIComponent(key), key), " / " + t("gov.crumb")),
     h("h1", { text: t("gov.heading", { key }) }),
     h("section", { id: "governance" },
       h("p", {}, h("button", { text: t("gov.checkAgain"), onclick: () => {
@@ -4442,7 +4475,7 @@ async function linksView(key) {
     }
   }
   show(
-    h("p", {}, link("#/", t("nav.spaces")), " / ", link("#/space/" + encodeURIComponent(key), key), " / " + t("links.crumb")),
+    h("p", {}, link("#/spaces", t("nav.spaces")), " / ", link("#/space/" + encodeURIComponent(key), key), " / " + t("links.crumb")),
     h("h1", { text: t("links.heading", { key }) }),
     h("section", { id: "linkcheck" }, body),
   );
@@ -5038,7 +5071,7 @@ async function itemView(ref, params = new URLSearchParams()) {
   const more = reorder.length || actions.length || relocateButtons.length
     ? card("item-actions", h("p", { class: "actions-row" }, reorder, relocateButtons, actions), relocate) : null;
   show(withTree(tree,
-    h("p", { class: "crumbs" }, link("#/", t("nav.spaces")), " / ", link("#/space/" + encodeURIComponent(item.space), item.space), " / " + item.key),
+    h("p", { class: "crumbs" }, link("#/spaces", t("nav.spaces")), " / ", link("#/space/" + encodeURIComponent(item.space), item.space), " / " + item.key),
     h("div", { class: "page-head" }, title, headActions),
     guarded ? h("p", { class: "notice", text: t("item.guarded") }) : null,
     // A task its engine no longer follows is the wiki's again (ADR-0152).
@@ -7586,7 +7619,7 @@ async function importView(key) {
   here.space = key;
   const sp = spaces.find((s) => s.key === key) || { name: key };
   show(
-    h("p", {}, link("#/", t("nav.spaces")), " / ", link("#/space/" + encodeURIComponent(key), key), " / " + t("notesImport.title")),
+    h("p", {}, link("#/spaces", t("nav.spaces")), " / ", link("#/space/" + encodeURIComponent(key), key), " / " + t("notesImport.title")),
     h("h1", { text: t("notesImport.heading", { space: sp.name }) }),
     noteImportCard({ space: key, types: types.filter((ty) => ty.body), lang: language(), keyLink: itemLink }),
   );
@@ -7622,7 +7655,7 @@ async function membersView(key) {
   };
   const known = new Set(roles.map((r) => r.principal));
   show(
-    h("p", {}, link("#/", t("nav.spaces")), " / ", link("#/space/" + encodeURIComponent(key), key), " / " + t("members.title")),
+    h("p", {}, link("#/spaces", t("nav.spaces")), " / ", link("#/space/" + encodeURIComponent(key), key), " / " + t("members.title")),
     h("h1", { text: t("members.heading", { space: sp.name }) }),
     h("p", { class: "muted", text: t("members.help") }),
     status,
