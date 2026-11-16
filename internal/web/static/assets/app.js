@@ -2339,8 +2339,8 @@ async function homeView() {
   const greeting = hour < 11 ? t("home.morning") : hour < 18 ? t("home.day") : t("home.evening");
   const name = brand.name || "Orbithek";
   // Each tile wears the symbol and colour of its module on the station of
-  // the start page's picture.
-  const quick = (href, title, text, id, extra, module, glyphs) => h("a", { class: "home-tile", href, id },
+  // the start page's picture, and says on hover what it offers.
+  const quick = (href, title, text, tip, id, extra, module, glyphs) => h("a", { class: "home-tile", href, id, title: tip },
     module ? moduleIcon(module, glyphs) : null, h("strong", { text: title }), h("span", { class: "muted", text }), extra || null);
   // Today, where the browser is: its long date for "My day" and its day of
   // the month on the tile's calendar sheet.
@@ -2393,23 +2393,23 @@ async function homeView() {
     h("section", { class: "home-tiles", "aria-label": t("home.quick") },
       // The starmap first: one's rooms as a map of connections (ADR-0157);
       // the view picks the favourite or first room.
-      quick("#/starmap", t("nav.starmap"), t("home.starmapText"), "home-starmap", null, "starmap"),
+      quick("#/starmap", t("nav.starmap"), t("home.starmapText"), t("home.tip.starmap"), "home-starmap", null, "starmap"),
       // The rooms follow the starmap and lead to their own overview.
-      quick("#/spaces", t("spaces.title"), t("home.spacesText", { n: spaces.length }), "home-spaces", null, "spaces"),
+      quick("#/spaces", t("spaces.title"), t("home.spacesText", { n: spaces.length }), t("home.tip.spaces"), "home-spaces", null, "spaces"),
       // My day: today's daily note, made in one's daily room on opening
       // when there is none (ADR-0205).
-      quick("#/daily", t("home.today"), t("home.todayText", { date: todayText }), "home-today", null, "day", [todayNumber]),
-      quick("#/tasks", t("nav.tasks"), t("home.tasksText"), "home-tasks",
+      quick("#/daily", t("home.today"), t("home.todayText", { date: todayText }), t("home.tip.today"), "home-today", null, "day", [todayNumber]),
+      quick("#/tasks", t("nav.tasks"), t("home.tasksText"), t("home.tip.tasks"), "home-tasks",
         requests.length ? h("span", { class: "chip", text: t("nav.requestsWaiting", { n: requests.length }) }) : null, "tasks"),
-      quick("#/notifications", t("nav.notifications"), notes.unread ? t("home.notesUnread", { n: notes.unread }) : t("home.notesNone"), "home-notes",
+      quick("#/notifications", t("nav.notifications"), notes.unread ? t("home.notesUnread", { n: notes.unread }) : t("home.notesNone"), t("home.tip.notifications"), "home-notes",
         findings ? h("span", { class: "chip", text: t("nav.findingsOpen", { n: findings }) }) : null, "conversations"),
       // One's personal notes, wherever they were made (ADR-0113).
-      quick("#/my-notes", t("note.title"), mine.notes.length ? t("home.myNotesText", { n: mine.notes.length }) : t("home.myNotesNone"), "home-my-notes", null, "page"),
-      quick("#/album", t("nav.album"), t("home.albumText"), "home-album", null, "pictures"),
+      quick("#/my-notes", t("note.title"), mine.notes.length ? t("home.myNotesText", { n: mine.notes.length }) : t("home.myNotesNone"), t("home.tip.myNotes"), "home-my-notes", null, "page"),
+      quick("#/album", t("nav.album"), t("home.albumText"), t("home.tip.album"), "home-album", null, "pictures"),
       // The whiteboards, and how many are in use now (ADR-0169).
       quick("#/whiteboards", t("nav.whiteboards"), boards.whiteboards.length ? t("home.whiteboardsLive", { n: boards.whiteboards.length }) : t("home.whiteboardsText"),
-        "home-whiteboards", null, "whiteboard"),
-      quick("#/mcp", t("nav.mcp"), t("home.mcpText"), "home-mcp", null, "protection")),
+        t("home.tip.whiteboards"), "home-whiteboards", null, "whiteboard"),
+      quick("#/mcp", t("nav.mcp"), t("home.mcpText"), t("home.tip.mcp"), "home-mcp", null, "protection")),
     // The rooms are listed on their own overview (#/spaces), reached by
     // their tile; without rooms the start page shows the first steps.
     spaces.length === 0 ? h("h2", { text: t("spaces.title") }) : null,
