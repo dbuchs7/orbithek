@@ -4587,7 +4587,11 @@ function webSource() {
       await rule.locator("[name=cancelled]").selectOption("cancelled");
       await rule.locator("[name=dueField]").selectOption("due");
       await rule.locator("[name=labels]").fill("atlas, {process}");
-      await page.check("#task-links [name=enabled]");
+      // The rule is saved, tried and run while the task links are still
+      // switched off: once on, the server runs a round of its own every
+      // minute (tasklink.Every), which could link the task between saving
+      // and the click on Run, and the round asked for would then report
+      // 0 linked, or find that round running.
       await page.click("#task-links-save");
       await page.waitForSelector("#task-links-status >> text=The task links are saved.");
       await page.click("#task-links-dry");
@@ -4598,6 +4602,10 @@ function webSource() {
       check(linked.length === 1 && linked[0].title === "Approve holidays" && linked[0].linked === "atlas" &&
         linked[0].labels.join(",") === "atlas,urlaub", "the task of the process urlaub is linked, with its labels; the other two are not");
       check(linked[0].restriction?.read?.join(",") === "engine:atlas", "a linked task is read by nobody until the engine says who may");
+      await page.check("#task-links [name=enabled]");
+      await page.click("#task-links-save");
+      await page.waitForSelector("#task-links-status >> text=The task links are saved.");
+      check(await page.isChecked("#task-links [name=enabled]"), "the task links are switched on");
 
       step("connected engines: a person connects their account to the engine by its sign-in and consent, sees who they are there and reads the linked tasks the engine shows them, and disconnects (ADR-0151)");
       await page.waitForSelector("#task-links-connect >> text=People connect their accounts to the engine under Account; 0 did.");
@@ -4655,13 +4663,23 @@ function webSource() {
       check((await (await page.request.get(base + "/api/items/" + approval.id)).json()).item.state === "done", "the item is done once the engine completed its task");
       await page.waitForSelector("#task-freshness .task-fresh >> text=Tasks of Atlas test read at"); // the board says how current its linked cards are
 
+      // A round asked for while the server's own round of every minute
+      // runs is answered 409 (tasklink.ErrBusy); it is asked for again
+      // once that round is done.
+      const runTaskLinks = async () => {
+        for (let i = 0; ; i++) {
+          const res = await page.request.post(base + "/api/engines/atlas/task-links/run");
+          if (res.status() !== 409 || i >= 50) return res;
+          await page.waitForTimeout(100);
+        }
+      };
       step("the feed: a task opened at the engine is linked, and one cancelled there goes to the state of a cancelled task, which no comparison could tell (ADR-0151)");
       engine.openTask({ key: 4714, processInstanceKey: 7, elementInstanceKey: 8, processId: "urlaub", elementId: "genehmigen", name: "Approve the trip", candidateGroups: "hr" });
-      check((await page.request.post(base + "/api/engines/atlas/task-links/run")).ok(), "a round runs");
+      check((await runTaskLinks()).ok(), "a round runs");
       const trip = async () => (await (await page.request.get(base + "/api/items?type=approval")).json()).items.find((it) => it.title === "Approve the trip");
       check((await trip())?.state === "open", "the task the feed told of is linked");
       engine.cancelTask(4714);
-      const round = await (await page.request.post(base + "/api/engines/atlas/task-links/run")).json();
+      const round = await (await runTaskLinks()).json();
       check((await trip()).state === "cancelled", "the cancelled task goes to the state of a cancelled one: " + JSON.stringify(round));
       await page.goto(base + "/#/item/" + (await trip()).key);
       await page.waitForSelector("#engine-task >> text=This task is no longer open at Atlas test, or not yours to see.");
