@@ -975,7 +975,8 @@ function webSource() {
 
     step("create an item with a hostile title");
     await page.click("a.brand");
-    await page.click("a:has-text('Platform')");
+    await page.click("#home-spaces");
+    await page.click("#spaces-overview a:has-text('Platform')");
     await page.fill("#new-item [name=title]", hostile);
     await page.selectOption("#new-item [name='p:priority']", "high");
     await page.fill("#new-item [name='p:estimate']", "3");
@@ -1331,7 +1332,8 @@ function webSource() {
 
     step("board: columns are the workflow's states; dragging a card performs the transition");
     await page.click("a.brand");
-    await page.click("a:has-text('Platform')");
+    await page.click("#home-spaces");
+    await page.click("#spaces-overview a:has-text('Platform')");
     await page.click("a:has-text('Board: task')");
     await page.waitForSelector(".board");
     const column = (state) => `.board-column[data-state='${state}']`;
@@ -1371,21 +1373,24 @@ function webSource() {
     // The browser remembers one's choice: the board reached from the space
     // shows it again, and names it in its address (ADR-0141).
     await page.click("a.brand");
-    await page.click("a:has-text('Platform')");
+    await page.click("#home-spaces");
+    await page.click("#spaces-overview a:has-text('Platform')");
     await page.click("a:has-text('Board: task')");
     await page.waitForSelector("#board .board-lanes .lane-cell .card-item.toned");
     check(page.url().includes("color=priority") && page.url().includes("lanes=priority"), "the remembered view is in the address: " + page.url());
     await page.selectOption("#board-lanes", "");
     await page.waitForSelector("#board .board:not(.board-lanes)");
     await page.click("a.brand");
-    await page.click("a:has-text('Platform')");
+    await page.click("#home-spaces");
+    await page.click("#spaces-overview a:has-text('Platform')");
     await page.click("a:has-text('Board: task')");
     await page.waitForSelector("#board .board:not(.board-lanes) .card-item.toned");
     check(!page.url().includes("lanes=") && page.url().includes("color=priority"), "no lanes are remembered once taken off: " + page.url());
 
     step("page tree: child pages, reordered by button and by dragging");
     await page.click("a.brand");
-    await page.click("a:has-text('Platform')");
+    await page.click("#home-spaces");
+    await page.click("#spaces-overview a:has-text('Platform')");
     await page.waitForSelector("#home h2:has-text('PLAT-1'), #home h2 a");
     await page.click(".tree a:has-text('Runbook')");
     await page.waitForSelector(".tree a.current:has-text('Runbook')");
@@ -3149,13 +3154,15 @@ function webSource() {
 
     step("links: the link check page says when checking is off");
     await page.click("a.brand");
-    await page.click("a:has-text('Platform')");
+    await page.click("#home-spaces");
+    await page.click("#spaces-overview a:has-text('Platform')");
     await page.click("a:has-text('Link check')");
     await page.waitForSelector("#linkcheck >> text=switched off");
 
     step("governance: the check of a space lists its three kinds of findings");
     await page.click("a.brand");
-    await page.click("a:has-text('Platform')");
+    await page.click("#home-spaces");
+    await page.click("#spaces-overview a:has-text('Platform')");
     await page.click("main a:has-text('Governance')");
     await page.waitForSelector("#governance h2:has-text('Sensitive data')");
     await page.waitForSelector("#governance h2:has-text('Not changed')");
@@ -5296,7 +5303,8 @@ function webSource() {
     await page.fill("#login [name=username]", "bert");
     await page.fill("#login [name=password]", "bert's password");
     await page.click("#login button[type=submit]");
-    await page.click("a:has-text('Platform')");
+    await page.click("#home-spaces");
+    await page.click("#spaces-overview a:has-text('Platform')");
     await page.click("a:has-text('PLAT-1')");
     await page.waitForSelector("text=state: done");
     check(await page.$("text=Administration") === null, "bert sees no administration");
