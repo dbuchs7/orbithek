@@ -215,3 +215,63 @@ func TestSeveralProviders(t *testing.T) {
 		t.Fatalf("swapped provider: %s", got.Header().Get("Location"))
 	}
 }
+
+// A first sign-in creates an account until administrators turn that off;
+// then only identities already linked to an account sign in (ADR-0229).
+func TestASignInWithoutLinkedAccountMayBeRefused(t *testing.T) {
+	h, d, idp := ssoSetup(t)
+	admin := &client{t: t, h: h}
+	admin.login("admin", adminPassword)
+	if got := admin.expect("GET", "/api/settings/sign-in", "", http.StatusOK); got["newAccounts"] != true || got["sso"] != true {
+		t.Fatalf("default setting %v", got)
+	}
+
+	// A known identity, linked at its first sign-in while that was allowed.
+	if rec := signOn(t, h, idp, ssotest.Claims{Subject: "known", PreferredUsername: "kim"}); cookie(rec, SessionCookie) == nil {
+		t.Fatal("a first sign-in did not create an account while allowed")
+	}
+
+	if got := admin.expect("PUT", "/api/settings/sign-in", `{"newAccounts":false}`, http.StatusOK); got["newAccounts"] != false {
+		t.Fatalf("turned off: %v", got)
+	}
+	admin.expect("PUT", "/api/settings/sign-in", `{"newAccounts":false}`, http.StatusOK)
+	admin.expect("PUT", "/api/settings/sign-in", `{"newAccounts":`, http.StatusBadRequest)
+	users := len(d.DB.Accounts.Users())
+
+	rec := signOn(t, h, idp, ssotest.Claims{Subject: "stranger", PreferredUsername: "sam"})
+	if rec.Code != http.StatusFound || rec.Header().Get("Location") != "/?login_error=unlinked" || cookie(rec, SessionCookie) != nil {
+		t.Fatalf("unlinked identity: %d %s", rec.Code, rec.Header().Get("Location"))
+	}
+	if n := len(d.DB.Accounts.Users()); n != users {
+		t.Fatalf("an account was created while new accounts are off: %d, want %d", n, users)
+	}
+	if rec := signOn(t, h, idp, ssotest.Claims{Subject: "known"}); cookie(rec, SessionCookie) == nil {
+		t.Fatal("a linked identity no longer signs in")
+	}
+
+	changes, refused := 0, 0
+	for _, e := range d.DB.Audit.List(0, 100) {
+		switch {
+		case e.Event == "signin.change" && e.Detail["newAccounts"] == "off":
+			changes++
+		case e.Event == "login.failed" && e.Detail["reason"] == "no linked account":
+			refused++
+		}
+	}
+	if changes != 1 || refused != 1 {
+		t.Fatalf("audit: %d changes, %d refusals", changes, refused)
+	}
+}
+
+func TestOnlyAdministratorsSetSignIn(t *testing.T) {
+	w := newWorld(t)
+	w.bert.expect("GET", "/api/settings/sign-in", "", http.StatusForbidden)
+	w.bert.expect("PUT", "/api/settings/sign-in", `{"newAccounts":false}`, http.StatusForbidden)
+	if got := w.admin.expect("GET", "/api/settings/sign-in", "", http.StatusOK); got["newAccounts"] != true || got["sso"] != false {
+		t.Fatalf("without single sign-on: %v", got)
+	}
+	// The setting can be turned off before any provider is configured.
+	if got := w.admin.expect("PUT", "/api/settings/sign-in", `{"newAccounts":false}`, http.StatusOK); got["newAccounts"] != false {
+		t.Fatalf("turned off without a provider: %v", got)
+	}
+}

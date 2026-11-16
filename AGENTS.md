@@ -22,7 +22,8 @@ The item store persists to an event log on disk (`internal/wal`, `internal/stora
 Item content is encrypted with a key per item; purge and redaction destroy the key (ADR-0026).
 Authentication exists (`internal/auth`; ADR-0013, ADR-0027): local accounts, sessions and API tokens;
 the first start creates an administrator; security events go to a persisted audit trail (ADR-0029), a hash chain whose newest link the log lines witness (ADR-0123);
-OpenID Connect single sign-on is optional (ADR-0030).
+OpenID Connect single sign-on is optional (ADR-0030);
+administrators decide whether a first sign-in creates an account or only identities linked to an account sign in (`site.SignIn`, proposed, partial, ADR-0229).
 The single binary `cmd/orbithek` opens the data directory and serves the web UI, a liveness probe, the authentication API and the item API (ADR-0028, described at `/api/openapi.json`);
 it is released for every common platform and as a container image (ADR-0024).
 A buildless web UI (`internal/web`, ADR-0031) runs on top of the API;

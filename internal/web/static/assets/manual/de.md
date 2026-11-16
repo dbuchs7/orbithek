@@ -29,7 +29,7 @@ Die Administration der Installation hat in jedem Raum die Rechte der Raumadminis
 
 ### Anmelden
 
-Die Anmeldung erfolgt mit Benutzername und Passwort oder per Single Sign-on, sofern die Organisation es eingerichtet hat. Sind Selbstregistrierungen erlaubt, sendet **Konto beantragen** auf der Anmeldeseite einen Antrag, den die Administration bewilligt. Bei vergessenem Passwort fordert man einen Link zum Zurücksetzen per E-Mail an; damit wählt man ein neues Passwort, und die übrigen Sitzungen werden beendet.
+Die Anmeldung erfolgt mit Benutzername und Passwort oder per Single Sign-on, sofern die Organisation es eingerichtet hat. Sind Selbstregistrierungen erlaubt, sendet **Konto beantragen** auf der Anmeldeseite einen Antrag, den die Administration bewilligt. Wird eine Anmeldung per Single Sign-on abgewiesen, weil sie mit keinem Konto hier verknüpft ist, meldet man sich mit dem Passwort an. Bei vergessenem Passwort fordert man einen Link zum Zurücksetzen per E-Mail an; damit wählt man ein neues Passwort, und die übrigen Sitzungen werden beendet.
 
 ### Die obere Leiste
 
@@ -486,7 +486,7 @@ Solange Personen an einem Whiteboard arbeiten, lässt sich die Zeichnung nicht a
 
 Die **Sternenkarte** zeichnet die Einträge, Bilder und gemeinsamen Labels eines Raums als Karte: Kreise für Einträge (nach Typ eingefärbt), Quadrate für Bilder, Rauten für Labels, gestrichelte Ränder für Einträge anderer Räume. Linien zeigen Seitenbaum, Beziehungen, Erwähnungen, Einbettungen und Kopien. Ziehen verschiebt die Karte, ein gezogener Knoten nimmt seine Nachbarn mit; das Mausrad zoomt. Wählt man einen Knoten, erscheinen seine Angaben. Ein Doppelklick auf einen Knoten (oder Umschalt+Enter) zeigt nur ihn mit seiner Nachbarschaft bis zu einer gewählten **Tiefe** (**Vertiefen**); Escape geht einen Schritt zurück.
 
-Die Sternenkarte öffnet mit **Alle Räume**: Die Karte zeigt die Einträge aller Räume, die man lesen darf, mit Baum, Beziehungen und gemeinsamen Labels. Auch ihre Fotos und Zeichnungen stehen darauf, jedes mit der Seite oder Aufgabe verbunden, die es enthält, eine Kopie mit ihrem Original; zuerst kommen jene, die ein Text zeigt, damit ein grosses Album sie nicht verdrängt. Sind es mehr, als eine Karte zeigt, steht jede Blase für die Einträge eines Typs in einem Raum, so gross wie ihre Anzahl, und Linien zählen die Verbindungen zwischen ihnen; **Karte des Raums öffnen** oder ein Doppelklick (oder Umschalt+Enter) führt von einer Blase zur Karte ihres Raums; wählt man in der Raumauswahl einen Raum, zeigt die Karte nur ihn. **Label in allen Räumen zeigen** grenzt die Karte auf die Einträge ein, die ein Label tragen, in allen Räumen, und auf die Bilder, die es als Album-Label tragen, jedes mit der Seite oder Aufgabe, die es enthält; vorgeschlagen werden die verwendeten Labels von Einträgen und Bildern. Auf beiden Karten verbindet die Raute eines Labels auch die Bilder, die es als Album-Label tragen.
+Die Sternenkarte öffnet mit **Alle Räume**: Die Karte zeigt die Einträge aller Räume, die man lesen darf, mit Baum, Beziehungen und gemeinsamen Labels. Auch ihre Fotos und Zeichnungen stehen darauf, jedes mit der Seite oder Aufgabe verbunden, die es enthält, eine Kopie mit ihrem Original; zuerst kommen jene, die ein Text zeigt, damit ein grosses Album sie nicht verdrängt. Sind es mehr, als eine Karte zeigt, steht jede Wolke für die Einträge eines Typs in einem Raum, so gross wie ihre Anzahl, und Linien zählen die Verbindungen zwischen ihnen; **Karte des Raums öffnen** oder ein Doppelklick (oder Umschalt+Enter) führt von einer Wolke zur Karte ihres Raums, und die Legende erklärt die Wolken, solange die Karte welche zeigt; wählt man in der Raumauswahl einen Raum, zeigt die Karte nur ihn. **Label in allen Räumen zeigen** grenzt die Karte auf die Einträge ein, die ein Label tragen, in allen Räumen, und auf die Bilder, die es als Album-Label tragen, jedes mit der Seite oder Aufgabe, die es enthält; vorgeschlagen werden die verwendeten Labels von Einträgen und Bildern. Auf beiden Karten verbindet die Raute eines Labels auch die Bilder, die es als Album-Label tragen.
 
 ### Auswirkungen
 
@@ -568,6 +568,8 @@ Wer einen Eintrag zuletzt geändert hat, gilt als verantwortlich und sieht die e
 Die Administration findet unter **Administration**:
 
 - **Kontoanträge**, **Benutzer und Systemrollen**, **Gruppen** und **Raumrolle vergeben**;
+  Unter **Kontoanträge** legt die Administration auch fest, ob eine erste Anmeldung über Single Sign-on ein Konto ohne Rollen anlegt.
+  Ausgeschaltet melden sich damit nur Personen an, deren Konto beim Anbieter bereits mit einem Konto hier verknüpft ist; vor dem Einrichten von Single Sign-on ausschalten, wenn es nur bekannten Personen offenstehen soll;
 - **Räume**: Räume erstellen, ihre Einstellungen öffnen, einen Raum in den Papierkorb legen und wiederherstellen oder endgültig löschen;
 - **Typen**: Typen in einem Formular anlegen und ändern — Name, Text, Felder mit ihrer Art und ihren Optionen, Workflow mit Status und Übergängen (oder einfach *offen → erledigt*) und Starttext — für die ganze Installation oder für einen Raum; der Typ als JSON bleibt unter **Erweitert**. Typen entstehen auch aus den Vorlagen;
 - **Backup** (auch zeitgesteuert in ein Verzeichnis, per WebDAV, S3, FTPS oder SFTP) und **Speicher**;

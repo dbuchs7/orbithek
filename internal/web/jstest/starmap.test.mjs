@@ -14,7 +14,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DEPTHS, GROUPS, IMPACT_DEPTHS, IMPACT_DIRECTIONS, around, captionShown, distanceClass, drillBack, drillInto, filter, fitView, groupOf, impactAddress, impactGraph,
-  impactList, impactParams, impactPath, impactSummary, kinds, kindOf, groupRadius, layout, roomAddress, startRoom, matches, mergeLabelCounts, neighbourhood, size, toneOf, visible, zoomBand } from "../static/assets/starmap-graph.js";
+  impactList, impactParams, impactPath, impactSummary, kinds, kindOf, groupRadius, CLOUD_BOTTOM, cloudPath, layout, roomAddress, startRoom, matches, mergeLabelCounts, neighbourhood, size, toneOf, visible, zoomBand } from "../static/assets/starmap-graph.js";
 import { DEFAULTS, chargeExact, chargeTree, quadtree, simulation } from "../static/assets/starmap-sim.js";
 
 const graph = {
@@ -407,4 +407,23 @@ test("a double-click on a bubble opens its room, on any other node it separates"
   assert.equal(roomAddress({ id: "a", kind: "item", key: "PLAT-1", space: "PLAT" }), null);
   assert.equal(roomAddress({ id: "label:runbook", kind: "label", name: "runbook" }), null);
   assert.equal(roomAddress({ id: "group:x", kind: "group" }), null, "a bubble without a room opens nothing");
+});
+
+test("a group of the starmap of all rooms is drawn as a cloud within its radius", () => {
+  for (const r of [groupRadius(1), groupRadius(1548), 64]) {
+    const d = cloudPath(r);
+    assert.match(d, /^M[-\d. ,]+(A[-\d. ,]+)+Z$/, "a closed path of arcs: " + d);
+    const nums = d.replace(/[MAZ]/g, " ").trim().split(/[ ,]+/).map(Number);
+    assert.ok(nums.every(Number.isFinite), "only numbers: " + d);
+    // The end points of the arcs: M x y, then A rx ry rot large sweep x y.
+    const points = [[nums[0], nums[1]]];
+    for (let i = 2; i + 6 < nums.length + 1; i += 7) points.push([nums[i + 5], nums[i + 6]]);
+    assert.equal(points.length, 6, "five lobes: " + d);
+    for (const [x, y] of points) assert.ok(Math.hypot(x, y) <= r + 0.1, `(${x}, ${y}) lies within ${r}`);
+    assert.ok(points.some(([, y]) => y < -0.5 * r), "the lobes rise above the middle");
+    assert.equal(points[0][1], Math.round(CLOUD_BOTTOM * r * 10) / 10, "the cloud stands on a flat bottom");
+    assert.equal(points[5][1], points[0][1], "the bottom is flat");
+  }
+  assert.equal(cloudPath(20), cloudPath(20), "the same size draws the same cloud");
+  assert.notEqual(cloudPath(20), cloudPath(40), "a larger group draws a larger cloud");
 });

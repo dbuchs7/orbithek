@@ -29,7 +29,7 @@ Administrators of the installation act as room administrators everywhere and als
 
 ### Signing in
 
-Sign in with your username and password, or with single sign-on if your organisation has set it up. If self-service accounts are enabled, **Request an account** on the sign-in page sends a request that an administrator approves. If you forgot your password, ask for a reset link by mail; the link lets you choose a new password and ends your other sessions.
+Sign in with your username and password, or with single sign-on if your organisation has set it up. If self-service accounts are enabled, **Request an account** on the sign-in page sends a request that an administrator approves. If a single sign-on is refused because it is linked to no account here, sign in with your password instead. If you forgot your password, ask for a reset link by mail; the link lets you choose a new password and ends your other sessions.
 
 ### The top bar
 
@@ -486,7 +486,7 @@ While people work on a whiteboard, the drawing cannot be edited alone; the page 
 
 The **Starmap** draws a room's items, pictures and shared labels as a map: circles for items (coloured by type), squares for pictures, diamonds for labels, dashed outlines for items of other rooms. Lines show the page tree, relations, mentions, embeds and copies. Drag the map to move it and a node to pull it with its neighbours; turn the mouse wheel to zoom. Choose a node to see its panel. A double-click on a node (or Shift+Enter) shows only it with its neighbourhood at a chosen **Depth** (**Separate**); Escape steps back.
 
-The starmap opens on **All rooms**: the items of every room you may read on one map, with their tree, relations and shared labels; choose a room in the room list to see its map alone. Their pictures and drawings are on it too, each joined to the page or task that holds it and a copy to its original; those a text shows come first, so a large album does not crowd them out. When they are more than one map shows, each bubble stands for the items of one type in one room, as big as their number, and lines count the links between them; a bubble opens its room's map with **Open the room's map** or a double-click (or Shift+Enter). **Show a label in every room** narrows the map to the items that carry a label, in every room, and to the pictures that carry it as an album label, each with the page or task that holds it; its suggestions are the labels of items and pictures in use. On both maps, a label's diamond also joins the pictures that carry it as an album label.
+The starmap opens on **All rooms**: the items of every room you may read on one map, with their tree, relations and shared labels; choose a room in the room list to see its map alone. Their pictures and drawings are on it too, each joined to the page or task that holds it and a copy to its original; those a text shows come first, so a large album does not crowd them out. When they are more than one map shows, each cloud stands for the items of one type in one room, as big as their number, and lines count the links between them; a cloud opens its room's map with **Open the room's map** or a double-click (or Shift+Enter), and the legend explains the clouds while the map shows any. **Show a label in every room** narrows the map to the items that carry a label, in every room, and to the pictures that carry it as an album label, each with the page or task that holds it; its suggestions are the labels of items and pictures in use. On both maps, a label's diamond also joins the pictures that carry it as an album label.
 
 ### Impact
 
@@ -568,6 +568,8 @@ The person who changed an item last is named responsible and sees their open fin
 Administrators find under **Administration**:
 
 - **Account requests**, **Users and system roles**, **Groups** and **Grant a room role**;
+  Under **Account requests** administrators also decide whether a first sign-in with single sign-on creates an account without roles.
+  Turned off, only people whose account at the provider is already linked to an account here sign in with it; turn it off before single sign-on is set up if only known people shall use it;
 - **Rooms**: create rooms, open their settings, move a room to the trash and restore or delete it for good;
 - **Item types**: create and change types in a form — name, text, fields with their kind and options, workflow with states and transitions (or simply *open → done*) and start text — for the whole installation or for one room; the type as JSON stays under **Advanced**. Types are also made from the ready-made templates;
 - **Backup** (also on a schedule to a directory, WebDAV, S3, FTPS or SFTP) and **Storage**;

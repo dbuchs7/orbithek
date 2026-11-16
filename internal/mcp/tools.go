@@ -109,8 +109,8 @@ var (
 // ADR-0035); administration of types — of the installation and of a
 // space alike (ADR-0201): defining a type shapes what every person of a
 // space works with, and is a person's decision —,
-// spaces, roles, groups, users and backups; and everything about
-// credentials. An agent with an administrator's token still cannot reach
+// spaces, roles, groups, users and backups; whether a sign-in creates
+// accounts (ADR-0229); and everything about credentials. An agent with an administrator's token still cannot reach
 // them through this adapter.
 //
 // A page as Markdown (ADR-0131) is offered as a read: it gives an agent the

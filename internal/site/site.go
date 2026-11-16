@@ -158,6 +158,8 @@ type event struct {
 	// Share is set by ShareSet; ShareRemoved names it in Asset
 	// (ADR-0197).
 	Share *Share `json:"share,omitempty"`
+	// SignIn is set by SignInSet (ADR-0229).
+	SignIn *SignIn `json:"signIn,omitempty"`
 }
 
 const (
@@ -198,6 +200,10 @@ const (
 	// unbinds it (ADR-0197).
 	shareSet     = "ShareSet"
 	shareRemoved = "ShareRemoved"
+
+	// signInSet decides whether a first sign-in through single sign-on
+	// creates an account (ADR-0229).
+	signInSet = "SignInSet"
 )
 
 // Settings is safe for concurrent use.
@@ -224,6 +230,8 @@ type Settings struct {
 	calendars Calendars
 	places    Places
 	faces     Faces
+	// signIn says whether a first sign-in creates an account (ADR-0229).
+	signIn SignIn
 	// engines are the process engines by ID (ADR-0129).
 	engines map[string]Engine
 	// taskLinks are the task links of the engines, by engine ID
@@ -338,6 +346,11 @@ func (s *Settings) apply(e event) error {
 			return errors.New("a faces event without its setting")
 		}
 		s.faces = *e.Faces
+	case signInSet:
+		if e.SignIn == nil {
+			return errors.New("a sign-in event without its setting")
+		}
+		s.signIn = *e.SignIn
 	case shareSet:
 		if e.Share == nil {
 			return errors.New("a share event without a share")

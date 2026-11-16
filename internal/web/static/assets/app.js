@@ -1936,7 +1936,7 @@ async function loginView() {
   const signIn = () => card.replaceChildren(
     h("h1", { text: t("login.title") }),
     h("p", { class: "muted login-lead", text: t("login.lead", { name: brand.name || "Orbithek" }) }),
-    params.get("login_error") ? h("p", { class: "error", role: "alert", text: params.get("login_error") === "domain" ? t("login.domain") : t("login.failed") }) : "",
+    params.get("login_error") ? h("p", { class: "error", role: "alert", text: ({ domain: t("login.domain"), unlinked: t("login.unlinked") })[params.get("login_error")] || t("login.failed") }) : "",
     providers.length ? h("div", { class: "login-sso-list" }, ...providers.map((p) =>
       h("a", { class: "button login-sso login-sso-" + (p.kind || "generic"), id: "login-sso-" + p.id, href: "/api/oidc/login?provider=" + encodeURIComponent(p.id) },
         providerMark(p.kind), h("span", { text: t("login.with", { name: p.name }) })))) : "",
@@ -6174,10 +6174,11 @@ function filteredGroups(table) {
 async function adminView() {
   const show = screen();
   await loadTypeTemplates();
-  const [{ users }, { spaces }, { types }, auditPage, { groups }, { holders }, { requests }, access, sso, delivery, { spaces: trashed }] = await Promise.all([
+  const [{ users }, { spaces }, { types }, auditPage, { groups }, { holders }, { requests }, access, sso, delivery, { spaces: trashed }, signIn] = await Promise.all([
     get("/api/users"), get("/api/spaces"), get("/api/types"), get("/api/audit?limit=50"), get("/api/groups"), get("/api/system-roles"),
     get("/api/account-requests"), get("/api/settings/access"), get("/api/oidc").catch(() => ({ enabled: false })),
     get("/api/settings/delivery").catch(() => ({ status: {} })), get("/api/spaces/trash").catch(() => ({ spaces: [] })),
+    get("/api/settings/sign-in"),
   ]);
   for (const u of users) names.set(u.id, u.username);
   const status = h("div", { class: "status" });
@@ -6270,6 +6271,11 @@ async function adminView() {
   // are accepted, and the ones waiting for a decision.
   const openBox = h("input", { type: "checkbox", id: "requests-open", checked: access.accountRequests });
   openBox.addEventListener("change", () => action(() => put("/api/settings/access", { accountRequests: openBox.checked }), status));
+  // Whether a first sign-in through single sign-on creates an account, or
+  // only identities linked to an account sign in (ADR-0229). It can be
+  // turned off before a provider is set up in the environment.
+  const newAccountsBox = h("input", { type: "checkbox", id: "signin-new-accounts", checked: signIn.newAccounts });
+  newAccountsBox.addEventListener("change", () => action(() => put("/api/settings/sign-in", { newAccounts: newAccountsBox.checked }), status));
   // What the sign-in page offers, and what is missing for the rest.
   const mailReset = delivery.status?.mail && delivery.status?.publicURL;
   // Single sign-on and mail are set in the server's environment; the help
@@ -6289,6 +6295,8 @@ async function adminView() {
     loginHelp);
   const requestsSection = section("requests", t("requests.title"),
     loginSetup,
+    h("label", { class: "check" }, newAccountsBox, " ", t("signin.newAccounts")),
+    h("p", { class: "muted", id: "signin-help", text: t("signin.help") }),
     h("p", { class: "muted", text: t("requests.help") }),
     h("label", { class: "check" }, openBox, " ", t("requests.open")),
     requests.length ? filtered(h("table", { id: "account-requests" },

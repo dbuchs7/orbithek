@@ -2842,13 +2842,16 @@ function webSource() {
     await page.waitForSelector("#starmap-canvas .star-node");
     check(await page.inputValue("#starmap-space") === "*", "the room chooser offers every room");
     if (await page.locator("#starmap-grouped").count()) {
-      check(await page.locator("#starmap-canvas .star-node.kind-group").count() > 0, "too many items show as bubbles per room and type");
-      // A double-click on a bubble opens the map of its room.
+      check(await page.locator("#starmap-canvas .star-node.kind-group").count() > 0, "too many items show as clouds per room and type");
+      check(await page.locator("#starmap-canvas .star-node.kind-group > path.star-shape.star-cloud").count() === await page.locator("#starmap-canvas .star-node.kind-group").count(),
+        "every group is drawn as a cloud (ADR-0230)");
+      check(await page.locator("#starmap-legend-group .star-cloud").count() === 1, "the legend explains the clouds");
+      // A double-click on a cloud opens the map of its room.
       const bubble = page.locator("#starmap-canvas .star-node.kind-group").first();
       const room = (await bubble.getAttribute("data-id")).replace(/^group:/, "").split("/")[0];
       await bubble.locator(".star-shape").dblclick();
       await page.waitForFunction((want) => document.querySelector("#starmap-space")?.value === want, room);
-      check(page.url().endsWith("#/starmap/" + encodeURIComponent(room)), "a double-click on a bubble opens its room's map: " + page.url());
+      check(page.url().endsWith("#/starmap/" + encodeURIComponent(room)), "a double-click on a cloud opens its room's map: " + page.url());
       await page.goto(base + "/#/starmap/*");
       await page.waitForSelector("#starmap-canvas .star-node");
     } else {
@@ -2861,6 +2864,7 @@ function webSource() {
     await page.waitForFunction(() => [...document.querySelectorAll("#starmap-canvas .star-node.kind-item")].map((n) => n.dataset.key).sort().join() === "PLAT-1,PLAT-2");
     await page.goto(base + "/#/starmap/PLAT");
     await page.waitForSelector("#starmap-canvas .star-node[data-key='PLAT-2']");
+    check(await page.locator("#starmap-legend-group").count() === 0, "a room's map shows no clouds and the legend explains none");
 
     step("starmap moves: the map settles, pointing lights a neighbourhood, a dragged node moves, a double-click separates a node, Escape and the trail step back, the address keeps the drill path (ADR-0158)");
     // The map is a live simulation; the canvas says when it rests, so the
@@ -3877,6 +3881,12 @@ function webSource() {
     await page.click("#setup-sso .info-button");
     await page.waitForSelector("#login-env-help[open] >> text=OT_SMTP_HOST");
     await Promise.all([page.waitForResponse((r) => r.url().endsWith("/api/settings/access") && r.request().method() === "PUT"), page.check("#requests-open")]);
+    // Whether a first sign-in with single sign-on creates an account
+    // (ADR-0229): on by default, turned off and on again here.
+    const signInSaved = () => page.waitForResponse((r) => r.url().endsWith("/api/settings/sign-in") && r.request().method() === "PUT" && r.ok());
+    if (!(await page.isChecked("#signin-new-accounts"))) problems.push("a first sign-in creates no account by default");
+    await Promise.all([signInSaved(), page.uncheck("#signin-new-accounts")]);
+    await Promise.all([signInSaved(), page.check("#signin-new-accounts")]);
     const guestCtx = await browser.newContext();
     const guest = await guestCtx.newPage();
     guest.on("pageerror", (e) => problems.push("guest page error: " + e.message));
