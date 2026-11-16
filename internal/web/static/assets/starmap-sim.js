@@ -187,7 +187,7 @@ export function chargeTree(x, y, active, fx, fy, { charge = DEFAULTS.charge, cha
 // point the nodes are pulled to. Every node and link takes part until
 // setActive says otherwise. Pinning a node (pin) holds it where it is put
 // while the others move; unpin lets it go.
-export function simulation({ x0, y0, links = [], center = { x: 0, y: 0 }, radii = null, ...options }) {
+export function simulation({ x0, y0, links = [], center = { x: 0, y: 0 }, radii = null, clusters = null, clusterGap = 0, ...options }) {
   const o = { ...DEFAULTS, ...options };
   const n = x0.length;
   const x = Float64Array.from(x0), y = Float64Array.from(y0);
@@ -268,6 +268,7 @@ export function simulation({ x0, y0, links = [], center = { x: 0, y: 0 }, radii 
         vy[i] += fy[i] * alpha + (center.y - y[i]) * o.gravity * alpha;
       }
       collide(sim, o.radius, radii);
+      if (clusters) keepApart(sim, clusters, radii, o.radius, clusterGap);
       for (const i of active) {
         if (!Number.isNaN(px[i])) { x[i] = px[i]; y[i] = py[i]; vx[i] = 0; vy[i] = 0; continue; }
         vx[i] *= 1 - o.velocityDecay; vy[i] *= 1 - o.velocityDecay;
@@ -290,6 +291,43 @@ export function simulation({ x0, y0, links = [], center = { x: 0, y: 0 }, radii 
     },
   };
   return sim;
+}
+
+// keepApart keeps clusters of nodes apart as wholes: each cluster's
+// active nodes are taken as a circle round their middle, reaching their
+// farthest node's radius beyond it, and two circles closer than their
+// reaches and the gap are pushed apart along the line between their
+// middles, every node of a cluster by the same amount, so a cluster moves
+// without changing its shape. Pinned nodes stay.
+function keepApart(sim, clusters, radii, r, gap) {
+  const { x, y, vx, vy } = sim;
+  const circles = [];
+  for (const members of clusters) {
+    const on = members.filter((i) => sim.isActive(i));
+    if (!on.length) continue;
+    let cx = 0, cy = 0;
+    for (const i of on) { cx += x[i] + vx[i]; cy += y[i] + vy[i]; }
+    cx /= on.length; cy /= on.length;
+    let reach = 0;
+    for (const i of on) reach = Math.max(reach, Math.hypot(x[i] + vx[i] - cx, y[i] + vy[i] - cy) + (radii ? radii[i] : r));
+    circles.push({ on, cx, cy, reach });
+  }
+  for (let a = 0; a < circles.length; a++) {
+    for (let b = a + 1; b < circles.length; b++) {
+      const A = circles[a], B = circles[b];
+      let dx = A.cx - B.cx, dy = A.cy - B.cy;
+      const min = A.reach + B.reach + gap;
+      let l2 = dx * dx + dy * dy;
+      if (l2 >= min * min) continue;
+      if (l2 === 0) { dx = (a % 2 ? 1 : -1) * 0.1; dy = 0.1; l2 = dx * dx + dy * dy; }
+      const l = Math.sqrt(l2);
+      const k = ((min - l) / l) * 0.2;
+      // The smaller cluster gives way more, as a lighter body would.
+      const wa = B.on.length / (A.on.length + B.on.length), wb = 1 - wa;
+      for (const i of A.on) if (!sim.pinned(i)) { vx[i] += dx * k * wa; vy[i] += dy * k * wa; }
+      for (const i of B.on) if (!sim.pinned(i)) { vx[i] -= dx * k * wb; vy[i] -= dy * k * wb; }
+    }
+  }
 }
 
 // collide keeps active nodes at least two radii apart, or, given radii,

@@ -14,7 +14,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DEPTHS, GROUPS, IMPACT_DEPTHS, IMPACT_DIRECTIONS, around, captionShown, distanceClass, drillBack, drillInto, filter, fitView, groupOf, impactAddress, impactGraph,
-  impactList, impactParams, impactPath, impactSummary, kinds, kindOf, groupRadius, CLOUD_BOTTOM, CLOUD_MARGIN, CLOUD_REACH, cloudPath, cloudReach, layout, roomAddress, startRoom, matches, mergeLabelCounts, neighbourhood, size, nodeRadii, roomLinks, roomHull, roomStart, roomToneOf, toneOf, visible, zoomBand } from "../static/assets/starmap-graph.js";
+  impactList, impactParams, impactPath, impactSummary, kinds, kindOf, groupRadius, CLOUD_BOTTOM, CLOUD_MARGIN, CLOUD_REACH, cloudPath, cloudReach, layout, roomAddress, startRoom, matches, mergeLabelCounts, neighbourhood, size, nodeRadii, roomClusters, roomLinks, roomHull, roomStart, roomToneOf, toneOf, visible, zoomBand } from "../static/assets/starmap-graph.js";
 import { DEFAULTS, chargeExact, chargeTree, quadtree, simulation } from "../static/assets/starmap-sim.js";
 
 const graph = {
@@ -567,4 +567,53 @@ test("a cloud reaches CLOUD_REACH times its radius to its sides, no further", ()
     assert.ok(reach >= cloudReach(count) - 0.03 * r, `CLOUD_REACH (${CLOUD_REACH}) is no wider than the cloud: ${reach.toFixed(1)}`);
     assert.ok(Math.max(...pts.map(([, y]) => Math.abs(y))) <= r, "upwards and downwards it stays within its radius");
   }
+});
+
+test("the clouds of each room form a cluster, rooms in the order of their keys", () => {
+  const nodes = [
+    { id: "group:OPS/page", kind: "group", space: "OPS" },
+    { id: "label:x", kind: "label", name: "x" },
+    { id: "group:API/page", kind: "group", space: "API" },
+    { id: "group:OPS/task", kind: "group", space: "OPS" },
+  ];
+  assert.deepEqual(roomClusters(nodes), [[2], [0, 3]]);
+  assert.equal(roomClusters(graph.nodes), null, "a map without clouds has no clusters");
+});
+
+test("clusters keep apart as wholes, each keeping its own shape", () => {
+  // Two rooms of two nodes each, laid into each other.
+  const sim = simulation({ x0: [0, 40, 20, 60], y0: [0, 0, 10, 10], radii: [15, 15, 15, 15], clusters: [[0, 1], [2, 3]], clusterGap: 20,
+    links: [[0, 1, 40], [2, 3, 40]], center: { x: 30, y: 5 }, charge: 0, gravity: 0.05, alpha: 1 });
+  for (let i = 0; i < 1500 && sim.tick(); i++);
+  const c = (m) => [(sim.x[m[0]] + sim.x[m[1]]) / 2, (sim.y[m[0]] + sim.y[m[1]]) / 2];
+  const extent = (m) => { const [cx, cy] = c(m); return Math.max(...m.map((i) => Math.hypot(sim.x[i] - cx, sim.y[i] - cy) + 15)); };
+  const [ax, ay] = c([0, 1]), [bx, by] = c([2, 3]);
+  const d = Math.hypot(ax - bx, ay - by);
+  assert.ok(d >= extent([0, 1]) + extent([2, 3]) + 20 - 3, `the rooms keep apart: ${d.toFixed(1)} against ${(extent([0, 1]) + extent([2, 3]) + 20).toFixed(1)}`);
+  assert.ok(Math.abs(Math.hypot(sim.x[0] - sim.x[1], sim.y[0] - sim.y[1]) - 40) < 4, "a room keeps its shape");
+  // Without clusters nothing keeps the rooms apart beyond their nodes.
+  const free = simulation({ x0: [0, 40, 20, 60], y0: [0, 0, 10, 10], radii: [15, 15, 15, 15], links: [[0, 1, 40], [2, 3, 40]], center: { x: 30, y: 5 }, charge: 0, gravity: 0.05, alpha: 1 });
+  for (let i = 0; i < 1500 && free.tick(); i++);
+  const fd = Math.hypot((free.x[0] + free.x[1] - free.x[2] - free.x[3]) / 2, (free.y[0] + free.y[1] - free.y[2] - free.y[3]) / 2);
+  assert.ok(fd < d, "the clusters are what keeps them apart");
+});
+
+test("the frame takes in a point's reach when it has one", () => {
+  const w = 800, h = 560, pad = 56;
+  const points = [{ x: 0, y: 0, r: 100 }, { x: 400, y: 300, r: 20 }];
+  const { zoom, panX, panY } = fitView(points, w, h, { pad, max: 1.6 });
+  for (const p of points) {
+    for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+      const sx = panX + zoom * (p.x + dx * p.r), sy = panY + zoom * (p.y + dy * p.r);
+      assert.ok(sx >= pad - 0.5 && sx <= w - pad + 0.5 && sy >= pad - 0.5 && sy <= h - pad + 0.5, `(${sx.toFixed(1)}, ${sy.toFixed(1)}) lies in the frame`);
+    }
+  }
+  assert.deepEqual(fitView([{ x: 0, y: 0 }, { x: 400, y: 300 }], w, h, { pad }), fitView([{ x: 0, y: 0, r: 0 }, { x: 400, y: 300, r: 0 }], w, h, { pad }), "points without a reach frame as before");
+});
+
+test("a cloud keeps its caption at a middle zoom, as an item does", () => {
+  assert.equal(captionShown("mid", { kind: "group" }), true, "room, type and count stay readable");
+  assert.equal(captionShown("far", { kind: "group" }), false);
+  assert.equal(captionShown("mid", { kind: "label" }), false, "labels as before");
+  assert.equal(captionShown("mid", { kind: "item" }), true, "items as before");
 });
