@@ -242,3 +242,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0227](0227-radar-and-waterfall-charts-are-drawn-in-an-imported-presentation.md) | Radar and waterfall charts are drawn in an imported presentation | Proposed | Partial |
 | [0228](0228-starmap-opens-on-every-room.md) | The starmap opens on every room, and a double-click opens a bubble's room | Accepted | Landed |
 | [0229](0229-linking-an-account-to-a-sign-in-elsewhere-and-its-calendar.md) | Linking an existing account to a sign-in at Google, Microsoft or Apple, and showing that account's calendar | Proposed | Partial |
+| [0230](0230-groups-are-drawn-as-clouds.md) | The groups of the starmap of all rooms are drawn as clouds | Accepted | Landed |
