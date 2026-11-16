@@ -2873,6 +2873,21 @@ function webSource() {
         return out;
       });
       check(touching.length === 0, "no two clouds lie on each other: " + touching.join(", "));
+      // Rooms keep apart: no two outlines overlap (convex outlines, by a separating axis; ADR-draft-rooms-keep-apart).
+      const crossing = await page.$$eval("#starmap-canvas .star-hull:not([hidden])", (els) => {
+        const polys = els.map((el) => ({ space: el.dataset.space, pts: el.getAttribute("d").slice(1, -1).split("L").map((p) => p.split(" ").map(Number)) }));
+        const axes = (pts) => pts.map((p, i) => { const q = pts[(i + 1) % pts.length]; return [p[1] - q[1], q[0] - p[0]]; });
+        const span = (pts, [ax, ay]) => pts.reduce(([lo, hi], [x, y]) => [Math.min(lo, x * ax + y * ay), Math.max(hi, x * ax + y * ay)], [Infinity, -Infinity]);
+        const out = [];
+        for (let i = 0; i < polys.length; i++) for (let j = i + 1; j < polys.length; j++) {
+          const A = polys[i].pts, B = polys[j].pts;
+          if (![...axes(A), ...axes(B)].some((ax) => { const [a0, a1] = span(A, ax), [b0, b1] = span(B, ax); return a1 < b0 || b1 < a0; })) out.push(polys[i].space + " x " + polys[j].space);
+        }
+        return out;
+      });
+      check(crossing.length === 0, "no two rooms' outlines overlap: " + crossing.join(", "));
+      check(await page.locator("#starmap-canvas.zoom-far").count() > 0 || await page.locator("#starmap-canvas .star-node.kind-group .star-caption").first().evaluate((el) => getComputedStyle(el).opacity !== "0"),
+        "a cloud's caption shows unless the map is zoomed far out");
       // A double-click on a cloud opens the map of its room.
       const bubble = page.locator("#starmap-canvas .star-node.kind-group").first();
       const room = (await bubble.getAttribute("data-id")).replace(/^group:/, "").split("/")[0];

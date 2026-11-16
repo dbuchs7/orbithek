@@ -140,6 +140,24 @@ export function nodeRadii(nodes, base) {
   return nodes.map((n) => (n.kind === "group" ? cloudReach(n.count) + CLOUD_MARGIN : base));
 }
 
+// roomClusters are the indices of each room's clouds, rooms in the order
+// of their keys, for the simulation to keep rooms apart as wholes (ADR-draft-rooms-keep-apart);
+// null on a map without clouds.
+export function roomClusters(nodes) {
+  const rooms = new Map();
+  nodes.forEach((n, i) => { if (n.kind === "group") (rooms.get(n.space) || rooms.set(n.space, []).get(n.space)).push(i); });
+  if (!rooms.size) return null;
+  return [...rooms.keys()].sort().map((space) => rooms.get(space));
+}
+
+// HULL_PAD is how far a room's outline runs beyond its clouds.
+export const HULL_PAD = 14;
+
+// ROOM_GAP is the room the simulation keeps between two rooms' clusters:
+// the outlines' margins beyond the clouds' (HULL_PAD less CLOUD_MARGIN,
+// on both sides) and a little air.
+export const ROOM_GAP = 2 * (HULL_PAD - CLOUD_MARGIN) + 6;
+
 // roomStart is where the clouds of the starmap of all rooms start the
 // layout: each room around a centre of its own, the centres on a spiral
 // round mid in the order of the rooms' keys, so a room's clouds start
@@ -163,7 +181,7 @@ export function roomStart(nodes, mid) {
 // roomHull is the SVG path of a room's outline: the convex hull of its
 // clouds' circles, each widened by pad, sampled at sixteen points; empty
 // when the room shows no cloud.
-export function roomHull(circles, pad = 14) {
+export function roomHull(circles, pad = HULL_PAD) {
   if (!circles.length) return "";
   const pts = [];
   for (const c of circles) for (let k = 0; k < 16; k++) {
@@ -380,10 +398,12 @@ export function zoomBand(zoom) {
 }
 
 // captionShown says whether a caption shows at a band; lit is a node that
-// matters now (see zoomBand). The style sheet holds the same rule.
+// matters now (see zoomBand). A cloud's caption names its room, type and
+// count, so it shows at a middle zoom as an item's does (ADR-draft-rooms-keep-apart).
+// The style sheet holds the same rule.
 export function captionShown(band, { kind = "item", lit = false } = {}) {
   if (lit || band === "near") return true;
-  return band === "mid" && kind === "item";
+  return band === "mid" && (kind === "item" || kind === "group");
 }
 
 // fitView is the zoom and pan that fit the points into a canvas of width
@@ -392,11 +412,13 @@ export function captionShown(band, { kind = "item", lit = false } = {}) {
 export function fitView(points, w, h, { pad = 48, min = 0.1, max = 2.5 } = {}) {
   if (!points.length) return { zoom: 1, panX: w / 2, panY: h / 2 };
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  // A point may reach r around it (a cloud with its room's outline).
   for (const p of points) {
-    if (p.x < x0) x0 = p.x;
-    if (p.y < y0) y0 = p.y;
-    if (p.x > x1) x1 = p.x;
-    if (p.y > y1) y1 = p.y;
+    const r = p.r || 0;
+    if (p.x - r < x0) x0 = p.x - r;
+    if (p.y - r < y0) y0 = p.y - r;
+    if (p.x + r > x1) x1 = p.x + r;
+    if (p.y + r > y1) y1 = p.y + r;
   }
   const zoom = Math.min(max, Math.max(min, Math.min((w - 2 * pad) / Math.max(x1 - x0, 1), (h - 2 * pad) / Math.max(y1 - y0, 1))));
   return { zoom, panX: w / 2 - zoom * (x0 + x1) / 2, panY: h / 2 - zoom * (y0 + y1) / 2 };
