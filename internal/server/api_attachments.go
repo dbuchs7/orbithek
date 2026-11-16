@@ -806,6 +806,10 @@ func (h itemHandlers) downloadAttachment(w http.ResponseWriter, r *http.Request)
 		// A time set again gives another file (ADR-0198).
 		etag += "-taken-" + a.Photo.Taken + a.Photo.Offset
 	}
+	if orientationWritten(a) {
+		// So does a picture turned again (ADR-draft-pictures-turned-by-hand).
+		etag += "-turned-" + strconv.Itoa(a.Photo.Orientation)
+	}
 	hd.Set("ETag", strconv.Quote(etag))
 	// Parts of a file are sent as asked for (Range), so a video plays and
 	// seeks (ADR-0097); the ETag answers a repeated request.

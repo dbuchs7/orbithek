@@ -352,3 +352,18 @@ export function shiftTaken(taken, minutes) {
   t.setTime(t.getTime() + minutes * 60000);
   return wallTime(t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate(), t.getUTCHours(), t.getUTCMinutes(), t.getUTCSeconds());
 }
+
+// turnTag is what the address of a picture's thumbnail or file adds once
+// it was turned by hand (ADR-draft-pictures-turned-by-hand): its
+// orientation, so the browser asks for the picture as it is turned now
+// and does not show its copy of the picture as it was. A picture not
+// turned by hand adds nothing.
+export const turnTag = (photo) => (photo?.orientationManual && photo.orientation >= 1 && photo.orientation <= 8 ? `o=${photo.orientation}` : "");
+
+// withTag adds a tag to an address as a query.
+export const withTag = (url, tag) => (tag ? `${url}${url.includes("?") ? "&" : "?"}${tag}` : url);
+
+// turnable reports whether a picture of the album may be turned: a picture
+// or drawing its reader may edit, not a video and not an entry of a file
+// share, which is shown as its share holds it.
+export const turnable = (p) => Boolean(p?.editable) && !isVideo(p) && !onShare(p) && ALBUM_TYPES.includes(p?.attachment?.type);

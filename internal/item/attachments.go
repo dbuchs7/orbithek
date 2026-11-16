@@ -250,7 +250,7 @@ func (s *Store) applyAttachment(e Event, touch func(...ID)) {
 			}
 			s.moved[e.Attachment.ID] = e.Attachment.Move.To
 		}
-	case AttachmentPlaceSet, AttachmentTakenSet:
+	case AttachmentPlaceSet, AttachmentTakenSet, AttachmentTurned:
 		if a, ok := it.attachment(e.Attachment.ID); ok && e.Attachment.Photo != nil {
 			p := *e.Attachment.Photo
 			a.Photo = &p
@@ -378,6 +378,17 @@ func (x *Session) AddAttachment(id ID, a Attachment) (Attachment, error) {
 				p = *a.Photo
 			}
 			p.Taken, p.Offset, p.TakenManual = from.Photo.Taken, from.Photo.Offset, true
+			a.Photo = &p
+		}
+		// A copy takes over a turn by hand on its original
+		// (ADR-draft-pictures-turned-by-hand): its file, as given or as
+		// stored, is shown as the original is.
+		if from.Photo != nil && from.Photo.OrientationManual {
+			var p Photo
+			if a.Photo != nil {
+				p = *a.Photo
+			}
+			p.Orientation, p.OrientationManual = from.Photo.Orientation, true
 			a.Photo = &p
 		}
 		// A copy keeps its place as private as its original's.

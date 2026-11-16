@@ -186,7 +186,11 @@ import (
 //   - 61: the block kind audio, a sound file of the item with a plain
 //     caption, sealed with the body (ADR-0224).
 //     Versions 1 to 60 are still read; their bodies play no sound.
-const CodecVersion = 61
+//   - 62: photo data may carry OrientationManual, a picture turned by
+//     hand, and the kind AttachmentTurned with attachment, sealed
+//     (ADR-draft-pictures-turned-by-hand). Versions 1 to 61 are still
+//     read; their pictures are shown as their files tell.
+const CodecVersion = 62
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

@@ -39,6 +39,10 @@ export function slidesOf(pictures) {
     drawing: !!p.drawing,
     video: !!p.video,
     poster: !!p.poster,
+    // turn is the orientation of a picture turned by hand, 0 for none, so
+    // the slide asks for the file as it is turned now
+    // (ADR-draft-pictures-turned-by-hand).
+    turn: p.attachment.photo?.orientationManual ? p.attachment.photo.orientation || 0 : 0,
   }));
 }
 

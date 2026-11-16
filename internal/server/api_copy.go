@@ -183,7 +183,7 @@ func (h itemHandlers) copyOne(r *http.Request, space string, t copyTask) (item.I
 		if err != nil {
 			return made, err
 		}
-		a.Name, a.Source, a.AsGiven = f.Name, &item.Source{Item: src.ID, Attachment: f.ID}, hidden || timeWritten(f)
+		a.Name, a.Source, a.AsGiven = f.Name, &item.Source{Item: src.ID, Attachment: f.ID}, hidden || rewritten(f)
 		// A copy of an entry of a file share is its preview (ADR-0197).
 		a.FromPreview = f.Linked()
 		// A copy looks as its original does (ADR-0196), and sound stays

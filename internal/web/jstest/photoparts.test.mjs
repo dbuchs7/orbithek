@@ -3,7 +3,7 @@
 // clusters and zoom, the timeline's groups, choosing a range, what a
 // picture dragged onto a folder takes with it, where a folder may be moved
 // (ADR-0200), where pictures dropped
-// among others go in the order of slides (ADR-0195), which files the album takes, the times set by hand (ADR-0198), and reading ZIP archives exported from photo apps.
+// among others go in the order of slides (ADR-0195), which files the album takes, the times set by hand (ADR-0198), pictures turned by hand (ADR-draft-pictures-turned-by-hand), and reading ZIP archives exported from photo apps.
 // They run in Node.js without a browser and without dependencies:
 //
 //   node --test "internal/web/jstest/*.test.mjs"
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { deflateRawSync } from "node:zlib";
 import {
   TILE, project, unproject, fit, tiles, cluster, pan, zoomAt, radius, hit, groups, yearsAgo, range, dragged, folderTargets, folderDrop, orderDrop, moveWithin, durationText, posterTime, isVideo, onShare, shareLink,
-  sorts, typeOf, baseName, hidden, exposureText, placeText, OFFSETS, takenValue, shiftMinutes, shiftTaken,
+  sorts, typeOf, baseName, hidden, exposureText, placeText, OFFSETS, takenValue, shiftMinutes, shiftTaken, turnTag, withTag, turnable,
 } from "../static/assets/photoparts.js";
 import { entries, read } from "../static/assets/zipread.js";
 
@@ -324,4 +324,24 @@ test("an S3 share that signs links opens its original through the wiki", async (
     assert.equal(shareLink({ attachment: { share: { link: bad } } }), "", bad);
     assert.equal(shareHref(bad), "#", bad);
   }
+});
+
+test("a picture turned by hand is asked for by its orientation", () => {
+  assert.equal(turnTag({ orientation: 6, orientationManual: true }), "o=6");
+  assert.equal(turnTag({ orientation: 6 }), "");
+  assert.equal(turnTag(undefined), "");
+  assert.equal(turnTag({ orientation: 9, orientationManual: true }), "");
+  assert.equal(withTag("/a/thumbnail?edge=400", "o=3"), "/a/thumbnail?edge=400&o=3");
+  assert.equal(withTag("/a", "o=3"), "/a?o=3");
+  assert.equal(withTag("/a", ""), "/a");
+});
+
+test("only pictures and drawings one may edit are turned", () => {
+  const pic = (over = {}) => ({ editable: true, attachment: { type: "image/png", ...over.attachment }, ...over.p });
+  assert.equal(turnable(pic()), true);
+  assert.equal(turnable(pic({ p: { editable: false } })), false);
+  assert.equal(turnable(pic({ attachment: { type: "video/mp4" } })), false);
+  assert.equal(turnable(pic({ attachment: { type: "image/jpeg", share: { path: "a.jpg" } } })), false);
+  assert.equal(turnable(pic({ attachment: { type: "application/pdf" } })), false);
+  assert.equal(turnable(null), false);
 });

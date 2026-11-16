@@ -34,6 +34,9 @@ test("slides keep the order the album lists them in", () => {
   assert.equal(slides[1].drawing, true);
   assert.equal(slides[0].notes, "", "a picture without notes has empty notes");
   assert.equal(slides[0].editable, false);
+  assert.equal(slides[0].turn, 0, "a picture not turned by hand has no turn");
+  const turned = slidesOf([{ item: { id: "i" }, attachment: { id: "t", name: "t.jpg", type: "image/jpeg", photo: { orientation: 6, orientationManual: true } } }]);
+  assert.equal(turned[0].turn, 6, "a picture turned by hand names its orientation");
   assert.deepEqual(slidesOf(undefined), []);
 });
 

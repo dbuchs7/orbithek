@@ -47,6 +47,7 @@ func photoRoutes(h itemHandlers) []Route {
 		{Method: http.MethodDelete, Pattern: "/api/items/{ref}/attachments/{id}/geotag", Summary: "Remove where a photo was taken by hand; everyone but the uploader then gets the file without the file's own place", Handler: http.HandlerFunc(h.removeGeotag)},
 		{Method: http.MethodPut, Pattern: "/api/items/{ref}/attachments/{id}/taken", Summary: "Set when a photo was taken by hand: taken (2006-01-02T15:04:05) and offset (+02:00, or empty when not known); who may edit its item may. Every file given out of a picture then carries that time in its EXIF; the stored file stays as it is", Handler: http.HandlerFunc(h.setTaken)},
 		{Method: http.MethodDelete, Pattern: "/api/items/{ref}/attachments/{id}/taken", Summary: "Go back to the time the file itself tells a photo was taken", Handler: http.HandlerFunc(h.resetTaken)},
+		{Method: http.MethodPost, Pattern: "/api/items/{ref}/attachments/{id}/turn", Summary: "Turn a picture or drawing as it is shown by a quarter turn clockwise (by 1), counter-clockwise (by -1) or upside down (by 2); who may edit its item may. Its thumbnails, and every JPEG, PNG and WebP given out, show it turned, with the orientation written into its EXIF; the stored file stays as it is. Turned back to the orientation its file tells, it is no longer turned by hand", Handler: http.HandlerFunc(h.turnPicture)},
 		{Method: http.MethodGet, Pattern: "/api/album/imports", Summary: "Which imports the server offers: google (Google Photos through its picker; connected says whether one is signed in at Google now) and icloud (shared iCloud albums)", Handler: http.HandlerFunc(h.photoImports)},
 		{Method: http.MethodGet, Pattern: "/api/album/google/connect", Summary: "Sign in at Google to bring photos into the album; redirects to Google, which asks to let this server read the photos one chooses, and back to the folder (folder)", Handler: http.HandlerFunc(h.googleConnect)},
 		{Method: http.MethodGet, Pattern: GooglePhotosCallback, Summary: "Google's redirect back after one allowed or refused an import; bound to the browser that began it, it goes on to the album", Access: Public, Handler: http.HandlerFunc(h.googlePhotosCallback)},
@@ -181,7 +182,14 @@ func (h itemHandlers) thumbnail(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "the file is no picture")
 		return
 	}
-	etag := strconv.Quote(a.SHA256 + "-" + strconv.Itoa(edge))
+	// A picture turned by hand is another thumbnail
+	// (ADR-draft-pictures-turned-by-hand); the album asks for it by its
+	// orientation, so the browser's copy of the former is not shown.
+	turn := ""
+	if a.Photo != nil && a.Photo.OrientationManual {
+		turn = "-o" + strconv.Itoa(a.Photo.Orientation)
+	}
+	etag := strconv.Quote(a.SHA256 + "-" + strconv.Itoa(edge) + turn)
 	if albumVideo(a) {
 		etag = strconv.Quote(a.SHA256 + "-poster-" + strconv.Itoa(edge))
 	}
@@ -191,7 +199,7 @@ func (h itemHandlers) thumbnail(w http.ResponseWriter, r *http.Request) {
 	}
 	original := fmt.Sprintf("/api/items/%s/attachments/%s", it.ID, a.ID)
 	p := h.photos()
-	key := string(a.ID) + ":" + strconv.Itoa(edge)
+	key := string(a.ID) + ":" + strconv.Itoa(edge) + turn
 	data, kind, ok := p.thumbs.get(key)
 	if !ok {
 		data, kind, err = h.makeThumbnail(r.Context(), p, it.ID, a, edge)

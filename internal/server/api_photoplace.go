@@ -57,10 +57,11 @@ type videoCloser struct {
 // its uploader keeps the place a photo was taken from them, without it
 // (ADR-0178); a picture whose place cannot be removed is not given. A
 // picture whose time was set by hand carries that time in its EXIF
-// (ADR-0198).
+// (ADR-0198), and one turned by hand its orientation
+// (ADR-draft-pictures-turned-by-hand).
 func (h itemHandlers) openFor(hidden bool, id item.ID, a item.Attachment) (io.ReadSeekCloser, error) {
 	c, err := h.openWithoutPlace(hidden, id, a)
-	if err != nil || !timeWritten(a) {
+	if err != nil || !rewritten(a) {
 		return c, err
 	}
 	defer c.Close()
@@ -68,12 +69,21 @@ func (h itemHandlers) openFor(hidden bool, id item.ID, a item.Attachment) (io.Re
 	if err != nil {
 		return nil, err
 	}
-	out, ok := photo.SetTaken(data, a.Type, a.Photo.Taken, a.Photo.Offset)
-	if !ok {
-		// The time stays in the photo data; the file is given as it is.
-		h.log.Warn("the time set by hand could not be written into the file", "item", id, "attachment", a.ID)
+	if timeWritten(a) {
+		var ok bool
+		if data, ok = photo.SetTaken(data, a.Type, a.Photo.Taken, a.Photo.Offset); !ok {
+			// The time stays in the photo data; the file is given as it is.
+			h.log.Warn("the time set by hand could not be written into the file", "item", id, "attachment", a.ID)
+		}
 	}
-	return nopSeekCloser{bytes.NewReader(out)}, nil
+	if orientationWritten(a) {
+		var ok bool
+		if data, ok = photo.SetOrientation(data, a.Type, a.Photo.Orientation); !ok {
+			// The album shows it turned; the file is given as it is.
+			h.log.Warn("the orientation set by hand could not be written into the file", "item", id, "attachment", a.ID)
+		}
+	}
+	return nopSeekCloser{bytes.NewReader(data)}, nil
 }
 
 // timeWritten reports whether a file is given with the time set by hand
@@ -82,6 +92,22 @@ func (h itemHandlers) openFor(hidden bool, id item.ID, a item.Attachment) (io.Re
 func timeWritten(a item.Attachment) bool {
 	return a.Photo != nil && a.Photo.TakenManual && inlineTypes[a.Type] && !albumVideo(a)
 }
+
+// orientationWritten reports whether a file is given with the
+// orientation set by hand written into it
+// (ADR-draft-pictures-turned-by-hand): a picture whose EXIF the server
+// writes (JPEG, PNG, WebP). A GIF tells no orientation and is given as it
+// is stored.
+func orientationWritten(a item.Attachment) bool {
+	return a.Photo != nil && a.Photo.OrientationManual && exifTypes[a.Type] && !albumVideo(a)
+}
+
+// exifTypes are the pictures whose EXIF the server writes.
+var exifTypes = map[string]bool{"image/jpeg": true, "image/png": true, "image/webp": true}
+
+// rewritten reports whether a file is given other than as it is stored
+// for every reader: with a time or an orientation set by hand.
+func rewritten(a item.Attachment) bool { return timeWritten(a) || orientationWritten(a) }
 
 // openWithoutPlace opens a stored file whole, or without the place a photo
 // was taken when hidden (ADR-0178).
@@ -114,7 +140,8 @@ func (h itemHandlers) openWithoutPlace(hidden bool, id item.ID, a item.Attachmen
 
 // givenSHA is the SHA-256 of a stored picture as the caller is given it:
 // the content of a copy made by a reader from whom its uploader keeps the
-// place (ADR-0178), or of a picture whose time was set by hand (ADR-0198).
+// place (ADR-0178), or of a picture whose time was set by hand (ADR-0198)
+// or which was turned by hand (ADR-draft-pictures-turned-by-hand).
 func (h itemHandlers) givenSHA(hidden bool, id item.ID, a item.Attachment) (string, error) {
 	c, err := h.openFor(hidden, id, a)
 	if err != nil {
@@ -130,8 +157,9 @@ func (h itemHandlers) givenSHA(hidden bool, id item.ID, a item.Attachment) (stri
 
 // markCopyAsGiven tells the item model that an uploaded copy is its
 // source as the caller is given it — without the place its uploader keeps
-// from them (ADR-0178), or with the time set by hand written into it
-// (ADR-0198) — when the server finds the copy's content to be exactly that.
+// from them (ADR-0178), or with the time (ADR-0198) or the orientation
+// (ADR-draft-pictures-turned-by-hand) set by hand written into it — when
+// the server finds the copy's content to be exactly that.
 func (h itemHandlers) markCopyAsGiven(r *http.Request, id item.ID, a *item.Attachment) {
 	if a.Source == nil || a.Source.Item == id {
 		return
@@ -153,7 +181,7 @@ func (h itemHandlers) markCopyAsGiven(r *http.Request, id item.ID, a *item.Attac
 		}
 		return
 	}
-	if src.ID == "" || src.SHA256 == a.SHA256 || (!hidden && !timeWritten(src)) {
+	if src.ID == "" || src.SHA256 == a.SHA256 || (!hidden && !rewritten(src)) {
 		return
 	}
 	if sum, err := h.givenSHA(hidden, a.Source.Item, src); err == nil && sum == a.SHA256 {

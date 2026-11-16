@@ -78,7 +78,7 @@ func TestAChangeThatIsNotPersistedDoesNotHappen(t *testing.T) {
 
 func TestDecodeRejectsWhatItCannotReadExactly(t *testing.T) {
 	cases := map[string]string{
-		"newer format":       `[{"v":62,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
+		"newer format":       `[{"v":63,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"no format version":  `[{"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"unknown field":      `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated","colour":"red"}]`,
 		"unknown role":       `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"RoleGranted","role":"owner"}]`,
@@ -196,6 +196,7 @@ func TestPersistedFormatIsStable(t *testing.T) {
 	slideOrders := pictureOrderLog(t)
 	fingerprints := fingerprintLog(t)
 	times := takenLog(t)
+	turned := turnLog(t)
 	kinds55 := fieldKindsLog(t)
 	itemViews := itemViewsLog(t)
 	highlights := pdfHighlightLog(t)
@@ -203,7 +204,7 @@ func TestPersistedFormatIsStable(t *testing.T) {
 	shareFiles := shareFileLog(t)
 	sounds := audioLog(t)
 	kinds := map[EventKind]bool{}
-	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments, notes, photos, places, renames, geotags, moves, albumVideos, faces, slideOrders, fingerprints, times, highlights, itemViews, kinds55, styledTables, shareFiles, sounds) {
+	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments, notes, photos, places, renames, geotags, moves, albumVideos, faces, slideOrders, fingerprints, times, turned, highlights, itemViews, kinds55, styledTables, shareFiles, sounds) {
 		kinds[e.Kind] = true
 	}
 	for _, k := range allEventKinds {
@@ -247,6 +248,8 @@ func TestPersistedFormatIsStable(t *testing.T) {
 		{"events.current.fingerprint.plain.golden.jsonl", nil, fingerprints},
 		{"events.current.taken.golden.jsonl", fakeSealer{}, times},
 		{"events.current.taken.plain.golden.jsonl", nil, times},
+		{"events.current.turn.golden.jsonl", fakeSealer{}, turned},
+		{"events.current.turn.plain.golden.jsonl", nil, turned},
 		{"events.current.pdfhighlights.golden.jsonl", fakeSealer{}, highlights},
 		{"events.current.pdfhighlights.plain.golden.jsonl", nil, highlights},
 		{"events.current.itemviews.golden.jsonl", fakeSealer{}, itemViews},
@@ -1650,6 +1653,25 @@ func takenLog(t *testing.T) []Event {
 	return s.Log()
 }
 
+// turnLog turns a photo with a face on it by hand and back to the
+// orientation its file tells, so the golden files pin the kind
+// AttachmentTurned and the photo data's OrientationManual
+// (ADR-draft-pictures-turned-by-hand).
+func turnLog(t *testing.T) []Event {
+	s := setup(t)
+	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))
+	anna := s.As("anna")
+	folder := mustItem(t)(anna.CreateFolder("PLAT", "", "Scans"))
+	const scan = "00112233445566778899aabbccddeea8"
+	file := &Photo{Taken: "2026-11-01T09:00:00", Make: "Scanner", Orientation: 6, Width: 40, Height: 30}
+	_, err := anna.AddAttachment(folder.ID, Attachment{ID: scan, Name: "scan.jpg", Type: "image/jpeg", Size: 3, SHA256: strings.Repeat("a8", 32), Photo: file})
+	noErr(t, err)
+	noErr(t, anna.SetPictureFaces(folder.ID, scan, []Face{{X: 0.1, Y: 0.2, W: 0.3, H: 0.4}}))
+	noErr(t, anna.Turn(folder.ID, scan, 1, file))
+	noErr(t, anna.Turn(folder.ID, scan, -1, file))
+	return s.Log()
+}
+
 // shareFileLog links two files of a file share into a folder, labels one,
 // reads it again with new content at a new path, withdraws and restores
 // it, and deletes the other, so the golden files pin the kinds of linked
@@ -2424,7 +2446,7 @@ var allEventKinds = []EventKind{
 	SpaceTrashed, SpaceRestored, SpacePurged, SpaceRenamed,
 	SecretSet, SecretRemoved, SecretRequested, SecretGranted, SecretDeclined, SecretErased, AttachmentLabelled,
 	AttachmentRetentionSet, AttachmentNotesSet, AttachmentPlaceSet, AttachmentRenamed, TemplateSet,
-	AttachmentMovedIn, AttachmentMovedOut, AttachmentTakenSet, ItemsOrdered,
+	AttachmentMovedIn, AttachmentMovedOut, AttachmentTakenSet, AttachmentTurned, ItemsOrdered,
 	AttachmentLinked, AttachmentRelinked, AttachmentWithdrawn, AttachmentRestored,
 }
 
