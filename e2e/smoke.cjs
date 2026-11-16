@@ -764,7 +764,12 @@ function webSource() {
   // reports each drop, naming the value by its hash. These two values, and
   // no other inline style, are expected.
   const watermarkStyles = /'sha256-(r3vOsuepBDg6tz\/cOusiNJ9Y4Lp9hGQTT7pzDks1Xxc=|CA\/eh4\+2R0J7cEQ14gBMtx834RIOjzMUqCM\+evtrkp4=)'/;
-  page.on("console", (m) => { if (m.type() === "error" && !/status of 401/.test(m.text()) && !watermarkStyles.test(m.text()) && !(expectedConsole && expectedConsole.test(m.text()))) problems.push("console: " + m.text() + (m.location()?.url ? " (" + m.location().url + ")" : "")); });
+  // Excalidraw listens for unload only to call its blur handler, which it
+  // also registers for blur; Chromium no longer admits unload listeners
+  // and reports each refusal. Those from the vendored Excalidraw, and no
+  // others, are expected.
+  const unloadRefused = (m) => /Permissions policy violation: unload is not allowed/.test(m.text()) && /\/vendor\/excalidraw/.test(m.location()?.url || "");
+  page.on("console", (m) => { if (m.type() === "error" && !/status of 401/.test(m.text()) && !watermarkStyles.test(m.text()) && !unloadRefused(m) && !(expectedConsole && expectedConsole.test(m.text()))) problems.push("console: " + m.text() + (m.location()?.url ? " (" + m.location().url + ")" : "")); });
   // A step that expects a confirmation or prompt sets its answer first:
   // true accepts, a string is typed in; any other dialog is a problem.
   let answer = null;
