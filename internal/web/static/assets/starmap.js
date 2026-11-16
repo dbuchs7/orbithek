@@ -16,7 +16,7 @@ import { h, mount } from "./dom.js";
 import { t } from "./i18n.js";
 import { get } from "./api.js";
 import { DEPTHS, GROUPS, IMPACT_DEPTHS, distanceClass, drillBack, drillInto, fitView, groupOf, impactAddress, impactGraph, impactList, impactParams, impactPath,
-  groupRadius, impactSummary, kinds, layout, mergeLabelCounts, neighbourhood, roomAddress, size, startRoom, toneOf, visible, zoomBand } from "./starmap-graph.js";
+  CLOUD_BOTTOM, cloudPath, groupRadius, impactSummary, kinds, layout, mergeLabelCounts, neighbourhood, roomAddress, size, startRoom, toneOf, visible, zoomBand } from "./starmap-graph.js";
 import { simulation } from "./starmap-sim.js";
 
 const NS = "http://www.w3.org/2000/svg";
@@ -36,7 +36,9 @@ const short = (value, n = 22) => (value.length > n ? value.slice(0, n - 1) + "â€
 // picture, a diamond for a label, a bubble as big as its items for a
 // group of the starmap of all rooms (ADR-0191).
 function shape(kind, node = {}) {
-  if (kind === "group") return s("circle", { r: groupRadius(node.count), class: "star-shape star-bubble" });
+  // A group of the starmap of all rooms is a cloud, as big as its items
+  // (ADR-0191, ADR-draft-groups-are-drawn-as-clouds).
+  if (kind === "group") return s("path", { d: cloudPath(groupRadius(node.count)), class: "star-shape star-cloud" });
   if (kind === "picture") return s("rect", { x: -9, y: -9, width: 18, height: 18, rx: 3, class: "star-shape" });
   if (kind === "label") return s("polygon", { points: "0,-11 11,0 0,11 -11,0", class: "star-shape" });
   return s("circle", { r: 11, class: "star-shape" });
@@ -206,7 +208,7 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
     const g = s("g", { class: cls, tabindex: 0, role: "button", "aria-label": name, "data-id": node.id, "data-key": node.key || null,
       "data-distance": impact ? node.distance : null },
     s("title", {}, text(name)), impact ? s("circle", { r: 17, class: "star-ring" }) : null, shape(node.kind, node),
-    s("text", { y: node.kind === "group" ? groupRadius(node.count) + 13 : 24, "text-anchor": "middle", class: "star-caption" }, text(caption)));
+    s("text", { y: node.kind === "group" ? Math.round(CLOUD_BOTTOM * groupRadius(node.count)) + 16 : 24, "text-anchor": "middle", class: "star-caption" }, text(caption)));
     g.addEventListener("click", (ev) => {
       ev.stopPropagation();
       if (suppressClick) { suppressClick = false; return; }

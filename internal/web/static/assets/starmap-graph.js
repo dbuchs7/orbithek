@@ -34,6 +34,30 @@ export function kindOf(node) {
 // groupRadius is how big a group of the starmap of all rooms is drawn
 // (ADR-0191): its area grows with the number of its items, from an
 // item's size up to a bound.
+// CLOUD_BOTTOM is where a group's cloud stands, as a share of its
+// radius below its middle (ADR-draft-groups-are-drawn-as-clouds).
+export const CLOUD_BOTTOM = 0.5;
+
+// cloudLobes are the end points of a cloud's arcs in a circle of radius
+// one, from the bottom left round its top to the bottom right, each with
+// the radius of the lobe that reaches it and whether that lobe is the
+// larger arc. The bottom is flat.
+const cloudLobes = [
+  { x: -0.85, y: -0.05, r: 0.34, large: 1 },
+  { x: -0.3, y: -0.55, r: 0.4, large: 0 },
+  { x: 0.4, y: -0.6, r: 0.42, large: 0 },
+  { x: 0.85, y: 0, r: 0.36, large: 0 },
+  { x: 0.7, y: CLOUD_BOTTOM, r: 0.32, large: 1 },
+];
+
+// cloudPath is the SVG path of a group's cloud of radius r: lobes along
+// its top and a flat bottom, within the circle of radius r, so the map
+// keeps the room a bubble took.
+export function cloudPath(r) {
+  const n = (v) => String(Math.round(v * r * 10) / 10);
+  return `M${n(-0.7)} ${n(CLOUD_BOTTOM)}` + cloudLobes.map((l) => `A${n(l.r)} ${n(l.r)} 0 ${l.large} 1 ${n(l.x)} ${n(l.y)}`).join("") + "Z";
+}
+
 // mergeLabelCounts joins lists of {label, count}, the labels of items and
 // of pictures (ADR-0090), into one list counting each label once, the most
 // carried first, then by name.
