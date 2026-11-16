@@ -11,6 +11,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"path"
 	"regexp"
 	"slices"
 	"strconv"
@@ -302,6 +303,27 @@ func pictureType(c io.ReadSeeker, a item.Attachment) (string, error) {
 		return "", err
 	}
 	return http.DetectContentType(head[:n]), nil
+}
+
+// previewExtensions name the formats a preview of an entry of a file
+// share is stored in.
+var previewExtensions = map[string]string{"image/jpeg": ".jpg", "image/png": ".png"}
+
+// givenAs is the media type and the file name a file leaves the server
+// with: its own, or for an entry of a file share those of the preview it
+// gives (ADR-0197), its name with the preview's extension when the
+// preview's format is not the original's. It reads the first bytes of c
+// and seeks back to the start.
+func givenAs(c io.ReadSeeker, a item.Attachment) (kind, name string, err error) {
+	kind, err = pictureType(c, a)
+	if err != nil || !a.Linked() || kind == a.Type {
+		return kind, a.Name, err
+	}
+	ext, ok := previewExtensions[kind]
+	if !ok {
+		return kind, a.Name, nil
+	}
+	return kind, strings.TrimSuffix(a.Name, path.Ext(a.Name)) + ext, nil
 }
 
 // --- the album's views ----------------------------------------------------
@@ -660,16 +682,25 @@ func (h itemHandlers) albumZip(w http.ResponseWriter, r *http.Request) {
 	zw := zip.NewWriter(w)
 	names := map[string]bool{}
 	for _, e := range entries {
-		name := uniqueName(names, e.a.Name)
-		// Pictures are compressed already: they are stored as they are.
-		fw, err := zw.CreateHeader(&zip.FileHeader{Name: name, Method: zip.Store, Modified: time.Unix(e.a.Created, 0).UTC()})
-		if err != nil {
-			return
-		}
 		c, err := h.openFor(e.hidden, e.item, e.a)
 		if err != nil {
 			h.log.Error("attachment content not given", "item", e.item, "attachment", e.a.ID, "err", err)
 			continue
+		}
+		// An entry of a file share is named as the preview it gives
+		// (ADR-0197).
+		_, given, err := givenAs(c, e.a)
+		if err != nil {
+			c.Close()
+			h.log.Error("attachment content not given", "item", e.item, "attachment", e.a.ID, "err", err)
+			continue
+		}
+		name := uniqueName(names, given)
+		// Pictures are compressed already: they are stored as they are.
+		fw, err := zw.CreateHeader(&zip.FileHeader{Name: name, Method: zip.Store, Modified: time.Unix(e.a.Created, 0).UTC()})
+		if err != nil {
+			c.Close()
+			return
 		}
 		_, err = io.Copy(fw, c)
 		c.Close()

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"archive/zip"
 	"bytes"
 	"context"
 	"image"
@@ -98,5 +99,46 @@ func TestAShareEntryOfAnotherFormatHasAThumbnail(t *testing.T) {
 	h := itemHandlers{d: w.deps, log: slog.New(slog.DiscardHandler)}
 	if fp := h.makeFingerprint(context.Background(), folder, entry); fp == "" {
 		t.Error("no fingerprint is made from the preview of a PNG")
+	}
+}
+
+// TestAShareEntryIsGivenAsWhatItHolds: what leaves the server of an entry
+// of a file share is its preview (ADR-0197), so a download tells the
+// preview's type and a file name with its extension, and so does its name
+// in a ZIP archive; an entry whose original is a JPEG keeps its name.
+func TestAShareEntryIsGivenAsWhatItHolds(t *testing.T) {
+	w, sh, dir, _ := shareWorld(t)
+	put(t, dir, "hut.png", picture(t, 80, 40, 20))
+	var lake bytes.Buffer
+	if err := jpeg.Encode(&lake, image.NewRGBA(image.Rect(0, 0, 80, 40)), nil); err != nil {
+		t.Fatal(err)
+	}
+	put(t, dir, "lake.jpeg", lake.Bytes())
+	mustRun(t, sh, false, false)
+	entries := entriesOf(t, w, "")
+	for _, c := range []struct{ path, typ, name string }{
+		{"hut.png", "image/jpeg", "hut.jpg"},
+		{"lake.jpeg", "image/jpeg", "lake.jpeg"},
+	} {
+		e := entries[c.path]
+		folder, _ := folderOfEntry(t, w, e.ID)
+		r := w.admin.do("GET", "/api/items/"+string(folder)+"/attachments/"+string(e.ID), "")
+		if r.Code != http.StatusOK {
+			t.Fatalf("%s: download %d", c.path, r.Code)
+		}
+		if got := r.Header().Get("Content-Type"); got != c.typ {
+			t.Errorf("%s: the download says %q, want %q", c.path, got, c.typ)
+		}
+		if got := r.Header().Get("Content-Disposition"); got != `inline; filename=`+c.name {
+			t.Errorf("%s: the download is named %q, want %q", c.path, got, c.name)
+		}
+		z := w.admin.do("POST", "/api/album/zip", `{"pictures":[{"item":"`+string(folder)+`","file":"`+string(e.ID)+`"}]}`)
+		zr, err := zip.NewReader(bytes.NewReader(z.Body.Bytes()), int64(z.Body.Len()))
+		if err != nil || len(zr.File) != 1 {
+			t.Fatalf("%s: archive %v", c.path, err)
+		}
+		if zr.File[0].Name != c.name {
+			t.Errorf("%s: the archive names it %q, want %q", c.path, zr.File[0].Name, c.name)
+		}
 	}
 }
