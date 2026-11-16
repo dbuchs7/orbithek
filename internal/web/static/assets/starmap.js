@@ -16,7 +16,7 @@ import { h, mount } from "./dom.js";
 import { t } from "./i18n.js";
 import { get } from "./api.js";
 import { DEPTHS, GROUPS, IMPACT_DEPTHS, distanceClass, drillBack, drillInto, fitView, groupOf, impactAddress, impactGraph, impactList, impactParams, impactPath,
-  CLOUD_BOTTOM, cloudPath, groupRadius, impactSummary, kinds, layout, mergeLabelCounts, neighbourhood, roomAddress, size, startRoom, toneOf, visible, zoomBand } from "./starmap-graph.js";
+  CLOUD_BOTTOM, cloudPath, groupRadius, impactSummary, kinds, layout, mergeLabelCounts, neighbourhood, roomAddress, roomToneOf, size, startRoom, toneOf, visible, zoomBand } from "./starmap-graph.js";
 import { simulation } from "./starmap-sim.js";
 
 const NS = "http://www.w3.org/2000/svg";
@@ -154,6 +154,7 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
   const graph = { nodes: data.nodes, edges: data.edges };
   const n = graph.nodes.length;
   const tone = toneOf(graph.nodes);
+  const roomTone = roomToneOf(graph.nodes);
   const byID = new Map(graph.nodes.map((node) => [node.id, node]));
   const index = new Map(graph.nodes.map((node, i) => [node.id, i]));
   const hidden = new Set();
@@ -198,7 +199,7 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
     return g;
   });
   const nodeEls = graph.nodes.map((node, i) => {
-    const cls = ["star-node", "kind-" + node.kind, node.kind === "item" ? "tone-" + tone(node.type) : "", node.outside ? "outside" : "",
+    const cls = ["star-node", "kind-" + node.kind, node.kind === "item" ? "tone-" + tone(node.type) : node.kind === "group" ? "tone-" + roomTone(node.space) : "", node.outside ? "outside" : "",
       impact ? distanceClass(node.distance) : "", impact && node.id === impact.start ? "root impact-start" : ""].join(" ");
     const caption = node.kind === "item" ? short(node.title || node.key)
       : node.kind === "group" ? `${short(node.name || "", 26)} (${node.count})` : short(node.name || "");

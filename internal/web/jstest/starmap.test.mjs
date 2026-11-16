@@ -14,7 +14,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DEPTHS, GROUPS, IMPACT_DEPTHS, IMPACT_DIRECTIONS, around, captionShown, distanceClass, drillBack, drillInto, filter, fitView, groupOf, impactAddress, impactGraph,
-  impactList, impactParams, impactPath, impactSummary, kinds, kindOf, groupRadius, CLOUD_BOTTOM, cloudPath, layout, roomAddress, startRoom, matches, mergeLabelCounts, neighbourhood, size, toneOf, visible, zoomBand } from "../static/assets/starmap-graph.js";
+  impactList, impactParams, impactPath, impactSummary, kinds, kindOf, groupRadius, CLOUD_BOTTOM, cloudPath, layout, roomAddress, startRoom, matches, mergeLabelCounts, neighbourhood, size, roomToneOf, toneOf, visible, zoomBand } from "../static/assets/starmap-graph.js";
 import { DEFAULTS, chargeExact, chargeTree, quadtree, simulation } from "../static/assets/starmap-sim.js";
 
 const graph = {
@@ -426,4 +426,23 @@ test("a group of the starmap of all rooms is drawn as a cloud within its radius"
   }
   assert.equal(cloudPath(20), cloudPath(20), "the same size draws the same cloud");
   assert.notEqual(cloudPath(20), cloudPath(40), "a larger group draws a larger cloud");
+});
+
+test("the clouds of one room share a tone, rooms in the order of their keys", () => {
+  const nodes = [
+    { id: "group:OPS/page", kind: "group", space: "OPS", type: "page", count: 3 },
+    { id: "group:API/page", kind: "group", space: "API", type: "page", count: 9 },
+    { id: "group:OPS/task", kind: "group", space: "OPS", type: "task", count: 2 },
+    { id: "group:HR/page", kind: "group", space: "HR", type: "page", count: 1 },
+    { id: "label:x", kind: "label", name: "x" },
+  ];
+  const tone = roomToneOf(nodes);
+  assert.equal(tone("API"), 0);
+  assert.equal(tone("HR"), 1);
+  assert.equal(tone("OPS"), 2);
+  assert.equal(tone(nodes[0].space), tone(nodes[2].space), "both clouds of OPS have one tone");
+  assert.equal(tone("GONE"), 0, "a room without clouds takes the first tone");
+  const many = Array.from({ length: 8 }, (_, i) => ({ id: "group:R" + i + "/page", kind: "group", space: "R" + i, type: "page", count: 1 }));
+  const manyTone = roomToneOf(many);
+  assert.deepEqual(many.map((n) => manyTone(n.space)), [0, 1, 2, 3, 4, 5, 0, 1], "beyond six rooms the tones repeat");
 });

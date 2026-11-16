@@ -2846,6 +2846,11 @@ function webSource() {
       check(await page.locator("#starmap-canvas .star-node.kind-group > path.star-shape.star-cloud").count() === await page.locator("#starmap-canvas .star-node.kind-group").count(),
         "every group is drawn as a cloud (ADR-0230)");
       check(await page.locator("#starmap-legend-group .star-cloud").count() === 1, "the legend explains the clouds");
+      // The clouds of one room share a tone.
+      const tones = await page.$$eval("#starmap-canvas .star-node.kind-group", (els) => els.map((el) =>
+        [el.dataset.id.replace(/^group:/, "").split("/")[0], [...el.classList].find((c) => c.startsWith("tone-"))]));
+      const toneOfRoom = new Map();
+      check(tones.every(([room, t]) => t && (toneOfRoom.get(room) ?? (toneOfRoom.set(room, t), t)) === t), "the clouds of one room share a tone: " + JSON.stringify(tones));
       // A double-click on a cloud opens the map of its room.
       const bubble = page.locator("#starmap-canvas .star-node.kind-group").first();
       const room = (await bubble.getAttribute("data-id")).replace(/^group:/, "").split("/")[0];
