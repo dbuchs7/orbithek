@@ -2127,11 +2127,15 @@ dialog.note-dialog { max-height: calc(100dvh - 32px); overflow: auto; }
 .star-swatch { width: 22px; height: 22px; overflow: visible; }
 .star-swatch.wide { width: 40px; height: 10px; }
 .star-node { --tone: var(--accent); cursor: pointer; outline: none; }
-.star-node.tone-1 { --tone: var(--success); }
-.star-node.tone-2 { --tone: var(--warning); }
-.star-node.tone-3 { --tone: var(--danger); }
-.star-node.tone-4 { --tone: var(--text); }
-.star-node.tone-5 { --tone: var(--accent-hover); }
+.star-hull { --tone: var(--accent); }
+.star-node.tone-1, .star-hull.tone-1 { --tone: var(--success); }
+.star-node.tone-2, .star-hull.tone-2 { --tone: var(--warning); }
+.star-node.tone-3, .star-hull.tone-3 { --tone: var(--danger); }
+.star-node.tone-4, .star-hull.tone-4 { --tone: var(--text); }
+.star-node.tone-5, .star-hull.tone-5 { --tone: var(--accent-hover); }
+/* A room's outline around its clouds (ADR-draft-the-clouds-of-a-room-are-outlined). */
+.star-hull { fill: color-mix(in srgb, var(--tone) 6%, transparent); stroke: color-mix(in srgb, var(--tone) 55%, transparent);
+  stroke-width: 1.5; stroke-dasharray: 6 4; stroke-linejoin: round; pointer-events: none; }
 .star-shape { fill: color-mix(in srgb, var(--tone) 16%, var(--surface)); stroke: var(--tone); stroke-width: 2; }
 .star-node.kind-picture .star-shape { fill: var(--surface-2); stroke: var(--text); stroke-width: 1.5; }
 .star-node.kind-label .star-shape { fill: var(--accent-soft); stroke: var(--muted); stroke-width: 1.5; }

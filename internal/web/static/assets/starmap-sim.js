@@ -205,12 +205,13 @@ export function simulation({ x0, y0, links = [], center = { x: 0, y: 0 }, ...opt
   const wire = (linkOn) => {
     const degree = new Float64Array(n);
     const live = [];
-    links.forEach(([a, b], k) => {
+    links.forEach(([a, b, distance], k) => {
       if (a === b || !on[a] || !on[b] || (linkOn && !linkOn(k))) return;
-      live.push([a, b]);
+      live.push([a, b, distance]);
       degree[a]++; degree[b]++;
     });
-    springs = live.map(([a, b]) => ({ a, b, strength: 1 / Math.min(degree[a], degree[b]), bias: degree[a] / (degree[a] + degree[b]) }));
+    springs = live.map(([a, b, distance]) => ({ a, b, distance: distance ?? o.linkDistance,
+      strength: 1 / Math.min(degree[a], degree[b]), bias: degree[a] / (degree[a] + degree[b]) }));
   };
   wire();
 
@@ -255,7 +256,7 @@ export function simulation({ x0, y0, links = [], center = { x: 0, y: 0 }, ...opt
         let dy = y[s.b] + vy[s.b] - y[s.a] - vy[s.a];
         let l = Math.sqrt(dx * dx + dy * dy);
         if (l === 0) { [dx, dy] = apart(s.a, s.b); l = Math.sqrt(dx * dx + dy * dy); }
-        const k = ((l - o.linkDistance) / l) * alpha * s.strength;
+        const k = ((l - s.distance) / l) * alpha * s.strength;
         dx *= k; dy *= k;
         vx[s.b] -= dx * s.bias; vy[s.b] -= dy * s.bias;
         vx[s.a] += dx * (1 - s.bias); vy[s.a] += dy * (1 - s.bias);

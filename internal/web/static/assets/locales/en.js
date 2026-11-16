@@ -2177,7 +2177,7 @@ export default {
   "starmap.legendPicture": "Square: a picture",
   "starmap.legendLabel": "Diamond: a label that several items carry",
   "starmap.legendOutside": "Dashed outline: in another room",
-  "starmap.legendGroup": "Cloud: the items of one type in one room, as big as their number; the clouds of one room share a colour; a double-click opens the room",
+  "starmap.legendGroup": "Cloud: the items of one type in one room, as big as their number; the clouds of one room share a colour and a dashed outline gathers them; a double-click opens the room",
   "starmap.edgeParent": "contains",
   "starmap.edgeRelation": "relation, named by its type",
   "starmap.edgeMentions": "mentions",
