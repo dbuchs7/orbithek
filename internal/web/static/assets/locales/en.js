@@ -1295,7 +1295,7 @@ export default {
   "home.morning": "Good morning",
   "home.day": "Hello",
   "home.evening": "Good evening",
-  "home.lead": "Welcome to {name}: the knowledge, tasks and decisions of your team, in one place. Start with a room below, create a page, or see what is waiting for you.",
+  "home.lead": "Welcome to {name}: the knowledge, tasks and decisions of your team, in one place. Start with a room, create a page, or see what is waiting for you.",
   "home.statPages": {"one": "page", "other": "pages"},
   "home.statTasks": {"one": "task", "other": "tasks"},
   "home.statAlbum": {"one": "picture in the album", "other": "pictures in the album"},

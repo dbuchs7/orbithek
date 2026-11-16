@@ -49,7 +49,7 @@ Die Leiste oben auf jeder Seite enthält von links nach rechts:
 
 ### Die Startseite
 
-Die Startseite begrüsst, zeigt die Anzahl Seiten, Aufgaben und Bilder und bietet einen Schnellzugriff auf die Sternenkarte, die **Räume** (die Übersicht der eigenen Räume, auch über den Modulwechsler erreichbar), **Mein Tag** (die Tagesnotiz von heute, mit dem heutigen Datum), die eigenen Aufgaben, Benachrichtigungen, persönlichen Notizen, das Album, die Whiteboards und den KI-Zugang. Darunter stehen die eigenen Räume, als Kacheln oder als Liste; ein Stern markiert einen Raum als Favorit. Gibt es noch keine Räume, findet die Administration dort die ersten Schritte: einen Raum erstellen, mit den Vorlagen Typen hinzufügen (Seite, Aufgabe, Entscheidung, Tagesnotiz) und Personen eine Rolle geben.
+Die Startseite begrüsst, zeigt die Anzahl Seiten, Aufgaben und Bilder und bietet einen Schnellzugriff auf die Sternenkarte, die **Räume** (die Übersicht der eigenen Räume, auch über den Modulwechsler erreichbar), **Mein Tag** (die Tagesnotiz von heute, mit dem heutigen Datum), die eigenen Aufgaben, Benachrichtigungen, persönlichen Notizen, das Album, die Whiteboards und den KI-Zugang. Die Raumübersicht zeigt die eigenen Räume als Kacheln oder als Liste; ein Stern markiert einen Raum als Favorit. Gibt es noch keine Räume, findet die Administration auf der Startseite die ersten Schritte: einen Raum erstellen, mit den Vorlagen Typen hinzufügen (Seite, Aufgabe, Entscheidung, Tagesnotiz) und Personen eine Rolle geben.
 
 ## Seiten und Einträge
 

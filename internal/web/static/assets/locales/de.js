@@ -1293,7 +1293,7 @@ export default {
   "home.morning": "Guten Morgen",
   "home.day": "Guten Tag",
   "home.evening": "Guten Abend",
-  "home.lead": "Willkommen bei {name}: das Wissen, die Aufgaben und die Entscheidungen Ihres Teams an einem Ort. Beginnen Sie mit einem Raum unten, legen Sie eine Seite an oder sehen Sie nach, was auf Sie wartet.",
+  "home.lead": "Willkommen bei {name}: das Wissen, die Aufgaben und die Entscheidungen Ihres Teams an einem Ort. Beginnen Sie mit einem Raum, legen Sie eine Seite an oder sehen Sie nach, was auf Sie wartet.",
   "home.statPages": {"one": "Seite", "other": "Seiten"},
   "home.statTasks": {"one": "Aufgabe", "other": "Aufgaben"},
   "home.statAlbum": {"one": "Bild im Album", "other": "Bilder im Album"},

@@ -2410,15 +2410,17 @@ async function homeView() {
       quick("#/whiteboards", t("nav.whiteboards"), boards.whiteboards.length ? t("home.whiteboardsLive", { n: boards.whiteboards.length }) : t("home.whiteboardsText"),
         "home-whiteboards", null, "whiteboard"),
       quick("#/mcp", t("nav.mcp"), t("home.mcpText"), "home-mcp", null, "protection")),
-    h("h2", { text: t("spaces.title") }),
+    // The rooms are listed on their own overview (#/spaces), reached by
+    // their tile; without rooms the start page shows the first steps.
+    spaces.length === 0 ? h("h2", { text: t("spaces.title") }) : null,
     spaces.length === 0
       ? h("div", { class: "card first-steps" },
         h("p", { text: me.admin ? t("spaces.noneAdmin") : t("spaces.none") }),
         me.admin ? h("ol", {}, h("li", { text: t("home.step1") }), h("li", { text: t("home.step2") }), h("li", { text: t("home.step3") })) : null)
-      : spacesOverview(spaces),
+      : null,
     me.admin ? setupCard(types) : null,
-    // With rooms, a new one is made from the button beside the layout
-    // switch; the first one from the open form here.
+    // The first room is made from the open form here; later ones from
+    // the overview of rooms or New in the header.
     me.admin && spaces.length === 0 ? newSpaceForm(true) : null,
   );
 }
@@ -4112,7 +4114,7 @@ function notificationsCard() {
     h("h2", { text: t("notif.title") }), h("p", { class: "muted", text: t("daily.loading") }));
   get("/api/notifications?limit=5").then(async (page) => {
     await learnNames(page.notifications.map((n) => n.actor));
-    card.replaceChildren(
+    mount(card,
       h("h2", { text: t("notif.title") }),
       page.unread ? h("p", { class: "muted", id: "daily-notifications-unread", text: t("home.notesUnread", { n: page.unread }) }) : null,
       page.notifications.length

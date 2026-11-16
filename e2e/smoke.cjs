@@ -3942,8 +3942,8 @@ function webSource() {
     await page.click("#space-name button[type=submit]");
     await page.waitForSelector(`h1:has-text('Settings of ${spaceName}')`);
 
-    step("start page: the spaces as tiles with their icon, or as a list, as each reader chooses");
-    await page.click("a.brand");
+    step("rooms overview: the spaces as tiles with their icon, or as a list, as each reader chooses");
+    await page.goto(base + "/#/spaces");
     await page.waitForSelector("#spaces-overview .space-tile:has-text('Platform') img.space-icon");
     await page.click("#spaces-list");
     await page.waitForSelector("#spaces-overview table.space-list a:has-text('Platform') img.space-icon");
@@ -3952,7 +3952,7 @@ function webSource() {
     await page.click("#spaces-tiles");
     await page.waitForSelector("#spaces-overview .space-tile");
 
-    step("start page: a star marks a space as a favourite; favourites come first, as tiles, in the list and in every choice of a space (ADR-0145)");
+    step("rooms overview: a star marks a space as a favourite; favourites come first, as tiles, in the list and in every choice of a space (ADR-0145)");
     // A second space, last in the order, to bring to the front; removed for
     // good at the end of the step.
     // It is made from the button beside the layout switch, which opens
@@ -3967,9 +3967,9 @@ function webSource() {
     await page.fill("#new-space-dialog [name=name]", "Favourite");
     await page.click("#new-space-dialog-ok");
     await page.waitForFunction(() => location.hash === "#/space/ZFAV");
-    await page.click("a.brand");
+    await page.goto(base + "/#/spaces");
     await page.waitForSelector("#spaces-overview .space-tile:has-text('Favourite')");
-    check(await page.locator("#new-space-card").count() === 0, "with rooms, the start page has no form for a new room below them");
+    check(await page.locator("#new-space-card").count() === 0, "with rooms, the overview has no form for a new room below them");
     const tileKeys = () => page.$$eval("#spaces-overview .space-tiles > li .space-key", (els) => els.map((e) => e.textContent));
     const before = await tileKeys();
     check(before.length >= 2, "more than one space to order");
@@ -3990,7 +3990,7 @@ function webSource() {
     await page.waitForSelector("#new-item select[name=space]");
     check(await page.$eval("#new-item select[name=space]", (e) => e.options[0].value) === last, "the favourite is the first choice of a space");
     check(await page.inputValue("#new-item select[name=space]") === last, "and is chosen for a new page");
-    await page.click("a.brand");
+    await page.goto(base + "/#/spaces");
     await page.waitForSelector(`#spaces-overview .favourite-star[data-space="${last}"]`);
     await page.click(`#spaces-overview .favourite-star[data-space="${last}"]`);
     await page.waitForSelector(`#spaces-overview .favourite-star[data-space="${last}"][aria-pressed=false]`);
