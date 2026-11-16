@@ -112,10 +112,32 @@ export function roomLinks(nodes) {
     if (!first.has(n.space)) first.set(n.space, n);
     else {
       const f = first.get(n.space);
-      links.push({ from: f.id, to: n.id, kind: "room", rest: Math.round(groupRadius(f.count) + groupRadius(n.count) + 8) });
+      links.push({ from: f.id, to: n.id, kind: "room", rest: Math.round(cloudReach(f.count) + cloudReach(n.count) + 2 * CLOUD_MARGIN + 2) });
     }
   }
   return links;
+}
+
+// CLOUD_REACH is how far a cloud of radius one reaches to its sides: its
+// outer lobes bulge beyond their end points, so a cloud is wider than the
+// circle it is sized by (ADR-draft-a-cloud-collides-by-its-size).
+export const CLOUD_REACH = 1.3;
+
+// cloudReach is how far a group's cloud reaches from its middle.
+export function cloudReach(count) {
+  return CLOUD_REACH * groupRadius(count);
+}
+
+// CLOUD_MARGIN is how far a cloud keeps other nodes off beyond its radius
+// in the simulation (ADR-draft-a-cloud-collides-by-its-size).
+export const CLOUD_MARGIN = 6;
+
+// nodeRadii are the radii by which the simulation keeps nodes apart: a
+// cloud its own and a margin, every other node the base; null on a map
+// without clouds, which keeps one radius for all.
+export function nodeRadii(nodes, base) {
+  if (!nodes.some((n) => n.kind === "group")) return null;
+  return nodes.map((n) => (n.kind === "group" ? cloudReach(n.count) + CLOUD_MARGIN : base));
 }
 
 // roomStart is where the clouds of the starmap of all rooms start the

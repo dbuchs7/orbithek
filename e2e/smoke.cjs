@@ -2860,6 +2860,19 @@ function webSource() {
         check(await outline.count() === (n > 1 ? 1 : 0), `room ${room} with ${n} cloud(s) has ${n > 1 ? "one outline" : "none"}`);
         if (n > 1) check((await outline.getAttribute("class")).includes(toneOfRoom.get(room)) && /^M.+Z$/.test(await outline.getAttribute("d")), `room ${room}'s outline is drawn in its tone`);
       }
+      // No two clouds lie on each other: their middles keep their reaches apart (ADR-draft-a-cloud-collides-by-its-size).
+      const touching = await page.$$eval("#starmap-canvas .star-node.kind-group:not([hidden])", (els) => {
+        const n = els.map((el) => {
+          const m = el.transform.baseVal.consolidate().matrix;
+          const count = Number(el.querySelector(".star-caption").textContent.match(/\((\d+)\)\s*$/)[1]);
+          return { id: el.dataset.id, x: m.e, y: m.f, reach: 1.3 * Math.min(64, 11 + 4 * Math.sqrt(count)) };
+        });
+        const out = [];
+        for (let i = 0; i < n.length; i++) for (let j = i + 1; j < n.length; j++)
+          if (Math.hypot(n[i].x - n[j].x, n[i].y - n[j].y) < n[i].reach + n[j].reach - 2) out.push(n[i].id + " x " + n[j].id);
+        return out;
+      });
+      check(touching.length === 0, "no two clouds lie on each other: " + touching.join(", "));
       // A double-click on a cloud opens the map of its room.
       const bubble = page.locator("#starmap-canvas .star-node.kind-group").first();
       const room = (await bubble.getAttribute("data-id")).replace(/^group:/, "").split("/")[0];
