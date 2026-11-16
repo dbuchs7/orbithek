@@ -8,7 +8,7 @@
 // the scene's missing list, so the import can say so. It needs no browser,
 // so node --test runs it.
 import { all, attrOf, child, kids, rootOf, isType } from "./pptx.js";
-import { readChart } from "./pptxchart.js";
+import { readChart, readChartEx } from "./pptxchart.js";
 
 const num = (v, d = 0) => (v === undefined || v === null || v === "" || Number.isNaN(Number(v)) ? d : Number(v));
 const on = (v) => v === "1" || v === "true" || v === "on";
@@ -523,7 +523,12 @@ function backgroundOf(doc, ctx) {
 async function walk(tree, env, m, out, groupFill = null) {
   for (let node of kids(tree)) {
     if (node.name === "AlternateContent") {
-      const pick = child(node, "Fallback") || child(node, "Choice");
+      // The fallback is what older programs show; a newer chart (chartex)
+      // is drawn from its own choice instead, a picture or a notice in its
+      // fallback.
+      const choice = child(node, "Choice");
+      const chartex = choice && all(choice, "graphicData").some((d) => (d.attrs.uri || "").endsWith("/chartex"));
+      const pick = (chartex && choice) || child(node, "Fallback") || choice;
       if (pick) await walk(pick, env, m, out, groupFill);
       continue;
     }
@@ -668,11 +673,12 @@ async function frameItem(frame, env, m, out) {
     await walk(tree, denv, mul(m, translate(t.x, t.y)), out);
     return;
   }
-  if (uri.endsWith("/chart")) {
+  if (uri.endsWith("/chart") || uri.endsWith("/chartex")) {
     const ref = child(data, "chart");
     const part = ref ? env.rels.get(attrOf(ref, "id", true))?.part : null;
     const doc = part ? await env.pkg.xml(part, false) : null;
-    const chart = doc ? readChart(doc, env.ctx, { colorOf, fillOf, lineOf }) : null;
+    const read = uri.endsWith("/chartex") ? readChartEx : readChart;
+    const chart = doc ? read(doc, env.ctx, { colorOf, fillOf, lineOf }) : null;
     if (chart) { out.push({ kind: "chart", m: fm, w: t.w, h: t.h, chart }); return; }
   }
   const fallback = all(data || { children: [] }, "pic")[0];
