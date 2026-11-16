@@ -3887,11 +3887,20 @@ function webSource() {
     await page.waitForSelector("#login-env-help[open] >> text=OT_SMTP_HOST");
     await Promise.all([page.waitForResponse((r) => r.url().endsWith("/api/settings/access") && r.request().method() === "PUT"), page.check("#requests-open")]);
     // Whether a first sign-in with single sign-on creates an account
-    // (ADR-0229): on by default, turned off and on again here.
+    // (ADR-0229): on by default, turned off and on again here. Every change
+    // on this page shows it again; one shown again after a change that came
+    // before can land after the next click and show the earlier state, so
+    // the page is read afresh after each change before the next.
     const signInSaved = () => page.waitForResponse((r) => r.url().endsWith("/api/settings/sign-in") && r.request().method() === "PUT" && r.ok());
-    if (!(await page.isChecked("#signin-new-accounts"))) problems.push("a first sign-in creates no account by default");
+    const signInShown = async (on) => {
+      await page.reload();
+      await page.waitForSelector(on ? "#signin-new-accounts:checked" : "#signin-new-accounts:not(:checked)");
+    };
+    await signInShown(true); // on by default
     await Promise.all([signInSaved(), page.uncheck("#signin-new-accounts")]);
+    await signInShown(false);
     await Promise.all([signInSaved(), page.check("#signin-new-accounts")]);
+    await signInShown(true);
     const guestCtx = await browser.newContext();
     const guest = await guestCtx.newPage();
     guest.on("pageerror", (e) => problems.push("guest page error: " + e.message));
