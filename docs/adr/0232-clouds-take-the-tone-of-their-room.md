@@ -1,4 +1,4 @@
-# ADR-DRAFT: The clouds of the starmap of all rooms take the tone of their room
+# ADR-0232: The clouds of the starmap of all rooms take the tone of their room
 
 - **Status:** Accepted
 - **Implementation:** Landed

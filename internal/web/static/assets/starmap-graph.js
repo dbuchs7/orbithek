@@ -93,7 +93,7 @@ export function toneOf(nodes) {
 
 // roomToneOf gives each room with clouds on the map a tone, 0 to 5, by
 // the place of its key among those rooms, so the clouds of one room
-// share a colour; beyond six rooms the tones repeat (ADR-draft-clouds-take-the-tone-of-their-room).
+// share a colour; beyond six rooms the tones repeat (ADR-0232).
 export function roomToneOf(nodes) {
   const rooms = [...new Set(nodes.filter((n) => n.kind === "group").map((n) => n.space))].sort();
   return (space) => Math.max(0, rooms.indexOf(space)) % 6;
