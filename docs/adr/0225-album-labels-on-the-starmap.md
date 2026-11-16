@@ -1,13 +1,13 @@
 # ADR-0225: A picture's own labels on the starmap
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-12
 - **Deciders:** Project initiators. Request of 2026-11-12: album labels are taken into account on the starmap, answering the open question of ADR-0215 whether a label should also bring in the pictures that carry it as an album label. The requester chose the same day:
   - album labels act in the label filter **and** in the label stars;
   - on **both maps**, the map of a room and the map of all rooms.
 
-  The rest are defaults proposed with the implementation.
+  The rest are defaults proposed with the implementation. Accepted 2026-11-14.
 - **Open question:** whether the labels' starmap (ADR-0165) should count album labels too; whether a label narrowing the map of all rooms should bring in an item that holds a labelled picture as a marked node of context rather than as one of the map's items; whether agents should read a picture's labels in `get_starmap` over MCP
 - **Question checked:** 2026-11
 
