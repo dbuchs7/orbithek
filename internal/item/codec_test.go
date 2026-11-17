@@ -78,7 +78,7 @@ func TestAChangeThatIsNotPersistedDoesNotHappen(t *testing.T) {
 
 func TestDecodeRejectsWhatItCannotReadExactly(t *testing.T) {
 	cases := map[string]string{
-		"newer format":       `[{"v":63,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
+		"newer format":       `[{"v":64,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"no format version":  `[{"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"unknown field":      `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated","colour":"red"}]`,
 		"unknown role":       `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"RoleGranted","role":"owner"}]`,
@@ -203,8 +203,9 @@ func TestPersistedFormatIsStable(t *testing.T) {
 	styledTables := tableStyleLog(t)
 	shareFiles := shareFileLog(t)
 	sounds := audioLog(t)
+	depths := tocDepthLog(t)
 	kinds := map[EventKind]bool{}
-	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments, notes, photos, places, renames, geotags, moves, albumVideos, faces, slideOrders, fingerprints, times, turned, highlights, itemViews, kinds55, styledTables, shareFiles, sounds) {
+	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments, notes, photos, places, renames, geotags, moves, albumVideos, faces, slideOrders, fingerprints, times, turned, highlights, itemViews, kinds55, styledTables, shareFiles, sounds, depths) {
 		kinds[e.Kind] = true
 	}
 	for _, k := range allEventKinds {
@@ -318,6 +319,8 @@ func TestPersistedFormatIsStable(t *testing.T) {
 		{"events.current.sharefiles.plain.golden.jsonl", nil, shareFiles},
 		{"events.current.audio.golden.jsonl", fakeSealer{}, sounds},
 		{"events.current.audio.plain.golden.jsonl", nil, sounds},
+		{"events.current.tocdepth.golden.jsonl", fakeSealer{}, depths},
+		{"events.current.tocdepth.plain.golden.jsonl", nil, depths},
 	}
 	for _, c := range cases {
 		name, sl, log := c.name, c.sl, c.log
@@ -1864,6 +1867,23 @@ func audioLog(t *testing.T) []Event {
 	return s.Log()
 }
 
+// tocDepthLog lists the headings of two levels in a table of contents
+// and embeds a page's text without its heading, so the golden files pin
+// Level on a table of contents and View on an embed
+// (ADR-draft-embedded-text-alone-and-toc-depth).
+func tocDepthLog(t *testing.T) []Event {
+	s := setup(t)
+	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))
+	anna := s.As("anna")
+	part := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Safety", Body: &Doc{Blocks: []Block{{Kind: Paragraph, Text: "Wear gloves."}}}}))
+	page := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Manual"}))
+	noErr(t, anna.CommitBody(page.ID, Doc{Blocks: []Block{
+		{Kind: TOC, Level: 2}, {Kind: Heading, Level: 1, Text: "Use"}, {Kind: Heading, Level: 3, Text: "Details"},
+		{Kind: Embed, Ref: part.ID, View: ViewText}, {Kind: Embed, Ref: part.ID},
+	}}))
+	return s.Log()
+}
+
 // retentionLog gives the versions of a drawing a rule of their own,
 // cleans them up and returns them to the default, so the golden files pin
 // the kind AttachmentRetentionSet (ADR-0104).
@@ -2324,6 +2344,12 @@ func TestRichTextValidation(t *testing.T) {
 		"level on a paragraph":    {Kind: Paragraph, Text: "abc", Level: 2},
 		"level 4":                 {Kind: Heading, Text: "abc", Level: 4},
 		"embed with text":         {Kind: Embed, Ref: task.ID, Text: "x"},
+		"embed with view both":    {Kind: Embed, Ref: task.ID, View: ViewBoth},
+		"level on an embed":       {Kind: Embed, Ref: task.ID, Level: 1},
+		"view on a toc":           {Kind: TOC, View: ViewText},
+		"toc level 4":             {Kind: TOC, Level: 4},
+		"toc level -1":            {Kind: TOC, Level: -1},
+		"level on figures":        {Kind: Figures, Level: 2},
 	}
 	for name, b := range bad {
 		if err := s.CommitBody("anna", page.ID, Doc{Blocks: []Block{b}}); !errors.Is(err, ErrValidation) {

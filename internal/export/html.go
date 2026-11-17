@@ -72,7 +72,7 @@ func (h *htmlBuilder) page(p Page, base int, path map[item.ID]bool, embedDepth i
 			list = want
 		}
 		if bl.Kind == item.Embed {
-			h.embed(bl.Ref, base, path, embedDepth)
+			h.embed(bl, base, path, embedDepth)
 			continue
 		}
 		h.block(bl, p, base)
@@ -82,10 +82,24 @@ func (h *htmlBuilder) page(p Page, base int, path map[item.ID]bool, embedDepth i
 	}
 }
 
-func (h *htmlBuilder) embed(id item.ID, base int, path map[item.ID]bool, embedDepth int) {
+// embed writes an embedded item in a frame: its name, facts and body, or
+// its name alone when it is too deep or already open around it. An embed
+// of its text alone writes the body only, without a frame, as part of the
+// text around it, and its name only where the body cannot be written.
+func (h *htmlBuilder) embed(bl item.Block, base int, path map[item.ID]bool, embedDepth int) {
+	id := bl.Ref
 	e, ok := h.d.Embeds[id]
 	if !ok {
 		h.printf(`<div class="embed restricted"><p class="embed-title">↳ %s</p></div>`, html.EscapeString(h.d.Restricted))
+		return
+	}
+	if textAlone(bl) && !path[id] && embedDepth < maxEmbedDepth {
+		e.Facts = nil
+		path[id] = true
+		h.out.WriteString(`<div class="embed-text">`)
+		h.page(e, base, path, embedDepth+1)
+		h.out.WriteString(`</div>`)
+		delete(path, id)
 		return
 	}
 	h.printf(`<div class="embed"><p class="embed-title">↳ %s</p>`, html.EscapeString(e.name()))
@@ -169,10 +183,8 @@ func (h *htmlBuilder) block(bl item.Block, p Page, base int) {
 		h.out.WriteString("</figure>")
 	case item.TOC:
 		h.out.WriteString(`<ul class="toc">`)
-		for _, x := range p.Body {
-			if x.Kind == item.Heading && strings.TrimSpace(x.Text) != "" {
-				h.printf(`<li class="level-%d">%s</li>`, min(max(x.Level, 1), 3), html.EscapeString(x.Text))
-			}
+		for _, x := range listed(bl, p.Body) {
+			h.printf(`<li class="level-%d">%s</li>`, min(max(x.Level, 1), 3), html.EscapeString(x.Text))
 		}
 		h.out.WriteString("</ul>")
 	case item.Figures, item.Tables:

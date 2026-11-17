@@ -254,3 +254,40 @@ func TestMarkdownExport(t *testing.T) {
 		t.Errorf("handbook:\n%s", book)
 	}
 }
+
+// TestAnEmbedShowsItsTextAloneAndATableOfContentsItsDepth: the API keeps
+// an embed's view and a table of contents' level, refuses what else they
+// might carry, and the export follows them; a reader who may not read
+// the embedded item still learns nothing of it (D10)
+// (ADR-draft-embedded-text-alone-and-toc-depth).
+func TestAnEmbedShowsItsTextAloneAndATableOfContentsItsDepth(t *testing.T) {
+	w := newWorld(t)
+	w.admin.expect("POST", "/api/types", `{"name":"page","body":true}`, http.StatusCreated)
+	mk := func(title, body string) string {
+		t.Helper()
+		out := w.bert.expect("POST", "/api/items", `{"space":"PLAT","type":"page","title":"`+title+`","body":`+body+`}`, http.StatusCreated)
+		return field(out, "item", "id").(string)
+	}
+	part := mk("Safety rules", `[{"kind":"paragraph","text":"Wear gloves."}]`)
+	secret := mk("Secret part", `[{"kind":"paragraph","text":"only for some"}]`)
+	w.admin.expect("PUT", "/api/items/"+secret+"/restriction", `{"read":["`+w.ids["bert"]+`"]}`, http.StatusOK)
+	page := mk("Manual", `[{"kind":"paragraph","text":"x"}]`)
+	for _, bad := range []string{`{"kind":"embed","ref":"` + part + `","view":"both"}`, `{"kind":"toc","level":4}`, `{"kind":"toc","view":"text"}`, `{"kind":"embed","ref":"` + part + `","level":1}`} {
+		w.bert.expect("PUT", "/api/items/"+page+"/body", `{"blocks":[`+bad+`]}`, http.StatusBadRequest)
+	}
+	got := w.bert.expect("PUT", "/api/items/"+page+"/body", `{"blocks":[{"kind":"toc","level":1},{"kind":"heading","level":1,"text":"Use"},{"kind":"heading","level":2,"text":"Details"},`+
+		`{"kind":"embed","ref":"`+part+`","view":"text"},{"kind":"embed","ref":"`+secret+`","view":"text"}]}`, http.StatusOK)
+	blocks := field(got, "item", "body").([]any)
+	if toc, embed := blocks[0].(map[string]any), blocks[3].(map[string]any); toc["level"] != float64(1) || embed["view"] != "text" {
+		t.Fatalf("the blocks came back as %v and %v", toc, embed)
+	}
+	html := w.bert.do("GET", "/api/items/"+page+"/export/html", "").Body.String()
+	if !strings.Contains(html, `<ul class="toc"><li class="level-1">Use</li></ul>`) || !strings.Contains(html, `<div class="embed-text"><p>Wear gloves.</p></div>`) ||
+		strings.Contains(html, "Safety rules") || !strings.Contains(html, "only for some") {
+		t.Fatalf("bert's export does not follow the blocks: %s", html)
+	}
+	vera := w.vera.do("GET", "/api/items/"+page+"/export/html", "").Body.String()
+	if strings.Contains(vera, "only for some") || strings.Contains(vera, "Secret part") || !strings.Contains(vera, "(restricted)") || !strings.Contains(vera, "Wear gloves.") {
+		t.Fatalf("vera's export shows what she may not read, or lacks the rest: %s", vera)
+	}
+}

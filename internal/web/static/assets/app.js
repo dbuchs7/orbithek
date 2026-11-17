@@ -708,9 +708,10 @@ const embedDepth = 3;
 // embedLoader shows an embedded item whole (ADR-0106): its kind, state and
 // fields, then its text, read-only, as far as the reader may read it; the
 // API veils what they may not. chain holds the items around it, so an item
-// never shows itself inside itself.
+// never shows itself inside itself. With alone it shows the text alone,
+// or a web link's card (ADR-draft-embedded-text-alone-and-toc-depth).
 function embedLoader(chain) {
-  return async (ref) => {
+  return async (ref, { alone = false } = {}) => {
     if (chain.includes(ref)) return h("p", { class: "muted pm-embed-note", text: t("embed.cycle") });
     if (chain.length > embedDepth) return h("p", { class: "muted pm-embed-note", text: t("embed.deep") });
     const [{ item }, { embeds }] = await Promise.all([get("/api/items/" + ref), get(`/api/items/${ref}/embeds`)]);
@@ -721,13 +722,15 @@ function embedLoader(chain) {
     const props = Object.entries(item.properties || {}).filter(([, v]) => v !== null && v !== "" && !(Array.isArray(v) && !v.length));
     // An embedded web link is a link card (ADR-0208).
     const card = isWebLink(item) ? webLinkCard(item, (await get(`/api/items/${encodeURIComponent(ref)}/attachments`).catch(() => ({ attachments: [] }))).attachments) : null;
+    const text = () => (item.body.length ? createEditor({ blocks: item.body, embeds, editable: false, resolve, childPages: childPagesOf(item), files: filesOf(item),
+      embedContent: embedLoader([...chain, ref]), tasks: taskTools(item, false) }).element : null);
+    if (alone) return card || text() ? h("div", { class: "pm-embed-content pm-embed-alone", "data-embedded": item.key }, card || text()) : h("p", { class: "muted pm-embed-note", text: t("embed.noText") });
     return h("div", { class: "pm-embed-content", "data-embedded": item.key },
       h("p", { class: "muted pm-embed-meta" }, t("item.meta", { type: item.type, presence: item.presence }), item.state ? t("item.state", { state: item.state }) : ""),
       item.origin?.system === "git:file" ? h("p", { class: "muted pm-embed-meta pm-embed-source" }, ...fileSource(item.origin)) : null,
       card || (props.length ? h("dl", { class: "pm-embed-props" }, props.flatMap(([k, v]) => [h("dt", { text: k }),
         h("dd", { text: (Array.isArray(v) ? v : [v]).map((x) => (names.has(x) ? names.get(x) : String(x))).join(", ") })])) : null),
-      item.body.length ? createEditor({ blocks: item.body, embeds, editable: false, resolve, childPages: childPagesOf(item), files: filesOf(item),
-        embedContent: embedLoader([...chain, ref]), tasks: taskTools(item, false) }).element : null);
+      text());
   };
 }
 
