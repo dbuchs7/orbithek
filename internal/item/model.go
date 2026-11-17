@@ -210,7 +210,9 @@ type Block struct {
 	Text     string
 	Mentions []ID
 	Ref      ID
-	// Level is a heading's level, 1 to 3; 0 reads as 1 (ADR-0032).
+	// Level is a heading's level, 1 to 3; 0 reads as 1 (ADR-0032). On a
+	// table of contents it is the deepest level of the headings it lists,
+	// 1 to 3; 0 lists every level (ADR-0237).
 	Level int    `json:",omitempty"`
 	Marks []Mark `json:",omitempty"`
 	// Checked is whether a task is done; Tone is a panel's tone (ADR-0042).
@@ -233,6 +235,9 @@ type Block struct {
 	// (ViewText) (ADR-0143). A form block shows its form, its form and the
 	// list of its fields, or the list alone, alike (ADR-0148); there,
 	// Process names the process whose steps name the form, or is empty.
+	// An embed shows its item whole (empty) or its text alone, without
+	// the heading, kind, state and fields (ViewText)
+	// (ADR-0237).
 	View string `json:",omitempty"`
 	// Form and Decision name what a form or a decision block shows: the
 	// form's or the decision's ID at the engine (ADR-0144).
@@ -307,6 +312,11 @@ const (
 
 // DiagramViews are the views a bpmn, a process or a form block may carry.
 var DiagramViews = []string{ViewBoth, ViewText}
+
+// EmbedViews are the views an embed block may carry besides the item
+// whole: its text alone
+// (ADR-0237).
+var EmbedViews = []string{ViewText}
 
 // Doc is a structured document body (ADR-0001: a block document, not HTML
 // or Markdown as storage format).

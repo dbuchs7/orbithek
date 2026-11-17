@@ -85,7 +85,9 @@ export const schema = new Schema({
       parseDOM: [{ tag: "table", getAttrs: (dom) => tableFromDOM(dom, isSafeLink, pastedRules(dom)) || false }],
       toDOM: (n) => tableDOM(n.attrs, isSafeLink),
       leafText: (n) => n.attrs.text },
-    toc: { group: "block", atom: true, selectable: true, attrs: bid, toDOM: () => ["div", { class: "pm-toc" }] },
+    // level is the deepest level of the headings a table of contents
+    // lists, 0 for every level (ADR-0237).
+    toc: { group: "block", atom: true, selectable: true, attrs: { ...bid, level: { default: 0 } }, toDOM: () => ["div", { class: "pm-toc" }] },
     // Lists of the body's pictures and tables (ADR-0119), computed like a
     // table of contents.
     figures: { group: "block", atom: true, selectable: true, attrs: bid, toDOM: () => ["div", { class: "pm-figures" }] },
@@ -133,9 +135,12 @@ export const schema = new Schema({
     // Content an importer could not convert (ADR-0023), kept as it came and
     // shown as text; it cannot be created in the editor.
     unsupported: { group: "block", content: "text*", marks: "", code: true, atom: true, attrs: bid, toDOM: () => ["pre", { class: "pm-unsupported", title: t("editor.unsupported") }, 0] },
+    // view "text" shows the embedded item's text alone, without its
+    // heading, kind, state and fields; "" shows it whole
+    // (ADR-0237).
     embed: {
       group: "block", atom: true, selectable: true,
-      attrs: { ...bid, ref: {}, label: { default: "" }, href: { default: "" } },
+      attrs: { ...bid, ref: {}, label: { default: "" }, href: { default: "" }, view: { default: "" } },
       toDOM: (n) => ["div", { class: "pm-embed", contenteditable: "false" },
         n.attrs.href ? ["a", { href: safeHref(n.attrs.href) }, n.attrs.label] : ["span", { class: "muted" }, n.attrs.label || t("editor.hidden")]],
     },
@@ -260,7 +265,8 @@ function plainNode(b, embeds) {
     return schema.nodes.table.create({ bid: id, text: b.text || "", marks: (b.marks || []).filter((m) => TABLE_MARKS.includes(m.type)),
       widths: b.widths || null, heights: b.heights || null, cells: b.cells || null });
   }
-  if (["toc", "figures", "tables", "children", "divider"].includes(b.kind)) return schema.nodes[b.kind].create({ bid: id });
+  if (b.kind === "toc") return schema.nodes.toc.create({ bid: id, level: b.level || 0 });
+  if (["figures", "tables", "children", "divider"].includes(b.kind)) return schema.nodes[b.kind].create({ bid: id });
   if (b.kind === "tasklist") return schema.nodes.tasklist.create({ bid: id, label: b.text || "", query: b.query || "" });
   if (b.kind === "view") return schema.nodes.itemview.create({ bid: id, layout: b.layout || "table", itemType: b.itemType || "", space: b.space || "", query: b.query || "",
     group: b.group || "", columns: b.columns?.length ? [...b.columns] : null, sort: b.sort || "" });
@@ -281,6 +287,7 @@ function plainNode(b, embeds) {
       ref: b.ref,
       label: v && !v.restricted ? `${v.key} ${v.title}` : "",
       href: v && !v.restricted ? "#/item/" + encodeURIComponent(v.key) : "",
+      view: b.view || "",
     });
   }
   const type = nodeOf(b.kind);
@@ -336,13 +343,14 @@ export function blockFromNode(node) {
 
 function plainBlock(node) {
   if (node.type === schema.nodes.veiled) return { kind: "paragraph", text: "▒▒▒▒▒▒▒▒" };
-  if (node.type === schema.nodes.embed) return { kind: "embed", ref: node.attrs.ref };
+  if (node.type === schema.nodes.embed) return { kind: "embed", ref: node.attrs.ref, ...(node.attrs.view ? { view: node.attrs.view } : {}) };
+  if (node.type === schema.nodes.toc) return { kind: "toc", ...(node.attrs.level ? { level: node.attrs.level } : {}) };
   if (node.type === schema.nodes.table) {
     const a = node.attrs;
     return { kind: "table", text: a.text, ...(a.marks?.length ? { marks: a.marks } : {}), ...(a.widths ? { widths: a.widths } : {}),
       ...(a.heights ? { heights: a.heights } : {}), ...(a.cells ? { cells: a.cells } : {}) };
   }
-  if (["toc", "figures", "tables", "children", "divider"].includes(node.type.name)) return { kind: node.type.name };
+  if (["figures", "tables", "children", "divider"].includes(node.type.name)) return { kind: node.type.name };
   if (node.type === schema.nodes.tasklist) return node.attrs.query ? { kind: "tasklist", query: node.attrs.query } : { kind: "tasklist", text: node.attrs.label };
   if (node.type === schema.nodes.itemview) {
     const a = node.attrs;
@@ -1020,24 +1028,67 @@ function tableView(node, view, getPos) {
   };
 }
 
-// tocView lists the body's headings; a click scrolls to one. tocs holds
-// the refresh functions of an editor's tables of contents, which a plugin
+// tocDepths are the depths a table of contents is offered with: the
+// deepest level of the headings it lists, 0 for every level
+// (ADR-0237).
+export const tocDepths = () => [[1, t("editor.tocDepth1")], [2, t("editor.tocDepth2")], [0, t("editor.tocDepthAll")]];
+
+// wovenBlocks lists the blocks of an editor's text as a reader reads
+// them, each with show(), which brings it into sight: the blocks of an
+// embed of its text alone, once loaded, stand in its place as if written
+// there, so a table of contents and the lists of figures and tables count
+// them as the text's own (ADR-0237).
+// The embedded text's editor is found on its content's element; one not
+// loaded yet, not readable or shown as a note stays an embed.
+export function wovenBlocks(view, depth = 0) {
+  const out = [];
+  // While the editor is still being built it has no DOM to ask yet; its
+  // embeds load later and refresh what counts them.
+  const domOf = (offset) => {
+    try {
+      return view.nodeDOM(offset);
+    } catch {
+      return null;
+    }
+  };
+  view.state.doc.forEach((node, offset) => {
+    const inner = node.type === schema.nodes.embed && node.attrs.view === "text" && depth < 8
+      ? domOf(offset)?.querySelector?.(":scope > .pm-embed-body > .pm-embed-alone")?.embeddedView : null;
+    if (inner) out.push(...wovenBlocks(inner, depth + 1));
+    else out.push({ node, show: () => view.nodeDOM(offset)?.scrollIntoView({ block: "start" }) });
+  });
+  return out;
+}
+
+// tocHeadings are the blocks a table of contents of the given level lists
+// among woven blocks: headings with text, down to the level, or every one
+// at level 0.
+export function tocHeadings(blocks, level) {
+  return blocks.filter(({ node: n }) => n.type === schema.nodes.heading && n.textContent.trim() && (!level || n.attrs.level <= level))
+    .map(({ node: n, show }) => ({ level: n.attrs.level, text: n.textContent, show }));
+}
+
+// tocView lists the body's headings down to its level; a click scrolls to
+// one, and while editing a choice changes the level. tocs holds the
+// refresh functions of an editor's tables of contents, which a plugin
 // calls after every change of the document.
-function tocView(node, view, tocs) {
+function tocView(node, view, getPos, tocs) {
   const dom = h("nav", { class: "pm-toc", contenteditable: "false", "aria-label": t("editor.toc") });
   const refresh = () => {
-    const heads = [];
-    view.state.doc.forEach((n, offset) => {
-      if (n.type === schema.nodes.heading && n.textContent.trim()) heads.push({ level: n.attrs.level, text: n.textContent, offset });
-    });
-    dom.replaceChildren(h("p", { class: "pm-box-title", text: t("editor.toc") }), heads.length
-      ? h("ul", {}, heads.map((x) => h("li", { class: "pm-toc-" + x.level }, h("button", { type: "button", class: "link", text: x.text,
-        onclick: () => view.nodeDOM(x.offset)?.scrollIntoView({ block: "start" }) }))))
+    const heads = tocHeadings(wovenBlocks(view), node.attrs.level);
+    const depth = view.editable ? h("label", { class: "pm-toc-depth-label" }, t("editor.tocDepth"), h("select", { class: "pm-toc-depth", onchange: (e) => {
+      const pos = getPos();
+      if (typeof pos !== "number" || !view.editable || dom.classList.contains("pm-locked")) return refresh();
+      view.dispatch(view.state.tr.setNodeMarkup(pos, null, { ...node.attrs, level: Number(e.target.value) }));
+    } }, tocDepths().map(([v, label]) => h("option", { value: String(v), text: label, selected: v === (node.attrs.level || 0) })))) : null;
+    dom.replaceChildren(h("p", { class: "pm-box-title" }, t("editor.toc"), depth ? " " : "", depth || ""), heads.length
+      ? h("ul", {}, heads.map((x) => h("li", { class: "pm-toc-" + x.level }, h("button", { type: "button", class: "link", text: x.text, onclick: x.show }))))
       : h("p", { class: "muted", text: t("editor.tocEmpty") }));
   };
   tocs.add(refresh);
   refresh();
-  return { dom, ...selectable, update: (n) => n.type === node.type, destroy: () => tocs.delete(refresh) };
+  return { dom, ...selectable,
+    update: (n) => { if (n.type !== node.type) return false; node = n; refresh(); return true; }, destroy: () => tocs.delete(refresh) };
 }
 
 // listView lists the body's pictures (figures) or tables (tables),
@@ -1050,19 +1101,18 @@ function listView(node, view, tocs) {
   const dom = h("nav", { class: figures ? "pm-figures" : "pm-tables", contenteditable: "false", "aria-label": title });
   const refresh = () => {
     const entries = [];
-    view.state.doc.forEach((n, offset) => {
+    for (const { node: n, show } of wovenBlocks(view)) {
       if (figures && n.type === schema.nodes.image) {
         const label = t("editor.figure", { n: entries.length + 1 });
-        entries.push({ text: n.attrs.text.trim() ? `${label}: ${n.attrs.text.trim()}` : label, offset });
+        entries.push({ text: n.attrs.text.trim() ? `${label}: ${n.attrs.text.trim()}` : label, show });
       } else if (!figures && n.type === schema.nodes.table) {
         const label = t("editor.tableN", { n: entries.length + 1 });
         const head = n.attrs.text.split("\n")[0].split("\t").map((c) => c.trim()).filter(Boolean).join(", ");
-        entries.push({ text: head ? `${label}: ${head}` : label, offset });
+        entries.push({ text: head ? `${label}: ${head}` : label, show });
       }
-    });
+    }
     dom.replaceChildren(h("p", { class: "pm-box-title", text: title }), entries.length
-      ? h("ul", {}, entries.map((x) => h("li", {}, h("button", { type: "button", class: "link", text: x.text,
-        onclick: () => view.nodeDOM(x.offset)?.scrollIntoView({ block: "start" }) }))))
+      ? h("ul", {}, entries.map((x) => h("li", {}, h("button", { type: "button", class: "link", text: x.text, onclick: x.show }))))
       : h("p", { class: "muted", text: figures ? t("editor.figuresEmpty") : t("editor.tablesEmpty") }));
   };
   tocs.add(refresh);
@@ -1070,22 +1120,50 @@ function listView(node, view, tocs) {
   return { dom, ...selectable, update: (n) => n.type === node.type, destroy: () => tocs.delete(refresh) };
 }
 
+// embedViews are what an embed is offered to show: its item whole, or its
+// text alone (ADR-0237).
+export const embedViews = () => [["", t("editor.embedWhole")], ["text", t("editor.embedText")]];
+
 // embedView shows an embedded item whole (ADR-0106): a heading that leads
 // to it, then what load(ref) returns, its content read-only, or nothing
-// where the reader may not see it. Events inside the content stay there.
-function embedView(node, load) {
-  const dom = h("div", { class: "pm-embed", contenteditable: "false" });
+// where the reader may not see it. An embed of its text alone shows only
+// the text, without heading or frame, as part of the text around it;
+// while editing it keeps a slim line that names the item, where a choice
+// changes what it shows. Events inside the content stay there.
+function embedView(node, load, view, getPos) {
+  const alone = node.attrs.view === "text";
+  const editing = Boolean(view?.editable);
+  const dom = h("div", { class: alone ? "pm-embed pm-embed-text" + (editing ? " pm-embed-editing" : "") : "pm-embed", contenteditable: "false", "data-view": node.attrs.view || null });
   const visible = Boolean(node.attrs.href);
-  dom.append(visible ? h("a", { class: "pm-embed-title", href: safeHref(node.attrs.href), text: node.attrs.label })
-    : h("span", { class: "muted", text: node.attrs.label || t("editor.hidden") }));
+  const title = visible ? h("a", { class: "pm-embed-title", href: safeHref(node.attrs.href), text: node.attrs.label })
+    : h("span", { class: "muted", text: node.attrs.label || t("editor.hidden") });
+  const choice = editing ? h("label", { class: "pm-embed-view-label" }, t("editor.embedView"), h("select", { class: "pm-embed-view", onchange: (e) => {
+    const pos = getPos?.();
+    if (typeof pos !== "number" || !view.editable || dom.classList.contains("pm-locked")) {
+      e.target.value = node.attrs.view || "";
+      return;
+    }
+    view.dispatch(view.state.tr.setNodeMarkup(pos, null, { ...node.attrs, view: e.target.value }));
+  } }, embedViews().map(([v, label]) => h("option", { value: v, text: label, selected: v === (node.attrs.view || "") })))) : null;
+  // The text alone is no heading: an item the reader may not see is named
+  // as such all the same, so an embed never vanishes without a word.
+  const head = h("div", { class: "pm-embed-head" }, title, choice ? " " : "", choice || "");
+  if (!alone || editing || !visible) dom.append(head);
   const body = h("div", { class: "pm-embed-body", "aria-busy": "true" });
   if (visible && load) {
     dom.append(body);
-    load(node.attrs.ref).then((el) => body.replaceChildren(...(el ? [el] : [])))
+    load(node.attrs.ref, { alone }).then((el) => {
+      // A note in place of the text (shown around it, too deep) names
+      // the item it stands for.
+      if (el?.classList?.contains("pm-embed-note") && !head.isConnected) dom.prepend(head);
+      body.replaceChildren(...(el ? [el] : []));
+      // Tables of contents and lists around it count the loaded text.
+      dom.dispatchEvent(new CustomEvent("pm-embed-loaded", { bubbles: true }));
+    })
       .catch(() => body.replaceChildren(h("p", { class: "muted", text: t("embed.failed") })))
       .finally(() => body.removeAttribute("aria-busy"));
   }
-  return { dom, ignoreMutation: () => true, stopEvent: (ev) => body.contains(ev.target) };
+  return { dom, ignoreMutation: () => true, stopEvent: (ev) => body.contains(ev.target) || Boolean(choice?.contains(ev.target)) };
 }
 
 // taskListView shows the tasks that carry a label, or that a query
@@ -1473,7 +1551,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     nodeViews: {
       task: taskView,
       table: tableView,
-      toc: (node, v) => tocView(node, v, tocs),
+      toc: (node, v, getPos) => tocView(node, v, getPos, tocs),
       figures: (node, v) => listView(node, v, tocs),
       tables: (node, v) => listView(node, v, tocs),
       children: (node) => childrenView(node, childPages),
@@ -1486,7 +1564,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
       startform: (node, v, getPos) => startFormView(node, v, getPos, files),
       decision: (node, v, getPos) => decisionView(node, v, getPos),
       architecture: (node, v, getPos) => architectureView(node, v, getPos),
-      embed: (node) => embedView(node, embedContent),
+      embed: (node, v, getPos) => embedView(node, embedContent, v, getPos),
       tasklist: (node) => taskListView(node, tasks),
       itemview: (node, v, getPos) => itemViewView(node, v, getPos),
       veiled: (node) => ({ dom: h("div", { class: "pm-veiled", "data-secret": node.attrs.secret, contenteditable: "false" },
@@ -1494,6 +1572,9 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     },
     ...viewProps,
   });
+  // An embed's text, loaded after the editor is shown, joins the tables
+  // of contents and lists of this text and of every text around it.
+  view.dom.addEventListener("pm-embed-loaded", () => tocs.forEach((f) => f()));
   const run = (cmd) => () => { cmd(view.state, view.dispatch); view.focus(); };
   const kindSelect = h("select", { "aria-label": t("editor.blockKind"), onchange: (e) => {
     const [kind, arg] = e.target.value.split(":");
@@ -1529,13 +1610,15 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     else if (kind === "album") fromAlbum();
     else if (kind === "clip") fromClip();
     else if (kind === "embed") embed();
+    else if (kind === "embedtext") embed("text");
+    else if (kind === "toc") tocDialog();
     else if (kind === "markdown") markdownDialog();
     else if (kind === "newtask") newTask();
     else if (kind === "tasklist") taskList();
     else if (kind === "itemview") itemView();
     else if (kind === "markdownfile") markdownFile("");
     else if (kind) insertBlock(schema.nodes[kind].create());
-  } }, [["", t("editor.insert")], ["embed", t("assist.embedItem")], ["markdown", t("editor.markdown")], markdown ? ["markdownfile", t("editor.markdownFile")] : null, tasks?.create ? ["newtask", t("editor.newTask")] : null, tasks?.pickLabel ? ["tasklist", t("editor.taskList")] : null, viewsReady() ? ["itemview", t("views.insert")] : null, ["table", t("editor.table")], ["divider", t("editor.divider")], ["toc", t("editor.toc")], ["figures", t("editor.figures")], ["tables", t("editor.tables")], ["children", t("editor.children")],
+  } }, [["", t("editor.insert")], ["embed", t("assist.embedItem")], ["embedtext", t("editor.embedTextInsert")], ["markdown", t("editor.markdown")], markdown ? ["markdownfile", t("editor.markdownFile")] : null, tasks?.create ? ["newtask", t("editor.newTask")] : null, tasks?.pickLabel ? ["tasklist", t("editor.taskList")] : null, viewsReady() ? ["itemview", t("views.insert")] : null, ["table", t("editor.table")], ["divider", t("editor.divider")], ["toc", t("editor.toc")], ["figures", t("editor.figures")], ["tables", t("editor.tables")], ["children", t("editor.children")],
     files ? ["image", t("editor.image")] : null, files ? ["video", t("editor.video")] : null, files ? ["audio", t("editor.audio")] : null, files && canRecordHere() ? ["record", t("editor.record")] : null, files ? ["drawing", t("draw.insert")] : null, files ? ["album", t("album.fromAlbum")] : null, files ? ["clip", t("editor.copiedPicture")] : null,
     files ? ["bpmnnew", t("bpmn.insertNew")] : null, files ? ["bpmnfile", t("bpmn.insertFile")] : null, ["process", t("bpmn.insertProcess")],
     ["form", t("form.insert")], ["startform", t("start.insert")], ["decision", t("decision.insert")], ["architecture", t("arch.insert")]].filter(Boolean)
@@ -1786,11 +1869,37 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
   };
   const status = h("span", { class: "error", role: "status" });
   // An item shown in the text, chosen by searching (ADR-0096).
-  const embed = async () => {
+  // embed places an item the editor picks, whole or, with view "text",
+  // its text alone (ADR-0237).
+  const embed = async (shows = "") => {
     status.textContent = "";
-    const it = await aids.pickItem(t("assist.embedItem"));
+    const it = await aids.pickItem(shows ? t("editor.embedTextInsert") : t("assist.embedItem"));
     if (!it) return view.focus();
-    insertBlock(schema.nodes.embed.create({ ref: it.id, label: `${it.key} ${it.title}`, href: "#/item/" + encodeURIComponent(it.key) }));
+    insertBlock(schema.nodes.embed.create({ ref: it.id, label: `${it.key} ${it.title}`, href: "#/item/" + encodeURIComponent(it.key), view: shows }));
+  };
+  // tocDialog asks how deep a new table of contents lists the headings,
+  // then places it (ADR-0237).
+  const tocDialog = () => {
+    status.textContent = "";
+    const depth = h("select", { id: "pm-toc-depth", class: "pm-toc-depth" }, tocDepths().map(([v, label]) => h("option", { value: String(v), text: label, selected: v === 0 })));
+    const dialog = h("dialog", { class: "pm-dialog pm-toc-dialog", "aria-labelledby": "pm-toc-title" });
+    const close = () => { if (dialog.open) dialog.close(); dialog.remove(); view.focus(); };
+    const place = (ev) => {
+      ev.preventDefault();
+      const level = Number(depth.value);
+      close();
+      insertBlock(schema.nodes.toc.create({ level }));
+    };
+    dialog.append(h("form", { method: "dialog", onsubmit: place },
+      h("h2", { id: "pm-toc-title", text: t("editor.tocInsert") }),
+      h("label", { for: "pm-toc-depth", text: t("editor.tocDepth") }), depth,
+      h("p", { class: "muted", text: t("editor.tocDepthHint") }),
+      h("div", { class: "pm-dialog-actions" }, h("button", { type: "submit", class: "primary", id: "pm-toc-ok", text: t("editor.tocPlace") }),
+        h("button", { type: "button", class: "link", id: "pm-toc-cancel", text: t("common.cancel"), onclick: close }))));
+    dialog.addEventListener("cancel", (ev) => { ev.preventDefault(); close(); });
+    document.body.append(dialog);
+    dialog.showModal();
+    depth.focus();
   };
   // A new task, made as a child of this item, goes into the text as a
   // link or shown whole (ADR-0114).
