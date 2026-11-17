@@ -78,7 +78,7 @@ func TestAChangeThatIsNotPersistedDoesNotHappen(t *testing.T) {
 
 func TestDecodeRejectsWhatItCannotReadExactly(t *testing.T) {
 	cases := map[string]string{
-		"newer format":       `[{"v":66,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
+		"newer format":       `[{"v":67,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"no format version":  `[{"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"unknown field":      `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated","colour":"red"}]`,
 		"unknown role":       `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"RoleGranted","role":"owner"}]`,
@@ -205,8 +205,9 @@ func TestPersistedFormatIsStable(t *testing.T) {
 	sounds := audioLog(t)
 	depths := tocDepthLog(t)
 	deepLists := childrenDepthLog(t)
+	numbered := numberedLog(t)
 	kinds := map[EventKind]bool{}
-	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments, notes, photos, places, renames, geotags, moves, albumVideos, faces, slideOrders, fingerprints, times, turned, highlights, itemViews, kinds55, styledTables, shareFiles, sounds, depths, deepLists) {
+	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments, notes, photos, places, renames, geotags, moves, albumVideos, faces, slideOrders, fingerprints, times, turned, highlights, itemViews, kinds55, styledTables, shareFiles, sounds, depths, deepLists, numbered) {
 		kinds[e.Kind] = true
 	}
 	for _, k := range allEventKinds {
@@ -324,6 +325,8 @@ func TestPersistedFormatIsStable(t *testing.T) {
 		{"events.current.tocdepth.plain.golden.jsonl", nil, depths},
 		{"events.current.childrendepth.golden.jsonl", fakeSealer{}, deepLists},
 		{"events.current.childrendepth.plain.golden.jsonl", nil, deepLists},
+		{"events.current.numbered.golden.jsonl", fakeSealer{}, numbered},
+		{"events.current.numbered.plain.golden.jsonl", nil, numbered},
 	}
 	for _, c := range cases {
 		name, sl, log := c.name, c.sl, c.log
@@ -1899,6 +1902,17 @@ func childrenDepthLog(t *testing.T) []Event {
 	anna := s.As("anna")
 	page := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Handbook"}))
 	noErr(t, anna.CommitBody(page.ID, Doc{Blocks: []Block{{Kind: Children, Depth: 2}, {Kind: Children}, {Kind: Children, Depth: ChildrenAll}}}))
+	return s.Log()
+}
+
+// numberedLog numbers the headings of a text, so the golden files pin the
+// body field Numbered (ADR-draft-numbered-headings).
+func numberedLog(t *testing.T) []Event {
+	s := setup(t)
+	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))
+	anna := s.As("anna")
+	page := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Concept"}))
+	noErr(t, anna.CommitBody(page.ID, Doc{Numbered: true, Blocks: []Block{{Kind: TOC}, {Kind: Heading, Level: 1, Text: "Goals"}, {Kind: Heading, Level: 2, Text: "Scope"}}}))
 	return s.Log()
 }
 

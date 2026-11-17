@@ -118,6 +118,7 @@ func baseName(name string) string {
 
 type mdBuilder struct {
 	d Document
+	numberer
 	// picture names the target of a picture, or of a file that is named
 	// only (a video, a diagram), or "" where there is none.
 	picture func(p Page, ref item.ID, named bool) string
@@ -160,6 +161,7 @@ func (m *mdBuilder) page(p Page, base int, path map[item.ID]bool, embedDepth int
 	}
 	var list item.BlockKind // the kind of list the last part holds, if any
 	n := 0                  // the number of the last item of a numbered list
+	defer m.open(m.d, p)()
 	for _, bl := range p.Body {
 		marker := map[item.BlockKind]string{item.BulletItem: "- ", item.TaskItem: "- [ ] "}[bl.Kind]
 		switch bl.Kind {
@@ -189,7 +191,7 @@ func (m *mdBuilder) page(p Page, base int, path map[item.ID]bool, embedDepth int
 			parts = append(parts, m.embed(bl, base, path, embedDepth)...)
 			continue
 		}
-		parts = append(parts, m.block(bl, p, base)...)
+		parts = append(parts, m.block(bl, p, base, m.take(bl))...)
 	}
 	return parts
 }
@@ -210,6 +212,7 @@ func (m *mdBuilder) embed(bl item.Block, base int, path map[item.ID]bool, embedD
 		e.Facts = nil
 		path[id] = true
 		defer delete(path, id)
+		m.weaving = true
 		return m.page(e, base, path, embedDepth+1)
 	}
 	parts := []string{"↳ " + inlineMarkdown(e.name(), nil)}
@@ -221,7 +224,7 @@ func (m *mdBuilder) embed(bl item.Block, base int, path map[item.ID]bool, embedD
 	return []string{quote(strings.Join(parts, "\n\n"))}
 }
 
-func (m *mdBuilder) block(bl item.Block, p Page, base int) []string {
+func (m *mdBuilder) block(bl item.Block, p Page, base int, num string) []string {
 	list := func(entries []string) []string {
 		if len(entries) == 0 {
 			return nil
@@ -242,7 +245,7 @@ func (m *mdBuilder) block(bl item.Block, p Page, base int) []string {
 	switch bl.Kind {
 	case item.Heading:
 		level := min(base+min(max(bl.Level, 1), 3), 6)
-		return []string{strings.Repeat("#", level) + " " + headingText(bl.Text, bl.Marks)}
+		return []string{strings.Repeat("#", level) + " " + withNumber(num, headingText(bl.Text, bl.Marks))}
 	case item.Quote:
 		return []string{quote(inlineMarkdown(bl.Text, bl.Marks))}
 	case item.CodeBlock, item.Unsupported:
@@ -305,8 +308,8 @@ func (m *mdBuilder) block(bl item.Block, p Page, base int) []string {
 		return append(out, captionPart()...)
 	case item.TOC:
 		var entries []string
-		for _, h := range listed(bl, woven(m.d, p)) {
-			entries = append(entries, strings.Repeat("  ", min(max(h.Level, 1), 3)-1)+"- "+inlineMarkdown(h.Text, nil))
+		for _, h := range tocEntries(m.d, p, bl) {
+			entries = append(entries, strings.Repeat("  ", h.Level-1)+"- "+withNumber(h.Num, inlineMarkdown(h.Text, nil)))
 		}
 		return list(entries)
 	case item.Figures, item.Tables:

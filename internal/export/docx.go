@@ -158,6 +158,94 @@ type Page struct {
 	Tasks map[string][]string
 	// Depth is the page's level below the root.
 	Depth int
+	// Numbered numbers the body's headings, in the text and in its tables
+	// of contents (ADR-draft-numbered-headings).
+	Numbered bool
+}
+
+// heading is an entry of a table of contents.
+type heading struct {
+	Level int // 1 to 3
+	Text  string
+	Num   string // its number, or none
+}
+
+// tocEntries are the entries of a table of contents of page p: the
+// headings with text of its body as a reader reads it, the text of the
+// embeds of their text alone woven in (ADR-0237), down to the block's
+// level, numbered when the page is (ADR-draft-numbered-headings).
+func tocEntries(d Document, p Page, toc item.Block) []heading {
+	blocks := woven(d, p)
+	var nums []string
+	if p.Numbered {
+		nums = item.HeadingNumbers(item.Doc{Blocks: blocks, Numbered: true})
+	}
+	var out []heading
+	for i, b := range blocks {
+		if b.Kind != item.Heading || strings.TrimSpace(b.Text) == "" || (toc.Level != 0 && max(b.Level, 1) > toc.Level) {
+			continue
+		}
+		e := heading{Level: min(max(b.Level, 1), 3), Text: b.Text}
+		if nums != nil {
+			e.Num = nums[i]
+		}
+		out = append(out, e)
+	}
+	return out
+}
+
+// numberer hands out the numbers of a numbered page's headings in the
+// order they are written (ADR-draft-numbered-headings). A page written as
+// a page of its own, or embedded whole, has numbers of its own; the text
+// of an embed of its text alone is woven into the page around it, as a
+// reader reads it (ADR-0237), and takes that page's next numbers, so the
+// text and its table of contents agree.
+type numberer struct {
+	cur     *headingNumbers
+	weaving bool // the next page is woven into the current one
+}
+
+type headingNumbers struct {
+	nums []string
+	at   int
+}
+
+// open starts the numbers of page p, unless p is woven into the page
+// around it; the returned function ends them.
+func (n *numberer) open(d Document, p Page) func() {
+	if n.weaving {
+		n.weaving = false
+		return func() {}
+	}
+	prev := n.cur
+	n.cur = nil
+	if p.Numbered {
+		n.cur = &headingNumbers{}
+		for _, num := range item.HeadingNumbers(item.Doc{Blocks: woven(d, p), Numbered: true}) {
+			if num != "" {
+				n.cur.nums = append(n.cur.nums, num)
+			}
+		}
+	}
+	return func() { n.cur = prev }
+}
+
+// take is the number of block b when it is a numbered heading, or none.
+func (n *numberer) take(b item.Block) string {
+	c := n.cur
+	if c == nil || b.Kind != item.Heading || strings.TrimSpace(b.Text) == "" || c.at >= len(c.nums) {
+		return ""
+	}
+	c.at++
+	return c.nums[c.at-1]
+}
+
+// withNumber puts a heading's number before its text.
+func withNumber(num, text string) string {
+	if num == "" {
+		return text
+	}
+	return num + " " + text
 }
 
 // Image is a picture file.
@@ -169,20 +257,6 @@ type Image struct {
 // maxEmbedDepth bounds how deep embedded items are written inside each
 // other; deeper ones, and an item inside itself, show by key and title.
 const maxEmbedDepth = 3
-
-// listed returns the headings of body a table of contents lists: those
-// with text, down to its Level, or every one when it has none
-// (ADR-0237). A heading without a
-// level reads as level 1.
-func listed(toc item.Block, body []item.Block) []item.Block {
-	var out []item.Block
-	for _, h := range body {
-		if h.Kind == item.Heading && strings.TrimSpace(h.Text) != "" && (toc.Level == 0 || max(h.Level, 1) <= toc.Level) {
-			out = append(out, h)
-		}
-	}
-	return out
-}
 
 // textAlone reports whether an embed shows its item's text alone, without
 // its name and facts (ADR-0237).
@@ -270,6 +344,7 @@ type media struct {
 }
 
 type docxBuilder struct {
+	numberer
 	d       Document
 	links   []string // targets of hyperlinks; rId is rel, "L" and the index
 	media   []media
@@ -372,6 +447,7 @@ func (b *docxBuilder) page(out *strings.Builder, p Page, base int, path map[item
 		out.WriteString(para("", "", ""))
 	}
 	listNum := 0
+	defer b.open(b.d, p)()
 	for i, bl := range p.Body {
 		if bl.Kind == item.OrderedItem && (i == 0 || p.Body[i-1].Kind != item.OrderedItem) {
 			b.ordered++
@@ -381,7 +457,7 @@ func (b *docxBuilder) page(out *strings.Builder, p Page, base int, path map[item
 			b.embed(out, bl, base, path, embedDepth)
 			continue
 		}
-		out.WriteString(b.block(bl, p, base, listNum))
+		out.WriteString(b.block(bl, p, base, listNum, b.take(bl)))
 	}
 }
 
@@ -400,6 +476,7 @@ func (b *docxBuilder) embed(out *strings.Builder, bl item.Block, base int, path 
 	if textAlone(bl) && open {
 		e.Facts = nil
 		path[id] = true
+		b.weaving = true
 		b.page(out, e, base, path, embedDepth+1)
 		delete(path, id)
 		return
@@ -414,7 +491,7 @@ func (b *docxBuilder) embed(out *strings.Builder, bl item.Block, base int, path 
 	out.WriteString(paraPr(`<w:pBdr><w:bottom w:val="dotted" w:sz="4" w:space="1" w:color="BFBFBF"/></w:pBdr>`, ""))
 }
 
-func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int) string {
+func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int, num string) string {
 	jc := ""
 	switch bl.Align {
 	case "center", "right":
@@ -426,6 +503,11 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int) string {
 	switch bl.Kind {
 	case item.Heading:
 		level := min(base+min(max(bl.Level, 1), 3), 6)
+		if num != "" {
+			// The number is text of the heading, as Word's own table of
+			// contents then lists it.
+			text = run(num+" ", "") + text
+		}
 		return paraPr(b.pStyle(fmt.Sprintf("Heading%d", level))+align(jc), text)
 	case item.BulletItem:
 		return paraPr(b.pStyle("ListParagraph")+b.bulletNum(), text)
@@ -486,11 +568,11 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int) string {
 		return out.String()
 	case item.TOC:
 		if b.tpl != nil {
-			return b.tocField(bl, woven(b.d, p))
+			return b.tocField(bl, tocEntries(b.d, p, bl))
 		}
 		var out strings.Builder
-		for _, h := range listed(bl, woven(b.d, p)) {
-			out.WriteString(paraPr(fmt.Sprintf(`<w:ind w:left="%d"/>`, (max(h.Level, 1)-1)*360), run(h.Text, "")))
+		for _, h := range tocEntries(b.d, p, bl) {
+			out.WriteString(paraPr(fmt.Sprintf(`<w:ind w:left="%d"/>`, (h.Level-1)*360), run(withNumber(h.Num, h.Text), "")))
 		}
 		return out.String()
 	case item.TaskList:

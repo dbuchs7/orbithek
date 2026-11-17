@@ -374,7 +374,7 @@ func (h itemHandlers) readWebLinkAgain(w http.ResponseWriter, r *http.Request) {
 			if len(blocks) > 0 {
 				blocks = append(blocks, item.Block{Kind: item.Divider})
 			}
-			return x.CommitBody(it.ID, item.Doc{Blocks: append(blocks, page.Text...)})
+			return x.CommitBody(it.ID, item.Doc{Blocks: append(blocks, page.Text...), Numbered: cur.Body.Numbered})
 		}
 		return nil
 	})
@@ -417,6 +417,6 @@ func (h itemHandlers) appendBlocks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.change(w, r, func(x *item.Session, _ *item.Store, it item.Item) error {
-		return x.CommitBody(it.ID, item.Doc{Blocks: append(slices.Clone(it.Body.Blocks), add.Blocks...)})
+		return x.CommitBody(it.ID, item.Doc{Blocks: append(slices.Clone(it.Body.Blocks), add.Blocks...), Numbered: it.Body.Numbered})
 	})
 }

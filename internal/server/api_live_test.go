@@ -3,6 +3,7 @@ package server
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -162,4 +163,68 @@ func TestLiveEditingThroughTheAPI(t *testing.T) {
 	}
 	vera.ends()
 	bert.ends()
+}
+
+// TestNumberedHeadingsThroughTheAPI: whether a body's headings are
+// numbered is read with the item, set with the body or kept when left out,
+// set in a live session for everyone at once and returned with a version
+// (ADR-draft-numbered-headings).
+func TestNumberedHeadingsThroughTheAPI(t *testing.T) {
+	w := newWorld(t)
+	srv := httptest.NewServer(w.bert.h)
+	// Closed after the streams, which close first as cleanups run last
+	// registered first.
+	t.Cleanup(srv.Close)
+	w.bert.expect("POST", "/api/items", `{"space":"PLAT","type":"task","title":"Concept","properties":{"priority":"low"}}`, http.StatusCreated)
+	numbered := func() bool {
+		t.Helper()
+		v, _ := field(w.vera.expect("GET", "/api/items/PLAT-1", "", http.StatusOK), "item", "numbered").(bool)
+		return v
+	}
+	got := w.bert.expect("PUT", "/api/items/PLAT-1/body", `{"blocks":[{"kind":"heading","level":1,"text":"Goals"}],"numbered":true}`, http.StatusOK)
+	if field(got, "item", "numbered") != true || !numbered() {
+		t.Fatalf("not numbered: %v", got)
+	}
+	// Left out, the numbering stays: an agent that only writes blocks does
+	// not turn it off.
+	w.bert.expect("PUT", "/api/items/PLAT-1/body", `{"blocks":[{"kind":"heading","level":1,"text":"Aims"}]}`, http.StatusOK)
+	if !numbered() {
+		t.Fatal("a body without the field lost the numbering")
+	}
+	// Appending keeps it as well.
+	w.bert.expect("POST", "/api/items/PLAT-1/body/blocks", `{"blocks":[{"kind":"heading","level":2,"text":"Scope"}]}`, http.StatusOK)
+	if !numbered() {
+		t.Fatal("appending lost the numbering")
+	}
+	w.bert.expect("PUT", "/api/items/PLAT-1/body", `{"blocks":[{"kind":"heading","level":1,"text":"Aims"}],"numbered":false}`, http.StatusOK)
+	if numbered() {
+		t.Fatal("the numbering was not turned off")
+	}
+
+	bert := openStream(t, srv, w.bert, "PLAT-1")
+	snap := bert.next("snapshot")
+	if snap["numbered"] != nil {
+		t.Fatalf("an unnumbered body joins numbered: %v", snap)
+	}
+	vera := openStream(t, srv, w.vera, "PLAT-1")
+	veraClient := vera.next("snapshot")["client"].(string)
+	op := `{"client":"%s","ops":[{"op":"number","numbered":true}]}`
+	w.vera.expect("POST", "/api/items/PLAT-1/live", fmt.Sprintf(op, veraClient), http.StatusForbidden)
+	w.bert.expect("POST", "/api/items/PLAT-1/live", fmt.Sprintf(op, snap["client"].(string)), http.StatusNoContent)
+	if e := vera.next("numbered"); e["numbered"] != true || e["name"] != "bert" {
+		t.Fatalf("numbered %v", e)
+	}
+	if !numbered() {
+		t.Fatal("the live session did not store the numbering")
+	}
+	// A version tells whether it was numbered.
+	var last int
+	for _, e := range w.bert.expect("GET", "/api/items/PLAT-1/history", "", http.StatusOK)["events"].([]any) {
+		if ev := e.(map[string]any); ev["kind"] == "BodyCommitted" {
+			last = int(ev["seq"].(float64))
+		}
+	}
+	if v := w.vera.expect("GET", fmt.Sprintf("/api/items/PLAT-1/versions/%d", last), "", http.StatusOK); v["numbered"] != true {
+		t.Fatalf("version %v", v)
+	}
 }

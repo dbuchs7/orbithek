@@ -348,6 +348,66 @@ func TestSoundIsPlayedOrNamed(t *testing.T) {
 	}
 }
 
+// TestNumberedHeadingsInEveryFormat: a numbered body shows the numbers of
+// its headings in the text and in its table of contents, in the HTML, the
+// Word file and the Markdown; an unnumbered one shows none
+// (ADR-draft-numbered-headings).
+func TestNumberedHeadingsInEveryFormat(t *testing.T) {
+	body := []item.Block{
+		{Kind: item.TOC},
+		{Kind: item.Heading, Level: 1, Text: "Goals"},
+		{Kind: item.Heading, Level: 2, Text: "Scope"},
+		{Kind: item.Heading, Level: 1, Text: "Plan"},
+	}
+	numbered := Document{Pages: []Page{{ID: "p", Title: "Concept", Body: body, Numbered: true}}}
+	plain := Document{Pages: []Page{{ID: "p", Title: "Concept", Body: body}}}
+
+	var h bytes.Buffer
+	if err := HTML(&h, numbered, "en"); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`<li class="level-1"><span class="num">1</span> Goals</li>`, `<li class="level-2"><span class="num">1.1</span> Scope</li>`,
+		`<h2><span class="num">1</span> Goals</h2>`, `<h3><span class="num">1.1</span> Scope</h3>`, `<h2><span class="num">2</span> Plan</h2>`} {
+		if !strings.Contains(h.String(), want) {
+			t.Errorf("the HTML lacks %q:\n%s", want, h.String())
+		}
+	}
+	h.Reset()
+	noErrE(t, HTML(&h, plain, "en"))
+	if strings.Contains(h.String(), `class="num"`) {
+		t.Errorf("an unnumbered body shows numbers:\n%s", h.String())
+	}
+
+	var w bytes.Buffer
+	noErrE(t, DOCX(&w, numbered))
+	doc := documentXML(t, w.Bytes())
+	for _, want := range []string{`<w:t xml:space="preserve">1.1 Scope</w:t>`, `<w:pStyle w:val="Heading2"/></w:pPr><w:r><w:t xml:space="preserve">1.1 </w:t></w:r><w:r><w:t xml:space="preserve">Scope</w:t>`} {
+		if !strings.Contains(doc, want) {
+			t.Errorf("the Word file lacks %q:\n%s", want, doc)
+		}
+	}
+
+	var m bytes.Buffer
+	noErrE(t, Markdown(&m, numbered))
+	for _, want := range []string{"- 1 Goals\n  - 1.1 Scope\n- 2 Plan", "## 1 Goals", "### 1.1 Scope", "## 2 Plan"} {
+		if !strings.Contains(m.String(), want) {
+			t.Errorf("the Markdown lacks %q:\n%s", want, m.String())
+		}
+	}
+	m.Reset()
+	noErrE(t, Markdown(&m, plain))
+	if !strings.Contains(m.String(), "## Goals") || strings.Contains(m.String(), "1.1") {
+		t.Errorf("an unnumbered body shows numbers:\n%s", m.String())
+	}
+}
+
+func noErrE(t *testing.T, err error) {
+	t.Helper()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 // TestChildPagesAreListedToTheirDepth lists the same child pages one
 // level, two levels and every level deep, in every format
 // (ADR-0239).
@@ -436,7 +496,8 @@ func TestATableOfContentsListsDownToItsLevel(t *testing.T) {
 		t.Errorf("the Word file's table of contents does not stop at level 2:\n%s", got)
 	}
 	b2 := &docxBuilder{}
-	if got := b2.tocField(item.Block{Kind: item.TOC, Level: 1}, body); !strings.Contains(got, `TOC \o "1-1"`) || strings.Contains(got, "Scope") {
+	toc1 := item.Block{Kind: item.TOC, Level: 1}
+	if got := b2.tocField(toc1, tocEntries(Document{}, Page{Body: body}, toc1)); !strings.Contains(got, `TOC \o "1-1"`) || strings.Contains(got, "Scope") {
 		t.Errorf("Word's own field does not stop at level 1: %s", got)
 	}
 }
@@ -509,5 +570,38 @@ func TestATableOfContentsCountsTheTextOfAnEmbedAsThePagesOwn(t *testing.T) {
 	}
 	if md := m.String(); !strings.Contains(md, "- Start\n- Gloves\n- End") {
 		t.Errorf("the Markdown's table of contents does not count the embedded text:\n%s", md)
+	}
+}
+
+// TestTheTextOfAnEmbedIsNumberedAsThePagesOwn: the headings of an embed of
+// its text alone take the numbers of the page around it, in the text and
+// in its table of contents; an item embedded whole numbers its own
+// (ADR-draft-numbered-headings, ADR-0237).
+func TestTheTextOfAnEmbedIsNumberedAsThePagesOwn(t *testing.T) {
+	part := Page{ID: "s", Title: "Safety", Body: []item.Block{{Kind: item.Heading, Level: 1, Text: "Gloves"}}}
+	whole := Page{ID: "w", Key: "DOC-8", Title: "Other", Numbered: true, Body: []item.Block{{Kind: item.Heading, Level: 1, Text: "Own"}}}
+	doc := Document{Pages: []Page{{ID: "p", Title: "Manual", Numbered: true, Body: []item.Block{
+		{Kind: item.TOC}, {Kind: item.Heading, Level: 1, Text: "Start"}, {Kind: item.Embed, Ref: "s", View: item.ViewText},
+		{Kind: item.Embed, Ref: "w"}, {Kind: item.Heading, Level: 1, Text: "End"},
+	}}}, Embeds: map[item.ID]Page{"s": part, "w": whole}}
+	var h bytes.Buffer
+	noErrE(t, HTML(&h, doc, "en"))
+	for _, want := range []string{`<span class="num">2</span> Gloves</li>`, `<span class="num">3</span> End</li>`,
+		`<span class="num">2</span> Gloves</h`, `<span class="num">3</span> End</h`, `<span class="num">1</span> Own</h`} {
+		if !strings.Contains(h.String(), want) {
+			t.Errorf("the HTML lacks %q:\n%s", want, h.String())
+		}
+	}
+	var m bytes.Buffer
+	noErrE(t, Markdown(&m, doc))
+	for _, want := range []string{"- 1 Start\n- 2 Gloves\n- 3 End", " 2 Gloves", " 3 End"} {
+		if !strings.Contains(m.String(), want) {
+			t.Errorf("the Markdown lacks %q:\n%s", want, m.String())
+		}
+	}
+	var w bytes.Buffer
+	noErrE(t, DOCX(&w, doc))
+	if got := documentXML(t, w.Bytes()); !strings.Contains(got, `<w:t xml:space="preserve">2 </w:t></w:r><w:r><w:t xml:space="preserve">Gloves`) {
+		t.Errorf("the Word file does not number the embedded text as the page's:\n%s", got)
 	}
 }

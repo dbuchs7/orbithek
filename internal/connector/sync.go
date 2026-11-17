@@ -378,7 +378,7 @@ func apply(db *storage.DB, cfg site.Connector, entries []Entry, dry, partial boo
 			continue
 		}
 		if !dry {
-			body := item.Doc{Blocks: append([]item.Block{{Kind: item.Panel, Tone: "warning", Text: words.withdrawn}}, it.Body.Blocks...)}
+			body := item.Doc{Blocks: append([]item.Block{{Kind: item.Panel, Tone: "warning", Text: words.withdrawn}}, it.Body.Blocks...), Numbered: it.Body.Numbered}
 			err := db.Write(func(s *item.Store) error {
 				if err := s.SetLabels(Actor(cfg), it.ID, append(slices.Clone(it.Labels), WithdrawnLabel)); err != nil {
 					return err

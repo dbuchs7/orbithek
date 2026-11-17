@@ -538,3 +538,68 @@ func TestReleasingABlockNoLongerHeldIsAnswered(t *testing.T) {
 		t.Fatalf("releasing what one does not hold commits: %v", f.store.commits)
 	}
 }
+
+// TestNumberingIsStoredAtOnceWithTheReleasedBlocks: turning the numbering
+// of the headings on or off takes no lock, stores the body at once with
+// the blocks as they were last released, and tells every client
+// (ADR-draft-numbered-headings).
+func TestNumberingIsStoredAtOnceWithTheReleasedBlocks(t *testing.T) {
+	f := newFixture(t, "one", "two")
+	anna, bert := f.join("anna"), f.join("bert")
+	if anna.events[0].Numbered {
+		t.Fatal("an unnumbered body joined numbered")
+	}
+	ids := anna.ids()
+	noErr(t, bert.apply(Op{Op: "set", ID: ids[1], Block: para("two by bert, unfinished")}))
+
+	noErr(t, anna.apply(Op{Op: "number", Numbered: true}))
+	if !f.store.body.Numbered {
+		t.Fatal("the numbering was not stored")
+	}
+	if got := f.store.commits; len(got) != 1 || got[0].by != "anna" || !slices.Equal(got[0].text, []string{"one", "two"}) {
+		t.Fatalf("commits %v: bert's draft must stay a draft", got)
+	}
+	if e := bert.last(Numbering); !e.Numbered || e.By != "anna" || e.Name != "anna" {
+		t.Fatalf("bert sees %+v", e)
+	}
+	// Bert keeps his lock and finishes his block; the body stays numbered.
+	noErr(t, bert.apply(Op{Op: "release", ID: ids[1]}))
+	if !f.store.body.Numbered || f.store.body.Blocks[1].Text != "two by bert, unfinished" {
+		t.Fatalf("body %+v", f.store.body)
+	}
+	// Setting what is set stores nothing.
+	n := len(f.store.commits)
+	noErr(t, anna.apply(Op{Op: "number", Numbered: true}))
+	if len(f.store.commits) != n {
+		t.Fatal("an unchanged numbering was stored again")
+	}
+	// A newcomer joins numbered.
+	if !f.join("vera").events[0].Numbered {
+		t.Fatal("the snapshot does not say the body is numbered")
+	}
+	noErr(t, anna.apply(Op{Op: "number", Numbered: false}))
+	if f.store.body.Numbered {
+		t.Fatal("the numbering was not turned off")
+	}
+}
+
+func TestNumberingIsRefusedToReadersAndKeptWhenTheCommitFails(t *testing.T) {
+	f := newFixture(t, "one")
+	vera := f.join("vera")
+	if err := vera.apply(Op{Op: "number", Numbered: true}); !errors.Is(err, ErrForbidden) {
+		t.Fatalf("a reader numbers: %v", err)
+	}
+	anna := f.join("anna")
+	f.store.fail = errors.New("disk full")
+	if err := anna.apply(Op{Op: "number", Numbered: true}); err == nil {
+		t.Fatal("a failed commit was not reported")
+	}
+	f.store.fail = nil
+	// The session still holds the stored state: the next release stores
+	// the body unnumbered.
+	ids := anna.ids()
+	noErr(t, anna.apply(Op{Op: "set", ID: ids[0], Block: para("one, edited")}, Op{Op: "release", ID: ids[0]}))
+	if f.store.body.Numbered {
+		t.Fatal("a refused numbering was stored later")
+	}
+}

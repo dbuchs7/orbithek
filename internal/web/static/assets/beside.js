@@ -97,7 +97,7 @@ export function besidePane(params, tools) {
         embedContent: tools.embeds([item.id]), tasks: tools.tasks(item, true), markdown: tools.markdown(item), create: tools.create(item) });
       text = session.element;
     } else if (type.body) {
-      text = createEditor({ blocks: item.body, embeds, editable: false, resolve, childPages: tools.childPages(item), files: tools.files(item, attachments),
+      text = createEditor({ blocks: item.body, numbered: Boolean(item.numbered), embeds, editable: false, resolve, childPages: tools.childPages(item), files: tools.files(item, attachments),
         embedContent: tools.embeds([item.id]), tasks: tools.tasks(item, false) }).element;
     } else {
       text = h("p", { class: "muted", text: t("item.noBody") });

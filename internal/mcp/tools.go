@@ -320,7 +320,8 @@ var tools = []tool{
 		Params: []param{refParam, {"name", str, inBody, true, "The transition's name."}}},
 	{Name: "commit_body", Description: "Replace the item's body with a new version; the earlier one stays in the history. " +
 		"Refused while people edit it in a live session, and when it holds protected passages your caller may not read. To add to the end of a body, use append_to_body. " + blockFormat,
-		Method: "PUT", Path: "/api/items/{ref}/body", Params: []param{refParam, {"blocks", array, inBody, true, "The body's blocks."}}},
+		Method: "PUT", Path: "/api/items/{ref}/body", Params: []param{refParam, {"blocks", array, inBody, true, "The body's blocks."},
+			{"numbered", boolean, inBody, false, "true numbers the headings by their levels (1, 1.1, 1.1.1) in the text, its table of contents and its exports, false stops it; left out, the body keeps what it had."}}},
 	{Name: "append_to_body", Description: "Add blocks at the end of an item's body in one step, without sending the body back; the earlier version stays in the history. " +
 		"Refused while people edit it in a live session, and when it holds protected passages your caller may not read. " + blockFormat,
 		Method: "POST", Path: "/api/items/{ref}/body/blocks", Params: []param{refParam, {"blocks", array, inBody, true, "The blocks to add."}}},
