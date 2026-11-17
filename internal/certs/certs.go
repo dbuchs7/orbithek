@@ -210,3 +210,32 @@ func Pinned(certFiles []string) (*tls.Config, error) {
 		},
 	}, nil
 }
+
+// Roots are the certificate authorities a command that calls a server
+// verifies it against: the host's, with those of the PEM file caFile
+// added (ADR-0244). Without a file it returns nil, which
+// crypto/tls reads as the host's authorities.
+//
+// Added, never replacing: an organisation's own authority is why this
+// exists, and a caller that also reaches servers with publicly issued
+// certificates must not lose them by naming its own. It is no way around
+// verification, and there is none: a switch that skips it would be reached
+// for when a certificate is wrong, which is when it must not exist.
+func Roots(caFile string) (*x509.CertPool, error) {
+	caFile = strings.TrimSpace(caFile)
+	if caFile == "" {
+		return nil, nil
+	}
+	bundle, err := os.ReadFile(caFile)
+	if err != nil {
+		return nil, err
+	}
+	pool, err := x509.SystemCertPool()
+	if err != nil {
+		return nil, fmt.Errorf("the host's certificate authorities: %w", err)
+	}
+	if !pool.AppendCertsFromPEM(bundle) {
+		return nil, fmt.Errorf("%s holds no certificate", caFile)
+	}
+	return pool, nil
+}
