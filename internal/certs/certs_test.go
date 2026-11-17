@@ -311,7 +311,7 @@ func TestPinnedTrustsExactlyTheConfiguredCertificates(t *testing.T) {
 // TestRootsAddTheBundleToTheHostsAuthorities: a client given an
 // organisation's own authority trusts what it signed and still trusts
 // everything the host does; without a bundle it is left with the host's
-// (ADR-draft-ca-bundle).
+// (ADR-0244).
 func TestRootsAddTheBundleToTheHostsAuthorities(t *testing.T) {
 	if pool, err := Roots("  "); err != nil || pool != nil {
 		t.Errorf("without a bundle: %v, %v; want nil, which reads as the host's authorities", pool, err)

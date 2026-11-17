@@ -1,4 +1,4 @@
-# ADR-DRAFT: The commands that call a server trust an organisation's own certificate authority on request
+# ADR-0244: The commands that call a server trust an organisation's own certificate authority on request
 
 - **Status:** Proposed
 - **Implementation:** Partial

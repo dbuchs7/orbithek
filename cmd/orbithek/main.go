@@ -963,7 +963,7 @@ func mcpStdio(ctx context.Context, args []string, in io.Reader, out, stderr io.W
 
 // trusting is the transport of a command that calls a server whose
 // certificate may come from an organisation's own authority: it verifies
-// against the host's authorities and those of caFile (ADR-draft-ca-bundle).
+// against the host's authorities and those of caFile (ADR-0244).
 // Without a file it is nil, the default transport.
 func trusting(caFile string) (*http.Transport, error) {
 	roots, err := certs.Roots(caFile)

@@ -213,7 +213,7 @@ func Pinned(certFiles []string) (*tls.Config, error) {
 
 // Roots are the certificate authorities a command that calls a server
 // verifies it against: the host's, with those of the PEM file caFile
-// added (ADR-draft-ca-bundle). Without a file it returns nil, which
+// added (ADR-0244). Without a file it returns nil, which
 // crypto/tls reads as the host's authorities.
 //
 // Added, never replacing: an organisation's own authority is why this

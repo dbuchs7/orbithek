@@ -873,7 +873,7 @@ func tlsServer(t *testing.T, certFile, keyFile, body string) *httptest.Server {
 // TestCommandsTrustAnOrganisationsAuthority: mcp and healthcheck reach a
 // server whose certificate an organisation's own authority signed once
 // they are given that authority's file, by flag or OT_TLS_CA, and refuse
-// it without (ADR-draft-ca-bundle).
+// it without (ADR-0244).
 func TestCommandsTrustAnOrganisationsAuthority(t *testing.T) {
 	dir := t.TempDir()
 	ca := certstest.NewCA(t, dir, "ca")

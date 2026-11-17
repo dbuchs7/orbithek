@@ -133,7 +133,7 @@ Strongest form: for a server reachable from the internet, renewal stops being an
 - **One address for several names.** The server names itself by `OT_PUBLIC_URL` in OAuth (ADR-0068), in links of messages and in the sign-in redirect registered at an identity provider (ADR-0030).
   With that set, an assistant connecting through a second name gets metadata for the first, which RFC 9728 does not allow, and single sign-on returns to the first.
   Several names are therefore served, but one of them remains the address for these functions until a record decides otherwise.
-- **Private certificate authorities.** Settled by ADR-draft-ca-bundle for the commands that call a server: `-tls-ca` adds a bundle to the host's authorities.
+- **Private certificate authorities.** Settled by ADR-0244 for the commands that call a server: `-tls-ca` adds a bundle to the host's authorities.
 - **HSTS and port 80.** Settled by ADR-0243: both are settings, off unless asked for.
 
 ## Links
