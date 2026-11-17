@@ -2,15 +2,16 @@
 // server, the API and the embedded web UI in one executable, for every
 // supported platform and as a container image.
 //
-//	orbithek serve [-addr :8080] [-data-dir data]
+//	orbithek serve [-addr :8080] [-data-dir data] [-tls-cert FILE -tls-key FILE]...
 //	orbithek check [-data-dir data]
 //	orbithek import -from SOURCE -site URL [-spaces KEY,...] [-projects KEY,...] [-data-dir data]
-//	orbithek healthcheck [-url http://127.0.0.1:8080/healthz]
+//	orbithek healthcheck [-url http://127.0.0.1:8080/healthz] [-tls-cert FILE]...
 //	orbithek version
 package main
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"flag"
 	"fmt"
@@ -33,6 +34,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/backup/dest"
 	"github.com/dbuchs7/orbithek/internal/budget"
 	"github.com/dbuchs7/orbithek/internal/buildinfo"
+	"github.com/dbuchs7/orbithek/internal/certs"
 	"github.com/dbuchs7/orbithek/internal/collab"
 	"github.com/dbuchs7/orbithek/internal/connector"
 	"github.com/dbuchs7/orbithek/internal/engine"
@@ -128,8 +130,16 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 	fs := newFlags("serve", stderr)
 	addr := fs.String("addr", ":8080", "address to listen on")
 	dataDir := fs.String("data-dir", defaultDataDir, "directory holding the event log")
+	var certFiles, keyFiles fileList
+	fs.Var(&certFiles, "tls-cert", "PEM certificate chain to answer HTTPS with on -addr instead of a reverse proxy doing it; given once per certificate, the name a client asks for chooses among them and the first answers every other (default: $OT_TLS_CERT, separated by commas)")
+	fs.Var(&keyFiles, "tls-key", "PEM private key of the -tls-cert given at the same place (default: $OT_TLS_KEY)")
 	if err := fs.Parse(args); err != nil {
 		return parseFailed(err)
+	}
+	pairs, err := certs.Pairs(tlsFiles(certFiles, keyFiles, os.Getenv))
+	if err != nil {
+		fmt.Fprintln(stderr, "serve:", err)
+		return 2
 	}
 	log := slog.New(slog.NewTextHandler(stderr, nil))
 	log.Info("starting", "build", buildinfo.Get().String())
@@ -152,6 +162,18 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 		if dropped {
 			log.Info("gave up root", "uid", to.UID, "gid", to.GID, "data-dir", *dataDir)
 		}
+	}
+
+	// The certificates are read after root is given up, as every renewal
+	// is, and before the data directory is touched (ADR-draft-tls-in-the-binary).
+	var tlsConfig *tls.Config
+	if len(pairs) > 0 {
+		store, err := certs.Open(pairs, log)
+		if err != nil {
+			log.Error("cannot serve TLS", "err", err)
+			return 1
+		}
+		tlsConfig = store.Config()
 	}
 
 	db, rec, err := storage.OpenWith(*dataDir, storage.Options{Log: log})
@@ -364,7 +386,7 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 	sharesDone := make(chan struct{})
 	go func() { shares.Loop(sharesCtx); close(sharesDone) }()
 	defer func() { stopShares(); <-sharesDone }()
-	if err := server.Serve(ctx, ln, server.BehindProxies(proxies, server.WithPublicURL(notifier.PublicURL(), server.Handler(routes, db.Accounts))), log); err != nil {
+	if err := server.Serve(ctx, ln, server.BehindProxies(proxies, server.WithPublicURL(notifier.PublicURL(), server.Handler(routes, db.Accounts))), tlsConfig, log); err != nil {
 		log.Error("server failed", "err", err)
 		return 1
 	}
@@ -866,21 +888,73 @@ func mcpStdio(ctx context.Context, args []string, in io.Reader, out, stderr io.W
 	return 0
 }
 
+// fileList is a flag naming files: given several times, or once with the
+// files separated by commas.
+type fileList []string
+
+func (l *fileList) String() string { return strings.Join(*l, ",") }
+
+func (l *fileList) Set(v string) error {
+	for _, f := range strings.Split(v, ",") {
+		if f = strings.TrimSpace(f); f != "" {
+			*l = append(*l, f)
+		}
+	}
+	return nil
+}
+
+// tlsFiles are the certificate and key files to serve TLS with: those the
+// flags name, or, where no flag names any, those of OT_TLS_CERT and
+// OT_TLS_KEY. The flags replace the environment as a whole, so a pair is
+// never made of one file from each.
+func tlsFiles(certFiles, keyFiles fileList, getenv func(string) string) (chains, keys []string) {
+	if len(certFiles) == 0 && len(keyFiles) == 0 {
+		_ = certFiles.Set(getenv("OT_TLS_CERT"))
+		_ = keyFiles.Set(getenv("OT_TLS_KEY"))
+	}
+	return certFiles, keyFiles
+}
+
+// probeURL is the liveness probe healthcheck asks: the one given, else the
+// port the container image serves, over TLS when the server was given
+// certificates.
+func probeURL(given string, secure bool) string {
+	switch {
+	case given != "":
+		return given
+	case secure:
+		return "https://127.0.0.1:8080/healthz"
+	}
+	return "http://127.0.0.1:8080/healthz"
+}
+
 func healthcheck(ctx context.Context, args []string, stderr io.Writer) int {
 	fs := newFlags("healthcheck", stderr)
-	url := fs.String("url", "http://127.0.0.1:8080/healthz", "liveness probe to query")
+	url := fs.String("url", "", "liveness probe to query (default: http://127.0.0.1:8080/healthz, or https:// with -tls-cert)")
 	timeout := fs.Duration("timeout", 3*time.Second, "how long to wait for an answer")
+	var certFiles fileList
+	fs.Var(&certFiles, "tls-cert", "the certificate files the server was given: an https probe then trusts exactly these certificates, at whatever address it asks (default: $OT_TLS_CERT)")
 	if err := fs.Parse(args); err != nil {
 		return parseFailed(err)
 	}
+	pinned, _ := tlsFiles(certFiles, nil, os.Getenv)
+	client := http.DefaultClient
+	if len(pinned) > 0 {
+		cfg, err := certs.Pinned(pinned)
+		if err != nil {
+			fmt.Fprintln(stderr, "healthcheck:", err)
+			return 2
+		}
+		client = &http.Client{Transport: &http.Transport{TLSClientConfig: cfg}}
+	}
 	ctx, cancel := context.WithTimeout(ctx, *timeout)
 	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, *url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, probeURL(*url, len(pinned) > 0), nil)
 	if err != nil {
 		fmt.Fprintln(stderr, "healthcheck:", err)
 		return 2
 	}
-	res, err := http.DefaultClient.Do(req)
+	res, err := client.Do(req)
 	if err != nil {
 		fmt.Fprintln(stderr, "healthcheck:", err)
 		return 1

@@ -21,6 +21,8 @@ services:
       # A named volume; a directory of the host works as well, e.g.
       # /volume1/docker/orbithek/data:/data (ADR-0038).
       - orbithek-data:/data
+      # Certificates for OT_TLS_CERT and OT_TLS_KEY, read-only.
+      # - /volume1/docker/orbithek/certs:/certs:ro
     environment:
       # --- Start and address -------------------------------------------
       # The administrator the first start creates; ignored afterwards.
@@ -30,6 +32,13 @@ services:
       # OT_PUBLIC_URL: https://wiki.example.org
       # The reverse proxy's address as the server sees it (ADR-0037).
       # OT_TRUSTED_PROXIES: 172.17.0.1
+      # Without a reverse proxy: certificates the server answers HTTPS
+      # with on port 8080, as PEM files mounted below and readable by the
+      # account of OT_RUN_AS; several are separated by commas, and the
+      # name a client asks for chooses among them
+      # (ADR-draft-tls-in-the-binary).
+      # OT_TLS_CERT: /certs/wiki.crt
+      # OT_TLS_KEY: /certs/wiki.key
       # The server's local time, for scheduled clean-ups (ADR-0105).
       # TZ: Europe/Zurich
       # Another account to own the files of /data (ADR-0038).
