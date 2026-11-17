@@ -467,3 +467,97 @@ export function tableFromDOM(table, safe, rules = new Map()) {
   const l = normalLayout(layout, rows.length, rows[0].length);
   return { text, marks, widths: l.widths, heights: l.heights, cells: l.cells };
 }
+
+// --- chosen cells copied and pasted (ADR-0236) ---------------------------------
+
+// subTable is the cells of range with their sizes and colours, as a table
+// of their own, as chosen cells are copied.
+export function subTable(rows, layout, range) {
+  const sub = rows.slice(range.r0, range.r1 + 1).map((row) => row.slice(range.c0, range.c1 + 1));
+  const pick = (v, a, b) => (v ? v.slice(a, b + 1) : null);
+  const cells = (layout.cells || []).filter((c) => inRange(range, c.row, c.col)).map((c) => ({ ...c, row: c.row - range.r0, col: c.col - range.c0 }));
+  return { rows: sub, layout: normalLayout({ widths: pick(layout.widths, range.c0, range.c1), heights: pick(layout.heights, range.r0, range.r1), cells }, sub.length, sub[0].length) };
+}
+
+// tableAttrs is a table block's text, marks and layout from rows of cells
+// and a layout.
+export function tableAttrs(rows, layout) {
+  const { text, marks } = joinCells(rows);
+  const l = normalLayout(layout, rows.length, rows[0].length);
+  return { text, marks, widths: l.widths, heights: l.heights, cells: l.cells };
+}
+
+// pasteCells writes grid, rows of cells, into the table with its top left
+// cell at at { r, c }; the table grows by the rows and columns the grid
+// needs, new columns taking the grid's widths. A pasted cell takes the
+// grid's fill and border where the grid colours it; elsewhere the
+// table's colours stay.
+export function pasteCells(rows, layout, at, grid, gridLayout = {}) {
+  const gridCols = Math.max(...grid.map((r) => r.length));
+  const nRows = Math.max(rows.length, at.r + grid.length);
+  const nCols = Math.min(MAX_COLUMNS, Math.max(rows[0].length, at.c + gridCols));
+  const next = Array.from({ length: nRows }, (_, r) => Array.from({ length: nCols }, (_, c) => {
+    const g = r >= at.r && c >= at.c ? grid[r - at.r]?.[c - at.c] : null;
+    return g ? { text: g.text, marks: g.marks } : rows[r]?.[c] || { text: "", marks: [] };
+  }));
+  const widths = layout.widths
+    ? Array.from({ length: nCols }, (_, c) => (c < rows[0].length ? layout.widths[c] : gridLayout.widths?.[c - at.c] || 0)) : null;
+  const heights = layout.heights ? Array.from({ length: nRows }, (_, r) => (r < rows.length ? layout.heights[r] : 0)) : null;
+  const cells = [...(layout.cells || [])];
+  for (const g of gridLayout.cells || []) {
+    const row = g.row + at.r, col = g.col + at.c;
+    if (col >= nCols) continue;
+    const i = cells.findIndex((x) => x.row === row && x.col === col);
+    const colour = { row, col, ...(g.fill ? { fill: g.fill } : {}), ...(g.border ? { border: g.border } : {}) };
+    if (i >= 0) cells[i] = colour;
+    else cells.push(colour);
+  }
+  return { rows: next, layout: normalLayout({ widths, heights, cells }, nRows, nCols) };
+}
+
+// clearCells empties the text of every cell in range; their colours stay.
+export function clearCells(rows, range) {
+  return rows.map((row, r) => row.map((cell, c) => (inRange(range, r, c) ? { text: "", marks: [] } : cell)));
+}
+
+// gridFromText reads text copied from a spreadsheet, cells separated by
+// tabs and rows by line breaks, into rows of cells; a cell in double
+// quotes may hold tabs, line breaks and doubled quotes, which spreadsheets
+// copy so. A last line break ends the last row.
+export function gridFromText(text) {
+  const s = (text || "").replace(/\r\n?/g, "\n").replace(/\n$/, "");
+  const rows = [[]];
+  let cell = "", quoted = false, fresh = true;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (quoted) {
+      if (ch !== '"') cell += ch;
+      else if (s[i + 1] === '"') { cell += '"'; i++; } else quoted = false;
+    } else if (ch === '"' && fresh) { quoted = true; fresh = false; } else if (ch === "\t" || ch === "\n") {
+      rows[rows.length - 1].push(cell);
+      if (ch === "\n") rows.push([]);
+      cell = "";
+      fresh = true;
+    } else { cell += ch; fresh = false; }
+  }
+  rows[rows.length - 1].push(cell);
+  return rows.map((row) => row.map((t) => cleanCell({ text: t, marks: [] })));
+}
+
+// manyCells says whether a grid holds more than one cell, so that a paste
+// into a cell being edited fills cells instead of text.
+export const manyCells = (grid) => grid.length > 1 || (grid[0]?.length || 0) > 1;
+
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const VOID = new Set(["col", "br"]);
+
+// specHTML writes a DOM output spec as HTML, as chosen cells are put on
+// the clipboard.
+export function specHTML(spec) {
+  if (typeof spec === "string") return esc(spec);
+  const [tag, maybe, ...rest] = spec;
+  const hasAttrs = maybe !== null && typeof maybe === "object" && !Array.isArray(maybe);
+  const kids = hasAttrs ? rest : [maybe, ...rest].filter((x) => x !== undefined);
+  const attrs = Object.entries(hasAttrs ? maybe : {}).filter(([, v]) => v !== null && v !== undefined).map(([k, v]) => ` ${k}="${esc(v)}"`).join("");
+  return VOID.has(tag) ? `<${tag}${attrs}>` : `<${tag}${attrs}>${kids.map(specHTML).join("")}</${tag}>`;
+}

@@ -13,6 +13,7 @@ import assert from "node:assert/strict";
 import {
   TONES, cellsOf, joinCells, cleanCell, normalMarks, normalLayout, colourOf, rangeOf, inRange, paint, formatCells,
   insertRow, insertColumn, removeRow, removeColumn, resized, tableDOM, tableFromDOM, classRules, declarations,
+  subTable, tableAttrs, pasteCells, clearCells, gridFromText, manyCells, specHTML,
 } from "../static/assets/tableparts.js";
 
 test("the tones are the model's", () => {
@@ -234,4 +235,52 @@ test("a copied block is checked as anything pasted: sizes and colours the model 
 
 test("declarations are read case-insensitively", () => {
   assert.deepEqual([...declarations("Font-Weight: BOLD; color:red;;x")], [["font-weight", "bold"], ["color", "red"]]);
+});
+
+const cell = (text, marks = []) => ({ text, marks });
+
+test("chosen cells are a table of their own, with their sizes and colours", () => {
+  const rows = cellsOf("a\tb\tc\nd\te\tf\ng\th\ti", [{ type: "bold", start: 8, end: 9 }]);
+  const layout = { widths: [10, 40, 50], heights: [0, 30, 0], cells: [{ row: 1, col: 2, fill: "red" }, { row: 0, col: 0, border: "blue" }] };
+  const sub = subTable(rows, layout, { r0: 1, c0: 1, r1: 2, c1: 2 });
+  assert.deepEqual(sub.rows, [[cell("e", [{ type: "bold", start: 0, end: 1 }]), cell("f")], [cell("h"), cell("i")]]);
+  assert.deepEqual(sub.layout, { widths: [40, 50], heights: [30, 0], cells: [{ row: 0, col: 1, fill: "red" }] });
+  assert.deepEqual(tableAttrs(sub.rows, sub.layout), { text: "e\tf\nh\ti", marks: [{ type: "bold", start: 0, end: 1 }],
+    widths: [40, 50], heights: [30, 0], cells: [{ row: 0, col: 1, fill: "red" }] });
+});
+
+test("copied cells written as HTML are read back whole", () => {
+  const attrs = { text: "x & y\t<b>", marks: [{ type: "italic", start: 0, end: 1 }], widths: null, heights: null, cells: [{ row: 0, col: 1, fill: "teal" }] };
+  const html = specHTML(tableDOM(attrs, safe));
+  assert.match(html, /^<table class="pm-table" data-pm-table="\{&quot;text&quot;/);
+  assert.match(html, /<th><em>x<\/em> &amp; y<\/th><th>&lt;b&gt;<\/th>/);
+  assert.equal(specHTML(["colgroup", ["col", { width: "5" }], ["col", {}]]), '<colgroup><col width="5"><col></colgroup>');
+});
+
+test("pasted cells overwrite from a cell on, and the table grows as they need", () => {
+  const rows = cellsOf("h1\th2\na\tb");
+  const layout = { widths: [100, 120], heights: [0, 20], cells: [{ row: 1, col: 1, fill: "yellow" }] };
+  const grid = [[cell("X", [{ type: "bold", start: 0, end: 1 }]), cell("Y")], [cell("Z"), cell("")]];
+  const out = pasteCells(rows, layout, { r: 1, c: 1 }, grid, { widths: [60, 70], cells: [{ row: 1, col: 0, border: "red" }] });
+  assert.deepEqual(tableAttrs(out.rows, out.layout), {
+    text: "h1\th2\t\na\tX\tY\n\tZ\t", marks: [{ type: "bold", start: 9, end: 10 }],
+    widths: [100, 120, 70], heights: [0, 20, 0],
+    cells: [{ row: 1, col: 1, fill: "yellow" }, { row: 2, col: 1, border: "red" }],
+  }, "uncoloured pasted cells keep the table's colours; a new column takes the grid's width");
+  const plain = pasteCells(cellsOf("a"), {}, { r: 0, c: 0 }, [[cell("1"), cell("2")]]);
+  assert.deepEqual(tableAttrs(plain.rows, plain.layout), { text: "1\t2", marks: [], widths: null, heights: null, cells: null });
+  const wide = pasteCells(cellsOf("a"), {}, { r: 0, c: 98 }, [[cell("1"), cell("2"), cell("3"), cell("4")]]);
+  assert.equal(wide.rows[0].length, 100, "at most 100 columns");
+});
+
+test("chosen cells are emptied, their colours kept apart", () => {
+  const rows = cellsOf("a\tb\nc\td", [{ type: "bold", start: 0, end: 1 }]);
+  assert.deepEqual(clearCells(rows, { r0: 0, c0: 0, r1: 1, c1: 0 }).map((r) => r.map((c) => c.text)), [["", "b"], ["", "d"]]);
+});
+
+test("text from a spreadsheet is read into cells, quoted cells holding tabs, line breaks and quotes", () => {
+  assert.deepEqual(gridFromText("a\tb\r\nc\td\r\n").map((r) => r.map((c) => c.text)), [["a", "b"], ["c", "d"]]);
+  assert.deepEqual(gridFromText('"x\ty"\t"line\nbreak"\t"say ""hi"""\nplain "quote"').map((r) => r.map((c) => c.text)),
+    [["x y", "line break", 'say "hi"'], ['plain "quote"']]);
+  assert.ok(manyCells(gridFromText("a\tb")) && manyCells(gridFromText("a\nb")) && !manyCells(gridFromText("just text")));
 });
