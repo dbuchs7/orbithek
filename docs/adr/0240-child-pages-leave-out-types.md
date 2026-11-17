@@ -4,7 +4,7 @@
 - **Implementation:** Partial
 - **Date:** 2026-11-17
 - **Deciders:** Project initiators. Request of 2026-11-17: a list of child pages gets a filter by type, for tasks; the requester chose that types are left out (rather than chosen to be shown), that the items below a left-out item are left out with it, and that the change goes into a pull request of its own. The rest are defaults proposed with the implementation, to be confirmed by the requester.
-- **Open question:** whether the dialog that inserts a list should ask for the types too, as it asks for the depth; whether a list should show a left-out item's pages that are not left out themselves, in its place
+- **Open question:** whether a list should show a left-out item's pages that are not left out themselves, in its place
 - **Question checked:** 2026-11
 
 ## Context and problem statement
@@ -43,13 +43,14 @@ Chosen option: **1, types left out**, because it says what the request asks ("wi
 - **The API:** `GET /api/spaces/{space}/tree` takes `hide`, type names separated by commas, with `depth`; MCP's `get_tree` offers it, and its description of blocks names the field.
 - **The editor:** beside the depth, *Types* says *all* or *without* the types left out; a click opens a box per type of the item's room (`GET /api/types?space=`), and a type the list leaves out that is no longer defined stays offered so it can be shown again.
   Type names are content and stay untranslated.
+  The dialog that inserts a list asks for the types too, beside the depth, every type of the room ticked at first (requested on 2026-11-17).
 - **Exports:** Word, PDF and Markdown leave out the same items; the server reads the children once per page without leaving any out and each list leaves out its own types.
 
 ### Consequences
 
 - **Positive:** a project page lists its chapters without its tasks; lists written before are unchanged.
 - **Negative / trade-offs accepted:** a page below a task is left out with the task, even where a reader would want it; exports read the children before leaving types out, so with many left-out items a list in an export can reach the budget sooner than in the editor.
-- **Follow-ups / risks to watch:** the open questions above.
+- **Follow-ups / risks to watch:** the open question above.
 
 ## Pros and cons of the options
 
