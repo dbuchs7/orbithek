@@ -1,9 +1,9 @@
 # ADR-0242: TLS in the binary, with certificates from files chosen by the name asked for
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-17
-- **Deciders:** Project initiators (request of 2026-11-17: the listener answers requests for several host names, supports Server Name Indication and takes `-tls-cert` and `-tls-key`; the requester asked to see whether atlas has the same subject and how it settled it). On 2026-11-17 the requester decided the first open question: TLS 1.3 alone, as in atlas. Everything else beyond the two flags and the choice by name is a default proposed with the implementation, to be confirmed by the requester.
+- **Deciders:** Project initiators (request of 2026-11-17: the listener answers requests for several host names, supports Server Name Indication and takes `-tls-cert` and `-tls-key`; the requester asked to see whether atlas has the same subject and how it settled it). On 2026-11-17 the requester decided the first open question: TLS 1.3 alone, as in atlas. Accepted by the requester on 2026-11-17, with the defaults proposed with the implementation; the open questions below stay open.
 - **Open question:** how a server that answers several names names itself, as `OT_PUBLIC_URL` and the sign-in redirect hold one address; whether the commands that call a server (`mcp`) need a bundle of certificate authorities for a private one; whether `Strict-Transport-Security` and a redirect from port 80 belong in the binary
 - **Question checked:** 2026-11
 
