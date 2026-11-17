@@ -1593,7 +1593,7 @@ function webSource() {
     check(await page.locator("#body .pm-toc select.pm-toc-depth").inputValue() === "2", "the table of contents kept its depth");
     await page.waitForSelector("#body .pm-tables button:has-text('Table 1: ')"); // numbered, with its header row
     await page.waitForSelector("#body .pm-figures:has-text('No pictures yet.')");
-    // Numbered headings (ADR-draft-numbered-headings): the heading and its
+    // Numbered headings (ADR-0241): the heading and its
     // entry in the table of contents show the number, stored at once.
     check(await page.locator("#body .pm-num, #body [data-num]").count() === 0, "the headings are not numbered before they are asked to be");
     await page.click("#pm-number-headings");
