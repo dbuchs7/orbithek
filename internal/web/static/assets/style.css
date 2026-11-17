@@ -527,6 +527,9 @@ span.tree-toggle { cursor: default; }
 .pm-table table { border-collapse: collapse; min-width: 50%; }
 .pm-table th, .pm-table td { position: relative; border: 1px solid var(--border-strong); padding: 4px 8px; text-align: left; vertical-align: top; }
 .pm-table th { background: var(--bg); font-weight: 600; }
+/* The last row keeps its lower border, which the UI's own lists drop
+   (tr:last-child > td, below); a coloured border keeps its tone. */
+.pm-table tr:last-child > td:not(.pm-cell-border) { border-bottom: 1px solid var(--border-strong); }
 /* Text that does not fit wraps within its cell (ADR-0214). */
 .pm-cell-text, .pm-cell-editor { white-space: pre-wrap; overflow-wrap: anywhere; min-height: 1.4em; }
 /* The cell shows the focus with its own outline (below), not a second ring. */

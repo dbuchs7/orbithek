@@ -1524,6 +1524,8 @@ function webSource() {
     check(await page.locator("#body .pm-table th.pm-border-red").count() === 2, "both chosen header cells kept their border");
     check(await page.locator("#body .pm-table table.pm-table-sized col").evaluateAll((cols) => cols.every((c) => c.style.width.endsWith("px"))),
       "the columns kept their widths");
+    check(await page.locator("#body .pm-table tr:last-child > td").evaluateAll((cells) => cells.every((td) => getComputedStyle(td).borderBottomStyle !== "none"
+      && parseFloat(getComputedStyle(td).borderBottomWidth) >= 1)), "the cells of the last row keep their lower border");
     check(await page.locator("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-text").evaluate((el) => el.scrollWidth <= el.clientWidth + 1 && el.getClientRects().length > 0
       && el.closest("td").getBoundingClientRect().height > 40), "the long text wraps within its cell");
     await page.waitForSelector("#body .pm-toc button:has-text('Prepare')");
