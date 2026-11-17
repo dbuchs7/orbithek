@@ -78,7 +78,7 @@ func TestAChangeThatIsNotPersistedDoesNotHappen(t *testing.T) {
 
 func TestDecodeRejectsWhatItCannotReadExactly(t *testing.T) {
 	cases := map[string]string{
-		"newer format":       `[{"v":67,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
+		"newer format":       `[{"v":68,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"no format version":  `[{"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"unknown field":      `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated","colour":"red"}]`,
 		"unknown role":       `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"RoleGranted","role":"owner"}]`,
@@ -206,8 +206,9 @@ func TestPersistedFormatIsStable(t *testing.T) {
 	depths := tocDepthLog(t)
 	deepLists := childrenDepthLog(t)
 	numbered := numberedLog(t)
+	hidden := hideTypesLog(t)
 	kinds := map[EventKind]bool{}
-	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments, notes, photos, places, renames, geotags, moves, albumVideos, faces, slideOrders, fingerprints, times, turned, highlights, itemViews, kinds55, styledTables, shareFiles, sounds, depths, deepLists, numbered) {
+	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments, notes, photos, places, renames, geotags, moves, albumVideos, faces, slideOrders, fingerprints, times, turned, highlights, itemViews, kinds55, styledTables, shareFiles, sounds, depths, deepLists, numbered, hidden) {
 		kinds[e.Kind] = true
 	}
 	for _, k := range allEventKinds {
@@ -327,6 +328,8 @@ func TestPersistedFormatIsStable(t *testing.T) {
 		{"events.current.childrendepth.plain.golden.jsonl", nil, deepLists},
 		{"events.current.numbered.golden.jsonl", fakeSealer{}, numbered},
 		{"events.current.numbered.plain.golden.jsonl", nil, numbered},
+		{"events.current.hidetypes.golden.jsonl", fakeSealer{}, hidden},
+		{"events.current.hidetypes.plain.golden.jsonl", nil, hidden},
 	}
 	for _, c := range cases {
 		name, sl, log := c.name, c.sl, c.log
@@ -1916,6 +1919,18 @@ func numberedLog(t *testing.T) []Event {
 	return s.Log()
 }
 
+// hideTypesLog lists child pages without tasks and decisions, so the
+// golden files pin the block field HideTypes
+// (ADR-0240).
+func hideTypesLog(t *testing.T) []Event {
+	s := setup(t)
+	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))
+	anna := s.As("anna")
+	page := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Handbook"}))
+	noErr(t, anna.CommitBody(page.ID, Doc{Blocks: []Block{{Kind: Children, Depth: 2, HideTypes: []string{"decision", "task"}}}}))
+	return s.Log()
+}
+
 // retentionLog gives the versions of a drawing a rule of their own,
 // cleans them up and returns them to the default, so the golden files pin
 // the kind AttachmentRetentionSet (ADR-0104).
@@ -2380,6 +2395,11 @@ func TestRichTextValidation(t *testing.T) {
 		"depth 1, not 0":          {Kind: Children, Depth: 1},
 		"depth past the most":     {Kind: Children, Depth: MaxChildrenDepth + 1},
 		"depth below all":         {Kind: Children, Depth: ChildrenAll - 1},
+		"hidden types on a toc":   {Kind: TOC, HideTypes: []string{"task"}},
+		"no hidden type named":    {Kind: Children, HideTypes: []string{}},
+		"hidden types unsorted":   {Kind: Children, HideTypes: []string{"task", "decision"}},
+		"a hidden type twice":     {Kind: Children, HideTypes: []string{"task", "task"}},
+		"a hidden type blank":     {Kind: Children, HideTypes: []string{" task"}},
 		"embed with text":         {Kind: Embed, Ref: task.ID, Text: "x"},
 		"embed with view both":    {Kind: Embed, Ref: task.ID, View: ViewBoth},
 		"level on an embed":       {Kind: Embed, Ref: task.ID, Level: 1},

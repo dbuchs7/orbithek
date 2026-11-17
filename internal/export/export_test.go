@@ -468,6 +468,47 @@ func TestChildPagesAreListedToTheirDepth(t *testing.T) {
 	}
 }
 
+// TestChildPagesLeaveOutTheTypesChosen leaves a type out of a list of
+// child pages, with everything below its items, in every format
+// (ADR-0240).
+func TestChildPagesLeaveOutTheTypesChosen(t *testing.T) {
+	kids := []Child{
+		{Title: "A", Type: "page", Children: []Child{{Title: "Sweep", Type: "chore"}, {Title: "A1", Type: "page"}}},
+		{Title: "Dust", Type: "chore", Children: []Child{{Title: "Below the dust", Type: "page"}}},
+	}
+	d := Document{Pages: []Page{{ID: "p", Title: "Home", Body: []item.Block{{Kind: item.Children, Depth: item.ChildrenAll, HideTypes: []string{"chore"}}}, Children: kids}}}
+	var b bytes.Buffer
+	if err := HTML(&b, d, "en"); err != nil {
+		t.Fatal(err)
+	}
+	if want := `<ul class="children"><li>A<ul><li>A1</li></ul></li></ul>`; !strings.Contains(b.String(), want) {
+		t.Errorf("the HTML lacks %s:\n%s", want, b.String())
+	}
+	var m bytes.Buffer
+	if err := Markdown(&m, d); err != nil {
+		t.Fatal(err)
+	}
+	if md := m.String(); !strings.Contains(md, "- A\n  - A1\n") || strings.Contains(md, "Dust") || strings.Contains(md, "Sweep") {
+		t.Errorf("the Markdown:\n%s", md)
+	}
+	var w bytes.Buffer
+	if err := DOCX(&w, d); err != nil {
+		t.Fatal(err)
+	}
+	if doc := documentXML(t, w.Bytes()); !strings.Contains(doc, ">A1<") || strings.Contains(doc, "Dust") || strings.Contains(doc, "Sweep") {
+		t.Errorf("the Word file:\n%s", doc)
+	}
+	// A list that leaves out every page it has shows an empty list.
+	d.Pages[0].Body[0].HideTypes = []string{"chore", "page"}
+	b.Reset()
+	if err := HTML(&b, d, "en"); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(b.String(), `<ul class="children"></ul>`) {
+		t.Errorf("everything left out:\n%s", b.String())
+	}
+}
+
 // TestATableOfContentsListsDownToItsLevel holds the depth of a table of
 // contents in every format (ADR-0237).
 func TestATableOfContentsListsDownToItsLevel(t *testing.T) {

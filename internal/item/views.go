@@ -111,3 +111,28 @@ func checkViewBlock(b Block) error {
 	}
 	return nil
 }
+
+// checkHideTypes validates the types a list of child pages leaves out
+// (ADR-0240): only such a list leaves types
+// out, 1 to MaxHiddenTypes names of types, each once and in sorted order.
+// An empty list that is not none is refused, so that a body decoded from
+// the log, where it reads as none, holds what the live one held. A name
+// need not name a type that exists: a type removed later leaves the list
+// valid.
+func checkHideTypes(b Block) error {
+	if b.Kind != Children {
+		return invalid("only a list of child pages leaves types out")
+	}
+	if len(b.HideTypes) == 0 || len(b.HideTypes) > MaxHiddenTypes {
+		return invalid("a list of child pages leaves out 1 to %d types, or none named", MaxHiddenTypes)
+	}
+	for i, name := range b.HideTypes {
+		if !validViewName(name) {
+			return invalid("type %q: a type is named by 1 to %d characters without control characters or surrounding spaces", name, maxViewName)
+		}
+		if i > 0 && b.HideTypes[i-1] >= name {
+			return invalid("the types a list of child pages leaves out are named once each, in sorted order")
+		}
+	}
+	return nil
+}

@@ -40,7 +40,7 @@ import { pdfView } from "./pdfview.js";
 import { attachmentLink, isPdf, onPdf, readerHref } from "./pdfparts.js";
 import { bookmarklet, captureAddress, readCapture } from "./capture.js";
 import { captureView } from "./captureview.js";
-import { childDepthQuery } from "./childpages.js";
+import { childDepthQuery, childHideQuery } from "./childpages.js";
 import { isWebLink, webLinkCard } from "./weblink.js";
 import { fieldInput, fieldView, isRich } from "./fields.js";
 import { typeEditor, roomTypesCard } from "./typeeditor.js";
@@ -646,11 +646,14 @@ function chevronIcon(left) {
 }
 
 // childPagesOf lists an item's child pages for a list of child pages in
-// its body (ADR-0042), to depth levels, -1 for every level: it answers
-// { items, truncated }, each page with its children
-// (ADR-0239).
-const childPagesOf = (item) => async (depth = 1) =>
-  get(`/api/spaces/${encodeURIComponent(item.space)}/tree?parent=${item.id}&depth=${childDepthQuery(depth)}`);
+// its body (ADR-0042), to depth levels, -1 for every level, leaving out
+// the types in hide: it answers { items, truncated }, each page with its
+// children (ADR-0239, ADR-0240). Its types()
+// names the types of the item's room, which such a list may leave out.
+const childPagesOf = (item) => Object.assign(async (depth = 1, hide = []) =>
+  get(`/api/spaces/${encodeURIComponent(item.space)}/tree?parent=${item.id}&depth=${childDepthQuery(depth)}${childHideQuery(hide)}`), {
+  types: async () => (await get(`/api/types?space=${encodeURIComponent(item.space)}`)).types.map((ty) => ty.name),
+});
 
 // filesOf serves and stores an item's attachments for its body (ADR-0045),
 // and knows which of them are drawings (ADR-0053).

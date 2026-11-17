@@ -206,7 +206,10 @@ import (
 //   - 66: a body may carry Numbered, its headings numbered by their
 //     levels, sealed with the body (ADR-draft-numbered-headings).
 //     Versions 1 to 65 are still read; their headings are not numbered.
-const CodecVersion = 66
+//   - 67: a list of child pages may carry HideTypes, the types it leaves
+//     out, sealed with the body (ADR-0240).
+//     Versions 1 to 66 are still read; their lists show every type.
+const CodecVersion = 67
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

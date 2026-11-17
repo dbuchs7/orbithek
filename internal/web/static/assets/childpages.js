@@ -14,6 +14,20 @@ export function childDepthName(depth) {
   return t("editor.childrenDepth", { n: depth });
 }
 
+// childTypesName says which types a list of child pages shows: every
+// type, or every type but those it leaves out
+// (ADR-0240). Type names are content and
+// stay untranslated.
+export function childTypesName(hide) {
+  return hide?.length ? t("editor.childrenTypesWithout", { types: hide.join(", ") }) : t("editor.childrenTypesAll");
+}
+
+// childHideQuery is the hide parameter of the page tree's API, empty when
+// a list leaves no type out.
+export function childHideQuery(hide) {
+  return hide?.length ? "&hide=" + encodeURIComponent(hide.join(",")) : "";
+}
+
 // childDepthQuery is the depth the page tree's API is asked for.
 export function childDepthQuery(depth) {
   if (depth === -1) return "all";
