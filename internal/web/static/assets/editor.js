@@ -1297,62 +1297,82 @@ function childTree(pages) {
 }
 
 // childrenView lists the child pages of the item to the depth the block
-// keeps, from childPages(depth), which answers { items, truncated }; an
-// editor chooses the depth (ADR-0042,
-// ADR-0239).
+// keeps, leaving out the types it leaves out, from childPages(depth, hide),
+// which answers { items, truncated }; an editor chooses both (ADR-0042,
+// ADR-0239, ADR-draft-child-pages-leave-out-types). A change of either
+// keeps the view, so the box of types stays open while one ticks several,
+// and loads the list again.
 function childrenView(node, v, getPos, childPages) {
-  const depth = node.attrs.depth || 0;
   const title = h("p", { class: "pm-box-title" }, h("span", { text: t("editor.children") }));
   const dom = h("nav", { class: "pm-children", contenteditable: "false", "aria-label": t("editor.children") }, title);
+  const hideOf = () => node.attrs.hideTypes || [];
+  // change sets attributes of the block, unless it is locked by someone
+  // else in the live session; refresh then shows the block as it is.
+  const change = (attrs) => {
+    const pos = getPos();
+    if (typeof pos !== "number" || dom.classList.contains("pm-locked")) return refresh();
+    v.dispatch(v.state.tr.setNodeMarkup(pos, null, { ...node.attrs, ...attrs }));
+  };
+  let choice = null;
+  let toggle = null;
+  let panel = null;
   if (v.editable) {
-    const choice = h("select", { class: "pm-children-depth", onchange: () => {
-      const pos = getPos();
-      if (typeof pos !== "number" || dom.classList.contains("pm-locked")) {
-        choice.value = String(depth);
-        return;
-      }
-      v.dispatch(v.state.tr.setNodeMarkup(pos, null, { ...node.attrs, depth: Number(choice.value) }));
-    } }, childDepths.map((d) => h("option", { value: String(d), text: childDepthName(d) })));
-    choice.value = String(depth);
+    choice = h("select", { class: "pm-children-depth", onchange: () => change({ depth: Number(choice.value) }) },
+      childDepths.map((d) => h("option", { value: String(d), text: childDepthName(d) })));
     // Labelled as a table of contents' depth is (ADR-0237).
     title.append(" ", h("label", { class: "pm-children-depth-label" }, t("editor.childrenDepthChoose"), choice));
-  }
-  const hide = node.attrs.hideTypes || [];
-  if (v.editable) {
-    // The types offered are those of the item's room; a hidden type no
-    // longer defined stays offered, so it can be shown again
-    // (ADR-draft-child-pages-leave-out-types).
-    const panel = h("div", { class: "pm-children-types", hidden: true });
-    const toggle = h("button", { type: "button", class: "link pm-children-types-toggle", "aria-expanded": "false", text: childTypesName(hide),
-      onclick: async () => {
-        const open = panel.hidden;
-        panel.hidden = !open;
-        toggle.setAttribute("aria-expanded", String(open));
-        if (!open || panel.childElementCount) return;
-        const names = await Promise.resolve(childPages?.types ? childPages.types() : []).catch(() => []);
-        const offered = [...new Set([...names, ...hide])].sort();
-        panel.replaceChildren(...offered.map((name) => h("label", { class: "check" },
-          h("input", { type: "checkbox", value: name, checked: !hide.includes(name), onchange: () => {
-            const pos = getPos();
-            if (typeof pos !== "number" || dom.classList.contains("pm-locked")) return;
-            const hidden = [...panel.querySelectorAll("input:not(:checked)")].map((i) => i.value).sort();
-            v.dispatch(v.state.tr.setNodeMarkup(pos, null, { ...node.attrs, hideTypes: hidden.length ? hidden : null }));
-          } }), " ", name)));
-      } });
+    // The types offered are those of the item's room; a type the list
+    // leaves out that is no longer defined stays offered, so it can be
+    // shown again (ADR-draft-child-pages-leave-out-types).
+    panel = h("div", { class: "pm-children-types", hidden: true });
+    toggle = h("button", { type: "button", class: "link pm-children-types-toggle", "aria-expanded": "false", onclick: async () => {
+      const open = panel.hidden;
+      panel.hidden = !open;
+      toggle.setAttribute("aria-expanded", String(open));
+      if (!open) return;
+      const names = await Promise.resolve(childPages?.types ? childPages.types() : []).catch(() => []);
+      const hide = hideOf();
+      const offered = [...new Set([...names, ...hide])].sort();
+      panel.replaceChildren(...offered.map((name) => h("label", { class: "check" },
+        h("input", { type: "checkbox", value: name, checked: !hide.includes(name), onchange: () => {
+          const hidden = [...panel.querySelectorAll("input:not(:checked)")].map((i) => i.value).sort();
+          change({ hideTypes: hidden.length ? hidden : null });
+        } }), " ", name)));
+    } });
     title.append(" ", h("span", { class: "pm-children-depth-label" }, t("editor.childrenTypes"), toggle));
     dom.append(panel);
   }
-  const list = h("div", { "aria-busy": "true" }, h("p", { class: "muted", text: "…" }));
+  const list = h("div", {});
   dom.append(list);
   const none = () => h("p", { class: "muted", text: t("editor.childrenNone") });
-  Promise.resolve(typeof childPages === "function" ? childPages(depth || 1, hide) : { items: [] }).then((res) => {
-    const kids = res?.items || [];
-    list.replaceChildren(kids.length ? childTree(kids) : none(),
-      res?.truncated ? h("p", { class: "muted", text: t("editor.childrenCut") }) : "");
-  }).catch(() => list.replaceChildren(none()))
-    .finally(() => list.removeAttribute("aria-busy"));
-  return { dom, ...selectable, update: (n) => n.type === node.type && n.attrs.depth === node.attrs.depth
-    && JSON.stringify(n.attrs.hideTypes) === JSON.stringify(node.attrs.hideTypes) };
+  let asked = 0;
+  // refresh shows the block's depth and types and loads its list; an
+  // answer overtaken by a later change is dropped.
+  const refresh = () => {
+    const depth = node.attrs.depth || 0;
+    const hide = hideOf();
+    if (choice) choice.value = String(depth);
+    if (toggle) toggle.textContent = childTypesName(hide);
+    if (panel) for (const box of panel.querySelectorAll("input")) box.checked = !hide.includes(box.value);
+    const mine = ++asked;
+    list.setAttribute("aria-busy", "true");
+    list.replaceChildren(h("p", { class: "muted", text: "…" }));
+    Promise.resolve(typeof childPages === "function" ? childPages(depth || 1, hide) : { items: [] }).then((res) => {
+      if (mine !== asked) return;
+      const kids = res?.items || [];
+      list.replaceChildren(kids.length ? childTree(kids) : none(),
+        res?.truncated ? h("p", { class: "muted", text: t("editor.childrenCut") }) : "");
+    }).catch(() => { if (mine === asked) list.replaceChildren(none()); })
+      .finally(() => { if (mine === asked) list.removeAttribute("aria-busy"); });
+  };
+  refresh();
+  return { dom, ...selectable, update: (n) => {
+    if (n.type !== node.type) return false;
+    const changed = n.attrs.depth !== node.attrs.depth || JSON.stringify(n.attrs.hideTypes) !== JSON.stringify(node.attrs.hideTypes);
+    node = n;
+    if (changed) refresh();
+    return true;
+  } };
 }
 
 // imageSizes are the widths offered besides dragging, in percent of the

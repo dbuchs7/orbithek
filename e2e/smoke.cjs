@@ -1486,8 +1486,9 @@ function webSource() {
     await page.uncheck("#body .pm-children .pm-children-types input[value=task]");
     await page.waitForSelector("#body .pm-children .pm-children-types-toggle:text-is('without task')");
     check(await page.locator("#body .pm-children a:text-is('Created from New, renamed')").count() === 0, "the list leaves the tasks out");
-    await page.click("#body .pm-children .pm-children-types-toggle");
+    // The box of types stays open while one ticks.
     await page.check("#body .pm-children .pm-children-types input[value=task]");
+    await page.waitForSelector("#body .pm-children .pm-children-types-toggle:text-is('all')");
     await page.waitForSelector("#body .pm-children li:has(> a:text-is('Upgrade')) > ul a:text-is('Created from New, renamed')");
     await page.click("#details h2"); // leave the editor: its blocks are released and saved
     await page.waitForSelector(".live[data-pending='0']");
