@@ -279,7 +279,23 @@ type Block struct {
 	Widths  []int  `json:",omitempty"`
 	Heights []int  `json:",omitempty"`
 	Cells   []Cell `json:",omitempty"`
+	// Depth is how many levels of child pages a list of child pages shows
+	// (ADR-draft-child-pages-to-a-chosen-depth): 0 shows one level, as
+	// every such list did before, 2 to MaxChildrenDepth that many, and
+	// ChildrenAll every level. One level is written as 0 only, so a body
+	// says it one way.
+	Depth int `json:",omitempty"`
 }
+
+// MaxChildrenDepth is the most levels a list of child pages names by
+// number, and ChildrenAll is the depth that shows every level
+// (ADR-draft-child-pages-to-a-chosen-depth). Both are a format of the
+// block, not a budget: how many pages one list shows at most is the
+// budget ChildPages.
+const (
+	MaxChildrenDepth = 5
+	ChildrenAll      = -1
+)
 
 // TableTones are the tones a table's cell is filled or bordered with
 // (ADR-0214): named, so a page reads alike in a light and a dark theme and

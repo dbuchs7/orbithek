@@ -149,8 +149,9 @@ type Page struct {
 	// whose file is missing or in a format the target cannot show keeps
 	// only its caption.
 	Images map[item.ID]Image
-	// Children are the titles of the child pages, for a list of them.
-	Children []string
+	// Children are the child pages, each with its own as deep as the
+	// page's lists of child pages show, for a list of them.
+	Children []Child
 	// Tasks are, by TaskListKey, the tasks a task list shows: key, title
 	// and state, as a reader read them when the document was made
 	// (ADR-0114, ADR-0151).
@@ -449,8 +450,14 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int) string {
 		return out.String()
 	case item.Children:
 		var out strings.Builder
-		for _, c := range p.Children {
-			out.WriteString(paraPr(b.pStyle("ListParagraph")+b.bulletNum(), run(c, "")))
+		for _, c := range childLines(p.Children, bl.Depth) {
+			// A deeper page stands further in, by the indent of one
+			// level of the list.
+			indent := ""
+			if c.Level > 0 {
+				indent = fmt.Sprintf(`<w:ind w:left="%d" w:hanging="360"/>`, 720*(c.Level+1))
+			}
+			out.WriteString(paraPr(b.pStyle("ListParagraph")+b.bulletNum()+indent, run(c.Title, "")))
 		}
 		return out.String()
 	default: // paragraph, and content an import could not convert

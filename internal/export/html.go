@@ -182,9 +182,22 @@ func (h *htmlBuilder) block(bl item.Block, p Page, base int) {
 		}
 		h.out.WriteString("</ul>")
 	case item.Children:
+		// Each deeper page is a list within its parent's entry.
 		h.out.WriteString(`<ul class="children">`)
-		for _, c := range p.Children {
-			h.printf("<li>%s</li>", html.EscapeString(c))
+		level := 0
+		for i, c := range childLines(p.Children, bl.Depth) {
+			switch {
+			case i == 0:
+			case c.Level > level:
+				h.out.WriteString("<ul>")
+			default:
+				h.out.WriteString("</li>" + strings.Repeat("</ul></li>", level-c.Level))
+			}
+			level = c.Level
+			h.printf("<li>%s", html.EscapeString(c.Title))
+		}
+		if len(p.Children) > 0 {
+			h.out.WriteString("</li>" + strings.Repeat("</ul></li>", level))
 		}
 		h.out.WriteString("</ul>")
 	case item.TaskList:

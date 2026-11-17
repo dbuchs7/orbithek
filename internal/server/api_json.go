@@ -187,6 +187,10 @@ type blockJSON struct {
 	Widths  []int      `json:"widths,omitempty"`
 	Heights []int      `json:"heights,omitempty"`
 	Cells   []cellJSON `json:"cells,omitempty"`
+	// Depth is how many levels of child pages a list of child pages
+	// shows: none for one, 2 to 5, or -1 for every level
+	// (ADR-draft-child-pages-to-a-chosen-depth).
+	Depth int `json:"depth,omitempty"`
 }
 
 type cellJSON struct {
@@ -213,7 +217,7 @@ type prefillJSON struct {
 func toBlockJSON(b item.Block) blockJSON {
 	j := blockJSON{Kind: b.Kind, Text: b.Text, Level: b.Level, Mentions: b.Mentions, Ref: b.Ref, Checked: b.Checked, Tone: b.Tone, Width: b.Width, Align: b.Align, Engine: b.Engine, Process: b.Process, View: b.View,
 		Form: b.Form, Decision: b.Decision, Application: b.Application, Release: b.Release, Layers: b.Layers, Link: b.Link, Query: b.Query, Secret: b.Secret,
-		Layout: b.Layout, ItemType: b.ItemType, Space: b.Space, Group: b.Group, Columns: b.Columns, Sort: b.Sort}
+		Layout: b.Layout, ItemType: b.ItemType, Space: b.Space, Group: b.Group, Columns: b.Columns, Sort: b.Sort, Depth: b.Depth}
 	for _, m := range b.Marks {
 		j.Marks = append(j.Marks, markJSON{Type: m.Type, Start: m.Start, End: m.End, Href: m.Href, Ref: m.Ref})
 	}
@@ -248,7 +252,12 @@ func toDoc(blocks []blockJSON, kept func(text string) bool) (item.Doc, error) {
 		}
 		blk := item.Block{Kind: b.Kind, Text: b.Text, Level: b.Level, Mentions: b.Mentions, Ref: b.Ref, Checked: b.Checked, Tone: b.Tone, Width: b.Width, Align: b.Align, Engine: b.Engine, Process: b.Process, View: b.View,
 			Form: b.Form, Decision: b.Decision, Application: b.Application, Release: b.Release, Link: b.Link, Query: b.Query, Secret: b.Secret,
-			Layout: b.Layout, ItemType: b.ItemType, Space: b.Space, Group: b.Group, Sort: b.Sort}
+			Layout: b.Layout, ItemType: b.ItemType, Space: b.Space, Group: b.Group, Sort: b.Sort, Depth: b.Depth}
+		if b.Kind == item.Children && b.Depth == 1 {
+			// One level is written as none, so a body says it one way
+			// (ADR-draft-child-pages-to-a-chosen-depth).
+			blk.Depth = 0
+		}
 		if len(b.Columns) > 0 {
 			// An empty list is the view's default, as none is (ADR-0203).
 			blk.Columns = b.Columns

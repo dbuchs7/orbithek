@@ -1458,6 +1458,27 @@ function webSource() {
     await page.waitForSelector("#new-item [name=under]:checked");
     await page.goBack();
 
+    step("child pages: a list of child pages shows the levels chosen (ADR-draft-child-pages-to-a-chosen-depth)");
+    await page.click(".tree a:has-text('Runbook')");
+    await page.waitForSelector(".tree a.current:has-text('Runbook')");
+    await page.waitForSelector("#body.reading");
+    await page.click("#edit");
+    await page.waitForSelector("#body.editing .ProseMirror");
+    await page.locator("#body .ProseMirror").click();
+    await page.selectOption("#body .pm-toolbar select >> nth=1", "children");
+    await page.waitForSelector("#body .pm-children ul a:text-is('Upgrade')");
+    check(await page.locator("#body .pm-children select.pm-children-depth").inputValue() === "0", "a new list shows one level");
+    check(await page.locator("#body .pm-children a:text-is('Created from New, renamed')").count() === 0, "one level lists the children alone");
+    await page.selectOption("#body .pm-children select.pm-children-depth", { label: "2 levels" });
+    await page.waitForSelector("#body .pm-children li:has(> a:text-is('Upgrade')) > ul a:text-is('Created from New, renamed')");
+    await page.click("#details h2"); // leave the editor: its blocks are released and saved
+    await page.waitForSelector(".live[data-pending='0']");
+    await page.click("#edit-done");
+    await page.waitForSelector("#body.reading .pm-children li:has(> a:text-is('Upgrade')) > ul a:text-is('Created from New, renamed')");
+    check(await page.locator("#body.reading .pm-children select").count() === 0, "a reader does not choose the depth");
+    await page.reload();
+    await page.waitForSelector("#body.reading .pm-children li:has(> a:text-is('Upgrade')) > ul a:text-is('Created from New, renamed')");
+
     step("blocks: a task, a warning panel, a table, a table of contents and lists of tables and figures survive a reload (ADR-0119)");
     await page.click(".tree a:has-text('Install')");
     await page.waitForSelector(".tree a.current:has-text('Install')");

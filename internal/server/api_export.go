@@ -235,9 +235,9 @@ func (h itemHandlers) exportDocument(r *http.Request, children, withData bool) (
 			if len(it.Labels) > 0 {
 				p.Facts = append(p.Facts, [2]string{words["labels"], strings.Join(it.Labels, ", ")})
 			}
-			if kids, err := x.Tree(it.Space, it.ID); err == nil {
-				for _, k := range kids {
-					p.Children = append(p.Children, k.Item.Title)
+			if depth := childDepth(it.Body.Blocks); depth != 0 {
+				if kids, _, err := x.ChildPages(it.Space, it.ID, depth, budget.Get().ChildPages); err == nil {
+					p.Children = exportChildren(kids)
 				}
 			}
 			for _, b := range it.Body.Blocks {
@@ -550,6 +550,34 @@ func taskLines(x *item.Session, s *item.Store, b item.Block, env item.QueryEnv) 
 			line += " · " + it.State
 		}
 		out = append(out, line)
+	}
+	return out
+}
+
+// childDepth is how many levels the deepest list of child pages in blocks
+// shows, item.ChildrenAll for every level, or 0 when blocks hold no such
+// list (ADR-draft-child-pages-to-a-chosen-depth).
+func childDepth(blocks []item.Block) int {
+	depth := 0
+	for _, b := range blocks {
+		if b.Kind != item.Children {
+			continue
+		}
+		d := max(b.Depth, 1)
+		if b.Depth == item.ChildrenAll {
+			return item.ChildrenAll
+		}
+		depth = max(depth, d)
+	}
+	return depth
+}
+
+// exportChildren turns a list of child pages into the titles an export
+// lists.
+func exportChildren(pages []item.ChildPage) []export.Child {
+	out := make([]export.Child, len(pages))
+	for i, p := range pages {
+		out[i] = export.Child{Title: p.Item.Title, Children: exportChildren(p.Children)}
 	}
 	return out
 }

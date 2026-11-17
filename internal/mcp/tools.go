@@ -53,7 +53,7 @@ const blockFormat = "A body is a list of blocks, each an object with kind and te
 	"panel (tone info, note, warning, tip or error), table (text holds rows separated by \\n and cells by \\t; the first row " +
 	"is the header; marks format text inside one cell each; widths: a width in pixels per column, 24-2000 or 0 for what its text takes; heights: a least height in pixels per row, 16-1000 or 0; " +
 	"cells: a list of {\"row\": 0, \"col\": 1, \"fill\": a tone, \"border\": a tone} in the order of rows and columns, counted from 0 with the header row, " +
-	"each tone one of blue, green, yellow, orange, red, purple, teal, gray; text that does not fit wraps), toc, children and divider (no text: a table of contents, a list of child pages, a horizontal rule), embed (ref: an item ID), " +
+	"each tone one of blue, green, yellow, orange, red, purple, teal, gray; text that does not fit wraps), toc, children and divider (no text: a table of contents, a list of child pages, a horizontal rule; children may carry depth, 2 to 5 levels or -1 for every level, none for one), embed (ref: an item ID), " +
 	"image (ref: an attachment ID of the item, text the caption, width 10-100 percent of the column or absent for its own size, align left or right to let text flow beside it, or center), " +
 	"audio (ref: an attachment ID of the item holding sound a browser plays, such as a recording: WebM, Ogg, MP4, MP3 or WAV; text the caption), " +
 	"bpmn (ref: an attachment ID of the item holding a BPMN 2.0 model, text the caption), process (engine: a process engine's ID, process: a BPMN process ID, text the caption; shows the process's newest version), " +
@@ -276,10 +276,11 @@ var tools = []tool{
 			{"body", array, inBody, false, "The item's first body, as blocks; only for types with a body."},
 		}},
 	{Name: "get_tree", Description: "The pages of a space in their order, one level at a time: the top of the space, or the children of parent. " +
-		"Each entry says whether it has children.",
+		"Each entry says whether it has children. With depth, each entry holds its children to that many levels, unpaged; truncated says the list was cut at the server's budget, the upper levels kept whole, and more marks an entry whose children are left out.",
 		Method: "GET", Path: "/api/spaces/{space}/tree", Params: append([]param{
 			{"space", str, inPath, true, "The space key."},
 			{"parent", str, inQuery, false, "The ID of the page whose children to list; absent for the top of the space."},
+			{"depth", str, inQuery, false, "How many levels to list, 1 to 5 or all; absent for one level, paged."},
 		}, paging...)},
 	{Name: "get_starmap", Description: "The starmap of a space (ADR-0157): its readable items, their pictures and the labels at least two of them share, as nodes, " +
 		"with containment (parent), relations, mentions, embeds, pictures and their originals (copy) and labels as edges; readable items of other spaces " +

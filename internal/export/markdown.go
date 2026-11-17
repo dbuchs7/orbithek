@@ -309,8 +309,8 @@ func (m *mdBuilder) block(bl item.Block, p Page, base int) []string {
 		return list(entries)
 	case item.Children:
 		var entries []string
-		for _, c := range p.Children {
-			entries = append(entries, "- "+inlineMarkdown(c, nil))
+		for _, c := range childLines(p.Children, bl.Depth) {
+			entries = append(entries, strings.Repeat("  ", c.Level)+"- "+inlineMarkdown(c.Title, nil))
 		}
 		return list(entries)
 	case item.TaskList:

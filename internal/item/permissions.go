@@ -893,6 +893,101 @@ func (x *Session) Tree(space string, parent ID) ([]TreeNode, error) {
 	return out, nil
 }
 
+// ChildPage is one readable page in a list of child pages, with its
+// readable children to the depth listed
+// (ADR-draft-child-pages-to-a-chosen-depth). Item is its summary, without
+// content (ADR-0081). More is set when it has readable children that the
+// list leaves out, below the depth or beyond the budget.
+type ChildPage struct {
+	Item     Item
+	Children []ChildPage
+	More     bool
+}
+
+// ChildPages returns the readable children of an item, or the readable
+// items at the top of a space when parent is empty, each with its
+// readable children to depth levels in all (ChildrenAll for every level),
+// in sibling order (ADR-0041,
+// ADR-draft-child-pages-to-a-chosen-depth). At most max pages are
+// listed, level by level, so a cut list keeps the upper levels whole; cut
+// reports that pages were left out for the budget.
+func (x *Session) ChildPages(space string, parent ID, depth, max int) (pages []ChildPage, cut bool, err error) {
+	if depth == 0 {
+		depth = 1
+	}
+	if !x.s.HasSpace(space) {
+		return nil, false, notFound("space %q", space)
+	}
+	if parent != "" {
+		p, err := x.readable(parent)
+		if err != nil {
+			return nil, false, err
+		}
+		if p.Space != space {
+			return nil, false, notFound("item %s in space %s", parent, space)
+		}
+	}
+	// The children of every item of the space, gathered once; whether
+	// one may read them is asked only for the pages the walk reaches
+	// (ADR-0081).
+	kids := map[ID][]*Item{}
+	for _, it := range x.s.items {
+		if it.Presence == Live && it.Space == space {
+			kids[it.Parent] = append(kids[it.Parent], it)
+		}
+	}
+	readable := map[ID][]Item{}
+	childrenOf := func(id ID) []Item {
+		if out, ok := readable[id]; ok {
+			return out
+		}
+		out := []Item{}
+		for _, k := range kids[id] {
+			if x.s.canRead(x.who, k) {
+				out = append(out, k.summary())
+			}
+		}
+		x.s.sortSiblings(space, id, out)
+		readable[id] = out
+		return out
+	}
+	// Level by level, so the budget cuts the deepest pages first.
+	listed := map[ID]bool{}
+	level, n := []ID{parent}, 0
+	for d := 1; len(level) > 0 && (depth == ChildrenAll || d <= depth); d++ {
+		var next []ID
+		for _, id := range level {
+			for _, k := range childrenOf(id) {
+				if n == max {
+					cut = true
+					break
+				}
+				listed[k.ID] = true
+				next = append(next, k.ID)
+				n++
+			}
+		}
+		level = next
+	}
+	var build func(id ID) ([]ChildPage, bool)
+	build = func(id ID) ([]ChildPage, bool) {
+		var out []ChildPage
+		more := false
+		for _, k := range childrenOf(id) {
+			if !listed[k.ID] {
+				more = true
+				continue
+			}
+			c := ChildPage{Item: k}
+			c.Children, c.More = build(k.ID)
+			out = append(out, c)
+		}
+		return out, more
+	}
+	pages, _ = build(parent)
+	return pages, cut, nil
+}
+
 // AddRelation relates an editable item to a readable one.
 func (x *Session) AddRelation(typ string, from, to ID) error {
 	if _, err := x.editable(from); err != nil {

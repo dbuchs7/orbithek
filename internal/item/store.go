@@ -1582,6 +1582,9 @@ func checkBlock(b Block, self ID) error {
 	if b.Kind != Heading && b.Level != 0 || b.Level < 0 || b.Level > 3 {
 		return invalid("level %d: only headings have a level, 1 to 3", b.Level)
 	}
+	if b.Depth != 0 && (b.Kind != Children || b.Depth != ChildrenAll && (b.Depth < 2 || b.Depth > MaxChildrenDepth)) {
+		return invalid("depth %d: only a list of child pages has a depth, 2 to %d levels or %d for every level; one level is 0", b.Depth, MaxChildrenDepth, ChildrenAll)
+	}
 	if b.Kind != Table && (b.Widths != nil || b.Heights != nil || b.Cells != nil) {
 		return invalid("only a table has column widths, row heights and coloured cells")
 	}

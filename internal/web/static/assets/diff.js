@@ -3,6 +3,7 @@
 // inserted as text (ADR-0014).
 import { h } from "./dom.js";
 import { t } from "./i18n.js";
+import { childDepthName } from "./childpages.js";
 
 // line is a block as one line of text, with a marker for its kind.
 export function line(b) {
@@ -18,7 +19,7 @@ export function line(b) {
     case "toc": return "[" + t("editor.toc") + "]";
     case "figures": return "[" + t("editor.figures") + "]";
     case "tables": return "[" + t("editor.tables") + "]";
-    case "children": return "[" + t("editor.children") + "]";
+    case "children": return "[" + t("editor.children") + (b.depth ? ", " + childDepthName(b.depth) : "") + "]";
     case "divider": return "———";
     case "embed": return "[" + t("editor.embed") + " " + (b.ref || "").slice(0, 8) + "]";
     default: return text;

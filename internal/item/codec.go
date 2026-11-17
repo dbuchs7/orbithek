@@ -190,7 +190,11 @@ import (
 //     hand, and the kind AttachmentTurned with attachment, sealed
 //     (ADR-0231). Versions 1 to 61 are still
 //     read; their pictures are shown as their files tell.
-const CodecVersion = 62
+//   - 63: a list of child pages may carry Depth, how many levels of child
+//     pages it shows, sealed with the body
+//     (ADR-draft-child-pages-to-a-chosen-depth). Versions 1 to 62 are
+//     still read; their lists show one level.
+const CodecVersion = 63
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

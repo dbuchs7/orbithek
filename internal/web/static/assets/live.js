@@ -302,7 +302,8 @@ export function liveBody({ ref, embeds, resolve, childPages, files, extra = [], 
   function normal(b) {
     const out = { kind: b.kind, text: b.text ?? "" };
     if (b.kind === "embed") return { kind: "embed", ref: b.ref };
-    if (["toc", "figures", "tables", "children", "divider"].includes(b.kind)) return { kind: b.kind };
+    if (b.kind === "children") return b.depth && b.depth !== 1 ? { kind: "children", depth: b.depth } : { kind: "children" };
+    if (["toc", "figures", "tables", "divider"].includes(b.kind)) return { kind: b.kind };
     if (b.kind === "bpmn") return { kind: "bpmn", text: b.text ?? "", ref: b.ref, ...(b.view ? { view: b.view } : {}) };
     if (b.kind === "audio") return { kind: "audio", text: b.text ?? "", ref: b.ref };
     if (b.kind === "process") return { kind: "process", text: b.text ?? "", engine: b.engine, process: b.process, ...(b.view ? { view: b.view } : {}) };
