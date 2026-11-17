@@ -118,11 +118,12 @@ A sound plays in the text with the browser's own player and a caption, such as a
 A table is edited in place. Click a cell to write in it; text that does not fit wraps within the cell. Tab and Shift+Tab move to the next and the previous cell, Enter to the cell below, and Escape leaves the table.
 
 - *Formatting:* the keys of the text work in a cell (Ctrl+B, Ctrl+I, Ctrl+U and the others), and so do the buttons above the table; **Link** (Ctrl+K) links the selected text to a web address.
-- *Choosing cells:* click a cell, then click another with Shift held: the cells between them are chosen. The buttons then format all of each chosen cell.
+- *Choosing cells:* drag the mouse across cells, or click a cell and then another with Shift held: the cells between them are chosen. Beside *Choose:*, **Row** and **Column** widen the choice to the whole rows or columns of the chosen cells, **All** chooses every cell; a click with Shift then keeps whole rows or columns. The buttons format all of each chosen cell, and the cells stay chosen, so a font, a fill and a border apply one after the other. Delete empties the chosen cells, Escape lets them go.
 - *Colours:* **Fill** fills the chosen cells and **Border** colours their borders, each in one of eight tones; **None** takes the colour off. The tones read well in the light and the dark theme.
 - *Sizes:* drag the right edge of a cell to make its column wider or narrower, and its lower edge to make its row taller. A table wider than the text scrolls sideways. **Reset sizes** lets the text decide again.
 - *Rows and columns:* **+ Row** adds a row below the chosen cell, **+ Column** a column to its right; **− Row** and **− Column** remove the chosen cell's row or column.
 - *Copying:* select a table, or a passage that holds tables, and copy it, while reading or while editing. Pasted into a text, it keeps its formatting, colours and sizes; a part of a table keeps the text and formatting of its cells. A table copied from a spreadsheet, a word processor or a web page becomes a table too, with its bold, italic, underlined and struck-through text, its links and its column widths; merged cells are split into cells of their own, and colours are left out. Pasted into another program, a copied table arrives as a table.
+- *Copying cells:* Ctrl+C copies the chosen cells with their formatting, colours and sizes, Ctrl+X copies and empties them. Ctrl+V pastes cells from the chosen cell on, or from the cell being edited; the table grows by the rows and columns they need. Cells copied from a spreadsheet are pasted the same way. Pasted into the text, copied cells become a table of their own.
 
 Formatting, colours and sizes are kept in Word and PDF exports; a Markdown export keeps the formatting.
 

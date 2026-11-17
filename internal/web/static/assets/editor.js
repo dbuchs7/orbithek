@@ -25,7 +25,7 @@ import { AUDIO_TYPES } from "./recorderparts.js";
 import { assist } from "./assist.js";
 import { markdownToBlocks, pastesAsMarkdown } from "./markdown.js";
 import {
-  TONES as TABLE_TONES, MARKS as TABLE_MARKS, cellsOf, joinCells, normalMarks, normalLayout, colourOf, rangeOf, inRange, paint, formatCells, tableData, tableDOM, tableFromDOM, classRules,
+  TONES as TABLE_TONES, MARKS as TABLE_MARKS, cellsOf, joinCells, normalMarks, normalLayout, colourOf, rangeOf, inRange, paint, formatCells, tableData, tableDOM, tableFromDOM, classRules, subTable, tableAttrs, pasteCells, clearCells, gridFromText, manyCells, specHTML,
   insertRow, insertColumn, removeRow, removeColumn, resized, filledClass, borderClass,
 } from "./tableparts.js";
 import { viewBlock, pickView, viewsReady } from "./itemview.js";
@@ -635,7 +635,9 @@ function cellContent(cell) {
 // cell's right or lower edge to size its column or row, and adds and
 // removes rows and columns at the chosen cell.
 function tableView(node, view, getPos) {
-  const dom = h("div", { class: "pm-table", contenteditable: "false" });
+  // The table takes the focus while cells are chosen, so that their copy,
+  // cut and paste are its own (ADR-0236).
+  const dom = h("div", { class: "pm-table", contenteditable: "false", tabindex: "-1" });
   let shown = null;
   let tds = [];
   let anchor = null, head = null; // the chosen cells, { r, c }
@@ -673,6 +675,111 @@ function tableView(node, view, getPos) {
     tds.forEach((row, i) => row.forEach((td, j) => td.classList.toggle("pm-cell-chosen", inRange(rg, i, j) && Boolean(head))));
     showTools();
   };
+  // hold gives the table the focus and lets go of any selection of text,
+  // so that a copy, cut or paste goes to the chosen cells.
+  const hold = () => {
+    getSelection()?.removeAllRanges();
+    dom.focus({ preventScroll: true });
+  };
+  // extend chooses the rectangle up to a cell clicked with Shift; while
+  // whole columns (rows) are chosen, it keeps them whole.
+  const extend = (r, c) => {
+    const rg = range(), rows = read().rows, last = rows.length - 1, lastCol = rows[0].length - 1;
+    if (rg && head) {
+      const fullCols = rg.r0 === 0 && rg.r1 === last, fullRows = rg.c0 === 0 && rg.c1 === lastCol;
+      if (fullCols && !fullRows) { anchor = { r: 0, c: anchor.c }; choose(last, c, true); return; }
+      if (fullRows && !fullCols) { anchor = { r: anchor.r, c: 0 }; choose(r, lastCol, true); return; }
+    }
+    choose(r, c, true);
+  };
+  // pick chooses the whole rows or columns of the chosen cells, or every
+  // cell, and gives the table the focus.
+  const pick = (what) => () => {
+    const rg = range();
+    if (!rg && what !== "all") return;
+    close();
+    const rows = read().rows, last = rows.length - 1, lastCol = rows[0].length - 1;
+    if (what === "rows") { anchor = { r: rg.r0, c: 0 }; head = { r: rg.r1, c: lastCol }; }
+    else if (what === "columns") { anchor = { r: 0, c: rg.c0 }; head = { r: last, c: rg.c1 }; }
+    else { anchor = { r: 0, c: 0 }; head = { r: last, c: lastCol }; }
+    choose(head.r, head.c, true);
+    hold();
+  };
+  // Chosen cells are copied as a table of their own, with their formats,
+  // sizes and colours, and as text separated by tabs; cut empties them;
+  // a paste writes cells from the chosen cell on, the table growing as
+  // it needs (ADR-0236).
+  const copyCells = (data) => {
+    const rg = range();
+    const { rows, layout } = read();
+    const sub = subTable(rows, layout, rg);
+    const attrs = tableAttrs(sub.rows, sub.layout);
+    data.setData("text/html", specHTML(tableDOM(attrs, isSafeLink)));
+    data.setData("text/plain", attrs.text);
+  };
+  const clipCells = (data) => {
+    const html = data?.getData("text/html") || "";
+    if (/<table[\s>]/i.test(html)) {
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      const table = doc.querySelector("table");
+      const attrs = table && tableFromDOM(table, isSafeLink, classRules([...doc.querySelectorAll("style")].map((x) => x.textContent).join("\n")));
+      if (attrs) return { grid: cellsOf(attrs.text, attrs.marks), layout: attrs };
+    }
+    const text = data?.getData("text/plain") || "";
+    return text ? { grid: gridFromText(text), layout: {} } : null;
+  };
+  const pasteAt = (at, clip) => {
+    close();
+    const { rows, layout } = read();
+    const next = pasteCells(rows, layout, at, clip.grid, clip.layout);
+    const width = Math.max(...clip.grid.map((r) => r.length));
+    anchor = { r: at.r, c: at.c };
+    head = { r: at.r + clip.grid.length - 1, c: Math.min(next.rows[0].length - 1, at.c + width - 1) };
+    commit(next.rows, next.layout);
+    hold();
+  };
+  let dragFrom = null; // the cell a drag of the mouse began in
+  const dragEnd = () => { dragFrom = null; };
+  window.addEventListener("mouseup", dragEnd);
+  const ownsClipboard = (ev) => Boolean(anchor) && !active && dom.contains(ev.target);
+  dom.addEventListener("copy", (ev) => {
+    if (!ownsClipboard(ev)) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    copyCells(ev.clipboardData);
+  });
+  dom.addEventListener("cut", (ev) => {
+    if (!ownsClipboard(ev)) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    copyCells(ev.clipboardData);
+    if (!editable()) return;
+    const { rows, layout } = read();
+    commit(clearCells(rows, range()), layout);
+    hold();
+  });
+  dom.addEventListener("paste", (ev) => {
+    if (!ownsClipboard(ev)) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    const clip = editable() && clipCells(ev.clipboardData);
+    if (clip) pasteAt({ r: range().r0, c: range().c0 }, clip);
+  });
+  dom.addEventListener("keydown", (ev) => {
+    if (ev.target !== dom || !anchor) return;
+    if (ev.key === "Escape") {
+      ev.preventDefault();
+      anchor = head = null;
+      tds.forEach((row) => row.forEach((td) => td.classList.remove("pm-cell-chosen")));
+      showTools();
+      view.focus();
+    } else if ((ev.key === "Delete" || ev.key === "Backspace") && editable()) {
+      ev.preventDefault();
+      const { rows, layout } = read();
+      commit(clearCells(rows, range()), layout);
+      hold();
+    }
+  });
   // move edits the cell dr rows and dc columns from the one being edited,
   // across the end of a row to the next.
   const move = (dr, dc) => {
@@ -721,6 +828,13 @@ function tableView(node, view, getPos) {
       attributes: { class: "pm-cell-editor", "aria-label": t("editor.cell", { row: r + 1, col: c + 1 }) },
       // Tabs and line breaks would split the cell; pasted text has spaces.
       transformPastedText: (text) => text.replace(/[\t\r\n]+/g, " "),
+      // Several cells pasted fill cells from this one on (ADR-0236).
+      handlePaste: (v, ev) => {
+        const clip = clipCells(ev.clipboardData);
+        if (!clip || !manyCells(clip.grid)) return false;
+        pasteAt({ r, c }, clip);
+        return true;
+      },
       dispatchTransaction: (tr) => {
         if (!active || active.view !== inner) return;
         inner.updateState(inner.state.apply(tr));
@@ -809,6 +923,11 @@ function tableView(node, view, getPos) {
       return h("label", { class: "pm-table-tone" }, h("span", { text: label }), select);
     };
     return h("div", { class: "pm-table-tools" },
+      h("span", { class: "pm-group pm-table-choose" },
+        h("span", { class: "muted", text: t("editor.tableChoose") }),
+        button(t("editor.tableChooseRow"), t("editor.tableChooseRowTitle"), pick("rows"), true, "link pm-table-pick-rows"),
+        button(t("editor.tableChooseColumn"), t("editor.tableChooseColumnTitle"), pick("columns"), true, "link pm-table-pick-columns"),
+        button(t("editor.tableChooseAll"), t("editor.tableChooseAllTitle"), pick("all"), false, "link pm-table-pick-all")),
       h("span", { class: "pm-group" },
         button(h("strong", { text: "B" }), t("editor.bold"), format("bold"), true, "pm-table-format"),
         button(h("em", { text: "I" }), t("editor.italic"), format("italic"), true, "pm-table-format"),
@@ -857,11 +976,21 @@ function tableView(node, view, getPos) {
         td.append(h("span", { class: "pm-col-handle", title: t("editor.tableDragColumn"), "aria-hidden": "true", onpointerdown: (ev) => resize("widths", j, ev) }),
           h("span", { class: "pm-row-handle", title: t("editor.tableDragRow"), "aria-hidden": "true", onpointerdown: (ev) => resize("heights", i, ev) }));
         td.addEventListener("mousedown", (ev) => {
-          if (ev.target.closest(".pm-col-handle, .pm-row-handle")) return;
-          if (ev.shiftKey) { ev.preventDefault(); close(); choose(i, j, true); return; }
+          if (ev.target.closest(".pm-col-handle, .pm-row-handle") || ev.button !== 0) return;
+          if (ev.shiftKey) { ev.preventDefault(); close(); extend(i, j); hold(); return; }
+          dragFrom = { r: i, c: j };
           if (active && active.r === i && active.c === j) return;
           ev.preventDefault();
           open(i, j, ev);
+        });
+        // A drag of the mouse across cells chooses the rectangle between.
+        td.addEventListener("mouseenter", (ev) => {
+          if (!dragFrom || !(ev.buttons & 1) || (dragFrom.r === i && dragFrom.c === j && !head)) return;
+          const from = dragFrom;
+          close();
+          anchor = from;
+          choose(i, j, true);
+          hold();
         });
         td.addEventListener("focus", (ev) => { if (ev.target === td && !(active && active.r === i && active.c === j)) open(i, j); });
       }
@@ -876,8 +1005,11 @@ function tableView(node, view, getPos) {
     table.append(body);
     tools = edit ? toolbar(rows, layout) : null;
     dom.replaceChildren(...[tools, h("div", { class: "pm-table-scroll" }, table)].filter(Boolean)); // replaceChildren writes a null out as "null"
+    // The chosen cells stay chosen, so that several formats and colours
+    // apply to them one after the other.
+    const chosen = head;
     if (anchor) choose(anchor.r, anchor.c, false);
-    if (head) choose(head.r, head.c, true);
+    if (chosen) choose(chosen.r, chosen.c, true);
     showTools();
   };
   render();
@@ -885,10 +1017,14 @@ function tableView(node, view, getPos) {
     dom,
     // Events in the table's own controls and in the cell being edited
     // are the table's, not the editor's.
-    stopEvent: (ev) => Boolean(ev.target.closest?.("a, button, input, select, .pm-cell-editable")),
+    // So are the copy, cut and paste of chosen cells and the keys that
+    // empty them or let them go.
+    stopEvent: (ev) => Boolean(ev.target.closest?.("a, button, input, select, .pm-cell-editable"))
+      || (["copy", "cut", "paste"].includes(ev.type) && ownsClipboard(ev))
+      || (ev.target === dom && ev.type === "keydown" && ["Delete", "Backspace", "Escape"].includes(ev.key)),
     ignoreMutation: () => true,
     update: (n) => { if (n.type !== node.type) return false; node = n; render(); return true; },
-    destroy: () => close(),
+    destroy: () => { close(); window.removeEventListener("mouseup", dragEnd); },
   };
 }
 

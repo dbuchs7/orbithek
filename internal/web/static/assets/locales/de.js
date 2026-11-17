@@ -510,6 +510,13 @@ export default {
   "editor.tableResetSizes": "Grössen zurücksetzen",
   "editor.tableDragColumn": "Ziehen, um die Spalte breiter oder schmaler zu machen",
   "editor.tableDragRow": "Ziehen, um die Zeile höher oder niedriger zu machen",
+  "editor.tableChooseRow": "Zeile",
+  "editor.tableChooseRowTitle": "Die ganzen Zeilen der gewählten Zellen wählen",
+  "editor.tableChooseColumn": "Spalte",
+  "editor.tableChooseColumnTitle": "Die ganzen Spalten der gewählten Zellen wählen",
+  "editor.tableChooseAll": "Alle",
+  "editor.tableChooseAllTitle": "Alle Zellen der Tabelle wählen",
+  "editor.tableChoose": "Wählen:",
 
   "version.changes": "Änderungen",
   "version.title": "Änderungen vom {when} durch {who}",
