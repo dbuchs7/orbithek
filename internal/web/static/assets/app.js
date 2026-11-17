@@ -648,7 +648,7 @@ function chevronIcon(left) {
 // childPagesOf lists an item's child pages for a list of child pages in
 // its body (ADR-0042), to depth levels, -1 for every level: it answers
 // { items, truncated }, each page with its children
-// (ADR-draft-child-pages-to-a-chosen-depth).
+// (ADR-0239).
 const childPagesOf = (item) => async (depth = 1) =>
   get(`/api/spaces/${encodeURIComponent(item.space)}/tree?parent=${item.id}&depth=${childDepthQuery(depth)}`);
 

@@ -1892,7 +1892,7 @@ func tocDepthLog(t *testing.T) []Event {
 
 // childrenDepthLog lists child pages two levels deep and every level, so
 // the golden files pin the block field Depth
-// (ADR-draft-child-pages-to-a-chosen-depth).
+// (ADR-0239).
 func childrenDepthLog(t *testing.T) []Event {
 	s := setup(t)
 	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))

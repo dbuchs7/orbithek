@@ -58,7 +58,7 @@ func itemRoutes(d Deps) []Route {
 		{Method: get, Pattern: "/api/audit/verify", Summary: "Check the audit trail's hash chain over the whole journal: entries, the newest link, and the first entry that breaks it (administrators)", Handler: http.HandlerFunc(h.verifyAudit)},
 
 		{Method: get, Pattern: "/api/items", Summary: "Find readable items, paged; q narrows to items whose key, title, type, state or labels hold every word; query selects and orders them in the query language", Handler: http.HandlerFunc(h.findItems)},
-		{Method: get, Pattern: "/api/spaces/{space}/tree", Summary: "The readable children of an item (parent) or the top of a space, in sibling order, paged; with depth (1 to 5 or all) each with its readable children to that many levels in children, unpaged, at most the budget ChildPages pages, level by level, truncated beyond it, more marking a page whose children are left out (ADR-draft-child-pages-to-a-chosen-depth)", Handler: http.HandlerFunc(h.tree)},
+		{Method: get, Pattern: "/api/spaces/{space}/tree", Summary: "The readable children of an item (parent) or the top of a space, in sibling order, paged; with depth (1 to 5 or all) each with its readable children to that many levels in children, unpaged, at most the budget ChildPages pages, level by level, truncated beyond it, more marking a page whose children are left out (ADR-0239)", Handler: http.HandlerFunc(h.tree)},
 		{Method: get, Pattern: "/api/starmap", Summary: "The starmap of every space one reads: their readable items with containment, relations and shared labels; label narrows it to the items that carry it. Beyond the budget StarmapNodes, a node per space and type (group, count its items) and edges counting the links between them (grouped) (ADR-0191)", Handler: http.HandlerFunc(h.starmapAll)},
 		{Method: get, Pattern: "/api/spaces/{space}/starmap", Summary: "The starmap of a space: its readable items, pictures and shared labels with their containment, relations, origins and labels, and related items of other spaces; truncated beyond the budget StarmapNodes", Handler: http.HandlerFunc(h.starmap)},
 		{Method: get, Pattern: "/api/search", Summary: "Full-text search over readable items (q; space, type, state), best first, paged", Handler: http.HandlerFunc(h.searchItems)},
@@ -1072,7 +1072,7 @@ type treeNodeJSON struct {
 }
 
 // childPageJSON is one page of a list of child pages with its children
-// (ADR-draft-child-pages-to-a-chosen-depth).
+// (ADR-0239).
 type childPageJSON struct {
 	treeNodeJSON
 	Children []childPageJSON `json:"children,omitempty"`
@@ -1103,7 +1103,7 @@ func parseDepth(v string) (int, error) {
 
 // tree lists one level of a space's page tree (ADR-0041), or, with a
 // depth, the levels a list of child pages shows
-// (ADR-draft-child-pages-to-a-chosen-depth).
+// (ADR-0239).
 func (h itemHandlers) tree(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	limit, ok := parseLimit(w, q)

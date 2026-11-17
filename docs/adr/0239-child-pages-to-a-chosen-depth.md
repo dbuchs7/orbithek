@@ -1,4 +1,4 @@
-# ADR-DRAFT: A list of child pages shows the levels chosen
+# ADR-0239: A list of child pages shows the levels chosen
 
 - **Status:** Proposed
 - **Implementation:** Partial

@@ -186,7 +186,7 @@ type Budgets struct {
 	// name it. Beyond it a list keeps the first and says it was cut.
 	ContextEntries int
 	// ChildPages bounds the pages one list of child pages shows across
-	// its levels (ADR-draft-child-pages-to-a-chosen-depth). Beyond it the
+	// its levels (ADR-0239). Beyond it the
 	// list keeps the upper levels whole and says it was cut.
 	ChildPages int
 	// DailyNoteDays bounds the days one listing of a person's daily notes

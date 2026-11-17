@@ -1,5 +1,5 @@
 // The depths a list of child pages offers and their names
-// (ADR-0042, ADR-draft-child-pages-to-a-chosen-depth). A block keeps 0
+// (ADR-0042, ADR-0239). A block keeps 0
 // for one level, 2 to 5 for that many and -1 for every level; the page
 // tree's API is asked for 1 to 5 or all.
 import { t } from "./i18n.js";

@@ -1458,7 +1458,7 @@ function webSource() {
     await page.waitForSelector("#new-item [name=under]:checked");
     await page.goBack();
 
-    step("child pages: a list of child pages shows the levels chosen (ADR-draft-child-pages-to-a-chosen-depth)");
+    step("child pages: a list of child pages shows the levels chosen (ADR-0239)");
     await page.click(".tree a:has-text('Runbook')");
     await page.waitForSelector(".tree a.current:has-text('Runbook')");
     await page.waitForSelector("#body.reading");

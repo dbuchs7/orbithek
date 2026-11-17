@@ -201,7 +201,7 @@ import (
 //     are still read; their cells' text has the text's own colour and size.
 //   - 65: a list of child pages may carry Depth, how many levels of child
 //     pages it shows, sealed with the body
-//     (ADR-draft-child-pages-to-a-chosen-depth). Versions 1 to 64 are
+//     (ADR-0239). Versions 1 to 64 are
 //     still read; their lists show one level.
 const CodecVersion = 65
 

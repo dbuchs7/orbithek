@@ -4,7 +4,7 @@ import "github.com/dbuchs7/orbithek/internal/item"
 
 // Child is a child page of a page, with its own child pages as deep as the
 // page's lists of child pages show (ADR-0042,
-// ADR-draft-child-pages-to-a-chosen-depth).
+// ADR-0239).
 type Child struct {
 	Title    string
 	Children []Child

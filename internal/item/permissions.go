@@ -895,7 +895,7 @@ func (x *Session) Tree(space string, parent ID) ([]TreeNode, error) {
 
 // ChildPage is one readable page in a list of child pages, with its
 // readable children to the depth listed
-// (ADR-draft-child-pages-to-a-chosen-depth). Item is its summary, without
+// (ADR-0239). Item is its summary, without
 // content (ADR-0081). More is set when it has readable children that the
 // list leaves out, below the depth or beyond the budget.
 type ChildPage struct {
@@ -908,7 +908,7 @@ type ChildPage struct {
 // items at the top of a space when parent is empty, each with its
 // readable children to depth levels in all (ChildrenAll for every level),
 // in sibling order (ADR-0041,
-// ADR-draft-child-pages-to-a-chosen-depth). At most max pages are
+// ADR-0239). At most max pages are
 // listed, level by level, so a cut list keeps the upper levels whole; cut
 // reports that pages were left out for the budget.
 func (x *Session) ChildPages(space string, parent ID, depth, max int) (pages []ChildPage, cut bool, err error) {

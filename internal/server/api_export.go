@@ -556,7 +556,7 @@ func taskLines(x *item.Session, s *item.Store, b item.Block, env item.QueryEnv) 
 
 // childDepth is how many levels the deepest list of child pages in blocks
 // shows, item.ChildrenAll for every level, or 0 when blocks hold no such
-// list (ADR-draft-child-pages-to-a-chosen-depth).
+// list (ADR-0239).
 func childDepth(blocks []item.Block) int {
 	depth := 0
 	for _, b := range blocks {

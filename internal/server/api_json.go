@@ -191,7 +191,7 @@ type blockJSON struct {
 	Cells   []cellJSON `json:"cells,omitempty"`
 	// Depth is how many levels of child pages a list of child pages
 	// shows: none for one, 2 to 5, or -1 for every level
-	// (ADR-draft-child-pages-to-a-chosen-depth).
+	// (ADR-0239).
 	Depth int `json:"depth,omitempty"`
 }
 
@@ -257,7 +257,7 @@ func toDoc(blocks []blockJSON, kept func(text string) bool) (item.Doc, error) {
 			Layout: b.Layout, ItemType: b.ItemType, Space: b.Space, Group: b.Group, Sort: b.Sort, Depth: b.Depth}
 		if b.Kind == item.Children && b.Depth == 1 {
 			// One level is written as none, so a body says it one way
-			// (ADR-draft-child-pages-to-a-chosen-depth).
+			// (ADR-0239).
 			blk.Depth = 0
 		}
 		if len(b.Columns) > 0 {

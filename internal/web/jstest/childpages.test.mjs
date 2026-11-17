@@ -1,5 +1,5 @@
 // Unit tests of the depths a list of child pages offers (childpages.js,
-// ADR-draft-child-pages-to-a-chosen-depth): what the page tree's API is
+// ADR-0239): what the page tree's API is
 // asked for and that every depth has a name of its own. They run in
 // Node.js without a browser and without dependencies:
 //

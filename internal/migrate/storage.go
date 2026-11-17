@@ -298,7 +298,7 @@ func (c *converter) jiraMacro() error {
 
 // childrenMacro turns a children macro into a list of child pages, as
 // deep as the macro's depth, or every level when it lists all
-// (ADR-draft-child-pages-to-a-chosen-depth). A depth beyond the most a
+// (ADR-0239). A depth beyond the most a
 // list names by number lists every level, so no page the macro listed is
 // left out.
 func (c *converter) childrenMacro() error {

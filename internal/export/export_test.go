@@ -350,7 +350,7 @@ func TestSoundIsPlayedOrNamed(t *testing.T) {
 
 // TestChildPagesAreListedToTheirDepth lists the same child pages one
 // level, two levels and every level deep, in every format
-// (ADR-draft-child-pages-to-a-chosen-depth).
+// (ADR-0239).
 func TestChildPagesAreListedToTheirDepth(t *testing.T) {
 	kids := []Child{
 		{Title: "A", Children: []Child{{Title: "A1", Children: []Child{{Title: "A1a"}}}, {Title: "A2"}}},

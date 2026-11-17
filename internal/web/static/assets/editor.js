@@ -94,7 +94,7 @@ export const schema = new Schema({
     figures: { group: "block", atom: true, selectable: true, attrs: bid, toDOM: () => ["div", { class: "pm-figures" }] },
     tables: { group: "block", atom: true, selectable: true, attrs: bid, toDOM: () => ["div", { class: "pm-tables" }] },
     // A list of child pages keeps how many levels it shows: 0 for one, 2
-    // to 5, or -1 for every level (ADR-draft-child-pages-to-a-chosen-depth).
+    // to 5, or -1 for every level (ADR-0239).
     children: { group: "block", atom: true, selectable: true, attrs: { ...bid, depth: { default: 0 } }, toDOM: (n) => ["div", { class: "pm-children", ...(n.attrs.depth ? { "data-depth": String(n.attrs.depth) } : {}) }] },
     // The tasks that carry a label, computed when shown (ADR-0114).
     tasklist: { group: "block", atom: true, selectable: true, attrs: { ...bid, label: { default: "" }, query: { default: "" } }, toDOM: (n) => ["div", { class: "pm-tasklist", "data-label": n.attrs.label, ...(n.attrs.query ? { "data-query": n.attrs.query } : {}) }] },
@@ -1295,7 +1295,7 @@ function childTree(pages) {
 // childrenView lists the child pages of the item to the depth the block
 // keeps, from childPages(depth), which answers { items, truncated }; an
 // editor chooses the depth (ADR-0042,
-// ADR-draft-child-pages-to-a-chosen-depth).
+// ADR-0239).
 function childrenView(node, v, getPos, childPages) {
   const depth = node.attrs.depth || 0;
   const title = h("p", { class: "pm-box-title" }, h("span", { text: t("editor.children") }));
