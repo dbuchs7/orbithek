@@ -224,7 +224,7 @@ test("a part of a copied table is pasted as that part, read from its cells", () 
 
 test("a copied block is checked as anything pasted: sizes and colours the model accepts, formats inside one cell", () => {
   const data = JSON.stringify({ text: "a\tb\nc", marks: [{ type: "bold", start: 0, end: 3 }, { type: "mention", start: 0, end: 1, ref: "x" }, { type: "code", start: 2, end: 3, ref: "x" }],
-    widths: [5, 9000], heights: [0, 0], cells: [{ row: 0, col: 0, fill: "pink" }, { row: 1, col: 0, fill: "red" }, { row: 7, col: 0, fill: "red" }] });
+    widths: [5, 9000], heights: [0, 0], cells: [{ row: 0, col: 0, fill: "pink" }, { row: 1, col: 0, fill: "red" }, { row: 7, col: 0, fill: "red" }, { row: "0", col: 1, fill: "red" }] });
   const cells = el("tr", {}, el("td", {}, "a"), el("td", {}, "b"));
   assert.deepEqual(tableFromDOM(el("table", { "data-pm-table": data }, cells, el("tr", {}, el("td", {}, "c"))), safe), {
     text: "a\tb\nc\t", marks: [{ type: "code", start: 2, end: 3 }],

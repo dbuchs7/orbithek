@@ -401,7 +401,8 @@ function fromData(json, safe) {
     && (m.type !== "link" || (typeof m.href === "string" && safe(m.href))))
     .map((m) => ({ type: m.type, start: m.start, end: m.end, ...(m.type === "link" ? { href: m.href } : {}) }));
   const rows = cellsOf(d.text, marks);
-  return { rows, layout: { widths: d.widths, heights: d.heights, cells: d.cells } };
+  const cells = (Array.isArray(d.cells) ? d.cells : []).filter((c) => c && Number.isInteger(c.row) && Number.isInteger(c.col));
+  return { rows, layout: { widths: d.widths, heights: d.heights, cells } };
 }
 
 // colWidth is a column's width in CSS pixels as its width attribute or
