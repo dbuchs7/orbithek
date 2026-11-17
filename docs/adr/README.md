@@ -248,3 +248,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0233](0233-the-clouds-of-a-room-are-outlined.md) | The clouds of a room lie together and are outlined | Accepted | Landed |
 | [0234](0234-a-cloud-collides-by-its-size.md) | A cloud keeps other nodes off by its own size | Accepted | Landed |
 | [0235](0235-rooms-keep-apart.md) | Rooms on the starmap of all rooms keep apart as wholes | Accepted | Landed |
+| [0236](0236-a-table-is-copied-and-pasted-with-its-formats.md) | A table is copied and pasted with its formats | Proposed | Partial |
