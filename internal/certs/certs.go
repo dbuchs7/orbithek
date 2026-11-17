@@ -77,22 +77,12 @@ func Open(pairs []Pair, log *slog.Logger) (*Store, error) {
 	return s, nil
 }
 
-// suites are the ciphers offered to a TLS 1.2 client: forward secrecy and
-// authenticated encryption only. TLS 1.3 fixes its own.
-var suites = []uint16{
-	tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-	tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-	tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-	tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-	tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-	tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-}
-
-// Config is the server's whole TLS configuration: TLS 1.2 at least, the
-// ciphers above, and the certificate chosen per handshake. None of it is a
-// setting.
+// Config is the server's whole TLS configuration: TLS 1.3 alone, and the
+// certificate chosen per handshake. TLS 1.3 fixes its ciphers in the
+// protocol, so there is no list to set and nothing to weaken; a client
+// that cannot speak it is refused rather than served an older version.
 func (s *Store) Config() *tls.Config {
-	return &tls.Config{MinVersion: tls.VersionTLS12, CipherSuites: suites, GetCertificate: s.GetCertificate}
+	return &tls.Config{MinVersion: tls.VersionTLS13, GetCertificate: s.GetCertificate}
 }
 
 // GetCertificate returns the first certificate made for the name the
@@ -206,7 +196,7 @@ func Pinned(certFiles []string) (*tls.Config, error) {
 		return nil, errors.New("no certificate named")
 	}
 	return &tls.Config{
-		MinVersion: tls.VersionTLS12,
+		MinVersion: tls.VersionTLS13,
 		// The standard verification by name is replaced, not dropped:
 		// VerifyConnection accepts the pinned certificates and nothing else.
 		InsecureSkipVerify: true,

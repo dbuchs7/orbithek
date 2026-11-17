@@ -3,8 +3,8 @@
 - **Status:** Proposed
 - **Implementation:** Partial
 - **Date:** 2026-11-17
-- **Deciders:** Project initiators (request of 2026-11-17: the listener answers requests for several host names, supports Server Name Indication and takes `-tls-cert` and `-tls-key`; the requester asked to see whether atlas has the same subject and how it settled it). Everything beyond the two flags and the choice by name is a default proposed with the implementation, to be confirmed by the requester.
-- **Open question:** whether TLS 1.2 stays the least version or the server follows atlas to TLS 1.3 alone; how a server that answers several names names itself, as `OT_PUBLIC_URL` and the sign-in redirect hold one address; whether the commands that call a server (`mcp`) need a bundle of certificate authorities for a private one; whether `Strict-Transport-Security` and a redirect from port 80 belong in the binary
+- **Deciders:** Project initiators (request of 2026-11-17: the listener answers requests for several host names, supports Server Name Indication and takes `-tls-cert` and `-tls-key`; the requester asked to see whether atlas has the same subject and how it settled it). On 2026-11-17 the requester decided the first open question: TLS 1.3 alone, as in atlas. Everything else beyond the two flags and the choice by name is a default proposed with the implementation, to be confirmed by the requester.
+- **Open question:** how a server that answers several names names itself, as `OT_PUBLIC_URL` and the sign-in redirect hold one address; whether the commands that call a server (`mcp`) need a bundle of certificate authorities for a private one; whether `Strict-Transport-Security` and a redirect from port 80 belong in the binary
 - **Question checked:** 2026-11
 
 ## Context and problem statement
@@ -64,9 +64,9 @@ Chosen option: **3**, because it is option 2 for whoever has one certificate and
   This is not virtual hosting.
 - **Renewal.** Before choosing, the server looks up the modification times of every pair's files and reads a changed pair again.
   A change that cannot be read (a renewal caught half written, a file gone) keeps the certificate loaded before and warns once, not on every handshake; the next change is tried again.
-- **Protocol.** TLS 1.2 at least, and for TLS 1.2 only ciphers with forward secrecy and authenticated encryption (ECDHE with AES-GCM or ChaCha20-Poly1305); TLS 1.3 fixes its own.
-  Neither is a setting.
-  This differs from atlas, which takes TLS 1.3 alone, for the reason under *Open questions*.
+- **Protocol.** TLS 1.3 alone, as in atlas.
+  TLS 1.3 fixes its ciphers in the protocol, so there is no list to set, nothing an operator can weaken and nothing to review; a client that cannot speak it is refused, not served an older version.
+  There is no setting for the least version; should an installation need TLS 1.2, that is a change to this record, added as a documented choice rather than by loosening the default.
 - **HTTP/2.** With TLS the server speaks HTTP/2 with clients that offer it, as `net/http` does unasked.
   A test holds that a stream is flushed as it is written and takes a write deadline over HTTP/2, which the live session's event stream relies on (ADR-0010).
 - **Secure requests.** A request that arrived over the server's own TLS counts as secure, so cookies are `Secure`, as behind a trusted proxy that says so (ADR-0037).
@@ -88,7 +88,7 @@ Chosen option: **3**, because it is option 2 for whoever has one certificate and
 ### Consequences
 
 - **Positive:** an installation without a reverse proxy has HTTPS from the one binary; several names each get the certificate made for them; a renewal takes effect at the next handshake; nothing changes for servers started as before.
-- **Negative / trade-offs accepted:** every certificate problem of an operator is now also this project's (chains, formats, expiry); the files must be readable by the account the server runs as, which for a key is a deliberate permission; each handshake costs two file lookups per pair; a client that asks for an unknown name gets a certificate for another name rather than a refusal; a request in the clear to the TLS port is answered with an error, not redirected.
+- **Negative / trade-offs accepted:** every certificate problem of an operator is now also this project's (chains, formats, expiry); the files must be readable by the account the server runs as, which for a key is a deliberate permission; each handshake costs two file lookups per pair; a client that asks for an unknown name gets a certificate for another name rather than a refusal; a request in the clear to the TLS port is answered with an error, not redirected; a client without TLS 1.3 is not served, which may concern calendar programs subscribing to feeds (ADR-0168) and scripts on systems whose TLS library lacks it, an assumption that was not measured.
 - **Follow-ups / risks to watch:** the open questions below; handshake errors of port scanners and TCP health checks are logged as warnings by `net/http`; HTTP/2 is new for every handler and is tested on a stream, not on every route.
 
 ## Pros and cons of the options
@@ -130,10 +130,6 @@ Strongest form: for a server reachable from the internet, renewal stops being an
 
 ## Open questions
 
-- **TLS 1.2 or TLS 1.3 alone.** atlas takes TLS 1.3 alone so that no cipher list exists at all.
-  This record keeps TLS 1.2 with a fixed list because this server is also read by programs it does not choose: calendar programs subscribing to feeds (ADR-0168) and scripts using API tokens, some on systems whose TLS library has no TLS 1.3.
-  That such clients exist for a given installation is an assumption, not a measurement.
-  If the requester prefers one rule for both projects, the change is one constant and the removal of the list.
 - **One address for several names.** The server names itself by `OT_PUBLIC_URL` in OAuth (ADR-0068), in links of messages and in the sign-in redirect registered at an identity provider (ADR-0030).
   With that set, an assistant connecting through a second name gets metadata for the first, which RFC 9728 does not allow, and single sign-on returns to the first.
   Several names are therefore served, but one of them remains the address for these functions until a record decides otherwise.

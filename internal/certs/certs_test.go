@@ -239,9 +239,10 @@ func TestOpenLogsWhatEachCertificateIsFor(t *testing.T) {
 	}
 }
 
-// TestOnlyCurrentProtocolsAndCiphers: TLS 1.2 with a cipher that
-// authenticates what it encrypts is the least the server accepts.
-func TestOnlyCurrentProtocolsAndCiphers(t *testing.T) {
+// TestOnlyTLS13IsServed: TLS 1.3 is the one version the server speaks, so
+// there is no cipher to choose; a client that cannot is refused, not
+// served an older version.
+func TestOnlyTLS13IsServed(t *testing.T) {
 	dir := t.TempDir()
 	certFile, keyFile := certstest.Write(t, dir, "wiki", "wiki.example.org")
 	addr := serve(t, open(t, nil, Pair{certFile, keyFile}))
@@ -259,17 +260,11 @@ func TestOnlyCurrentProtocolsAndCiphers(t *testing.T) {
 	if v, err := dial(func(*tls.Config) {}); err != nil || v != tls.VersionTLS13 {
 		t.Errorf("a current client: version %x, %v; want TLS 1.3", v, err)
 	}
-	if v, err := dial(func(c *tls.Config) { c.MaxVersion = tls.VersionTLS12 }); err != nil || v != tls.VersionTLS12 {
-		t.Errorf("a TLS 1.2 client: version %x, %v; want TLS 1.2", v, err)
+	if _, err := dial(func(c *tls.Config) { c.MaxVersion = tls.VersionTLS12 }); err == nil {
+		t.Error("a TLS 1.2 client was served")
 	}
 	if _, err := dial(func(c *tls.Config) { c.MinVersion, c.MaxVersion = tls.VersionTLS10, tls.VersionTLS11 }); err == nil {
 		t.Error("a TLS 1.1 client was served")
-	}
-	if _, err := dial(func(c *tls.Config) {
-		c.MaxVersion = tls.VersionTLS12
-		c.CipherSuites = []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA}
-	}); err == nil {
-		t.Error("a client offering only CBC ciphers was served")
 	}
 }
 
