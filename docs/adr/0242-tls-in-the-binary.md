@@ -4,7 +4,7 @@
 - **Implementation:** Landed
 - **Date:** 2026-11-17
 - **Deciders:** Project initiators (request of 2026-11-17: the listener answers requests for several host names, supports Server Name Indication and takes `-tls-cert` and `-tls-key`; the requester asked to see whether atlas has the same subject and how it settled it). On 2026-11-17 the requester decided the first open question: TLS 1.3 alone, as in atlas. Accepted by the requester on 2026-11-17, with the defaults proposed with the implementation; the open questions below stay open.
-- **Open question:** how a server that answers several names names itself, as `OT_PUBLIC_URL` and the sign-in redirect hold one address; whether the commands that call a server (`mcp`) need a bundle of certificate authorities for a private one; whether `Strict-Transport-Security` and a redirect from port 80 belong in the binary
+- **Open question:** how a server that answers several names names itself, as `OT_PUBLIC_URL` and the sign-in redirect hold one address; whether the commands that call a server (`mcp`) need a bundle of certificate authorities for a private one
 - **Question checked:** 2026-11
 
 ## Context and problem statement
@@ -135,7 +135,7 @@ Strongest form: for a server reachable from the internet, renewal stops being an
   Several names are therefore served, but one of them remains the address for these functions until a record decides otherwise.
 - **Private certificate authorities.** `orbithek mcp -url https://…` verifies against the host's roots.
   atlas added `--tls-ca` for this after its first release of TLS; the same may be wanted here.
-- **HSTS and port 80.** Whether the binary should send `Strict-Transport-Security` once it terminates TLS, and redirect from port 80, or leave both out as footguns on names it does not own.
+- **HSTS and port 80.** Settled by ADR-0243: both are settings, off unless asked for.
 
 ## Links
 

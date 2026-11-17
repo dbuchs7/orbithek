@@ -259,6 +259,130 @@ func TestTLSFromTheEnvironment(t *testing.T) {
 	}
 }
 
+// TestRedirectAndTransportPolicy: beside its own TLS the server answers
+// plain HTTP on -redirect-addr by sending readers to HTTPS, on the port of
+// OT_PUBLIC_URL, and sends the transport policy of OT_HSTS_MAX_AGE over
+// HTTPS (ADR-0243).
+func TestRedirectAndTransportPolicy(t *testing.T) {
+	t.Setenv("OT_ADMIN_PASSWORD", "a given password!")
+	t.Setenv("OT_HSTS_MAX_AGE", "300")
+	t.Setenv("OT_PUBLIC_URL", "https://wiki.example.org:8443")
+	dir := t.TempDir()
+	certFile, keyFile := certstest.Write(t, dir, "wiki", "wiki.example.org")
+	addr, plain := freeAddr(t), freeAddr(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan int, 1)
+	var errOut bytes.Buffer
+	go func() {
+		done <- run(ctx, []string{"serve", "-addr", addr, "-data-dir", t.TempDir(),
+			"-tls-cert", certFile, "-tls-key", keyFile, "-redirect-addr", plain}, io.Discard, &errOut)
+	}()
+	waitHealthy(t, done, &errOut, "-url", "https://"+addr+"/healthz", "-tls-cert", certFile)
+
+	noFollow := &http.Client{Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	req, err := http.NewRequest(http.MethodGet, "http://"+plain+"/a/b?x=1", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Host = "wiki.example.org"
+	res, err := noFollow.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != http.StatusFound || res.Header.Get("Location") != "https://wiki.example.org:8443/a/b?x=1" {
+		t.Errorf("plain HTTP: status %s, Location %q", res.Status, res.Header.Get("Location"))
+	}
+
+	leaves, err := certs.Leaves([]string{certFile})
+	if err != nil {
+		t.Fatal(err)
+	}
+	pool := x509.NewCertPool()
+	pool.AddCert(leaves[0])
+	secure := &http.Client{Timeout: 10 * time.Second, Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{RootCAs: pool, ServerName: "wiki.example.org"},
+	}}
+	res, err = secure.Get("https://" + addr + "/healthz")
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if got := res.Header.Get("Strict-Transport-Security"); got != "max-age=300" {
+		t.Errorf("transport policy over HTTPS: %q", got)
+	}
+
+	cancel()
+	select {
+	case code := <-done:
+		if code != 0 {
+			t.Errorf("serve exited %d after cancellation, want 0:\n%s", code, errOut.String())
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("serve did not stop after cancellation")
+	}
+	if out := errOut.String(); !strings.Contains(out, "redirecting plain HTTP to HTTPS") {
+		t.Errorf("the log does not name the redirect:\n%s", out)
+	}
+}
+
+func TestRedirectAndTransportPolicyConfiguration(t *testing.T) {
+	t.Setenv("OT_ADMIN_PASSWORD", "a given password!")
+	dir := t.TempDir()
+	certFile, keyFile := certstest.Write(t, dir, "wiki", "wiki.example.org")
+
+	code, _, errOut := runCmd(t, context.Background(), "serve", "-addr", freeAddr(t), "-data-dir", t.TempDir(), "-redirect-addr", freeAddr(t))
+	if code != 2 || !strings.Contains(errOut, "-redirect-addr needs -tls-cert and -tls-key") {
+		t.Errorf("a redirect without certificates: exit %d, stderr %q", code, errOut)
+	}
+
+	code, _, errOut = runCmd(t, context.Background(), "serve", "-addr", freeAddr(t), "-data-dir", t.TempDir(),
+		"-tls-cert", certFile, "-tls-key", keyFile, "-redirect-addr", "256.0.0.1:1")
+	if code != 1 || !strings.Contains(errOut, "cannot listen") {
+		t.Errorf("an unusable redirect address: exit %d, stderr %q", code, errOut)
+	}
+
+	// OT_REDIRECT_ADDR names the address where no flag does.
+	t.Setenv("OT_REDIRECT_ADDR", freeAddr(t))
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	code, _, errOut = runCmd(t, ctx, "serve", "-addr", freeAddr(t), "-data-dir", t.TempDir(), "-tls-cert", certFile, "-tls-key", keyFile)
+	if code != 0 || !strings.Contains(errOut, "redirecting plain HTTP to HTTPS") {
+		t.Errorf("the redirect from the environment: exit %d, stderr %q", code, errOut)
+	}
+	t.Setenv("OT_REDIRECT_ADDR", "")
+
+	t.Setenv("OT_HSTS_MAX_AGE", "on")
+	code, _, errOut = runCmd(t, context.Background(), "serve", "-addr", freeAddr(t), "-data-dir", t.TempDir())
+	if code != 1 || !strings.Contains(errOut, "OT_HSTS_MAX_AGE is unusable") {
+		t.Errorf("a transport policy that is no number: exit %d, stderr %q", code, errOut)
+	}
+
+	// A policy no request can receive is said so at the start.
+	t.Setenv("OT_HSTS_MAX_AGE", "300")
+	ctx, cancel = context.WithCancel(context.Background())
+	cancel()
+	code, _, errOut = runCmd(t, ctx, "serve", "-addr", freeAddr(t), "-data-dir", t.TempDir())
+	if code != 0 || !strings.Contains(errOut, "OT_HSTS_MAX_AGE has no effect") {
+		t.Errorf("a transport policy without HTTPS: exit %d, stderr %q", code, errOut)
+	}
+}
+
+func TestHTTPSPort(t *testing.T) {
+	for public, want := range map[string]string{
+		"":                              "",
+		"https://wiki.example.org":      "",
+		"https://wiki.example.org:8443": "8443",
+		"https://wiki.example.org:443/": "443",
+		"http://wiki.example.org:8080":  "",
+		"://bad":                        "",
+	} {
+		if got := httpsPort(public); got != want {
+			t.Errorf("httpsPort(%q) = %q, want %q", public, got, want)
+		}
+	}
+}
+
 func TestTLSConfiguration(t *testing.T) {
 	t.Setenv("OT_ADMIN_PASSWORD", "a given password!")
 	dir := t.TempDir()
