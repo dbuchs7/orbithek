@@ -577,7 +577,7 @@ function taskView(node, view, getPos) {
 // holds text with the formats a cell may carry.
 // A colour and a size of a cell's text are marks of the cell's schema
 // alone: the body's other blocks take neither
-// (ADR-draft-text-colour-and-size-in-table-cells).
+// (ADR-0238).
 const valued = (type, prefix, values) => ({
   attrs: { value: {} },
   parseDOM: [{ tag: "span", getAttrs: (dom) => {
@@ -946,7 +946,7 @@ function tableView(node, view, getPos) {
     };
     // textStyle colours or sizes the selected text of the cell being
     // edited, all of it when nothing is selected, or all of each chosen
-    // cell (ADR-draft-text-colour-and-size-in-table-cells).
+    // cell (ADR-0238).
     const textStyle = (cls, label, type, options) => {
       const select = h("select", { class: cls, title: label, "aria-label": label, "data-needs-cell": "" },
         ...options.map(([value, text]) => h("option", { value, text })));

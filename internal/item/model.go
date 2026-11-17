@@ -184,14 +184,14 @@ const (
 	MarkSecret MarkType = "secret"
 	// MarkColor colours the text of a table's cell in one of TableTones,
 	// MarkSize sets its size to one of TextSizes; Value holds the tone or
-	// the size (ADR-draft-text-colour-and-size-in-table-cells).
+	// the size (ADR-0238).
 	MarkColor MarkType = "color"
 	MarkSize  MarkType = "size"
 )
 
 // TextSizes are the sizes the text of a table's cell may take besides the
 // text's own: named, as tones are, so that a page reads alike on every
-// screen and in every export (ADR-draft-text-colour-and-size-in-table-cells).
+// screen and in every export (ADR-0238).
 var TextSizes = []string{"small", "large", "larger"}
 
 // TextAligns are the alignments of a block of text, ImageAligns those of

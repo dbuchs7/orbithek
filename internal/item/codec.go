@@ -197,7 +197,7 @@ import (
 //     embeds show their items whole.
 //   - 64: a mark may carry Value, and a table's cell the marks color, its
 //     text in a tone, and size, its text in a size, sealed with the body
-//     (ADR-draft-text-colour-and-size-in-table-cells). Versions 1 to 63
+//     (ADR-0238). Versions 1 to 63
 //     are still read; their cells' text has the text's own colour and size.
 const CodecVersion = 64
 

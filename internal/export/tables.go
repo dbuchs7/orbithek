@@ -24,7 +24,7 @@ var tableTones = map[string]tone{
 }
 
 // textSizes are the sizes of item.TextSizes in points, as Word writes
-// them; the body's text is 11 points (ADR-draft-text-colour-and-size-in-table-cells).
+// them; the body's text is 11 points (ADR-0238).
 var textSizes = map[string]int{"small": 9, "large": 14, "larger": 18}
 
 // tableCell is one cell of a table as an export writes it: its text

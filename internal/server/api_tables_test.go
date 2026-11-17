@@ -23,7 +23,7 @@ func TestATableKeepsItsFormatsSizesAndColours(t *testing.T) {
 	if string(b) != want {
 		t.Fatalf("the table reads\n%s, want\n%s", b, want)
 	}
-	// A cell's text in a tone and a size (ADR-draft-text-colour-and-size-in-table-cells).
+	// A cell's text in a tone and a size (ADR-0238).
 	got = field(w.bert.expect("PUT", "/api/items/"+key+"/body", `{"blocks":[{"kind":"table","text":"a\tb",
 		"marks":[{"type":"color","start":0,"end":1,"value":"teal"},{"type":"size","start":2,"end":3,"value":"small"}]}]}`, http.StatusOK), "item", "body").([]any)
 	if b, _ = json.Marshal(got[0].(map[string]any)["marks"]); string(b) != `[{"end":1,"start":0,"type":"color","value":"teal"},{"end":3,"start":2,"type":"size","value":"small"}]` {
