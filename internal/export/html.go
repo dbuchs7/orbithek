@@ -296,6 +296,18 @@ func inline(text string, marks []item.Mark) string {
 		if sg.high {
 			wrap("mark")
 		}
+		// A colour and a size are classes of the export's stylesheet, as
+		// its policy refuses styles of the page's own.
+		var cls []string
+		if sg.color != "" {
+			cls = append(cls, "text-"+sg.color)
+		}
+		if sg.size != "" {
+			cls = append(cls, "size-"+sg.size)
+		}
+		if len(cls) > 0 {
+			s = `<span class="` + strings.Join(cls, " ") + `">` + s + "</span>"
+		}
 		if sg.link {
 			s = `<a href="` + html.EscapeString(sg.href) + `">` + s + "</a>"
 		}

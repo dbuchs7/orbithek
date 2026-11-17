@@ -501,6 +501,9 @@ type segment struct {
 	text                                          string
 	bold, italic, under, strike, code, high, link bool
 	href                                          string
+	// color is a tone of item.TableTones, size one of item.TextSizes
+	// (ADR-draft-text-colour-and-size-in-table-cells).
+	color, size string
 }
 
 // segments cuts a text at its marks' boundaries, counted in code points.
@@ -542,6 +545,14 @@ func segments(text string, marks []item.Mark) []segment {
 				sg.high = true
 			case item.MarkLink:
 				sg.link, sg.href = safeLink(m.Href), m.Href
+			case item.MarkColor:
+				if _, ok := tableTones[m.Value]; ok {
+					sg.color = m.Value
+				}
+			case item.MarkSize:
+				if _, ok := textSizes[m.Value]; ok {
+					sg.size = m.Value
+				}
 			}
 		}
 		out = append(out, sg)
@@ -568,6 +579,12 @@ func runs(b *docxBuilder, text string, marks []item.Mark) string {
 		}
 		if sg.strike {
 			props += "<w:strike/>"
+		}
+		if sg.color != "" {
+			props += `<w:color w:val="` + tableTones[sg.color].strong + `"/>`
+		}
+		if pt := textSizes[sg.size]; pt > 0 {
+			props += fmt.Sprintf(`<w:sz w:val="%d"/><w:szCs w:val="%d"/>`, pt*2, pt*2)
 		}
 		if sg.high {
 			props += `<w:highlight w:val="yellow"/>`

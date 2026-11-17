@@ -552,6 +552,13 @@ span.tree-toggle { cursor: default; }
 .pm-border-blue { --cell-border: #2f6fde; } .pm-border-green { --cell-border: #1f9d55; } .pm-border-yellow { --cell-border: #d4a106; }
 .pm-border-orange { --cell-border: #e8710a; } .pm-border-red { --cell-border: #d93636; } .pm-border-purple { --cell-border: #8a4fd8; }
 .pm-border-teal { --cell-border: #0f9b9b; } .pm-border-gray { --cell-border: #7a8394; }
+/* A cell's text in a tone, mixed with the theme's text so it stays
+   readable in a light and a dark theme, and in a size
+   (ADR-draft-text-colour-and-size-in-table-cells). */
+.pm-text-blue { --text-tone: #2f6fde; } .pm-text-green { --text-tone: #1f9d55; } .pm-text-yellow { --text-tone: #d4a106; } .pm-text-orange { --text-tone: #e8710a; }
+.pm-text-red { --text-tone: #d93636; } .pm-text-purple { --text-tone: #8a4fd8; } .pm-text-teal { --text-tone: #0f9b9b; } .pm-text-gray { --text-tone: #7a8394; }
+.pm-text-blue, .pm-text-green, .pm-text-yellow, .pm-text-orange, .pm-text-red, .pm-text-purple, .pm-text-teal, .pm-text-gray { color: color-mix(in srgb, var(--text-tone) 82%, var(--text)); }
+.pm-size-small { font-size: .82em; } .pm-size-large { font-size: 1.27em; } .pm-size-larger { font-size: 1.64em; line-height: 1.25; }
 .pm-table th.pm-cell-fill, .pm-table td.pm-cell-fill { background: color-mix(in srgb, var(--cell-fill) 22%, var(--surface)); }
 .pm-table th.pm-cell-border, .pm-table td.pm-cell-border { border: 2px solid var(--cell-border); }
 .pm-table-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-bottom: 4px; font-size: 12px; }

@@ -78,7 +78,7 @@ func TestAChangeThatIsNotPersistedDoesNotHappen(t *testing.T) {
 
 func TestDecodeRejectsWhatItCannotReadExactly(t *testing.T) {
 	cases := map[string]string{
-		"newer format":       `[{"v":63,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
+		"newer format":       `[{"v":64,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"no format version":  `[{"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"unknown field":      `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated","colour":"red"}]`,
 		"unknown role":       `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"RoleGranted","role":"owner"}]`,
@@ -1706,12 +1706,15 @@ func shareFileLog(t *testing.T) []Event {
 
 // tableStyleLog writes a table with formatted cells, column widths, row
 // heights and coloured cells, so the golden files pin the block fields
-// Widths, Heights and Cells and marks inside a table (ADR-0214).
+// Widths, Heights and Cells and marks inside a table (ADR-0214), among
+// them a cell's text in a tone and a size, with the mark's Value
+// (ADR-draft-text-colour-and-size-in-table-cells).
 func tableStyleLog(t *testing.T) []Event {
 	s := setup(t)
 	page := mustItem(t)(s.Create("anna", NewItem{Space: "PLAT", Type: "page", Title: "Hosts"}))
 	noErr(t, s.CommitBody("anna", page.ID, Doc{Blocks: []Block{{Kind: Table, Text: "Host\tRole\ndb1\tprimary, see https://example.org",
-		Marks:  []Mark{{Type: MarkBold, Start: 0, End: 4}, {Type: MarkLink, Start: 27, End: 46, Href: "https://example.org"}},
+		Marks: []Mark{{Type: MarkBold, Start: 0, End: 4}, {Type: MarkColor, Start: 0, End: 4, Value: "teal"}, {Type: MarkSize, Start: 10, End: 13, Value: "large"},
+			{Type: MarkLink, Start: 27, End: 46, Href: "https://example.org"}},
 		Widths: []int{120, 0}, Heights: []int{0, 48},
 		Cells: []Cell{{Row: 0, Col: 0, Fill: "blue"}, {Row: 1, Col: 1, Fill: "yellow", Border: "red"}}}}}))
 	return s.Log()

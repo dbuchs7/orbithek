@@ -1574,8 +1574,15 @@ function webSource() {
       && await page.locator("#body .pm-table .pm-cell-chosen").count() === 2, "the column is pasted from the cell on, the pasted cells chosen");
     await page.keyboard.press("Control+z");
     await page.waitForFunction(() => document.querySelectorAll("#body .pm-table tr").length === 2);
+    // The text of a cell takes a colour and a size from the table's tools
+    // (ADR-draft-text-colour-and-size-in-table-cells).
+    await page.click("#body .pm-table tr:nth-child(2) td:first-child");
+    await page.waitForSelector("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-editor");
+    await page.selectOption("#body .pm-table-text-colour", "purple");
+    await page.selectOption("#body .pm-table-text-size", "large");
+    await page.waitForSelector("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-editor .pm-text-purple .pm-size-large:has-text('db1')");
     await page.click("#edit-done");
-    await page.waitForSelector("#body.reading .pm-table td:has-text('db1')");
+    await page.waitForSelector("#body.reading .pm-table td .pm-text-purple .pm-size-large:has-text('db1')");
 
     step("versions: the changes of a body show word by word, and an earlier body comes back");
     // Two versions written through the API, so their content does not

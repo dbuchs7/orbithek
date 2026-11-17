@@ -9,8 +9,16 @@
 export const TONES = ["blue", "green", "yellow", "orange", "red", "purple", "teal", "gray"];
 
 // MARKS are the formats a cell may carry; a mention and a protected
-// passage are not among them.
-export const MARKS = ["bold", "italic", "underline", "strike", "highlight", "code", "link"];
+// passage are not among them. A color mark colours a cell's text in one
+// of TONES, a size mark sizes it in one of SIZES; each holds its value
+// (ADR-draft-text-colour-and-size-in-table-cells).
+export const MARKS = ["bold", "italic", "underline", "strike", "highlight", "code", "link", "color", "size"];
+export const SIZES = ["small", "large", "larger"];
+const VALUES = { color: TONES, size: SIZES };
+
+// valid says whether a mark's value is one its kind takes: a tone, a size,
+// or none for the other kinds.
+const valid = (m) => (VALUES[m.type] ? VALUES[m.type].includes(m.value) : !m.value);
 
 // The sizes a column and a row may be given, in CSS pixels.
 export const COLUMN = { min: 24, max: 2000 };
@@ -62,11 +70,11 @@ export function joinCells(rows) {
 // normalMarks orders a cell's marks and joins those of one kind and target
 // that touch or overlap.
 export function normalMarks(marks) {
-  const sorted = [...marks].sort((a, b) => a.type.localeCompare(b.type) || (a.href || "").localeCompare(b.href || "") || a.start - b.start);
+  const sorted = [...marks].sort((a, b) => a.type.localeCompare(b.type) || (a.href || "").localeCompare(b.href || "") || (a.value || "").localeCompare(b.value || "") || a.start - b.start);
   const out = [];
   for (const m of sorted) {
     const last = out[out.length - 1];
-    if (last && last.type === m.type && (last.href || "") === (m.href || "") && m.start <= last.end) last.end = Math.max(last.end, m.end);
+    if (last && last.type === m.type && (last.href || "") === (m.href || "") && (last.value || "") === (m.value || "") && m.start <= last.end) last.end = Math.max(last.end, m.end);
     else out.push({ ...m });
   }
   return out.sort((a, b) => a.start - b.start || a.type.localeCompare(b.type));
@@ -146,6 +154,24 @@ export function formatCells(rows, range, type) {
   }));
 }
 
+// styleCells colours (type "color") or sizes (type "size") all of each
+// cell's text in range with value, or takes the colour or size off with
+// an empty value (ADR-draft-text-colour-and-size-in-table-cells).
+export function styleCells(rows, range, type, value) {
+  return rows.map((row, r) => row.map((cell, c) => {
+    if (!inRange(range, r, c)) return cell;
+    const marks = cell.marks.filter((m) => m.type !== type);
+    if (value && cp(cell.text) > 0) marks.push({ type, start: 0, end: cp(cell.text), value });
+    return { text: cell.text, marks: normalMarks(marks) };
+  }));
+}
+
+// styleOf is the colour or size that covers all of a cell's text, or "".
+export function styleOf(cell, type) {
+  const n = cp(cell.text);
+  return cell.marks.find((m) => m.type === type && m.start === 0 && m.end >= n && n > 0)?.value || "";
+}
+
 const empty = () => ({ text: "", marks: [] });
 
 // insertRow adds an empty row after row at (at the end when at is the
@@ -214,7 +240,7 @@ export const borderClass = (border) => (border ? "pm-cell-border pm-border-" + b
 // its tags, its inline styles and the classes of its stylesheet give, and
 // its columns' widths; colours and row heights are left to the editor.
 
-const ORDER = ["link", "bold", "italic", "underline", "strike", "highlight", "code"];
+const ORDER = ["link", "color", "size", "bold", "italic", "underline", "strike", "highlight", "code"];
 const TAGS = { bold: "strong", italic: "em", underline: "u", strike: "s", highlight: "mark", code: "code" };
 
 // segments cuts a cell into runs of text with the marks over all of each.
@@ -250,7 +276,9 @@ export function tableDOM(attrs, safe) {
     for (const type of [...ORDER].reverse()) {
       const m = s.marks.find((x) => x.type === type);
       if (!m) continue;
-      if (type === "link") { if (safe(m.href)) el = ["a", { href: m.href }, el]; } else el = [TAGS[type], el];
+      if (type === "link") { if (safe(m.href)) el = ["a", { href: m.href }, el]; } else if (VALUES[type]) {
+        if (valid(m)) el = ["span", { class: (type === "color" ? "pm-text-" : "pm-size-") + m.value }, el];
+      } else el = [TAGS[type], el];
     }
     return el;
   });
@@ -328,7 +356,13 @@ function marksAt(el, inherited, rules, safe) {
     const href = el.getAttribute?.("href");
     if (href && safe(href)) marks.link = href;
   }
-  for (const cls of (el.getAttribute?.("class") || "").split(/\s+/)) if (rules.has(cls)) styled(marks, rules.get(cls));
+  for (const cls of (el.getAttribute?.("class") || "").split(/\s+/)) {
+    if (rules.has(cls)) styled(marks, rules.get(cls));
+    // A colour and a size the editor wrote (ADR-draft-text-colour-and-size-in-table-cells).
+    const own = cls.match(/^pm-(text|size)-([a-z]+)$/);
+    const type = own && (own[1] === "text" ? "color" : "size");
+    if (type && VALUES[type].includes(own[2])) marks[type] = own[2];
+  }
   styled(marks, declarations(el.getAttribute?.("style")));
   return marks;
 }
@@ -362,10 +396,14 @@ function cellFrom(td, rules, safe) {
   const open = new Map(); // key -> mark
   kept.forEach((c, i) => {
     for (const [type, v] of Object.entries(c.marks)) {
-      const key = type === "link" ? "link " + v : type;
+      const key = v === true ? type : type + " " + v;
       const m = open.get(key);
       if (m && m.end === i) m.end = i + 1;
-      else { const next = { type, start: i, end: i + 1, ...(type === "link" ? { href: v } : {}) }; open.set(key, next); marks.push(next); }
+      else {
+        const next = { type, start: i, end: i + 1, ...(type === "link" ? { href: v } : VALUES[type] ? { value: v } : {}) };
+        open.set(key, next);
+        marks.push(next);
+      }
     }
   });
   return { text: kept.map((c) => c.ch).join(""), marks: normalMarks(marks.filter((m) => MARKS.includes(m.type))) };
@@ -398,8 +436,8 @@ function fromData(json, safe) {
   try { d = JSON.parse(json); } catch { return null; }
   if (!d || typeof d.text !== "string") return null;
   const marks = (Array.isArray(d.marks) ? d.marks : []).filter((m) => m && MARKS.includes(m.type) && Number.isInteger(m.start) && Number.isInteger(m.end)
-    && (m.type !== "link" || (typeof m.href === "string" && safe(m.href))))
-    .map((m) => ({ type: m.type, start: m.start, end: m.end, ...(m.type === "link" ? { href: m.href } : {}) }));
+    && (m.type !== "link" || (typeof m.href === "string" && safe(m.href))) && (m.type === "link" || valid(m)))
+    .map((m) => ({ type: m.type, start: m.start, end: m.end, ...(m.type === "link" ? { href: m.href } : {}), ...(VALUES[m.type] ? { value: m.value } : {}) }));
   const rows = cellsOf(d.text, marks);
   const cells = (Array.isArray(d.cells) ? d.cells : []).filter((c) => c && Number.isInteger(c.row) && Number.isInteger(c.col));
   return { rows, layout: { widths: d.widths, heights: d.heights, cells } };

@@ -11,9 +11,11 @@ import (
 )
 
 // styledTable has formatted cells, a column width, a row's height and
-// coloured cells (ADR-0214).
+// coloured cells (ADR-0214), and text in a tone and a size
+// (ADR-draft-text-colour-and-size-in-table-cells).
 var styledTable = item.Block{Kind: item.Table, Text: "Host\tRole\ndb1\t primary ",
-	Marks:  []item.Mark{{Type: item.MarkItalic, Start: 0, End: 4}, {Type: item.MarkBold, Start: 15, End: 22}, {Type: item.MarkLink, Start: 10, End: 13, Href: "https://db1.example.org"}},
+	Marks: []item.Mark{{Type: item.MarkItalic, Start: 0, End: 4}, {Type: item.MarkBold, Start: 15, End: 22}, {Type: item.MarkLink, Start: 10, End: 13, Href: "https://db1.example.org"},
+		{Type: item.MarkColor, Start: 5, End: 9, Value: "purple"}, {Type: item.MarkSize, Start: 5, End: 9, Value: "large"}},
 	Widths: []int{200, 0}, Heights: []int{0, 40},
 	Cells: []item.Cell{{Row: 0, Col: 1, Fill: "blue"}, {Row: 1, Col: 0, Fill: "yellow", Border: "red"}}}
 
@@ -23,7 +25,7 @@ func TestATableKeepsItsFormatsSizesAndColoursInHTML(t *testing.T) {
 		t.Fatal(err)
 	}
 	h := b.String()
-	for _, want := range []string{`<colgroup><col width="200"><col></colgroup>`, `<th><em>Host</em></th>`, `<th class="fill-blue">Role</th>`,
+	for _, want := range []string{`<colgroup><col width="200"><col></colgroup>`, `<th><em>Host</em></th>`, `<th class="fill-blue"><span class="text-purple size-large">Role</span></th>`,
 		`<tr height="40">`, `<td class="fill-yellow border-red"><a href="https://db1.example.org">db1</a></td>`, `<td><strong>primary</strong></td>`} {
 		if !strings.Contains(h, want) {
 			t.Errorf("the HTML lacks %q:\n%s", want, h)
@@ -61,7 +63,7 @@ func TestATableKeepsItsFormatsSizesAndColoursInWord(t *testing.T) {
 		}
 	}
 	for _, want := range []string{`<w:gridCol w:w="3000"/>`, `<w:tblLayout w:type="fixed"/>`, `<w:trHeight w:val="600" w:hRule="atLeast"/>`,
-		`w:fill="D5E2F8"`, `w:fill="F6ECCD"`, `w:color="D93636"`, `<w:i/>`, "<w:hyperlink", ">primary<"} {
+		`w:fill="D5E2F8"`, `w:fill="F6ECCD"`, `w:color="D93636"`, `<w:color w:val="8A4FD8"/><w:sz w:val="28"/><w:szCs w:val="28"/>`, `<w:i/>`, "<w:hyperlink", ">primary<"} {
 		if !strings.Contains(doc, want) {
 			t.Errorf("the document lacks %q", want)
 		}

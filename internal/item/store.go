@@ -1598,10 +1598,23 @@ func checkBlock(b Block, self ID) error {
 		if m.Start < 0 || m.End <= m.Start || m.End > n {
 			return invalid("mark %s %d-%d is outside the text of %d characters", m.Type, m.Start, m.End, n)
 		}
+		if m.Value != "" && m.Type != MarkColor && m.Type != MarkSize {
+			return invalid("a %s mark has no value", m.Type)
+		}
 		switch m.Type {
 		case MarkBold, MarkItalic, MarkCode, MarkUnderline, MarkStrike, MarkHighlight:
 			if m.Href != "" || m.Ref != "" {
 				return invalid("a %s mark has no target", m.Type)
+			}
+		case MarkColor, MarkSize:
+			values := map[MarkType][]string{MarkColor: TableTones, MarkSize: TextSizes}[m.Type]
+			switch {
+			case b.Kind != Table:
+				return invalid("only the text of a table's cell takes a %s", m.Type)
+			case m.Href != "" || m.Ref != "":
+				return invalid("a %s mark has no target", m.Type)
+			case !slices.Contains(values, m.Value):
+				return invalid("a %s mark is one of %s", m.Type, strings.Join(values, ", "))
 			}
 		case MarkLink:
 			if !SafeHref(m.Href) || m.Ref != "" {
@@ -1696,7 +1709,7 @@ func checkSizes(what string, sizes []int, n, least, most int) error {
 // tableMarks are the formats a table's cell may carry (ADR-0214). A
 // mention and a protected passage are not among them: a table is one
 // block of cells, and a cell is no place for an embed or a placeholder.
-var tableMarks = []MarkType{MarkBold, MarkItalic, MarkCode, MarkLink, MarkUnderline, MarkStrike, MarkHighlight}
+var tableMarks = []MarkType{MarkBold, MarkItalic, MarkCode, MarkLink, MarkUnderline, MarkStrike, MarkHighlight, MarkColor, MarkSize}
 
 // checkCellMarks checks that a table's marks format text inside one cell
 // each: none spans the tab or line break between two cells.
