@@ -303,6 +303,8 @@ Cards are added with **New card**, opened for their details, and taken off with 
 
 **Roadmap** shows items with date fields on a time axis: as a **Roadmap by label** in lanes, or as a **Gantt chart** with one row per item. Choose the room, the types, the **Start** and **End** fields, the labels and the **Scale** (weeks, months, quarters). Items that wait on unfinished items are marked.
 
+**From month** and **To month** narrow the chart to a period, such as one year. The axis then begins or ends there, and items wholly outside it are left out and counted below the chart. A bar that goes on beyond the period, such as a task across the turn of the year, is cut at the edge and fades out there, so it does not seem to end; its tooltip still names its own dates. **Show the whole period** removes the period again.
+
 **Export** saves the chart as a picture, as **PNG** or **JPEG**, with every row and the whole time axis, also what is scrolled out of sight. The picture shows what you see, in the current look, and is named after the view and the day, such as *Gantt chart PLAT 2026-11-12.png*. A chart too large for a picture the browser can draw is refused with a note; narrow it by labels, type or room, or choose a coarser scale.
 
 ### Calendar

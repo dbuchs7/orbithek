@@ -1,7 +1,8 @@
 // Unit tests of the timeline of a roadmap and a Gantt chart (timeline.js,
 // ADR-0164): reading dates, the fields guessed, the bars and milestones
 // items become, the frame and its ticks at each scale, a bar's place, the
-// rows bars are packed into, the lanes by label, the address and the query
+// rows bars are packed into, the lanes by label, a chosen period and the
+// bars cut to it, the address and the query
 // that reads the items in one listing. They run
 // in Node.js without a browser and without dependencies:
 //
@@ -10,8 +11,8 @@
 // The view itself is in e2e/smoke.cjs.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NO_LABEL, address, autoScale, dateFields, dayString, frame, ganttRows, guessFields, isStartName, isoWeek, itemQuery, lanes, normalLabel, pack, parseDay, place, readState,
-  schedule, span, startDefaults, suggest, todayDay } from "../static/assets/timeline.js";
+import { NO_LABEL, address, autoScale, clip, dateFields, dayString, frame, ganttRows, guessFields, isStartName, isoWeek, itemQuery, lanes, normalLabel, pack, parseDay, periodDays,
+  place, readState, schedule, span, startDefaults, suggest, todayDay } from "../static/assets/timeline.js";
 
 const d = (s) => parseDay(s);
 const it = (key, props, labels = []) => ({ id: "id-" + key, key, title: key, properties: props, labels });
@@ -132,7 +133,7 @@ test("a roadmap has a lane per label, items in each of their lanes, and one for 
 
 test("the state lives in the address, defaults left out", () => {
   const state = readState(new URLSearchParams("mode=gantt&space=PLAT&labels=q1,%20q2,q1&start=start&end=due&scale=month&type=epic"));
-  assert.deepEqual(state, { mode: "gantt", scale: "month", space: "PLAT", type: "epic", labels: ["q1", "q2"], start: "start", end: "due" });
+  assert.deepEqual(state, { mode: "gantt", scale: "month", space: "PLAT", type: "epic", labels: ["q1", "q2"], start: "start", end: "due", from: "", to: "" });
   assert.equal(address(state), "#/roadmap?mode=gantt&space=PLAT&type=epic&start=start&end=due&scale=month&labels=q1%2Cq2");
   assert.deepEqual(readState(new URLSearchParams(address(state).split("?")[1])), state);
   const plain = readState(new URLSearchParams("mode=pie&scale=decade"));
@@ -157,4 +158,51 @@ test("the items are read in one listing: the types with dates, with any of the l
   assert.equal(itemQuery([], ["q1"]), 'label in ("q1")', "a type named in the address narrows the listing itself");
   assert.equal(itemQuery([], []), "", "nothing narrows: no query");
   assert.equal(itemQuery(['say "hi"', "a\\b", "x, y (z)"]), 'type in ("say \\"hi\\"", "a\\\\b", "x, y (z)")', "quotes, backslashes, commas and brackets stay inside one value");
+});
+
+test("a chosen period is months from the first day of one to the last of the other, either side open, the earlier first", () => {
+  const p = readState(new URLSearchParams("from=2026-01&to=2026-12"));
+  assert.deepEqual([p.from, p.to], ["2026-01", "2026-12"]);
+  assert.equal(address(p), "#/roadmap?from=2026-01&to=2026-12");
+  assert.deepEqual(periodDays(p), { from: d("2026-01-01"), to: d("2026-12-31") });
+  assert.deepEqual(periodDays({ from: "2024-02", to: "2024-02" }), { from: d("2024-02-01"), to: d("2024-02-29") }, "a month ends on its own last day");
+  assert.deepEqual(periodDays({ from: "", to: "2026-06" }), { from: null, to: d("2026-06-30") });
+  assert.deepEqual(periodDays({ from: "2026-06", to: "" }), { from: d("2026-06-01"), to: null });
+  assert.equal(periodDays({ from: "", to: "" }), null, "without a period the chart spans every bar");
+  const swapped = readState(new URLSearchParams("from=2027-03&to=2026-10"));
+  assert.deepEqual([swapped.from, swapped.to], ["2026-10", "2027-03"]);
+  const wrong = readState(new URLSearchParams("from=2026-13&to=next"));
+  assert.deepEqual([wrong.from, wrong.to], ["", ""]);
+});
+
+test("bars are cut to a period: those outside are left out, those beyond it say on which side they go on", () => {
+  const bar = (key, from, to, milestone = false) => ({ item: { key }, from: d(from), to: d(to), milestone, inverted: false });
+  const bars = [
+    bar("A", "2025-11-01", "2026-02-15"), // across the turn of the year
+    bar("B", "2026-03-01", "2026-04-30"),
+    bar("C", "2026-11-15", "2027-03-01"),
+    bar("D", "2025-06-01", "2027-06-01"),
+    bar("E", "2025-12-01", "2025-12-20"),
+    bar("F", "2027-01-10", "2027-01-10", true),
+  ];
+  const cut = clip(bars, d("2026-01-01"), d("2026-12-31"));
+  assert.deepEqual(cut.map((b) => b.item.key), ["A", "B", "C", "D"]);
+  const [a, b, c, all] = cut;
+  assert.deepEqual([dayString(a.from), dayString(a.to), a.before, a.after], ["2026-01-01", "2026-02-15", true, false]);
+  assert.deepEqual([dayString(a.begins), dayString(a.ends)], ["2025-11-01", "2026-02-15"], "a cut bar keeps its own days for its words");
+  assert.deepEqual([b.before, b.after], [false, false]);
+  assert.deepEqual([dayString(c.to), c.before, c.after], ["2026-12-31", false, true]);
+  assert.deepEqual([dayString(all.from), dayString(all.to), all.before, all.after], ["2026-01-01", "2026-12-31", true, true]);
+  assert.deepEqual(clip(bars, null, d("2026-01-31")).map((x) => [x.item.key, x.before, x.after]), [["A", false, true], ["D", false, true], ["E", false, false]]);
+});
+
+test("a period bounds the frame exactly: no room on a chosen side, whole units of the scale", () => {
+  const s = { from: d("2026-01-01"), to: d("2026-12-31") };
+  const year = frame(s, "month", d("2026-11-17"), { from: true, to: true });
+  assert.deepEqual([dayString(year.from), dayString(year.to)], ["2026-01-01", "2027-01-01"]);
+  assert.equal(year.ticks.length, 12);
+  const open = frame(s, "month", undefined, { from: true });
+  assert.deepEqual([dayString(open.from), dayString(open.to)], ["2026-01-01", "2027-02-01"], "the side not chosen keeps its room");
+  const weeks = frame({ from: d("2026-03-01"), to: d("2026-03-31") }, "week", undefined, { from: true, to: true });
+  assert.deepEqual([dayString(weeks.from), dayString(weeks.to)], ["2026-02-23", "2026-04-06"], "weeks round the period out to whole weeks");
 });

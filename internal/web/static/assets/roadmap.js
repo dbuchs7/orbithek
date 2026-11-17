@@ -14,8 +14,8 @@ import { h } from "./dom.js";
 import { t, language } from "./i18n.js";
 import { get } from "./api.js";
 import { finished } from "./taskparts.js";
-import { DATE_KINDS, MODES, NO_LABEL, SCALES, address, autoScale, dateFields, frame, ganttRows, dayString, guessFields, itemQuery, lanes, normalLabel, place, readState,
-  schedule, span, suggest, todayDay } from "./timeline.js";
+import { DATE_KINDS, MODES, NO_LABEL, SCALES, address, autoScale, clip, dateFields, frame, ganttRows, dayString, guessFields, itemQuery, lanes, normalLabel, periodDays, place,
+  readState, schedule, span, suggest, todayDay } from "./timeline.js";
 import { exportChart, pictureFormats } from "./roadmappic.js";
 
 // unitWidth is how many pixels a unit of each scale takes at least, so a
@@ -57,22 +57,29 @@ function at(el, left, width) {
   return el;
 }
 
-// barTitle tells everything about a bar in words: its item, its days, its
-// state and whether it waits on others; it is the bar's accessible name.
+// barTitle tells everything about a bar in words: its item, its own days
+// (also where the chart cuts it), its state, whether it goes on beyond the
+// chart and whether it waits on others; it is the bar's accessible name.
 function barTitle(bar, fields) {
   const it = bar.item;
-  const when = bar.milestone ? dateText(bar.from) : t("roadmap.fromTo", { from: dateText(bar.from), to: dateText(bar.to) });
+  const from = bar.begins ?? bar.from, to = bar.ends ?? bar.to;
+  const when = bar.milestone ? dateText(from) : t("roadmap.fromTo", { from: dateText(from), to: dateText(to) });
   const parts = [`${it.key} ${it.title}`, when];
   if (it.state) parts.push(it.state);
+  if (bar.before) parts.push(t("roadmap.beginsBefore"));
+  if (bar.after) parts.push(t("roadmap.endsAfter"));
   if (bar.inverted) parts.push(t("roadmap.inverted", { start: fields.start, end: fields.end }));
   if (it.waitingOn) parts.push(t("roadmap.waitingOn", { n: it.waitingOn }));
   return parts.join(" · ");
 }
 
-// barEl draws a bar or a milestone as a link to its item.
+// barEl draws a bar or a milestone as a link to its item. A bar the chart
+// cuts fades out at the edge it goes on beyond, so it does not seem to end
+// there (style.css: .tl-cut-before, .tl-cut-after).
 function barEl(bar, fr, fields, done, withText) {
   const it = bar.item;
-  const cls = ["tl-bar", bar.milestone ? "tl-milestone" : "", done ? "tl-done" : "", bar.inverted ? "tl-inverted" : "", it.waitingOn ? "tl-waiting" : ""].filter(Boolean).join(" ");
+  const cls = ["tl-bar", bar.milestone ? "tl-milestone" : "", done ? "tl-done" : "", bar.inverted ? "tl-inverted" : "", it.waitingOn ? "tl-waiting" : "",
+    bar.before ? "tl-cut-before" : "", bar.after ? "tl-cut-after" : ""].filter(Boolean).join(" ");
   const title = barTitle(bar, fields);
   const el = h("a", { class: cls, href: "#/item/" + encodeURIComponent(it.key), title, "aria-label": title, "data-key": it.key },
     withText ? h("span", { class: "tl-bar-text", text: bar.milestone ? it.key : `${it.key} ${it.title}` }) : null);
@@ -98,13 +105,28 @@ function axis(fr) {
     })));
 }
 
+// shownBars are the bars a chart shows and the frame it shows them in.
+// Without a chosen period the frame spans every bar. With one, a bound
+// chosen is the frame's edge, at whole units of the scale; the bars are cut
+// to the frame there, and those wholly outside are left out.
+function shownBars(state, bars) {
+  const p = periodDays(state);
+  if (!p) {
+    const s = span(bars);
+    return { fr: frame(s, state.scale || autoScale(s), todayDay()), bars };
+  }
+  const inside = span(clip(bars, p.from, p.to));
+  if (!inside) return { fr: null, bars: [] };
+  const s = { from: p.from ?? inside.from, to: p.to ?? inside.to };
+  const fr = frame(s, state.scale || autoScale(s), todayDay(), { from: p.from !== null, to: p.to !== null });
+  return { fr, bars: clip(bars, p.from === null ? null : fr.from, p.to === null ? null : fr.to - 1) };
+}
+
 // chartModel is what the chart and its picture both draw: the frame at
 // its scale, and the rows with their heads and bars. A Gantt chart has a
 // row per item; a roadmap has its lanes of packed bars, each lane's first
 // row heading it with its label.
-function chartModel(state, bars, typeOf) {
-  const s = span(bars);
-  const fr = frame(s, state.scale || autoScale(s), todayDay());
+function chartModel(state, fr, bars, typeOf) {
   const done = (it) => finished(typeOf(it)?.workflow, it.state);
   const rows = [];
   if (state.mode === "gantt") {
@@ -157,7 +179,7 @@ function pictureSpec(state, model, title) {
       first: row.first,
       head: state.mode === "gantt" ? { key: row.item.key, text: row.item.title }
         : !row.first ? null : row.lane === NO_LABEL ? { none: t("roadmap.noLabel") } : { label: row.lane },
-      bars: row.bars.map((bar) => ({ from: bar.from, to: bar.to, milestone: bar.milestone, inverted: bar.inverted, done: done(bar.item),
+      bars: row.bars.map((bar) => ({ from: bar.from, to: bar.to, milestone: bar.milestone, inverted: bar.inverted, before: Boolean(bar.before), after: Boolean(bar.after), done: done(bar.item),
         waiting: Boolean(bar.item.waitingOn), text: state.mode === "gantt" ? "" : bar.milestone ? bar.item.key : `${bar.item.key} ${bar.item.title}` })),
     })),
   };
@@ -307,6 +329,15 @@ export async function roadmapView(container, params, { readAll, favouritesFirst 
     popular.length ? h("p", { class: "muted tl-popular" }, t("roadmap.labelsPopular") + " ",
       popular.map((l) => h("button", { type: "button", class: "chip tl-pick", "data-label": l, text: l, onclick: () => addLabel(l) }))) : null,
     h("p", { class: "muted", text: t("roadmap.labelsHint") }));
+  // The period is chosen by its first and last month. Browsers without a
+  // month field show a text field; the month is written YYYY-MM there.
+  const month = (id, label, key) => field(label, h("input", { id, type: "month", value: state[key], placeholder: t("roadmap.monthFormat"), pattern: "\\d{4}-\\d{2}",
+    onchange: (ev) => go({ [key]: ev.target.value }) }));
+  const periodChoice = h("div", { class: "form-row tl-period", id: "roadmap-period" },
+    month("roadmap-from", t("roadmap.periodFrom"), "from"),
+    month("roadmap-to", t("roadmap.periodTo"), "to"),
+    state.from || state.to ? h("button", { type: "button", class: "link", id: "roadmap-period-clear", text: t("roadmap.periodClear"), onclick: () => go({ from: "", to: "" }) }) : null,
+    h("p", { class: "muted tl-period-hint", text: t("roadmap.periodHint") }));
   const controls = h("div", { class: "card tl-controls", id: "roadmap-controls" },
     h("nav", { class: "tabs", "aria-label": t("roadmap.mode") }, MODES.map((m) =>
       h("a", { href: address({ ...state, mode: m }), class: m === state.mode ? "tab active" : "tab", id: "roadmap-mode-" + m, text: modeName(m) }))),
@@ -316,20 +347,25 @@ export async function roadmapView(container, params, { readAll, favouritesFirst 
       select("roadmap-start", t("roadmap.startField"), [["", t("roadmap.noField")], ...fields.map((f) => [f, f])], chosen.start, "start"),
       select("roadmap-end", t("roadmap.endField"), [["", t("roadmap.noField")], ...fields.map((f) => [f, f])], chosen.end, "end"),
       select("roadmap-scale", t("roadmap.scale"), SCALES.reduce((o, s) => [...o, [s, scaleName(s)]], [["", scaleName("")]]), state.scale, "scale")),
+    periodChoice,
     labelChoice);
 
   const unscheduledList = unscheduled.length ? h("details", { class: "tl-unscheduled", id: "roadmap-unscheduled" },
     h("summary", { text: t("roadmap.unscheduled", { n: unscheduled.length }) }),
     h("ul", {}, unscheduled.map((it) => h("li", {}, h("a", { href: "#/item/" + encodeURIComponent(it.key), class: "key", text: it.key }), " " + it.title)))) : null;
 
-  let content, actions = null;
+  let content, actions = null, outside = 0;
+  const visible = bars.length ? shownBars(state, bars) : { fr: null, bars: [] };
   if (!fields.length) content = h("p", { class: "empty", id: "roadmap-empty", text: t("roadmap.noDateFields") });
   else if (!bars.length) content = h("p", { class: "empty", id: "roadmap-empty", text: t("roadmap.none") });
+  else if (!visible.bars.length) content = h("p", { class: "empty", id: "roadmap-empty", text: t("roadmap.nonePeriod") });
   else {
-    const model = chartModel(state, bars, typeOf);
+    outside = bars.length - visible.bars.length;
+    const model = chartModel(state, visible.fr, visible.bars, typeOf);
     content = chart(state, model, chosen);
     const room = state.space ? spaces.find((sp) => sp.key === state.space) : null;
-    const title = [modeName(state.mode), room ? `${room.key} ${room.name}` : state.space || t("roadmap.allSpaces"), state.type, state.labels.join(", ")].filter(Boolean).join(" · ");
+    const period = state.from || state.to ? t("roadmap.periodText", { from: state.from || "…", to: state.to || "…" }) : "";
+    const title = [modeName(state.mode), room ? `${room.key} ${room.name}` : state.space || t("roadmap.allSpaces"), state.type, state.labels.join(", "), period].filter(Boolean).join(" · ");
     actions = exportMenu(pictureSpec(state, model, title), [modeName(state.mode), state.space, state.type, ...state.labels, dayString(todayDay())].filter(Boolean).join(" "));
   }
 
@@ -338,6 +374,7 @@ export async function roadmapView(container, params, { readAll, favouritesFirst 
     truncated ? h("p", { class: "notice warning", text: t("board.truncated", { n: items.length }) }) : null,
     actions,
     content,
+    outside ? h("p", { class: "muted", id: "roadmap-outside", text: t("roadmap.outside", { n: outside }) }) : null,
     bars.length ? h("p", { class: "muted tl-legend", text: t("roadmap.legend") }) : null,
     unscheduledList,
   ].filter(Boolean));

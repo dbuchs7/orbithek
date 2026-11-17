@@ -303,6 +303,8 @@ Karten werden mit **Neue Karte** hinzugefügt, für ihre Details geöffnet und m
 
 Die **Roadmap** zeigt Einträge mit Datumsfeldern auf einer Zeitachse: als **Roadmap nach Label** in Bahnen oder als **Gantt-Diagramm** mit einer Zeile je Eintrag. Man wählt Raum, Typen, die Felder **Beginn** und **Ende**, die Labels und den **Massstab** (Wochen, Monate, Quartale). Einträge, die auf unerledigte Einträge warten, sind markiert.
 
+**Ab Monat** und **Bis Monat** beschränken das Diagramm auf einen Zeitraum, etwa ein Jahr. Die Achse beginnt oder endet dann dort; Einträge, die ganz ausserhalb liegen, werden weggelassen und unter dem Diagramm gezählt. Ein Balken, der über den Zeitraum hinausreicht, etwa eine jahresübergreifende Aufgabe, wird am Rand abgeschnitten und läuft dort aus, damit er nicht zu enden scheint; sein Tooltip nennt weiterhin seine eigenen Daten. **Ganzen Zeitraum zeigen** hebt die Beschränkung wieder auf.
+
 **Exportieren** speichert das Diagramm als Bild, als **PNG** oder **JPEG**, mit allen Zeilen und der ganzen Zeitachse, auch dem, was ausserhalb des sichtbaren Bereichs liegt. Das Bild zeigt, was man sieht, im aktuellen Erscheinungsbild, und ist nach der Ansicht und dem Tag benannt, etwa *Gantt-Diagramm PLAT 2026-11-12.png*. Ein Diagramm, das für ein Bild zu gross ist, das der Browser zeichnen kann, wird mit einem Hinweis abgelehnt; man schränkt es nach Labels, Typ oder Raum ein oder wählt einen gröberen Massstab.
 
 ### Kalender
