@@ -497,6 +497,8 @@ export default {
   "editor.children": "Child pages",
   "editor.childrenNone": "No child pages.",
   "editor.childrenDepthChoose": "Depth",
+  "editor.childrenDepthHint": "It lists the pages below this page down to this level; the depth can be changed later on the list.",
+  "editor.childrenInsert": "Insert a list of child pages",
   "editor.childrenDepthOne": "1 level",
   "editor.childrenDepth": "{n} levels",
   "editor.childrenDepthAll": "All levels",
