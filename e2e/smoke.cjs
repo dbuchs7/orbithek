@@ -1601,9 +1601,9 @@ function webSource() {
     await page.waitForSelector("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-editor");
     await page.selectOption("#body .pm-table-text-colour", "purple");
     await page.selectOption("#body .pm-table-text-size", "large");
-    await page.waitForSelector("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-editor .pm-text-purple .pm-size-large:has-text('db1')");
+    await page.waitForSelector("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-editor:has(.pm-text-purple):has(.pm-size-large):has-text('db1')");
     await page.click("#edit-done");
-    await page.waitForSelector("#body.reading .pm-table td .pm-text-purple .pm-size-large:has-text('db1')");
+    await page.waitForSelector("#body.reading .pm-table td:has(.pm-text-purple):has(.pm-size-large):has-text('db1')"); // either may wrap the other
 
     step("versions: the changes of a body show word by word, and an earlier body comes back");
     // Two versions written through the API, so their content does not
