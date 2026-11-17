@@ -1837,6 +1837,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     else if (kind === "embed") embed();
     else if (kind === "embedtext") embed("text");
     else if (kind === "toc") tocDialog();
+    else if (kind === "children") childrenDialog();
     else if (kind === "markdown") markdownDialog();
     else if (kind === "newtask") newTask();
     else if (kind === "tasklist") taskList();
@@ -2121,6 +2122,32 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
       h("p", { class: "muted", text: t("editor.tocDepthHint") }),
       h("div", { class: "pm-dialog-actions" }, h("button", { type: "submit", class: "primary", id: "pm-toc-ok", text: t("editor.tocPlace") }),
         h("button", { type: "button", class: "link", id: "pm-toc-cancel", text: t("common.cancel"), onclick: close }))));
+    dialog.addEventListener("cancel", (ev) => { ev.preventDefault(); close(); });
+    document.body.append(dialog);
+    dialog.showModal();
+    depth.focus();
+  };
+  // childrenDialog asks how deep a new list of child pages goes, then
+  // places it, as a table of contents asks for its depth
+  // (ADR-0237, ADR-0239).
+  const childrenDialog = () => {
+    status.textContent = "";
+    const depth = h("select", { id: "pm-children-depth", class: "pm-children-depth" },
+      childDepths.map((d) => h("option", { value: String(d), text: childDepthName(d), selected: d === 0 })));
+    const dialog = h("dialog", { class: "pm-dialog pm-children-dialog", "aria-labelledby": "pm-children-title" });
+    const close = () => { if (dialog.open) dialog.close(); dialog.remove(); view.focus(); };
+    const place = (ev) => {
+      ev.preventDefault();
+      const chosen = Number(depth.value);
+      close();
+      insertBlock(schema.nodes.children.create({ depth: chosen }));
+    };
+    dialog.append(h("form", { method: "dialog", onsubmit: place },
+      h("h2", { id: "pm-children-title", text: t("editor.childrenInsert") }),
+      h("label", { for: "pm-children-depth", text: t("editor.childrenDepthChoose") }), depth,
+      h("p", { class: "muted", text: t("editor.childrenDepthHint") }),
+      h("div", { class: "pm-dialog-actions" }, h("button", { type: "submit", class: "primary", id: "pm-children-ok", text: t("editor.tocPlace") }),
+        h("button", { type: "button", class: "link", id: "pm-children-cancel", text: t("common.cancel"), onclick: close }))));
     dialog.addEventListener("cancel", (ev) => { ev.preventDefault(); close(); });
     document.body.append(dialog);
     dialog.showModal();

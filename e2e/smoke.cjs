@@ -1466,8 +1466,16 @@ function webSource() {
     await page.waitForSelector("#body.editing .ProseMirror");
     await page.locator("#body .ProseMirror").click();
     await page.selectOption("#body .pm-toolbar select >> nth=1", "children");
+    // The list asks for its depth first, as a table of contents does.
+    await page.waitForSelector("dialog.pm-children-dialog #pm-children-depth");
+    check(await page.inputValue("dialog.pm-children-dialog #pm-children-depth") === "0", "the dialog offers one level first");
+    await page.selectOption("dialog.pm-children-dialog #pm-children-depth", { label: "2 levels" });
+    await page.click("dialog.pm-children-dialog #pm-children-ok");
+    await page.waitForSelector("#body .pm-children li:has(> a:text-is('Upgrade')) > ul a:text-is('Created from New, renamed')");
+    check(await page.locator("#body .pm-children select.pm-children-depth").inputValue() === "2", "the list keeps the depth chosen on inserting");
+    // The choice on the list changes it.
+    await page.selectOption("#body .pm-children select.pm-children-depth", { label: "1 level" });
     await page.waitForSelector("#body .pm-children ul a:text-is('Upgrade')");
-    check(await page.locator("#body .pm-children select.pm-children-depth").inputValue() === "0", "a new list shows one level");
     check(await page.locator("#body .pm-children a:text-is('Created from New, renamed')").count() === 0, "one level lists the children alone");
     await page.selectOption("#body .pm-children select.pm-children-depth", { label: "2 levels" });
     await page.waitForSelector("#body .pm-children li:has(> a:text-is('Upgrade')) > ul a:text-is('Created from New, renamed')");

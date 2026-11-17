@@ -47,7 +47,7 @@ Chosen option: **1, a block field `Depth`**, because the depth is part of what t
 - **The API:** `GET /api/spaces/{space}/tree` takes `depth` (1 to 5 or `all`); with it, each entry holds its `children`, unpaged within the budget.
   Without it the listing is paged as before (ADR-0041).
   MCP's `get_tree` offers the parameter, and its description of blocks names the field.
-- **The editor:** the list's title carries a choice, *Depth*, labelled and placed as a table of contents' depth is (ADR-0237): *1 level*, *2 levels* to *5 levels*, *All levels*; a change is a change of the block's attributes, saved and shared in the live session (ADR-0010) as every other.
+- **The editor:** *Insert…* asks for the depth first in a dialog, and the list's title then carries the same choice, *Depth*, both as a table of contents asks for and carries its depth (ADR-0237): *1 level*, *2 levels* to *5 levels*, *All levels*; a change is a change of the block's attributes, saved and shared in the live session (ADR-0010) as every other.
   Readers see the list without the choice, each deeper page indented below its parent, and a line when the list was cut.
 - **Exports:** Word, PDF and Markdown list each list to its own depth: nested lists in PDF and Markdown, and a deeper indent per level in Word, whose list numbering keeps a single level.
   The server reads the children once per page, to the depth of its deepest list.
