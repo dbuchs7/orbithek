@@ -6,7 +6,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/dbuchs7/orbithek/internal/item"
 	"github.com/dbuchs7/orbithek/internal/wordtemplate"
 )
 
@@ -50,16 +49,14 @@ func docxFromTemplate(w io.Writer, d Document) error {
 // fills with page numbers: it is marked as changed, so Word offers to
 // bring it up to date when the document opens. Until then it shows the
 // page's headings.
-func (b *docxBuilder) tocField(body []item.Block) string {
+func (b *docxBuilder) tocField(p Page) string {
 	begin := `<w:r><w:fldChar w:fldCharType="begin" w:dirty="true"/></w:r>` +
 		`<w:r><w:instrText xml:space="preserve"> TOC \o "1-3" \h \z \u </w:instrText></w:r>` +
 		`<w:r><w:fldChar w:fldCharType="separate"/></w:r>`
 	end := `<w:r><w:fldChar w:fldCharType="end"/></w:r>`
 	var lines []string
-	for _, h := range body {
-		if h.Kind == item.Heading && strings.TrimSpace(h.Text) != "" {
-			lines = append(lines, paraPr(fmt.Sprintf(`<w:ind w:left="%d"/>`, (max(h.Level, 1)-1)*360), run(h.Text, "")))
-		}
+	for _, h := range p.headings() {
+		lines = append(lines, paraPr(fmt.Sprintf(`<w:ind w:left="%d"/>`, (h.Level-1)*360), run(withNumber(h.Num, h.Text), "")))
 	}
 	if len(lines) == 0 {
 		return paraPr("", begin+end)

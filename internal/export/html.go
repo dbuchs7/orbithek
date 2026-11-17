@@ -60,7 +60,8 @@ func (h *htmlBuilder) page(p Page, base int, path map[item.ID]bool, embedDepth i
 		h.out.WriteString(`</table>`)
 	}
 	list := ""
-	for _, bl := range p.Body {
+	nums := p.numbers()
+	for i, bl := range p.Body {
 		want := map[item.BlockKind]string{item.BulletItem: "ul", item.OrderedItem: "ol", item.TaskItem: "ul class=\"tasks\""}[bl.Kind]
 		if want != list {
 			if list != "" {
@@ -75,7 +76,7 @@ func (h *htmlBuilder) page(p Page, base int, path map[item.ID]bool, embedDepth i
 			h.embed(bl.Ref, base, path, embedDepth)
 			continue
 		}
-		h.block(bl, p, base)
+		h.block(bl, p, base, numberAt(nums, i))
 	}
 	if list != "" {
 		h.printf("</%s>", strings.Fields(list)[0])
@@ -97,7 +98,7 @@ func (h *htmlBuilder) embed(id item.ID, base int, path map[item.ID]bool, embedDe
 	h.out.WriteString(`</div>`)
 }
 
-func (h *htmlBuilder) block(bl item.Block, p Page, base int) {
+func (h *htmlBuilder) block(bl item.Block, p Page, base int, num string) {
 	cls := ""
 	if bl.Align != "" {
 		cls = ` class="align-` + html.EscapeString(bl.Align) + `"`
@@ -106,6 +107,9 @@ func (h *htmlBuilder) block(bl item.Block, p Page, base int) {
 	switch bl.Kind {
 	case item.Heading:
 		level := min(base+min(max(bl.Level, 1), 3), 6)
+		if num != "" {
+			text = `<span class="num">` + html.EscapeString(num) + `</span> ` + text
+		}
 		h.printf("<h%d%s>%s</h%d>", level, cls, text, level)
 	case item.BulletItem, item.OrderedItem:
 		h.printf("<li>%s</li>", text)
@@ -169,10 +173,12 @@ func (h *htmlBuilder) block(bl item.Block, p Page, base int) {
 		h.out.WriteString("</figure>")
 	case item.TOC:
 		h.out.WriteString(`<ul class="toc">`)
-		for _, x := range p.Body {
-			if x.Kind == item.Heading && strings.TrimSpace(x.Text) != "" {
-				h.printf(`<li class="level-%d">%s</li>`, min(max(x.Level, 1), 3), html.EscapeString(x.Text))
+		for _, x := range p.headings() {
+			num := ""
+			if x.Num != "" {
+				num = `<span class="num">` + html.EscapeString(x.Num) + `</span> `
 			}
+			h.printf(`<li class="level-%d">%s%s</li>`, x.Level, num, html.EscapeString(x.Text))
 		}
 		h.out.WriteString("</ul>")
 	case item.Figures, item.Tables:

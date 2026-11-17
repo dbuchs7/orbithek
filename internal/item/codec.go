@@ -190,7 +190,10 @@ import (
 //     hand, and the kind AttachmentTurned with attachment, sealed
 //     (ADR-0231). Versions 1 to 61 are still
 //     read; their pictures are shown as their files tell.
-const CodecVersion = 62
+//   - 63: a body may carry Numbered, its headings numbered by their
+//     levels, sealed with the body (ADR-draft-numbered-headings).
+//     Versions 1 to 62 are still read; their headings are not numbered.
+const CodecVersion = 63
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

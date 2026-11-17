@@ -296,16 +296,18 @@ type originJSON struct {
 }
 
 type itemJSON struct {
-	ID          item.ID          `json:"id"`
-	Key         string           `json:"key"`
-	Type        string           `json:"type"`
-	TypeVersion int              `json:"typeVersion"`
-	Space       string           `json:"space"`
-	Parent      item.ID          `json:"parent,omitempty"`
-	Title       string           `json:"title"`
-	Properties  map[string]any   `json:"properties"`
-	State       string           `json:"state,omitempty"`
-	Body        []blockJSON      `json:"body"`
+	ID          item.ID        `json:"id"`
+	Key         string         `json:"key"`
+	Type        string         `json:"type"`
+	TypeVersion int            `json:"typeVersion"`
+	Space       string         `json:"space"`
+	Parent      item.ID        `json:"parent,omitempty"`
+	Title       string         `json:"title"`
+	Properties  map[string]any `json:"properties"`
+	State       string         `json:"state,omitempty"`
+	Body        []blockJSON    `json:"body"`
+	// Numbered numbers the body's headings (ADR-draft-numbered-headings).
+	Numbered    bool             `json:"numbered,omitempty"`
 	Version     int              `json:"version"`
 	Presence    item.Presence    `json:"presence"`
 	Restriction *restrictionJSON `json:"restriction,omitempty"`
@@ -450,7 +452,7 @@ func toDPFindings(fs []item.DPFinding) []dpFindingJSON {
 func toItemJSON(it item.Item) itemJSON {
 	j := itemJSON{ID: it.ID, Key: it.Key, Type: it.Type, TypeVersion: it.TypeVersion, Space: it.Space,
 		Parent: it.Parent, Title: it.Title, Properties: map[string]any(it.Properties), State: it.State,
-		Body: []blockJSON{}, Version: it.Version, Presence: it.Presence, Managed: it.Managed, Linked: it.Linked, LinkedFields: it.LinkedFields, Detached: it.DetachedFrom(), Labels: it.Labels, Template: it.Template}
+		Body: []blockJSON{}, Numbered: it.Body.Numbered, Version: it.Version, Presence: it.Presence, Managed: it.Managed, Linked: it.Linked, LinkedFields: it.LinkedFields, Detached: it.DetachedFrom(), Labels: it.Labels, Template: it.Template}
 	if j.Labels == nil {
 		j.Labels = []string{}
 	}

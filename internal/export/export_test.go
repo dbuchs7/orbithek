@@ -347,3 +347,63 @@ func TestSoundIsPlayedOrNamed(t *testing.T) {
 		t.Errorf("the Markdown does not name the sound:\n%s", md)
 	}
 }
+
+// TestNumberedHeadingsInEveryFormat: a numbered body shows the numbers of
+// its headings in the text and in its table of contents, in the HTML, the
+// Word file and the Markdown; an unnumbered one shows none
+// (ADR-draft-numbered-headings).
+func TestNumberedHeadingsInEveryFormat(t *testing.T) {
+	body := []item.Block{
+		{Kind: item.TOC},
+		{Kind: item.Heading, Level: 1, Text: "Goals"},
+		{Kind: item.Heading, Level: 2, Text: "Scope"},
+		{Kind: item.Heading, Level: 1, Text: "Plan"},
+	}
+	numbered := Document{Pages: []Page{{ID: "p", Title: "Concept", Body: body, Numbered: true}}}
+	plain := Document{Pages: []Page{{ID: "p", Title: "Concept", Body: body}}}
+
+	var h bytes.Buffer
+	if err := HTML(&h, numbered, "en"); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`<li class="level-1"><span class="num">1</span> Goals</li>`, `<li class="level-2"><span class="num">1.1</span> Scope</li>`,
+		`<h2><span class="num">1</span> Goals</h2>`, `<h3><span class="num">1.1</span> Scope</h3>`, `<h2><span class="num">2</span> Plan</h2>`} {
+		if !strings.Contains(h.String(), want) {
+			t.Errorf("the HTML lacks %q:\n%s", want, h.String())
+		}
+	}
+	h.Reset()
+	noErrE(t, HTML(&h, plain, "en"))
+	if strings.Contains(h.String(), `class="num"`) {
+		t.Errorf("an unnumbered body shows numbers:\n%s", h.String())
+	}
+
+	var w bytes.Buffer
+	noErrE(t, DOCX(&w, numbered))
+	doc := documentXML(t, w.Bytes())
+	for _, want := range []string{`<w:t xml:space="preserve">1.1 Scope</w:t>`, `<w:pStyle w:val="Heading2"/></w:pPr><w:r><w:t xml:space="preserve">1.1 </w:t></w:r><w:r><w:t xml:space="preserve">Scope</w:t>`} {
+		if !strings.Contains(doc, want) {
+			t.Errorf("the Word file lacks %q:\n%s", want, doc)
+		}
+	}
+
+	var m bytes.Buffer
+	noErrE(t, Markdown(&m, numbered))
+	for _, want := range []string{"- 1 Goals\n  - 1.1 Scope\n- 2 Plan", "## 1 Goals", "### 1.1 Scope", "## 2 Plan"} {
+		if !strings.Contains(m.String(), want) {
+			t.Errorf("the Markdown lacks %q:\n%s", want, m.String())
+		}
+	}
+	m.Reset()
+	noErrE(t, Markdown(&m, plain))
+	if !strings.Contains(m.String(), "## Goals") || strings.Contains(m.String(), "1.1") {
+		t.Errorf("an unnumbered body shows numbers:\n%s", m.String())
+	}
+}
+
+func noErrE(t *testing.T, err error) {
+	t.Helper()
+	if err != nil {
+		t.Fatal(err)
+	}
+}

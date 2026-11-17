@@ -85,7 +85,16 @@ Mit **Bearbeiten** wird der Text bearbeitet, mit **Fertig** abgeschlossen. Ände
 - Fett, Kursiv, Unterstreichen, Durchstreichen, Hervorheben, Code im Text und Ausrichtung;
 - **Link** (Ctrl+K): eine Webadresse oder eine Seite bzw. Aufgabe, gesucht nach ihrem Titel;
 - **Erwähnen** (@): eine Person oder einen Eintrag;
+- **Überschriften nummerieren** (1.1): nummeriert die Überschriften des ganzen Texts nach ihrer Ebene (siehe unten);
 - **Rückgängig** und **Wiederholen**.
+
+**Überschriften nummerieren** nummeriert jede Überschrift nach ihrer Ebene: 1, 1.1, 1.1.1.
+Die Nummern folgen den Überschriften, wenn sie hinzukommen, verschoben oder entfernt werden; nichts muss von Hand nummeriert werden.
+Die höchste Überschriftenebene, die der Text verwendet, zählt als erste, sodass ein Text, der mit Überschrift 2 beginnt, seine Überschriften der Ebene 2 mit 1, 2, 3 nummeriert; eine übersprungene Ebene zählt als 0, etwa in 1.0.1, und Überschriften ohne Text werden nicht gezählt.
+Das Inhaltsverzeichnis zeigt dieselben Nummern, ebenso das Word-Dokument, die als PDF gedruckte Seite und der Markdown-Export.
+Ein erneuter Klick auf die Schaltfläche entfernt die Nummern aus dem Text und aus dem Inhaltsverzeichnis.
+Die Einstellung gehört zum Text und wird sofort für alle gespeichert, die ihn lesen; der Verlauf hält sie als Version des Texts fest.
+Überschriften in einem geschützten Abschnitt, den man nicht lesen darf, sind nicht sichtbar und werden bei den Nummern nicht mitgezählt.
 
 Eingefügtes Markdown wird zu formatiertem Text; eine Tabelle behält die Formatierung ihrer Zellen. Ctrl+Shift+V fügt stattdessen reinen Text ein.
 

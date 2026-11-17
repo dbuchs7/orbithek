@@ -938,6 +938,9 @@ func (h itemHandlers) transition(w http.ResponseWriter, r *http.Request) {
 func (h itemHandlers) commitBody(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Blocks []blockJSON `json:"blocks"`
+		// Numbered numbers the headings, or not; absent, the body keeps
+		// what it had (ADR-draft-numbered-headings).
+		Numbered *bool `json:"numbered"`
 	}
 	if !decode(w, r, &req) {
 		return
@@ -955,6 +958,10 @@ func (h itemHandlers) commitBody(w http.ResponseWriter, r *http.Request) {
 		})
 		if err != nil {
 			return err
+		}
+		doc.Numbered = it.Body.Numbered
+		if req.Numbered != nil {
+			doc.Numbered = *req.Numbered
 		}
 		return x.CommitBody(it.ID, doc)
 	})
@@ -1289,7 +1296,7 @@ func (h itemHandlers) version(w http.ResponseWriter, r *http.Request) {
 		for _, b := range v.Body.Blocks {
 			body = append(body, toBlockJSON(b))
 		}
-		return map[string]any{"seq": v.Seq, "at": v.At, "actor": v.Actor, "body": body}, nil
+		return map[string]any{"seq": v.Seq, "at": v.At, "actor": v.Actor, "body": body, "numbered": v.Body.Numbered}, nil
 	})
 }
 

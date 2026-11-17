@@ -89,7 +89,7 @@ func (b whiteboardBackend) Save(k whiteboard.Key, principal string, png []byte) 
 		if err != nil {
 			return err
 		}
-		doc, changed := item.Doc{Blocks: slices.Clone(it.Body.Blocks)}, false
+		doc, changed := item.Doc{Blocks: slices.Clone(it.Body.Blocks), Numbered: it.Body.Numbered}, false
 		for i, bl := range doc.Blocks {
 			if bl.Kind == item.Image && slices.Contains(d.Versions, bl.Ref) {
 				doc.Blocks[i].Ref, changed = a.ID, true
@@ -271,7 +271,7 @@ func (h itemHandlers) createWhiteboard(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			var it item.Item
 			if it, err = x.Get(id); err == nil {
-				doc := item.Doc{Blocks: append(slices.Clone(it.Body.Blocks), item.Block{Kind: item.Image, Ref: got.ID, Text: strings.TrimSpace(req.Title)})}
+				doc := item.Doc{Blocks: append(slices.Clone(it.Body.Blocks), item.Block{Kind: item.Image, Ref: got.ID, Text: strings.TrimSpace(req.Title)}), Numbered: it.Body.Numbered}
 				err = x.CommitBody(id, doc)
 			}
 		}

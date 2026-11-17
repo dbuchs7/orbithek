@@ -312,6 +312,11 @@ var DiagramViews = []string{ViewBoth, ViewText}
 // or Markdown as storage format).
 type Doc struct {
 	Blocks []Block
+	// Numbered numbers the body's headings by their levels — 1, 1.1,
+	// 1.1.1 — in the text, in its tables of contents and in its exports
+	// (ADR-draft-numbered-headings). The numbers are computed when shown,
+	// never stored; HeadingNumbers computes them.
+	Numbered bool `json:",omitempty"`
 }
 
 // Presence is an item's lifecycle position, separate from its workflow
@@ -741,7 +746,7 @@ func (d Doc) clone() Doc {
 		b.Cells = slices.Clone(b.Cells)
 		blocks[i] = b
 	}
-	return Doc{Blocks: blocks}
+	return Doc{Blocks: blocks, Numbered: d.Numbered}
 }
 
 // refs returns the derived relations a body implies, deduplicated, in

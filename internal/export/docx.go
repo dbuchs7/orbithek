@@ -157,6 +157,56 @@ type Page struct {
 	Tasks map[string][]string
 	// Depth is the page's level below the root.
 	Depth int
+	// Numbered numbers the body's headings, in the text and in its tables
+	// of contents (ADR-draft-numbered-headings).
+	Numbered bool
+}
+
+// numbers are the numbers of the body's headings by block index, nil when
+// they are not numbered (ADR-draft-numbered-headings).
+func (p Page) numbers() []string {
+	return item.HeadingNumbers(item.Doc{Blocks: p.Body, Numbered: p.Numbered})
+}
+
+// heading is an entry of a table of contents.
+type heading struct {
+	Level int // 1 to 3
+	Text  string
+	Num   string // its number, or none
+}
+
+// headings are the entries of the page's table of contents: its headings
+// with text, in their order, numbered when the body is.
+func (p Page) headings() []heading {
+	nums := p.numbers()
+	var out []heading
+	for i, b := range p.Body {
+		if b.Kind != item.Heading || strings.TrimSpace(b.Text) == "" {
+			continue
+		}
+		e := heading{Level: min(max(b.Level, 1), 3), Text: b.Text}
+		if nums != nil {
+			e.Num = nums[i]
+		}
+		out = append(out, e)
+	}
+	return out
+}
+
+// withNumber puts a heading's number before its text.
+func withNumber(num, text string) string {
+	if num == "" {
+		return text
+	}
+	return num + " " + text
+}
+
+// numberAt is the number of the block at index i of nums, or none.
+func numberAt(nums []string, i int) string {
+	if nums == nil {
+		return ""
+	}
+	return nums[i]
 }
 
 // Image is a picture file.
@@ -328,6 +378,7 @@ func (b *docxBuilder) page(out *strings.Builder, p Page, base int, path map[item
 		out.WriteString(para("", "", ""))
 	}
 	listNum := 0
+	nums := p.numbers()
 	for i, bl := range p.Body {
 		if bl.Kind == item.OrderedItem && (i == 0 || p.Body[i-1].Kind != item.OrderedItem) {
 			b.ordered++
@@ -337,7 +388,7 @@ func (b *docxBuilder) page(out *strings.Builder, p Page, base int, path map[item
 			b.embed(out, bl.Ref, base, path, embedDepth)
 			continue
 		}
-		out.WriteString(b.block(bl, p, base, listNum))
+		out.WriteString(b.block(bl, p, base, listNum, numberAt(nums, i)))
 	}
 }
 
@@ -359,7 +410,7 @@ func (b *docxBuilder) embed(out *strings.Builder, id item.ID, base int, path map
 	out.WriteString(paraPr(`<w:pBdr><w:bottom w:val="dotted" w:sz="4" w:space="1" w:color="BFBFBF"/></w:pBdr>`, ""))
 }
 
-func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int) string {
+func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int, num string) string {
 	jc := ""
 	switch bl.Align {
 	case "center", "right":
@@ -371,6 +422,11 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int) string {
 	switch bl.Kind {
 	case item.Heading:
 		level := min(base+min(max(bl.Level, 1), 3), 6)
+		if num != "" {
+			// The number is text of the heading, as Word's own table of
+			// contents then lists it.
+			text = run(num+" ", "") + text
+		}
 		return paraPr(b.pStyle(fmt.Sprintf("Heading%d", level))+align(jc), text)
 	case item.BulletItem:
 		return paraPr(b.pStyle("ListParagraph")+b.bulletNum(), text)
@@ -431,13 +487,11 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int) string {
 		return out.String()
 	case item.TOC:
 		if b.tpl != nil {
-			return b.tocField(p.Body)
+			return b.tocField(p)
 		}
 		var out strings.Builder
-		for _, h := range p.Body {
-			if h.Kind == item.Heading && strings.TrimSpace(h.Text) != "" {
-				out.WriteString(paraPr(fmt.Sprintf(`<w:ind w:left="%d"/>`, (max(h.Level, 1)-1)*360), run(h.Text, "")))
-			}
+		for _, h := range p.headings() {
+			out.WriteString(paraPr(fmt.Sprintf(`<w:ind w:left="%d"/>`, (h.Level-1)*360), run(withNumber(h.Num, h.Text), "")))
 		}
 		return out.String()
 	case item.TaskList:

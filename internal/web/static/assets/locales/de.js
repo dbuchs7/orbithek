@@ -473,6 +473,7 @@ export default {
   "col.assignee": "Zuständig",
   "editor.table": "Tabelle",
   "editor.toc": "Inhaltsverzeichnis",
+  "editor.numberHeadings": "Überschriften nummerieren",
   "editor.figures": "Bildverzeichnis",
   "editor.tables": "Tabellenverzeichnis",
   "editor.figuresEmpty": "Noch keine Bilder.",
@@ -501,6 +502,8 @@ export default {
 
   "version.changes": "Änderungen",
   "version.title": "Änderungen vom {when} durch {who}",
+  "version.numberedOn": "Die Überschriften wurden nummeriert.",
+  "version.numberedOff": "Die Überschriften sind nicht mehr nummeriert.",
   "version.noChanges": "Der Inhalt hat sich nicht geändert.",
   "version.restore": "Diese Fassung wiederherstellen",
 

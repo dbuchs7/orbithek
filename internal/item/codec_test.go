@@ -78,7 +78,7 @@ func TestAChangeThatIsNotPersistedDoesNotHappen(t *testing.T) {
 
 func TestDecodeRejectsWhatItCannotReadExactly(t *testing.T) {
 	cases := map[string]string{
-		"newer format":       `[{"v":63,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
+		"newer format":       `[{"v":64,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"no format version":  `[{"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"unknown field":      `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated","colour":"red"}]`,
 		"unknown role":       `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"RoleGranted","role":"owner"}]`,
@@ -203,6 +203,7 @@ func TestPersistedFormatIsStable(t *testing.T) {
 	styledTables := tableStyleLog(t)
 	shareFiles := shareFileLog(t)
 	sounds := audioLog(t)
+	numbered := numberedLog(t)
 	kinds := map[EventKind]bool{}
 	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments, notes, photos, places, renames, geotags, moves, albumVideos, faces, slideOrders, fingerprints, times, turned, highlights, itemViews, kinds55, styledTables, shareFiles, sounds) {
 		kinds[e.Kind] = true
@@ -318,6 +319,8 @@ func TestPersistedFormatIsStable(t *testing.T) {
 		{"events.current.sharefiles.plain.golden.jsonl", nil, shareFiles},
 		{"events.current.audio.golden.jsonl", fakeSealer{}, sounds},
 		{"events.current.audio.plain.golden.jsonl", nil, sounds},
+		{"events.current.numbered.golden.jsonl", fakeSealer{}, numbered},
+		{"events.current.numbered.plain.golden.jsonl", nil, numbered},
 	}
 	for _, c := range cases {
 		name, sl, log := c.name, c.sl, c.log
@@ -1861,6 +1864,17 @@ func audioLog(t *testing.T) []Event {
 	_, err := anna.AddAttachment(page.ID, Attachment{ID: take, Name: "Recording 2026-11-12 08-14.webm", Type: "audio/webm", Size: 3, SHA256: strings.Repeat("ef", 32)})
 	noErr(t, err)
 	noErr(t, anna.CommitBody(page.ID, Doc{Blocks: []Block{{Kind: Paragraph, Text: "What we agreed:"}, {Kind: Audio, Ref: take, Text: "The call"}}}))
+	return s.Log()
+}
+
+// numberedLog numbers the headings of a text, so the golden files pin the
+// body field Numbered (ADR-draft-numbered-headings).
+func numberedLog(t *testing.T) []Event {
+	s := setup(t)
+	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))
+	anna := s.As("anna")
+	page := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Concept"}))
+	noErr(t, anna.CommitBody(page.ID, Doc{Numbered: true, Blocks: []Block{{Kind: TOC}, {Kind: Heading, Level: 1, Text: "Goals"}, {Kind: Heading, Level: 2, Text: "Scope"}}}))
 	return s.Log()
 }
 

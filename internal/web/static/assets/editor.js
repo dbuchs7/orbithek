@@ -6,7 +6,7 @@
 // survives paste or input, so the editor cannot produce markup the model
 // refuses.
 import {
-  Schema, EditorState, EditorView, Plugin, Decoration, DecorationSet, keymap, baseKeymap, toggleMark, setBlockType,
+  Schema, EditorState, EditorView, Plugin, PluginKey, Decoration, DecorationSet, keymap, baseKeymap, toggleMark, setBlockType,
   splitBlockAs, chainCommands, history, undo, redo, inputRules, textblockTypeInputRule, TextSelection,
 } from "../vendor/prosemirror.js";
 import { h, safeHref } from "./dom.js";
@@ -29,6 +29,7 @@ import {
   insertRow, insertColumn, removeRow, removeColumn, resized, filledClass, borderClass,
 } from "./tableparts.js";
 import { viewBlock, pickView, viewsReady } from "./itemview.js";
+import { headingNumbers } from "./numbering.js";
 
 // Every block carries bid, its ID in a live session (ADR-0010); it is not
 // stored. Text blocks keep the mentions they had without a mention mark
@@ -870,19 +871,74 @@ function tableView(node, view, getPos) {
   };
 }
 
-// tocView lists the body's headings; a click scrolls to one. tocs holds
-// the refresh functions of an editor's tables of contents, which a plugin
-// calls after every change of the document.
+// numbering holds whether a body's headings are numbered
+// (ADR-draft-numbered-headings): a setting of the whole body, not of a
+// block, so it stays out of the undo history and out of the blocks a live
+// session compares. A transaction with the meta {numbered} sets it. A
+// heading carries its number as data-num, which the stylesheet shows
+// before it: a widget inside the editable heading would misplace the
+// browser's caret at the start of the line.
+const numbering = new PluginKey("numbering");
+function numberingPlugin(on) {
+  const decorate = (doc, numbered) => {
+    if (!numbered) return DecorationSet.empty;
+    const decos = [];
+    for (const [offset, num] of numbersOf(doc, true)) {
+      decos.push(Decoration.node(offset, offset + doc.nodeAt(offset).nodeSize, { class: "pm-numbered", "data-num": num }));
+    }
+    return DecorationSet.create(doc, decos);
+  };
+  return new Plugin({
+    key: numbering,
+    state: {
+      init: (_, state) => ({ on: Boolean(on), decos: decorate(state.doc, on) }),
+      apply: (tr, prev, _, state) => {
+        const meta = tr.getMeta(numbering);
+        const next = meta ? Boolean(meta.numbered) : prev.on;
+        if (next === prev.on && !tr.docChanged) return prev;
+        return { on: next, decos: decorate(state.doc, next) };
+      },
+    },
+    props: { decorations: (state) => numbering.getState(state).decos },
+  });
+}
+
+// numbersOf maps the offset of each numbered heading of a document to its
+// number, when numbered is set.
+function numbersOf(doc, numbered) {
+  const out = new Map();
+  if (!numbered) return out;
+  const blocks = [];
+  const offsets = [];
+  doc.forEach((n, offset) => {
+    blocks.push(n.type === schema.nodes.heading ? { kind: "heading", level: n.attrs.level, text: n.textContent } : { kind: n.type.name });
+    offsets.push(offset);
+  });
+  headingNumbers(blocks).forEach((num, i) => { if (num) out.set(offsets[i], num); });
+  return out;
+}
+
+// isNumbered says whether an editor's headings are numbered.
+export function isNumbered(state) {
+  return Boolean(numbering.getState(state)?.on);
+}
+
+// tocView lists the body's headings, with their numbers when the body is
+// numbered; a click scrolls to one. tocs holds the refresh functions of an
+// editor's tables of contents, which a plugin calls after every change of
+// the document or of its numbering.
 function tocView(node, view, tocs) {
   const dom = h("nav", { class: "pm-toc", contenteditable: "false", "aria-label": t("editor.toc") });
   const refresh = () => {
     const heads = [];
+    const nums = numbersOf(view.state.doc, isNumbered(view.state));
     view.state.doc.forEach((n, offset) => {
-      if (n.type === schema.nodes.heading && n.textContent.trim()) heads.push({ level: n.attrs.level, text: n.textContent, offset });
+      if (n.type === schema.nodes.heading && n.textContent.trim()) heads.push({ level: n.attrs.level, text: n.textContent, offset, num: nums.get(offset) });
     });
+    dom.classList.toggle("pm-toc-numbered", nums.size > 0);
     dom.replaceChildren(h("p", { class: "pm-box-title", text: t("editor.toc") }), heads.length
-      ? h("ul", {}, heads.map((x) => h("li", { class: "pm-toc-" + x.level }, h("button", { type: "button", class: "link", text: x.text,
-        onclick: () => view.nodeDOM(x.offset)?.scrollIntoView({ block: "start" }) }))))
+      ? h("ul", {}, heads.map((x) => h("li", { class: "pm-toc-" + x.level }, h("button", { type: "button", class: "link",
+        onclick: () => view.nodeDOM(x.offset)?.scrollIntoView({ block: "start" }) }, x.num ? h("span", { class: "pm-num", text: x.num }) : null, x.text))))
       : h("p", { class: "muted", text: t("editor.tocEmpty") }));
   };
   tocs.add(refresh);
@@ -1292,10 +1348,12 @@ function audioView(node, view, getPos, files, report = () => {}) {
 // it, or null when cancelled (ADR-0138). weblinks.save(address), if given,
 // saves the page a link leads to as a web link item and returns {item,
 // problem}, or null when cancelled (ADR-0208).
-export function createEditor({ blocks, embeds, editable, resolve, childPages, files, extra = [], viewProps = {}, comment, protect, note, actions = [], embedContent, tasks, markdown, weblinks, create }) {
+export function createEditor({ blocks, embeds, editable, resolve, childPages, files, extra = [], viewProps = {}, comment, protect, note, actions = [], embedContent, tasks, markdown, weblinks, create, numbered = false, onNumbered }) {
   const mount = h("div", { class: "pm-editor" });
   const tocs = new Set();
-  const tocPlugin = new Plugin({ view: () => ({ update: (v, prev) => { if (!v.state.doc.eq(prev.doc)) tocs.forEach((f) => f()); } }) });
+  const tocPlugin = new Plugin({ view: () => ({ update: (v, prev) => {
+    if (!v.state.doc.eq(prev.doc) || isNumbered(v.state) !== isNumbered(prev)) tocs.forEach((f) => f());
+  } }) });
   // The toolbar shows what applies at the selection, after every change,
   // one's own or another's in a live session (ADR-0059).
   let onUpdate = () => {};
@@ -1317,7 +1375,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     handlePaste: (v, ev) => { const asText = plain; plain = false; return onPaste(ev, asText); },
   } });
   const view = new EditorView(mount, {
-    state: EditorState.create({ doc: docFromBlocks(blocks, embeds), plugins: [...extra, ...(editable ? [pastePlugin, ...aids.plugins, aidKeys] : []), ...plugins(), tocPlugin, statePlugin] }),
+    state: EditorState.create({ doc: docFromBlocks(blocks, embeds), plugins: [...extra, ...(editable ? [pastePlugin, ...aids.plugins, aidKeys] : []), ...plugins(), numberingPlugin(numbered), tocPlugin, statePlugin] }),
     editable: () => editable,
     attributes: { "aria-label": t("editor.body"), role: "textbox", "aria-multiline": "true" },
     nodeViews: {
@@ -1784,7 +1842,25 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     const inIt = view.state.selection.$from.parent.type === node;
     run(setBlockType(inIt ? schema.nodes.paragraph : node))();
   } });
-  const stateful = [...markButtons, ...alignButtons];
+  // Numbering the headings is a setting of the whole text
+  // (ADR-draft-numbered-headings): onNumbered, given by a live session,
+  // stores it for everyone at once; until it answers, the text shows what
+  // was chosen, and a refusal takes it back.
+  const setNumbered = (on) => view.dispatch(view.state.tr.setMeta(numbering, { numbered: on }).setMeta("addToHistory", false));
+  const numberButton = toggle(t("editor.numberHeadings"), h("span", { class: "pm-ico-num", "aria-hidden": "true", text: "1.1" }), async () => {
+    const on = !isNumbered(view.state);
+    setNumbered(on);
+    status.textContent = "";
+    try {
+      await onNumbered?.(on);
+    } catch (err) {
+      setNumbered(!on);
+      status.textContent = err.message;
+    }
+    return true;
+  }, (st) => isNumbered(st));
+  numberButton.el.id = "pm-number-headings";
+  const stateful = [...markButtons, ...alignButtons, numberButton];
   // The block kind shows the kind of the block the selection starts in, so
   // choosing a kind always changes the choice and applies at once; a block
   // the choice does not list, such as a picture, leaves it empty.
@@ -1809,6 +1885,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     group(...markButtons.map((b) => b.el)),
     group(...alignButtons.map((b) => b.el)),
     group(listButton("bullet", "•", t("editor.bullet")), listButton("ordered", "1.", t("editor.ordered")), listButton("task", "☑", t("editor.task"))),
+    group(numberButton.el),
     group(
       h("button", { type: "button", id: "pm-link", title: t("assist.linkTitle"), "aria-label": t("assist.linkTitle"), text: t("editor.link"), onclick: () => aids.openLink(view) }),
       h("button", { type: "button", id: "pm-at-button", title: t("assist.mentionTitle"), "aria-label": t("assist.mentionTitle"), text: "@", onclick: () => {
@@ -1830,5 +1907,6 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     onUpdate = refresh;
     refresh(view.state);
   }
-  return { element: h("div", { class: "pm-wrap" }, toolbar, mount), blocks: () => blocksFromDoc(view.state.doc), view };
+  return { element: h("div", { class: "pm-wrap" }, toolbar, mount), blocks: () => blocksFromDoc(view.state.doc), view,
+    numbered: () => isNumbered(view.state), setNumbered };
 }

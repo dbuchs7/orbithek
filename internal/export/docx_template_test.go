@@ -144,7 +144,7 @@ func TestATemplateWithoutTitleControlGetsTheTitleAndATOCWithoutHeadings(t *testi
 	tp := smallTemplate(t)
 	d := Document{Pages: []Page{{ID: "r", Title: "Ohne", Body: []item.Block{{Kind: item.TOC}}}}, Template: tp, Controls: map[string]string{}}
 	b := &docxBuilder{d: d, tpl: tp, rel: "orb", numBase: 1, width: tp.TextWidth(), styleN: map[string]string{}}
-	if got := b.tocField(nil); got != `<w:p><w:r><w:fldChar w:fldCharType="begin" w:dirty="true"/></w:r><w:r><w:instrText xml:space="preserve"> TOC \o "1-3" \h \z \u </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>` {
+	if got := b.tocField(Page{}); got != `<w:p><w:r><w:fldChar w:fldCharType="begin" w:dirty="true"/></w:r><w:r><w:instrText xml:space="preserve"> TOC \o "1-3" \h \z \u </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>` {
 		t.Errorf("an empty table of contents = %s", got)
 	}
 	if len(styleDefs) != 18 || styleDefs["Heading1"].name != "heading 1" || styleDefs["TableGrid"].typ != "table" || styleDefs["Normal"].name != "Normal" {

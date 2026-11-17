@@ -475,6 +475,7 @@ export default {
   "col.assignee": "Assignee",
   "editor.table": "Table",
   "editor.toc": "Table of contents",
+  "editor.numberHeadings": "Number headings",
   "editor.figures": "List of figures",
   "editor.tables": "List of tables",
   "editor.figuresEmpty": "No pictures yet.",
@@ -503,6 +504,8 @@ export default {
 
   "version.changes": "Changes",
   "version.title": "Changes of {when} by {who}",
+  "version.numberedOn": "The headings were numbered.",
+  "version.numberedOff": "The headings are no longer numbered.",
   "version.noChanges": "The body did not change.",
   "version.restore": "Restore this version",
 

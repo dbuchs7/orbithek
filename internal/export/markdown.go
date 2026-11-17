@@ -160,7 +160,8 @@ func (m *mdBuilder) page(p Page, base int, path map[item.ID]bool, embedDepth int
 	}
 	var list item.BlockKind // the kind of list the last part holds, if any
 	n := 0                  // the number of the last item of a numbered list
-	for _, bl := range p.Body {
+	nums := p.numbers()
+	for i, bl := range p.Body {
 		marker := map[item.BlockKind]string{item.BulletItem: "- ", item.TaskItem: "- [ ] "}[bl.Kind]
 		switch bl.Kind {
 		case item.OrderedItem:
@@ -189,7 +190,7 @@ func (m *mdBuilder) page(p Page, base int, path map[item.ID]bool, embedDepth int
 			parts = append(parts, m.embed(bl.Ref, base, path, embedDepth))
 			continue
 		}
-		parts = append(parts, m.block(bl, p, base)...)
+		parts = append(parts, m.block(bl, p, base, numberAt(nums, i))...)
 	}
 	return parts
 }
@@ -211,7 +212,7 @@ func (m *mdBuilder) embed(id item.ID, base int, path map[item.ID]bool, embedDept
 	return quote(strings.Join(parts, "\n\n"))
 }
 
-func (m *mdBuilder) block(bl item.Block, p Page, base int) []string {
+func (m *mdBuilder) block(bl item.Block, p Page, base int, num string) []string {
 	list := func(entries []string) []string {
 		if len(entries) == 0 {
 			return nil
@@ -232,7 +233,7 @@ func (m *mdBuilder) block(bl item.Block, p Page, base int) []string {
 	switch bl.Kind {
 	case item.Heading:
 		level := min(base+min(max(bl.Level, 1), 3), 6)
-		return []string{strings.Repeat("#", level) + " " + headingText(bl.Text, bl.Marks)}
+		return []string{strings.Repeat("#", level) + " " + withNumber(num, headingText(bl.Text, bl.Marks))}
 	case item.Quote:
 		return []string{quote(inlineMarkdown(bl.Text, bl.Marks))}
 	case item.CodeBlock, item.Unsupported:
@@ -295,10 +296,8 @@ func (m *mdBuilder) block(bl item.Block, p Page, base int) []string {
 		return append(out, captionPart()...)
 	case item.TOC:
 		var entries []string
-		for _, h := range p.Body {
-			if h.Kind == item.Heading && strings.TrimSpace(h.Text) != "" {
-				entries = append(entries, strings.Repeat("  ", min(max(h.Level, 1), 3)-1)+"- "+inlineMarkdown(h.Text, nil))
-			}
+		for _, h := range p.headings() {
+			entries = append(entries, strings.Repeat("  ", h.Level-1)+"- "+withNumber(h.Num, inlineMarkdown(h.Text, nil)))
 		}
 		return list(entries)
 	case item.Figures, item.Tables:

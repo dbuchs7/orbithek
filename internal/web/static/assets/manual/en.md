@@ -85,7 +85,16 @@ Choose **Edit** to edit the text and **Done** to finish. Changes are saved conti
 - bold, italic, underline, strike-through, highlight, inline code and alignment;
 - **Link** (Ctrl+K): a web address, or a page or task found by its title;
 - **Mention** (@): a person or an item;
+- **Number headings** (1.1): numbers the headings of the whole text by their level (see below);
 - **Undo** and **Redo**.
+
+**Number headings** numbers every heading by its level: 1, 1.1, 1.1.1.
+The numbers follow the headings as they are added, moved or removed; nothing has to be numbered by hand.
+The shallowest heading level the text uses counts first, so a text that starts with heading 2 numbers its level 2 headings 1, 2, 3; a level skipped below another shows as 0, as in 1.0.1, and headings without text are not counted.
+The table of contents shows the same numbers, and so do the Word file, the page printed as PDF and the Markdown export.
+Clicking the button again removes the numbers from the text and from the table of contents.
+The setting belongs to the text and is saved at once for everyone who reads it; the history records it as a version of the text.
+Someone who may not read a protected section of the text does not see its headings, and the numbers they read leave them out.
 
 Markdown that you paste becomes formatted text; a table keeps the formatting of its cells. Ctrl+Shift+V pastes plain text instead.
 

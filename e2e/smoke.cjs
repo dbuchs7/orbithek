@@ -1529,8 +1529,16 @@ function webSource() {
     await page.waitForSelector("#body .pm-toc button:has-text('Prepare')");
     await page.waitForSelector("#body .pm-tables button:has-text('Table 1: ')"); // numbered, with its header row
     await page.waitForSelector("#body .pm-figures:has-text('No pictures yet.')");
+    // Numbered headings (ADR-draft-numbered-headings): the heading and its
+    // entry in the table of contents show the number, stored at once.
+    check(await page.locator("#body .pm-num, #body [data-num]").count() === 0, "the headings are not numbered before they are asked to be");
+    await page.click("#pm-number-headings");
+    await page.waitForSelector("#body .pm-toc.pm-toc-numbered button:has-text('Prepare') .pm-num:text-is('1')");
+    await page.waitForSelector("#body .ProseMirror :is(h2, h3, h4)[data-num='1']:has-text('Prepare')");
+    check(await page.getAttribute("#pm-number-headings", "aria-pressed") === "true", "the button shows the headings numbered");
     await page.click("#edit-done"); // read: the same blocks, shown, with no stray text
     await page.waitForSelector("#body.reading .pm-table td:has-text('db1')");
+    await page.waitForSelector("#body.reading .pm-toc button:has-text('Prepare') .pm-num:text-is('1')");
     check(!(await page.textContent("#body")).includes("null"), "the page for reading shows no stray text");
 
     step("versions: the changes of a body show word by word, and an earlier body comes back");
