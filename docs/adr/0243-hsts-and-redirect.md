@@ -1,9 +1,9 @@
 # ADR-0243: A transport policy on request and a redirect from plain HTTP
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-17
-- **Deciders:** Project initiators (request of 2026-11-17: implement HSTS and the redirect from port 80, the open question ADR-0242 left). That both are settings, off unless asked for, and their forms are defaults proposed with the implementation, to be confirmed by the requester.
+- **Deciders:** Project initiators (request of 2026-11-17: implement HSTS and the redirect from port 80, the open question ADR-0242 left). That both are settings, off unless asked for, and their forms were proposed with the implementation; accepted by the requester on 2026-11-17, the open questions below staying open.
 - **Open question:** whether the redirect listener should answer the challenges of a certificate authority (`/.well-known/acme-challenge/`) for a program that renews certificates beside the server; whether an installation behind a reverse proxy wants the policy's value set by the proxy alone
 - **Question checked:** 2026-11
 
