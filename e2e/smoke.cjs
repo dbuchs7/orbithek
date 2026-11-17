@@ -1623,6 +1623,15 @@ function webSource() {
     await page.selectOption("#body .pm-table-text-colour", "purple");
     await page.selectOption("#body .pm-table-text-size", "large");
     await page.waitForSelector("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-editor:has(.pm-text-purple):has(.pm-size-large):has-text('db1')");
+    // The keyboard chooses cells: Escape leaves the cell, which stays
+    // chosen, Shift and an arrow widen the choice, a second Escape leaves
+    // the table (ADR-0236).
+    await page.click("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-editor");
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Shift+ArrowRight");
+    check(await page.locator("#body .pm-table .pm-cell-chosen").count() === 2, "Shift and an arrow choose the cell beside too");
+    await page.keyboard.press("Escape");
+    check(await page.locator("#body .pm-table .pm-cell-chosen").count() === 0, "a second Escape lets the cells go");
     await page.click("#edit-done");
     await page.waitForSelector("#body.reading .pm-table td:has(.pm-text-purple):has(.pm-size-large):has-text('db1')"); // either may wrap the other
 
