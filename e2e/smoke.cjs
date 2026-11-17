@@ -1556,6 +1556,26 @@ function webSource() {
     await page.waitForFunction(() => document.querySelectorAll("#body .pm-table").length === 1);
     await page.click("#edit-done");
     await page.waitForSelector("#body.reading .pm-table td:has-text('db1')");
+    // A whole column is chosen, copied and pasted into another cell: the
+    // cells fill from there, the table growing by a row (ADR-0236).
+    await page.click("#edit");
+    await page.waitForSelector("#body.editing .ProseMirror");
+    await page.click("#body .pm-table tr:nth-child(2) td:first-child");
+    await page.click("#body .pm-table-pick-columns");
+    check(await page.locator("#body .pm-table .pm-cell-chosen").count() === 2, "the whole first column is chosen");
+    await page.keyboard.press("Control+c");
+    await page.click("#body .pm-table tr:nth-child(2) td:nth-child(2)");
+    await page.waitForSelector("#body .pm-table tr:nth-child(2) td:nth-child(2) .pm-cell-editor");
+    await page.waitForTimeout(600); // the paste is a change of its own in the history
+    await page.keyboard.press("Control+v");
+    await page.waitForSelector("#body .pm-table tr:nth-child(3) td:nth-child(2).pm-fill-yellow strong:has-text('db1')");
+    check(await page.locator("#body .pm-table tr:nth-child(2) td:nth-child(2) .pm-cell-text").textContent()
+      === await page.locator("#body .pm-table tr:first-child th:first-child .pm-cell-text").textContent()
+      && await page.locator("#body .pm-table .pm-cell-chosen").count() === 2, "the column is pasted from the cell on, the pasted cells chosen");
+    await page.keyboard.press("Control+z");
+    await page.waitForFunction(() => document.querySelectorAll("#body .pm-table tr").length === 2);
+    await page.click("#edit-done");
+    await page.waitForSelector("#body.reading .pm-table td:has-text('db1')");
 
     step("versions: the changes of a body show word by word, and an earlier body comes back");
     // Two versions written through the API, so their content does not

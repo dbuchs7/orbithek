@@ -500,6 +500,13 @@ export default {
   "editor.tableResetSizes": "Reset sizes",
   "editor.tableDragColumn": "Drag to make the column wider or narrower",
   "editor.tableDragRow": "Drag to make the row taller or lower",
+  "editor.tableChooseRow": "Row",
+  "editor.tableChooseRowTitle": "Choose the whole rows of the chosen cells",
+  "editor.tableChooseColumn": "Column",
+  "editor.tableChooseColumnTitle": "Choose the whole columns of the chosen cells",
+  "editor.tableChooseAll": "All",
+  "editor.tableChooseAllTitle": "Choose every cell of the table",
+  "editor.tableChoose": "Choose:",
 
   "version.changes": "Changes",
   "version.title": "Changes of {when} by {who}",

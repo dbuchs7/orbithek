@@ -3,8 +3,8 @@
 - **Status:** Proposed
 - **Implementation:** Partial
 - **Date:** 2026-11-17
-- **Deciders:** Project initiators (request of 2026-11-17 that tables in pages can be copied and pasted again in Orbithek with the same formatting); proposed for the maintainer's acceptance
-- **Open question:** whether a rectangle of chosen cells should be copied on its own and pasted into chosen cells of another table, as a spreadsheet does; whether the colours of a table from elsewhere should be taken to the nearest of the eight tones (ADR-0214); whether stylesheet rules other than single classes should be read; whether a whole table pasted into a cell being edited should become the text of several cells instead of one
+- **Deciders:** Project initiators (request of 2026-11-17 that tables in pages can be copied and pasted again in Orbithek with the same formatting, and, the same day, that chosen cells can be copied and that several cells, columns or rows can be formatted at once: font, border and fill); proposed for the maintainer's acceptance
+- **Open question:** whether the colours of a table from elsewhere should be taken to the nearest of the eight tones (ADR-0214); whether stylesheet rules other than single classes should be read; whether one pasted cell should fill every chosen cell, as some spreadsheets do; whether several separate ranges of cells should be chosen at once
 - **Question checked:** 2026-11
 
 ## Context and problem statement
@@ -44,13 +44,19 @@ Chosen option: **1**, because it carries the whole block where Orbithek reads th
 - **Paste:** the editor's schema reads every pasted `table` element into a table block (`tableFromDOM`).
   It first reads the cells: their text with white space collapsed as a browser shows it, paragraphs and line breaks as spaces; the formats their tags, inline styles and the single-class rules of a pasted stylesheet state (`classRules`), since spreadsheets copy a cell's formats as classes; merged cells split into a cell and empty places; short rows filled up; at most 100 columns; the widths of its column groups in pixels.
   When the table carries `data-pm-table` and the cells it holds show the same text as the cells read, the carried block is taken whole, checked as the cells are; otherwise the cells read are taken, so a part of a table, or a table another program changed, pastes as what was copied.
-- **What stays out:** colours and row heights of a table from elsewhere, a protection of the block (ADR-0160, as for every other block a copy carries), a header column and merged cells (ADR-0214).
+- **Chosen cells:** the cells chosen in a table (ADR-0214) are copied as a table of their own — their text, formats, the widths of their columns, the heights of their rows and their colours — as HTML with `data-pm-table` and as text separated by tabs (`subTable`, `specHTML`); cut copies them and empties their text, Delete empties it, their colours staying.
+  A paste while cells are chosen, or of several cells into a cell being edited, writes the cells from the chosen or edited cell on: their text and formats replace what is there, a pasted cell's fill and border replace the cell's where it has them, and the table grows by the rows and columns the cells need, at most 100 columns, new columns taking the pasted widths (`pasteCells`).
+  Text from a spreadsheet is read as cells separated by tabs and rows by line breaks, a cell in double quotes holding tabs, line breaks and doubled quotes (`gridFromText`).
+  While cells are chosen the table holds the focus and no text of the page is selected, so the browser sends copy, cut and paste to it; the editor's history takes each change, so Ctrl+Z undoes a paste.
+- **Choosing many cells:** a drag of the mouse across cells chooses the rectangle between them; **Row**, **Column** and **All** among the table's tools widen the choice to whole rows, whole columns or every cell, and a click with Shift then keeps them whole. The chosen cells stay chosen after a format, a fill or a border is applied, so several apply one after the other; the formats of ADR-0214 (bold, italic, underline, strike-through, highlight, code), the fill and the border then act on all of them.
+- **What stays out:** colours and row heights of a table from elsewhere, a protection of the block (ADR-0160, as for every other block a copy carries), a header column and merged cells (ADR-0214), font families, sizes and colours, which the model does not hold.
 
-This amends nothing of ADR-0214: the block, its validation and its format stay as they are.
+This amends nothing of ADR-0214: the block, its validation and its format stay as they are; choosing cells is widened, not changed.
 
 ### Consequences
 
 - **Positive:** a table copied in a page, read or edited, pastes back with its formats, sizes and colours; tables from spreadsheets, word processors and web pages become tables with their formats and column widths; other programs receive a copied table as a table.
+- **Positive:** chosen cells move between tables and spreadsheets as cells, and whole rows and columns are formatted and coloured in a few clicks.
 - **Negative / trade-offs accepted:** the clipboard holds a table's text twice, once in its cells and once in `data-pm-table`; the drawn table carries the attribute in the page as well.
 - **Negative / trade-offs accepted:** the browser's copy of a page carries inline styles of its own, which the UI's content security policy refuses to apply while the paste is read; the browser reports each refusal in its console.
   This held for every paste of styled text before and is a sign the policy works.
