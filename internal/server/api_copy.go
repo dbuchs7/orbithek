@@ -211,7 +211,8 @@ func (h itemHandlers) copyOne(r *http.Request, space string, t copyTask) (item.I
 			return made, err
 		}
 	}
-	if len(src.Body.Blocks) > 0 {
+	// A numbered body is copied numbered, even without blocks (ADR-0241).
+	if len(src.Body.Blocks) > 0 || src.Body.Numbered {
 		body := item.Doc{Blocks: make([]item.Block, len(src.Body.Blocks)), Numbered: src.Body.Numbered}
 		copy(body.Blocks, src.Body.Blocks)
 		for i, b := range body.Blocks {

@@ -2932,6 +2932,8 @@ export default {
   "types.addTransition": "Übergang hinzufügen",
   "types.start": "Starttext",
   "types.startHint": "Womit ein neuer Eintrag beginnt, wenn er ohne eigenen Text angelegt wird, in Markdown geschrieben: # Überschrift, - Aufzählung, 1. nummerierter Punkt, > Zitat. Er nennt keinen Eintrag und keine Datei.",
+  "types.numbered": "Überschriften neuer Einträge nummerieren",
+  "types.numberedHint": "Neue Einträge beginnen mit nach Ebene nummerierten Überschriften (1, 1.1, 1.1.1), mit oder ohne Starttext; jeder Eintrag kann dies im Editor ausschalten. Bereits angelegte Einträge behalten ihre eigene Einstellung.",
   "types.json": "Erweitert: als JSON",
   "types.jsonHelp": "Der Typ, wie ihn der Server annimmt. Hier ändern, was das Formular nicht anbietet, dann ins Formular übernehmen.",
   "types.jsonApply": "Ins Formular übernehmen",

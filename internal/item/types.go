@@ -110,8 +110,9 @@ type TypeDef struct {
 	// Template names the Word template the type's pages are documents of
 	// (ADR-0167): their export is written into it and the reading view
 	// frames them as it. Start is the text a new page begins with when it
-	// is made without one. Both are system data of the type, not content
-	// of an item.
+	// is made without one; its Numbered says whether a new page's headings
+	// are numbered (ADR-0241), with or without start text. Both are system
+	// data of the type, not content of an item.
 	Template string `json:",omitempty"`
 	Start    *Doc   `json:",omitempty"`
 	// Space, if set, makes this a room type: only items of that space are
@@ -214,7 +215,7 @@ func (t TypeDef) validate() error {
 	}
 	if t.Start != nil {
 		if !t.Body {
-			return invalid("a type without a body has no start text")
+			return invalid("a type without a body has no start text and numbers no headings")
 		}
 		if err := checkStart(t.Start); err != nil {
 			return err

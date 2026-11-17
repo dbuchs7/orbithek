@@ -206,9 +206,10 @@ func TestPersistedFormatIsStable(t *testing.T) {
 	depths := tocDepthLog(t)
 	deepLists := childrenDepthLog(t)
 	numbered := numberedLog(t)
+	numberedTypes := numberedTypeLog(t)
 	hidden := hideTypesLog(t)
 	kinds := map[EventKind]bool{}
-	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments, notes, photos, places, renames, geotags, moves, albumVideos, faces, slideOrders, fingerprints, times, turned, highlights, itemViews, kinds55, styledTables, shareFiles, sounds, depths, deepLists, numbered, hidden) {
+	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments, notes, photos, places, renames, geotags, moves, albumVideos, faces, slideOrders, fingerprints, times, turned, highlights, itemViews, kinds55, styledTables, shareFiles, sounds, depths, deepLists, numbered, numberedTypes, hidden) {
 		kinds[e.Kind] = true
 	}
 	for _, k := range allEventKinds {
@@ -328,6 +329,7 @@ func TestPersistedFormatIsStable(t *testing.T) {
 		{"events.current.childrendepth.plain.golden.jsonl", nil, deepLists},
 		{"events.current.numbered.golden.jsonl", fakeSealer{}, numbered},
 		{"events.current.numbered.plain.golden.jsonl", nil, numbered},
+		{"events.current.numberedtype.golden.jsonl", nil, numberedTypes},
 		{"events.current.hidetypes.golden.jsonl", fakeSealer{}, hidden},
 		{"events.current.hidetypes.plain.golden.jsonl", nil, hidden},
 	}
@@ -1928,6 +1930,16 @@ func hideTypesLog(t *testing.T) []Event {
 	anna := s.As("anna")
 	page := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Handbook"}))
 	noErr(t, anna.CommitBody(page.ID, Doc{Blocks: []Block{{Kind: Children, Depth: 2, HideTypes: []string{"decision", "task"}}}}))
+	return s.Log()
+}
+
+// numberedTypeLog defines a type whose new items begin with numbered
+// headings, so the golden files pin Numbered in a type's start text
+// (ADR-0241).
+func numberedTypeLog(t *testing.T) []Event {
+	s := setup(t)
+	noErr(t, s.DefineType("admin", TypeDef{Name: "concept", Body: true, Start: &Doc{Numbered: true}}))
+	noErr(t, s.DefineType("admin", TypeDef{Name: "report", Body: true, Start: &Doc{Numbered: true, Blocks: []Block{{Kind: Heading, Level: 1, Text: "Goals"}}}}))
 	return s.Log()
 }
 
