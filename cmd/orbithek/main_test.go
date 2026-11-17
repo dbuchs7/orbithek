@@ -262,7 +262,7 @@ func TestTLSFromTheEnvironment(t *testing.T) {
 // TestRedirectAndTransportPolicy: beside its own TLS the server answers
 // plain HTTP on -redirect-addr by sending readers to HTTPS, on the port of
 // OT_PUBLIC_URL, and sends the transport policy of OT_HSTS_MAX_AGE over
-// HTTPS (ADR-draft-hsts-and-redirect).
+// HTTPS (ADR-0243).
 func TestRedirectAndTransportPolicy(t *testing.T) {
 	t.Setenv("OT_ADMIN_PASSWORD", "a given password!")
 	t.Setenv("OT_HSTS_MAX_AGE", "300")

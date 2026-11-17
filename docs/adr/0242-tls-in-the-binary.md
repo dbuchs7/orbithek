@@ -135,7 +135,7 @@ Strongest form: for a server reachable from the internet, renewal stops being an
   Several names are therefore served, but one of them remains the address for these functions until a record decides otherwise.
 - **Private certificate authorities.** `orbithek mcp -url https://…` verifies against the host's roots.
   atlas added `--tls-ca` for this after its first release of TLS; the same may be wanted here.
-- **HSTS and port 80.** Settled by ADR-draft-hsts-and-redirect: both are settings, off unless asked for.
+- **HSTS and port 80.** Settled by ADR-0243: both are settings, off unless asked for.
 
 ## Links
 

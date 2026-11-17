@@ -10,7 +10,7 @@ import (
 )
 
 // RedirectToHTTPS answers plain HTTP for a server that terminates TLS
-// itself (ADR-draft-hsts-and-redirect): a GET or HEAD is sent to the same
+// itself (ADR-0243): a GET or HEAD is sent to the same
 // host and path over HTTPS, on httpsPort where that is not 443 (empty
 // means 443). The host is the one the request names, so every name the
 // server answers keeps its own.

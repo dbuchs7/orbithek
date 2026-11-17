@@ -1,4 +1,4 @@
-# ADR-DRAFT: A transport policy on request and a redirect from plain HTTP
+# ADR-0243: A transport policy on request and a redirect from plain HTTP
 
 - **Status:** Proposed
 - **Implementation:** Partial

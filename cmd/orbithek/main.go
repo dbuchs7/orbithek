@@ -221,7 +221,7 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 	}
 
 	// The transport policy is sent only on request, as it binds the whole
-	// host name in every browser that receives it (ADR-draft-hsts-and-redirect).
+	// host name in every browser that receives it (ADR-0243).
 	hsts, err := server.HSTSValue(os.Getenv("OT_HSTS_MAX_AGE"))
 	if err != nil {
 		log.Error("OT_HSTS_MAX_AGE is unusable", "err", err)
@@ -436,7 +436,7 @@ func httpsPort(public string) string {
 }
 
 // serveWithRedirect serves h on ln and, given redirectLn, the redirect to
-// HTTPS on it (ADR-draft-hsts-and-redirect). The two stop together: a
+// HTTPS on it (ADR-0243). The two stop together: a
 // server that answers on only one of its addresses is worse than one that
 // stopped.
 func serveWithRedirect(ctx context.Context, ln net.Listener, h http.Handler, tlsConfig *tls.Config, redirectLn net.Listener, httpsPort string, log *slog.Logger) error {

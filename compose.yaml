@@ -41,7 +41,7 @@ services:
       # OT_TLS_KEY: /certs/wiki.key
       # With certificates: an address inside the container that answers
       # plain HTTP by redirecting to HTTPS; publish it as port 80 under
-      # ports, e.g. "80:8081" (ADR-draft-hsts-and-redirect).
+      # ports, e.g. "80:8081" (ADR-0243).
       # OT_REDIRECT_ADDR: ":8081"
       # Seconds for which browsers that visited over HTTPS keep asking
       # over HTTPS. It binds the whole host name on every port: read

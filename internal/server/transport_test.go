@@ -10,7 +10,7 @@ import (
 
 // TestRedirectToHTTPS: the listener for plain HTTP sends a reader to the
 // same host and path over HTTPS and answers nothing else
-// (ADR-draft-hsts-and-redirect).
+// (ADR-0243).
 func TestRedirectToHTTPS(t *testing.T) {
 	for _, c := range []struct {
 		name, port, method, host, target string
