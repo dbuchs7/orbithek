@@ -304,7 +304,7 @@ type Block struct {
 	Depth int `json:",omitempty"`
 	// HideTypes are the types a list of child pages leaves out, each
 	// item of them with everything below it; none shows every type
-	// (ADR-draft-child-pages-leave-out-types). They are named once each,
+	// (ADR-0240). They are named once each,
 	// in sorted order, so a body says them one way.
 	HideTypes []string `json:",omitempty"`
 }
@@ -320,7 +320,7 @@ const (
 )
 
 // MaxHiddenTypes bounds the types a list of child pages leaves out
-// (ADR-draft-child-pages-leave-out-types): a list a person chooses, like
+// (ADR-0240): a list a person chooses, like
 // the columns of a view.
 const MaxHiddenTypes = 24
 

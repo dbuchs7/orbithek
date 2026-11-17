@@ -16,7 +16,7 @@ export function childDepthName(depth) {
 
 // childTypesName says which types a list of child pages shows: every
 // type, or every type but those it leaves out
-// (ADR-draft-child-pages-leave-out-types). Type names are content and
+// (ADR-0240). Type names are content and
 // stay untranslated.
 export function childTypesName(hide) {
   return hide?.length ? t("editor.childrenTypesWithout", { types: hide.join(", ") }) : t("editor.childrenTypesAll");

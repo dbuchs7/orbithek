@@ -12,7 +12,7 @@ import (
 type Child struct {
 	Title string
 	// Type is the page's type, which a list may leave out
-	// (ADR-draft-child-pages-leave-out-types).
+	// (ADR-0240).
 	Type     string
 	Children []Child
 }
@@ -27,7 +27,7 @@ type childLine struct {
 // childLines lists the child pages a list of child pages shows, each
 // followed by its own, to the list's depth: 0 for one level, as before,
 // or item.ChildrenAll for every level. A page of a type in hide is left
-// out with everything below it (ADR-draft-child-pages-leave-out-types).
+// out with everything below it (ADR-0240).
 func childLines(kids []Child, depth int, hide []string) []childLine {
 	if depth == 0 {
 		depth = 1

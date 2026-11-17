@@ -194,7 +194,7 @@ type blockJSON struct {
 	// (ADR-0239).
 	Depth int `json:"depth,omitempty"`
 	// HideTypes are the types a list of child pages leaves out
-	// (ADR-draft-child-pages-leave-out-types).
+	// (ADR-0240).
 	HideTypes []string `json:"hideTypes,omitempty"`
 }
 
@@ -265,7 +265,7 @@ func toDoc(blocks []blockJSON, kept func(text string) bool) (item.Doc, error) {
 		}
 		if len(b.HideTypes) > 0 {
 			// Named once each, in sorted order; an empty list hides
-			// nothing, as none does (ADR-draft-child-pages-leave-out-types).
+			// nothing, as none does (ADR-0240).
 			blk.HideTypes = slices.Compact(slices.Sorted(slices.Values(b.HideTypes)))
 		}
 		if len(b.Columns) > 0 {

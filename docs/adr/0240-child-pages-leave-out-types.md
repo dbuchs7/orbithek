@@ -1,4 +1,4 @@
-# ADR-DRAFT: A list of child pages leaves out the types chosen
+# ADR-0240: A list of child pages leaves out the types chosen
 
 - **Status:** Proposed
 - **Implementation:** Partial

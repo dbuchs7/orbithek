@@ -1921,7 +1921,7 @@ func numberedLog(t *testing.T) []Event {
 
 // hideTypesLog lists child pages without tasks and decisions, so the
 // golden files pin the block field HideTypes
-// (ADR-draft-child-pages-leave-out-types).
+// (ADR-0240).
 func hideTypesLog(t *testing.T) []Event {
 	s := setup(t)
 	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))

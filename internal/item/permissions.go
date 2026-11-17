@@ -913,7 +913,7 @@ type ChildPage struct {
 // reports that pages were left out for the budget. An item of a type in
 // hide is left out with everything below it, and neither counts against
 // the budget nor makes its parent's More
-// (ADR-draft-child-pages-leave-out-types).
+// (ADR-0240).
 func (x *Session) ChildPages(space string, parent ID, depth, max int, hide []string) (pages []ChildPage, cut bool, err error) {
 	if depth == 0 {
 		depth = 1

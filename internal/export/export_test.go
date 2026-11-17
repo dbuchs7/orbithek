@@ -470,7 +470,7 @@ func TestChildPagesAreListedToTheirDepth(t *testing.T) {
 
 // TestChildPagesLeaveOutTheTypesChosen leaves a type out of a list of
 // child pages, with everything below its items, in every format
-// (ADR-draft-child-pages-leave-out-types).
+// (ADR-0240).
 func TestChildPagesLeaveOutTheTypesChosen(t *testing.T) {
 	kids := []Child{
 		{Title: "A", Type: "page", Children: []Child{{Title: "Sweep", Type: "chore"}, {Title: "A1", Type: "page"}}},

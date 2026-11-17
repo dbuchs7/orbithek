@@ -648,7 +648,7 @@ function chevronIcon(left) {
 // childPagesOf lists an item's child pages for a list of child pages in
 // its body (ADR-0042), to depth levels, -1 for every level, leaving out
 // the types in hide: it answers { items, truncated }, each page with its
-// children (ADR-0239, ADR-draft-child-pages-leave-out-types). Its types()
+// children (ADR-0239, ADR-0240). Its types()
 // names the types of the item's room, which such a list may leave out.
 const childPagesOf = (item) => Object.assign(async (depth = 1, hide = []) =>
   get(`/api/spaces/${encodeURIComponent(item.space)}/tree?parent=${item.id}&depth=${childDepthQuery(depth)}${childHideQuery(hide)}`), {

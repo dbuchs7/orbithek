@@ -97,7 +97,7 @@ export const schema = new Schema({
     // A list of child pages keeps how many levels it shows: 0 for one, 2
     // to 5, or -1 for every level (ADR-0239).
     // It may leave types out, sorted, or null for none
-    // (ADR-draft-child-pages-leave-out-types).
+    // (ADR-0240).
     children: { group: "block", atom: true, selectable: true, attrs: { ...bid, depth: { default: 0 }, hideTypes: { default: null } }, toDOM: (n) => ["div", { class: "pm-children", ...(n.attrs.depth ? { "data-depth": String(n.attrs.depth) } : {}) }] },
     // The tasks that carry a label, computed when shown (ADR-0114).
     tasklist: { group: "block", atom: true, selectable: true, attrs: { ...bid, label: { default: "" }, query: { default: "" } }, toDOM: (n) => ["div", { class: "pm-tasklist", "data-label": n.attrs.label, ...(n.attrs.query ? { "data-query": n.attrs.query } : {}) }] },
@@ -1405,7 +1405,7 @@ function childTree(pages) {
 // childrenView lists the child pages of the item to the depth the block
 // keeps, leaving out the types it leaves out, from childPages(depth, hide),
 // which answers { items, truncated }; an editor chooses both (ADR-0042,
-// ADR-0239, ADR-draft-child-pages-leave-out-types). A change of either
+// ADR-0239, ADR-0240). A change of either
 // keeps the view, so the box of types stays open while one ticks several,
 // and loads the list again.
 function childrenView(node, v, getPos, childPages) {
@@ -1429,7 +1429,7 @@ function childrenView(node, v, getPos, childPages) {
     title.append(" ", h("label", { class: "pm-children-depth-label" }, t("editor.childrenDepthChoose"), choice));
     // The types offered are those of the item's room; a type the list
     // leaves out that is no longer defined stays offered, so it can be
-    // shown again (ADR-draft-child-pages-leave-out-types).
+    // shown again (ADR-0240).
     panel = h("div", { class: "pm-children-types", hidden: true });
     toggle = h("button", { type: "button", class: "link pm-children-types-toggle", "aria-expanded": "false", onclick: async () => {
       const open = panel.hidden;
