@@ -302,10 +302,10 @@ type Block struct {
 	// ChildrenAll every level. One level is written as 0 only, so a body
 	// says it one way.
 	Depth int `json:",omitempty"`
-	// HideTypes are the types a list of child pages leaves out, each
-	// item of them with everything below it; none shows every type
-	// (ADR-0240). They are named once each,
-	// in sorted order, so a body says them one way.
+	// HideTypes are the types a list of child pages leaves out, the
+	// pages below such an item shown in its place; none shows every type
+	// (ADR-0240). They are named once each, in sorted order, so a body
+	// says them one way.
 	HideTypes []string `json:",omitempty"`
 }
 

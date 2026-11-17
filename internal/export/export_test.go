@@ -51,7 +51,7 @@ func TestADocumentIsAWellFormedWordFile(t *testing.T) {
 			{Kind: item.Paragraph, Text: "bad \x01 char"},
 		},
 		Images:   map[item.ID]Image{"pic": {Name: "plan.png", Type: "image/png", Data: pngOf(t, 400, 200)}},
-		Children: []Child{{Title: "Child page"}},
+		Children: map[string][]Child{"1|": {{Title: "Child page"}}},
 	}},
 		Embeds:     map[item.ID]Page{"x": {ID: "x", Key: "OPS-9", Title: "Linked", Body: []item.Block{{Kind: item.Paragraph, Text: "inside the embed"}}}},
 		Restricted: "(restricted)",
@@ -178,7 +178,7 @@ func TestTheHTMLEscapesAndKeepsSafeLinksOnly(t *testing.T) {
 		{Kind: item.Image, Ref: "i", Text: "pic", Width: 47, Align: "right"},
 		{Kind: item.Table, Text: "a\tb\n<c>\td"}, {Kind: item.CodeBlock, Text: "<x>"}, {Kind: item.Panel, Tone: "bogus", Text: "p"},
 		{Kind: item.Quote, Text: "q", Align: "center"}, {Kind: item.Divider}, {Kind: item.TOC}, {Kind: item.Children},
-	}, Images: map[item.ID]Image{"i": {Name: "i.png"}}, Children: []Child{{Title: "kid"}}}}}
+	}, Images: map[item.ID]Image{"i": {Name: "i.png"}}, Children: map[string][]Child{"1|": {{Title: "kid"}}}}}}
 	var b bytes.Buffer
 	if err := HTML(&b, d, "de"); err != nil {
 		t.Fatal(err)
@@ -412,12 +412,20 @@ func noErrE(t *testing.T, err error) {
 // level, two levels and every level deep, in every format
 // (ADR-0239).
 func TestChildPagesAreListedToTheirDepth(t *testing.T) {
-	kids := []Child{
+	deep := []Child{
 		{Title: "A", Children: []Child{{Title: "A1", Children: []Child{{Title: "A1a"}}}, {Title: "A2"}}},
 		{Title: "B"},
 	}
+	// The server reads each list to its depth; the export writes what it
+	// read.
+	lists := map[string][]Child{
+		"1|":  {{Title: "A"}, {Title: "B"}},
+		"2|":  {{Title: "A", Children: []Child{{Title: "A1"}, {Title: "A2"}}}, {Title: "B"}},
+		"5|":  deep,
+		"-1|": deep,
+	}
 	page := func(depth int) Document {
-		return Document{Pages: []Page{{ID: "p", Title: "Home", Body: []item.Block{{Kind: item.Children, Depth: depth}}, Children: kids}}}
+		return Document{Pages: []Page{{ID: "p", Title: "Home", Body: []item.Block{{Kind: item.Children, Depth: depth}}, Children: lists}}}
 	}
 	htmlLists := map[int]string{
 		0:                     `<ul class="children"><li>A</li><li>B</li></ul>`,
@@ -468,44 +476,51 @@ func TestChildPagesAreListedToTheirDepth(t *testing.T) {
 	}
 }
 
-// TestChildPagesLeaveOutTheTypesChosen leaves a type out of a list of
-// child pages, with everything below its items, in every format
-// (ADR-0240).
+// TestChildPagesLeaveOutTheTypesChosen writes each list of child pages
+// of a page as the server read it for that list, a list that leaves types
+// out apart from one that does not, in every format (ADR-0240).
 func TestChildPagesLeaveOutTheTypesChosen(t *testing.T) {
-	kids := []Child{
-		{Title: "A", Type: "page", Children: []Child{{Title: "Sweep", Type: "chore"}, {Title: "A1", Type: "page"}}},
-		{Title: "Dust", Type: "chore", Children: []Child{{Title: "Below the dust", Type: "page"}}},
+	body := []item.Block{{Kind: item.Children, Depth: item.ChildrenAll, HideTypes: []string{"chore"}}, {Kind: item.Children}}
+	lists := map[string][]Child{
+		// The page below the left-out chore Dust stands in its place.
+		ChildListKey(body[0]): {{Title: "A", Children: []Child{{Title: "A1"}}}, {Title: "Below the dust"}},
+		ChildListKey(body[1]): {{Title: "A"}, {Title: "Dust"}},
 	}
-	d := Document{Pages: []Page{{ID: "p", Title: "Home", Body: []item.Block{{Kind: item.Children, Depth: item.ChildrenAll, HideTypes: []string{"chore"}}}, Children: kids}}}
+	d := Document{Pages: []Page{{ID: "p", Title: "Home", Body: body, Children: lists}}}
 	var b bytes.Buffer
 	if err := HTML(&b, d, "en"); err != nil {
 		t.Fatal(err)
 	}
-	if want := `<ul class="children"><li>A<ul><li>A1</li></ul></li></ul>`; !strings.Contains(b.String(), want) {
-		t.Errorf("the HTML lacks %s:\n%s", want, b.String())
+	for _, want := range []string{`<ul class="children"><li>A<ul><li>A1</li></ul></li><li>Below the dust</li></ul>`, `<ul class="children"><li>A</li><li>Dust</li></ul>`} {
+		if !strings.Contains(b.String(), want) {
+			t.Errorf("the HTML lacks %s:\n%s", want, b.String())
+		}
 	}
 	var m bytes.Buffer
 	if err := Markdown(&m, d); err != nil {
 		t.Fatal(err)
 	}
-	if md := m.String(); !strings.Contains(md, "- A\n  - A1\n") || strings.Contains(md, "Dust") || strings.Contains(md, "Sweep") {
+	if md := m.String(); !strings.Contains(md, "- A\n  - A1\n- Below the dust\n") || !strings.Contains(md, "- A\n- Dust\n") {
 		t.Errorf("the Markdown:\n%s", md)
 	}
 	var w bytes.Buffer
 	if err := DOCX(&w, d); err != nil {
 		t.Fatal(err)
 	}
-	if doc := documentXML(t, w.Bytes()); !strings.Contains(doc, ">A1<") || strings.Contains(doc, "Dust") || strings.Contains(doc, "Sweep") {
+	if doc := documentXML(t, w.Bytes()); !strings.Contains(doc, ">A1<") || !strings.Contains(doc, ">Below the dust<") || !strings.Contains(doc, ">Dust<") {
 		t.Errorf("the Word file:\n%s", doc)
 	}
-	// A list that leaves out every page it has shows an empty list.
-	d.Pages[0].Body[0].HideTypes = []string{"chore", "page"}
+	// A list the server read nothing for shows an empty list.
+	d.Pages[0].Children = nil
 	b.Reset()
 	if err := HTML(&b, d, "en"); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(b.String(), `<ul class="children"></ul>`) {
-		t.Errorf("everything left out:\n%s", b.String())
+	if strings.Count(b.String(), `<ul class="children"></ul>`) != 2 {
+		t.Errorf("nothing read:\n%s", b.String())
+	}
+	if ChildListKey(item.Block{Kind: item.Children}) != ChildListKey(item.Block{Kind: item.Children, Depth: 1}) {
+		t.Error("one level is one key, written as 0 or 1")
 	}
 }
 

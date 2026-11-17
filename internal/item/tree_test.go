@@ -203,7 +203,7 @@ func TestChildPagesListToTheChosenDepth(t *testing.T) {
 
 func TestChildPagesLeaveOutTheTypesChosen(t *testing.T) {
 	s := permFixture(t)
-	anna := s.As("anna")
+	anna, ben := s.As("anna"), s.As("ben")
 	create := func(title, typ string, parent ID) Item {
 		n := NewItem{Space: "PLAT", Type: typ, Title: title, Parent: parent}
 		if typ == "task" {
@@ -217,29 +217,45 @@ func TestChildPagesLeaveOutTheTypesChosen(t *testing.T) {
 	create("A1", "page", a.ID)
 	work := create("Work", "task", home.ID)
 	create("Below the work", "page", work.ID)
-	create("Only tasks", "page", home.ID)
-	only := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Holder", Parent: home.ID}))
-	create("Hidden", "task", only.ID)
+	step := create("Step", "task", work.ID)
+	deep := create("Deep", "page", step.ID)
+	create("Deeper", "page", deep.ID)
+	holder := create("Holder", "page", home.ID)
+	create("Hidden", "task", holder.ID)
+	secret := create("Secret task", "task", home.ID)
+	create("Below the secret", "page", secret.ID)
+	noErr(t, anna.Restrict(secret.ID, Restriction{Read: []string{"anna"}}))
 
 	got, cut, err := anna.ChildPages("PLAT", home.ID, ChildrenAll, 100, nil)
 	noErr(t, err)
-	if s := childTitles(got); s != "A[A task A1] Work[Below the work] Only tasks Holder[Hidden]" || cut {
+	if s := childTitles(got); s != "A[A task A1] Work[Below the work Step[Deep[Deeper]]] Holder[Hidden] Secret task[Below the secret]" || cut {
 		t.Fatalf("every type: %q", s)
 	}
-	// A task is left out with what lies below it; a page whose children
-	// are all left out is not marked as having more.
-	got, cut, err = anna.ChildPages("PLAT", home.ID, ChildrenAll, 100, []string{"task"})
-	noErr(t, err)
-	if s := childTitles(got); s != "A[A1] Only tasks Holder" || cut {
-		t.Errorf("without tasks: %q (cut %v)", s, cut)
+	cases := []struct {
+		who   *Session
+		depth int
+		max   int
+		want  string
+		cut   bool
+	}{
+		// A task is left out and the pages below it take its place, in
+		// their order, however deep the tasks go; a page whose children
+		// are all left out is not marked as having more.
+		{anna, ChildrenAll, 100, "A[A1] Below the work Deep[Deeper] Holder Below the secret", false},
+		// A left-out item is no level: the pages below it count from its
+		// place.
+		{anna, 1, 100, "A+ Below the work Deep+ Holder Below the secret", false},
+		// The left-out items take nothing of the budget.
+		{anna, ChildrenAll, 7, "A[A1] Below the work Deep[Deeper] Holder Below the secret", false},
+		{anna, ChildrenAll, 5, "A+ Below the work Deep+ Holder Below the secret", true},
+		// Ben does not read the secret task, nor what lies below it.
+		{ben, ChildrenAll, 100, "A[A1] Below the work Deep[Deeper] Holder", false},
 	}
-	// The left-out items take nothing of the budget.
-	got, cut, _ = anna.ChildPages("PLAT", home.ID, ChildrenAll, 4, []string{"task"})
-	if s := childTitles(got); s != "A[A1] Only tasks Holder" || cut {
-		t.Errorf("without tasks within 4: %q (cut %v)", s, cut)
-	}
-	got, _, _ = anna.ChildPages("PLAT", home.ID, 1, 100, []string{"task"})
-	if s := childTitles(got); s != "A+ Only tasks Holder" {
-		t.Errorf("one level without tasks: %q", s)
+	for _, c := range cases {
+		got, cut, err := c.who.ChildPages("PLAT", home.ID, c.depth, c.max, []string{"task"})
+		noErr(t, err)
+		if s := childTitles(got); s != c.want || cut != c.cut {
+			t.Errorf("%s without tasks, depth %d within %d: %q (cut %v), want %q (cut %v)", c.who.who, c.depth, c.max, s, cut, c.want, c.cut)
+		}
 	}
 }
