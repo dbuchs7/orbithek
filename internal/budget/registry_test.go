@@ -101,6 +101,7 @@ var classified = map[string]string{
 	"internal/storage.maxFaceVectorBytes":              "the size of a file of face vectors (ADR-0194), fixed by MaxFaces and the 128 numbers of a face; written by this server, not a caller's upload",
 	"internal/storage/faces.go:maxFaceVectorBytes + 1": "the same bound, where the file is read",
 	"internal/item.MaxChildrenDepth":                   "the shape of a list of child pages (ADR-0239): how many levels it names by number, like a heading's level; how many pages it shows is the budget ChildPages",
+	"internal/item.MaxHiddenTypes":                     "the shape of a list of child pages (ADR-draft-child-pages-leave-out-types): how many types it leaves out, a list a person chooses, like the columns of a view",
 	"internal/item.MaxPrefill":                         "the shape of a start form (ADR-0148): how many of its fields it fills in beforehand, a list a person chooses, like the labels of a picture",
 	"internal/item.MaxViewColumns":                     "the shape of a view in a text (ADR-0203): how many columns it names, a list a person chooses, like the fields a start form fills in",
 	"internal/item.maxViewName":                        "the shape of a view in a text (ADR-0203): the length of the name of a type or field it names, like the length of a title",

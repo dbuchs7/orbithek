@@ -203,7 +203,10 @@ import (
 //     pages it shows, sealed with the body
 //     (ADR-0239). Versions 1 to 64 are
 //     still read; their lists show one level.
-const CodecVersion = 65
+//   - 66: a list of child pages may carry HideTypes, the types it leaves
+//     out, sealed with the body (ADR-draft-child-pages-leave-out-types).
+//     Versions 1 to 65 are still read; their lists show every type.
+const CodecVersion = 66
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

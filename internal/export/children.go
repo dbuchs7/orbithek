@@ -1,12 +1,19 @@
 package export
 
-import "github.com/dbuchs7/orbithek/internal/item"
+import (
+	"slices"
+
+	"github.com/dbuchs7/orbithek/internal/item"
+)
 
 // Child is a child page of a page, with its own child pages as deep as the
 // page's lists of child pages show (ADR-0042,
 // ADR-0239).
 type Child struct {
-	Title    string
+	Title string
+	// Type is the page's type, which a list may leave out
+	// (ADR-draft-child-pages-leave-out-types).
+	Type     string
 	Children []Child
 }
 
@@ -19,8 +26,9 @@ type childLine struct {
 
 // childLines lists the child pages a list of child pages shows, each
 // followed by its own, to the list's depth: 0 for one level, as before,
-// or item.ChildrenAll for every level.
-func childLines(kids []Child, depth int) []childLine {
+// or item.ChildrenAll for every level. A page of a type in hide is left
+// out with everything below it (ADR-draft-child-pages-leave-out-types).
+func childLines(kids []Child, depth int, hide []string) []childLine {
 	if depth == 0 {
 		depth = 1
 	}
@@ -28,6 +36,9 @@ func childLines(kids []Child, depth int) []childLine {
 	var walk func(kids []Child, level int)
 	walk = func(kids []Child, level int) {
 		for _, c := range kids {
+			if slices.Contains(hide, c.Type) {
+				continue
+			}
 			out = append(out, childLine{Title: c.Title, Level: level})
 			if depth == item.ChildrenAll || level+1 < depth {
 				walk(c.Children, level+1)

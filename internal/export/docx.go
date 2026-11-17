@@ -502,7 +502,7 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int) string {
 		return out.String()
 	case item.Children:
 		var out strings.Builder
-		for _, c := range childLines(p.Children, bl.Depth) {
+		for _, c := range childLines(p.Children, bl.Depth, bl.HideTypes) {
 			// A deeper page stands further in, by the indent of one
 			// level of the list.
 			indent := ""

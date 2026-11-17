@@ -910,8 +910,11 @@ type ChildPage struct {
 // in sibling order (ADR-0041,
 // ADR-0239). At most max pages are
 // listed, level by level, so a cut list keeps the upper levels whole; cut
-// reports that pages were left out for the budget.
-func (x *Session) ChildPages(space string, parent ID, depth, max int) (pages []ChildPage, cut bool, err error) {
+// reports that pages were left out for the budget. An item of a type in
+// hide is left out with everything below it, and neither counts against
+// the budget nor makes its parent's More
+// (ADR-draft-child-pages-leave-out-types).
+func (x *Session) ChildPages(space string, parent ID, depth, max int, hide []string) (pages []ChildPage, cut bool, err error) {
 	if depth == 0 {
 		depth = 1
 	}
@@ -943,7 +946,7 @@ func (x *Session) ChildPages(space string, parent ID, depth, max int) (pages []C
 		}
 		out := []Item{}
 		for _, k := range kids[id] {
-			if x.s.canRead(x.who, k) {
+			if !slices.Contains(hide, k.Type) && x.s.canRead(x.who, k) {
 				out = append(out, k.summary())
 			}
 		}

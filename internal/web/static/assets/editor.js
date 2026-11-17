@@ -14,7 +14,7 @@ import { t } from "./i18n.js";
 import { anchorOf } from "./anchors.js";
 import { openDrawing, drawingName, isDrawing } from "./drawing.js";
 import { filenameOf } from "./filename.js";
-import { childDepths, childDepthName } from "./childpages.js";
+import { childDepths, childDepthName, childTypesName } from "./childpages.js";
 import { diagramView, openModeler, pickProcess, bpmnName, drawingProcesses, processRegion } from "./bpmn.js";
 import { regionsIn } from "./drawprocesses.js";
 import { formView, decisionView, pickFromEngine, startFormView, pickStartLink, editPrefill } from "./engineviews.js";
@@ -95,7 +95,9 @@ export const schema = new Schema({
     tables: { group: "block", atom: true, selectable: true, attrs: bid, toDOM: () => ["div", { class: "pm-tables" }] },
     // A list of child pages keeps how many levels it shows: 0 for one, 2
     // to 5, or -1 for every level (ADR-0239).
-    children: { group: "block", atom: true, selectable: true, attrs: { ...bid, depth: { default: 0 } }, toDOM: (n) => ["div", { class: "pm-children", ...(n.attrs.depth ? { "data-depth": String(n.attrs.depth) } : {}) }] },
+    // It may leave types out, sorted, or null for none
+    // (ADR-draft-child-pages-leave-out-types).
+    children: { group: "block", atom: true, selectable: true, attrs: { ...bid, depth: { default: 0 }, hideTypes: { default: null } }, toDOM: (n) => ["div", { class: "pm-children", ...(n.attrs.depth ? { "data-depth": String(n.attrs.depth) } : {}) }] },
     // The tasks that carry a label, computed when shown (ADR-0114).
     tasklist: { group: "block", atom: true, selectable: true, attrs: { ...bid, label: { default: "" }, query: { default: "" } }, toDOM: (n) => ["div", { class: "pm-tasklist", "data-label": n.attrs.label, ...(n.attrs.query ? { "data-query": n.attrs.query } : {}) }] },
     // The items of a type as a table, a gallery or a list (ADR-0203),
@@ -269,7 +271,7 @@ function plainNode(b, embeds) {
       widths: b.widths || null, heights: b.heights || null, cells: b.cells || null });
   }
   if (b.kind === "toc") return schema.nodes.toc.create({ bid: id, level: b.level || 0 });
-  if (b.kind === "children") return schema.nodes.children.create({ bid: id, depth: b.depth || 0 });
+  if (b.kind === "children") return schema.nodes.children.create({ bid: id, depth: b.depth || 0, hideTypes: b.hideTypes?.length ? [...b.hideTypes] : null });
   if (["figures", "tables", "divider"].includes(b.kind)) return schema.nodes[b.kind].create({ bid: id });
   if (b.kind === "tasklist") return schema.nodes.tasklist.create({ bid: id, label: b.text || "", query: b.query || "" });
   if (b.kind === "view") return schema.nodes.itemview.create({ bid: id, layout: b.layout || "table", itemType: b.itemType || "", space: b.space || "", query: b.query || "",
@@ -354,7 +356,9 @@ function plainBlock(node) {
     return { kind: "table", text: a.text, ...(a.marks?.length ? { marks: a.marks } : {}), ...(a.widths ? { widths: a.widths } : {}),
       ...(a.heights ? { heights: a.heights } : {}), ...(a.cells ? { cells: a.cells } : {}) };
   }
-  if (node.type === schema.nodes.children) return node.attrs.depth ? { kind: "children", depth: node.attrs.depth } : { kind: "children" };
+  if (node.type === schema.nodes.children) {
+    return { kind: "children", ...(node.attrs.depth ? { depth: node.attrs.depth } : {}), ...(node.attrs.hideTypes?.length ? { hideTypes: node.attrs.hideTypes } : {}) };
+  }
   if (["figures", "tables", "divider"].includes(node.type.name)) return { kind: node.type.name };
   if (node.type === schema.nodes.tasklist) return node.attrs.query ? { kind: "tasklist", query: node.attrs.query } : { kind: "tasklist", text: node.attrs.label };
   if (node.type === schema.nodes.itemview) {
@@ -1313,16 +1317,42 @@ function childrenView(node, v, getPos, childPages) {
     // Labelled as a table of contents' depth is (ADR-0237).
     title.append(" ", h("label", { class: "pm-children-depth-label" }, t("editor.childrenDepthChoose"), choice));
   }
+  const hide = node.attrs.hideTypes || [];
+  if (v.editable) {
+    // The types offered are those of the item's room; a hidden type no
+    // longer defined stays offered, so it can be shown again
+    // (ADR-draft-child-pages-leave-out-types).
+    const panel = h("div", { class: "pm-children-types", hidden: true });
+    const toggle = h("button", { type: "button", class: "link pm-children-types-toggle", "aria-expanded": "false", text: childTypesName(hide),
+      onclick: async () => {
+        const open = panel.hidden;
+        panel.hidden = !open;
+        toggle.setAttribute("aria-expanded", String(open));
+        if (!open || panel.childElementCount) return;
+        const names = await Promise.resolve(childPages?.types ? childPages.types() : []).catch(() => []);
+        const offered = [...new Set([...names, ...hide])].sort();
+        panel.replaceChildren(...offered.map((name) => h("label", { class: "check" },
+          h("input", { type: "checkbox", value: name, checked: !hide.includes(name), onchange: () => {
+            const pos = getPos();
+            if (typeof pos !== "number" || dom.classList.contains("pm-locked")) return;
+            const hidden = [...panel.querySelectorAll("input:not(:checked)")].map((i) => i.value).sort();
+            v.dispatch(v.state.tr.setNodeMarkup(pos, null, { ...node.attrs, hideTypes: hidden.length ? hidden : null }));
+          } }), " ", name)));
+      } });
+    title.append(" ", h("span", { class: "pm-children-depth-label" }, t("editor.childrenTypes"), toggle));
+    dom.append(panel);
+  }
   const list = h("div", { "aria-busy": "true" }, h("p", { class: "muted", text: "…" }));
   dom.append(list);
   const none = () => h("p", { class: "muted", text: t("editor.childrenNone") });
-  Promise.resolve(typeof childPages === "function" ? childPages(depth || 1) : { items: [] }).then((res) => {
+  Promise.resolve(typeof childPages === "function" ? childPages(depth || 1, hide) : { items: [] }).then((res) => {
     const kids = res?.items || [];
     list.replaceChildren(kids.length ? childTree(kids) : none(),
       res?.truncated ? h("p", { class: "muted", text: t("editor.childrenCut") }) : "");
   }).catch(() => list.replaceChildren(none()))
     .finally(() => list.removeAttribute("aria-busy"));
-  return { dom, ...selectable, update: (n) => n.type === node.type && n.attrs.depth === node.attrs.depth };
+  return { dom, ...selectable, update: (n) => n.type === node.type && n.attrs.depth === node.attrs.depth
+    && JSON.stringify(n.attrs.hideTypes) === JSON.stringify(node.attrs.hideTypes) };
 }
 
 // imageSizes are the widths offered besides dragging, in percent of the

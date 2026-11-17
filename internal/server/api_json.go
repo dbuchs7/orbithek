@@ -193,6 +193,9 @@ type blockJSON struct {
 	// shows: none for one, 2 to 5, or -1 for every level
 	// (ADR-0239).
 	Depth int `json:"depth,omitempty"`
+	// HideTypes are the types a list of child pages leaves out
+	// (ADR-draft-child-pages-leave-out-types).
+	HideTypes []string `json:"hideTypes,omitempty"`
 }
 
 type cellJSON struct {
@@ -219,7 +222,7 @@ type prefillJSON struct {
 func toBlockJSON(b item.Block) blockJSON {
 	j := blockJSON{Kind: b.Kind, Text: b.Text, Level: b.Level, Mentions: b.Mentions, Ref: b.Ref, Checked: b.Checked, Tone: b.Tone, Width: b.Width, Align: b.Align, Engine: b.Engine, Process: b.Process, View: b.View,
 		Form: b.Form, Decision: b.Decision, Application: b.Application, Release: b.Release, Layers: b.Layers, Link: b.Link, Query: b.Query, Secret: b.Secret,
-		Layout: b.Layout, ItemType: b.ItemType, Space: b.Space, Group: b.Group, Columns: b.Columns, Sort: b.Sort, Depth: b.Depth}
+		Layout: b.Layout, ItemType: b.ItemType, Space: b.Space, Group: b.Group, Columns: b.Columns, Sort: b.Sort, Depth: b.Depth, HideTypes: b.HideTypes}
 	for _, m := range b.Marks {
 		j.Marks = append(j.Marks, markJSON{Type: m.Type, Start: m.Start, End: m.End, Href: m.Href, Ref: m.Ref, Value: m.Value})
 	}
@@ -259,6 +262,11 @@ func toDoc(blocks []blockJSON, kept func(text string) bool) (item.Doc, error) {
 			// One level is written as none, so a body says it one way
 			// (ADR-0239).
 			blk.Depth = 0
+		}
+		if len(b.HideTypes) > 0 {
+			// Named once each, in sorted order; an empty list hides
+			// nothing, as none does (ADR-draft-child-pages-leave-out-types).
+			blk.HideTypes = slices.Compact(slices.Sorted(slices.Values(b.HideTypes)))
 		}
 		if len(b.Columns) > 0 {
 			// An empty list is the view's default, as none is (ADR-0203).

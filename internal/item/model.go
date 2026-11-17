@@ -302,6 +302,11 @@ type Block struct {
 	// ChildrenAll every level. One level is written as 0 only, so a body
 	// says it one way.
 	Depth int `json:",omitempty"`
+	// HideTypes are the types a list of child pages leaves out, each
+	// item of them with everything below it; none shows every type
+	// (ADR-draft-child-pages-leave-out-types). They are named once each,
+	// in sorted order, so a body says them one way.
+	HideTypes []string `json:",omitempty"`
 }
 
 // MaxChildrenDepth is the most levels a list of child pages names by
@@ -313,6 +318,11 @@ const (
 	MaxChildrenDepth = 5
 	ChildrenAll      = -1
 )
+
+// MaxHiddenTypes bounds the types a list of child pages leaves out
+// (ADR-draft-child-pages-leave-out-types): a list a person chooses, like
+// the columns of a view.
+const MaxHiddenTypes = 24
 
 // TableTones are the tones a table's cell is filled or bordered with
 // (ADR-0214): named, so a page reads alike in a light and a dark theme and

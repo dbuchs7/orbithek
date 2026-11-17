@@ -236,7 +236,7 @@ func (h itemHandlers) exportDocument(r *http.Request, children, withData bool) (
 				p.Facts = append(p.Facts, [2]string{words["labels"], strings.Join(it.Labels, ", ")})
 			}
 			if depth := childDepth(it.Body.Blocks); depth != 0 {
-				if kids, _, err := x.ChildPages(it.Space, it.ID, depth, budget.Get().ChildPages); err == nil {
+				if kids, _, err := x.ChildPages(it.Space, it.ID, depth, budget.Get().ChildPages, nil); err == nil {
 					p.Children = exportChildren(kids)
 				}
 			}
@@ -577,7 +577,7 @@ func childDepth(blocks []item.Block) int {
 func exportChildren(pages []item.ChildPage) []export.Child {
 	out := make([]export.Child, len(pages))
 	for i, p := range pages {
-		out[i] = export.Child{Title: p.Item.Title, Children: exportChildren(p.Children)}
+		out[i] = export.Child{Title: p.Item.Title, Type: p.Item.Type, Children: exportChildren(p.Children)}
 	}
 	return out
 }
