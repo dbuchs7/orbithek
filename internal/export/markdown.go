@@ -305,13 +305,13 @@ func (m *mdBuilder) block(bl item.Block, p Page, base int) []string {
 		return append(out, captionPart()...)
 	case item.TOC:
 		var entries []string
-		for _, h := range listed(bl, p.Body) {
+		for _, h := range listed(bl, woven(m.d, p)) {
 			entries = append(entries, strings.Repeat("  ", min(max(h.Level, 1), 3)-1)+"- "+inlineMarkdown(h.Text, nil))
 		}
 		return list(entries)
 	case item.Figures, item.Tables:
 		var entries []string
-		for _, e := range listing(m.d, p.Body, bl.Kind) {
+		for _, e := range listing(m.d, woven(m.d, p), bl.Kind) {
 			entries = append(entries, "- "+inlineMarkdown(e, nil))
 		}
 		return list(entries)

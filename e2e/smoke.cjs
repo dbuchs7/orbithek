@@ -1548,6 +1548,8 @@ function webSource() {
     await page.waitForSelector("#body.reading .pm-embed.pm-embed-text .pm-embed-body:not([aria-busy])");
     check(await page.locator("#body.reading .pm-embed.pm-embed-text .pm-embed-meta, #body.reading .pm-embed.pm-embed-text select").count() === 0,
       "for reading, the content alone shows neither the item's fields nor the choice");
+    check(await page.locator("#body.reading .pm-embed.pm-embed-text").evaluate((el) => { const cs = getComputedStyle(el); return cs.borderStyle === "none" && cs.paddingLeft === "0px" && cs.cursor === "auto"; }),
+      "for reading, the content alone looks like text written in the page");
     check(!(await page.textContent("#body")).includes("null"), "the page for reading shows no stray text");
 
     step("versions: the changes of a body show word by word, and an earlier body comes back");

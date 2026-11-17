@@ -183,13 +183,13 @@ func (h *htmlBuilder) block(bl item.Block, p Page, base int) {
 		h.out.WriteString("</figure>")
 	case item.TOC:
 		h.out.WriteString(`<ul class="toc">`)
-		for _, x := range listed(bl, p.Body) {
+		for _, x := range listed(bl, woven(h.d, p)) {
 			h.printf(`<li class="level-%d">%s</li>`, min(max(x.Level, 1), 3), html.EscapeString(x.Text))
 		}
 		h.out.WriteString("</ul>")
 	case item.Figures, item.Tables:
 		h.printf(`<ul class="%s">`, bl.Kind)
-		for _, e := range listing(h.d, p.Body, bl.Kind) {
+		for _, e := range listing(h.d, woven(h.d, p), bl.Kind) {
 			h.printf("<li>%s</li>", html.EscapeString(e))
 		}
 		h.out.WriteString("</ul>")

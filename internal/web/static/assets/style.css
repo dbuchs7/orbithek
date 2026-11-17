@@ -205,7 +205,11 @@ table.history td { font-size: 13px; }
 .pm-editor > .ProseMirror > h2 { font-size: 1.75em; font-weight: 700; margin: 22px 0 10px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
 .pm-editor > .ProseMirror > h3 { font-size: 1.4em; font-weight: 650; margin: 18px 0 8px; }
 .pm-editor > .ProseMirror > h4 { font-size: 1.15em; font-weight: 600; margin: 14px 0 6px; color: var(--muted); }
-.pm-editor > .ProseMirror > :first-child { margin-top: 0; }
+/* Not inside an embed of its text alone, whose text follows the text
+   around it as if written there; there the first block of the text is
+   the embed itself (ADR-draft-embedded-text-alone-and-toc-depth). */
+.pm-editor:not(.pm-embed-alone .pm-editor) > .ProseMirror > :first-child,
+.pm-editor > .ProseMirror > .pm-embed-text:first-child > .pm-embed-body > .pm-embed-alone .pm-editor > .ProseMirror > :first-child { margin-top: 0; }
 .pm-editor > .ProseMirror { min-height: 6rem; padding: 12px 16px; outline: none; white-space: pre-wrap; word-wrap: break-word; font-variant-ligatures: none; counter-reset: ordered; }
 .pm-editor > .ProseMirror > * { margin: 6px 0; }
 .pm-editor > .ProseMirror > :not(.pm-ordered) { counter-reset: ordered; }
@@ -233,6 +237,9 @@ table.history td { font-size: 13px; }
    frame, no heading; while editing a slim line names the item
    (ADR-draft-embedded-text-alone-and-toc-depth). */
 .pm-embed.pm-embed-text { padding: 0; border: 0; border-radius: 0; background: none; }
+/* For reading it looks exactly like text written in the page: the same
+   pointer and selection, no outline when chosen. */
+.pm-embed.pm-embed-text:not(.pm-embed-editing) { cursor: auto; outline: none; }
 .pm-embed.pm-embed-text > .pm-embed-body { margin-top: 0; padding-left: 0; border-left: 0; }
 .pm-embed.pm-embed-editing { padding: 2px 0 0 8px; border-left: 2px dotted var(--border-strong); }
 .pm-embed.pm-embed-editing > .pm-embed-head { font-size: 13px; color: var(--muted); }

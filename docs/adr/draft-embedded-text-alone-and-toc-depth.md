@@ -3,7 +3,7 @@
 - **Status:** Proposed
 - **Implementation:** Not started
 - **Date:** 2026-11-17
-- **Deciders:** Project initiators (the maintainer asked that a page can be embedded with its content only, without its heading, and that inserting a table of contents asks how many heading levels it lists, 2026-11-17)
+- **Deciders:** Project initiators (the maintainer asked that a page can be embedded with its content only, without its heading, and that inserting a table of contents asks how many heading levels it lists, 2026-11-17; then that such content, for reading, looks exactly as if written in the page, 2026-11-17)
 - **Open question:** whether the import of ADR-0023 should carry a source's table of contents depth, and whether a type's start text should name one (`[toc]` has no level)
 - **Question checked:** 2026-11
 
@@ -38,6 +38,7 @@ Chosen option: **1**, because it reuses two fields whose meaning already fits �
 ### The embed of its text alone
 
 - **What it shows:** the target's text, read-only, with its pictures and its own embeds; no heading, no key and title, no kind, presence, state or fields, and no frame. A web link shows its card, which is its content (ADR-0208).
+- **For reading, as if written in the page:** the same spacing, fonts, pointer and selection as the text around it, nothing that tells it is embedded; a table of contents and the lists of figures and tables of the page count its headings, pictures and tables as the page's own, once it is loaded, in the reading view, the editor and every export (`wovenBlocks`, `woven`). Only what the reader may read is counted (D10).
 - **Who sees what:** unchanged. The text is loaded as the reader, protected passages stay veiled, and a reader who may not read the target sees the same note as for a whole embed, "an item you cannot see": an embed never vanishes without a word.
 - **Notes stand with a name:** where the text cannot be shown — the item is already shown around the place, or it is embedded too deep (ADR-0106) — the note names the item.
 - **While editing:** a slim line names the item and offers the choice *The whole item* or *The content only*; the editor inserts either from the menu *Insert…* (*Embed an item…*, *Embed an item's content…*).
@@ -61,7 +62,8 @@ A server before this one refuses a version 63 log rather than misreading it.
 
 - **Positive:** pages can be assembled from shared parts and read as one text; long texts get a short table of contents.
 - **Negative / trade-offs accepted:**
-  - A reader of an embed of the text alone does not see where the part comes from; the editor's line and the starmap and impact view (ADR-0157, ADR-0159) still show the link.
+  - A reader of an embed of the text alone does not see where the part comes from, by intent; the editor's line and the starmap and impact view (ADR-0157, ADR-0159) still show the link.
+  - The text is a read-only editor of its own inside the page: a selection does not run across the boundary, and a numbered list does not continue its numbers across it.
   - A comment or a protection acts on the part's own page, as for a whole embed (ADR-0106).
   - The depth is a block's, not a page's: two tables of contents of one body may list different levels.
 - **Follow-ups / risks to watch:** the import's and the start text's table of contents, under *Open question*; if headings gain levels beyond 3, `Level` on a table of contents keeps its meaning and only the choices grow.

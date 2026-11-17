@@ -722,9 +722,18 @@ function embedLoader(chain) {
     const props = Object.entries(item.properties || {}).filter(([, v]) => v !== null && v !== "" && !(Array.isArray(v) && !v.length));
     // An embedded web link is a link card (ADR-0208).
     const card = isWebLink(item) ? webLinkCard(item, (await get(`/api/items/${encodeURIComponent(ref)}/attachments`).catch(() => ({ attachments: [] }))).attachments) : null;
-    const text = () => (item.body.length ? createEditor({ blocks: item.body, embeds, editable: false, resolve, childPages: childPagesOf(item), files: filesOf(item),
-      embedContent: embedLoader([...chain, ref]), tasks: taskTools(item, false) }).element : null);
-    if (alone) return card || text() ? h("div", { class: "pm-embed-content pm-embed-alone", "data-embedded": item.key }, card || text()) : h("p", { class: "muted pm-embed-note", text: t("embed.noText") });
+    const editor = () => (item.body.length ? createEditor({ blocks: item.body, embeds, editable: false, resolve, childPages: childPagesOf(item), files: filesOf(item),
+      embedContent: embedLoader([...chain, ref]), tasks: taskTools(item, false) }) : null);
+    const text = () => editor()?.element || null;
+    if (alone) {
+      const ed = card ? null : editor();
+      if (!card && !ed) return h("p", { class: "muted pm-embed-note", text: t("embed.noText") });
+      const el = h("div", { class: "pm-embed-content pm-embed-alone", "data-embedded": item.key }, card || ed.element);
+      // The text around it counts this text's headings, pictures and
+      // tables as its own (wovenBlocks in editor.js).
+      if (ed) el.embeddedView = ed.view;
+      return el;
+    }
     return h("div", { class: "pm-embed-content", "data-embedded": item.key },
       h("p", { class: "muted pm-embed-meta" }, t("item.meta", { type: item.type, presence: item.presence }), item.state ? t("item.state", { state: item.state }) : ""),
       item.origin?.system === "git:file" ? h("p", { class: "muted pm-embed-meta pm-embed-source" }, ...fileSource(item.origin)) : null,

@@ -187,6 +187,31 @@ func listed(toc item.Block, body []item.Block) []item.Block {
 // its name and facts (ADR-draft-embedded-text-alone-and-toc-depth).
 func textAlone(embed item.Block) bool { return embed.View == item.ViewText }
 
+// woven returns the body of page p as a reader reads it: the blocks of
+// every embed of its text alone stand in its place, as if written there,
+// so a table of contents and the lists of figures and tables count them
+// as the page's own. An item the reader may not read, one already open
+// around the place and one embedded too deep stay embeds, as the text
+// shows them (ADR-draft-embedded-text-alone-and-toc-depth).
+func woven(d Document, p Page) []item.Block {
+	var out []item.Block
+	var walk func(body []item.Block, path map[item.ID]bool, depth int)
+	walk = func(body []item.Block, path map[item.ID]bool, depth int) {
+		for _, b := range body {
+			e, ok := d.Embeds[b.Ref]
+			if b.Kind != item.Embed || !textAlone(b) || !ok || path[b.Ref] || depth >= maxEmbedDepth {
+				out = append(out, b)
+				continue
+			}
+			path[b.Ref] = true
+			walk(e.Body, path, depth+1)
+			delete(path, b.Ref)
+		}
+	}
+	walk(p.Body, map[item.ID]bool{p.ID: true}, 0)
+	return out
+}
+
 // name names an item: key and title.
 func (p Page) name() string { return strings.TrimSpace(p.Key + " " + p.Title) }
 
@@ -454,16 +479,16 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int) string {
 		return out
 	case item.Figures, item.Tables:
 		var out strings.Builder
-		for _, e := range listing(b.d, p.Body, bl.Kind) {
+		for _, e := range listing(b.d, woven(b.d, p), bl.Kind) {
 			out.WriteString(para("", "", run(e, "")))
 		}
 		return out.String()
 	case item.TOC:
 		if b.tpl != nil {
-			return b.tocField(bl, p.Body)
+			return b.tocField(bl, woven(b.d, p))
 		}
 		var out strings.Builder
-		for _, h := range listed(bl, p.Body) {
+		for _, h := range listed(bl, woven(b.d, p)) {
 			out.WriteString(paraPr(fmt.Sprintf(`<w:ind w:left="%d"/>`, (max(h.Level, 1)-1)*360), run(h.Text, "")))
 		}
 		return out.String()

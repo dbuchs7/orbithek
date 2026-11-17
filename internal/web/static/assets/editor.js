@@ -883,15 +883,39 @@ function tableView(node, view, getPos) {
 // (ADR-draft-embedded-text-alone-and-toc-depth).
 export const tocDepths = () => [[1, t("editor.tocDepth1")], [2, t("editor.tocDepth2")], [0, t("editor.tocDepthAll")]];
 
-// tocHeadings are the headings of doc a table of contents of the given
-// level lists, with their offsets: those with text, down to the level, or
-// every one at level 0.
-export function tocHeadings(doc, level) {
-  const heads = [];
-  doc.forEach((n, offset) => {
-    if (n.type === schema.nodes.heading && n.textContent.trim() && (!level || n.attrs.level <= level)) heads.push({ level: n.attrs.level, text: n.textContent, offset });
+// wovenBlocks lists the blocks of an editor's text as a reader reads
+// them, each with show(), which brings it into sight: the blocks of an
+// embed of its text alone, once loaded, stand in its place as if written
+// there, so a table of contents and the lists of figures and tables count
+// them as the text's own (ADR-draft-embedded-text-alone-and-toc-depth).
+// The embedded text's editor is found on its content's element; one not
+// loaded yet, not readable or shown as a note stays an embed.
+export function wovenBlocks(view, depth = 0) {
+  const out = [];
+  // While the editor is still being built it has no DOM to ask yet; its
+  // embeds load later and refresh what counts them.
+  const domOf = (offset) => {
+    try {
+      return view.nodeDOM(offset);
+    } catch {
+      return null;
+    }
+  };
+  view.state.doc.forEach((node, offset) => {
+    const inner = node.type === schema.nodes.embed && node.attrs.view === "text" && depth < 8
+      ? domOf(offset)?.querySelector?.(":scope > .pm-embed-body > .pm-embed-alone")?.embeddedView : null;
+    if (inner) out.push(...wovenBlocks(inner, depth + 1));
+    else out.push({ node, show: () => view.nodeDOM(offset)?.scrollIntoView({ block: "start" }) });
   });
-  return heads;
+  return out;
+}
+
+// tocHeadings are the blocks a table of contents of the given level lists
+// among woven blocks: headings with text, down to the level, or every one
+// at level 0.
+export function tocHeadings(blocks, level) {
+  return blocks.filter(({ node: n }) => n.type === schema.nodes.heading && n.textContent.trim() && (!level || n.attrs.level <= level))
+    .map(({ node: n, show }) => ({ level: n.attrs.level, text: n.textContent, show }));
 }
 
 // tocView lists the body's headings down to its level; a click scrolls to
@@ -901,15 +925,14 @@ export function tocHeadings(doc, level) {
 function tocView(node, view, getPos, tocs) {
   const dom = h("nav", { class: "pm-toc", contenteditable: "false", "aria-label": t("editor.toc") });
   const refresh = () => {
-    const heads = tocHeadings(view.state.doc, node.attrs.level);
+    const heads = tocHeadings(wovenBlocks(view), node.attrs.level);
     const depth = view.editable ? h("label", { class: "pm-toc-depth-label" }, t("editor.tocDepth"), h("select", { class: "pm-toc-depth", onchange: (e) => {
       const pos = getPos();
       if (typeof pos !== "number" || !view.editable || dom.classList.contains("pm-locked")) return refresh();
       view.dispatch(view.state.tr.setNodeMarkup(pos, null, { ...node.attrs, level: Number(e.target.value) }));
     } }, tocDepths().map(([v, label]) => h("option", { value: String(v), text: label, selected: v === (node.attrs.level || 0) })))) : null;
     dom.replaceChildren(h("p", { class: "pm-box-title" }, t("editor.toc"), depth ? " " : "", depth || ""), heads.length
-      ? h("ul", {}, heads.map((x) => h("li", { class: "pm-toc-" + x.level }, h("button", { type: "button", class: "link", text: x.text,
-        onclick: () => view.nodeDOM(x.offset)?.scrollIntoView({ block: "start" }) }))))
+      ? h("ul", {}, heads.map((x) => h("li", { class: "pm-toc-" + x.level }, h("button", { type: "button", class: "link", text: x.text, onclick: x.show }))))
       : h("p", { class: "muted", text: t("editor.tocEmpty") }));
   };
   tocs.add(refresh);
@@ -928,19 +951,18 @@ function listView(node, view, tocs) {
   const dom = h("nav", { class: figures ? "pm-figures" : "pm-tables", contenteditable: "false", "aria-label": title });
   const refresh = () => {
     const entries = [];
-    view.state.doc.forEach((n, offset) => {
+    for (const { node: n, show } of wovenBlocks(view)) {
       if (figures && n.type === schema.nodes.image) {
         const label = t("editor.figure", { n: entries.length + 1 });
-        entries.push({ text: n.attrs.text.trim() ? `${label}: ${n.attrs.text.trim()}` : label, offset });
+        entries.push({ text: n.attrs.text.trim() ? `${label}: ${n.attrs.text.trim()}` : label, show });
       } else if (!figures && n.type === schema.nodes.table) {
         const label = t("editor.tableN", { n: entries.length + 1 });
         const head = n.attrs.text.split("\n")[0].split("\t").map((c) => c.trim()).filter(Boolean).join(", ");
-        entries.push({ text: head ? `${label}: ${head}` : label, offset });
+        entries.push({ text: head ? `${label}: ${head}` : label, show });
       }
-    });
+    }
     dom.replaceChildren(h("p", { class: "pm-box-title", text: title }), entries.length
-      ? h("ul", {}, entries.map((x) => h("li", {}, h("button", { type: "button", class: "link", text: x.text,
-        onclick: () => view.nodeDOM(x.offset)?.scrollIntoView({ block: "start" }) }))))
+      ? h("ul", {}, entries.map((x) => h("li", {}, h("button", { type: "button", class: "link", text: x.text, onclick: x.show }))))
       : h("p", { class: "muted", text: figures ? t("editor.figuresEmpty") : t("editor.tablesEmpty") }));
   };
   tocs.add(refresh);
@@ -985,6 +1007,8 @@ function embedView(node, load, view, getPos) {
       // the item it stands for.
       if (el?.classList?.contains("pm-embed-note") && !head.isConnected) dom.prepend(head);
       body.replaceChildren(...(el ? [el] : []));
+      // Tables of contents and lists around it count the loaded text.
+      dom.dispatchEvent(new CustomEvent("pm-embed-loaded", { bubbles: true }));
     })
       .catch(() => body.replaceChildren(h("p", { class: "muted", text: t("embed.failed") })))
       .finally(() => body.removeAttribute("aria-busy"));
@@ -1398,6 +1422,9 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     },
     ...viewProps,
   });
+  // An embed's text, loaded after the editor is shown, joins the tables
+  // of contents and lists of this text and of every text around it.
+  view.dom.addEventListener("pm-embed-loaded", () => tocs.forEach((f) => f()));
   const run = (cmd) => () => { cmd(view.state, view.dispatch); view.focus(); };
   const kindSelect = h("select", { "aria-label": t("editor.blockKind"), onchange: (e) => {
     const [kind, arg] = e.target.value.split(":");

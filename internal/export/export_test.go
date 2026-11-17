@@ -419,3 +419,35 @@ func TestAnEmbedOfItsTextAloneWritesNoName(t *testing.T) {
 		t.Errorf("the Word file does not write the text alone:\n%s", x)
 	}
 }
+
+// TestATableOfContentsCountsTheTextOfAnEmbedAsThePagesOwn: the headings,
+// pictures and tables of an embed of its text alone stand in the page's
+// table of contents and lists as if written there; those of a whole
+// embed and of an item the reader may not read do not
+// (ADR-draft-embedded-text-alone-and-toc-depth).
+func TestATableOfContentsCountsTheTextOfAnEmbedAsThePagesOwn(t *testing.T) {
+	part := Page{ID: "s", Title: "Safety", Body: []item.Block{{Kind: item.Heading, Level: 1, Text: "Gloves"}, {Kind: item.Table, Text: "Risk\tMeasure\nCut\tGloves"}}}
+	whole := Page{ID: "w", Title: "Whole", Body: []item.Block{{Kind: item.Heading, Level: 1, Text: "Elsewhere"}}}
+	doc := Document{Pages: []Page{{ID: "p", Title: "Manual", Body: []item.Block{{Kind: item.TOC}, {Kind: item.Tables},
+		{Kind: item.Heading, Level: 1, Text: "Start"}, {Kind: item.Embed, Ref: "s", View: item.ViewText}, {Kind: item.Embed, Ref: "w"},
+		{Kind: item.Embed, Ref: "hidden", View: item.ViewText}, {Kind: item.Heading, Level: 1, Text: "End"}}}},
+		Embeds: map[item.ID]Page{"s": part, "w": whole}}
+	var b bytes.Buffer
+	if err := HTML(&b, doc, "en"); err != nil {
+		t.Fatal(err)
+	}
+	got := b.String()
+	if !strings.Contains(got, `<ul class="toc"><li class="level-1">Start</li><li class="level-1">Gloves</li><li class="level-1">End</li></ul>`) {
+		t.Errorf("the table of contents does not count the embedded text as the page's own:\n%s", got)
+	}
+	if !strings.Contains(got, `<ul class="tables"><li>Table 1: Risk, Measure</li></ul>`) {
+		t.Errorf("the list of tables does not count the embedded table:\n%s", got)
+	}
+	var m bytes.Buffer
+	if err := Markdown(&m, doc); err != nil {
+		t.Fatal(err)
+	}
+	if md := m.String(); !strings.Contains(md, "- Start\n- Gloves\n- End") {
+		t.Errorf("the Markdown's table of contents does not count the embedded text:\n%s", md)
+	}
+}
