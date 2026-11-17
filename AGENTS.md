@@ -228,7 +228,7 @@ text wraps within a cell; the editor edits one cell at a time in a ProseMirror e
 Word, PDF and Markdown exports keep the formats, Word and PDF also sizes and colours, PDF as attributes and classes of its stylesheet (ADR-0214).
 An embed shows its item whole or its text alone, without heading, fields and frame (`View` `text`, *Embed an item's content…*), and a table of contents lists the headings down to its `Level`, asked for when it is inserted and changed on the block;
 for reading, such text looks exactly as if written in the page, and a table of contents and the lists of figures and tables count its headings, pictures and tables as the page's own (`wovenBlocks`, `woven`);
-editor, reading view, live session and every export follow both (codec version 63, `tocHeadings`, `embedLoader`'s `alone`, proposed, ADR-draft-embedded-text-alone-and-toc-depth).
+editor, reading view, live session and every export follow both (codec version 63, `tocHeadings`, `embedLoader`'s `alone`, proposed, ADR-0237).
 A user manual in every UI language — Markdown in `internal/web/static/assets/manual/`, embedded with the UI — is shown read-only at `#/manual` through the Markdown conversion, with a table of contents, and linked as *Manual* from the account menu (`assets/manual.js`, ADR-0183);
 a test holds the labels it names to the catalogue, and a pull request check asks changes to what people see to update it (ADR-0185).
 A type may belong to one room (`TypeDef.Space`): its items live only there, and that room's administrators define, redefine and remove it through their session (`Session.DefineType`, `Session.RemoveType`);

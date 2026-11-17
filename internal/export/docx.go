@@ -171,7 +171,7 @@ const maxEmbedDepth = 3
 
 // listed returns the headings of body a table of contents lists: those
 // with text, down to its Level, or every one when it has none
-// (ADR-draft-embedded-text-alone-and-toc-depth). A heading without a
+// (ADR-0237). A heading without a
 // level reads as level 1.
 func listed(toc item.Block, body []item.Block) []item.Block {
 	var out []item.Block
@@ -184,7 +184,7 @@ func listed(toc item.Block, body []item.Block) []item.Block {
 }
 
 // textAlone reports whether an embed shows its item's text alone, without
-// its name and facts (ADR-draft-embedded-text-alone-and-toc-depth).
+// its name and facts (ADR-0237).
 func textAlone(embed item.Block) bool { return embed.View == item.ViewText }
 
 // woven returns the body of page p as a reader reads it: the blocks of
@@ -192,7 +192,7 @@ func textAlone(embed item.Block) bool { return embed.View == item.ViewText }
 // so a table of contents and the lists of figures and tables count them
 // as the page's own. An item the reader may not read, one already open
 // around the place and one embedded too deep stay embeds, as the text
-// shows them (ADR-draft-embedded-text-alone-and-toc-depth).
+// shows them (ADR-0237).
 func woven(d Document, p Page) []item.Block {
 	var out []item.Block
 	var walk func(body []item.Block, path map[item.ID]bool, depth int)

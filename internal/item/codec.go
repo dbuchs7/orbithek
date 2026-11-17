@@ -192,7 +192,7 @@ import (
 //     read; their pictures are shown as their files tell.
 //   - 63: a table of contents may carry Level, the deepest level of the
 //     headings it lists, and an embed View, text for its item's text
-//     alone (ADR-draft-embedded-text-alone-and-toc-depth). Versions 1 to 62
+//     alone (ADR-0237). Versions 1 to 62
 //     are still read; their tables of contents list every level and their
 //     embeds show their items whole.
 const CodecVersion = 63

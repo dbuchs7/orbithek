@@ -259,7 +259,7 @@ func TestMarkdownExport(t *testing.T) {
 // an embed's view and a table of contents' level, refuses what else they
 // might carry, and the export follows them; a reader who may not read
 // the embedded item still learns nothing of it (D10)
-// (ADR-draft-embedded-text-alone-and-toc-depth).
+// (ADR-0237).
 func TestAnEmbedShowsItsTextAloneAndATableOfContentsItsDepth(t *testing.T) {
 	w := newWorld(t)
 	w.admin.expect("POST", "/api/types", `{"name":"page","body":true}`, http.StatusCreated)

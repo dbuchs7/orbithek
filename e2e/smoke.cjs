@@ -1514,7 +1514,7 @@ function webSource() {
     await page.selectOption("#body .pm-toolbar select >> nth=1", "toc");
     check(await page.locator("#body .pm-toolbar select >> nth=1").locator("option[value=toc]").textContent() === "Table of contents", "the insert menu says Table of contents");
     // Inserting asks for the depth; the table of contents changes it too
-    // (ADR-draft-embedded-text-alone-and-toc-depth).
+    // (ADR-0237).
     await page.selectOption("dialog.pm-toc-dialog #pm-toc-depth", "1");
     await page.click("dialog.pm-toc-dialog #pm-toc-ok");
     await page.waitForSelector("#body .pm-toc:has-text('No headings yet.')"); // "Prepare" is a heading of level 2

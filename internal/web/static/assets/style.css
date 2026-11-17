@@ -207,7 +207,7 @@ table.history td { font-size: 13px; }
 .pm-editor > .ProseMirror > h4 { font-size: 1.15em; font-weight: 600; margin: 14px 0 6px; color: var(--muted); }
 /* Not inside an embed of its text alone, whose text follows the text
    around it as if written there; there the first block of the text is
-   the embed itself (ADR-draft-embedded-text-alone-and-toc-depth). */
+   the embed itself (ADR-0237). */
 .pm-editor:not(.pm-embed-alone .pm-editor) > .ProseMirror > :first-child,
 .pm-editor > .ProseMirror > .pm-embed-text:first-child > .pm-embed-body > .pm-embed-alone .pm-editor > .ProseMirror > :first-child { margin-top: 0; }
 .pm-editor > .ProseMirror { min-height: 6rem; padding: 12px 16px; outline: none; white-space: pre-wrap; word-wrap: break-word; font-variant-ligatures: none; counter-reset: ordered; }
@@ -235,7 +235,7 @@ table.history td { font-size: 13px; }
 .pm-embed { cursor: default; }
 /* An embed of its text alone reads as part of the text around it: no
    frame, no heading; while editing a slim line names the item
-   (ADR-draft-embedded-text-alone-and-toc-depth). */
+   (ADR-0237). */
 .pm-embed.pm-embed-text { padding: 0; border: 0; border-radius: 0; background: none; }
 /* For reading it looks exactly like text written in the page: the same
    pointer and selection, no outline when chosen. */

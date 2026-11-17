@@ -1870,7 +1870,7 @@ func audioLog(t *testing.T) []Event {
 // tocDepthLog lists the headings of two levels in a table of contents
 // and embeds a page's text without its heading, so the golden files pin
 // Level on a table of contents and View on an embed
-// (ADR-draft-embedded-text-alone-and-toc-depth).
+// (ADR-0237).
 func tocDepthLog(t *testing.T) []Event {
 	s := setup(t)
 	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))

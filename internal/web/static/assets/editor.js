@@ -86,7 +86,7 @@ export const schema = new Schema({
       toDOM: (n) => tableDOM(n.attrs, isSafeLink),
       leafText: (n) => n.attrs.text },
     // level is the deepest level of the headings a table of contents
-    // lists, 0 for every level (ADR-draft-embedded-text-alone-and-toc-depth).
+    // lists, 0 for every level (ADR-0237).
     toc: { group: "block", atom: true, selectable: true, attrs: { ...bid, level: { default: 0 } }, toDOM: () => ["div", { class: "pm-toc" }] },
     // Lists of the body's pictures and tables (ADR-0119), computed like a
     // table of contents.
@@ -137,7 +137,7 @@ export const schema = new Schema({
     unsupported: { group: "block", content: "text*", marks: "", code: true, atom: true, attrs: bid, toDOM: () => ["pre", { class: "pm-unsupported", title: t("editor.unsupported") }, 0] },
     // view "text" shows the embedded item's text alone, without its
     // heading, kind, state and fields; "" shows it whole
-    // (ADR-draft-embedded-text-alone-and-toc-depth).
+    // (ADR-0237).
     embed: {
       group: "block", atom: true, selectable: true,
       attrs: { ...bid, ref: {}, label: { default: "" }, href: { default: "" }, view: { default: "" } },
@@ -894,14 +894,14 @@ function tableView(node, view, getPos) {
 
 // tocDepths are the depths a table of contents is offered with: the
 // deepest level of the headings it lists, 0 for every level
-// (ADR-draft-embedded-text-alone-and-toc-depth).
+// (ADR-0237).
 export const tocDepths = () => [[1, t("editor.tocDepth1")], [2, t("editor.tocDepth2")], [0, t("editor.tocDepthAll")]];
 
 // wovenBlocks lists the blocks of an editor's text as a reader reads
 // them, each with show(), which brings it into sight: the blocks of an
 // embed of its text alone, once loaded, stand in its place as if written
 // there, so a table of contents and the lists of figures and tables count
-// them as the text's own (ADR-draft-embedded-text-alone-and-toc-depth).
+// them as the text's own (ADR-0237).
 // The embedded text's editor is found on its content's element; one not
 // loaded yet, not readable or shown as a note stays an embed.
 export function wovenBlocks(view, depth = 0) {
@@ -985,7 +985,7 @@ function listView(node, view, tocs) {
 }
 
 // embedViews are what an embed is offered to show: its item whole, or its
-// text alone (ADR-draft-embedded-text-alone-and-toc-depth).
+// text alone (ADR-0237).
 export const embedViews = () => [["", t("editor.embedWhole")], ["text", t("editor.embedText")]];
 
 // embedView shows an embedded item whole (ADR-0106): a heading that leads
@@ -1734,7 +1734,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
   const status = h("span", { class: "error", role: "status" });
   // An item shown in the text, chosen by searching (ADR-0096).
   // embed places an item the editor picks, whole or, with view "text",
-  // its text alone (ADR-draft-embedded-text-alone-and-toc-depth).
+  // its text alone (ADR-0237).
   const embed = async (shows = "") => {
     status.textContent = "";
     const it = await aids.pickItem(shows ? t("editor.embedTextInsert") : t("assist.embedItem"));
@@ -1742,7 +1742,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     insertBlock(schema.nodes.embed.create({ ref: it.id, label: `${it.key} ${it.title}`, href: "#/item/" + encodeURIComponent(it.key), view: shows }));
   };
   // tocDialog asks how deep a new table of contents lists the headings,
-  // then places it (ADR-draft-embedded-text-alone-and-toc-depth).
+  // then places it (ADR-0237).
   const tocDialog = () => {
     status.textContent = "";
     const depth = h("select", { id: "pm-toc-depth", class: "pm-toc-depth" }, tocDepths().map(([v, label]) => h("option", { value: String(v), text: label, selected: v === 0 })));

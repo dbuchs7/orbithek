@@ -709,7 +709,7 @@ const embedDepth = 3;
 // fields, then its text, read-only, as far as the reader may read it; the
 // API veils what they may not. chain holds the items around it, so an item
 // never shows itself inside itself. With alone it shows the text alone,
-// or a web link's card (ADR-draft-embedded-text-alone-and-toc-depth).
+// or a web link's card (ADR-0237).
 function embedLoader(chain) {
   return async (ref, { alone = false } = {}) => {
     if (chain.includes(ref)) return h("p", { class: "muted pm-embed-note", text: t("embed.cycle") });

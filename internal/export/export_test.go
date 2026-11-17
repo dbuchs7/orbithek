@@ -349,7 +349,7 @@ func TestSoundIsPlayedOrNamed(t *testing.T) {
 }
 
 // TestATableOfContentsListsDownToItsLevel holds the depth of a table of
-// contents in every format (ADR-draft-embedded-text-alone-and-toc-depth).
+// contents in every format (ADR-0237).
 func TestATableOfContentsListsDownToItsLevel(t *testing.T) {
 	body := []item.Block{{Kind: item.TOC, Level: 2}, {Kind: item.Heading, Text: "Intro"}, {Kind: item.Heading, Level: 2, Text: "Scope"},
 		{Kind: item.Heading, Level: 3, Text: "Fine print"}}
@@ -384,7 +384,7 @@ func TestATableOfContentsListsDownToItsLevel(t *testing.T) {
 // TestAnEmbedOfItsTextAloneWritesNoName holds an embed of an item's text
 // alone in every format: its body as part of the text around it, without
 // the item's name and facts; its name where the body cannot be written
-// (ADR-draft-embedded-text-alone-and-toc-depth).
+// (ADR-0237).
 func TestAnEmbedOfItsTextAloneWritesNoName(t *testing.T) {
 	part := Page{ID: "s", Key: "DOC-7", Title: "Safety", Facts: [][2]string{{"State", "draft"}},
 		Body: []item.Block{{Kind: item.Heading, Level: 1, Text: "Gloves"}, {Kind: item.Paragraph, Text: "Wear gloves."}, {Kind: item.Embed, Ref: "s", View: item.ViewText}}}
@@ -424,7 +424,7 @@ func TestAnEmbedOfItsTextAloneWritesNoName(t *testing.T) {
 // pictures and tables of an embed of its text alone stand in the page's
 // table of contents and lists as if written there; those of a whole
 // embed and of an item the reader may not read do not
-// (ADR-draft-embedded-text-alone-and-toc-depth).
+// (ADR-0237).
 func TestATableOfContentsCountsTheTextOfAnEmbedAsThePagesOwn(t *testing.T) {
 	part := Page{ID: "s", Title: "Safety", Body: []item.Block{{Kind: item.Heading, Level: 1, Text: "Gloves"}, {Kind: item.Table, Text: "Risk\tMeasure\nCut\tGloves"}}}
 	whole := Page{ID: "w", Title: "Whole", Body: []item.Block{{Kind: item.Heading, Level: 1, Text: "Elsewhere"}}}

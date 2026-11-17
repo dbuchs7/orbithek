@@ -1,4 +1,4 @@
-# ADR-DRAFT: An embed may show its item's text alone, and a table of contents lists headings down to a chosen level
+# ADR-0237: An embed may show its item's text alone, and a table of contents lists headings down to a chosen level
 
 - **Status:** Proposed
 - **Implementation:** Not started

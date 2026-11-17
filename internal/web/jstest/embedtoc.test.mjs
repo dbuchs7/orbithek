@@ -2,7 +2,7 @@
 // of contents in the editor (editor.js): both survive the way from the
 // model's blocks to the editor's document and back, and a table of
 // contents lists the headings down to its level
-// (ADR-draft-embedded-text-alone-and-toc-depth). They run in Node.js
+// (ADR-0237). They run in Node.js
 // without a browser.
 import { test } from "node:test";
 import assert from "node:assert/strict";
