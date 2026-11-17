@@ -51,7 +51,7 @@ func TestADocumentIsAWellFormedWordFile(t *testing.T) {
 			{Kind: item.Paragraph, Text: "bad \x01 char"},
 		},
 		Images:   map[item.ID]Image{"pic": {Name: "plan.png", Type: "image/png", Data: pngOf(t, 400, 200)}},
-		Children: []string{"Child page"},
+		Children: []Child{{Title: "Child page"}},
 	}},
 		Embeds:     map[item.ID]Page{"x": {ID: "x", Key: "OPS-9", Title: "Linked", Body: []item.Block{{Kind: item.Paragraph, Text: "inside the embed"}}}},
 		Restricted: "(restricted)",
@@ -178,7 +178,7 @@ func TestTheHTMLEscapesAndKeepsSafeLinksOnly(t *testing.T) {
 		{Kind: item.Image, Ref: "i", Text: "pic", Width: 47, Align: "right"},
 		{Kind: item.Table, Text: "a\tb\n<c>\td"}, {Kind: item.CodeBlock, Text: "<x>"}, {Kind: item.Panel, Tone: "bogus", Text: "p"},
 		{Kind: item.Quote, Text: "q", Align: "center"}, {Kind: item.Divider}, {Kind: item.TOC}, {Kind: item.Children},
-	}, Images: map[item.ID]Image{"i": {Name: "i.png"}}, Children: []string{"kid"}}}}
+	}, Images: map[item.ID]Image{"i": {Name: "i.png"}}, Children: []Child{{Title: "kid"}}}}}
 	var b bytes.Buffer
 	if err := HTML(&b, d, "de"); err != nil {
 		t.Fatal(err)
@@ -345,6 +345,66 @@ func TestSoundIsPlayedOrNamed(t *testing.T) {
 	}
 	if md := m.String(); !strings.Contains(md, "♪ Recording 2026-11-12 08-14.webm") || !strings.Contains(md, "call") {
 		t.Errorf("the Markdown does not name the sound:\n%s", md)
+	}
+}
+
+// TestChildPagesAreListedToTheirDepth lists the same child pages one
+// level, two levels and every level deep, in every format
+// (ADR-0239).
+func TestChildPagesAreListedToTheirDepth(t *testing.T) {
+	kids := []Child{
+		{Title: "A", Children: []Child{{Title: "A1", Children: []Child{{Title: "A1a"}}}, {Title: "A2"}}},
+		{Title: "B"},
+	}
+	page := func(depth int) Document {
+		return Document{Pages: []Page{{ID: "p", Title: "Home", Body: []item.Block{{Kind: item.Children, Depth: depth}}, Children: kids}}}
+	}
+	htmlLists := map[int]string{
+		0:                     `<ul class="children"><li>A</li><li>B</li></ul>`,
+		2:                     `<ul class="children"><li>A<ul><li>A1</li><li>A2</li></ul></li><li>B</li></ul>`,
+		item.ChildrenAll:      `<ul class="children"><li>A<ul><li>A1<ul><li>A1a</li></ul></li><li>A2</li></ul></li><li>B</li></ul>`,
+		item.MaxChildrenDepth: `<ul class="children"><li>A<ul><li>A1<ul><li>A1a</li></ul></li><li>A2</li></ul></li><li>B</li></ul>`,
+	}
+	for depth, want := range htmlLists {
+		var b bytes.Buffer
+		if err := HTML(&b, page(depth), "en"); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(b.String(), want) {
+			t.Errorf("depth %d: the HTML lacks %s:\n%s", depth, want, b.String())
+		}
+	}
+	mdLists := map[int]string{
+		0:                "- A\n- B\n",
+		2:                "- A\n  - A1\n  - A2\n- B\n",
+		item.ChildrenAll: "- A\n  - A1\n    - A1a\n  - A2\n- B\n",
+	}
+	for depth, want := range mdLists {
+		var m bytes.Buffer
+		if err := Markdown(&m, page(depth)); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(m.String(), want) {
+			t.Errorf("depth %d: the Markdown lacks %q:\n%s", depth, want, m.String())
+		}
+	}
+	var w bytes.Buffer
+	if err := DOCX(&w, page(item.ChildrenAll)); err != nil {
+		t.Fatal(err)
+	}
+	doc := documentXML(t, w.Bytes())
+	for _, want := range []string{`<w:ind w:left="1440" w:hanging="360"/></w:pPr><w:r><w:t xml:space="preserve">A1</w:t>`,
+		`<w:ind w:left="2160" w:hanging="360"/></w:pPr><w:r><w:t xml:space="preserve">A1a</w:t>`} {
+		if !strings.Contains(doc, want) {
+			t.Errorf("the Word file lacks %s:\n%s", want, doc)
+		}
+	}
+	w.Reset()
+	if err := DOCX(&w, page(0)); err != nil {
+		t.Fatal(err)
+	}
+	if doc := documentXML(t, w.Bytes()); strings.Contains(doc, "A1") || strings.Contains(doc, "<w:ind ") {
+		t.Errorf("one level lists the children alone:\n%s", doc)
 	}
 }
 

@@ -40,6 +40,7 @@ import { pdfView } from "./pdfview.js";
 import { attachmentLink, isPdf, onPdf, readerHref } from "./pdfparts.js";
 import { bookmarklet, captureAddress, readCapture } from "./capture.js";
 import { captureView } from "./captureview.js";
+import { childDepthQuery } from "./childpages.js";
 import { isWebLink, webLinkCard } from "./weblink.js";
 import { fieldInput, fieldView, isRich } from "./fields.js";
 import { typeEditor, roomTypesCard } from "./typeeditor.js";
@@ -194,7 +195,7 @@ function exportMenu(item) {
   menu.addEventListener("toggle", async () => {
     if (!menu.open || handbook.dataset.asked) return;
     handbook.dataset.asked = "1";
-    const kids = await childPagesOf(item)().catch(() => []);
+    const kids = await childPagesOf(item)().then((r) => r.items).catch(() => []);
     if (kids.length) handbook.append(
       h("button", { type: "button", class: "link", id: "export-pdf-handbook", text: t("export.pdfHandbook"), onclick: (ev) => { close(ev); printExport(path, true); } }),
       h("a", { href: path + "/export/docx?children=true", id: "export-docx-handbook", download: "", text: t("export.docxHandbook") }),
@@ -645,9 +646,11 @@ function chevronIcon(left) {
 }
 
 // childPagesOf lists an item's child pages for a list of child pages in
-// its body (ADR-0042).
-const childPagesOf = (item) => async () =>
-  (await get(`/api/spaces/${encodeURIComponent(item.space)}/tree?parent=${item.id}`)).items;
+// its body (ADR-0042), to depth levels, -1 for every level: it answers
+// { items, truncated }, each page with its children
+// (ADR-0239).
+const childPagesOf = (item) => async (depth = 1) =>
+  get(`/api/spaces/${encodeURIComponent(item.space)}/tree?parent=${item.id}&depth=${childDepthQuery(depth)}`);
 
 // filesOf serves and stores an item's attachments for its body (ADR-0045),
 // and knows which of them are drawings (ADR-0053).

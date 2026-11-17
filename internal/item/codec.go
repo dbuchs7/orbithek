@@ -199,7 +199,11 @@ import (
 //     text in a tone, and size, its text in a size, sealed with the body
 //     (ADR-0238). Versions 1 to 63
 //     are still read; their cells' text has the text's own colour and size.
-const CodecVersion = 64
+//   - 65: a list of child pages may carry Depth, how many levels of child
+//     pages it shows, sealed with the body
+//     (ADR-0239). Versions 1 to 64 are
+//     still read; their lists show one level.
+const CodecVersion = 65
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/dbuchs7/orbithek/internal/item"
@@ -205,8 +206,7 @@ func (c *converter) element(se xml.StartElement, start int) error {
 		c.emit(item.Block{Kind: item.TOC})
 		return c.dec.Skip()
 	case n == "ac:structured-macro" && attr(se, "ac", "name") == "children":
-		c.emit(item.Block{Kind: item.Children})
-		return c.dec.Skip()
+		return c.childrenMacro()
 	case n == "ac:task-list":
 		return c.taskList()
 	case n == "table":
@@ -293,6 +293,50 @@ func (c *converter) jiraMacro() error {
 	}
 	c.problem("Jira issue %s is not imported; kept as text", key)
 	c.emit(item.Block{Kind: item.Paragraph, Text: "[Jira issue " + key + "]"})
+	return nil
+}
+
+// childrenMacro turns a children macro into a list of child pages, as
+// deep as the macro's depth, or every level when it lists all
+// (ADR-0239). A depth beyond the most a
+// list names by number lists every level, so no page the macro listed is
+// left out.
+func (c *converter) childrenMacro() error {
+	params := map[string]string{}
+	param, open := "", 1
+	for open > 0 {
+		tok, err := c.dec.Token()
+		if err != nil {
+			return err
+		}
+		switch t := tok.(type) {
+		case xml.StartElement:
+			open++
+			param = ""
+			if name(t.Name) == "ac:parameter" {
+				param = attr(t, "ac", "name")
+			}
+		case xml.EndElement:
+			open--
+			param = ""
+		case xml.CharData:
+			if param != "" {
+				params[param] += string(t)
+			}
+		}
+	}
+	b := item.Block{Kind: item.Children}
+	depth, err := strconv.Atoi(strings.TrimSpace(params["depth"]))
+	switch {
+	case strings.EqualFold(strings.TrimSpace(params["all"]), "true"):
+		b.Depth = item.ChildrenAll
+	case err != nil || depth <= 1:
+	case depth > item.MaxChildrenDepth:
+		b.Depth = item.ChildrenAll
+	default:
+		b.Depth = depth
+	}
+	c.emit(b)
 	return nil
 }
 

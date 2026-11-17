@@ -243,7 +243,7 @@ table.history td { font-size: 13px; }
 .pm-embed.pm-embed-text > .pm-embed-body { margin-top: 0; padding-left: 0; border-left: 0; }
 .pm-embed.pm-embed-editing { padding: 2px 0 0 8px; border-left: 2px dotted var(--border-strong); }
 .pm-embed.pm-embed-editing > .pm-embed-head { font-size: 13px; color: var(--muted); }
-.pm-embed-view-label, .pm-toc-depth-label { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 0 8px; font-size: 13px; font-weight: normal; color: var(--muted); }
+.pm-embed-view-label, .pm-toc-depth-label, .pm-children-depth-label { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 0 8px; font-size: 13px; font-weight: normal; color: var(--muted); }
 .pm-mention { background: var(--accent-soft); color: var(--accent); border-radius: 4px; padding: 0 3px; }
 .ProseMirror-hideselection *::selection { background: transparent; }
 

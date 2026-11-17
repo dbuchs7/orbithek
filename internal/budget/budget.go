@@ -185,6 +185,10 @@ type Budgets struct {
 	// what refers to it, what shares its labels, and the daily notes that
 	// name it. Beyond it a list keeps the first and says it was cut.
 	ContextEntries int
+	// ChildPages bounds the pages one list of child pages shows across
+	// its levels (ADR-0239). Beyond it the
+	// list keeps the upper levels whole and says it was cut.
+	ChildPages int
 	// DailyNoteDays bounds the days one listing of a person's daily notes
 	// covers (ADR-0205), a year and a little more by default.
 	DailyNoteDays int
@@ -261,6 +265,7 @@ func Default() Budgets {
 		LinkPreviewsAtOnce:     8,
 		LinkPreviewBlocks:      500,
 		ContextEntries:         50,
+		ChildPages:             500,
 		DailyNoteDays:          400,
 		ShareFiles:             100_000,
 		ShareWorkers:           2,

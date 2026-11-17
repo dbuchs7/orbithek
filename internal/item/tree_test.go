@@ -3,6 +3,7 @@ package item
 import (
 	"errors"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -116,5 +117,86 @@ func TestTreeShowsOnlyWhatOneMayRead(t *testing.T) {
 	noErr(t, s.GrantRole("root", "PLAT", "ben", Editor))
 	if err := ben.Place(last.ID, "PLAT", home.ID, secret.ID); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("placing before an unreadable sibling: %v", err)
+	}
+}
+
+// childTitles writes a list of child pages as titles, a page's children
+// in brackets after it and "+" for a page with more than the list shows.
+func childTitles(pages []ChildPage) string {
+	var b strings.Builder
+	for i, p := range pages {
+		if i > 0 {
+			b.WriteString(" ")
+		}
+		b.WriteString(p.Item.Title)
+		if p.More {
+			b.WriteString("+")
+		}
+		if len(p.Children) > 0 {
+			b.WriteString("[" + childTitles(p.Children) + "]")
+		}
+	}
+	return b.String()
+}
+
+func TestChildPagesListToTheChosenDepth(t *testing.T) {
+	s := permFixture(t)
+	anna, ben, carl := s.As("anna"), s.As("ben"), s.As("carl")
+	page := func(title string, parent ID) Item {
+		return mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: title, Parent: parent}))
+	}
+	home := page("Home", "")
+	a := page("A", home.ID)
+	a1 := page("A1", a.ID)
+	page("A1a", a1.ID)
+	page("A2", a.ID)
+	b := page("B", home.ID)
+	secret := page("Secret", b.ID)
+	page("Below secret", secret.ID)
+	noErr(t, anna.Restrict(secret.ID, Restriction{Read: []string{"anna"}}))
+
+	cases := []struct {
+		who   *Session
+		depth int
+		want  string
+	}{
+		{anna, 0, "A+ B+"},
+		{anna, 1, "A+ B+"},
+		{anna, 2, "A[A1+ A2] B[Secret+]"},
+		{anna, 3, "A[A1[A1a] A2] B[Secret[Below secret]]"},
+		{anna, ChildrenAll, "A[A1[A1a] A2] B[Secret[Below secret]]"},
+		// Ben does not read Secret, nor what lies below it, and is not
+		// told that B has more.
+		{ben, ChildrenAll, "A[A1[A1a] A2] B"},
+	}
+	for _, c := range cases {
+		got, cut, err := c.who.ChildPages("PLAT", home.ID, c.depth, 100)
+		noErr(t, err)
+		if s := childTitles(got); s != c.want || cut {
+			t.Errorf("%s at depth %d: %q (cut %v), want %q", c.who.who, c.depth, s, cut, c.want)
+		}
+	}
+	// The top of a space is a parent like any other.
+	top, _, err := anna.ChildPages("PLAT", "", 2, 100)
+	noErr(t, err)
+	if got := childTitles(top); got != "Home[A+ B+]" {
+		t.Errorf("top of the space: %q", got)
+	}
+	// The budget cuts the deepest level first and says so.
+	got, cut, err := anna.ChildPages("PLAT", home.ID, ChildrenAll, 5)
+	noErr(t, err)
+	if s := childTitles(got); s != "A[A1+ A2] B[Secret+]" || !cut {
+		t.Errorf("within 5 pages: %q (cut %v)", s, cut)
+	}
+	got, cut, _ = anna.ChildPages("PLAT", home.ID, ChildrenAll, 3)
+	if s := childTitles(got); s != "A+[A1+] B+" || !cut {
+		t.Errorf("within 3 pages: %q (cut %v)", s, cut)
+	}
+	// An outsider learns nothing of a page they may not read.
+	if _, _, err := carl.ChildPages("PLAT", home.ID, 2, 100); !errors.Is(err, ErrNotFound) {
+		t.Errorf("outsider: %v", err)
+	}
+	if _, _, err := anna.ChildPages("NOPE", "", 2, 100); !errors.Is(err, ErrNotFound) {
+		t.Errorf("unknown space: %v", err)
 	}
 }
