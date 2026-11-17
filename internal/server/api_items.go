@@ -956,7 +956,7 @@ func (h itemHandlers) commitBody(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Blocks []blockJSON `json:"blocks"`
 		// Numbered numbers the headings, or not; absent, the body keeps
-		// what it had (ADR-draft-numbered-headings).
+		// what it had (ADR-0241).
 		Numbered *bool `json:"numbered"`
 	}
 	if !decodeLarge(w, r, &req) {

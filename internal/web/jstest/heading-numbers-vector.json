@@ -1,5 +1,5 @@
 {
-  "about": "Headings of a numbered body and the numbers they show (ADR-draft-numbered-headings). Each case lists the body's blocks as [kind, level, text] and the number of each block, \"\" for none. internal/item/headingnumbers_test.go and internal/web/jstest/numbering.test.mjs both read it, so the server's exports and the browser number alike.",
+  "about": "Headings of a numbered body and the numbers they show (ADR-0241). Each case lists the body's blocks as [kind, level, text] and the number of each block, \"\" for none. internal/item/headingnumbers_test.go and internal/web/jstest/numbering.test.mjs both read it, so the server's exports and the browser number alike.",
   "cases": [
     {
       "name": "levels 1 to 3",

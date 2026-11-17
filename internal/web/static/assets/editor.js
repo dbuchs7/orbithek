@@ -1111,7 +1111,7 @@ function tableView(node, view, getPos) {
 }
 
 // numbering holds whether a body's headings are numbered
-// (ADR-draft-numbered-headings): a setting of the whole body, not of a
+// (ADR-0241): a setting of the whole body, not of a
 // block, so it stays out of the undo history and out of the blocks a live
 // session compares. A transaction with the meta {numbered} sets it. The
 // numbers count the text as a reader reads it, the text of embeds of their
@@ -1183,7 +1183,7 @@ export function isNumbered(state) {
 
 // wovenNumbers are the numbers of woven blocks (wovenBlocks), "" for each
 // that has none, when numbered is set: the headings of an embed of its text
-// alone count as the text's own (ADR-draft-numbered-headings, ADR-0237).
+// alone count as the text's own (ADR-0241, ADR-0237).
 export function wovenNumbers(woven, numbered) {
   return numbered ? headingNumbers(woven.map(({ node }) => blockOf(node))) : woven.map(() => "");
 }
@@ -1245,7 +1245,7 @@ export function wovenBlocks(view, depth = 0) {
 // tocHeadings are the blocks a table of contents of the given level lists
 // among woven blocks: headings with text, down to the level, or every one
 // at level 0, each with its number when nums, as wovenNumbers counts them,
-// are given (ADR-draft-numbered-headings).
+// are given (ADR-0241).
 export function tocHeadings(blocks, level, nums = []) {
   return blocks.map((b, i) => ({ ...b, num: nums[i] || "" }))
     .filter(({ node: n }) => n.type === schema.nodes.heading && n.textContent.trim() && (!level || n.attrs.level <= level))
@@ -1837,7 +1837,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
   view.dom.addEventListener("pm-embed-loaded", () => tocs.forEach((f) => f()));
   // The numbers of the headings follow every change that moves the tables
   // of contents: of the text, of its numbering and of an embed's text
-  // (ADR-draft-numbered-headings). They are counted after the change is
+  // (ADR-0241). They are counted after the change is
   // shown, not while the view updates.
   let renumbering = false;
   const scheduleRenumber = () => {
@@ -2354,7 +2354,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     run(setBlockType(inIt ? schema.nodes.paragraph : node))();
   } });
   // Numbering the headings is a setting of the whole text
-  // (ADR-draft-numbered-headings): onNumbered, given by a live session,
+  // (ADR-0241): onNumbered, given by a live session,
   // stores it for everyone at once; until it answers, the text shows what
   // was chosen, and a refusal takes it back.
   const setNumbered = (on) => view.dispatch(view.state.tr.setMeta(numbering, { numbered: on }).setMeta("addToHistory", false));

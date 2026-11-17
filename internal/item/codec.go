@@ -204,7 +204,7 @@ import (
 //     (ADR-0239). Versions 1 to 64 are
 //     still read; their lists show one level.
 //   - 66: a body may carry Numbered, its headings numbered by their
-//     levels, sealed with the body (ADR-draft-numbered-headings).
+//     levels, sealed with the body (ADR-0241).
 //     Versions 1 to 65 are still read; their headings are not numbered.
 //   - 67: a list of child pages may carry HideTypes, the types it leaves
 //     out, sealed with the body (ADR-0240).

@@ -1909,7 +1909,7 @@ func childrenDepthLog(t *testing.T) []Event {
 }
 
 // numberedLog numbers the headings of a text, so the golden files pin the
-// body field Numbered (ADR-draft-numbered-headings).
+// body field Numbered (ADR-0241).
 func numberedLog(t *testing.T) []Event {
 	s := setup(t)
 	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))
