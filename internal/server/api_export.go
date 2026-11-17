@@ -222,7 +222,7 @@ func (h itemHandlers) exportDocument(r *http.Request, children, withData bool) (
 		}
 		names := h.d.DB.Accounts.Usernames(userIDs(all, s.Type))
 		pageOf := func(it item.Item, depth int) export.Page {
-			p := export.Page{ID: it.ID, Key: it.Key, Title: it.Title, Body: it.Body.Blocks, Depth: depth, Images: map[item.ID]export.Image{},
+			p := export.Page{ID: it.ID, Key: it.Key, Title: it.Title, Body: it.Body.Blocks, Numbered: it.Body.Numbered, Depth: depth, Images: map[item.ID]export.Image{},
 				Facts: [][2]string{{words["key"], it.Key}, {words["type"], it.Type}}}
 			if it.State != "" {
 				p.Facts = append(p.Facts, [2]string{words["state"], it.State})

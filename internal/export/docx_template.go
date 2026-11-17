@@ -50,8 +50,9 @@ func docxFromTemplate(w io.Writer, d Document) error {
 // fills with page numbers: it is marked as changed, so Word offers to
 // bring it up to date when the document opens. Until then it shows the
 // page's headings. Both list the headings down to the block's level, or
-// to level 3, the deepest a heading has, when it has none.
-func (b *docxBuilder) tocField(toc item.Block, body []item.Block) string {
+// to level 3, the deepest a heading has, when it has none; entries are
+// the table of contents' headings, with their numbers when numbered.
+func (b *docxBuilder) tocField(toc item.Block, entries []heading) string {
 	depth := toc.Level
 	if depth == 0 {
 		depth = 3
@@ -61,8 +62,8 @@ func (b *docxBuilder) tocField(toc item.Block, body []item.Block) string {
 		`<w:r><w:fldChar w:fldCharType="separate"/></w:r>`
 	end := `<w:r><w:fldChar w:fldCharType="end"/></w:r>`
 	var lines []string
-	for _, h := range listed(toc, body) {
-		lines = append(lines, paraPr(fmt.Sprintf(`<w:ind w:left="%d"/>`, (max(h.Level, 1)-1)*360), run(h.Text, "")))
+	for _, h := range entries {
+		lines = append(lines, paraPr(fmt.Sprintf(`<w:ind w:left="%d"/>`, (h.Level-1)*360), run(withNumber(h.Num, h.Text), "")))
 	}
 	if len(lines) == 0 {
 		return paraPr("", begin+end)

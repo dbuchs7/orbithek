@@ -37,7 +37,7 @@ Chosen option: **1, types left out**, because it says what the request asks ("wi
 - **The field:** `Block.HideTypes` on a block of the kind `children`: 1 to `MaxHiddenTypes` (24) type names, each once and in sorted order, or none for every type.
   A name need not name a type that exists, so a type removed later leaves the body valid.
   The API sorts and folds a list it is sent; an empty list is none.
-  Codec version 66; versions 1 to 65 are still read, their lists showing every type.
+  Codec version 67; versions 1 to 66 are still read, their lists showing every type.
 - **What is left out:** an item of a left-out type with everything below it, as the requester chose.
   `Session.ChildPages` passes such items by as it walks, so they take nothing of the budget `ChildPages` and do not make their parent's `more`.
 - **The API:** `GET /api/spaces/{space}/tree` takes `hide`, type names separated by commas, with `depth`; MCP's `get_tree` offers it, and its description of blocks names the field.

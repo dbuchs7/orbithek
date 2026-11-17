@@ -45,6 +45,7 @@ func HTML(w io.Writer, d Document, lang string) error {
 type htmlBuilder struct {
 	d   Document
 	out strings.Builder
+	numberer
 }
 
 func (h *htmlBuilder) printf(format string, args ...any) { fmt.Fprintf(&h.out, format, args...) }
@@ -60,6 +61,7 @@ func (h *htmlBuilder) page(p Page, base int, path map[item.ID]bool, embedDepth i
 		h.out.WriteString(`</table>`)
 	}
 	list := ""
+	defer h.open(h.d, p)()
 	for _, bl := range p.Body {
 		want := map[item.BlockKind]string{item.BulletItem: "ul", item.OrderedItem: "ol", item.TaskItem: "ul class=\"tasks\""}[bl.Kind]
 		if want != list {
@@ -75,7 +77,7 @@ func (h *htmlBuilder) page(p Page, base int, path map[item.ID]bool, embedDepth i
 			h.embed(bl, base, path, embedDepth)
 			continue
 		}
-		h.block(bl, p, base)
+		h.block(bl, p, base, h.take(bl))
 	}
 	if list != "" {
 		h.printf("</%s>", strings.Fields(list)[0])
@@ -97,6 +99,7 @@ func (h *htmlBuilder) embed(bl item.Block, base int, path map[item.ID]bool, embe
 		e.Facts = nil
 		path[id] = true
 		h.out.WriteString(`<div class="embed-text">`)
+		h.weaving = true
 		h.page(e, base, path, embedDepth+1)
 		h.out.WriteString(`</div>`)
 		delete(path, id)
@@ -111,7 +114,7 @@ func (h *htmlBuilder) embed(bl item.Block, base int, path map[item.ID]bool, embe
 	h.out.WriteString(`</div>`)
 }
 
-func (h *htmlBuilder) block(bl item.Block, p Page, base int) {
+func (h *htmlBuilder) block(bl item.Block, p Page, base int, num string) {
 	cls := ""
 	if bl.Align != "" {
 		cls = ` class="align-` + html.EscapeString(bl.Align) + `"`
@@ -120,6 +123,9 @@ func (h *htmlBuilder) block(bl item.Block, p Page, base int) {
 	switch bl.Kind {
 	case item.Heading:
 		level := min(base+min(max(bl.Level, 1), 3), 6)
+		if num != "" {
+			text = `<span class="num">` + html.EscapeString(num) + `</span> ` + text
+		}
 		h.printf("<h%d%s>%s</h%d>", level, cls, text, level)
 	case item.BulletItem, item.OrderedItem:
 		h.printf("<li>%s</li>", text)
@@ -183,8 +189,12 @@ func (h *htmlBuilder) block(bl item.Block, p Page, base int) {
 		h.out.WriteString("</figure>")
 	case item.TOC:
 		h.out.WriteString(`<ul class="toc">`)
-		for _, x := range listed(bl, woven(h.d, p)) {
-			h.printf(`<li class="level-%d">%s</li>`, min(max(x.Level, 1), 3), html.EscapeString(x.Text))
+		for _, x := range tocEntries(h.d, p, bl) {
+			num := ""
+			if x.Num != "" {
+				num = `<span class="num">` + html.EscapeString(x.Num) + `</span> `
+			}
+			h.printf(`<li class="level-%d">%s%s</li>`, x.Level, num, html.EscapeString(x.Text))
 		}
 		h.out.WriteString("</ul>")
 	case item.Figures, item.Tables:

@@ -228,7 +228,7 @@ func veilBlocks(d Doc, hide map[ID]bool) Doc {
 		}
 		out = append(out, Block{Kind: Paragraph, Text: SecretPlaceholder, Secret: b.Secret})
 	}
-	return Doc{Blocks: out}
+	return Doc{Blocks: out, Numbered: d.Numbered}
 }
 
 // veilFiles drops the files of an item the principal may not have, so
