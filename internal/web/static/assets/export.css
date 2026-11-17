@@ -41,6 +41,7 @@ figcaption { font-size: 9pt; color: #6b7280; font-style: italic; }
 .embed { margin: .8em 0; padding: 4px 0 4px 12px; border-left: 2px dotted #bfbfbf; }
 .embed-title { font-weight: 600; color: #404040; margin: .2em 0; }
 .embed.restricted .embed-title { color: #9ca3af; font-weight: normal; }
+.embed-text { margin: 0; }
 /* Coloured cells of a table (ADR-0214): a fill is the tone's soft shade,
    a border the tone itself; the values match the tones of the web UI. */
 table:not(.facts) .fill-blue { background: #d5e2f8; } table:not(.facts) .border-blue { border: 2px solid #2f6fde; }
@@ -52,3 +53,8 @@ table:not(.facts) .fill-purple { background: #e7dcf7; } table:not(.facts) .borde
 table:not(.facts) .fill-teal { background: #cfebeb; } table:not(.facts) .border-teal { border: 2px solid #0f9b9b; }
 table:not(.facts) .fill-gray { background: #e4e6ea; } table:not(.facts) .border-gray { border: 2px solid #7a8394; }
 table:not(.facts) td, table:not(.facts) th { overflow-wrap: anywhere; }
+/* Text of a cell in a tone and a size (ADR-0238);
+   a tone is its strong shade, as a border is. */
+.text-blue { color: #2f6fde; } .text-green { color: #1f9d55; } .text-yellow { color: #d4a106; } .text-orange { color: #e8710a; }
+.text-red { color: #d93636; } .text-purple { color: #8a4fd8; } .text-teal { color: #0f9b9b; } .text-gray { color: #7a8394; }
+.size-small { font-size: .82em; } .size-large { font-size: 1.27em; } .size-larger { font-size: 1.64em; }

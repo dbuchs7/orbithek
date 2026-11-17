@@ -182,7 +182,17 @@ const (
 	// MarkSecret protects its text (ADR-0088): Ref names the item's Secret
 	// that says who reads it in clear; others read a placeholder.
 	MarkSecret MarkType = "secret"
+	// MarkColor colours the text of a table's cell in one of TableTones,
+	// MarkSize sets its size to one of TextSizes; Value holds the tone or
+	// the size (ADR-0238).
+	MarkColor MarkType = "color"
+	MarkSize  MarkType = "size"
 )
+
+// TextSizes are the sizes the text of a table's cell may take besides the
+// text's own: named, as tones are, so that a page reads alike on every
+// screen and in every export (ADR-0238).
+var TextSizes = []string{"small", "large", "larger"}
 
 // TextAligns are the alignments of a block of text, ImageAligns those of
 // an image: left and right float it with the text flowing beside it
@@ -201,6 +211,8 @@ type Mark struct {
 	End   int
 	Href  string `json:",omitempty"`
 	Ref   ID     `json:",omitempty"`
+	// Value is the tone of a color mark or the size of a size mark.
+	Value string `json:",omitempty"`
 }
 
 // Block is one block of a document body. Mentions and Ref point at items by
@@ -210,7 +222,9 @@ type Block struct {
 	Text     string
 	Mentions []ID
 	Ref      ID
-	// Level is a heading's level, 1 to 3; 0 reads as 1 (ADR-0032).
+	// Level is a heading's level, 1 to 3; 0 reads as 1 (ADR-0032). On a
+	// table of contents it is the deepest level of the headings it lists,
+	// 1 to 3; 0 lists every level (ADR-0237).
 	Level int    `json:",omitempty"`
 	Marks []Mark `json:",omitempty"`
 	// Checked is whether a task is done; Tone is a panel's tone (ADR-0042).
@@ -233,6 +247,9 @@ type Block struct {
 	// (ViewText) (ADR-0143). A form block shows its form, its form and the
 	// list of its fields, or the list alone, alike (ADR-0148); there,
 	// Process names the process whose steps name the form, or is empty.
+	// An embed shows its item whole (empty) or its text alone, without
+	// the heading, kind, state and fields (ViewText)
+	// (ADR-0237).
 	View string `json:",omitempty"`
 	// Form and Decision name what a form or a decision block shows: the
 	// form's or the decision's ID at the engine (ADR-0144).
@@ -323,6 +340,11 @@ const (
 
 // DiagramViews are the views a bpmn, a process or a form block may carry.
 var DiagramViews = []string{ViewBoth, ViewText}
+
+// EmbedViews are the views an embed block may carry besides the item
+// whole: its text alone
+// (ADR-0237).
+var EmbedViews = []string{ViewText}
 
 // Doc is a structured document body (ADR-0001: a block document, not HTML
 // or Markdown as storage format).

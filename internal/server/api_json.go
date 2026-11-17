@@ -142,6 +142,8 @@ type markJSON struct {
 	End   int           `json:"end"`
 	Href  string        `json:"href,omitempty"`
 	Ref   item.ID       `json:"ref,omitempty"`
+	// Value is the tone of a color mark or the size of a size mark.
+	Value string `json:"value,omitempty"`
 }
 
 type blockJSON struct {
@@ -219,7 +221,7 @@ func toBlockJSON(b item.Block) blockJSON {
 		Form: b.Form, Decision: b.Decision, Application: b.Application, Release: b.Release, Layers: b.Layers, Link: b.Link, Query: b.Query, Secret: b.Secret,
 		Layout: b.Layout, ItemType: b.ItemType, Space: b.Space, Group: b.Group, Columns: b.Columns, Sort: b.Sort, Depth: b.Depth}
 	for _, m := range b.Marks {
-		j.Marks = append(j.Marks, markJSON{Type: m.Type, Start: m.Start, End: m.End, Href: m.Href, Ref: m.Ref})
+		j.Marks = append(j.Marks, markJSON{Type: m.Type, Start: m.Start, End: m.End, Href: m.Href, Ref: m.Ref, Value: m.Value})
 	}
 	for _, p := range b.Prefill {
 		j.Prefill = append(j.Prefill, prefillJSON{Field: p.Field, From: p.From})
@@ -276,7 +278,7 @@ func toDoc(blocks []blockJSON, kept func(text string) bool) (item.Doc, error) {
 			blk.Cells = append(blk.Cells, item.Cell{Row: c.Row, Col: c.Col, Fill: c.Fill, Border: c.Border})
 		}
 		for _, m := range b.Marks {
-			blk.Marks = append(blk.Marks, item.Mark{Type: m.Type, Start: m.Start, End: m.End, Href: m.Href, Ref: m.Ref})
+			blk.Marks = append(blk.Marks, item.Mark{Type: m.Type, Start: m.Start, End: m.End, Href: m.Href, Ref: m.Ref, Value: m.Value})
 			if m.Type == item.MarkMention && m.Ref != "" && !slices.Contains(blk.Mentions, m.Ref) {
 				blk.Mentions = append(blk.Mentions, m.Ref)
 			}

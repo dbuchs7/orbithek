@@ -99,6 +99,7 @@ The menu **Insert…** adds blocks after the cursor:
 - **Image**, **Video**, **Drawing**, a picture **From the album** or a **Copied picture**;
 - **Sound file** and **Record sound**: a sound that plays in the text (see below);
 - **Embed an item…**: shows another item whole inside the text;
+- **Embed an item's content…**: shows only the other item's text, without its title, type, state and fields, so that it reads as part of your text;
 - **New task…** (created below the page and shown as a link or whole) and **Task list…** (every task with a label, or the result of a query);
 - **View of items…**: the items of a type as a table, a gallery or a list, grouped by a field (see *Views of items*);
 - **Paste Markdown…** and **Markdown file from a repository…** (if enabled);
@@ -106,7 +107,11 @@ The menu **Insert…** adds blocks after the cursor:
 
 Pictures can be placed left or right with text beside them, centred, and resized by dragging; a caption numbers them in the list of figures.
 
-**Child pages** lists the pages below the page, each linked, in the order of the page tree, and only those you may read. While editing, the choice **Levels shown** beside its title sets how deep it lists them: **1 level** (the default), **2 levels** to **5 levels**, or **All levels**; each deeper page stands indented below its parent. A very long list shows only its first pages, the upper levels whole, and says there are more. Word, PDF and Markdown exports list the pages to the same depth.
+**Table of contents** first asks how deep it lists the headings: under **Depth**, **Heading 1 only**, **Headings 1 to 2** or **Headings 1 to 3 (all)**. While you edit, the same choice stands on the table of contents itself and changes it at any time. Word, PDF and Markdown exports list the same headings.
+
+An embedded item shows either **The whole item** or **The content only**; while you edit, the choice **Shows** on the embed switches between them, and a slim line names the item whose content is shown. Readers then see the content exactly as if it were written in the page: no frame, no name, the same spacing and fonts, and a table of contents, a list of figures and a list of tables of the page count its headings, pictures and tables as the page's own. The content stays the other item's: it is always current, cannot be edited in place, and shows only what each reader may read. A reader who may not read the item sees that an item is hidden there, as with a whole embed. Exports write the content alone in the same way.
+
+**Child pages** lists the pages below the page, each linked, in the order of the page tree, and only those you may read. While editing, the choice **Depth** beside its title sets how deep it lists them: **1 level** (the default), **2 levels** to **5 levels**, or **All levels**; each deeper page stands indented below its parent. A very long list shows only its first pages, the upper levels whole, and says there are more. Word, PDF and Markdown exports list the pages to the same depth.
 
 A sound plays in the text with the browser's own player and a caption, such as a recording spoken into a page, a task or **Today**'s daily note. **Sound file** uploads one (WebM, Ogg, M4A, MP3 or WAV); **Record sound** opens a window that records at once, and **Stop and attach** puts the recording into the text where the cursor is, while **Cancel** throws it away. The recording is also a file of the item. **Remove** takes the sound out of the text. If no other place in the text plays it, the editor asks whether to delete its file too, so that no recording stays behind unseen: **Remove and delete the file** destroys it and cannot be undone, **Remove, keep the file** leaves it in the item's files, **Cancel** keeps the sound in the text. A Word file names the sound, a page printed as PDF plays it, and Markdown links it by its name. Nothing is transcribed.
 
@@ -114,7 +119,7 @@ A sound plays in the text with the browser's own player and a caption, such as a
 
 A table is edited in place. Click a cell to write in it; text that does not fit wraps within the cell. Tab and Shift+Tab move to the next and the previous cell, Enter to the cell below, and Escape leaves the table.
 
-- *Formatting:* the keys of the text work in a cell (Ctrl+B, Ctrl+I, Ctrl+U and the others), and so do the buttons above the table; **Link** (Ctrl+K) links the selected text to a web address.
+- *Formatting:* the keys of the text work in a cell (Ctrl+B, Ctrl+I, Ctrl+U and the others), and so do the buttons above the table; **Link** (Ctrl+K) links the selected text to a web address. **Text colour** colours text in one of the eight tones, **Size** makes it **Small**, **Large** or **Larger**; both act on the selected text of the cell being edited, on all of it when nothing is selected, or on every chosen cell. Word and PDF exports keep colour and size; Markdown has neither.
 - *Choosing cells:* drag the mouse across cells, or click a cell and then another with Shift held: the cells between them are chosen. Beside *Choose:*, **Row** and **Column** widen the choice to the whole rows or columns of the chosen cells, **All** chooses every cell; a click with Shift then keeps whole rows or columns. The buttons format all of each chosen cell, and the cells stay chosen, so a font, a fill and a border apply one after the other. Delete empties the chosen cells, Escape lets them go.
 - *Colours:* **Fill** fills the chosen cells and **Border** colours their borders, each in one of eight tones; **None** takes the colour off. The tones read well in the light and the dark theme.
 - *Sizes:* drag the right edge of a cell to make its column wider or narrower, and its lower edge to make its row taller. A table wider than the text scrolls sideways. **Reset sizes** lets the text decide again.
@@ -299,6 +304,8 @@ Cards are added with **New card**, opened for their details, and taken off with 
 ### Roadmap and Gantt chart
 
 **Roadmap** shows items with date fields on a time axis: as a **Roadmap by label** in lanes, or as a **Gantt chart** with one row per item. Choose the room, the types, the **Start** and **End** fields, the labels and the **Scale** (weeks, months, quarters). Items that wait on unfinished items are marked.
+
+**From month** and **To month** narrow the chart to a period, such as one year. The axis then begins or ends there, and items wholly outside it are left out and counted below the chart. A bar that goes on beyond the period, such as a task across the turn of the year, is cut at the edge and fades out there, so it does not seem to end; its tooltip still names its own dates. **Show the whole period** removes the period again.
 
 **Export** saves the chart as a picture, as **PNG** or **JPEG**, with every row and the whole time axis, also what is scrolled out of sight. The picture shows what you see, in the current look, and is named after the view and the day, such as *Gantt chart PLAT 2026-11-12.png*. A chart too large for a picture the browser can draw is refused with a note; narrow it by labels, type or room, or choose a coarser scale.
 

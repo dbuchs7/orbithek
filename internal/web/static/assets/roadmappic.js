@@ -18,8 +18,9 @@ export const pictureFormats = ["png", "jpeg"];
 
 // SIZES are the measures of the picture in CSS pixels, as the chart in
 // the page has them (style.css: .tl): the head column, a row, the axis,
-// the title above it and the margin around everything.
-export const SIZES = { head: 224, row: 30, axis: 28, title: 36, margin: 16, minBar: 6, diamond: 12 };
+// the title above it and the margin around everything, and how far a bar
+// cut at the edge of the frame fades out, at most 40 % of the bar.
+export const SIZES = { head: 224, row: 30, axis: 28, title: 36, margin: 16, minBar: 6, diamond: 12, fade: 56 };
 
 // LIMITS bound the canvas a picture is drawn on. Browsers refuse a canvas
 // beyond a side or an area of their own — the smallest common ones are
@@ -34,7 +35,7 @@ export const LIMITS = { side: 16384, area: 120e6, sharp: 2, least: 0.5 };
 // its ticks, its rows with their heads and bars, a title and a date. Each
 // unit of the axis is spec.unit pixels wide, as the chart's least width.
 export function pictureLayout(spec, sizes = SIZES) {
-  const { head, row, axis, title, margin, minBar } = sizes;
+  const { head, row, axis, title, margin, minBar, fade } = sizes;
   const fr = spec.frame;
   const track = fr.ticks.length * spec.unit;
   const left = margin + head;
@@ -54,7 +55,11 @@ export function pictureLayout(spec, sizes = SIZES) {
     for (const b of r.bars) {
       const base = { y: y + 4, h: row - 8, text: b.text || "", done: Boolean(b.done), waiting: Boolean(b.waiting), inverted: Boolean(b.inverted) };
       if (b.milestone) bars.push({ ...base, milestone: true, x: (xOf(b.from) + xOf(b.to + 1)) / 2, w: 0 });
-      else bars.push({ ...base, milestone: false, x: xOf(b.from), w: Math.max(minBar, xOf(b.to + 1) - xOf(b.from)) });
+      else {
+        const w = Math.max(minBar, xOf(b.to + 1) - xOf(b.from));
+        const cut = { before: Boolean(b.before), after: Boolean(b.after), fade: b.before || b.after ? Math.min(fade, w * 0.4) : 0 };
+        bars.push({ ...base, ...cut, milestone: false, x: xOf(b.from), w });
+      }
     }
   });
   return {
@@ -151,6 +156,58 @@ function hatch(ctx, c, h) {
   }
   t.stroke();
   return ctx.createPattern(tile, "repeat");
+}
+
+// bar draws a bar of a layout: its fill, its outline and its text. A side
+// the chart cuts is drawn past the bar's edge, so its corners are square
+// once the bar is kept to its place, and the text starts after a fade at
+// its beginning.
+function bar(ctx, b, c, done) {
+  const over = 8;
+  const x = b.before ? b.x - over : b.x + 0.5;
+  const w = b.w - 1 + (b.before ? over : 0) + (b.after ? over : 0);
+  roundRect(ctx, x, b.y + 0.5, w, b.h - 1, 6);
+  ctx.fillStyle = b.done ? done : c["accent-soft"];
+  ctx.fill();
+  ctx.strokeStyle = b.waiting ? c.warning : b.done ? c.success : c.accent;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  const inset = b.before ? b.fade : 6;
+  const text = fit(ctx, b.text, b.w - inset - 6);
+  if (text) {
+    ctx.fillStyle = b.done ? c.muted : c.text;
+    ctx.fillText(text, b.x + inset, b.y + b.h / 2);
+  }
+}
+
+// faded draws a bar the chart cuts on a canvas of its own, fades it out
+// there towards transparency and lays it on the picture, so the lines of
+// the units behind it stay as they are: as style.css masks .tl-cut-before
+// and .tl-cut-after.
+function faded(ctx, b, c, done, scale, h) {
+  const w = Math.ceil(b.w * scale), ht = Math.ceil(b.h * scale);
+  const layer = h("canvas", { width: w, height: ht });
+  const lc = layer.getContext("2d");
+  if (!lc) return bar(ctx, b, c, done);
+  lc.scale(scale, scale);
+  lc.translate(-b.x, -b.y);
+  lc.font = ctx.font;
+  lc.textBaseline = "middle";
+  lc.setLineDash(ctx.getLineDash());
+  bar(lc, b, c, done);
+  lc.setTransform(1, 0, 0, 1, 0, 0);
+  lc.globalCompositeOperation = "destination-out";
+  const f = b.fade * scale;
+  const edge = (from, to) => {
+    const g = lc.createLinearGradient(from, 0, to, 0);
+    g.addColorStop(0, "rgba(0, 0, 0, 0)");
+    g.addColorStop(1, "rgba(0, 0, 0, 1)");
+    lc.fillStyle = g;
+    lc.fillRect(Math.min(from, to), 0, Math.abs(to - from), ht);
+  };
+  if (b.after) edge(w - f, w);
+  if (b.before) edge(f, 0);
+  ctx.drawImage(layer, b.x, b.y, w / scale, ht / scale);
 }
 
 // paint draws a layout on a canvas at a scale.
@@ -252,17 +309,8 @@ function paint(L, c, font, scale, h) {
       }
       continue;
     }
-    roundRect(ctx, b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1, 6);
-    ctx.fillStyle = b.done ? done : c["accent-soft"];
-    ctx.fill();
-    ctx.strokeStyle = b.waiting ? c.warning : b.done ? c.success : c.accent;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    const text = fit(ctx, b.text, b.w - 12);
-    if (text) {
-      ctx.fillStyle = b.done ? c.muted : c.text;
-      ctx.fillText(text, b.x + 6, b.y + b.h / 2);
-    }
+    if (b.before || b.after) faded(ctx, b, c, done, scale, h);
+    else bar(ctx, b, c, done);
   }
   ctx.setLineDash([]);
   ctx.restore();

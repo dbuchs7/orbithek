@@ -37,7 +37,7 @@ Chosen option: **1, a block field `Depth`**, because the depth is part of what t
 - **The field:** `Block.Depth` on a block of the kind `children`: 0 shows one level, 2 to `MaxChildrenDepth` (5) that many, `ChildrenAll` (-1) every level.
   One level is written only as 0, so a body says it one way; the API takes 1 and writes 0.
   Any other value, and a depth on any other kind, is refused.
-  Raising the codec to version 63 lets an older binary refuse a log it would read without the depths instead of losing them silently; older versions are still read, their lists showing one level.
+  Raising the codec to version 65 lets an older binary refuse a log it would read without the depths instead of losing them silently; older versions are still read, their lists showing one level.
 - **The levels:** `Session.ChildPages` lists the readable children of a page and theirs to the depth, in sibling order, gathering the space's children once (ADR-0081) and asking whether one may read a page only when the walk reaches it.
   A page below an unreadable one is unreadable itself (D9), so the walk never passes through a page the reader may not read.
 - **The bound:** at most the new budget `ChildPages` (500) pages per list, taken level by level, so a cut list keeps its upper levels whole.
@@ -47,7 +47,7 @@ Chosen option: **1, a block field `Depth`**, because the depth is part of what t
 - **The API:** `GET /api/spaces/{space}/tree` takes `depth` (1 to 5 or `all`); with it, each entry holds its `children`, unpaged within the budget.
   Without it the listing is paged as before (ADR-0041).
   MCP's `get_tree` offers the parameter, and its description of blocks names the field.
-- **The editor:** the list's title carries a choice, *Levels shown*: *1 level*, *2 levels* to *5 levels*, *All levels*; a change is a change of the block's attributes, saved and shared in the live session (ADR-0010) as every other.
+- **The editor:** the list's title carries a choice, *Depth*, labelled and placed as a table of contents' depth is (ADR-0237): *1 level*, *2 levels* to *5 levels*, *All levels*; a change is a change of the block's attributes, saved and shared in the live session (ADR-0010) as every other.
   Readers see the list without the choice, each deeper page indented below its parent, and a line when the list was cut.
 - **Exports:** Word, PDF and Markdown list each list to its own depth: nested lists in PDF and Markdown, and a deeper indent per level in Word, whose list numbering keeps a single level.
   The server reads the children once per page, to the depth of its deepest list.
@@ -56,9 +56,12 @@ Chosen option: **1, a block field `Depth`**, because the depth is part of what t
 ### Consequences
 
 - **Positive:** a page shows the tree below it as deep as its author wants, the same in every view, in exports and to agents; bodies written before keep their meaning.
-- **Negative / trade-offs accepted:** a list of every level asks the server to walk the space's tree for each reader each time it is shown, bounded by the budget; a body with a depth needs a binary that reads version 63.
+- **Negative / trade-offs accepted:** a list of every level asks the server to walk the space's tree for each reader each time it is shown, bounded by the budget; a body with a depth needs a binary that reads version 65.
   The depth is the author's, not the reader's: one who would rather see less opens the page tree.
 - **Follow-ups / risks to watch:** the open questions above; Word lists use indents, not list levels of their own, so a template's list styles apply to the first level only.
+
+ADR-0237 gives a table of contents its depth in the existing field `Level`, where 0 lists every level.
+A list of child pages takes a field of its own instead, because its default, kept by every body written before, is one level, not all, and a heading's level counts from the top of the page, not from the page itself.
 
 ## Pros and cons of the options
 
@@ -93,4 +96,4 @@ Strongest form: no choice to make and no field: lists simply show more.
 ## Links
 
 - extends ADR-0042 (the list of child pages as a computed block)
-- relates to ADR-0041 (page tree and sibling order), ADR-0081 (listing without copying content), ADR-0015 (budgets), ADR-0025 (persisted format), ADR-0023 (import), ADR-0012 (MCP)
+- relates to ADR-0237 (a table of contents' depth), ADR-0041 (page tree and sibling order), ADR-0081 (listing without copying content), ADR-0015 (budgets), ADR-0025 (persisted format), ADR-0023 (import), ADR-0012 (MCP)

@@ -23,6 +23,10 @@ var tableTones = map[string]tone{
 	"gray":   {"7A8394", "E4E6EA"},
 }
 
+// textSizes are the sizes of item.TextSizes in points, as Word writes
+// them; the body's text is 11 points (ADR-0238).
+var textSizes = map[string]int{"small": 9, "large": 14, "larger": 18}
+
 // tableCell is one cell of a table as an export writes it: its text
 // trimmed of surrounding spaces with its marks, and its colours.
 type tableCell struct {

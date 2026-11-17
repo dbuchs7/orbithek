@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import {
   TONES, cellsOf, joinCells, cleanCell, normalMarks, normalLayout, colourOf, rangeOf, inRange, paint, formatCells,
   insertRow, insertColumn, removeRow, removeColumn, resized, tableDOM, tableFromDOM, classRules, declarations,
-  subTable, tableAttrs, pasteCells, clearCells, gridFromText, manyCells, specHTML,
+  subTable, tableAttrs, pasteCells, clearCells, gridFromText, manyCells, specHTML, styleCells, styleOf, SIZES,
 } from "../static/assets/tableparts.js";
 
 test("the tones are the model's", () => {
@@ -283,4 +283,32 @@ test("text from a spreadsheet is read into cells, quoted cells holding tabs, lin
   assert.deepEqual(gridFromText('"x\ty"\t"line\nbreak"\t"say ""hi"""\nplain "quote"').map((r) => r.map((c) => c.text)),
     [["x y", "line break", 'say "hi"'], ['plain "quote"']]);
   assert.ok(manyCells(gridFromText("a\tb")) && manyCells(gridFromText("a\nb")) && !manyCells(gridFromText("just text")));
+});
+
+test("a cell's text takes a tone and a size, kept apart from other values", () => {
+  assert.deepEqual(SIZES, ["small", "large", "larger"]);
+  const rows = cellsOf("ab\tc\nde\t", [{ type: "color", start: 0, end: 1, value: "red" }]);
+  const styled = styleCells(rows, { r0: 0, c0: 0, r1: 1, c1: 1 }, "color", "teal");
+  assert.deepEqual(styled[0][0].marks, [{ type: "color", start: 0, end: 2, value: "teal" }], "the colour before is replaced");
+  assert.deepEqual(styled[1][1].marks, [], "an empty cell takes none");
+  assert.equal(styleOf(styled[1][0], "color"), "teal");
+  assert.deepEqual(styleCells(styled, { r0: 0, c0: 0, r1: 0, c1: 0 }, "color", "")[0][0].marks, [], "an empty value takes it off");
+  assert.deepEqual(normalMarks([{ type: "size", start: 0, end: 2, value: "large" }, { type: "size", start: 2, end: 4, value: "small" }, { type: "size", start: 4, end: 5, value: "small" }]),
+    [{ type: "size", start: 0, end: 2, value: "large" }, { type: "size", start: 2, end: 5, value: "small" }], "only marks of one value are joined");
+});
+
+test("a colour and a size are copied and pasted, and checked as everything pasted", () => {
+  const attrs = { text: "Host\tRole", marks: [{ type: "color", start: 0, end: 4, value: "purple" }, { type: "size", start: 5, end: 9, value: "larger" }],
+    widths: null, heights: null, cells: null };
+  const spec = tableDOM(attrs, safe);
+  assert.deepEqual(spec[2], ["thead", ["tr", ["th", {}, ["span", { class: "pm-text-purple" }, "Host"]], ["th", {}, ["span", { class: "pm-size-larger" }, "Role"]]]]);
+  assert.deepEqual(tableFromDOM(fromSpec(spec), safe), attrs);
+  const plain = fromSpec(spec);
+  const bare = { ...plain, getAttribute: (name) => (name === "data-pm-table" ? null : plain.getAttribute(name)) };
+  assert.deepEqual(tableFromDOM(bare, safe).marks, attrs.marks, "read from the cells, by the editor's classes");
+  const data = JSON.stringify({ text: "a\tb", marks: [{ type: "color", start: 0, end: 1, value: "#f00" }, { type: "size", start: 2, end: 3, value: "huge" },
+    { type: "color", start: 2, end: 3, value: "red" }, { type: "bold", start: 0, end: 1, value: "red" }] });
+  assert.deepEqual(tableFromDOM(el("table", { "data-pm-table": data }, el("tr", {}, el("td", {}, "a"), el("td", {}, "b"))), safe).marks,
+    [{ type: "color", start: 2, end: 3, value: "red" }], "values the model refuses are dropped");
+  assert.deepEqual(tableFromDOM(el("table", {}, el("tr", {}, el("td", {}, el("span", { class: "pm-text-pink pm-size-huge" }, "x")))), safe).marks, []);
 });

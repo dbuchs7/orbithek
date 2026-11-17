@@ -82,3 +82,16 @@ test("the file is named after what the view shows, with the format's extension",
   assert.equal(pictureName("", "png"), "picture.png");
   assert.throws(() => pictureName("x", "svg"), /unknown format/, "the chart exports no SVG");
 });
+
+test("a bar the chart cuts fades out at that edge, by at most 40 % of its width", () => {
+  const L = pictureLayout(spec([{ first: true, head: null, bars: [
+    { from: d("2026-01-01"), to: d("2026-06-30"), text: "K-1", after: true },
+    { from: d("2026-01-01"), to: d("2026-01-03"), text: "K-2", before: true, after: true },
+    { from: d("2026-02-01"), to: d("2026-02-28"), text: "K-3" },
+  ] }]));
+  const [long, short, whole] = L.bars;
+  assert.deepEqual([long.before, long.after, long.fade], [false, true, SIZES.fade]);
+  assert.deepEqual([short.before, short.after], [true, true]);
+  assert.ok(Math.abs(short.fade - short.w * 0.4) < 1e-9, "a short bar fades by 40 % on either side, so both fades never meet");
+  assert.deepEqual([whole.before, whole.after, whole.fade], [false, false, 0]);
+});

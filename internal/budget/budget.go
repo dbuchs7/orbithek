@@ -30,6 +30,13 @@ import (
 type Budgets struct {
 	// RequestBody is the largest JSON request body the API reads, in bytes.
 	RequestBody int64
+	// BodyRequestBytes is the largest JSON request body of a route that
+	// carries the blocks of an item's body: creating an item with its body,
+	// committing a body, adding blocks to it, the operations of a live
+	// session, and every MCP message, which may carry a body for
+	// commit_body. A long page does not fit the budget of an ordinary
+	// request, which every other route keeps.
+	BodyRequestBytes int64
 	// PageItems is the largest page a listing returns.
 	PageItems int
 	// SearchQueryBytes and SearchQueryTerms bound one full-text search,
@@ -201,6 +208,7 @@ type Budgets struct {
 func Default() Budgets {
 	return Budgets{
 		RequestBody:            64 << 10,
+		BodyRequestBytes:       4 << 20,
 		PageItems:              500,
 		SearchQueryBytes:       256,
 		SearchQueryTerms:       10,

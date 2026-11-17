@@ -124,6 +124,7 @@ func TestMCPIsAuthenticatedAndBounded(t *testing.T) {
 	}
 	small := budget.Default()
 	small.RequestBody = 64
+	small.BodyRequestBytes = 64
 	budget.Set(small)
 	t.Cleanup(func() { budget.Set(budget.Default()) })
 	if rec := w.bert.do("POST", MCPPath, `{"jsonrpc":"2.0","id":1,"method":"ping","params":{"pad":"`+strings.Repeat("x", 100)+`"}}`); rec.Code != http.StatusRequestEntityTooLarge {

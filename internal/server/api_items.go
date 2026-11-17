@@ -224,6 +224,23 @@ func decode(w http.ResponseWriter, r *http.Request, v any) bool {
 	return true
 }
 
+// decodeLarge is decode for a route whose request carries the blocks of an
+// item's body, read up to the budget BodyRequestBytes (ADR-0015).
+func decodeLarge(w http.ResponseWriter, r *http.Request, v any) bool {
+	if err := readJSONUpTo(w, r, v, bodyRequestLimit()); err != nil {
+		badRequest(w, err)
+		return false
+	}
+	return true
+}
+
+// bodyRequestLimit is the largest request that carries a body: never less
+// than an ordinary request may be, should RequestBody be set higher.
+func bodyRequestLimit() int64 {
+	b := budget.Get()
+	return max(b.BodyRequestBytes, b.RequestBody)
+}
+
 // resolveItem finds a readable item by ID or by current or former key.
 func resolveItem(x *item.Session, ref string) (item.Item, error) {
 	it, err := x.Get(item.ID(ref))
@@ -838,7 +855,7 @@ func (n newItemJSON) toNewItem(s *item.Store) (item.NewItem, error) {
 
 func (h itemHandlers) createItem(w http.ResponseWriter, r *http.Request) {
 	var req newItemJSON
-	if !decode(w, r, &req) {
+	if !decodeLarge(w, r, &req) {
 		return
 	}
 	h.write(w, r, http.StatusCreated, func(x *item.Session, s *item.Store) (any, error) {
@@ -939,7 +956,7 @@ func (h itemHandlers) commitBody(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Blocks []blockJSON `json:"blocks"`
 	}
-	if !decode(w, r, &req) {
+	if !decodeLarge(w, r, &req) {
 		return
 	}
 	// Checked before the write: the hub must not be called under the
@@ -1253,7 +1270,7 @@ func (h itemHandlers) impact(w http.ResponseWriter, r *http.Request) {
 
 func (h itemHandlers) createEmbedded(w http.ResponseWriter, r *http.Request) {
 	var req newItemJSON
-	if !decode(w, r, &req) {
+	if !decodeLarge(w, r, &req) {
 		return
 	}
 	h.write(w, r, http.StatusCreated, func(x *item.Session, s *item.Store) (any, error) {

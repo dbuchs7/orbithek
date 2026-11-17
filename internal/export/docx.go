@@ -170,6 +170,49 @@ type Image struct {
 // other; deeper ones, and an item inside itself, show by key and title.
 const maxEmbedDepth = 3
 
+// listed returns the headings of body a table of contents lists: those
+// with text, down to its Level, or every one when it has none
+// (ADR-0237). A heading without a
+// level reads as level 1.
+func listed(toc item.Block, body []item.Block) []item.Block {
+	var out []item.Block
+	for _, h := range body {
+		if h.Kind == item.Heading && strings.TrimSpace(h.Text) != "" && (toc.Level == 0 || max(h.Level, 1) <= toc.Level) {
+			out = append(out, h)
+		}
+	}
+	return out
+}
+
+// textAlone reports whether an embed shows its item's text alone, without
+// its name and facts (ADR-0237).
+func textAlone(embed item.Block) bool { return embed.View == item.ViewText }
+
+// woven returns the body of page p as a reader reads it: the blocks of
+// every embed of its text alone stand in its place, as if written there,
+// so a table of contents and the lists of figures and tables count them
+// as the page's own. An item the reader may not read, one already open
+// around the place and one embedded too deep stay embeds, as the text
+// shows them (ADR-0237).
+func woven(d Document, p Page) []item.Block {
+	var out []item.Block
+	var walk func(body []item.Block, path map[item.ID]bool, depth int)
+	walk = func(body []item.Block, path map[item.ID]bool, depth int) {
+		for _, b := range body {
+			e, ok := d.Embeds[b.Ref]
+			if b.Kind != item.Embed || !textAlone(b) || !ok || path[b.Ref] || depth >= maxEmbedDepth {
+				out = append(out, b)
+				continue
+			}
+			path[b.Ref] = true
+			walk(e.Body, path, depth+1)
+			delete(path, b.Ref)
+		}
+	}
+	walk(p.Body, map[item.ID]bool{p.ID: true}, 0)
+	return out
+}
+
 // name names an item: key and title.
 func (p Page) name() string { return strings.TrimSpace(p.Key + " " + p.Title) }
 
@@ -335,7 +378,7 @@ func (b *docxBuilder) page(out *strings.Builder, p Page, base int, path map[item
 			listNum = b.numBase + b.ordered
 		}
 		if bl.Kind == item.Embed {
-			b.embed(out, bl.Ref, base, path, embedDepth)
+			b.embed(out, bl, base, path, embedDepth)
 			continue
 		}
 		out.WriteString(b.block(bl, p, base, listNum))
@@ -344,14 +387,25 @@ func (b *docxBuilder) page(out *strings.Builder, p Page, base int, path map[item
 
 // embed writes an embedded item where it is embedded: its name, facts and
 // body, or its name alone when it is too deep or already open around it.
-func (b *docxBuilder) embed(out *strings.Builder, id item.ID, base int, path map[item.ID]bool, embedDepth int) {
+// An embed of its text alone writes the body only, as part of the text
+// around it, and its name only where the body cannot be written.
+func (b *docxBuilder) embed(out *strings.Builder, bl item.Block, base int, path map[item.ID]bool, embedDepth int) {
+	id := bl.Ref
 	e, ok := b.d.Embeds[id]
 	if !ok {
 		out.WriteString(para(b.s("EmbedTitle"), "", run("↳ "+b.d.Restricted, "")))
 		return
 	}
+	open := !path[id] && embedDepth < maxEmbedDepth
+	if textAlone(bl) && open {
+		e.Facts = nil
+		path[id] = true
+		b.page(out, e, base, path, embedDepth+1)
+		delete(path, id)
+		return
+	}
 	out.WriteString(para(b.s("EmbedTitle"), "", run("↳ "+e.name(), "")))
-	if path[id] || embedDepth >= maxEmbedDepth {
+	if !open {
 		return
 	}
 	path[id] = true
@@ -426,19 +480,17 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int) string {
 		return out
 	case item.Figures, item.Tables:
 		var out strings.Builder
-		for _, e := range listing(b.d, p.Body, bl.Kind) {
+		for _, e := range listing(b.d, woven(b.d, p), bl.Kind) {
 			out.WriteString(para("", "", run(e, "")))
 		}
 		return out.String()
 	case item.TOC:
 		if b.tpl != nil {
-			return b.tocField(p.Body)
+			return b.tocField(bl, woven(b.d, p))
 		}
 		var out strings.Builder
-		for _, h := range p.Body {
-			if h.Kind == item.Heading && strings.TrimSpace(h.Text) != "" {
-				out.WriteString(paraPr(fmt.Sprintf(`<w:ind w:left="%d"/>`, (max(h.Level, 1)-1)*360), run(h.Text, "")))
-			}
+		for _, h := range listed(bl, woven(b.d, p)) {
+			out.WriteString(paraPr(fmt.Sprintf(`<w:ind w:left="%d"/>`, (max(h.Level, 1)-1)*360), run(h.Text, "")))
 		}
 		return out.String()
 	case item.TaskList:
@@ -508,6 +560,9 @@ type segment struct {
 	text                                          string
 	bold, italic, under, strike, code, high, link bool
 	href                                          string
+	// color is a tone of item.TableTones, size one of item.TextSizes
+	// (ADR-0238).
+	color, size string
 }
 
 // segments cuts a text at its marks' boundaries, counted in code points.
@@ -549,6 +604,14 @@ func segments(text string, marks []item.Mark) []segment {
 				sg.high = true
 			case item.MarkLink:
 				sg.link, sg.href = safeLink(m.Href), m.Href
+			case item.MarkColor:
+				if _, ok := tableTones[m.Value]; ok {
+					sg.color = m.Value
+				}
+			case item.MarkSize:
+				if _, ok := textSizes[m.Value]; ok {
+					sg.size = m.Value
+				}
 			}
 		}
 		out = append(out, sg)
@@ -575,6 +638,12 @@ func runs(b *docxBuilder, text string, marks []item.Mark) string {
 		}
 		if sg.strike {
 			props += "<w:strike/>"
+		}
+		if sg.color != "" {
+			props += `<w:color w:val="` + tableTones[sg.color].strong + `"/>`
+		}
+		if pt := textSizes[sg.size]; pt > 0 {
+			props += fmt.Sprintf(`<w:sz w:val="%d"/><w:szCs w:val="%d"/>`, pt*2, pt*2)
 		}
 		if sg.high {
 			props += `<w:highlight w:val="yellow"/>`
