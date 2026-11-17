@@ -853,6 +853,88 @@ func TestMCPStdio(t *testing.T) {
 	}
 }
 
+// tlsServer answers every request with body over TLS, with a certificate
+// for 127.0.0.1 from the files given.
+func tlsServer(t *testing.T, certFile, keyFile, body string) *httptest.Server {
+	t.Helper()
+	pair, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Write([]byte(body))
+	}))
+	srv.TLS = &tls.Config{Certificates: []tls.Certificate{pair}}
+	srv.StartTLS()
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+// TestCommandsTrustAnOrganisationsAuthority: mcp and healthcheck reach a
+// server whose certificate an organisation's own authority signed once
+// they are given that authority's file, by flag or OT_TLS_CA, and refuse
+// it without (ADR-draft-ca-bundle).
+func TestCommandsTrustAnOrganisationsAuthority(t *testing.T) {
+	dir := t.TempDir()
+	ca := certstest.NewCA(t, dir, "ca")
+	certFile, keyFile := ca.Write(t, dir, "wiki", "127.0.0.1")
+	srv := tlsServer(t, certFile, keyFile, `{"spaces":[{"key":"PLAT"}]}`)
+	other := certstest.NewCA(t, dir, "other")
+	missing := filepath.Join(dir, "none.pem")
+	old := stdin
+	t.Cleanup(func() { stdin = old })
+	t.Setenv("OT_TOKEN", "ot_test")
+	t.Setenv("OT_TLS_CA", "")
+	t.Setenv("OT_TLS_CERT", "")
+
+	call := func(args ...string) (int, string, string) {
+		stdin = strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"list_spaces","arguments":{}}}` + "\n")
+		return runCmd(t, context.Background(), append([]string{"mcp", "-url", srv.URL}, args...)...)
+	}
+	if code, out, _ := call(); code != 0 || strings.Contains(out, "PLAT") || !strings.Contains(out, `"isError":true`) {
+		t.Errorf("mcp without the authority: exit %d, output %s", code, out)
+	}
+	if code, out, errOut := call("-tls-ca", ca.File); code != 0 || !strings.Contains(out, "PLAT") || !strings.Contains(out, `"isError":false`) {
+		t.Errorf("mcp with the authority: exit %d, output %s, stderr %s", code, out, errOut)
+	}
+	if code, out, _ := call("-tls-ca", other.File); code != 0 || strings.Contains(out, "PLAT") {
+		t.Errorf("mcp with another authority: exit %d, output %s", code, out)
+	}
+	if code, _, errOut := call("-tls-ca", missing); code != 2 || !strings.Contains(errOut, "none.pem") {
+		t.Errorf("mcp with a missing file: exit %d, stderr %q", code, errOut)
+	}
+
+	probe := func(args ...string) int {
+		code, _, _ := runCmd(t, context.Background(), append([]string{"healthcheck", "-url", srv.URL, "-timeout", "5s"}, args...)...)
+		return code
+	}
+	if code := probe(); code != 1 {
+		t.Errorf("healthcheck without the authority: exit %d, want 1", code)
+	}
+	if code := probe("-tls-ca", ca.File); code != 0 {
+		t.Errorf("healthcheck with the authority: exit %d, want 0", code)
+	}
+	if code := probe("-tls-ca", other.File); code != 1 {
+		t.Errorf("healthcheck with another authority: exit %d, want 1", code)
+	}
+	if code := probe("-tls-ca", missing); code != 2 {
+		t.Errorf("healthcheck with a missing file: exit %d, want 2", code)
+	}
+	// The server's own certificate files say more than an authority does:
+	// given both, the probe trusts exactly those certificates.
+	if code := probe("-tls-cert", certFile, "-tls-ca", other.File); code != 0 {
+		t.Errorf("healthcheck with the certificate files and another authority: exit %d, want 0", code)
+	}
+
+	t.Setenv("OT_TLS_CA", ca.File)
+	if code, out, _ := call(); code != 0 || !strings.Contains(out, "PLAT") {
+		t.Errorf("mcp with the authority from the environment: exit %d, output %s", code, out)
+	}
+	if code := probe(); code != 0 {
+		t.Errorf("healthcheck with the authority from the environment: exit %d, want 0", code)
+	}
+}
+
 func TestNotifierFromEnv(t *testing.T) {
 	env := func(m map[string]string) func(string) string { return func(k string) string { return m[k] } }
 	n, every, err := notifierFromEnv(env(nil))

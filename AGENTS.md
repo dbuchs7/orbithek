@@ -103,6 +103,7 @@ Behind a reverse proxy, forwarded headers count only from the addresses in `OT_T
 Without a reverse proxy the server terminates TLS itself: `serve -tls-cert` and `-tls-key`, or `OT_TLS_CERT` and `OT_TLS_KEY`, name pairs of PEM files;
 the name a client asks for (SNI) chooses the certificate, the first pair answers every other name, a changed pair is read again without a restart, and `healthcheck` trusts exactly those certificates on the loopback address (`internal/certs`, ADR-0242).
 On request the server sends readers of plain HTTP to HTTPS and keeps them there: `serve -redirect-addr` (`OT_REDIRECT_ADDR`) answers GET and HEAD on a second listener with a temporary redirect to the host asked for and refuses every other method, and `OT_HSTS_MAX_AGE`, a number of seconds, sends `Strict-Transport-Security` with every answer to a request that arrived over HTTPS, never with subdomains or preload (`RedirectToHTTPS`, `WithHSTS` in `internal/server/transport.go`, ADR-0243).
+The commands that call a server, `mcp` and `healthcheck`, trust an organisation's own certificate authority on request: `-tls-ca` or `OT_TLS_CA` names a PEM file added to the host's authorities, never replacing them, a file that cannot be used stops the command, and nothing skips verification; `serve` does not read it (`certs.Roots`; proposed, ADR-draft-ca-bundle).
 The container image starts as root only to hand the data directory to `OT_RUN_AS` and gives root up before it opens anything (`internal/privdrop`, ADR-0038).
 Space administrators may check a space's web links on demand when `OT_LINKCHECK=on`;
 the checker never calls a non-public address (`internal/linkcheck`, ADR-0039).
@@ -469,7 +470,7 @@ internal/governance/ finds sensitive data in text; used on every save and by the
 internal/linkcheck/ checks web links, refusing every non-public address (ADR-0039)
 internal/linkpreview/ reads what a web page says about itself and its main text, public addresses only, within budgets (ADR-0208)
 internal/privdrop/  hands the data directory over and drops root in the container (ADR-0038)
-internal/certs/     certificates the server terminates TLS with: pairs of files chosen by the name asked for, read again when they change, and the liveness probe's trust in them (ADR-0242); certs/certstest makes certificates for tests
+internal/certs/     certificates the server terminates TLS with: pairs of files chosen by the name asked for, read again when they change, and the liveness probe's trust in them (ADR-0242), and the authorities a command verifies a server against (ADR-draft-ca-bundle); certs/certstest makes certificates and a certificate authority for tests
 internal/sso/       OpenID Connect relying party (ADR-0030); sso/ssotest is a fake provider for tests
 internal/mcp/      MCP adapter over the HTTP API: JSON-RPC, tool table, stdio transport (ADR-0012)
 internal/metrics/  Prometheus metrics on a registry of its own, labelled by route pattern (ADR-0016)

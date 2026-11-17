@@ -5,7 +5,8 @@
 //	orbithek serve [-addr :8080] [-data-dir data] [-tls-cert FILE -tls-key FILE]... [-redirect-addr :80]
 //	orbithek check [-data-dir data]
 //	orbithek import -from SOURCE -site URL [-spaces KEY,...] [-projects KEY,...] [-data-dir data]
-//	orbithek healthcheck [-url http://127.0.0.1:8080/healthz] [-tls-cert FILE]...
+//	orbithek healthcheck [-url http://127.0.0.1:8080/healthz] [-tls-cert FILE]... [-tls-ca FILE]
+//	orbithek mcp [-url http://127.0.0.1:8080] [-tls-ca FILE]
 //	orbithek version
 package main
 
@@ -933,6 +934,7 @@ func pickChain(names []string, want, dir string) ([]string, error) {
 func mcpStdio(ctx context.Context, args []string, in io.Reader, out, stderr io.Writer) int {
 	fs := newFlags("mcp", stderr)
 	url := fs.String("url", "http://127.0.0.1:8080", "the server's base URL")
+	caFile := fs.String("tls-ca", os.Getenv("OT_TLS_CA"), "PEM file of certificate authorities to trust besides the host's, for a server whose certificate an organisation's own authority signed (default: $OT_TLS_CA)")
 	if err := fs.Parse(args); err != nil {
 		return parseFailed(err)
 	}
@@ -941,12 +943,36 @@ func mcpStdio(ctx context.Context, args []string, in io.Reader, out, stderr io.W
 		fmt.Fprintln(stderr, "mcp: set OT_TOKEN to an API token (POST /api/tokens); the agent acts with its rights")
 		return 2
 	}
+	// A bundle that cannot be used stops the adapter here, where the agent
+	// sees a process that did not start, not tool calls that all fail.
+	transport, err := trusting(*caFile)
+	if err != nil {
+		fmt.Fprintln(stderr, "mcp: -tls-ca:", err)
+		return 2
+	}
 	api := mcp.HTTPAPI{Base: *url, Header: http.Header{"Authorization": {"Bearer " + token}}}
+	if transport != nil {
+		api.Client = &http.Client{Timeout: 60 * time.Second, Transport: transport}
+	}
 	if err := mcp.Serve(ctx, api, in, out); err != nil {
 		fmt.Fprintln(stderr, "mcp:", err)
 		return 1
 	}
 	return 0
+}
+
+// trusting is the transport of a command that calls a server whose
+// certificate may come from an organisation's own authority: it verifies
+// against the host's authorities and those of caFile (ADR-draft-ca-bundle).
+// Without a file it is nil, the default transport.
+func trusting(caFile string) (*http.Transport, error) {
+	roots, err := certs.Roots(caFile)
+	if err != nil || roots == nil {
+		return nil, err
+	}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = &tls.Config{RootCAs: roots, MinVersion: tls.VersionTLS12}
+	return transport, nil
 }
 
 // fileList is a flag naming files: given several times, or once with the
@@ -995,6 +1021,7 @@ func healthcheck(ctx context.Context, args []string, stderr io.Writer) int {
 	timeout := fs.Duration("timeout", 3*time.Second, "how long to wait for an answer")
 	var certFiles fileList
 	fs.Var(&certFiles, "tls-cert", "the certificate files the server was given: an https probe then trusts exactly these certificates, at whatever address it asks (default: $OT_TLS_CERT)")
+	caFile := fs.String("tls-ca", os.Getenv("OT_TLS_CA"), "without -tls-cert: PEM file of certificate authorities to trust besides the host's, for an https probe by the server's name (default: $OT_TLS_CA)")
 	if err := fs.Parse(args); err != nil {
 		return parseFailed(err)
 	}
@@ -1007,6 +1034,15 @@ func healthcheck(ctx context.Context, args []string, stderr io.Writer) int {
 			return 2
 		}
 		client = &http.Client{Transport: &http.Transport{TLSClientConfig: cfg}}
+	} else {
+		transport, err := trusting(*caFile)
+		if err != nil {
+			fmt.Fprintln(stderr, "healthcheck: -tls-ca:", err)
+			return 2
+		}
+		if transport != nil {
+			client = &http.Client{Transport: transport}
+		}
 	}
 	ctx, cancel := context.WithTimeout(ctx, *timeout)
 	defer cancel()
