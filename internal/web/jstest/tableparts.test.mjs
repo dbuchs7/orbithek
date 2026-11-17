@@ -12,7 +12,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   TONES, cellsOf, joinCells, cleanCell, normalMarks, normalLayout, colourOf, rangeOf, inRange, paint, formatCells,
-  insertRow, insertColumn, removeRow, removeColumn, resized,
+  insertRow, insertColumn, removeRow, removeColumn, resized, tableDOM, tableFromDOM, classRules, declarations,
 } from "../static/assets/tableparts.js";
 
 test("the tones are the model's", () => {
@@ -102,4 +102,136 @@ test("a dragged column fixes every column at its shown width; a dragged row only
   assert.deepEqual(resized({ ...l, widths: [100, 0] }, "widths", 0, 10, [100, 300]).widths, [24, 0]);
   assert.deepEqual(resized(l, "heights", 2, 55, [30, 30, 30]).heights, [0, 0, 55]);
   assert.deepEqual(resized({ ...l, heights: [40, 0] }, "heights", 1, 5000, [40, 30]).heights, [40, 1000]);
+});
+
+// A small stand-in for the DOM a paste is read from: elements with
+// attributes and children, and text nodes.
+const el = (tag, attrs = {}, ...children) => ({
+  nodeType: 1, nodeName: tag.toUpperCase(),
+  childNodes: children.map((c) => (typeof c === "string" ? { nodeType: 3, nodeValue: c } : c)),
+  getAttribute: (name) => (name in attrs ? attrs[name] : null),
+});
+// fromSpec builds that DOM from a DOM output spec, as the editor's
+// serializer builds the HTML a copy carries.
+const fromSpec = (spec) => {
+  if (typeof spec === "string") return spec;
+  const [tag, maybe, ...rest] = spec;
+  const attrs = maybe && typeof maybe === "object" && !Array.isArray(maybe) ? maybe : {};
+  const children = attrs === maybe ? rest : [maybe, ...rest].filter((x) => x !== undefined);
+  return el(tag, attrs, ...children.map(fromSpec));
+};
+const safe = (href) => /^https?:/.test(href);
+const formatted = {
+  text: "Host\tRole\ndb1  primary\treplica of 🙂db2",
+  marks: [{ type: "bold", start: 0, end: 4 }, { type: "link", start: 10, end: 13, href: "https://db1.example.org" },
+    { type: "italic", start: 23, end: 38 }],
+  widths: [120, 0], heights: null, cells: [{ row: 1, col: 1, fill: "yellow", border: "red" }],
+};
+
+test("a table copied as HTML is read back with its formats, sizes and colours", () => {
+  const spec = tableDOM(formatted, safe);
+  assert.equal(spec[0], "table");
+  assert.deepEqual(tableFromDOM(fromSpec(spec), safe), formatted);
+});
+
+test("a copied table is an HTML table other programs read: a header row, formats as elements, column widths", () => {
+  const spec = tableDOM(formatted, safe);
+  assert.deepEqual(spec[2], ["colgroup", ["col", { width: "120" }], ["col", {}]]);
+  assert.deepEqual(spec[3], ["thead", ["tr", ["th", {}, ["strong", "Host"]], ["th", {}, "Role"]]]);
+  assert.deepEqual(spec[4][1][1], ["td", {}, ["a", { href: "https://db1.example.org" }, "db1"], "  primary"]);
+  const { ["data-pm-table"]: _, ...rest } = spec[1];
+  assert.deepEqual(rest, { class: "pm-table" });
+  // Read without the block it carries, the cells give its text and formats;
+  // white space collapses as a browser shows it.
+  const plain = fromSpec(spec);
+  const bare = { ...plain, getAttribute: (name) => (name === "data-pm-table" ? null : plain.getAttribute(name)) };
+  const read = tableFromDOM(bare, safe);
+  assert.equal(read.text, "Host\tRole\ndb1 primary\treplica of 🙂db2");
+  assert.deepEqual(read.widths, [120, 0]);
+  assert.equal(read.cells, null, "colours travel only with the block");
+});
+
+test("a link the model refuses is copied and pasted as text", () => {
+  const spec = tableDOM({ text: "a\nx", marks: [{ type: "link", start: 2, end: 3, href: "javascript:alert(1)" }] }, safe);
+  assert.deepEqual(spec[3], ["tbody", ["tr", ["td", {}, "x"]]]);
+  const read = tableFromDOM(fromSpec(spec), safe);
+  assert.deepEqual(read.marks, [], "the block it carries is checked too");
+  const pasted = tableFromDOM(el("table", {}, el("tr", {}, el("td", {}, el("a", { href: "javascript:x" }, "y")))), safe);
+  assert.deepEqual(pasted.marks, []);
+});
+
+test("a table from a word processor keeps its formats; paragraphs and line breaks in a cell become spaces", () => {
+  const table = el("table", {}, el("tbody", {},
+    el("tr", {}, el("td", {}, el("p", {}, el("b", {}, "Name"))), el("td", {}, el("p", {}, el("b", {}, "Notes")))),
+    el("tr", {}, el("td", {}, el("p", {}, "Zoë")), el("td", {}, el("p", {}, "first ", el("i", {}, "line")), el("p", {}, "second", el("br"), el("u", {}, "third"))))));
+  assert.deepEqual(tableFromDOM(table, safe), {
+    text: "Name\tNotes\nZoë\tfirst line second third",
+    marks: [{ type: "bold", start: 0, end: 4 }, { type: "bold", start: 5, end: 10 }, { type: "italic", start: 21, end: 25 }, { type: "underline", start: 33, end: 38 }],
+    widths: null, heights: null, cells: null,
+  });
+});
+
+test("a spreadsheet's formats come from inline styles and the classes of its stylesheet", () => {
+  const rules = classRules(`<!--table {mso-displayed-decimal-separator:"\\.";}
+    .xl65 {mso-style-parent:style0; font-weight:700;}
+    .xl66, td.xl67 {font-style:italic; text-decoration:underline;}
+    .font5 {font-weight:400;} -->`);
+  assert.deepEqual([...rules.keys()], ["xl65", "xl66", "xl67", "font5"]);
+  const table = el("table", {},
+    el("colgroup", {}, el("col", { width: "87", span: "2" }), el("col", { width: "40%" })),
+    el("tr", {}, el("td", { class: "xl65" }, "Region"), el("td", { class: "xl65" }, "Q1 ", el("font", { class: "font5" }, "(CHF)")), el("td", { style: "font-weight: bold" }, "Q2")),
+    el("tr", {}, el("td", { class: "xl66" }, "North"), el("td", { style: "text-decoration: line-through" }, "1\u00a0200"),
+      el("td", { style: "font-weight:normal" }, el("b", { style: "font-weight:normal" }, "1 300"))));
+  assert.deepEqual(tableFromDOM(table, safe, rules), {
+    text: "Region\tQ1 (CHF)\tQ2\nNorth\t1 200\t1 300",
+    marks: [{ type: "bold", start: 0, end: 6 }, { type: "bold", start: 7, end: 10 }, { type: "bold", start: 16, end: 18 },
+      { type: "italic", start: 19, end: 24 }, { type: "underline", start: 19, end: 24 }, { type: "strike", start: 25, end: 30 }],
+    widths: [87, 87, 0], heights: null, cells: null,
+  });
+});
+
+test("merged cells keep the grid: a spanned place is an empty cell, and short rows are filled up", () => {
+  const table = el("table", {},
+    el("thead", {}, el("tr", {}, el("th", { colspan: "2" }, "Both"), el("th", {}, "C"))),
+    el("tbody", {}, el("tr", {}, el("td", { rowspan: "9" }, "Tall"), el("td", {}, "b"), el("td", {}, "c")),
+      el("tr", {}, el("td", {}, "x")), el("tr", {})));
+  // The third row is held by the tall cell alone.
+  assert.equal(tableFromDOM(table, safe).text, "Both\t\tC\nTall\tb\tc\n\tx\t\n\t\t");
+});
+
+test("a table inside a cell is read as its text, and one without cells is no table", () => {
+  const inner = el("table", {}, el("tr", {}, el("td", {}, "in"), el("td", {}, "side")));
+  assert.equal(tableFromDOM(el("table", {}, el("tr", {}, el("td", {}, "out"), el("td", {}, inner))), safe).text, "out\tin side");
+  assert.equal(tableFromDOM(el("table", {}, el("caption", {}, "Empty")), safe), null);
+  assert.equal(tableFromDOM(el("table", { "data-pm-table": "not json" }, el("tr", {}, el("td", {}, "kept"))), safe).text, "kept", "an unreadable block falls back to the cells");
+});
+
+test("a part of a copied table is pasted as that part, read from its cells", () => {
+  const whole = fromSpec(tableDOM(formatted, safe));
+  // The browser copies the selected rows of a page being read, with the
+  // table's attributes and inline styles of its own.
+  const part = el("table", { "data-pm-table": whole.getAttribute("data-pm-table") },
+    el("tbody", {}, el("tr", {}, el("th", { style: "font-weight: 600" }, "Host"), el("th", { style: "font-weight: 600" }, "Role"))),
+    el("colgroup", {}, el("col", { style: "width: 120px;" })));
+  assert.deepEqual(tableFromDOM(part, safe), { text: "Host\tRole", marks: [{ type: "bold", start: 0, end: 4 }, { type: "bold", start: 5, end: 9 }],
+    widths: [120, 0], heights: null, cells: null });
+  // The table the editor draws, copied whole: the block it carries is taken.
+  const drawn = el("table", { "data-pm-table": whole.getAttribute("data-pm-table") }, el("colgroup", {}, el("col", { style: "width: 120px;" }), el("col")),
+    el("tbody", {}, el("tr", {}, el("th", {}, el("div", {}, el("strong", {}, "Host"))), el("th", {}, el("div", {}, "Role"))),
+      el("tr", {}, el("td", {}, el("div", {}, "db1  primary"), el("span", { class: "pm-col-handle" })), el("td", { class: "pm-fill-yellow" }, el("div", {}, "replica of 🙂db2")))));
+  assert.deepEqual(tableFromDOM(drawn, safe), formatted);
+});
+
+test("a copied block is checked as anything pasted: sizes and colours the model accepts, formats inside one cell", () => {
+  const data = JSON.stringify({ text: "a\tb\nc", marks: [{ type: "bold", start: 0, end: 3 }, { type: "mention", start: 0, end: 1, ref: "x" }, { type: "code", start: 2, end: 3, ref: "x" }],
+    widths: [5, 9000], heights: [0, 0], cells: [{ row: 0, col: 0, fill: "pink" }, { row: 1, col: 0, fill: "red" }, { row: 7, col: 0, fill: "red" }, { row: "0", col: 1, fill: "red" }] });
+  const cells = el("tr", {}, el("td", {}, "a"), el("td", {}, "b"));
+  assert.deepEqual(tableFromDOM(el("table", { "data-pm-table": data }, cells, el("tr", {}, el("td", {}, "c"))), safe), {
+    text: "a\tb\nc\t", marks: [{ type: "code", start: 2, end: 3 }],
+    widths: [24, 2000], heights: null, cells: [{ row: 1, col: 0, fill: "red" }],
+  });
+});
+
+test("declarations are read case-insensitively", () => {
+  assert.deepEqual([...declarations("Font-Weight: BOLD; color:red;;x")], [["font-weight", "bold"], ["color", "red"]]);
 });

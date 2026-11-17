@@ -122,6 +122,7 @@ Eine Tabelle wird direkt bearbeitet. Ein Klick in eine Zelle öffnet sie zum Sch
 - *Farben:* **Füllung** füllt die gewählten Zellen, **Rand** färbt ihre Ränder, jeweils in einem von acht Farbtönen; **Keine** entfernt die Farbe. Die Farbtöne sind im hellen und im dunklen Design gut lesbar.
 - *Grössen:* Den rechten Rand einer Zelle ziehen, um ihre Spalte breiter oder schmaler zu machen, den unteren Rand, um ihre Zeile höher zu machen. Eine Tabelle, die breiter als der Text ist, lässt sich seitwärts scrollen. **Grössen zurücksetzen** überlässt die Grössen wieder dem Text.
 - *Zeilen und Spalten:* **+ Zeile** fügt unter der gewählten Zelle eine Zeile ein, **+ Spalte** rechts davon eine Spalte; **− Zeile** und **− Spalte** entfernen die Zeile bzw. Spalte der gewählten Zelle.
+- *Kopieren:* Eine Tabelle oder eine Passage mit Tabellen markieren und kopieren, beim Lesen oder beim Bearbeiten. In einen Text eingefügt, behält sie ihre Formatierung, Farben und Grössen; ein Teil einer Tabelle behält Text und Formatierung seiner Zellen. Eine Tabelle aus einer Tabellenkalkulation, einer Textverarbeitung oder einer Webseite wird ebenfalls zur Tabelle, mit fettem, kursivem, unterstrichenem und durchgestrichenem Text, Links und Spaltenbreiten; verbundene Zellen werden in einzelne Zellen aufgeteilt, Farben entfallen. In ein anderes Programm eingefügt, kommt eine kopierte Tabelle als Tabelle an.
 
 Formatierung, Farben und Grössen bleiben im Word- und PDF-Export erhalten; ein Markdown-Export behält die Formatierung.
 
