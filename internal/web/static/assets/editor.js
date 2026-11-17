@@ -26,7 +26,7 @@ import { AUDIO_TYPES } from "./recorderparts.js";
 import { assist } from "./assist.js";
 import { markdownToBlocks, pastesAsMarkdown } from "./markdown.js";
 import {
-  TONES as TABLE_TONES, MARKS as TABLE_MARKS, cellsOf, joinCells, normalMarks, normalLayout, colourOf, rangeOf, inRange, paint, formatCells, styleCells, styleOf, SIZES as TEXT_SIZES, tableData, tableDOM, tableFromDOM, classRules, subTable, tableAttrs, pasteCells, clearCells, gridFromText, manyCells, specHTML,
+  TONES as TABLE_TONES, MARKS as TABLE_MARKS, cellsOf, joinCells, normalMarks, normalLayout, colourOf, rangeOf, inRange, paint, formatCells, styleCells, styleOf, SIZES as TEXT_SIZES, tableData, tableDOM, tableFromDOM, classRules, subTable, tableAttrs, pasteCells, stepCells, wholeOf, clearCells, gridFromText, manyCells, specHTML,
   insertRow, insertColumn, removeRow, removeColumn, resized, filledClass, borderClass,
 } from "./tableparts.js";
 import { viewBlock, pickView, viewsReady } from "./itemview.js";
@@ -657,6 +657,12 @@ function cellContent(cell) {
   return out;
 }
 
+const STEP_KEYS = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+// The keys of the formats a cell takes, as the body's keys (Mod- and
+// Mod-Shift-).
+const FORMAT_KEYS = { b: "bold", i: "italic", u: "underline", "`": "code" };
+const FORMAT_SHIFT_KEYS = { x: "strike", h: "highlight" };
+
 // tableView draws a table: its cells with their formats, its column
 // widths and row heights and its coloured cells; the text wraps within
 // a cell. An editor edits a cell in place, formats it, chooses several
@@ -727,12 +733,31 @@ function tableView(node, view, getPos) {
     const rg = range();
     if (!rg && what !== "all") return;
     close();
-    const rows = read().rows, last = rows.length - 1, lastCol = rows[0].length - 1;
-    if (what === "rows") { anchor = { r: rg.r0, c: 0 }; head = { r: rg.r1, c: lastCol }; }
-    else if (what === "columns") { anchor = { r: 0, c: rg.c0 }; head = { r: last, c: rg.c1 }; }
-    else { anchor = { r: 0, c: 0 }; head = { r: last, c: lastCol }; }
+    const rows = read().rows;
+    ({ anchor, head } = wholeOf(rg || { r0: 0, c0: 0, r1: 0, c1: 0 }, what, rows.length, rows[0].length));
     choose(head.r, head.c, true);
     hold();
+  };
+  // The keys of a table holding the focus while cells are chosen
+  // (ADR-0236): the arrows choose the cell beside, with Shift they widen
+  // the choice; Shift+Space chooses whole rows, Ctrl+Space whole columns,
+  // Ctrl+A every cell; the keys of the formats format them; Enter or F2
+  // edits the last chosen cell; Delete
+  // empties the chosen cells; Escape lets them go.
+  const tableKey = (ev) => {
+    const mod = ev.ctrlKey || ev.metaKey;
+    if (STEP_KEYS.includes(ev.key) && !mod && !ev.altKey) return ev.shiftKey ? "extend" : "step";
+    if (ev.key === " " && ev.shiftKey && !mod) return "rows";
+    if (ev.key === " " && mod && !ev.shiftKey) return "columns";
+    if (ev.key.toLowerCase() === "a" && mod && !ev.shiftKey && !ev.altKey) return "all";
+    // The keys that format text format every chosen cell.
+    const k = ev.key.toLowerCase();
+    if (mod && !ev.altKey && !ev.shiftKey && FORMAT_KEYS[k]) return "format:" + FORMAT_KEYS[k];
+    if (mod && !ev.altKey && ev.shiftKey && FORMAT_SHIFT_KEYS[k]) return "format:" + FORMAT_SHIFT_KEYS[k];
+    if ((ev.key === "Enter" || ev.key === "F2") && !mod && !ev.shiftKey) return "edit";
+    if (ev.key === "Delete" || ev.key === "Backspace") return "empty";
+    if (ev.key === "Escape") return "release";
+    return null;
   };
   // Chosen cells are copied as a table of their own, with their formats,
   // sizes and colours, and as text separated by tabs; cut empties them;
@@ -796,19 +821,45 @@ function tableView(node, view, getPos) {
   });
   dom.addEventListener("keydown", (ev) => {
     if (ev.target !== dom || !anchor) return;
-    if (ev.key === "Escape") {
-      ev.preventDefault();
+    const what = tableKey(ev);
+    if (!what) return;
+    ev.preventDefault();
+    const rows = read().rows;
+    if (what === "release") {
       anchor = head = null;
       tds.forEach((row) => row.forEach((td) => td.classList.remove("pm-cell-chosen")));
       showTools();
       view.focus();
-    } else if ((ev.key === "Delete" || ev.key === "Backspace") && editable()) {
-      ev.preventDefault();
-      const { rows, layout } = read();
+    } else if (what === "empty") {
+      if (!editable()) return;
+      const { layout } = read();
       commit(clearCells(rows, range()), layout);
       hold();
+    } else if (what === "step" || what === "extend") {
+      ({ anchor, head } = stepCells(anchor, head, ev.key, what === "extend", rows.length, rows[0].length));
+      choose(head.r, head.c, true);
+      tds[head.r]?.[head.c]?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    } else if (what.startsWith("format:")) {
+      format(what.slice(7))();
+      hold();
+    } else if (what === "edit") {
+      const at = head || anchor;
+      if (editable()) open(at.r, at.c);
+    } else {
+      ({ anchor, head } = wholeOf(range(), what, rows.length, rows[0].length));
+      choose(head.r, head.c, true);
     }
   });
+  // leave closes the cell being edited at r, c and chooses it, or with an
+  // arrow key the rectangle from it to the cell beside, the table holding
+  // the focus.
+  const leave = (r, c, key) => {
+    close();
+    const rows = read().rows;
+    ({ anchor, head } = key ? stepCells({ r, c }, null, key, true, rows.length, rows[0].length) : { anchor: { r, c }, head: { r, c } });
+    choose(head.r, head.c, true);
+    hold();
+  };
   // move edits the cell dr rows and dc columns from the one being edited,
   // across the end of a row to the next.
   const move = (dr, dc) => {
@@ -849,7 +900,15 @@ function tableView(node, view, getPos) {
       "Mod-u": toggleMark(cellSchema.marks.underline), "Mod-Shift-x": toggleMark(cellSchema.marks.strike), "Mod-Shift-h": toggleMark(cellSchema.marks.highlight),
       "Mod-k": () => { format("link")(); return true; },
       Tab: () => move(0, 1), "Shift-Tab": () => move(0, -1), Enter: () => move(1, 0), "Shift-Enter": () => true,
-      Escape: () => { close(); view.focus(); return true; },
+      // Escape leaves the cell, which stays chosen, and gives the table
+      // the focus; a second Escape leaves the table (ADR-0236).
+      Escape: () => { leave(r, c, null); return true; },
+      // Shift and an arrow at the edge of the cell's text choose cells.
+      ...Object.fromEntries(STEP_KEYS.map((key) => ["Shift-" + key, (state, dispatch, v) => {
+        if (!v.endOfTextblock({ ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" }[key])) return false;
+        leave(r, c, key);
+        return true;
+      }])),
     };
     const inner = new EditorView(holder, {
       state: EditorState.create({ doc: cellDoc(read().rows[r][c]), plugins: [history(), keymap(keys), keymap(baseKeymap)] }),
@@ -1103,7 +1162,7 @@ function tableView(node, view, getPos) {
     // empty them or let them go.
     stopEvent: (ev) => Boolean(ev.target.closest?.("a, button, input, select, .pm-cell-editable"))
       || (["copy", "cut", "paste"].includes(ev.type) && ownsClipboard(ev))
-      || (ev.target === dom && ev.type === "keydown" && ["Delete", "Backspace", "Escape"].includes(ev.key)),
+      || (ev.target === dom && ev.type === "keydown" && Boolean(anchor) && Boolean(tableKey(ev))),
     ignoreMutation: () => true,
     update: (n) => { if (n.type !== node.type) return false; node = n; render(); return true; },
     destroy: () => { close(); window.removeEventListener("mouseup", dragEnd); },

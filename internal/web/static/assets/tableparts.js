@@ -599,3 +599,28 @@ export function specHTML(spec) {
   const attrs = Object.entries(hasAttrs ? maybe : {}).filter(([, v]) => v !== null && v !== undefined).map(([k, v]) => ` ${k}="${esc(v)}"`).join("");
   return VOID.has(tag) ? `<${tag}${attrs}>` : `<${tag}${attrs}>${kids.map(specHTML).join("")}</${tag}>`;
 }
+
+// --- choosing cells with the keyboard (ADR-0236) --------------------------------
+
+// STEPS are the arrow keys and the row and column each moves by.
+export const STEPS = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+
+// stepCells is the choice after an arrow key: the cell beside the last
+// chosen one alone, or, with extend (Shift), the rectangle from the
+// first chosen cell to it; the edges of the table hold it. A choice is
+// { anchor, head }, each { r, c }; null for a key that is no arrow.
+export function stepCells(anchor, head, key, extend, nRows, nCols) {
+  const d = STEPS[key];
+  if (!d || !anchor) return null;
+  const from = head || anchor;
+  const to = { r: Math.min(nRows - 1, Math.max(0, from.r + d[0])), c: Math.min(nCols - 1, Math.max(0, from.c + d[1])) };
+  return extend ? { anchor, head: to } : { anchor: to, head: to };
+}
+
+// wholeOf widens a range of cells to its whole rows ("rows"), its whole
+// columns ("columns"), or every cell ("all").
+export function wholeOf(range, what, nRows, nCols) {
+  if (what === "rows") return { anchor: { r: range.r0, c: 0 }, head: { r: range.r1, c: nCols - 1 } };
+  if (what === "columns") return { anchor: { r: 0, c: range.c0 }, head: { r: nRows - 1, c: range.c1 } };
+  return { anchor: { r: 0, c: 0 }, head: { r: nRows - 1, c: nCols - 1 } };
+}
