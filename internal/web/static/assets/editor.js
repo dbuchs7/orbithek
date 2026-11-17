@@ -26,7 +26,7 @@ import { AUDIO_TYPES } from "./recorderparts.js";
 import { assist } from "./assist.js";
 import { markdownToBlocks, pastesAsMarkdown } from "./markdown.js";
 import {
-  TONES as TABLE_TONES, MARKS as TABLE_MARKS, cellsOf, joinCells, normalMarks, normalLayout, colourOf, rangeOf, inRange, paint, formatCells, styleCells, styleOf, SIZES as TEXT_SIZES, tableData, tableDOM, tableFromDOM, classRules, subTable, tableAttrs, pasteCells, stepCells, wholeOf, clearCells, gridFromText, manyCells, specHTML,
+  TONES as TABLE_TONES, MARKS as TABLE_MARKS, cellsOf, joinCells, normalMarks, normalLayout, colourOf, rangeOf, inRange, paint, formatCells, styleCells, styleOf, SIZES as TEXT_SIZES, tableData, tableDOM, tableFromDOM, classRules, subTable, tableAttrs, pasteCells, stepCells, wholeOf, chosenSaid, clearCells, gridFromText, manyCells, specHTML,
   insertRow, insertColumn, removeRow, removeColumn, resized, filledClass, borderClass,
 } from "./tableparts.js";
 import { viewBlock, pickView, viewsReady } from "./itemview.js";
@@ -709,6 +709,26 @@ function tableView(node, view, getPos) {
     const rg = range();
     tds.forEach((row, i) => row.forEach((td, j) => td.classList.toggle("pm-cell-chosen", inRange(rg, i, j) && Boolean(head))));
     showTools();
+    say(head ? rg : null);
+  };
+  // say tells a screen reader which cells are chosen, through a polite
+  // live region, once for each new choice: a drawing of the table again
+  // with the same cells chosen says nothing (ADR-0236).
+  const said = h("div", { class: "visually-hidden", role: "status", "aria-live": "polite", "aria-atomic": "true" });
+  let saidFor = "";
+  let quiet = false; // while the table is drawn again
+  const say = (rg) => {
+    if (quiet) return;
+    const key = rg ? [rg.r0, rg.c0, rg.r1, rg.c1].join(",") : "";
+    if (key === saidFor) return;
+    saidFor = key;
+    if (!rg) { said.textContent = ""; return; }
+    const d = chosenSaid(rg, read().rows);
+    said.textContent = d.kind === "cell" ? (d.text ? t("editor.tableSaidCell", d) : t("editor.tableSaidEmptyCell", d))
+      : d.kind === "all" ? t("editor.tableSaidAll", d)
+        : d.kind === "rows" ? (d.from === d.to ? t("editor.tableSaidRow", d) : t("editor.tableSaidRows", d))
+          : d.kind === "columns" ? (d.from === d.to ? t("editor.tableSaidColumn", d) : t("editor.tableSaidColumns", d))
+            : t("editor.tableSaidCells", d);
   };
   // hold gives the table the focus and lets go of any selection of text,
   // so that a copy, cut or paste goes to the chosen cells.
@@ -829,6 +849,7 @@ function tableView(node, view, getPos) {
       anchor = head = null;
       tds.forEach((row) => row.forEach((td) => td.classList.remove("pm-cell-chosen")));
       showTools();
+      say(null);
       view.focus();
     } else if (what === "empty") {
       if (!editable()) return;
@@ -1145,12 +1166,14 @@ function tableView(node, view, getPos) {
     });
     table.append(body);
     tools = edit ? toolbar(rows, layout) : null;
-    dom.replaceChildren(...[tools, h("div", { class: "pm-table-scroll" }, table)].filter(Boolean)); // replaceChildren writes a null out as "null"
+    dom.replaceChildren(...[tools, h("div", { class: "pm-table-scroll" }, table), said].filter(Boolean)); // replaceChildren writes a null out as "null"
     // The chosen cells stay chosen, so that several formats and colours
     // apply to them one after the other.
     const chosen = head;
+    quiet = true;
     if (anchor) choose(anchor.r, anchor.c, false);
     if (chosen) choose(chosen.r, chosen.c, true);
+    quiet = false;
     showTools();
   };
   render();

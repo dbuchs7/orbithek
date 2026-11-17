@@ -1665,6 +1665,8 @@ function webSource() {
     await page.keyboard.press("Escape");
     await page.keyboard.press("Shift+ArrowRight");
     check(await page.locator("#body .pm-table .pm-cell-chosen").count() === 2, "Shift and an arrow choose the cell beside too");
+    // The table has two columns: both cells of its second row are that row.
+    check(await page.locator("#body .pm-table [role=status]").textContent() === "Row 2 chosen, 2 cells", "a screen reader is told which cells are chosen");
     await page.keyboard.press("Escape");
     check(await page.locator("#body .pm-table .pm-cell-chosen").count() === 0, "a second Escape lets the cells go");
     await page.click("#edit-done");
