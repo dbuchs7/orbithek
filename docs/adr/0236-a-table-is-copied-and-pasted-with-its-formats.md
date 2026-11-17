@@ -1,4 +1,4 @@
-# ADR-DRAFT: A table is copied and pasted with its formats
+# ADR-0236: A table is copied and pasted with its formats
 
 - **Status:** Proposed
 - **Implementation:** Partial

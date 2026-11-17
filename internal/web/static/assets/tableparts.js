@@ -204,7 +204,7 @@ export function resized(layout, what, i, px, measured) {
 export const filledClass = (fill) => (fill ? "pm-cell-fill pm-fill-" + fill : "");
 export const borderClass = (border) => (border ? "pm-cell-border pm-border-" + border : "");
 
-// --- copied and pasted (ADR-draft-a-table-is-copied-and-pasted-with-its-formats) ---
+// --- copied and pasted (ADR-0236) ---
 
 // A table is copied as an HTML table, the header row as th: other
 // programs take it as a table with its formats and column widths, and the

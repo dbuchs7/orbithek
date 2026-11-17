@@ -78,7 +78,7 @@ export const schema = new Schema({
     // A table's cells may be formatted, its columns and rows sized and its
     // cells coloured (ADR-0214). It is copied as an HTML table that holds
     // the block, and a table pasted from elsewhere is read from its cells
-    // (ADR-draft-a-table-is-copied-and-pasted-with-its-formats); as plain
+    // (ADR-0236); as plain
     // text it is its cells separated by tabs and line breaks.
     table: { group: "block", atom: true, selectable: true,
       attrs: { ...bid, text: { default: "\t\n\t" }, marks: { default: [] }, widths: { default: null }, heights: { default: null }, cells: { default: null } },
@@ -831,7 +831,7 @@ function tableView(node, view, getPos) {
     if (head && (head.r >= rows.length || head.c >= rows[0].length)) head = null;
     const colgroup = h("colgroup", {}, rows[0].map(() => h("col")));
     // The block goes along when the browser copies the table of a page
-    // being read (ADR-draft-a-table-is-copied-and-pasted-with-its-formats).
+    // being read (ADR-0236).
     const table = h("table", { "data-pm-table": tableData(node.attrs) }, colgroup);
     if (layout.widths) {
       table.classList.add("pm-table-sized");

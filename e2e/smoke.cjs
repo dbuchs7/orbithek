@@ -1533,7 +1533,7 @@ function webSource() {
     await page.waitForSelector("#body.reading .pm-table td:has-text('db1')");
     check(!(await page.textContent("#body")).includes("null"), "the page for reading shows no stray text");
     // A table copied from the page being read is pasted with its formats,
-    // sizes and colours (ADR-draft-a-table-is-copied-and-pasted-with-its-formats).
+    // sizes and colours (ADR-0236).
     // The browser's copy carries inline styles of its own, which the UI's
     // policy refuses to apply while the paste is read; it reports each.
     await page.evaluate(() => {
