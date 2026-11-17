@@ -256,4 +256,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0241](0241-numbered-headings.md) | Headings numbered by their level, switched per text | Proposed | Partial |
 | [0242](0242-tls-in-the-binary.md) | TLS in the binary, with certificates from files chosen by the name asked for | Accepted | Landed |
 | [0243](0243-hsts-and-redirect.md) | A transport policy on request and a redirect from plain HTTP | Accepted | Landed |
-| [0244](0244-ca-bundle.md) | The commands that call a server trust an organisation's own certificate authority on request | Proposed | Partial |
+| [0244](0244-ca-bundle.md) | The commands that call a server trust an organisation's own certificate authority on request | Accepted | Landed |

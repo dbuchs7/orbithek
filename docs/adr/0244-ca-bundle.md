@@ -1,9 +1,9 @@
 # ADR-0244: The commands that call a server trust an organisation's own certificate authority on request
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-17
-- **Deciders:** Project initiators (request of 2026-11-17: implement the bundle of certificate authorities for private ones, the open question ADR-0242 left). That it covers the commands that call a server and not the server's own outgoing calls, and its form, are proposed with the implementation, to be confirmed by the requester.
+- **Deciders:** Project initiators (request of 2026-11-17: implement the bundle of certificate authorities for private ones, the open question ADR-0242 left). That it covers the commands that call a server and not the server's own outgoing calls, and its form, were proposed with the implementation; accepted by the requester on 2026-11-17, the open question below staying open.
 - **Open question:** whether the server's own outgoing calls should trust such a bundle too, and which of them: process engines, single sign-on, mail, backups, connectors
 - **Question checked:** 2026-11
 
