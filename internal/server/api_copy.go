@@ -212,7 +212,7 @@ func (h itemHandlers) copyOne(r *http.Request, space string, t copyTask) (item.I
 		}
 	}
 	if len(src.Body.Blocks) > 0 {
-		body := item.Doc{Blocks: make([]item.Block, len(src.Body.Blocks))}
+		body := item.Doc{Blocks: make([]item.Block, len(src.Body.Blocks)), Numbered: src.Body.Numbered}
 		copy(body.Blocks, src.Body.Blocks)
 		for i, b := range body.Blocks {
 			if b.Kind == item.Image || b.Kind == item.Video || b.Kind == item.Audio || b.Kind == item.BPMN {

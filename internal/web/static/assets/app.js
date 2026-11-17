@@ -40,7 +40,7 @@ import { pdfView } from "./pdfview.js";
 import { attachmentLink, isPdf, onPdf, readerHref } from "./pdfparts.js";
 import { bookmarklet, captureAddress, readCapture } from "./capture.js";
 import { captureView } from "./captureview.js";
-import { childDepthQuery } from "./childpages.js";
+import { childDepthQuery, childHideQuery } from "./childpages.js";
 import { isWebLink, webLinkCard } from "./weblink.js";
 import { fieldInput, fieldView, isRich } from "./fields.js";
 import { typeEditor, roomTypesCard } from "./typeeditor.js";
@@ -646,11 +646,14 @@ function chevronIcon(left) {
 }
 
 // childPagesOf lists an item's child pages for a list of child pages in
-// its body (ADR-0042), to depth levels, -1 for every level: it answers
-// { items, truncated }, each page with its children
-// (ADR-0239).
-const childPagesOf = (item) => async (depth = 1) =>
-  get(`/api/spaces/${encodeURIComponent(item.space)}/tree?parent=${item.id}&depth=${childDepthQuery(depth)}`);
+// its body (ADR-0042), to depth levels, -1 for every level, leaving out
+// the types in hide: it answers { items, truncated }, each page with its
+// children (ADR-0239, ADR-0240). Its types()
+// names the types of the item's room, which such a list may leave out.
+const childPagesOf = (item) => Object.assign(async (depth = 1, hide = []) =>
+  get(`/api/spaces/${encodeURIComponent(item.space)}/tree?parent=${item.id}&depth=${childDepthQuery(depth)}${childHideQuery(hide)}`), {
+  types: async () => (await get(`/api/types?space=${encodeURIComponent(item.space)}`)).types.map((ty) => ty.name),
+});
 
 // filesOf serves and stores an item's attachments for its body (ADR-0045),
 // and knows which of them are drawings (ADR-0053).
@@ -700,7 +703,7 @@ const filesOf = (item, attachments = [], canEdit = false) => {
 // stands in the bar where the text begins.
 function readOnlyBody(item, embeds, edit) {
   const resolve = async (ref) => (await get("/api/items/" + encodeURIComponent(ref))).item;
-  return createEditor({ blocks: item.body, embeds, editable: false, resolve, childPages: childPagesOf(item), files: filesOf(item),
+  return createEditor({ blocks: item.body, numbered: Boolean(item.numbered), embeds, editable: false, resolve, childPages: childPagesOf(item), files: filesOf(item),
     actions: edit ? [edit] : [], embedContent: embedLoader([item.id]), tasks: taskTools(item, false) }).element;
 }
 
@@ -725,7 +728,10 @@ function embedLoader(chain) {
     const props = Object.entries(item.properties || {}).filter(([, v]) => v !== null && v !== "" && !(Array.isArray(v) && !v.length));
     // An embedded web link is a link card (ADR-0208).
     const card = isWebLink(item) ? webLinkCard(item, (await get(`/api/items/${encodeURIComponent(ref)}/attachments`).catch(() => ({ attachments: [] }))).attachments) : null;
-    const editor = () => (item.body.length ? createEditor({ blocks: item.body, embeds, editable: false, resolve, childPages: childPagesOf(item), files: filesOf(item),
+    // A whole embed numbers its headings as its own item does; the text of
+    // an embed of its text alone is numbered by the text around it
+    // (ADR-draft-numbered-headings).
+    const editor = () => (item.body.length ? createEditor({ blocks: item.body, numbered: Boolean(item.numbered), embeds, editable: false, resolve, childPages: childPagesOf(item), files: filesOf(item),
       embedContent: embedLoader([...chain, ref]), tasks: taskTools(item, false) }) : null);
     const text = () => editor()?.element || null;
     if (alone) {
@@ -5195,7 +5201,7 @@ function bodySection(item, embeds, editing, threads, attachments, protect, edit,
   const resolve = async (ref) => (await get("/api/items/" + encodeURIComponent(ref))).item;
   if (!editing) {
     // The files are known, so a drawing shows its processes live (ADR-0142).
-    const view = createEditor({ blocks: item.body, embeds, editable: false, resolve, childPages: childPagesOf(item), files: filesOf(item, attachments, !!edit),
+    const view = createEditor({ blocks: item.body, numbered: Boolean(item.numbered), embeds, editable: false, resolve, childPages: childPagesOf(item), files: filesOf(item, attachments, !!edit),
       extra: item.presence === "live" ? [threads.plugin, ...(notes ? [notes.plugin] : [])] : [], comment: item.presence === "live" ? threads.start : undefined,
       note: notes ? notes.start : undefined, protect: protect || undefined,
       actions: edit ? [edit] : [], embedContent: embedLoader([item.id]), tasks: taskTools(item, false) });
@@ -5774,13 +5780,17 @@ function commentThreads(path, page, live, files = [], key = "") {
 function historySection(path, events, live, versions = true) {
   const shown = h("div", { id: "version" });
   const bodies = events.filter((e) => e.kind === "BodyCommitted" && !e.erased);
-  const version = async (seq) => (await get(`${path}/versions/${seq}`)).body;
+  const version = async (seq) => get(`${path}/versions/${seq}`);
   const compare = async (e) => {
     const i = bodies.indexOf(e);
-    const [before, after] = await Promise.all([i > 0 ? version(bodies[i - 1].seq) : [], version(e.seq)]);
+    const [before, after] = await Promise.all([i > 0 ? version(bodies[i - 1].seq) : { body: [] }, version(e.seq)]);
+    // Numbering the headings changes no block; the version says so
+    // (ADR-draft-numbered-headings).
+    const renumbered = Boolean(before.numbered) !== Boolean(after.numbered);
     mount(shown, h("section", { class: "card" },
       h("h3", { text: t("version.title", { when: when(e.at), who: person(e.actor) }) }),
-      renderDiff(before, after),
+      renumbered ? h("p", { class: "muted version-numbered", text: t(after.numbered ? "version.numberedOn" : "version.numberedOff") }) : null,
+      renderDiff(before.body, after.body),
       h("p", {},
         // No confirmation: restoring is undone by restoring the version before.
         live ? h("button", { text: t("version.restore"), onclick: () => action(() => post(`${path}/versions/${e.seq}/restore`), shown) }) : null,

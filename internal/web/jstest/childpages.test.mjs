@@ -8,7 +8,7 @@
 // The list in a text is in e2e/smoke.cjs.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { childDepths, childDepthName, childDepthQuery } from "../static/assets/childpages.js";
+import { childDepths, childDepthName, childDepthQuery, childHideQuery, childTypesName } from "../static/assets/childpages.js";
 
 test("each depth asks the page tree for its levels", () => {
   assert.deepEqual(childDepths.map(childDepthQuery), ["1", "2", "3", "4", "5", "all"]);
@@ -21,4 +21,12 @@ test("each depth has a name of its own", () => {
   assert.equal(new Set(names).size, childDepths.length);
   assert.deepEqual(names, ["1 level", "2 levels", "3 levels", "4 levels", "5 levels", "All levels"]);
   assert.equal(childDepthName(1), childDepthName(0));
+});
+
+test("a list names and asks for the types it leaves out", () => {
+  assert.equal(childHideQuery(null), "");
+  assert.equal(childHideQuery([]), "");
+  assert.equal(childHideQuery(["decision", "task"]), "&hide=decision%2Ctask");
+  assert.equal(childTypesName(null), "all");
+  assert.equal(childTypesName(["decision", "task"]), "without decision, task");
 });

@@ -1,0 +1,40 @@
+{
+  "about": "Headings of a numbered body and the numbers they show (ADR-draft-numbered-headings). Each case lists the body's blocks as [kind, level, text] and the number of each block, \"\" for none. internal/item/headingnumbers_test.go and internal/web/jstest/numbering.test.mjs both read it, so the server's exports and the browser number alike.",
+  "cases": [
+    {
+      "name": "levels 1 to 3",
+      "blocks": [["heading", 1, "Intro"], ["paragraph", 0, "Text"], ["heading", 2, "Scope"], ["heading", 3, "In"], ["heading", 3, "Out"], ["heading", 2, "Terms"], ["heading", 1, "Plan"], ["heading", 2, "Steps"]],
+      "numbers": ["1", "", "1.1", "1.1.1", "1.1.2", "1.2", "2", "2.1"]
+    },
+    {
+      "name": "level 0 reads as level 1",
+      "blocks": [["heading", 0, "A"], ["heading", 2, "B"], ["heading", 1, "C"]],
+      "numbers": ["1", "1.1", "2"]
+    },
+    {
+      "name": "the shallowest level used counts first",
+      "blocks": [["heading", 2, "A"], ["heading", 3, "B"], ["heading", 2, "C"]],
+      "numbers": ["1", "1.1", "2"]
+    },
+    {
+      "name": "a skipped level counts as 0",
+      "blocks": [["heading", 1, "A"], ["heading", 3, "B"], ["heading", 2, "C"], ["heading", 3, "D"]],
+      "numbers": ["1", "1.0.1", "1.1", "1.1.1"]
+    },
+    {
+      "name": "a deeper heading before the first of the top level",
+      "blocks": [["heading", 2, "Preface"], ["heading", 1, "A"], ["heading", 2, "B"]],
+      "numbers": ["0.1", "1", "1.1"]
+    },
+    {
+      "name": "headings without text are not counted",
+      "blocks": [["heading", 1, "A"], ["heading", 1, "  "], ["heading", 2, ""], ["heading", 1, "B"]],
+      "numbers": ["1", "", "", "2"]
+    },
+    {
+      "name": "no headings",
+      "blocks": [["paragraph", 0, "Only text"], ["toc", 0, ""]],
+      "numbers": ["", ""]
+    }
+  ]
+}

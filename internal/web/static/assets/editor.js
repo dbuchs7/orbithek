@@ -6,7 +6,7 @@
 // survives paste or input, so the editor cannot produce markup the model
 // refuses.
 import {
-  Schema, EditorState, EditorView, Plugin, Decoration, DecorationSet, keymap, baseKeymap, toggleMark, setBlockType,
+  Schema, EditorState, EditorView, Plugin, PluginKey, Decoration, DecorationSet, keymap, baseKeymap, toggleMark, setBlockType,
   splitBlockAs, chainCommands, history, undo, redo, inputRules, textblockTypeInputRule, TextSelection,
 } from "../vendor/prosemirror.js";
 import { h, safeHref } from "./dom.js";
@@ -14,7 +14,7 @@ import { t } from "./i18n.js";
 import { anchorOf } from "./anchors.js";
 import { openDrawing, drawingName, isDrawing } from "./drawing.js";
 import { filenameOf } from "./filename.js";
-import { childDepths, childDepthName } from "./childpages.js";
+import { childDepths, childDepthName, childTypesName } from "./childpages.js";
 import { diagramView, openModeler, pickProcess, bpmnName, drawingProcesses, processRegion } from "./bpmn.js";
 import { regionsIn } from "./drawprocesses.js";
 import { formView, decisionView, pickFromEngine, startFormView, pickStartLink, editPrefill } from "./engineviews.js";
@@ -30,6 +30,7 @@ import {
   insertRow, insertColumn, removeRow, removeColumn, resized, filledClass, borderClass,
 } from "./tableparts.js";
 import { viewBlock, pickView, viewsReady } from "./itemview.js";
+import { headingNumbers } from "./numbering.js";
 
 // Every block carries bid, its ID in a live session (ADR-0010); it is not
 // stored. Text blocks keep the mentions they had without a mention mark
@@ -95,7 +96,9 @@ export const schema = new Schema({
     tables: { group: "block", atom: true, selectable: true, attrs: bid, toDOM: () => ["div", { class: "pm-tables" }] },
     // A list of child pages keeps how many levels it shows: 0 for one, 2
     // to 5, or -1 for every level (ADR-0239).
-    children: { group: "block", atom: true, selectable: true, attrs: { ...bid, depth: { default: 0 } }, toDOM: (n) => ["div", { class: "pm-children", ...(n.attrs.depth ? { "data-depth": String(n.attrs.depth) } : {}) }] },
+    // It may leave types out, sorted, or null for none
+    // (ADR-0240).
+    children: { group: "block", atom: true, selectable: true, attrs: { ...bid, depth: { default: 0 }, hideTypes: { default: null } }, toDOM: (n) => ["div", { class: "pm-children", ...(n.attrs.depth ? { "data-depth": String(n.attrs.depth) } : {}) }] },
     // The tasks that carry a label, computed when shown (ADR-0114).
     tasklist: { group: "block", atom: true, selectable: true, attrs: { ...bid, label: { default: "" }, query: { default: "" } }, toDOM: (n) => ["div", { class: "pm-tasklist", "data-label": n.attrs.label, ...(n.attrs.query ? { "data-query": n.attrs.query } : {}) }] },
     // The items of a type as a table, a gallery or a list (ADR-0203),
@@ -269,7 +272,7 @@ function plainNode(b, embeds) {
       widths: b.widths || null, heights: b.heights || null, cells: b.cells || null });
   }
   if (b.kind === "toc") return schema.nodes.toc.create({ bid: id, level: b.level || 0 });
-  if (b.kind === "children") return schema.nodes.children.create({ bid: id, depth: b.depth || 0 });
+  if (b.kind === "children") return schema.nodes.children.create({ bid: id, depth: b.depth || 0, hideTypes: b.hideTypes?.length ? [...b.hideTypes] : null });
   if (["figures", "tables", "divider"].includes(b.kind)) return schema.nodes[b.kind].create({ bid: id });
   if (b.kind === "tasklist") return schema.nodes.tasklist.create({ bid: id, label: b.text || "", query: b.query || "" });
   if (b.kind === "view") return schema.nodes.itemview.create({ bid: id, layout: b.layout || "table", itemType: b.itemType || "", space: b.space || "", query: b.query || "",
@@ -354,7 +357,9 @@ function plainBlock(node) {
     return { kind: "table", text: a.text, ...(a.marks?.length ? { marks: a.marks } : {}), ...(a.widths ? { widths: a.widths } : {}),
       ...(a.heights ? { heights: a.heights } : {}), ...(a.cells ? { cells: a.cells } : {}) };
   }
-  if (node.type === schema.nodes.children) return node.attrs.depth ? { kind: "children", depth: node.attrs.depth } : { kind: "children" };
+  if (node.type === schema.nodes.children) {
+    return { kind: "children", ...(node.attrs.depth ? { depth: node.attrs.depth } : {}), ...(node.attrs.hideTypes?.length ? { hideTypes: node.attrs.hideTypes } : {}) };
+  }
   if (["figures", "tables", "divider"].includes(node.type.name)) return { kind: node.type.name };
   if (node.type === schema.nodes.tasklist) return node.attrs.query ? { kind: "tasklist", query: node.attrs.query } : { kind: "tasklist", text: node.attrs.label };
   if (node.type === schema.nodes.itemview) {
@@ -1164,6 +1169,106 @@ function tableView(node, view, getPos) {
   };
 }
 
+// numbering holds whether a body's headings are numbered
+// (ADR-draft-numbered-headings): a setting of the whole body, not of a
+// block, so it stays out of the undo history and out of the blocks a live
+// session compares. A transaction with the meta {numbered} sets it. The
+// numbers count the text as a reader reads it, the text of embeds of their
+// text alone woven in (ADR-0237), which only the editor's view knows: the
+// view hands them to the plugin as given, a map from a heading's offset
+// to its number, with the meta {given} (renumber). An editor woven into
+// another (outer) shows the numbers that one gives it. A heading carries
+// its number as data-num, which the stylesheet shows before it: a widget
+// inside the editable heading would misplace the browser's caret at the
+// start of the line.
+const numbering = new PluginKey("numbering");
+function numberingPlugin(on) {
+  const decorate = (doc, numbered, given) => {
+    const nums = given || numbersOf(doc, numbered);
+    if (!nums.size) return DecorationSet.empty;
+    const decos = [];
+    for (const [offset, num] of nums) {
+      const node = doc.nodeAt(offset);
+      if (node?.type === schema.nodes.heading) decos.push(Decoration.node(offset, offset + node.nodeSize, { class: "pm-numbered", "data-num": num }));
+    }
+    return DecorationSet.create(doc, decos);
+  };
+  return new Plugin({
+    key: numbering,
+    state: {
+      init: (_, state) => ({ on: Boolean(on), given: null, outer: false, decos: decorate(state.doc, on, null) }),
+      apply: (tr, prev, _, state) => {
+        const meta = tr.getMeta(numbering);
+        if (!meta && !tr.docChanged) return prev;
+        const next = { ...prev };
+        if (meta && "numbered" in meta) next.on = Boolean(meta.numbered);
+        if (meta && "given" in meta) {
+          next.given = meta.given;
+          next.outer = Boolean(meta.outer);
+        } else if (tr.docChanged && next.given) {
+          // Until the view counts again, the given numbers move with the text.
+          next.given = new Map([...next.given].map(([offset, num]) => [tr.mapping.map(offset), num]));
+        }
+        next.decos = decorate(state.doc, next.on, next.given);
+        return next;
+      },
+    },
+    props: { decorations: (state) => numbering.getState(state).decos },
+  });
+}
+
+// blockOf is a node as numbering.js reads a block.
+const blockOf = (n) => (n.type === schema.nodes.heading ? { kind: "heading", level: n.attrs.level, text: n.textContent } : { kind: n.type.name });
+
+// numbersOf maps the offset of each numbered heading of a document to its
+// number, when numbered is set.
+function numbersOf(doc, numbered) {
+  const out = new Map();
+  if (!numbered) return out;
+  const blocks = [];
+  const offsets = [];
+  doc.forEach((n, offset) => {
+    blocks.push(blockOf(n));
+    offsets.push(offset);
+  });
+  headingNumbers(blocks).forEach((num, i) => { if (num) out.set(offsets[i], num); });
+  return out;
+}
+
+// isNumbered says whether an editor's headings are numbered.
+export function isNumbered(state) {
+  return Boolean(numbering.getState(state)?.on);
+}
+
+// wovenNumbers are the numbers of woven blocks (wovenBlocks), "" for each
+// that has none, when numbered is set: the headings of an embed of its text
+// alone count as the text's own (ADR-draft-numbered-headings, ADR-0237).
+export function wovenNumbers(woven, numbered) {
+  return numbered ? headingNumbers(woven.map(({ node }) => blockOf(node))) : woven.map(() => "");
+}
+
+// renumber hands every editor of a text the numbers of its headings as
+// the text around them counts them: the editor itself and each editor of
+// an embed of its text alone woven into it. An editor woven into another
+// is numbered by that one.
+function renumber(view) {
+  const st = numbering.getState(view.state);
+  if (!st || st.outer) return;
+  const woven = wovenBlocks(view);
+  const nums = wovenNumbers(woven, st.on);
+  const per = new Map([[view, new Map()]]);
+  woven.forEach((w, i) => {
+    if (!per.has(w.view)) per.set(w.view, new Map());
+    if (nums[i]) per.get(w.view).set(w.offset, nums[i]);
+  });
+  const same = (a, b) => a && a.size === b.size && [...b].every(([k, v]) => a.get(k) === v);
+  for (const [v, given] of per) {
+    const cur = numbering.getState(v.state);
+    if (!cur || (same(cur.given, given) && cur.outer === (v !== view))) continue;
+    v.dispatch(v.state.tr.setMeta(numbering, { given, outer: v !== view }).setMeta("addToHistory", false));
+  }
+}
+
 // tocDepths are the depths a table of contents is offered with: the
 // deepest level of the headings it lists, 0 for every level
 // (ADR-0237).
@@ -1191,17 +1296,19 @@ export function wovenBlocks(view, depth = 0) {
     const inner = node.type === schema.nodes.embed && node.attrs.view === "text" && depth < 8
       ? domOf(offset)?.querySelector?.(":scope > .pm-embed-body > .pm-embed-alone")?.embeddedView : null;
     if (inner) out.push(...wovenBlocks(inner, depth + 1));
-    else out.push({ node, show: () => view.nodeDOM(offset)?.scrollIntoView({ block: "start" }) });
+    else out.push({ node, view, offset, show: () => view.nodeDOM(offset)?.scrollIntoView({ block: "start" }) });
   });
   return out;
 }
 
 // tocHeadings are the blocks a table of contents of the given level lists
 // among woven blocks: headings with text, down to the level, or every one
-// at level 0.
-export function tocHeadings(blocks, level) {
-  return blocks.filter(({ node: n }) => n.type === schema.nodes.heading && n.textContent.trim() && (!level || n.attrs.level <= level))
-    .map(({ node: n, show }) => ({ level: n.attrs.level, text: n.textContent, show }));
+// at level 0, each with its number when nums, as wovenNumbers counts them,
+// are given (ADR-draft-numbered-headings).
+export function tocHeadings(blocks, level, nums = []) {
+  return blocks.map((b, i) => ({ ...b, num: nums[i] || "" }))
+    .filter(({ node: n }) => n.type === schema.nodes.heading && n.textContent.trim() && (!level || n.attrs.level <= level))
+    .map(({ node: n, show, num }) => ({ level: n.attrs.level, text: n.textContent, show, num }));
 }
 
 // tocView lists the body's headings down to its level; a click scrolls to
@@ -1211,14 +1318,17 @@ export function tocHeadings(blocks, level) {
 function tocView(node, view, getPos, tocs) {
   const dom = h("nav", { class: "pm-toc", contenteditable: "false", "aria-label": t("editor.toc") });
   const refresh = () => {
-    const heads = tocHeadings(wovenBlocks(view), node.attrs.level);
+    const woven = wovenBlocks(view);
+    const heads = tocHeadings(woven, node.attrs.level, wovenNumbers(woven, isNumbered(view.state)));
+    dom.classList.toggle("pm-toc-numbered", heads.some((x) => x.num));
     const depth = view.editable ? h("label", { class: "pm-toc-depth-label" }, t("editor.tocDepth"), h("select", { class: "pm-toc-depth", onchange: (e) => {
       const pos = getPos();
       if (typeof pos !== "number" || !view.editable || dom.classList.contains("pm-locked")) return refresh();
       view.dispatch(view.state.tr.setNodeMarkup(pos, null, { ...node.attrs, level: Number(e.target.value) }));
     } }, tocDepths().map(([v, label]) => h("option", { value: String(v), text: label, selected: v === (node.attrs.level || 0) })))) : null;
     dom.replaceChildren(h("p", { class: "pm-box-title" }, t("editor.toc"), depth ? " " : "", depth || ""), heads.length
-      ? h("ul", {}, heads.map((x) => h("li", { class: "pm-toc-" + x.level }, h("button", { type: "button", class: "link", text: x.text, onclick: x.show }))))
+      ? h("ul", {}, heads.map((x) => h("li", { class: "pm-toc-" + x.level }, h("button", { type: "button", class: "link", onclick: x.show },
+        x.num ? h("span", { class: "pm-num", text: x.num }) : null, x.text))))
       : h("p", { class: "muted", text: t("editor.tocEmpty") }));
   };
   tocs.add(refresh);
@@ -1352,36 +1462,82 @@ function childTree(pages) {
 }
 
 // childrenView lists the child pages of the item to the depth the block
-// keeps, from childPages(depth), which answers { items, truncated }; an
-// editor chooses the depth (ADR-0042,
-// ADR-0239).
+// keeps, leaving out the types it leaves out, from childPages(depth, hide),
+// which answers { items, truncated }; an editor chooses both (ADR-0042,
+// ADR-0239, ADR-0240). A change of either
+// keeps the view, so the box of types stays open while one ticks several,
+// and loads the list again.
 function childrenView(node, v, getPos, childPages) {
-  const depth = node.attrs.depth || 0;
   const title = h("p", { class: "pm-box-title" }, h("span", { text: t("editor.children") }));
   const dom = h("nav", { class: "pm-children", contenteditable: "false", "aria-label": t("editor.children") }, title);
+  const hideOf = () => node.attrs.hideTypes || [];
+  // change sets attributes of the block, unless it is locked by someone
+  // else in the live session; refresh then shows the block as it is.
+  const change = (attrs) => {
+    const pos = getPos();
+    if (typeof pos !== "number" || dom.classList.contains("pm-locked")) return refresh();
+    v.dispatch(v.state.tr.setNodeMarkup(pos, null, { ...node.attrs, ...attrs }));
+  };
+  let choice = null;
+  let toggle = null;
+  let panel = null;
   if (v.editable) {
-    const choice = h("select", { class: "pm-children-depth", onchange: () => {
-      const pos = getPos();
-      if (typeof pos !== "number" || dom.classList.contains("pm-locked")) {
-        choice.value = String(depth);
-        return;
-      }
-      v.dispatch(v.state.tr.setNodeMarkup(pos, null, { ...node.attrs, depth: Number(choice.value) }));
-    } }, childDepths.map((d) => h("option", { value: String(d), text: childDepthName(d) })));
-    choice.value = String(depth);
+    choice = h("select", { class: "pm-children-depth", onchange: () => change({ depth: Number(choice.value) }) },
+      childDepths.map((d) => h("option", { value: String(d), text: childDepthName(d) })));
     // Labelled as a table of contents' depth is (ADR-0237).
     title.append(" ", h("label", { class: "pm-children-depth-label" }, t("editor.childrenDepthChoose"), choice));
+    // The types offered are those of the item's room; a type the list
+    // leaves out that is no longer defined stays offered, so it can be
+    // shown again (ADR-0240).
+    panel = h("div", { class: "pm-children-types", hidden: true });
+    toggle = h("button", { type: "button", class: "link pm-children-types-toggle", "aria-expanded": "false", onclick: async () => {
+      const open = panel.hidden;
+      panel.hidden = !open;
+      toggle.setAttribute("aria-expanded", String(open));
+      if (!open) return;
+      const names = await Promise.resolve(childPages?.types ? childPages.types() : []).catch(() => []);
+      const hide = hideOf();
+      const offered = [...new Set([...names, ...hide])].sort();
+      panel.replaceChildren(...offered.map((name) => h("label", { class: "check" },
+        h("input", { type: "checkbox", value: name, checked: !hide.includes(name), onchange: () => {
+          const hidden = [...panel.querySelectorAll("input:not(:checked)")].map((i) => i.value).sort();
+          change({ hideTypes: hidden.length ? hidden : null });
+        } }), " ", name)));
+    } });
+    title.append(" ", h("span", { class: "pm-children-depth-label" }, t("editor.childrenTypes"), toggle));
+    dom.append(panel);
   }
-  const list = h("div", { "aria-busy": "true" }, h("p", { class: "muted", text: "…" }));
+  const list = h("div", {});
   dom.append(list);
   const none = () => h("p", { class: "muted", text: t("editor.childrenNone") });
-  Promise.resolve(typeof childPages === "function" ? childPages(depth || 1) : { items: [] }).then((res) => {
-    const kids = res?.items || [];
-    list.replaceChildren(kids.length ? childTree(kids) : none(),
-      res?.truncated ? h("p", { class: "muted", text: t("editor.childrenCut") }) : "");
-  }).catch(() => list.replaceChildren(none()))
-    .finally(() => list.removeAttribute("aria-busy"));
-  return { dom, ...selectable, update: (n) => n.type === node.type && n.attrs.depth === node.attrs.depth };
+  let asked = 0;
+  // refresh shows the block's depth and types and loads its list; an
+  // answer overtaken by a later change is dropped.
+  const refresh = () => {
+    const depth = node.attrs.depth || 0;
+    const hide = hideOf();
+    if (choice) choice.value = String(depth);
+    if (toggle) toggle.textContent = childTypesName(hide);
+    if (panel) for (const box of panel.querySelectorAll("input")) box.checked = !hide.includes(box.value);
+    const mine = ++asked;
+    list.setAttribute("aria-busy", "true");
+    list.replaceChildren(h("p", { class: "muted", text: "…" }));
+    Promise.resolve(typeof childPages === "function" ? childPages(depth || 1, hide) : { items: [] }).then((res) => {
+      if (mine !== asked) return;
+      const kids = res?.items || [];
+      list.replaceChildren(kids.length ? childTree(kids) : none(),
+        res?.truncated ? h("p", { class: "muted", text: t("editor.childrenCut") }) : "");
+    }).catch(() => { if (mine === asked) list.replaceChildren(none()); })
+      .finally(() => { if (mine === asked) list.removeAttribute("aria-busy"); });
+  };
+  refresh();
+  return { dom, ...selectable, update: (n) => {
+    if (n.type !== node.type) return false;
+    const changed = n.attrs.depth !== node.attrs.depth || JSON.stringify(n.attrs.hideTypes) !== JSON.stringify(node.attrs.hideTypes);
+    node = n;
+    if (changed) refresh();
+    return true;
+  } };
 }
 
 // imageSizes are the widths offered besides dragging, in percent of the
@@ -1681,10 +1837,12 @@ function audioView(node, view, getPos, files, report = () => {}) {
 // it, or null when cancelled (ADR-0138). weblinks.save(address), if given,
 // saves the page a link leads to as a web link item and returns {item,
 // problem}, or null when cancelled (ADR-0208).
-export function createEditor({ blocks, embeds, editable, resolve, childPages, files, extra = [], viewProps = {}, comment, protect, note, actions = [], embedContent, tasks, markdown, weblinks, create }) {
+export function createEditor({ blocks, embeds, editable, resolve, childPages, files, extra = [], viewProps = {}, comment, protect, note, actions = [], embedContent, tasks, markdown, weblinks, create, numbered = false, onNumbered }) {
   const mount = h("div", { class: "pm-editor" });
   const tocs = new Set();
-  const tocPlugin = new Plugin({ view: () => ({ update: (v, prev) => { if (!v.state.doc.eq(prev.doc)) tocs.forEach((f) => f()); } }) });
+  const tocPlugin = new Plugin({ view: () => ({ update: (v, prev) => {
+    if (!v.state.doc.eq(prev.doc) || isNumbered(v.state) !== isNumbered(prev)) tocs.forEach((f) => f());
+  } }) });
   // The toolbar shows what applies at the selection, after every change,
   // one's own or another's in a live session (ADR-0059).
   let onUpdate = () => {};
@@ -1706,7 +1864,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     handlePaste: (v, ev) => { const asText = plain; plain = false; return onPaste(ev, asText); },
   } });
   const view = new EditorView(mount, {
-    state: EditorState.create({ doc: docFromBlocks(blocks, embeds), plugins: [...extra, ...(editable ? [pastePlugin, ...aids.plugins, aidKeys] : []), ...plugins(), tocPlugin, statePlugin] }),
+    state: EditorState.create({ doc: docFromBlocks(blocks, embeds), plugins: [...extra, ...(editable ? [pastePlugin, ...aids.plugins, aidKeys] : []), ...plugins(), numberingPlugin(numbered), tocPlugin, statePlugin] }),
     editable: () => editable,
     attributes: { "aria-label": t("editor.body"), role: "textbox", "aria-multiline": "true" },
     nodeViews: {
@@ -1736,6 +1894,21 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
   // An embed's text, loaded after the editor is shown, joins the tables
   // of contents and lists of this text and of every text around it.
   view.dom.addEventListener("pm-embed-loaded", () => tocs.forEach((f) => f()));
+  // The numbers of the headings follow every change that moves the tables
+  // of contents: of the text, of its numbering and of an embed's text
+  // (ADR-draft-numbered-headings). They are counted after the change is
+  // shown, not while the view updates.
+  let renumbering = false;
+  const scheduleRenumber = () => {
+    if (renumbering) return;
+    renumbering = true;
+    queueMicrotask(() => {
+      renumbering = false;
+      if (!view.isDestroyed) renumber(view);
+    });
+  };
+  tocs.add(scheduleRenumber);
+  scheduleRenumber();
   const run = (cmd) => () => { cmd(view.state, view.dispatch); view.focus(); };
   const kindSelect = h("select", { "aria-label": t("editor.blockKind"), onchange: (e) => {
     const [kind, arg] = e.target.value.split(":");
@@ -1773,6 +1946,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     else if (kind === "embed") embed();
     else if (kind === "embedtext") embed("text");
     else if (kind === "toc") tocDialog();
+    else if (kind === "children") childrenDialog();
     else if (kind === "markdown") markdownDialog();
     else if (kind === "newtask") newTask();
     else if (kind === "tasklist") taskList();
@@ -2062,6 +2236,40 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     dialog.showModal();
     depth.focus();
   };
+  // childrenDialog asks how deep a new list of child pages goes and which
+  // types it shows, then places it, as a table of contents asks for its
+  // depth (ADR-0237, ADR-0239, ADR-0240). Every type of the room is
+  // ticked at first; one left unticked is left out.
+  const childrenDialog = () => {
+    status.textContent = "";
+    const depth = h("select", { id: "pm-children-depth", class: "pm-children-depth" },
+      childDepths.map((d) => h("option", { value: String(d), text: childDepthName(d), selected: d === 0 })));
+    const types = h("div", { id: "pm-children-types", class: "pm-children-types", role: "group", "aria-labelledby": "pm-children-types-label" });
+    Promise.resolve(childPages?.types ? childPages.types() : []).catch(() => []).then((names) => {
+      types.replaceChildren(...[...new Set(names)].sort().map((name) => h("label", { class: "check" },
+        h("input", { type: "checkbox", value: name, checked: true }), " ", name)));
+    });
+    const dialog = h("dialog", { class: "pm-dialog pm-children-dialog", "aria-labelledby": "pm-children-title" });
+    const close = () => { if (dialog.open) dialog.close(); dialog.remove(); view.focus(); };
+    const place = (ev) => {
+      ev.preventDefault();
+      const chosen = Number(depth.value);
+      const hidden = [...types.querySelectorAll("input:not(:checked)")].map((i) => i.value).sort();
+      close();
+      insertBlock(schema.nodes.children.create({ depth: chosen, hideTypes: hidden.length ? hidden : null }));
+    };
+    dialog.append(h("form", { method: "dialog", onsubmit: place },
+      h("h2", { id: "pm-children-title", text: t("editor.childrenInsert") }),
+      h("label", { for: "pm-children-depth", text: t("editor.childrenDepthChoose") }), depth,
+      h("p", { id: "pm-children-types-label", text: t("editor.childrenTypesShown") }), types,
+      h("p", { class: "muted", text: t("editor.childrenDepthHint") }),
+      h("div", { class: "pm-dialog-actions" }, h("button", { type: "submit", class: "primary", id: "pm-children-ok", text: t("editor.tocPlace") }),
+        h("button", { type: "button", class: "link", id: "pm-children-cancel", text: t("common.cancel"), onclick: close }))));
+    dialog.addEventListener("cancel", (ev) => { ev.preventDefault(); close(); });
+    document.body.append(dialog);
+    dialog.showModal();
+    depth.focus();
+  };
   // A new task, made as a child of this item, goes into the text as a
   // link or shown whole (ADR-0114).
   const newTask = async () => {
@@ -2204,7 +2412,25 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     const inIt = view.state.selection.$from.parent.type === node;
     run(setBlockType(inIt ? schema.nodes.paragraph : node))();
   } });
-  const stateful = [...markButtons, ...alignButtons];
+  // Numbering the headings is a setting of the whole text
+  // (ADR-draft-numbered-headings): onNumbered, given by a live session,
+  // stores it for everyone at once; until it answers, the text shows what
+  // was chosen, and a refusal takes it back.
+  const setNumbered = (on) => view.dispatch(view.state.tr.setMeta(numbering, { numbered: on }).setMeta("addToHistory", false));
+  const numberButton = toggle(t("editor.numberHeadings"), h("span", { class: "pm-ico-num", "aria-hidden": "true", text: "1.1" }), async () => {
+    const on = !isNumbered(view.state);
+    setNumbered(on);
+    status.textContent = "";
+    try {
+      await onNumbered?.(on);
+    } catch (err) {
+      setNumbered(!on);
+      status.textContent = err.message;
+    }
+    return true;
+  }, (st) => isNumbered(st));
+  numberButton.el.id = "pm-number-headings";
+  const stateful = [...markButtons, ...alignButtons, numberButton];
   // The block kind shows the kind of the block the selection starts in, so
   // choosing a kind always changes the choice and applies at once; a block
   // the choice does not list, such as a picture, leaves it empty.
@@ -2229,6 +2455,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     group(...markButtons.map((b) => b.el)),
     group(...alignButtons.map((b) => b.el)),
     group(listButton("bullet", "•", t("editor.bullet")), listButton("ordered", "1.", t("editor.ordered")), listButton("task", "☑", t("editor.task"))),
+    group(numberButton.el),
     group(
       h("button", { type: "button", id: "pm-link", title: t("assist.linkTitle"), "aria-label": t("assist.linkTitle"), text: t("editor.link"), onclick: () => aids.openLink(view) }),
       h("button", { type: "button", id: "pm-at-button", title: t("assist.mentionTitle"), "aria-label": t("assist.mentionTitle"), text: "@", onclick: () => {
@@ -2250,5 +2477,6 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     onUpdate = refresh;
     refresh(view.state);
   }
-  return { element: h("div", { class: "pm-wrap" }, toolbar, mount), blocks: () => blocksFromDoc(view.state.doc), view };
+  return { element: h("div", { class: "pm-wrap" }, toolbar, mount), blocks: () => blocksFromDoc(view.state.doc), view,
+    numbered: () => isNumbered(view.state), setNumbered };
 }

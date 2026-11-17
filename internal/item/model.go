@@ -302,6 +302,11 @@ type Block struct {
 	// ChildrenAll every level. One level is written as 0 only, so a body
 	// says it one way.
 	Depth int `json:",omitempty"`
+	// HideTypes are the types a list of child pages leaves out, each
+	// item of them with everything below it; none shows every type
+	// (ADR-0240). They are named once each,
+	// in sorted order, so a body says them one way.
+	HideTypes []string `json:",omitempty"`
 }
 
 // MaxChildrenDepth is the most levels a list of child pages names by
@@ -313,6 +318,11 @@ const (
 	MaxChildrenDepth = 5
 	ChildrenAll      = -1
 )
+
+// MaxHiddenTypes bounds the types a list of child pages leaves out
+// (ADR-0240): a list a person chooses, like
+// the columns of a view.
+const MaxHiddenTypes = 24
 
 // TableTones are the tones a table's cell is filled or bordered with
 // (ADR-0214): named, so a page reads alike in a light and a dark theme and
@@ -350,6 +360,11 @@ var EmbedViews = []string{ViewText}
 // or Markdown as storage format).
 type Doc struct {
 	Blocks []Block
+	// Numbered numbers the body's headings by their levels — 1, 1.1,
+	// 1.1.1 — in the text, in its tables of contents and in its exports
+	// (ADR-draft-numbered-headings). The numbers are computed when shown,
+	// never stored; HeadingNumbers computes them.
+	Numbered bool `json:",omitempty"`
 }
 
 // Presence is an item's lifecycle position, separate from its workflow
@@ -779,7 +794,7 @@ func (d Doc) clone() Doc {
 		b.Cells = slices.Clone(b.Cells)
 		blocks[i] = b
 	}
-	return Doc{Blocks: blocks}
+	return Doc{Blocks: blocks, Numbered: d.Numbered}
 }
 
 // refs returns the derived relations a body implies, deduplicated, in

@@ -2,6 +2,8 @@ package server
 
 import (
 	"net/http"
+	"net/url"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -124,4 +126,50 @@ func TestChildPagesToAChosenDepthThroughTheAPI(t *testing.T) {
 	}
 	w.bert.expect("PUT", "/api/items/"+home+"/body", `{"blocks":[{"kind":"children","depth":9}]}`, http.StatusBadRequest)
 	w.bert.expect("PUT", "/api/items/"+home+"/body", `{"blocks":[{"kind":"toc","depth":2}]}`, http.StatusBadRequest)
+}
+
+func TestChildPagesLeaveOutTypesThroughTheAPI(t *testing.T) {
+	w := newWorld(t)
+	w.admin.expect("POST", "/api/types", `{"name":"page","body":true,"fields":[]}`, http.StatusCreated)
+	w.admin.expect("POST", "/api/types", `{"name":"chore","body":true,"fields":[]}`, http.StatusCreated)
+	create := func(title, typ, parent string) string {
+		it := w.bert.expect("POST", "/api/items", `{"space":"PLAT","type":"`+typ+`","title":"`+title+`","parent":"`+parent+`"}`, http.StatusCreated)
+		return field(it, "item", "id").(string)
+	}
+	home := create("Home", "page", "")
+	a := create("A", "page", home)
+	create("Sweep", "chore", a)
+	create("A1", "page", a)
+	chore := create("Dust", "chore", home)
+	create("Below the dust", "page", chore)
+
+	for hide, want := range map[string]string{
+		"":             "A[Sweep A1] Dust[Below the dust]",
+		"chore":        "A[A1]",
+		" chore , x ,": "A[A1]",
+	} {
+		res := w.vera.expect("GET", "/api/spaces/PLAT/tree?parent="+home+"&depth=all&hide="+url.QueryEscape(hide), "", http.StatusOK)
+		if got := nested(res["items"].([]any)); got != want {
+			t.Errorf("hide %q: %q, want %q", hide, got, want)
+		}
+	}
+
+	// A body keeps the types a list leaves out, named once each and sorted.
+	w.bert.expect("PUT", "/api/items/"+home+"/body", `{"blocks":[{"kind":"children","depth":-1,"hideTypes":["task","chore","task"]},{"kind":"children","hideTypes":[]}]}`, http.StatusOK)
+	body := field(w.vera.expect("GET", "/api/items/"+home, "", http.StatusOK), "item", "body").([]any)
+	if got := body[0].(map[string]any)["hideTypes"]; !reflect.DeepEqual(got, []any{"chore", "task"}) {
+		t.Errorf("hidden types %v", got)
+	}
+	if _, ok := body[1].(map[string]any)["hideTypes"]; ok {
+		t.Errorf("an empty list is kept as none: %v", body[1])
+	}
+	w.bert.expect("PUT", "/api/items/"+home+"/body", `{"blocks":[{"kind":"toc","hideTypes":["chore"]}]}`, http.StatusBadRequest)
+
+	// The export leaves them out too.
+	md := w.vera.do("GET", "/api/items/"+home+"/export/md", "").Body.String()
+	// The first list leaves the chores out; the second, which leaves
+	// nothing out, shows one level.
+	if !strings.Contains(md, "- A\n  - A1\n\n- A\n- Dust\n") || strings.Contains(md, "Sweep") || strings.Contains(md, "Below the dust") {
+		t.Errorf("export:\n%s", md)
+	}
 }

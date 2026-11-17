@@ -85,7 +85,17 @@ Mit **Bearbeiten** wird der Text bearbeitet, mit **Fertig** abgeschlossen. Ände
 - Fett, Kursiv, Unterstreichen, Durchstreichen, Hervorheben, Code im Text und Ausrichtung;
 - **Link** (Ctrl+K): eine Webadresse oder eine Seite bzw. Aufgabe, gesucht nach ihrem Titel;
 - **Erwähnen** (@): eine Person oder einen Eintrag;
+- **Überschriften nummerieren** (1.1): nummeriert die Überschriften des ganzen Texts nach ihrer Ebene (siehe unten);
 - **Rückgängig** und **Wiederholen**.
+
+**Überschriften nummerieren** nummeriert jede Überschrift nach ihrer Ebene: 1, 1.1, 1.1.1.
+Die Nummern folgen den Überschriften, wenn sie hinzukommen, verschoben oder entfernt werden; nichts muss von Hand nummeriert werden.
+Die höchste Überschriftenebene, die der Text verwendet, zählt als erste, sodass ein Text, der mit Überschrift 2 beginnt, seine Überschriften der Ebene 2 mit 1, 2, 3 nummeriert; eine übersprungene Ebene zählt als 0, etwa in 1.0.1, und Überschriften ohne Text werden nicht gezählt.
+Das Inhaltsverzeichnis zeigt dieselben Nummern, ebenso das Word-Dokument, die als PDF gedruckte Seite und der Markdown-Export.
+Die Überschriften eines Eintrags, dessen Inhalt allein eingebettet ist, zählen wie die des Texts und erhalten seine Nummern; ein vollständig eingebetteter Eintrag behält seine eigenen.
+Ein erneuter Klick auf die Schaltfläche entfernt die Nummern aus dem Text und aus dem Inhaltsverzeichnis.
+Die Einstellung gehört zum Text und wird sofort für alle gespeichert, die ihn lesen; der Verlauf hält sie als Version des Texts fest.
+Überschriften in einem geschützten Abschnitt, den man nicht lesen darf, sind nicht sichtbar und werden bei den Nummern nicht mitgezählt.
 
 Eingefügtes Markdown wird zu formatiertem Text; eine Tabelle behält die Formatierung ihrer Zellen. Ctrl+Shift+V fügt stattdessen reinen Text ein.
 
@@ -111,7 +121,7 @@ Bilder lassen sich links oder rechts mit Text daneben oder zentriert platzieren 
 
 Ein eingebetteter Eintrag zeigt entweder **Den ganzen Eintrag** oder **Nur den Inhalt**; beim Bearbeiten wechselt die Wahl **Zeigt** an der Einbettung zwischen beiden, und eine schmale Zeile nennt den Eintrag, dessen Inhalt gezeigt wird. Lesende sehen den Inhalt dann genau so, als wäre er direkt in der Seite geschrieben: ohne Rahmen und Namen, mit denselben Abständen und Schriften, und Inhaltsverzeichnis, Bildverzeichnis und Tabellenverzeichnis der Seite zählen seine Überschriften, Bilder und Tabellen wie die eigenen. Der Inhalt bleibt der des anderen Eintrags: Er ist immer aktuell, lässt sich nicht an Ort und Stelle bearbeiten und zeigt allen nur, was sie lesen dürfen. Wer den Eintrag nicht lesen darf, sieht wie bei einer vollständigen Einbettung, dass dort ein Eintrag verborgen ist. Die Exporte schreiben den Inhalt ebenso allein.
 
-**Unterseiten** listet die Seiten unter der Seite auf, jede verlinkt, in der Reihenfolge des Seitenbaums und nur jene, die man lesen darf. Beim Bearbeiten legt die Auswahl **Tiefe** neben dem Titel fest, wie tief die Liste reicht: **1 Ebene** (Standard), **2 Ebenen** bis **5 Ebenen** oder **Alle Ebenen**; jede tiefere Seite steht eingerückt unter ihrer übergeordneten Seite. Eine sehr lange Liste zeigt nur ihre ersten Seiten, die oberen Ebenen vollständig, und weist darauf hin, dass es weitere gibt. Exporte nach Word, PDF und Markdown listen die Seiten bis zur selben Tiefe auf.
+**Unterseiten** listet die Seiten unter der Seite auf, jede verlinkt, in der Reihenfolge des Seitenbaums und nur jene, die man lesen darf. Die Liste fragt zuerst, wie tief sie reicht: unter **Tiefe** **1 Ebene** (Standard), **2 Ebenen** bis **5 Ebenen** oder **Alle Ebenen**; unter **Gezeigte Typen** ist jeder Typ des Raums angekreuzt, und ein nicht angekreuzter Typ wird ausgeblendet. Beim Bearbeiten steht dieselbe Wahl neben dem Titel und ändert sie jederzeit. Jede tiefere Seite steht eingerückt unter ihrer übergeordneten Seite. Daneben zeigt **Typen** *alle* oder welche Typen die Liste ausblendet; ein Klick öffnet für jeden Typ des Raums ein Kästchen, und wer eines abwählt, blendet dessen Einträge samt allem darunter aus, etwa die Aufgaben unter einer Projektseite. Eine sehr lange Liste zeigt nur ihre ersten Seiten, die oberen Ebenen vollständig, und weist darauf hin, dass es weitere gibt. Exporte nach Word, PDF und Markdown listen die Seiten bis zur selben Tiefe auf.
 
 Ein Ton wird im Text mit dem Player des Browsers und einer Beschriftung abgespielt, etwa eine Aufnahme, die man in eine Seite, einen Task oder die Tagesnotiz unter **Heute** spricht. **Tondatei** lädt eine Datei hoch (WebM, Ogg, M4A, MP3 oder WAV); **Ton aufnehmen** öffnet ein Fenster, das sofort aufnimmt, **Beenden und anhängen** setzt die Aufnahme an der Stelle des Cursors in den Text, **Abbrechen** verwirft sie. Die Aufnahme ist zugleich eine Datei des Eintrags. **Entfernen** nimmt den Ton aus dem Text. Spielt ihn keine andere Stelle im Text ab, fragt der Editor, ob auch die Datei gelöscht werden soll, damit keine Aufnahme unbemerkt zurückbleibt: **Entfernen und Datei löschen** vernichtet sie und lässt sich nicht rückgängig machen, **Entfernen, Datei behalten** lässt sie bei den Dateien des Eintrags, **Abbrechen** lässt den Ton im Text. Ein Word-Dokument nennt den Ton, eine als PDF gedruckte Seite spielt ihn ab, und Markdown verlinkt ihn mit seinem Namen. Nichts wird transkribiert.
 

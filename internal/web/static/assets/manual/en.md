@@ -85,7 +85,17 @@ Choose **Edit** to edit the text and **Done** to finish. Changes are saved conti
 - bold, italic, underline, strike-through, highlight, inline code and alignment;
 - **Link** (Ctrl+K): a web address, or a page or task found by its title;
 - **Mention** (@): a person or an item;
+- **Number headings** (1.1): numbers the headings of the whole text by their level (see below);
 - **Undo** and **Redo**.
+
+**Number headings** numbers every heading by its level: 1, 1.1, 1.1.1.
+The numbers follow the headings as they are added, moved or removed; nothing has to be numbered by hand.
+The shallowest heading level the text uses counts first, so a text that starts with heading 2 numbers its level 2 headings 1, 2, 3; a level skipped below another shows as 0, as in 1.0.1, and headings without text are not counted.
+The table of contents shows the same numbers, and so do the Word file, the page printed as PDF and the Markdown export.
+The headings of an item embedded with its content alone count as the text's own and take its numbers; an item embedded whole keeps its own.
+Clicking the button again removes the numbers from the text and from the table of contents.
+The setting belongs to the text and is saved at once for everyone who reads it; the history records it as a version of the text.
+Someone who may not read a protected section of the text does not see its headings, and the numbers they read leave them out.
 
 Markdown that you paste becomes formatted text; a table keeps the formatting of its cells. Ctrl+Shift+V pastes plain text instead.
 
@@ -111,7 +121,7 @@ Pictures can be placed left or right with text beside them, centred, and resized
 
 An embedded item shows either **The whole item** or **The content only**; while you edit, the choice **Shows** on the embed switches between them, and a slim line names the item whose content is shown. Readers then see the content exactly as if it were written in the page: no frame, no name, the same spacing and fonts, and a table of contents, a list of figures and a list of tables of the page count its headings, pictures and tables as the page's own. The content stays the other item's: it is always current, cannot be edited in place, and shows only what each reader may read. A reader who may not read the item sees that an item is hidden there, as with a whole embed. Exports write the content alone in the same way.
 
-**Child pages** lists the pages below the page, each linked, in the order of the page tree, and only those you may read. While editing, the choice **Depth** beside its title sets how deep it lists them: **1 level** (the default), **2 levels** to **5 levels**, or **All levels**; each deeper page stands indented below its parent. A very long list shows only its first pages, the upper levels whole, and says there are more. Word, PDF and Markdown exports list the pages to the same depth.
+**Child pages** lists the pages below the page, each linked, in the order of the page tree, and only those you may read. It first asks how deep it lists them: under **Depth** **1 level** (the default), **2 levels** to **5 levels**, or **All levels**; under **Types shown** every type of the room is ticked, and a type left unticked is left out. While editing, the same choice stands beside its title and changes it at any time. Each deeper page stands indented below its parent. Beside it, **Types** shows *all* or which types the list leaves out; a click opens a box per type of the room, and unticking one leaves its items out together with everything below them, such as the tasks below a project page. A very long list shows only its first pages, the upper levels whole, and says there are more. Word, PDF and Markdown exports list the pages to the same depth.
 
 A sound plays in the text with the browser's own player and a caption, such as a recording spoken into a page, a task or **Today**'s daily note. **Sound file** uploads one (WebM, Ogg, M4A, MP3 or WAV); **Record sound** opens a window that records at once, and **Stop and attach** puts the recording into the text where the cursor is, while **Cancel** throws it away. The recording is also a file of the item. **Remove** takes the sound out of the text. If no other place in the text plays it, the editor asks whether to delete its file too, so that no recording stays behind unseen: **Remove and delete the file** destroys it and cannot be undone, **Remove, keep the file** leaves it in the item's files, **Cancel** keeps the sound in the text. A Word file names the sound, a page printed as PDF plays it, and Markdown links it by its name. Nothing is transcribed.
 

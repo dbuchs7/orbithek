@@ -1466,10 +1466,37 @@ function webSource() {
     await page.waitForSelector("#body.editing .ProseMirror");
     await page.locator("#body .ProseMirror").click();
     await page.selectOption("#body .pm-toolbar select >> nth=1", "children");
+    // The list asks for its depth first, as a table of contents does.
+    await page.waitForSelector("dialog.pm-children-dialog #pm-children-depth");
+    check(await page.inputValue("dialog.pm-children-dialog #pm-children-depth") === "0", "the dialog offers one level first");
+    await page.selectOption("dialog.pm-children-dialog #pm-children-depth", { label: "2 levels" });
+    // It asks for the types too, every one ticked at first (ADR-0240).
+    await page.waitForSelector("dialog.pm-children-dialog #pm-children-types input[value=task]:checked");
+    await page.uncheck("dialog.pm-children-dialog #pm-children-types input[value=task]");
+    await page.click("dialog.pm-children-dialog #pm-children-ok");
+    await page.waitForSelector("#body .pm-children .pm-children-types-toggle:text-is('without task')");
+    check(await page.locator("#body .pm-children select.pm-children-depth").inputValue() === "2", "the list keeps the depth chosen on inserting");
+    check(await page.locator("#body .pm-children a:text-is('Created from New, renamed')").count() === 0, "the list leaves out the types left unticked on inserting");
+    await page.click("#body .pm-children .pm-children-types-toggle");
+    await page.check("#body .pm-children .pm-children-types input[value=task]");
+    await page.click("#body .pm-children .pm-children-types-toggle"); // closed again
+    await page.waitForSelector("#body .pm-children li:has(> a:text-is('Upgrade')) > ul a:text-is('Created from New, renamed')");
+    // The choice on the list changes it.
+    await page.selectOption("#body .pm-children select.pm-children-depth", { label: "1 level" });
     await page.waitForSelector("#body .pm-children ul a:text-is('Upgrade')");
-    check(await page.locator("#body .pm-children select.pm-children-depth").inputValue() === "0", "a new list shows one level");
     check(await page.locator("#body .pm-children a:text-is('Created from New, renamed')").count() === 0, "one level lists the children alone");
     await page.selectOption("#body .pm-children select.pm-children-depth", { label: "2 levels" });
+    await page.waitForSelector("#body .pm-children li:has(> a:text-is('Upgrade')) > ul a:text-is('Created from New, renamed')");
+    // Leaving the tasks out takes them out with what lies below them, and
+    // taking the type back in shows them again (ADR-0240).
+    check(await page.textContent("#body .pm-children .pm-children-types-toggle") === "all", "a new list shows every type");
+    await page.click("#body .pm-children .pm-children-types-toggle");
+    await page.uncheck("#body .pm-children .pm-children-types input[value=task]");
+    await page.waitForSelector("#body .pm-children .pm-children-types-toggle:text-is('without task')");
+    check(await page.locator("#body .pm-children a:text-is('Created from New, renamed')").count() === 0, "the list leaves the tasks out");
+    // The box of types stays open while one ticks.
+    await page.check("#body .pm-children .pm-children-types input[value=task]");
+    await page.waitForSelector("#body .pm-children .pm-children-types-toggle:text-is('all')");
     await page.waitForSelector("#body .pm-children li:has(> a:text-is('Upgrade')) > ul a:text-is('Created from New, renamed')");
     await page.click("#details h2"); // leave the editor: its blocks are released and saved
     await page.waitForSelector(".live[data-pending='0']");
@@ -1566,8 +1593,16 @@ function webSource() {
     check(await page.locator("#body .pm-toc select.pm-toc-depth").inputValue() === "2", "the table of contents kept its depth");
     await page.waitForSelector("#body .pm-tables button:has-text('Table 1: ')"); // numbered, with its header row
     await page.waitForSelector("#body .pm-figures:has-text('No pictures yet.')");
+    // Numbered headings (ADR-draft-numbered-headings): the heading and its
+    // entry in the table of contents show the number, stored at once.
+    check(await page.locator("#body .pm-num, #body [data-num]").count() === 0, "the headings are not numbered before they are asked to be");
+    await page.click("#pm-number-headings");
+    await page.waitForSelector("#body .pm-toc.pm-toc-numbered button:has-text('Prepare') .pm-num:text-is('1')");
+    await page.waitForSelector("#body .ProseMirror :is(h2, h3, h4)[data-num='1']:has-text('Prepare')");
+    check(await page.getAttribute("#pm-number-headings", "aria-pressed") === "true", "the button shows the headings numbered");
     await page.click("#edit-done"); // read: the same blocks, shown, with no stray text
     await page.waitForSelector("#body.reading .pm-table td:has-text('db1')");
+    await page.waitForSelector("#body.reading .pm-toc button:has-text('Prepare') .pm-num:text-is('1')");
     await page.waitForSelector("#body.reading .pm-embed.pm-embed-text .pm-embed-body:not([aria-busy])");
     check(await page.locator("#body.reading .pm-embed.pm-embed-text .pm-embed-meta, #body.reading .pm-embed.pm-embed-text select").count() === 0,
       "for reading, the content alone shows neither the item's fields nor the choice");

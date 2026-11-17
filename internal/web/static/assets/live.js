@@ -46,6 +46,7 @@ export function liveBody({ ref, embeds, resolve, childPages, files, extra = [], 
 
   let me = null; // our client ID
   let view = null;
+  let editor = null;
   let editable = false;
   const foreign = new Map(); // bid -> holder name, for blocks others hold
   const mine = new Set(); // bids we hold
@@ -285,7 +286,13 @@ export function liveBody({ ref, embeds, resolve, childPages, files, extra = [], 
     });
     if (blocks.length === 0) blocks.push({ kind: "paragraph", text: "", id: newID() });
     if (!view) {
-      const ed = createEditor({ blocks, embeds, editable: e.editable, resolve, childPages, files, extra: [plugin, ...extra], comment, actions, embedContent, tasks, markdown, weblinks, create });
+      // Numbering the headings is stored at once for everyone, without a
+      // lock (ADR-draft-numbered-headings); a refusal throws, and the
+      // editor takes the choice back.
+      const onNumbered = (on) => post(`/api/items/${encodeURIComponent(ref)}/live`, { client: me, ops: [{ op: "number", numbered: on }] });
+      const ed = createEditor({ blocks, embeds, editable: e.editable, resolve, childPages, files, extra: [plugin, ...extra], comment, actions, embedContent, tasks, markdown, weblinks, create,
+        numbered: Boolean(e.numbered), onNumbered });
+      editor = ed;
       view = ed.view;
       el.insertBefore(ed.element, status);
       // Leaving the editor releases its blocks, after a moment: a click on
@@ -293,6 +300,7 @@ export function liveBody({ ref, embeds, resolve, childPages, files, extra = [], 
       view.dom.addEventListener("focusout", () => setTimeout(schedule, RELEASE_AFTER));
     } else {
       view.updateState(EditorState.create({ doc: schema.nodes.doc.create(null, blocks.map((b) => nodeFromBlock(b, embeds))), plugins: view.state.plugins }));
+      editor.setNumbered(Boolean(e.numbered));
     }
     editable = e.editable;
     view.setProps({ editable: () => editable && !closed });
@@ -303,7 +311,9 @@ export function liveBody({ ref, embeds, resolve, childPages, files, extra = [], 
     const out = { kind: b.kind, text: b.text ?? "" };
     if (b.kind === "embed") return { kind: "embed", ref: b.ref, ...(b.view ? { view: b.view } : {}) };
     if (b.kind === "toc") return { kind: "toc", ...(b.level ? { level: b.level } : {}) };
-    if (b.kind === "children") return b.depth && b.depth !== 1 ? { kind: "children", depth: b.depth } : { kind: "children" };
+    if (b.kind === "children") {
+      return { kind: "children", ...(b.depth && b.depth !== 1 ? { depth: b.depth } : {}), ...(b.hideTypes?.length ? { hideTypes: [...new Set(b.hideTypes)].sort() } : {}) };
+    }
     if (["figures", "tables", "divider"].includes(b.kind)) return { kind: b.kind };
     if (b.kind === "bpmn") return { kind: "bpmn", text: b.text ?? "", ref: b.ref, ...(b.view ? { view: b.view } : {}) };
     if (b.kind === "audio") return { kind: "audio", text: b.text ?? "", ref: b.ref };
@@ -398,6 +408,9 @@ export function liveBody({ ref, embeds, resolve, childPages, files, extra = [], 
     },
     committed(e) {
       presence.title = t("live.lastSaved", { name: e.name });
+    },
+    numbered(e) {
+      editor?.setNumbered(Boolean(e.numbered));
     },
     closed(e) {
       say(e.reason || t("live.ended"), true);

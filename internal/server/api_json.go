@@ -193,6 +193,9 @@ type blockJSON struct {
 	// shows: none for one, 2 to 5, or -1 for every level
 	// (ADR-0239).
 	Depth int `json:"depth,omitempty"`
+	// HideTypes are the types a list of child pages leaves out
+	// (ADR-0240).
+	HideTypes []string `json:"hideTypes,omitempty"`
 }
 
 type cellJSON struct {
@@ -219,7 +222,7 @@ type prefillJSON struct {
 func toBlockJSON(b item.Block) blockJSON {
 	j := blockJSON{Kind: b.Kind, Text: b.Text, Level: b.Level, Mentions: b.Mentions, Ref: b.Ref, Checked: b.Checked, Tone: b.Tone, Width: b.Width, Align: b.Align, Engine: b.Engine, Process: b.Process, View: b.View,
 		Form: b.Form, Decision: b.Decision, Application: b.Application, Release: b.Release, Layers: b.Layers, Link: b.Link, Query: b.Query, Secret: b.Secret,
-		Layout: b.Layout, ItemType: b.ItemType, Space: b.Space, Group: b.Group, Columns: b.Columns, Sort: b.Sort, Depth: b.Depth}
+		Layout: b.Layout, ItemType: b.ItemType, Space: b.Space, Group: b.Group, Columns: b.Columns, Sort: b.Sort, Depth: b.Depth, HideTypes: b.HideTypes}
 	for _, m := range b.Marks {
 		j.Marks = append(j.Marks, markJSON{Type: m.Type, Start: m.Start, End: m.End, Href: m.Href, Ref: m.Ref, Value: m.Value})
 	}
@@ -259,6 +262,11 @@ func toDoc(blocks []blockJSON, kept func(text string) bool) (item.Doc, error) {
 			// One level is written as none, so a body says it one way
 			// (ADR-0239).
 			blk.Depth = 0
+		}
+		if len(b.HideTypes) > 0 {
+			// Named once each, in sorted order; an empty list hides
+			// nothing, as none does (ADR-0240).
+			blk.HideTypes = slices.Compact(slices.Sorted(slices.Values(b.HideTypes)))
 		}
 		if len(b.Columns) > 0 {
 			// An empty list is the view's default, as none is (ADR-0203).
@@ -307,16 +315,18 @@ type originJSON struct {
 }
 
 type itemJSON struct {
-	ID          item.ID          `json:"id"`
-	Key         string           `json:"key"`
-	Type        string           `json:"type"`
-	TypeVersion int              `json:"typeVersion"`
-	Space       string           `json:"space"`
-	Parent      item.ID          `json:"parent,omitempty"`
-	Title       string           `json:"title"`
-	Properties  map[string]any   `json:"properties"`
-	State       string           `json:"state,omitempty"`
-	Body        []blockJSON      `json:"body"`
+	ID          item.ID        `json:"id"`
+	Key         string         `json:"key"`
+	Type        string         `json:"type"`
+	TypeVersion int            `json:"typeVersion"`
+	Space       string         `json:"space"`
+	Parent      item.ID        `json:"parent,omitempty"`
+	Title       string         `json:"title"`
+	Properties  map[string]any `json:"properties"`
+	State       string         `json:"state,omitempty"`
+	Body        []blockJSON    `json:"body"`
+	// Numbered numbers the body's headings (ADR-draft-numbered-headings).
+	Numbered    bool             `json:"numbered,omitempty"`
 	Version     int              `json:"version"`
 	Presence    item.Presence    `json:"presence"`
 	Restriction *restrictionJSON `json:"restriction,omitempty"`
@@ -461,7 +471,7 @@ func toDPFindings(fs []item.DPFinding) []dpFindingJSON {
 func toItemJSON(it item.Item) itemJSON {
 	j := itemJSON{ID: it.ID, Key: it.Key, Type: it.Type, TypeVersion: it.TypeVersion, Space: it.Space,
 		Parent: it.Parent, Title: it.Title, Properties: map[string]any(it.Properties), State: it.State,
-		Body: []blockJSON{}, Version: it.Version, Presence: it.Presence, Managed: it.Managed, Linked: it.Linked, LinkedFields: it.LinkedFields, Detached: it.DetachedFrom(), Labels: it.Labels, Template: it.Template}
+		Body: []blockJSON{}, Numbered: it.Body.Numbered, Version: it.Version, Presence: it.Presence, Managed: it.Managed, Linked: it.Linked, LinkedFields: it.LinkedFields, Detached: it.DetachedFrom(), Labels: it.Labels, Template: it.Template}
 	if j.Labels == nil {
 		j.Labels = []string{}
 	}

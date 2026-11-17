@@ -88,7 +88,7 @@ type Participant struct {
 
 // Event kinds.
 const (
-	Snapshot  = "snapshot"  // Blocks, Order, Participants; first event of a client, and after a reset
+	Snapshot  = "snapshot"  // Blocks, Order, Participants, Numbered; first event of a client, and after a reset
 	Set       = "block"     // ID, Block, Holder: a block's draft changed
 	Insert    = "insert"    // ID, After, Block, Holder, Order
 	Delete    = "delete"    // ID, Order
@@ -96,6 +96,9 @@ const (
 	Presence  = "presence"  // Participants
 	Committed = "committed" // By, Name: a version was stored
 	Closed    = "closed"    // Reason; the stream ends
+	// Numbering: Numbered, By, Name: the headings were numbered or no
+	// longer are, and the body was stored so (ADR-draft-numbered-headings).
+	Numbering = "numbered"
 )
 
 // Event is one message to the clients of a session.
@@ -114,15 +117,21 @@ type Event struct {
 	By           string // the principal who committed
 	Name         string // By's display name
 	Reason       string
+	Numbered     bool // whether the headings are numbered (snapshot, numbered)
 }
 
 // Op is one operation of a client. All operations of one Apply succeed or
 // fail together.
 type Op struct {
-	Op    string // "lock", "set", "insert", "delete", "release"
+	Op    string // "lock", "set", "insert", "delete", "release", "number"
 	ID    string
 	After string // insert: the block to insert after; empty inserts first
 	Block item.Block
+	// Numbered is what "number" sets: whether the body's headings are
+	// numbered. It names no block and takes no lock; it is stored at once,
+	// with the blocks as they were last released
+	// (ADR-draft-numbered-headings).
+	Numbered bool
 }
 
 type sblock struct {
@@ -147,6 +156,7 @@ type session struct {
 	id        item.ID
 	blocks    []*sblock
 	committed item.Doc // the stored body, as far as the session knows
+	numbered  bool     // whether the headings are numbered, as last set
 	clients   map[string]*client
 	seq       int
 }
@@ -251,13 +261,14 @@ func (h *Hub) join(id item.ID, principal, name string, watch bool) (*Sub, error)
 	}
 	c := &client{id: newID(), principal: principal, name: name, ch: make(chan Event, buffer), watch: watch}
 	s.clients[c.id] = c
-	h.send(s, c, Event{Kind: Snapshot, Client: c.id, Editable: edit, Blocks: s.snapshot(), Order: s.order(), Participants: s.participants()})
+	h.send(s, c, Event{Kind: Snapshot, Client: c.id, Editable: edit, Blocks: s.snapshot(), Order: s.order(), Participants: s.participants(), Numbered: s.numbered})
 	h.broadcast(s, Event{Kind: Presence, Participants: s.participants()})
 	return &Sub{Client: c.id, C: c.ch, hub: h, id: id}, nil
 }
 
 func (s *session) load(doc item.Doc) {
 	s.committed = cloneDoc(doc)
+	s.numbered = doc.Numbered
 	s.blocks = s.blocks[:0]
 	for _, b := range doc.Blocks {
 		s.blocks = append(s.blocks, &sblock{id: newID(), draft: b, stable: b, hasStable: true})
@@ -469,7 +480,7 @@ func ptr(b item.Block) *item.Block { return &b }
 // commit stores the stable blocks as principal, unless they equal the
 // stored body. A body changed outside the session resets the session.
 func (h *Hub) commit(s *session, principal string) error {
-	var doc item.Doc
+	doc := item.Doc{Numbered: s.numbered}
 	for _, b := range s.blocks {
 		if b.hasStable {
 			doc.Blocks = append(doc.Blocks, b.stable)
@@ -503,12 +514,12 @@ func (h *Hub) commit(s *session, principal string) error {
 // reset reloads the stored body, dropping every lock and draft.
 func (h *Hub) reset(s *session, stored item.Doc) {
 	s.load(stored)
-	h.broadcast(s, Event{Kind: Snapshot, Blocks: s.snapshot(), Order: s.order(), Participants: s.participants()})
+	h.broadcast(s, Event{Kind: Snapshot, Blocks: s.snapshot(), Order: s.order(), Participants: s.participants(), Numbered: s.numbered})
 }
 
 // normal makes empty and nil slices compare equal.
 func normal(d item.Doc) item.Doc {
-	out := item.Doc{}
+	out := item.Doc{Numbered: d.Numbered}
 	for _, b := range d.Blocks {
 		if len(b.Mentions) == 0 {
 			b.Mentions = nil
@@ -522,7 +533,7 @@ func normal(d item.Doc) item.Doc {
 }
 
 func cloneDoc(d item.Doc) item.Doc {
-	out := item.Doc{Blocks: make([]item.Block, len(d.Blocks))}
+	out := item.Doc{Blocks: make([]item.Block, len(d.Blocks)), Numbered: d.Numbered}
 	for i, b := range d.Blocks {
 		b.Mentions = slices.Clone(b.Mentions)
 		b.Marks = slices.Clone(b.Marks)
@@ -582,7 +593,12 @@ func (h *Hub) Apply(id item.ID, clientID, principal string, ops []Op) error {
 		}
 		return item.CheckBlock(b, id)
 	}
+	numbered, renumber := s.numbered, false
 	for n, op := range ops {
+		if op.Op == "number" {
+			numbered, renumber = op.Numbered, true
+			continue
+		}
 		at := -1
 		if op.Op != "insert" {
 			if at = find(op.ID); at < 0 {
@@ -644,6 +660,19 @@ func (h *Hub) Apply(id item.ID, clientID, principal string, ops []Op) error {
 	// Commit the batch to the session.
 	deleted := slices.ContainsFunc(events, func(e Event) bool { return e.Kind == Delete })
 	s.blocks = work
+	if renumber && numbered != s.numbered {
+		// Stored at once, so every reader sees the numbers; a refused
+		// commit leaves the session as it was.
+		before := s.numbered
+		s.numbered = numbered
+		if err := h.commit(s, principal); err != nil {
+			if !errors.Is(err, ErrDiverged) {
+				s.numbered = before
+			}
+			return err
+		}
+		h.broadcast(s, Event{Kind: Numbering, Numbered: numbered, By: principal, Name: c.name})
+	}
 	for _, e := range events {
 		if e.Kind == Insert || e.Kind == Delete {
 			e.Order = s.order()

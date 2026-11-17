@@ -147,6 +147,9 @@ type liveOpJSON struct {
 	ID    string    `json:"id"`
 	After string    `json:"after"`
 	Block blockJSON `json:"block"`
+	// Numbered is what the operation "number" sets
+	// (ADR-draft-numbered-headings).
+	Numbered bool `json:"numbered"`
 }
 
 func (h itemHandlers) liveOps(w http.ResponseWriter, r *http.Request) {
@@ -164,7 +167,7 @@ func (h itemHandlers) liveOps(w http.ResponseWriter, r *http.Request) {
 	}
 	ops := make([]collab.Op, len(req.Ops))
 	for i, o := range req.Ops {
-		ops[i] = collab.Op{Op: o.Op, ID: o.ID, After: o.After}
+		ops[i] = collab.Op{Op: o.Op, ID: o.ID, After: o.After, Numbered: o.Numbered}
 		if o.Op == "set" || o.Op == "insert" {
 			doc, err := toDoc([]blockJSON{o.Block}, func(string) bool { return true })
 			if err != nil {
@@ -227,6 +230,7 @@ type liveEventJSON struct {
 	By           string            `json:"by,omitempty"`
 	Name         string            `json:"name,omitempty"`
 	Reason       string            `json:"reason,omitempty"`
+	Numbered     bool              `json:"numbered,omitempty"`
 }
 
 func toHolderJSON(hd *collab.Holder) *holderJSON {
@@ -238,7 +242,7 @@ func toHolderJSON(hd *collab.Holder) *holderJSON {
 
 func toLiveEventJSON(e collab.Event) liveEventJSON {
 	j := liveEventJSON{Seq: e.Seq, Client: e.Client, Editable: e.Editable, ID: e.ID, Holder: toHolderJSON(e.Holder), Order: e.Order,
-		By: e.By, Name: e.Name, Reason: e.Reason}
+		By: e.By, Name: e.Name, Reason: e.Reason, Numbered: e.Numbered}
 	if e.Kind == collab.Insert {
 		j.After = &e.After
 	}

@@ -53,7 +53,7 @@ const blockFormat = "A body is a list of blocks, each an object with kind and te
 	"panel (tone info, note, warning, tip or error), table (text holds rows separated by \\n and cells by \\t; the first row " +
 	"is the header; marks format text inside one cell each, and there also {\"type\": \"color\", \"value\": a tone} and {\"type\": \"size\", \"value\": small, large or larger}; widths: a width in pixels per column, 24-2000 or 0 for what its text takes; heights: a least height in pixels per row, 16-1000 or 0; " +
 	"cells: a list of {\"row\": 0, \"col\": 1, \"fill\": a tone, \"border\": a tone} in the order of rows and columns, counted from 0 with the header row, " +
-	"each tone one of blue, green, yellow, orange, red, purple, teal, gray; text that does not fit wraps), toc, children and divider (no text: a table of contents, a list of child pages, a horizontal rule; a toc may have level 1-3, the deepest level of the headings it lists, or none for every level; children may carry depth, 2 to 5 levels or -1 for every level, none for one), embed (ref: an item ID; view text shows the item's text alone, without its title, kind, state and fields, or none for the item whole), " +
+	"each tone one of blue, green, yellow, orange, red, purple, teal, gray; text that does not fit wraps), toc, children and divider (no text: a table of contents, a list of child pages, a horizontal rule; a toc may have level 1-3, the deepest level of the headings it lists, or none for every level; children may carry depth, 2 to 5 levels or -1 for every level, none for one, and hideTypes, the type names it leaves out with everything below their items), embed (ref: an item ID; view text shows the item's text alone, without its title, kind, state and fields, or none for the item whole), " +
 	"image (ref: an attachment ID of the item, text the caption, width 10-100 percent of the column or absent for its own size, align left or right to let text flow beside it, or center), " +
 	"audio (ref: an attachment ID of the item holding sound a browser plays, such as a recording: WebM, Ogg, MP4, MP3 or WAV; text the caption), " +
 	"bpmn (ref: an attachment ID of the item holding a BPMN 2.0 model, text the caption), process (engine: a process engine's ID, process: a BPMN process ID, text the caption; shows the process's newest version), " +
@@ -281,6 +281,7 @@ var tools = []tool{
 			{"space", str, inPath, true, "The space key."},
 			{"parent", str, inQuery, false, "The ID of the page whose children to list; absent for the top of the space."},
 			{"depth", str, inQuery, false, "How many levels to list, 1 to 5 or all; absent for one level, paged."},
+			{"hide", str, inQuery, false, "With depth: type names separated by commas whose items are left out with everything below them."},
 		}, paging...)},
 	{Name: "get_starmap", Description: "The starmap of a space (ADR-0157): its readable items, their pictures and the labels at least two of them share, as nodes, " +
 		"with containment (parent), relations, mentions, embeds, pictures and their originals (copy) and labels as edges; readable items of other spaces " +
@@ -320,7 +321,8 @@ var tools = []tool{
 		Params: []param{refParam, {"name", str, inBody, true, "The transition's name."}}},
 	{Name: "commit_body", Description: "Replace the item's body with a new version; the earlier one stays in the history. " +
 		"Refused while people edit it in a live session, and when it holds protected passages your caller may not read. To add to the end of a body, use append_to_body. " + blockFormat,
-		Method: "PUT", Path: "/api/items/{ref}/body", Params: []param{refParam, {"blocks", array, inBody, true, "The body's blocks."}}},
+		Method: "PUT", Path: "/api/items/{ref}/body", Params: []param{refParam, {"blocks", array, inBody, true, "The body's blocks."},
+			{"numbered", boolean, inBody, false, "true numbers the headings by their levels (1, 1.1, 1.1.1) in the text, its table of contents and its exports, false stops it; left out, the body keeps what it had."}}},
 	{Name: "append_to_body", Description: "Add blocks at the end of an item's body in one step, without sending the body back; the earlier version stays in the history. " +
 		"Refused while people edit it in a live session, and when it holds protected passages your caller may not read. " + blockFormat,
 		Method: "POST", Path: "/api/items/{ref}/body/blocks", Params: []param{refParam, {"blocks", array, inBody, true, "The blocks to add."}}},
