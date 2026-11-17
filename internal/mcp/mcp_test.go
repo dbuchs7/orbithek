@@ -10,6 +10,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/dbuchs7/orbithek/internal/budget"
 )
 
 // call is one API request the adapter made.
@@ -255,9 +257,9 @@ func TestServeReadsOneMessagePerLine(t *testing.T) {
 }
 
 func TestServeRefusesAnOversizedLine(t *testing.T) {
-	in := strings.NewReader(strings.Repeat("x", 1<<20) + "\n")
+	in := strings.NewReader(strings.Repeat("x", int(budget.Get().BodyRequestBytes)+1) + "\n")
 	if err := Serve(context.Background(), &fakeAPI{}, in, &bytes.Buffer{}); err == nil {
-		t.Fatal("a line beyond the request budget was read")
+		t.Fatal("a line beyond the budget of a request that carries a body was read")
 	}
 }
 
