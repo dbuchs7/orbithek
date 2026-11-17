@@ -161,10 +161,12 @@ func reply(id json.RawMessage, result any, rerr *rpcError) []byte {
 }
 
 // Serve answers one message per line from in on out until in ends. A line
-// longer than the request budget (ADR-0015) stops it with an error.
+// longer than the budget of a request that carries a body (ADR-0015), as
+// commit_body does, stops it with an error.
 func Serve(ctx context.Context, api API, in io.Reader, out io.Writer) error {
 	sc := bufio.NewScanner(in)
-	sc.Buffer(make([]byte, 0, 64<<10), int(budget.Get().RequestBody))
+	b := budget.Get()
+	sc.Buffer(make([]byte, 0, 64<<10), int(max(b.BodyRequestBytes, b.RequestBody)))
 	for sc.Scan() {
 		line := bytes.TrimSpace(sc.Bytes())
 		if len(line) == 0 {

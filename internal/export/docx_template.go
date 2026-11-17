@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/dbuchs7/orbithek/internal/item"
 	"github.com/dbuchs7/orbithek/internal/wordtemplate"
 )
 
@@ -48,14 +49,20 @@ func docxFromTemplate(w io.Writer, d Document) error {
 // tocField writes a table of contents as Word's own field, which Word
 // fills with page numbers: it is marked as changed, so Word offers to
 // bring it up to date when the document opens. Until then it shows the
-// page's headings.
-func (b *docxBuilder) tocField(p Page) string {
+// page's headings. Both list the headings down to the block's level, or
+// to level 3, the deepest a heading has, when it has none; entries are
+// the table of contents' headings, with their numbers when numbered.
+func (b *docxBuilder) tocField(toc item.Block, entries []heading) string {
+	depth := toc.Level
+	if depth == 0 {
+		depth = 3
+	}
 	begin := `<w:r><w:fldChar w:fldCharType="begin" w:dirty="true"/></w:r>` +
-		`<w:r><w:instrText xml:space="preserve"> TOC \o "1-3" \h \z \u </w:instrText></w:r>` +
+		fmt.Sprintf(`<w:r><w:instrText xml:space="preserve"> TOC \o "1-%d" \h \z \u </w:instrText></w:r>`, depth) +
 		`<w:r><w:fldChar w:fldCharType="separate"/></w:r>`
 	end := `<w:r><w:fldChar w:fldCharType="end"/></w:r>`
 	var lines []string
-	for _, h := range p.headings() {
+	for _, h := range entries {
 		lines = append(lines, paraPr(fmt.Sprintf(`<w:ind w:left="%d"/>`, (h.Level-1)*360), run(withNumber(h.Num, h.Text), "")))
 	}
 	if len(lines) == 0 {

@@ -149,8 +149,9 @@ type Page struct {
 	// whose file is missing or in a format the target cannot show keeps
 	// only its caption.
 	Images map[item.ID]Image
-	// Children are the titles of the child pages, for a list of them.
-	Children []string
+	// Children are the child pages, each with its own as deep as the
+	// page's lists of child pages show, for a list of them.
+	Children []Child
 	// Tasks are, by TaskListKey, the tasks a task list shows: key, title
 	// and state, as a reader read them when the document was made
 	// (ADR-0114, ADR-0151).
@@ -162,12 +163,6 @@ type Page struct {
 	Numbered bool
 }
 
-// numbers are the numbers of the body's headings by block index, nil when
-// they are not numbered (ADR-draft-numbered-headings).
-func (p Page) numbers() []string {
-	return item.HeadingNumbers(item.Doc{Blocks: p.Body, Numbered: p.Numbered})
-}
-
 // heading is an entry of a table of contents.
 type heading struct {
 	Level int // 1 to 3
@@ -175,13 +170,19 @@ type heading struct {
 	Num   string // its number, or none
 }
 
-// headings are the entries of the page's table of contents: its headings
-// with text, in their order, numbered when the body is.
-func (p Page) headings() []heading {
-	nums := p.numbers()
+// tocEntries are the entries of a table of contents of page p: the
+// headings with text of its body as a reader reads it, the text of the
+// embeds of their text alone woven in (ADR-0237), down to the block's
+// level, numbered when the page is (ADR-draft-numbered-headings).
+func tocEntries(d Document, p Page, toc item.Block) []heading {
+	blocks := woven(d, p)
+	var nums []string
+	if p.Numbered {
+		nums = item.HeadingNumbers(item.Doc{Blocks: blocks, Numbered: true})
+	}
 	var out []heading
-	for i, b := range p.Body {
-		if b.Kind != item.Heading || strings.TrimSpace(b.Text) == "" {
+	for i, b := range blocks {
+		if b.Kind != item.Heading || strings.TrimSpace(b.Text) == "" || (toc.Level != 0 && max(b.Level, 1) > toc.Level) {
 			continue
 		}
 		e := heading{Level: min(max(b.Level, 1), 3), Text: b.Text}
@@ -193,20 +194,58 @@ func (p Page) headings() []heading {
 	return out
 }
 
+// numberer hands out the numbers of a numbered page's headings in the
+// order they are written (ADR-draft-numbered-headings). A page written as
+// a page of its own, or embedded whole, has numbers of its own; the text
+// of an embed of its text alone is woven into the page around it, as a
+// reader reads it (ADR-0237), and takes that page's next numbers, so the
+// text and its table of contents agree.
+type numberer struct {
+	cur     *headingNumbers
+	weaving bool // the next page is woven into the current one
+}
+
+type headingNumbers struct {
+	nums []string
+	at   int
+}
+
+// open starts the numbers of page p, unless p is woven into the page
+// around it; the returned function ends them.
+func (n *numberer) open(d Document, p Page) func() {
+	if n.weaving {
+		n.weaving = false
+		return func() {}
+	}
+	prev := n.cur
+	n.cur = nil
+	if p.Numbered {
+		n.cur = &headingNumbers{}
+		for _, num := range item.HeadingNumbers(item.Doc{Blocks: woven(d, p), Numbered: true}) {
+			if num != "" {
+				n.cur.nums = append(n.cur.nums, num)
+			}
+		}
+	}
+	return func() { n.cur = prev }
+}
+
+// take is the number of block b when it is a numbered heading, or none.
+func (n *numberer) take(b item.Block) string {
+	c := n.cur
+	if c == nil || b.Kind != item.Heading || strings.TrimSpace(b.Text) == "" || c.at >= len(c.nums) {
+		return ""
+	}
+	c.at++
+	return c.nums[c.at-1]
+}
+
 // withNumber puts a heading's number before its text.
 func withNumber(num, text string) string {
 	if num == "" {
 		return text
 	}
 	return num + " " + text
-}
-
-// numberAt is the number of the block at index i of nums, or none.
-func numberAt(nums []string, i int) string {
-	if nums == nil {
-		return ""
-	}
-	return nums[i]
 }
 
 // Image is a picture file.
@@ -218,6 +257,35 @@ type Image struct {
 // maxEmbedDepth bounds how deep embedded items are written inside each
 // other; deeper ones, and an item inside itself, show by key and title.
 const maxEmbedDepth = 3
+
+// textAlone reports whether an embed shows its item's text alone, without
+// its name and facts (ADR-0237).
+func textAlone(embed item.Block) bool { return embed.View == item.ViewText }
+
+// woven returns the body of page p as a reader reads it: the blocks of
+// every embed of its text alone stand in its place, as if written there,
+// so a table of contents and the lists of figures and tables count them
+// as the page's own. An item the reader may not read, one already open
+// around the place and one embedded too deep stay embeds, as the text
+// shows them (ADR-0237).
+func woven(d Document, p Page) []item.Block {
+	var out []item.Block
+	var walk func(body []item.Block, path map[item.ID]bool, depth int)
+	walk = func(body []item.Block, path map[item.ID]bool, depth int) {
+		for _, b := range body {
+			e, ok := d.Embeds[b.Ref]
+			if b.Kind != item.Embed || !textAlone(b) || !ok || path[b.Ref] || depth >= maxEmbedDepth {
+				out = append(out, b)
+				continue
+			}
+			path[b.Ref] = true
+			walk(e.Body, path, depth+1)
+			delete(path, b.Ref)
+		}
+	}
+	walk(p.Body, map[item.ID]bool{p.ID: true}, 0)
+	return out
+}
 
 // name names an item: key and title.
 func (p Page) name() string { return strings.TrimSpace(p.Key + " " + p.Title) }
@@ -276,6 +344,7 @@ type media struct {
 }
 
 type docxBuilder struct {
+	numberer
 	d       Document
 	links   []string // targets of hyperlinks; rId is rel, "L" and the index
 	media   []media
@@ -378,30 +447,42 @@ func (b *docxBuilder) page(out *strings.Builder, p Page, base int, path map[item
 		out.WriteString(para("", "", ""))
 	}
 	listNum := 0
-	nums := p.numbers()
+	defer b.open(b.d, p)()
 	for i, bl := range p.Body {
 		if bl.Kind == item.OrderedItem && (i == 0 || p.Body[i-1].Kind != item.OrderedItem) {
 			b.ordered++
 			listNum = b.numBase + b.ordered
 		}
 		if bl.Kind == item.Embed {
-			b.embed(out, bl.Ref, base, path, embedDepth)
+			b.embed(out, bl, base, path, embedDepth)
 			continue
 		}
-		out.WriteString(b.block(bl, p, base, listNum, numberAt(nums, i)))
+		out.WriteString(b.block(bl, p, base, listNum, b.take(bl)))
 	}
 }
 
 // embed writes an embedded item where it is embedded: its name, facts and
 // body, or its name alone when it is too deep or already open around it.
-func (b *docxBuilder) embed(out *strings.Builder, id item.ID, base int, path map[item.ID]bool, embedDepth int) {
+// An embed of its text alone writes the body only, as part of the text
+// around it, and its name only where the body cannot be written.
+func (b *docxBuilder) embed(out *strings.Builder, bl item.Block, base int, path map[item.ID]bool, embedDepth int) {
+	id := bl.Ref
 	e, ok := b.d.Embeds[id]
 	if !ok {
 		out.WriteString(para(b.s("EmbedTitle"), "", run("↳ "+b.d.Restricted, "")))
 		return
 	}
+	open := !path[id] && embedDepth < maxEmbedDepth
+	if textAlone(bl) && open {
+		e.Facts = nil
+		path[id] = true
+		b.weaving = true
+		b.page(out, e, base, path, embedDepth+1)
+		delete(path, id)
+		return
+	}
 	out.WriteString(para(b.s("EmbedTitle"), "", run("↳ "+e.name(), "")))
-	if path[id] || embedDepth >= maxEmbedDepth {
+	if !open {
 		return
 	}
 	path[id] = true
@@ -481,16 +562,16 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int, num string
 		return out
 	case item.Figures, item.Tables:
 		var out strings.Builder
-		for _, e := range listing(b.d, p.Body, bl.Kind) {
+		for _, e := range listing(b.d, woven(b.d, p), bl.Kind) {
 			out.WriteString(para("", "", run(e, "")))
 		}
 		return out.String()
 	case item.TOC:
 		if b.tpl != nil {
-			return b.tocField(p)
+			return b.tocField(bl, tocEntries(b.d, p, bl))
 		}
 		var out strings.Builder
-		for _, h := range p.headings() {
+		for _, h := range tocEntries(b.d, p, bl) {
 			out.WriteString(paraPr(fmt.Sprintf(`<w:ind w:left="%d"/>`, (h.Level-1)*360), run(withNumber(h.Num, h.Text), "")))
 		}
 		return out.String()
@@ -503,8 +584,14 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int, num string
 		return out.String()
 	case item.Children:
 		var out strings.Builder
-		for _, c := range p.Children {
-			out.WriteString(paraPr(b.pStyle("ListParagraph")+b.bulletNum(), run(c, "")))
+		for _, c := range childLines(p.Children, bl.Depth) {
+			// A deeper page stands further in, by the indent of one
+			// level of the list.
+			indent := ""
+			if c.Level > 0 {
+				indent = fmt.Sprintf(`<w:ind w:left="%d" w:hanging="360"/>`, 720*(c.Level+1))
+			}
+			out.WriteString(paraPr(b.pStyle("ListParagraph")+b.bulletNum()+indent, run(c.Title, "")))
 		}
 		return out.String()
 	default: // paragraph, and content an import could not convert
@@ -555,6 +642,9 @@ type segment struct {
 	text                                          string
 	bold, italic, under, strike, code, high, link bool
 	href                                          string
+	// color is a tone of item.TableTones, size one of item.TextSizes
+	// (ADR-0238).
+	color, size string
 }
 
 // segments cuts a text at its marks' boundaries, counted in code points.
@@ -596,6 +686,14 @@ func segments(text string, marks []item.Mark) []segment {
 				sg.high = true
 			case item.MarkLink:
 				sg.link, sg.href = safeLink(m.Href), m.Href
+			case item.MarkColor:
+				if _, ok := tableTones[m.Value]; ok {
+					sg.color = m.Value
+				}
+			case item.MarkSize:
+				if _, ok := textSizes[m.Value]; ok {
+					sg.size = m.Value
+				}
 			}
 		}
 		out = append(out, sg)
@@ -622,6 +720,12 @@ func runs(b *docxBuilder, text string, marks []item.Mark) string {
 		}
 		if sg.strike {
 			props += "<w:strike/>"
+		}
+		if sg.color != "" {
+			props += `<w:color w:val="` + tableTones[sg.color].strong + `"/>`
+		}
+		if pt := textSizes[sg.size]; pt > 0 {
+			props += fmt.Sprintf(`<w:sz w:val="%d"/><w:szCs w:val="%d"/>`, pt*2, pt*2)
 		}
 		if sg.high {
 			props += `<w:highlight w:val="yellow"/>`

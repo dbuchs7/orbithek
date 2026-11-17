@@ -400,7 +400,7 @@ func (h itemHandlers) appendBlocks(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Blocks []blockJSON `json:"blocks"`
 	}
-	if !decode(w, r, &req) {
+	if !decodeLarge(w, r, &req) {
 		return
 	}
 	if len(req.Blocks) == 0 {

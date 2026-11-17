@@ -118,6 +118,7 @@ func baseName(name string) string {
 
 type mdBuilder struct {
 	d Document
+	numberer
 	// picture names the target of a picture, or of a file that is named
 	// only (a video, a diagram), or "" where there is none.
 	picture func(p Page, ref item.ID, named bool) string
@@ -160,8 +161,8 @@ func (m *mdBuilder) page(p Page, base int, path map[item.ID]bool, embedDepth int
 	}
 	var list item.BlockKind // the kind of list the last part holds, if any
 	n := 0                  // the number of the last item of a numbered list
-	nums := p.numbers()
-	for i, bl := range p.Body {
+	defer m.open(m.d, p)()
+	for _, bl := range p.Body {
 		marker := map[item.BlockKind]string{item.BulletItem: "- ", item.TaskItem: "- [ ] "}[bl.Kind]
 		switch bl.Kind {
 		case item.OrderedItem:
@@ -187,29 +188,40 @@ func (m *mdBuilder) page(p Page, base int, path map[item.ID]bool, embedDepth int
 		}
 		list = ""
 		if bl.Kind == item.Embed {
-			parts = append(parts, m.embed(bl.Ref, base, path, embedDepth))
+			parts = append(parts, m.embed(bl, base, path, embedDepth)...)
 			continue
 		}
-		parts = append(parts, m.block(bl, p, base, numberAt(nums, i))...)
+		parts = append(parts, m.block(bl, p, base, m.take(bl))...)
 	}
 	return parts
 }
 
 // embed writes an embedded item as a quote: its name, facts and body, or
 // its name alone when it is too deep or already open around it; an item
-// the reader may not read is named as restricted (D10).
-func (m *mdBuilder) embed(id item.ID, base int, path map[item.ID]bool, embedDepth int) string {
+// the reader may not read is named as restricted (D10). An embed of its
+// text alone writes the body's parts as the text's own, not quoted, and
+// its name only where the body cannot be written.
+func (m *mdBuilder) embed(bl item.Block, base int, path map[item.ID]bool, embedDepth int) []string {
+	id := bl.Ref
 	e, ok := m.d.Embeds[id]
 	if !ok {
-		return quote("↳ " + inlineMarkdown(m.d.Restricted, nil))
+		return []string{quote("↳ " + inlineMarkdown(m.d.Restricted, nil))}
+	}
+	open := !path[id] && embedDepth < maxEmbedDepth
+	if textAlone(bl) && open {
+		e.Facts = nil
+		path[id] = true
+		defer delete(path, id)
+		m.weaving = true
+		return m.page(e, base, path, embedDepth+1)
 	}
 	parts := []string{"↳ " + inlineMarkdown(e.name(), nil)}
-	if !path[id] && embedDepth < maxEmbedDepth {
+	if open {
 		path[id] = true
 		parts = append(parts, m.page(e, base+1, path, embedDepth+1)...)
 		delete(path, id)
 	}
-	return quote(strings.Join(parts, "\n\n"))
+	return []string{quote(strings.Join(parts, "\n\n"))}
 }
 
 func (m *mdBuilder) block(bl item.Block, p Page, base int, num string) []string {
@@ -296,20 +308,20 @@ func (m *mdBuilder) block(bl item.Block, p Page, base int, num string) []string 
 		return append(out, captionPart()...)
 	case item.TOC:
 		var entries []string
-		for _, h := range p.headings() {
+		for _, h := range tocEntries(m.d, p, bl) {
 			entries = append(entries, strings.Repeat("  ", h.Level-1)+"- "+withNumber(h.Num, inlineMarkdown(h.Text, nil)))
 		}
 		return list(entries)
 	case item.Figures, item.Tables:
 		var entries []string
-		for _, e := range listing(m.d, p.Body, bl.Kind) {
+		for _, e := range listing(m.d, woven(m.d, p), bl.Kind) {
 			entries = append(entries, "- "+inlineMarkdown(e, nil))
 		}
 		return list(entries)
 	case item.Children:
 		var entries []string
-		for _, c := range p.Children {
-			entries = append(entries, "- "+inlineMarkdown(c, nil))
+		for _, c := range childLines(p.Children, bl.Depth) {
+			entries = append(entries, strings.Repeat("  ", c.Level)+"- "+inlineMarkdown(c.Title, nil))
 		}
 		return list(entries)
 	case item.TaskList:

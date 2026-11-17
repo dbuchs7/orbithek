@@ -68,11 +68,19 @@ func TestConvertStoragePanelsTasksTablesAndMacros(t *testing.T) {
 		`<ac:task><ac:task-id>2</ac:task-id><ac:task-status>incomplete</ac:task-status><ac:task-body>Ask <ac:link><ri:user ri:account-id="acc-1"/></ac:link></ac:task-body></ac:task></ac:task-list>` +
 		`<table><colgroup><col/></colgroup><tbody><tr><th><p>Host</p></th><th>Role</th></tr><tr><td><p>db1</p><p>eu	w</p></td></tr></tbody></table>` +
 		`<p>After</p>` +
-		`<ac:structured-macro ac:name="children"/>`
+		`<ac:structured-macro ac:name="children"/>` +
+		`<ac:structured-macro ac:name="children"><ac:parameter ac:name="depth">3</ac:parameter></ac:structured-macro>` +
+		`<ac:structured-macro ac:name="children"><ac:parameter ac:name="depth">1</ac:parameter></ac:structured-macro>` +
+		`<ac:structured-macro ac:name="children"><ac:parameter ac:name="depth">9</ac:parameter></ac:structured-macro>` +
+		`<ac:structured-macro ac:name="children"><ac:parameter ac:name="all">true</ac:parameter><ac:parameter ac:name="depth">2</ac:parameter></ac:structured-macro>`
 	doc, problems := ConvertStorage(src, "PLAT", fakeResolver{users: map[string]string{"acc-1": "anna"}})
 	got := []string{}
 	for _, b := range doc.Blocks {
-		got = append(got, fmt.Sprintf("%s|%s|%s|%v", b.Kind, b.Text, b.Tone, b.Checked))
+		line := fmt.Sprintf("%s|%s|%s|%v", b.Kind, b.Text, b.Tone, b.Checked)
+		if b.Depth != 0 {
+			line += fmt.Sprintf("|%d", b.Depth)
+		}
+		got = append(got, line)
 	}
 	want := []string{
 		"toc|||false",
@@ -83,6 +91,10 @@ func TestConvertStoragePanelsTasksTablesAndMacros(t *testing.T) {
 		"table|Host\tRole\ndb1 eu w\t||false",
 		"paragraph|After||false",
 		"children|||false",
+		"children|||false|3",
+		"children|||false",
+		"children|||false|-1",
+		"children|||false|-1",
 	}
 	if strings.Join(got, "\n") != strings.Join(want, "\n") || len(problems) != 0 {
 		t.Fatalf("blocks:\n%s\nwant:\n%s\nproblems %q", strings.Join(got, "\n"), strings.Join(want, "\n"), problems)

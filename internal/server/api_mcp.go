@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/dbuchs7/orbithek/internal/budget"
 	"github.com/dbuchs7/orbithek/internal/mcp"
 )
 
@@ -36,7 +35,9 @@ func serveMCP(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnsupportedMediaType, errUnsupportedMedia.Error())
 		return
 	}
-	msg, err := io.ReadAll(http.MaxBytesReader(w, r.Body, budget.Get().RequestBody))
+	// A message may carry a whole body for commit_body, so it is read up
+	// to the budget of a request that carries one (ADR-0015).
+	msg, err := io.ReadAll(http.MaxBytesReader(w, r.Body, bodyRequestLimit()))
 	if err != nil {
 		var tooBig *http.MaxBytesError
 		if errors.As(err, &tooBig) {

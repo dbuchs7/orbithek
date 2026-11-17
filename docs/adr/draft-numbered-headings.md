@@ -46,7 +46,8 @@ Chosen option: **1, a field of the body**, because the numbering is a property o
 - Headings without text are not counted, as the table of contents does not list them.
 - The numbers are computed over the blocks as the reader reads them: headings in a protected section the reader may not read are a placeholder and are not counted (ADR-0160).
   Readers of different rights may therefore see different numbers after such a section.
-- Embedded items keep their own numbering; their headings do not count in the text that embeds them.
+- An item embedded whole keeps its own numbering; its headings do not count in the text that embeds it.
+- The text of an embed of its text alone reads as written in the page (ADR-0237): its headings count as the page's own, take the page's numbers and stand numbered in its table of contents, whether or not the embedded item numbers its own headings.
 
 ### Where they show
 
@@ -66,9 +67,9 @@ Chosen option: **1, a field of the body**, because the numbering is a property o
 
 ### Codec
 
-Codec version 63 adds the body field `Numbered`, sealed with the body.
-Versions 1 to 62 are still read; their headings are not numbered.
-A server before this one refuses a version 63 log rather than dropping the setting.
+Codec version 66 adds the body field `Numbered`, sealed with the body.
+Versions 1 to 65 are still read; their headings are not numbered.
+A server before this one refuses a version 66 log rather than dropping the setting.
 
 **Implementation:** everything above is built and tested in Go, Node.js and Chromium. Not built: what the open questions ask.
 
@@ -132,4 +133,4 @@ Strongest form: the numbers are plain text, so every consumer shows them without
 
 ## Links
 
-- relates to [ADR-0032](0032-prosemirror-rich-text-editor.md) (headings), [ADR-0042](0042-tasks-panels-tables-and-computed-blocks.md) and [ADR-0119](0119-lists-of-figures-and-tables.md) (table of contents), [ADR-0010](0010-real-time-collaboration-with-block-locks.md) (live editing), [ADR-0160](0160-protected-blocks-and-pictures-of-a-page.md) (protected blocks), [ADR-0071](0071-exporting-pages-and-lists.md) (exports)
+- relates to [ADR-0032](0032-prosemirror-rich-text-editor.md) (headings), [ADR-0042](0042-tasks-panels-tables-and-computed-blocks.md) and [ADR-0119](0119-lists-of-figures-and-tables.md) (table of contents), [ADR-0010](0010-real-time-collaboration-with-block-locks.md) (live editing), [ADR-0160](0160-protected-blocks-and-pictures-of-a-page.md) (protected blocks), [ADR-0071](0071-exporting-pages-and-lists.md) (exports), [ADR-0237](0237-embedded-text-alone-and-toc-depth.md) (embeds of their text alone, depth of a table of contents)

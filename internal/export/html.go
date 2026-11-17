@@ -45,6 +45,7 @@ func HTML(w io.Writer, d Document, lang string) error {
 type htmlBuilder struct {
 	d   Document
 	out strings.Builder
+	numberer
 }
 
 func (h *htmlBuilder) printf(format string, args ...any) { fmt.Fprintf(&h.out, format, args...) }
@@ -60,8 +61,8 @@ func (h *htmlBuilder) page(p Page, base int, path map[item.ID]bool, embedDepth i
 		h.out.WriteString(`</table>`)
 	}
 	list := ""
-	nums := p.numbers()
-	for i, bl := range p.Body {
+	defer h.open(h.d, p)()
+	for _, bl := range p.Body {
 		want := map[item.BlockKind]string{item.BulletItem: "ul", item.OrderedItem: "ol", item.TaskItem: "ul class=\"tasks\""}[bl.Kind]
 		if want != list {
 			if list != "" {
@@ -73,20 +74,35 @@ func (h *htmlBuilder) page(p Page, base int, path map[item.ID]bool, embedDepth i
 			list = want
 		}
 		if bl.Kind == item.Embed {
-			h.embed(bl.Ref, base, path, embedDepth)
+			h.embed(bl, base, path, embedDepth)
 			continue
 		}
-		h.block(bl, p, base, numberAt(nums, i))
+		h.block(bl, p, base, h.take(bl))
 	}
 	if list != "" {
 		h.printf("</%s>", strings.Fields(list)[0])
 	}
 }
 
-func (h *htmlBuilder) embed(id item.ID, base int, path map[item.ID]bool, embedDepth int) {
+// embed writes an embedded item in a frame: its name, facts and body, or
+// its name alone when it is too deep or already open around it. An embed
+// of its text alone writes the body only, without a frame, as part of the
+// text around it, and its name only where the body cannot be written.
+func (h *htmlBuilder) embed(bl item.Block, base int, path map[item.ID]bool, embedDepth int) {
+	id := bl.Ref
 	e, ok := h.d.Embeds[id]
 	if !ok {
 		h.printf(`<div class="embed restricted"><p class="embed-title">↳ %s</p></div>`, html.EscapeString(h.d.Restricted))
+		return
+	}
+	if textAlone(bl) && !path[id] && embedDepth < maxEmbedDepth {
+		e.Facts = nil
+		path[id] = true
+		h.out.WriteString(`<div class="embed-text">`)
+		h.weaving = true
+		h.page(e, base, path, embedDepth+1)
+		h.out.WriteString(`</div>`)
+		delete(path, id)
 		return
 	}
 	h.printf(`<div class="embed"><p class="embed-title">↳ %s</p>`, html.EscapeString(e.name()))
@@ -173,7 +189,7 @@ func (h *htmlBuilder) block(bl item.Block, p Page, base int, num string) {
 		h.out.WriteString("</figure>")
 	case item.TOC:
 		h.out.WriteString(`<ul class="toc">`)
-		for _, x := range p.headings() {
+		for _, x := range tocEntries(h.d, p, bl) {
 			num := ""
 			if x.Num != "" {
 				num = `<span class="num">` + html.EscapeString(x.Num) + `</span> `
@@ -183,14 +199,27 @@ func (h *htmlBuilder) block(bl item.Block, p Page, base int, num string) {
 		h.out.WriteString("</ul>")
 	case item.Figures, item.Tables:
 		h.printf(`<ul class="%s">`, bl.Kind)
-		for _, e := range listing(h.d, p.Body, bl.Kind) {
+		for _, e := range listing(h.d, woven(h.d, p), bl.Kind) {
 			h.printf("<li>%s</li>", html.EscapeString(e))
 		}
 		h.out.WriteString("</ul>")
 	case item.Children:
+		// Each deeper page is a list within its parent's entry.
 		h.out.WriteString(`<ul class="children">`)
-		for _, c := range p.Children {
-			h.printf("<li>%s</li>", html.EscapeString(c))
+		level := 0
+		for i, c := range childLines(p.Children, bl.Depth) {
+			switch {
+			case i == 0:
+			case c.Level > level:
+				h.out.WriteString("<ul>")
+			default:
+				h.out.WriteString("</li>" + strings.Repeat("</ul></li>", level-c.Level))
+			}
+			level = c.Level
+			h.printf("<li>%s", html.EscapeString(c.Title))
+		}
+		if len(p.Children) > 0 {
+			h.out.WriteString("</li>" + strings.Repeat("</ul></li>", level))
 		}
 		h.out.WriteString("</ul>")
 	case item.TaskList:
@@ -301,6 +330,18 @@ func inline(text string, marks []item.Mark) string {
 		}
 		if sg.high {
 			wrap("mark")
+		}
+		// A colour and a size are classes of the export's stylesheet, as
+		// its policy refuses styles of the page's own.
+		var cls []string
+		if sg.color != "" {
+			cls = append(cls, "text-"+sg.color)
+		}
+		if sg.size != "" {
+			cls = append(cls, "size-"+sg.size)
+		}
+		if len(cls) > 0 {
+			s = `<span class="` + strings.Join(cls, " ") + `">` + s + "</span>"
 		}
 		if sg.link {
 			s = `<a href="` + html.EscapeString(sg.href) + `">` + s + "</a>"

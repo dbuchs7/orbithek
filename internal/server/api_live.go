@@ -157,7 +157,7 @@ func (h itemHandlers) liveOps(w http.ResponseWriter, r *http.Request) {
 		Client string       `json:"client"`
 		Ops    []liveOpJSON `json:"ops"`
 	}
-	if !decode(w, r, &req) {
+	if !decodeLarge(w, r, &req) {
 		return
 	}
 	id, err := h.resolveID(r)

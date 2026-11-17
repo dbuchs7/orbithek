@@ -553,7 +553,7 @@ func TestMCPStdio(t *testing.T) {
 	if auth != "Bearer ot_test" || !strings.Contains(out.String(), `PLAT`) || !strings.Contains(out.String(), `"isError":false`) {
 		t.Fatalf("auth %q, output %s", auth, out.String())
 	}
-	stdin = strings.NewReader(strings.Repeat("x", 1<<20))
+	stdin = strings.NewReader(strings.Repeat("x", int(budget.Get().BodyRequestBytes)+1))
 	if code := run(context.Background(), []string{"mcp", "-url", srv.URL}, &out, &errOut); code != 1 {
 		t.Fatalf("an oversized line: exit %d", code)
 	}

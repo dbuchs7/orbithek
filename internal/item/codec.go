@@ -190,10 +190,23 @@ import (
 //     hand, and the kind AttachmentTurned with attachment, sealed
 //     (ADR-0231). Versions 1 to 61 are still
 //     read; their pictures are shown as their files tell.
-//   - 63: a body may carry Numbered, its headings numbered by their
+//   - 63: a table of contents may carry Level, the deepest level of the
+//     headings it lists, and an embed View, text for its item's text
+//     alone (ADR-0237). Versions 1 to 62
+//     are still read; their tables of contents list every level and their
+//     embeds show their items whole.
+//   - 64: a mark may carry Value, and a table's cell the marks color, its
+//     text in a tone, and size, its text in a size, sealed with the body
+//     (ADR-0238). Versions 1 to 63
+//     are still read; their cells' text has the text's own colour and size.
+//   - 65: a list of child pages may carry Depth, how many levels of child
+//     pages it shows, sealed with the body
+//     (ADR-0239). Versions 1 to 64 are
+//     still read; their lists show one level.
+//   - 66: a body may carry Numbered, its headings numbered by their
 //     levels, sealed with the body (ADR-draft-numbered-headings).
-//     Versions 1 to 62 are still read; their headings are not numbered.
-const CodecVersion = 63
+//     Versions 1 to 65 are still read; their headings are not numbered.
+const CodecVersion = 66
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

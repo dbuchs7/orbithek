@@ -1458,6 +1458,27 @@ function webSource() {
     await page.waitForSelector("#new-item [name=under]:checked");
     await page.goBack();
 
+    step("child pages: a list of child pages shows the levels chosen (ADR-0239)");
+    await page.click(".tree a:has-text('Runbook')");
+    await page.waitForSelector(".tree a.current:has-text('Runbook')");
+    await page.waitForSelector("#body.reading");
+    await page.click("#edit");
+    await page.waitForSelector("#body.editing .ProseMirror");
+    await page.locator("#body .ProseMirror").click();
+    await page.selectOption("#body .pm-toolbar select >> nth=1", "children");
+    await page.waitForSelector("#body .pm-children ul a:text-is('Upgrade')");
+    check(await page.locator("#body .pm-children select.pm-children-depth").inputValue() === "0", "a new list shows one level");
+    check(await page.locator("#body .pm-children a:text-is('Created from New, renamed')").count() === 0, "one level lists the children alone");
+    await page.selectOption("#body .pm-children select.pm-children-depth", { label: "2 levels" });
+    await page.waitForSelector("#body .pm-children li:has(> a:text-is('Upgrade')) > ul a:text-is('Created from New, renamed')");
+    await page.click("#details h2"); // leave the editor: its blocks are released and saved
+    await page.waitForSelector(".live[data-pending='0']");
+    await page.click("#edit-done");
+    await page.waitForSelector("#body.reading .pm-children li:has(> a:text-is('Upgrade')) > ul a:text-is('Created from New, renamed')");
+    check(await page.locator("#body.reading .pm-children select").count() === 0, "a reader does not choose the depth");
+    await page.reload();
+    await page.waitForSelector("#body.reading .pm-children li:has(> a:text-is('Upgrade')) > ul a:text-is('Created from New, renamed')");
+
     step("blocks: a task, a warning panel, a table, a table of contents and lists of tables and figures survive a reload (ADR-0119)");
     await page.click(".tree a:has-text('Install')");
     await page.waitForSelector(".tree a.current:has-text('Install')");
@@ -1513,6 +1534,19 @@ function webSource() {
     await page.waitForFunction((h) => document.querySelector("#body .pm-table tr:nth-child(2)").getBoundingClientRect().height >= h + 40, rowBefore);
     await page.selectOption("#body .pm-toolbar select >> nth=1", "toc");
     check(await page.locator("#body .pm-toolbar select >> nth=1").locator("option[value=toc]").textContent() === "Table of contents", "the insert menu says Table of contents");
+    // Inserting asks for the depth; the table of contents changes it too
+    // (ADR-0237).
+    await page.selectOption("dialog.pm-toc-dialog #pm-toc-depth", "1");
+    await page.click("dialog.pm-toc-dialog #pm-toc-ok");
+    await page.waitForSelector("#body .pm-toc:has-text('No headings yet.')"); // "Prepare" is a heading of level 2
+    await page.selectOption("#body .pm-toc select.pm-toc-depth", "2");
+    await page.waitForSelector("#body .pm-toc button:has-text('Prepare')");
+    // An item's content alone, without its heading and fields.
+    await page.selectOption("#body .pm-toolbar select >> nth=1", "embedtext");
+    await page.fill("dialog.pm-dialog [name=q]", "PLAT-1");
+    await page.click("dialog.pm-dialog .pm-result[data-key='PLAT-1']");
+    await page.waitForSelector("#body .pm-embed.pm-embed-text.pm-embed-editing .pm-embed-head .pm-embed-title:has-text('PLAT-1')");
+    check(await page.locator("#body .pm-embed.pm-embed-text select.pm-embed-view").inputValue() === "text", "the embed shows the content only");
     await page.selectOption("#body .pm-toolbar select >> nth=1", "tables");
     await page.selectOption("#body .pm-toolbar select >> nth=1", "figures");
     await page.click("#details h2"); // leave the editor: its blocks are released and saved
@@ -1524,9 +1558,12 @@ function webSource() {
     check(await page.locator("#body .pm-table th.pm-border-red").count() === 2, "both chosen header cells kept their border");
     check(await page.locator("#body .pm-table table.pm-table-sized col").evaluateAll((cols) => cols.every((c) => c.style.width.endsWith("px"))),
       "the columns kept their widths");
+    check(await page.locator("#body .pm-table tr:last-child > td").evaluateAll((cells) => cells.every((td) => getComputedStyle(td).borderBottomStyle !== "none"
+      && parseFloat(getComputedStyle(td).borderBottomWidth) >= 1)), "the cells of the last row keep their lower border");
     check(await page.locator("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-text").evaluate((el) => el.scrollWidth <= el.clientWidth + 1 && el.getClientRects().length > 0
       && el.closest("td").getBoundingClientRect().height > 40), "the long text wraps within its cell");
     await page.waitForSelector("#body .pm-toc button:has-text('Prepare')");
+    check(await page.locator("#body .pm-toc select.pm-toc-depth").inputValue() === "2", "the table of contents kept its depth");
     await page.waitForSelector("#body .pm-tables button:has-text('Table 1: ')"); // numbered, with its header row
     await page.waitForSelector("#body .pm-figures:has-text('No pictures yet.')");
     // Numbered headings (ADR-draft-numbered-headings): the heading and its
@@ -1539,7 +1576,63 @@ function webSource() {
     await page.click("#edit-done"); // read: the same blocks, shown, with no stray text
     await page.waitForSelector("#body.reading .pm-table td:has-text('db1')");
     await page.waitForSelector("#body.reading .pm-toc button:has-text('Prepare') .pm-num:text-is('1')");
+    await page.waitForSelector("#body.reading .pm-embed.pm-embed-text .pm-embed-body:not([aria-busy])");
+    check(await page.locator("#body.reading .pm-embed.pm-embed-text .pm-embed-meta, #body.reading .pm-embed.pm-embed-text select").count() === 0,
+      "for reading, the content alone shows neither the item's fields nor the choice");
+    check(await page.locator("#body.reading .pm-embed.pm-embed-text").evaluate((el) => { const cs = getComputedStyle(el); return cs.borderStyle === "none" && cs.paddingLeft === "0px" && cs.cursor === "auto"; }),
+      "for reading, the content alone looks like text written in the page");
     check(!(await page.textContent("#body")).includes("null"), "the page for reading shows no stray text");
+    // A table copied from the page being read is pasted with its formats,
+    // sizes and colours (ADR-0236).
+    // The browser's copy carries inline styles of its own, which the UI's
+    // policy refuses to apply while the paste is read; it reports each.
+    await page.evaluate(() => {
+      const range = document.createRange();
+      range.selectNode(document.querySelector("#body .pm-table table"));
+      getSelection().removeAllRanges();
+      getSelection().addRange(range);
+    });
+    await page.keyboard.press("Control+c");
+    await page.click("#edit");
+    await page.waitForSelector("#body.editing .ProseMirror");
+    await page.click("#body .pm-panel");
+    await page.keyboard.press("End");
+    expectedConsole = /Applying inline style violates/;
+    await page.keyboard.press("Control+v");
+    await page.waitForFunction(() => document.querySelectorAll("#body .pm-table table.pm-table-sized td.pm-fill-yellow strong").length === 2);
+    expectedConsole = null;
+    check(await page.locator("#body .pm-table th.pm-border-red").count() === 4, "the pasted table kept its borders");
+    await page.keyboard.press("Control+z");
+    await page.waitForFunction(() => document.querySelectorAll("#body .pm-table").length === 1);
+    await page.click("#edit-done");
+    await page.waitForSelector("#body.reading .pm-table td:has-text('db1')");
+    // A whole column is chosen, copied and pasted into another cell: the
+    // cells fill from there, the table growing by a row (ADR-0236).
+    await page.click("#edit");
+    await page.waitForSelector("#body.editing .ProseMirror");
+    await page.click("#body .pm-table tr:nth-child(2) td:first-child");
+    await page.click("#body .pm-table-pick-columns");
+    check(await page.locator("#body .pm-table .pm-cell-chosen").count() === 2, "the whole first column is chosen");
+    await page.keyboard.press("Control+c");
+    await page.click("#body .pm-table tr:nth-child(2) td:nth-child(2)");
+    await page.waitForSelector("#body .pm-table tr:nth-child(2) td:nth-child(2) .pm-cell-editor");
+    await page.waitForTimeout(600); // the paste is a change of its own in the history
+    await page.keyboard.press("Control+v");
+    await page.waitForSelector("#body .pm-table tr:nth-child(3) td:nth-child(2).pm-fill-yellow strong:has-text('db1')");
+    check(await page.locator("#body .pm-table tr:nth-child(2) td:nth-child(2) .pm-cell-text").textContent()
+      === await page.locator("#body .pm-table tr:first-child th:first-child .pm-cell-text").textContent()
+      && await page.locator("#body .pm-table .pm-cell-chosen").count() === 2, "the column is pasted from the cell on, the pasted cells chosen");
+    await page.keyboard.press("Control+z");
+    await page.waitForFunction(() => document.querySelectorAll("#body .pm-table tr").length === 2);
+    // The text of a cell takes a colour and a size from the table's tools
+    // (ADR-0238).
+    await page.click("#body .pm-table tr:nth-child(2) td:first-child");
+    await page.waitForSelector("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-editor");
+    await page.selectOption("#body .pm-table-text-colour", "purple");
+    await page.selectOption("#body .pm-table-text-size", "large");
+    await page.waitForSelector("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-editor:has(.pm-text-purple):has(.pm-size-large):has-text('db1')");
+    await page.click("#edit-done");
+    await page.waitForSelector("#body.reading .pm-table td:has(.pm-text-purple):has(.pm-size-large):has-text('db1')"); // either may wrap the other
 
     step("versions: the changes of a body show word by word, and an earlier body comes back");
     // Two versions written through the API, so their content does not
@@ -3620,6 +3713,33 @@ function webSource() {
       const jpeg = await saved("jpeg");
       check(jpeg.name.endsWith(".jpg") && jpeg.bytes[0] === 0xff && jpeg.bytes[1] === 0xd8, "the JPEG is a JPEG");
     }
+    step("roadmap period: a chosen period bounds the axis, and a bar that goes on beyond it fades out at that edge");
+    {
+      const long = await page.evaluate(async () => {
+        const send = (method, path, body) => fetch(path, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json());
+        const { item } = await send("POST", "/api/items", { space: "PLAT", type: "epic", title: "Across the year", properties: { start: "2030-11-01", due: "2031-02-15" } });
+        await send("PUT", `/api/items/${item.id}/labels`, { labels: ["plan-long"] });
+        return item.key;
+      });
+      const bar = `#roadmap-chart .tl-bar[data-key='${long}']`;
+      await page.goto(base + "/#/roadmap?labels=plan-long");
+      await page.waitForSelector(`${bar}:not(.tl-cut-before):not(.tl-cut-after)`);
+      check(await page.locator("#roadmap-period-clear").count() === 0, "without a period the chart spans every bar, none of them cut");
+      await page.fill("#roadmap-to", "2030-12");
+      await page.waitForFunction(() => location.hash.includes("to=2030-12"));
+      await page.waitForSelector(`${bar}.tl-cut-after:not(.tl-cut-before)`);
+      check((await page.getAttribute(bar, "aria-label")).includes("ends after the period shown"), "a cut bar says so in words");
+      check((await page.locator(bar).evaluate((el) => getComputedStyle(el).maskImage || getComputedStyle(el).webkitMaskImage)).includes("linear-gradient"), "a cut bar fades out");
+      await page.goto(base + "/#/roadmap?labels=plan-long&from=2030-12&to=2030-12");
+      await page.waitForSelector(`${bar}.tl-cut-before.tl-cut-after`);
+      check((await page.getAttribute(bar, "aria-label")).includes("2031"), "a cut bar names its own days, not the period's");
+      await page.goto(base + "/#/roadmap?labels=plan-long&from=2032-01");
+      await page.waitForSelector("#roadmap-empty");
+      await page.click("#roadmap-period-clear");
+      await page.waitForFunction(() => !location.hash.includes("from="));
+      await page.waitForSelector(`${bar}:not(.tl-cut-before):not(.tl-cut-after)`);
+    }
+
     // The tasks page and a room lead there too.
     await page.goto(base + "/#/tasks");
     await page.click("#tab-roadmap");

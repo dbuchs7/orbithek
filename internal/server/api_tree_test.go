@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -57,4 +58,70 @@ func TestPageTreeThroughTheAPI(t *testing.T) {
 	}
 	w.carla.expect("GET", "/api/spaces/PLAT/tree?parent="+home, "", http.StatusNotFound)
 	w.vera.expect("GET", "/api/spaces/NOPE/tree", "", http.StatusNotFound)
+}
+
+// nested writes a list of child pages as titles, a page's children in
+// brackets after it and "+" for a page with more than the list shows.
+func nested(items []any) string {
+	out := ""
+	for i, n := range items {
+		m := n.(map[string]any)
+		if i > 0 {
+			out += " "
+		}
+		out += m["title"].(string)
+		if m["more"] == true {
+			out += "+"
+		}
+		if kids, ok := m["children"].([]any); ok {
+			out += "[" + nested(kids) + "]"
+		}
+	}
+	return out
+}
+
+func TestChildPagesToAChosenDepthThroughTheAPI(t *testing.T) {
+	w := newWorld(t)
+	w.admin.expect("POST", "/api/types", `{"name":"page","body":true,"fields":[]}`, http.StatusCreated)
+	create := func(title, parent string) string {
+		it := w.bert.expect("POST", "/api/items", `{"space":"PLAT","type":"page","title":"`+title+`","parent":"`+parent+`"}`, http.StatusCreated)
+		return field(it, "item", "id").(string)
+	}
+	home := create("Home", "")
+	a := create("A", home)
+	a1 := create("A1", a)
+	create("A1a", a1)
+	create("B", home)
+
+	for depth, want := range map[string]string{
+		"1":   "A+ B",
+		"2":   "A[A1+] B",
+		"3":   "A[A1[A1a]] B",
+		"all": "A[A1[A1a]] B",
+	} {
+		res := w.vera.expect("GET", "/api/spaces/PLAT/tree?parent="+home+"&depth="+depth, "", http.StatusOK)
+		if got := nested(res["items"].([]any)); got != want || res["truncated"] != false {
+			t.Errorf("depth %s: %q (truncated %v), want %q", depth, got, res["truncated"], want)
+		}
+	}
+	for _, bad := range []string{"0", "6", "-1", "x", ""} {
+		w.vera.expect("GET", "/api/spaces/PLAT/tree?parent="+home+"&depth="+bad, "", http.StatusBadRequest)
+	}
+	w.carla.expect("GET", "/api/spaces/PLAT/tree?parent="+home+"&depth=2", "", http.StatusNotFound)
+
+	// A body keeps the depth of its lists; one level is written as none.
+	w.bert.expect("PUT", "/api/items/"+home+"/body", `{"blocks":[{"kind":"children","depth":3},{"kind":"children","depth":1},{"kind":"children","depth":-1}]}`, http.StatusOK)
+	body := field(w.vera.expect("GET", "/api/items/"+home, "", http.StatusOK), "item", "body").([]any)
+	for i, want := range []any{3.0, nil, -1.0} {
+		if got := body[i].(map[string]any)["depth"]; got != want {
+			t.Errorf("block %d: depth %v, want %v", i+1, got, want)
+		}
+	}
+	// The export lists each list to its own depth.
+	md := w.vera.do("GET", "/api/items/"+home+"/export/md", "").Body.String()
+	if !strings.Contains(md, "- A\n  - A1\n    - A1a\n- B\n") || !strings.Contains(md, "\n- A\n- B\n") {
+		t.Errorf("export:\n%s", md)
+	}
+	w.bert.expect("PUT", "/api/items/"+home+"/body", `{"blocks":[{"kind":"children","depth":9}]}`, http.StatusBadRequest)
+	w.bert.expect("PUT", "/api/items/"+home+"/body", `{"blocks":[{"kind":"toc","depth":2}]}`, http.StatusBadRequest)
 }

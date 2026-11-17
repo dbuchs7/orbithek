@@ -51,7 +51,7 @@ func TestADocumentIsAWellFormedWordFile(t *testing.T) {
 			{Kind: item.Paragraph, Text: "bad \x01 char"},
 		},
 		Images:   map[item.ID]Image{"pic": {Name: "plan.png", Type: "image/png", Data: pngOf(t, 400, 200)}},
-		Children: []string{"Child page"},
+		Children: []Child{{Title: "Child page"}},
 	}},
 		Embeds:     map[item.ID]Page{"x": {ID: "x", Key: "OPS-9", Title: "Linked", Body: []item.Block{{Kind: item.Paragraph, Text: "inside the embed"}}}},
 		Restricted: "(restricted)",
@@ -178,7 +178,7 @@ func TestTheHTMLEscapesAndKeepsSafeLinksOnly(t *testing.T) {
 		{Kind: item.Image, Ref: "i", Text: "pic", Width: 47, Align: "right"},
 		{Kind: item.Table, Text: "a\tb\n<c>\td"}, {Kind: item.CodeBlock, Text: "<x>"}, {Kind: item.Panel, Tone: "bogus", Text: "p"},
 		{Kind: item.Quote, Text: "q", Align: "center"}, {Kind: item.Divider}, {Kind: item.TOC}, {Kind: item.Children},
-	}, Images: map[item.ID]Image{"i": {Name: "i.png"}}, Children: []string{"kid"}}}}
+	}, Images: map[item.ID]Image{"i": {Name: "i.png"}}, Children: []Child{{Title: "kid"}}}}}
 	var b bytes.Buffer
 	if err := HTML(&b, d, "de"); err != nil {
 		t.Fatal(err)
@@ -405,5 +405,203 @@ func noErrE(t *testing.T, err error) {
 	t.Helper()
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+// TestChildPagesAreListedToTheirDepth lists the same child pages one
+// level, two levels and every level deep, in every format
+// (ADR-0239).
+func TestChildPagesAreListedToTheirDepth(t *testing.T) {
+	kids := []Child{
+		{Title: "A", Children: []Child{{Title: "A1", Children: []Child{{Title: "A1a"}}}, {Title: "A2"}}},
+		{Title: "B"},
+	}
+	page := func(depth int) Document {
+		return Document{Pages: []Page{{ID: "p", Title: "Home", Body: []item.Block{{Kind: item.Children, Depth: depth}}, Children: kids}}}
+	}
+	htmlLists := map[int]string{
+		0:                     `<ul class="children"><li>A</li><li>B</li></ul>`,
+		2:                     `<ul class="children"><li>A<ul><li>A1</li><li>A2</li></ul></li><li>B</li></ul>`,
+		item.ChildrenAll:      `<ul class="children"><li>A<ul><li>A1<ul><li>A1a</li></ul></li><li>A2</li></ul></li><li>B</li></ul>`,
+		item.MaxChildrenDepth: `<ul class="children"><li>A<ul><li>A1<ul><li>A1a</li></ul></li><li>A2</li></ul></li><li>B</li></ul>`,
+	}
+	for depth, want := range htmlLists {
+		var b bytes.Buffer
+		if err := HTML(&b, page(depth), "en"); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(b.String(), want) {
+			t.Errorf("depth %d: the HTML lacks %s:\n%s", depth, want, b.String())
+		}
+	}
+	mdLists := map[int]string{
+		0:                "- A\n- B\n",
+		2:                "- A\n  - A1\n  - A2\n- B\n",
+		item.ChildrenAll: "- A\n  - A1\n    - A1a\n  - A2\n- B\n",
+	}
+	for depth, want := range mdLists {
+		var m bytes.Buffer
+		if err := Markdown(&m, page(depth)); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(m.String(), want) {
+			t.Errorf("depth %d: the Markdown lacks %q:\n%s", depth, want, m.String())
+		}
+	}
+	var w bytes.Buffer
+	if err := DOCX(&w, page(item.ChildrenAll)); err != nil {
+		t.Fatal(err)
+	}
+	doc := documentXML(t, w.Bytes())
+	for _, want := range []string{`<w:ind w:left="1440" w:hanging="360"/></w:pPr><w:r><w:t xml:space="preserve">A1</w:t>`,
+		`<w:ind w:left="2160" w:hanging="360"/></w:pPr><w:r><w:t xml:space="preserve">A1a</w:t>`} {
+		if !strings.Contains(doc, want) {
+			t.Errorf("the Word file lacks %s:\n%s", want, doc)
+		}
+	}
+	w.Reset()
+	if err := DOCX(&w, page(0)); err != nil {
+		t.Fatal(err)
+	}
+	if doc := documentXML(t, w.Bytes()); strings.Contains(doc, "A1") || strings.Contains(doc, "<w:ind ") {
+		t.Errorf("one level lists the children alone:\n%s", doc)
+	}
+}
+
+// TestATableOfContentsListsDownToItsLevel holds the depth of a table of
+// contents in every format (ADR-0237).
+func TestATableOfContentsListsDownToItsLevel(t *testing.T) {
+	body := []item.Block{{Kind: item.TOC, Level: 2}, {Kind: item.Heading, Text: "Intro"}, {Kind: item.Heading, Level: 2, Text: "Scope"},
+		{Kind: item.Heading, Level: 3, Text: "Fine print"}}
+	doc := Document{Pages: []Page{{ID: "p", Title: "Manual", Body: body}}}
+	var b bytes.Buffer
+	if err := HTML(&b, doc, "en"); err != nil {
+		t.Fatal(err)
+	}
+	if got := b.String(); !strings.Contains(got, `<ul class="toc"><li class="level-1">Intro</li><li class="level-2">Scope</li></ul>`) {
+		t.Errorf("the HTML's table of contents does not stop at level 2:\n%s", got)
+	}
+	var m bytes.Buffer
+	if err := Markdown(&m, doc); err != nil {
+		t.Fatal(err)
+	}
+	if got := m.String(); !strings.Contains(got, "- Intro\n  - Scope\n") || strings.Contains(got, "- Fine print") {
+		t.Errorf("the Markdown's table of contents does not stop at level 2:\n%s", got)
+	}
+	var w bytes.Buffer
+	if err := DOCX(&w, doc); err != nil {
+		t.Fatal(err)
+	}
+	if got := documentXML(t, w.Bytes()); strings.Count(got, "Fine print") != 1 || strings.Count(got, "Scope") != 2 {
+		t.Errorf("the Word file's table of contents does not stop at level 2:\n%s", got)
+	}
+	b2 := &docxBuilder{}
+	toc1 := item.Block{Kind: item.TOC, Level: 1}
+	if got := b2.tocField(toc1, tocEntries(Document{}, Page{Body: body}, toc1)); !strings.Contains(got, `TOC \o "1-1"`) || strings.Contains(got, "Scope") {
+		t.Errorf("Word's own field does not stop at level 1: %s", got)
+	}
+}
+
+// TestAnEmbedOfItsTextAloneWritesNoName holds an embed of an item's text
+// alone in every format: its body as part of the text around it, without
+// the item's name and facts; its name where the body cannot be written
+// (ADR-0237).
+func TestAnEmbedOfItsTextAloneWritesNoName(t *testing.T) {
+	part := Page{ID: "s", Key: "DOC-7", Title: "Safety", Facts: [][2]string{{"State", "draft"}},
+		Body: []item.Block{{Kind: item.Heading, Level: 1, Text: "Gloves"}, {Kind: item.Paragraph, Text: "Wear gloves."}, {Kind: item.Embed, Ref: "s", View: item.ViewText}}}
+	doc := Document{Restricted: "an item you cannot see", Pages: []Page{{ID: "p", Title: "Manual", Body: []item.Block{
+		{Kind: item.Paragraph, Text: "Before you start:"}, {Kind: item.Embed, Ref: "s", View: item.ViewText}, {Kind: item.Embed, Ref: "hidden", View: item.ViewText}}}},
+		Embeds: map[item.ID]Page{"s": part}}
+	var b bytes.Buffer
+	if err := HTML(&b, doc, "en"); err != nil {
+		t.Fatal(err)
+	}
+	got := b.String()
+	for _, want := range []string{`<div class="embed-text"><h2>Gloves</h2><p>Wear gloves.</p>`, `↳ DOC-7 Safety`, `↳ an item you cannot see`} {
+		if !strings.Contains(got, want) {
+			t.Errorf("the HTML lacks %q:\n%s", want, got)
+		}
+	}
+	if strings.Count(got, "DOC-7 Safety") != 1 || strings.Contains(got, "draft") {
+		t.Errorf("the HTML names the item or its facts where its text is shown alone, or not inside itself:\n%s", got)
+	}
+	var m bytes.Buffer
+	if err := Markdown(&m, doc); err != nil {
+		t.Fatal(err)
+	}
+	if md := m.String(); !strings.Contains(md, "Before you start:\n\n## Gloves\n\nWear gloves.\n\n> ↳ DOC-7 Safety") || strings.Contains(md, "draft") {
+		t.Errorf("the Markdown does not write the text alone:\n%s", md)
+	}
+	var w bytes.Buffer
+	if err := DOCX(&w, doc); err != nil {
+		t.Fatal(err)
+	}
+	if x := documentXML(t, w.Bytes()); strings.Count(x, "DOC-7 Safety") != 1 || !strings.Contains(x, "Wear gloves.") || strings.Contains(x, "draft") {
+		t.Errorf("the Word file does not write the text alone:\n%s", x)
+	}
+}
+
+// TestATableOfContentsCountsTheTextOfAnEmbedAsThePagesOwn: the headings,
+// pictures and tables of an embed of its text alone stand in the page's
+// table of contents and lists as if written there; those of a whole
+// embed and of an item the reader may not read do not
+// (ADR-0237).
+func TestATableOfContentsCountsTheTextOfAnEmbedAsThePagesOwn(t *testing.T) {
+	part := Page{ID: "s", Title: "Safety", Body: []item.Block{{Kind: item.Heading, Level: 1, Text: "Gloves"}, {Kind: item.Table, Text: "Risk\tMeasure\nCut\tGloves"}}}
+	whole := Page{ID: "w", Title: "Whole", Body: []item.Block{{Kind: item.Heading, Level: 1, Text: "Elsewhere"}}}
+	doc := Document{Pages: []Page{{ID: "p", Title: "Manual", Body: []item.Block{{Kind: item.TOC}, {Kind: item.Tables},
+		{Kind: item.Heading, Level: 1, Text: "Start"}, {Kind: item.Embed, Ref: "s", View: item.ViewText}, {Kind: item.Embed, Ref: "w"},
+		{Kind: item.Embed, Ref: "hidden", View: item.ViewText}, {Kind: item.Heading, Level: 1, Text: "End"}}}},
+		Embeds: map[item.ID]Page{"s": part, "w": whole}}
+	var b bytes.Buffer
+	if err := HTML(&b, doc, "en"); err != nil {
+		t.Fatal(err)
+	}
+	got := b.String()
+	if !strings.Contains(got, `<ul class="toc"><li class="level-1">Start</li><li class="level-1">Gloves</li><li class="level-1">End</li></ul>`) {
+		t.Errorf("the table of contents does not count the embedded text as the page's own:\n%s", got)
+	}
+	if !strings.Contains(got, `<ul class="tables"><li>Table 1: Risk, Measure</li></ul>`) {
+		t.Errorf("the list of tables does not count the embedded table:\n%s", got)
+	}
+	var m bytes.Buffer
+	if err := Markdown(&m, doc); err != nil {
+		t.Fatal(err)
+	}
+	if md := m.String(); !strings.Contains(md, "- Start\n- Gloves\n- End") {
+		t.Errorf("the Markdown's table of contents does not count the embedded text:\n%s", md)
+	}
+}
+
+// TestTheTextOfAnEmbedIsNumberedAsThePagesOwn: the headings of an embed of
+// its text alone take the numbers of the page around it, in the text and
+// in its table of contents; an item embedded whole numbers its own
+// (ADR-draft-numbered-headings, ADR-0237).
+func TestTheTextOfAnEmbedIsNumberedAsThePagesOwn(t *testing.T) {
+	part := Page{ID: "s", Title: "Safety", Body: []item.Block{{Kind: item.Heading, Level: 1, Text: "Gloves"}}}
+	whole := Page{ID: "w", Key: "DOC-8", Title: "Other", Numbered: true, Body: []item.Block{{Kind: item.Heading, Level: 1, Text: "Own"}}}
+	doc := Document{Pages: []Page{{ID: "p", Title: "Manual", Numbered: true, Body: []item.Block{
+		{Kind: item.TOC}, {Kind: item.Heading, Level: 1, Text: "Start"}, {Kind: item.Embed, Ref: "s", View: item.ViewText},
+		{Kind: item.Embed, Ref: "w"}, {Kind: item.Heading, Level: 1, Text: "End"},
+	}}}, Embeds: map[item.ID]Page{"s": part, "w": whole}}
+	var h bytes.Buffer
+	noErrE(t, HTML(&h, doc, "en"))
+	for _, want := range []string{`<span class="num">2</span> Gloves</li>`, `<span class="num">3</span> End</li>`,
+		`<span class="num">2</span> Gloves</h`, `<span class="num">3</span> End</h`, `<span class="num">1</span> Own</h`} {
+		if !strings.Contains(h.String(), want) {
+			t.Errorf("the HTML lacks %q:\n%s", want, h.String())
+		}
+	}
+	var m bytes.Buffer
+	noErrE(t, Markdown(&m, doc))
+	for _, want := range []string{"- 1 Start\n- 2 Gloves\n- 3 End", " 2 Gloves", " 3 End"} {
+		if !strings.Contains(m.String(), want) {
+			t.Errorf("the Markdown lacks %q:\n%s", want, m.String())
+		}
+	}
+	var w bytes.Buffer
+	noErrE(t, DOCX(&w, doc))
+	if got := documentXML(t, w.Bytes()); !strings.Contains(got, `<w:t xml:space="preserve">2 </w:t></w:r><w:r><w:t xml:space="preserve">Gloves`) {
+		t.Errorf("the Word file does not number the embedded text as the page's:\n%s", got)
 	}
 }

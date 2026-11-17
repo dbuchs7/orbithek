@@ -1553,8 +1553,14 @@ func checkBlock(b Block, self ID) error {
 	if b.Kind != ItemsView && (b.Layout != "" || b.ItemType != "" || b.Space != "" || b.Group != "" || b.Columns != nil || b.Sort != "") {
 		return invalid("only a view names a layout, a type, a room, a grouping, columns and a sort")
 	}
-	if b.View != "" && ((b.Kind != BPMN && b.Kind != Process && b.Kind != Form) || !slices.Contains(DiagramViews, b.View)) {
-		return invalid("view %q: a BPMN diagram, a process or a form shows %s, or its diagram or form alone; other blocks have no view", b.View, strings.Join(DiagramViews, ", "))
+	switch {
+	case b.View == "":
+	case b.Kind == Embed:
+		if !slices.Contains(EmbedViews, b.View) {
+			return invalid("view %q: an embed shows its item whole, or %s, its text alone", b.View, strings.Join(EmbedViews, ", "))
+		}
+	case b.Kind != BPMN && b.Kind != Process && b.Kind != Form || !slices.Contains(DiagramViews, b.View):
+		return invalid("view %q: a BPMN diagram, a process or a form shows %s, or its diagram or form alone, and an embed its item whole or its text alone; other blocks have no view", b.View, strings.Join(DiagramViews, ", "))
 	}
 	if b.Checked && b.Kind != TaskItem {
 		return invalid("only a task is checked")
@@ -1579,8 +1585,11 @@ func checkBlock(b Block, self ID) error {
 	if b.Width != 0 && ((b.Kind != Image && b.Kind != Video) || b.Width < 10 || b.Width > 100) {
 		return invalid("width %d: only images and videos have a width, 10 to 100 percent", b.Width)
 	}
-	if b.Kind != Heading && b.Level != 0 || b.Level < 0 || b.Level > 3 {
-		return invalid("level %d: only headings have a level, 1 to 3", b.Level)
+	if b.Kind != Heading && b.Kind != TOC && b.Level != 0 || b.Level < 0 || b.Level > 3 {
+		return invalid("level %d: only headings have a level, and a table of contents the deepest level it lists, 1 to 3", b.Level)
+	}
+	if b.Depth != 0 && (b.Kind != Children || b.Depth != ChildrenAll && (b.Depth < 2 || b.Depth > MaxChildrenDepth)) {
+		return invalid("depth %d: only a list of child pages has a depth, 2 to %d levels or %d for every level; one level is 0", b.Depth, MaxChildrenDepth, ChildrenAll)
 	}
 	if b.Kind != Table && (b.Widths != nil || b.Heights != nil || b.Cells != nil) {
 		return invalid("only a table has column widths, row heights and coloured cells")
@@ -1598,10 +1607,23 @@ func checkBlock(b Block, self ID) error {
 		if m.Start < 0 || m.End <= m.Start || m.End > n {
 			return invalid("mark %s %d-%d is outside the text of %d characters", m.Type, m.Start, m.End, n)
 		}
+		if m.Value != "" && m.Type != MarkColor && m.Type != MarkSize {
+			return invalid("a %s mark has no value", m.Type)
+		}
 		switch m.Type {
 		case MarkBold, MarkItalic, MarkCode, MarkUnderline, MarkStrike, MarkHighlight:
 			if m.Href != "" || m.Ref != "" {
 				return invalid("a %s mark has no target", m.Type)
+			}
+		case MarkColor, MarkSize:
+			values := map[MarkType][]string{MarkColor: TableTones, MarkSize: TextSizes}[m.Type]
+			switch {
+			case b.Kind != Table:
+				return invalid("only the text of a table's cell takes a %s", m.Type)
+			case m.Href != "" || m.Ref != "":
+				return invalid("a %s mark has no target", m.Type)
+			case !slices.Contains(values, m.Value):
+				return invalid("a %s mark is one of %s", m.Type, strings.Join(values, ", "))
 			}
 		case MarkLink:
 			if !SafeHref(m.Href) || m.Ref != "" {
@@ -1696,7 +1718,7 @@ func checkSizes(what string, sizes []int, n, least, most int) error {
 // tableMarks are the formats a table's cell may carry (ADR-0214). A
 // mention and a protected passage are not among them: a table is one
 // block of cells, and a cell is no place for an embed or a placeholder.
-var tableMarks = []MarkType{MarkBold, MarkItalic, MarkCode, MarkLink, MarkUnderline, MarkStrike, MarkHighlight}
+var tableMarks = []MarkType{MarkBold, MarkItalic, MarkCode, MarkLink, MarkUnderline, MarkStrike, MarkHighlight, MarkColor, MarkSize}
 
 // checkCellMarks checks that a table's marks format text inside one cell
 // each: none spans the tab or line break between two cells.

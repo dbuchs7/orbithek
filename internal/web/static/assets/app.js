@@ -40,6 +40,7 @@ import { pdfView } from "./pdfview.js";
 import { attachmentLink, isPdf, onPdf, readerHref } from "./pdfparts.js";
 import { bookmarklet, captureAddress, readCapture } from "./capture.js";
 import { captureView } from "./captureview.js";
+import { childDepthQuery } from "./childpages.js";
 import { isWebLink, webLinkCard } from "./weblink.js";
 import { fieldInput, fieldView, isRich } from "./fields.js";
 import { typeEditor, roomTypesCard } from "./typeeditor.js";
@@ -194,7 +195,7 @@ function exportMenu(item) {
   menu.addEventListener("toggle", async () => {
     if (!menu.open || handbook.dataset.asked) return;
     handbook.dataset.asked = "1";
-    const kids = await childPagesOf(item)().catch(() => []);
+    const kids = await childPagesOf(item)().then((r) => r.items).catch(() => []);
     if (kids.length) handbook.append(
       h("button", { type: "button", class: "link", id: "export-pdf-handbook", text: t("export.pdfHandbook"), onclick: (ev) => { close(ev); printExport(path, true); } }),
       h("a", { href: path + "/export/docx?children=true", id: "export-docx-handbook", download: "", text: t("export.docxHandbook") }),
@@ -645,9 +646,11 @@ function chevronIcon(left) {
 }
 
 // childPagesOf lists an item's child pages for a list of child pages in
-// its body (ADR-0042).
-const childPagesOf = (item) => async () =>
-  (await get(`/api/spaces/${encodeURIComponent(item.space)}/tree?parent=${item.id}`)).items;
+// its body (ADR-0042), to depth levels, -1 for every level: it answers
+// { items, truncated }, each page with its children
+// (ADR-0239).
+const childPagesOf = (item) => async (depth = 1) =>
+  get(`/api/spaces/${encodeURIComponent(item.space)}/tree?parent=${item.id}&depth=${childDepthQuery(depth)}`);
 
 // filesOf serves and stores an item's attachments for its body (ADR-0045),
 // and knows which of them are drawings (ADR-0053).
@@ -708,9 +711,10 @@ const embedDepth = 3;
 // embedLoader shows an embedded item whole (ADR-0106): its kind, state and
 // fields, then its text, read-only, as far as the reader may read it; the
 // API veils what they may not. chain holds the items around it, so an item
-// never shows itself inside itself.
+// never shows itself inside itself. With alone it shows the text alone,
+// or a web link's card (ADR-0237).
 function embedLoader(chain) {
-  return async (ref) => {
+  return async (ref, { alone = false } = {}) => {
     if (chain.includes(ref)) return h("p", { class: "muted pm-embed-note", text: t("embed.cycle") });
     if (chain.length > embedDepth) return h("p", { class: "muted pm-embed-note", text: t("embed.deep") });
     const [{ item }, { embeds }] = await Promise.all([get("/api/items/" + ref), get(`/api/items/${ref}/embeds`)]);
@@ -721,13 +725,27 @@ function embedLoader(chain) {
     const props = Object.entries(item.properties || {}).filter(([, v]) => v !== null && v !== "" && !(Array.isArray(v) && !v.length));
     // An embedded web link is a link card (ADR-0208).
     const card = isWebLink(item) ? webLinkCard(item, (await get(`/api/items/${encodeURIComponent(ref)}/attachments`).catch(() => ({ attachments: [] }))).attachments) : null;
+    // A whole embed numbers its headings as its own item does; the text of
+    // an embed of its text alone is numbered by the text around it
+    // (ADR-draft-numbered-headings).
+    const editor = () => (item.body.length ? createEditor({ blocks: item.body, numbered: Boolean(item.numbered), embeds, editable: false, resolve, childPages: childPagesOf(item), files: filesOf(item),
+      embedContent: embedLoader([...chain, ref]), tasks: taskTools(item, false) }) : null);
+    const text = () => editor()?.element || null;
+    if (alone) {
+      const ed = card ? null : editor();
+      if (!card && !ed) return h("p", { class: "muted pm-embed-note", text: t("embed.noText") });
+      const el = h("div", { class: "pm-embed-content pm-embed-alone", "data-embedded": item.key }, card || ed.element);
+      // The text around it counts this text's headings, pictures and
+      // tables as its own (wovenBlocks in editor.js).
+      if (ed) el.embeddedView = ed.view;
+      return el;
+    }
     return h("div", { class: "pm-embed-content", "data-embedded": item.key },
       h("p", { class: "muted pm-embed-meta" }, t("item.meta", { type: item.type, presence: item.presence }), item.state ? t("item.state", { state: item.state }) : ""),
       item.origin?.system === "git:file" ? h("p", { class: "muted pm-embed-meta pm-embed-source" }, ...fileSource(item.origin)) : null,
       card || (props.length ? h("dl", { class: "pm-embed-props" }, props.flatMap(([k, v]) => [h("dt", { text: k }),
         h("dd", { text: (Array.isArray(v) ? v : [v]).map((x) => (names.has(x) ? names.get(x) : String(x))).join(", ") })])) : null),
-      item.body.length ? createEditor({ blocks: item.body, numbered: Boolean(item.numbered), embeds, editable: false, resolve, childPages: childPagesOf(item), files: filesOf(item),
-        embedContent: embedLoader([...chain, ref]), tasks: taskTools(item, false) }).element : null);
+      text());
   };
 }
 
