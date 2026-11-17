@@ -495,6 +495,8 @@ export default {
   "editor.children": "Unterseiten",
   "editor.childrenNone": "Keine Unterseiten.",
   "editor.childrenDepthChoose": "Tiefe",
+  "editor.childrenDepthHint": "Die Liste zeigt die Seiten unter dieser Seite bis zu dieser Ebene; die Tiefe lässt sich später an der Liste ändern.",
+  "editor.childrenInsert": "Unterseiten einfügen",
   "editor.childrenDepthOne": "1 Ebene",
   "editor.childrenDepth": "{n} Ebenen",
   "editor.childrenDepthAll": "Alle Ebenen",
