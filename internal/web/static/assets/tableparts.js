@@ -203,3 +203,266 @@ export function resized(layout, what, i, px, measured) {
 // text stays readable on it, light or dark.
 export const filledClass = (fill) => (fill ? "pm-cell-fill pm-fill-" + fill : "");
 export const borderClass = (border) => (border ? "pm-cell-border pm-border-" + border : "");
+
+// --- copied and pasted (ADR-draft-a-table-is-copied-and-pasted-with-its-formats) ---
+
+// A table is copied as an HTML table, the header row as th: other
+// programs take it as a table with its formats and column widths, and the
+// editor reads it back whole from data-pm-table, which holds the block's
+// text, marks and layout. A table from elsewhere (a spreadsheet, a word
+// processor, a web page) is read from its cells: their text, the formats
+// its tags, its inline styles and the classes of its stylesheet give, and
+// its columns' widths; colours and row heights are left to the editor.
+
+const ORDER = ["link", "bold", "italic", "underline", "strike", "highlight", "code"];
+const TAGS = { bold: "strong", italic: "em", underline: "u", strike: "s", highlight: "mark", code: "code" };
+
+// segments cuts a cell into runs of text with the marks over all of each.
+function segments(cell) {
+  const chars = Array.from(cell.text);
+  const cuts = [...new Set([0, chars.length, ...cell.marks.flatMap((m) => [m.start, m.end])])].filter((x) => x >= 0 && x <= chars.length).sort((x, y) => x - y);
+  const out = [];
+  for (let i = 0; i + 1 < cuts.length; i++) {
+    if (cuts[i] >= cuts[i + 1]) continue;
+    out.push({ text: chars.slice(cuts[i], cuts[i + 1]).join(""), marks: cell.marks.filter((m) => m.start <= cuts[i] && m.end >= cuts[i + 1]) });
+  }
+  return out;
+}
+
+// tableDOM is the DOM output spec a table block is copied as; safe says
+// whether a link's target may be written (ADR-0014).
+// tableData is what data-pm-table holds of a table block: its text, marks
+// and layout, as JSON. The table the editor draws carries it too, so that
+// a copy the browser makes of a page being read holds it as well.
+export function tableData(attrs) {
+  const rows = cellsOf(attrs.text, attrs.marks || []);
+  const layout = normalLayout({ widths: attrs.widths, heights: attrs.heights, cells: attrs.cells }, rows.length, Math.max(...rows.map((r) => r.length)));
+  return JSON.stringify({ text: attrs.text, marks: attrs.marks || [], ...(layout.widths ? { widths: layout.widths } : {}),
+    ...(layout.heights ? { heights: layout.heights } : {}), ...(layout.cells ? { cells: layout.cells } : {}) });
+}
+
+export function tableDOM(attrs, safe) {
+  const rows = cellsOf(attrs.text, attrs.marks || []);
+  const nCols = Math.max(...rows.map((r) => r.length));
+  const layout = normalLayout({ widths: attrs.widths, heights: attrs.heights, cells: attrs.cells }, rows.length, nCols);
+  const inline = (cell) => segments(cell).map((s) => {
+    let el = s.text;
+    for (const type of [...ORDER].reverse()) {
+      const m = s.marks.find((x) => x.type === type);
+      if (!m) continue;
+      if (type === "link") { if (safe(m.href)) el = ["a", { href: m.href }, el]; } else el = [TAGS[type], el];
+    }
+    return el;
+  });
+  const row = (cells, tag) => ["tr", ...cells.map((c) => [tag, {}, ...inline(c)])];
+  return ["table", { class: "pm-table", "data-pm-table": tableData(attrs) },
+    ...(layout.widths ? [["colgroup", ...layout.widths.map((w) => ["col", w ? { width: String(w) } : {}])]] : []),
+    ["thead", row(rows[0], "th")],
+    ...(rows.length > 1 ? [["tbody", ...rows.slice(1).map((r) => row(r, "td"))]] : [])];
+}
+
+// declarations reads the declarations of a style attribute or rule into a
+// map of lower-case property names to values.
+export function declarations(text) {
+  const out = new Map();
+  for (const part of (text || "").split(";")) {
+    const i = part.indexOf(":");
+    if (i > 0) out.set(part.slice(0, i).trim().toLowerCase(), part.slice(i + 1).trim().toLowerCase());
+  }
+  return out;
+}
+
+// classRules reads the rules of a stylesheet whose selectors are single
+// classes, as spreadsheets copy their cells' formats, into a map of class
+// names to declarations; other rules are left out.
+export function classRules(css) {
+  const rules = new Map();
+  const text = (css || "").replace(/\/\*[\s\S]*?\*\//g, "").replace(/<!--|-->/g, "");
+  for (const [, selectors, body] of text.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    for (const sel of selectors.split(",")) {
+      const m = sel.trim().match(/^(?:[a-z0-9]*)\.([\w-]+)$/i);
+      if (m) rules.set(m[1], new Map([...(rules.get(m[1]) || []), ...declarations(body)]));
+    }
+  }
+  return rules;
+}
+
+// styled turns on or off the formats a set of declarations states.
+function styled(marks, decl) {
+  const weight = decl.get("font-weight");
+  if (weight) {
+    if (/^(bold|bolder|[6-9]00)/.test(weight)) marks.bold = true;
+    else if (/^(normal|lighter|[1-5]00)/.test(weight)) delete marks.bold;
+  }
+  const style = decl.get("font-style");
+  if (style) {
+    if (/^(italic|oblique)/.test(style)) marks.italic = true;
+    else if (/^normal/.test(style)) delete marks.italic;
+  }
+  const deco = decl.get("text-decoration-line") || decl.get("text-decoration");
+  if (deco) {
+    if (/\bnone\b/.test(deco)) { delete marks.underline; delete marks.strike; }
+    if (/\bunderline\b/.test(deco)) marks.underline = true;
+    if (/\bline-through\b/.test(deco)) marks.strike = true;
+  }
+}
+
+const tagOf = (el) => (el.nodeName || el.tagName || "").toLowerCase();
+const kids = (el) => Array.from(el.childNodes || []);
+const SKIP = new Set(["style", "script", "template", "head", "title", "meta", "link", "colgroup", "caption"]);
+const BREAKS = new Set(["br", "p", "div", "li", "ul", "ol", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "table", "tr", "td", "th"]);
+
+// marksAt is the formats of an element's text: those it inherits, those
+// its tag gives and those its classes and inline style state, the inline
+// style last.
+function marksAt(el, inherited, rules, safe) {
+  const marks = { ...inherited };
+  const tag = tagOf(el);
+  if (tag === "b" || tag === "strong") marks.bold = true;
+  if (tag === "i" || tag === "em" || tag === "cite") marks.italic = true;
+  if (tag === "u" || tag === "ins") marks.underline = true;
+  if (tag === "s" || tag === "strike" || tag === "del") marks.strike = true;
+  if (tag === "mark") marks.highlight = true;
+  if (["code", "kbd", "samp", "tt"].includes(tag)) marks.code = true;
+  if (tag === "a") {
+    const href = el.getAttribute?.("href");
+    if (href && safe(href)) marks.link = href;
+  }
+  for (const cls of (el.getAttribute?.("class") || "").split(/\s+/)) if (rules.has(cls)) styled(marks, rules.get(cls));
+  styled(marks, declarations(el.getAttribute?.("style")));
+  return marks;
+}
+
+// cellFrom reads a cell's text with its formats; white space is collapsed
+// as a browser shows it, and line breaks and paragraphs become spaces.
+function cellFrom(td, rules, safe) {
+  const chars = []; // { ch, marks }
+  const walk = (el, marks) => {
+    for (const n of kids(el)) {
+      if (n.nodeType === 3) {
+        for (const ch of (n.nodeValue ?? n.textContent ?? "").replace(/[\s ]+/g, " ")) chars.push({ ch, marks });
+      } else if (n.nodeType === 1) {
+        const tag = tagOf(n);
+        if (SKIP.has(tag)) continue;
+        const brk = BREAKS.has(tag);
+        if (brk) chars.push({ ch: " ", marks: {} });
+        walk(n, marksAt(n, marks, rules, safe));
+        if (brk) chars.push({ ch: " ", marks: {} });
+      }
+    }
+  };
+  walk(td, marksAt(td, {}, rules, safe));
+  const kept = [];
+  for (const c of chars) {
+    if (c.ch === " " && (kept.length === 0 || kept[kept.length - 1].ch === " ")) continue;
+    kept.push(c);
+  }
+  while (kept.length && kept[kept.length - 1].ch === " ") kept.pop();
+  const marks = [];
+  const open = new Map(); // key -> mark
+  kept.forEach((c, i) => {
+    for (const [type, v] of Object.entries(c.marks)) {
+      const key = type === "link" ? "link " + v : type;
+      const m = open.get(key);
+      if (m && m.end === i) m.end = i + 1;
+      else { const next = { type, start: i, end: i + 1, ...(type === "link" ? { href: v } : {}) }; open.set(key, next); marks.push(next); }
+    }
+  });
+  return { text: kept.map((c) => c.ch).join(""), marks: normalMarks(marks.filter((m) => MARKS.includes(m.type))) };
+}
+
+// rowsOf lists a table's rows: those of its head, bodies and foot and
+// those directly in it, never those of a table inside a cell.
+function rowsOf(table) {
+  const out = [];
+  for (const n of kids(table)) {
+    const tag = tagOf(n);
+    if (tag === "tr") out.push(n);
+    else if (tag === "thead" || tag === "tbody" || tag === "tfoot") out.push(...kids(n).filter((r) => tagOf(r) === "tr"));
+  }
+  return out;
+}
+
+// span is a cell's colspan or rowspan, at least 1 and at most max.
+const span = (el, name, max) => Math.max(1, Math.min(max, parseInt(el.getAttribute?.(name) || "1", 10) || 1));
+
+// MAX_COLUMNS bounds the columns a pasted table may make, so that a
+// wrong span cannot make a table no one can use.
+const MAX_COLUMNS = 100;
+
+// fromData reads the block a table copied from the editor carries; it is
+// checked as anything pasted is: formats a cell may carry, inside one
+// cell, links the model allows, a layout the model accepts.
+function fromData(json, safe) {
+  let d;
+  try { d = JSON.parse(json); } catch { return null; }
+  if (!d || typeof d.text !== "string") return null;
+  const marks = (Array.isArray(d.marks) ? d.marks : []).filter((m) => m && MARKS.includes(m.type) && Number.isInteger(m.start) && Number.isInteger(m.end)
+    && (m.type !== "link" || (typeof m.href === "string" && safe(m.href))))
+    .map((m) => ({ type: m.type, start: m.start, end: m.end, ...(m.type === "link" ? { href: m.href } : {}) }));
+  const rows = cellsOf(d.text, marks);
+  return { rows, layout: { widths: d.widths, heights: d.heights, cells: d.cells } };
+}
+
+// colWidth is a column's width in CSS pixels as its width attribute or
+// its inline style states it, or 0.
+function colWidth(col) {
+  const w = (col.getAttribute?.("width") || declarations(col.getAttribute?.("style")).get("width") || "").trim();
+  return /^\d+(\.\d+)?(px)?$/.test(w) ? Number(w.replace("px", "")) : 0;
+}
+
+// fromCells reads a table's cells into a grid, a spanned place an empty
+// cell, and its columns' widths from its column groups.
+function fromCells(table, safe, rules) {
+  const trs = rowsOf(table);
+  const grid = trs.map(() => []);
+  trs.forEach((tr, r) => {
+    let c = 0;
+    for (const td of kids(tr).filter((n) => ["td", "th"].includes(tagOf(n)))) {
+      while (grid[r][c]) c++;
+      if (c >= MAX_COLUMNS) break;
+      const cs = span(td, "colspan", MAX_COLUMNS - c), rs = span(td, "rowspan", trs.length - r);
+      const cell = cellFrom(td, rules, safe);
+      for (let i = 0; i < rs; i++) for (let j = 0; j < cs; j++) grid[r + i][c + j] = i === 0 && j === 0 ? cell : { text: "", marks: [] };
+      c += cs;
+    }
+  });
+  const widths = [];
+  for (const group of kids(table).filter((n) => tagOf(n) === "colgroup")) {
+    const cols = kids(group).filter((n) => tagOf(n) === "col");
+    for (const col of cols.length ? cols : [group]) for (let i = 0; i < span(col, "span", MAX_COLUMNS); i++) widths.push(colWidth(col));
+  }
+  return { rows: grid.filter((row) => row.length > 0), layout: { widths: widths.length ? widths : null } };
+}
+
+// padded is a grid with every row as long as the longest, at most
+// MAX_COLUMNS, its cells without tabs and line breaks.
+function padded(rows) {
+  const nCols = Math.min(MAX_COLUMNS, Math.max(0, ...rows.map((r) => r.length)));
+  return rows.map((row) => Array.from({ length: nCols }, (_, c) => (row[c] ? cleanCell(row[c]) : { text: "", marks: [] })));
+}
+
+// shown is a grid's text as a browser shows it, white space collapsed.
+const shown = (rows) => JSON.stringify(rows.map((row) => row.map((c) => c.text.replace(/[\s\u00a0]+/g, " ").trim())));
+
+// tableFromDOM reads a pasted HTML table into the attributes of a table
+// block { text, marks, widths, heights, cells }, or null when it has no
+// cells. A table copied from the editor brings its block along, which is
+// taken when its cells show the same text: a copy of a part of a table,
+// or one another program changed, is read from its cells. rules are the
+// class rules of the pasted stylesheet (classRules), safe says whether a
+// link's target may be kept (ADR-0014).
+export function tableFromDOM(table, safe, rules = new Map()) {
+  const read = fromCells(table, safe, rules);
+  let rows = padded(read.rows), layout = read.layout;
+  const data = table.getAttribute?.("data-pm-table");
+  const copied = data ? fromData(data, safe) : null;
+  if (copied) {
+    const whole = padded(copied.rows);
+    if (shown(whole) === shown(rows)) ({ rows, layout } = { rows: whole, layout: copied.layout });
+  }
+  if (rows.length === 0 || rows[0].length === 0) return null;
+  const { text, marks } = joinCells(rows);
+  const l = normalLayout(layout, rows.length, rows[0].length);
+  return { text, marks, widths: l.widths, heights: l.heights, cells: l.cells };
+}

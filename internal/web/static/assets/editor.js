@@ -25,7 +25,7 @@ import { AUDIO_TYPES } from "./recorderparts.js";
 import { assist } from "./assist.js";
 import { markdownToBlocks, pastesAsMarkdown } from "./markdown.js";
 import {
-  TONES as TABLE_TONES, MARKS as TABLE_MARKS, cellsOf, joinCells, normalMarks, normalLayout, colourOf, rangeOf, inRange, paint, formatCells,
+  TONES as TABLE_TONES, MARKS as TABLE_MARKS, cellsOf, joinCells, normalMarks, normalLayout, colourOf, rangeOf, inRange, paint, formatCells, tableData, tableDOM, tableFromDOM, classRules,
   insertRow, insertColumn, removeRow, removeColumn, resized, filledClass, borderClass,
 } from "./tableparts.js";
 import { viewBlock, pickView, viewsReady } from "./itemview.js";
@@ -45,6 +45,13 @@ const alignClass = (n) => (n.attrs.align ? "pm-align-" + n.attrs.align : null);
 const pastedAlign = (dom) => {
   const a = dom.style?.textAlign || dom.getAttribute("align") || "";
   return ["center", "right", "justify"].includes(a) ? a : "";
+};
+
+// pastedRules reads the class rules of the stylesheets pasted with a
+// table, by which spreadsheets copy their cells' formats.
+const pastedRules = (dom) => {
+  const root = dom.getRootNode?.() || dom.ownerDocument;
+  return classRules([...(root?.querySelectorAll?.("style") || [])].map((s) => s.textContent).join("\n"));
 };
 
 export const schema = new Schema({
@@ -69,10 +76,15 @@ export const schema = new Schema({
     // A horizontal rule between blocks (ADR-0059).
     divider: { group: "block", atom: true, selectable: true, attrs: bid, parseDOM: [{ tag: "hr" }], toDOM: () => ["hr", { class: "pm-divider" }] },
     // A table's cells may be formatted, its columns and rows sized and its
-    // cells coloured (ADR-0214).
+    // cells coloured (ADR-0214). It is copied as an HTML table that holds
+    // the block, and a table pasted from elsewhere is read from its cells
+    // (ADR-draft-a-table-is-copied-and-pasted-with-its-formats); as plain
+    // text it is its cells separated by tabs and line breaks.
     table: { group: "block", atom: true, selectable: true,
       attrs: { ...bid, text: { default: "\t\n\t" }, marks: { default: [] }, widths: { default: null }, heights: { default: null }, cells: { default: null } },
-      toDOM: (n) => ["pre", { class: "pm-table" }, n.attrs.text] },
+      parseDOM: [{ tag: "table", getAttrs: (dom) => tableFromDOM(dom, isSafeLink, pastedRules(dom)) || false }],
+      toDOM: (n) => tableDOM(n.attrs, isSafeLink),
+      leafText: (n) => n.attrs.text },
     toc: { group: "block", atom: true, selectable: true, attrs: bid, toDOM: () => ["div", { class: "pm-toc" }] },
     // Lists of the body's pictures and tables (ADR-0119), computed like a
     // table of contents.
@@ -818,7 +830,9 @@ function tableView(node, view, getPos) {
     if (anchor && (anchor.r >= rows.length || anchor.c >= rows[0].length)) anchor = head = null;
     if (head && (head.r >= rows.length || head.c >= rows[0].length)) head = null;
     const colgroup = h("colgroup", {}, rows[0].map(() => h("col")));
-    const table = h("table", {}, colgroup);
+    // The block goes along when the browser copies the table of a page
+    // being read (ADR-draft-a-table-is-copied-and-pasted-with-its-formats).
+    const table = h("table", { "data-pm-table": tableData(node.attrs) }, colgroup);
     if (layout.widths) {
       table.classList.add("pm-table-sized");
       [...colgroup.children].forEach((col, j) => { if (layout.widths[j]) col.style.width = layout.widths[j] + "px"; });

@@ -1522,6 +1522,30 @@ function webSource() {
     await page.click("#edit-done"); // read: the same blocks, shown, with no stray text
     await page.waitForSelector("#body.reading .pm-table td:has-text('db1')");
     check(!(await page.textContent("#body")).includes("null"), "the page for reading shows no stray text");
+    // A table copied from the page being read is pasted with its formats,
+    // sizes and colours (ADR-draft-a-table-is-copied-and-pasted-with-its-formats).
+    // The browser's copy carries inline styles of its own, which the UI's
+    // policy refuses to apply while the paste is read; it reports each.
+    await page.evaluate(() => {
+      const range = document.createRange();
+      range.selectNode(document.querySelector("#body .pm-table table"));
+      getSelection().removeAllRanges();
+      getSelection().addRange(range);
+    });
+    await page.keyboard.press("Control+c");
+    await page.click("#edit");
+    await page.waitForSelector("#body.editing .ProseMirror");
+    await page.click("#body .pm-panel");
+    await page.keyboard.press("End");
+    expectedConsole = /Applying inline style violates/;
+    await page.keyboard.press("Control+v");
+    await page.waitForFunction(() => document.querySelectorAll("#body .pm-table table.pm-table-sized td.pm-fill-yellow strong").length === 2);
+    expectedConsole = null;
+    check(await page.locator("#body .pm-table th.pm-border-red").count() === 4, "the pasted table kept its borders");
+    await page.keyboard.press("Control+z");
+    await page.waitForFunction(() => document.querySelectorAll("#body .pm-table").length === 1);
+    await page.click("#edit-done");
+    await page.waitForSelector("#body.reading .pm-table td:has-text('db1')");
 
     step("versions: the changes of a body show word by word, and an earlier body comes back");
     // Two versions written through the API, so their content does not
