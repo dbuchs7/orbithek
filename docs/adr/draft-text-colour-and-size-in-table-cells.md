@@ -37,7 +37,7 @@ Chosen option: **1**, because it gives cells a colour and a size of their text w
 
 - **Marks:** `Mark.Value` holds a mark's value. A mark `color` colours its text in one of `item.TableTones`; a mark `size` sizes it as one of `item.TextSizes`: `small`, `large` or `larger`, the text's own size being no mark. Both lie inside one cell as every mark of a table does (ADR-0214), may overlap each other and the other formats, and a stretch of text has at most one of each where the editor writes them; the model accepts no value on another mark.
 - **Only in tables:** a `color` or `size` mark in any other block is refused. The editor's schema for a cell holds them; the body's own schema does not, so text pasted into a paragraph cannot carry them.
-- **Format:** codec version 63 adds `Mark.Value`, sealed with the body; versions 1 to 62 are still read, their cells' text in the text's own colour and size.
+- **Format:** codec version 64 adds `Mark.Value`, sealed with the body; versions 1 to 63 are still read, their cells' text in the text's own colour and size.
 - **API and agents:** a mark carries `value`; the MCP description of the body names the two marks (ADR-0012).
 - **Editor:** the table's tools gain **Text colour** and **Size**. They act on the selected text of the cell being edited, on all of its text when nothing is selected, or on all of each chosen cell (ADR-0236); the selection of a cell's text is kept as a list takes the focus. The UI mixes a tone into the theme's text colour, so it stays readable in a light and a dark theme; a size is a class, relative to the text around.
 - **Copy and paste (ADR-0236):** colour and size travel with a copied table and copied cells, as classes of their own and in the block a copy carries; a table from elsewhere brings neither.
@@ -47,7 +47,7 @@ Chosen option: **1**, because it gives cells a colour and a size of their text w
 
 - **Positive:** a cell's text is coloured and sized as asked, alike in both themes, in Word and in PDF; validation knows every value.
 - **Negative / trade-offs accepted:** no colour outside the eight tones and no size outside three; yellow text reads weakly on a light surface.
-- **Negative / trade-offs accepted:** every data directory written by this version needs it or a newer one (codec version 63).
+- **Negative / trade-offs accepted:** every data directory written by this version needs it or a newer one (codec version 64).
 - **Follow-ups / risks to watch:** the open questions above; the version comparison (ADR-0043) still compares a table's text only.
 
 ## Pros and cons of the options

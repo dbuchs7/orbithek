@@ -190,11 +190,16 @@ import (
 //     hand, and the kind AttachmentTurned with attachment, sealed
 //     (ADR-0231). Versions 1 to 61 are still
 //     read; their pictures are shown as their files tell.
-//   - 63: a mark may carry Value, and a table's cell the marks color, its
+//   - 63: a table of contents may carry Level, the deepest level of the
+//     headings it lists, and an embed View, text for its item's text
+//     alone (ADR-0237). Versions 1 to 62
+//     are still read; their tables of contents list every level and their
+//     embeds show their items whole.
+//   - 64: a mark may carry Value, and a table's cell the marks color, its
 //     text in a tone, and size, its text in a size, sealed with the body
-//     (ADR-draft-text-colour-and-size-in-table-cells). Versions 1 to 62
+//     (ADR-draft-text-colour-and-size-in-table-cells). Versions 1 to 63
 //     are still read; their cells' text has the text's own colour and size.
-const CodecVersion = 63
+const CodecVersion = 64
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

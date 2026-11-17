@@ -99,12 +99,17 @@ Das Menü **Einfügen…** fügt Blöcke nach dem Cursor ein:
 - **Bild**, **Video**, **Zeichnung**, ein Bild **Aus dem Album** oder ein **Kopiertes Bild**;
 - **Tondatei** und **Ton aufnehmen**: ein Ton, der im Text abgespielt wird (siehe unten);
 - **Eintrag einbetten…**: zeigt einen anderen Eintrag vollständig im Text;
+- **Inhalt eines Eintrags einbetten…**: zeigt nur den Text des anderen Eintrags, ohne Titel, Typ, Status und Felder, sodass er sich wie ein Teil des eigenen Textes liest;
 - **Neue Aufgabe…** (wird unter der Seite angelegt und als Link oder vollständig gezeigt) und **Aufgabenliste…** (alle Aufgaben mit einem Label oder das Ergebnis einer Abfrage);
 - **Ansicht von Einträgen…**: die Einträge eines Typs als Tabelle, Galerie oder Liste, gruppiert nach einem Feld (siehe *Ansichten von Einträgen*);
 - **Markdown einfügen…** und **Markdown-Datei aus einem Repository…** (sofern eingeschaltet);
 - BPMN-Diagramme sowie Prozesse, Formulare, Entscheidungen, Startformulare und Architekturskizzen einer Prozess-Engine (siehe *Prozess-Engines*).
 
 Bilder lassen sich links oder rechts mit Text daneben oder zentriert platzieren und durch Ziehen in der Grösse ändern; eine Bildunterschrift nummeriert sie im Bildverzeichnis.
+
+**Inhaltsverzeichnis** fragt zuerst, wie tief es die Überschriften listet: unter **Tiefe** **Nur Überschrift 1**, **Überschriften 1 bis 2** oder **Überschriften 1 bis 3 (alle)**. Beim Bearbeiten steht dieselbe Wahl am Inhaltsverzeichnis selbst und ändert es jederzeit. Die Exporte nach Word, PDF und Markdown listen dieselben Überschriften.
+
+Ein eingebetteter Eintrag zeigt entweder **Den ganzen Eintrag** oder **Nur den Inhalt**; beim Bearbeiten wechselt die Wahl **Zeigt** an der Einbettung zwischen beiden, und eine schmale Zeile nennt den Eintrag, dessen Inhalt gezeigt wird. Lesende sehen den Inhalt dann genau so, als wäre er direkt in der Seite geschrieben: ohne Rahmen und Namen, mit denselben Abständen und Schriften, und Inhaltsverzeichnis, Bildverzeichnis und Tabellenverzeichnis der Seite zählen seine Überschriften, Bilder und Tabellen wie die eigenen. Der Inhalt bleibt der des anderen Eintrags: Er ist immer aktuell, lässt sich nicht an Ort und Stelle bearbeiten und zeigt allen nur, was sie lesen dürfen. Wer den Eintrag nicht lesen darf, sieht wie bei einer vollständigen Einbettung, dass dort ein Eintrag verborgen ist. Die Exporte schreiben den Inhalt ebenso allein.
 
 Ein Ton wird im Text mit dem Player des Browsers und einer Beschriftung abgespielt, etwa eine Aufnahme, die man in eine Seite, einen Task oder die Tagesnotiz unter **Heute** spricht. **Tondatei** lädt eine Datei hoch (WebM, Ogg, M4A, MP3 oder WAV); **Ton aufnehmen** öffnet ein Fenster, das sofort aufnimmt, **Beenden und anhängen** setzt die Aufnahme an der Stelle des Cursors in den Text, **Abbrechen** verwirft sie. Die Aufnahme ist zugleich eine Datei des Eintrags. **Entfernen** nimmt den Ton aus dem Text. Spielt ihn keine andere Stelle im Text ab, fragt der Editor, ob auch die Datei gelöscht werden soll, damit keine Aufnahme unbemerkt zurückbleibt: **Entfernen und Datei löschen** vernichtet sie und lässt sich nicht rückgängig machen, **Entfernen, Datei behalten** lässt sie bei den Dateien des Eintrags, **Abbrechen** lässt den Ton im Text. Ein Word-Dokument nennt den Ton, eine als PDF gedruckte Seite spielt ihn ab, und Markdown verlinkt ihn mit seinem Namen. Nichts wird transkribiert.
 
@@ -297,6 +302,8 @@ Karten werden mit **Neue Karte** hinzugefügt, für ihre Details geöffnet und m
 ### Roadmap und Gantt-Diagramm
 
 Die **Roadmap** zeigt Einträge mit Datumsfeldern auf einer Zeitachse: als **Roadmap nach Label** in Bahnen oder als **Gantt-Diagramm** mit einer Zeile je Eintrag. Man wählt Raum, Typen, die Felder **Beginn** und **Ende**, die Labels und den **Massstab** (Wochen, Monate, Quartale). Einträge, die auf unerledigte Einträge warten, sind markiert.
+
+**Ab Monat** und **Bis Monat** beschränken das Diagramm auf einen Zeitraum, etwa ein Jahr. Die Achse beginnt oder endet dann dort; Einträge, die ganz ausserhalb liegen, werden weggelassen und unter dem Diagramm gezählt. Ein Balken, der über den Zeitraum hinausreicht, etwa eine jahresübergreifende Aufgabe, wird am Rand abgeschnitten und läuft dort aus, damit er nicht zu enden scheint; sein Tooltip nennt weiterhin seine eigenen Daten. **Ganzen Zeitraum zeigen** hebt die Beschränkung wieder auf.
 
 **Exportieren** speichert das Diagramm als Bild, als **PNG** oder **JPEG**, mit allen Zeilen und der ganzen Zeitachse, auch dem, was ausserhalb des sichtbaren Bereichs liegt. Das Bild zeigt, was man sieht, im aktuellen Erscheinungsbild, und ist nach der Ansicht und dem Tag benannt, etwa *Gantt-Diagramm PLAT 2026-11-12.png*. Ein Diagramm, das für ein Bild zu gross ist, das der Browser zeichnen kann, wird mit einem Hinweis abgelehnt; man schränkt es nach Labels, Typ oder Raum ein oder wählt einen gröberen Massstab.
 

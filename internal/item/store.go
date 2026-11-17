@@ -1553,8 +1553,14 @@ func checkBlock(b Block, self ID) error {
 	if b.Kind != ItemsView && (b.Layout != "" || b.ItemType != "" || b.Space != "" || b.Group != "" || b.Columns != nil || b.Sort != "") {
 		return invalid("only a view names a layout, a type, a room, a grouping, columns and a sort")
 	}
-	if b.View != "" && ((b.Kind != BPMN && b.Kind != Process && b.Kind != Form) || !slices.Contains(DiagramViews, b.View)) {
-		return invalid("view %q: a BPMN diagram, a process or a form shows %s, or its diagram or form alone; other blocks have no view", b.View, strings.Join(DiagramViews, ", "))
+	switch {
+	case b.View == "":
+	case b.Kind == Embed:
+		if !slices.Contains(EmbedViews, b.View) {
+			return invalid("view %q: an embed shows its item whole, or %s, its text alone", b.View, strings.Join(EmbedViews, ", "))
+		}
+	case b.Kind != BPMN && b.Kind != Process && b.Kind != Form || !slices.Contains(DiagramViews, b.View):
+		return invalid("view %q: a BPMN diagram, a process or a form shows %s, or its diagram or form alone, and an embed its item whole or its text alone; other blocks have no view", b.View, strings.Join(DiagramViews, ", "))
 	}
 	if b.Checked && b.Kind != TaskItem {
 		return invalid("only a task is checked")
@@ -1579,8 +1585,8 @@ func checkBlock(b Block, self ID) error {
 	if b.Width != 0 && ((b.Kind != Image && b.Kind != Video) || b.Width < 10 || b.Width > 100) {
 		return invalid("width %d: only images and videos have a width, 10 to 100 percent", b.Width)
 	}
-	if b.Kind != Heading && b.Level != 0 || b.Level < 0 || b.Level > 3 {
-		return invalid("level %d: only headings have a level, 1 to 3", b.Level)
+	if b.Kind != Heading && b.Kind != TOC && b.Level != 0 || b.Level < 0 || b.Level > 3 {
+		return invalid("level %d: only headings have a level, and a table of contents the deepest level it lists, 1 to 3", b.Level)
 	}
 	if b.Kind != Table && (b.Widths != nil || b.Heights != nil || b.Cells != nil) {
 		return invalid("only a table has column widths, row heights and coloured cells")
