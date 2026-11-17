@@ -301,8 +301,9 @@ export function liveBody({ ref, embeds, resolve, childPages, files, extra = [], 
   // normal is a block as blockFromNode would produce it, so JSON compares.
   function normal(b) {
     const out = { kind: b.kind, text: b.text ?? "" };
-    if (b.kind === "embed") return { kind: "embed", ref: b.ref };
-    if (["toc", "figures", "tables", "children", "divider"].includes(b.kind)) return { kind: b.kind };
+    if (b.kind === "embed") return { kind: "embed", ref: b.ref, ...(b.view ? { view: b.view } : {}) };
+    if (b.kind === "toc") return { kind: "toc", ...(b.level ? { level: b.level } : {}) };
+    if (["figures", "tables", "children", "divider"].includes(b.kind)) return { kind: b.kind };
     if (b.kind === "bpmn") return { kind: "bpmn", text: b.text ?? "", ref: b.ref, ...(b.view ? { view: b.view } : {}) };
     if (b.kind === "audio") return { kind: "audio", text: b.text ?? "", ref: b.ref };
     if (b.kind === "process") return { kind: "process", text: b.text ?? "", engine: b.engine, process: b.process, ...(b.view ? { view: b.view } : {}) };

@@ -99,12 +99,17 @@ The menu **Insert…** adds blocks after the cursor:
 - **Image**, **Video**, **Drawing**, a picture **From the album** or a **Copied picture**;
 - **Sound file** and **Record sound**: a sound that plays in the text (see below);
 - **Embed an item…**: shows another item whole inside the text;
+- **Embed an item's content…**: shows only the other item's text, without its title, type, state and fields, so that it reads as part of your text;
 - **New task…** (created below the page and shown as a link or whole) and **Task list…** (every task with a label, or the result of a query);
 - **View of items…**: the items of a type as a table, a gallery or a list, grouped by a field (see *Views of items*);
 - **Paste Markdown…** and **Markdown file from a repository…** (if enabled);
 - BPMN diagrams, and processes, forms, decisions, start forms and architecture sketches of a process engine (see *Process engines*).
 
 Pictures can be placed left or right with text beside them, centred, and resized by dragging; a caption numbers them in the list of figures.
+
+**Table of contents** first asks how deep it lists the headings: under **Depth**, **Heading 1 only**, **Headings 1 to 2** or **Headings 1 to 3 (all)**. While you edit, the same choice stands on the table of contents itself and changes it at any time. Word, PDF and Markdown exports list the same headings.
+
+An embedded item shows either **The whole item** or **The content only**; while you edit, the choice **Shows** on the embed switches between them, and a slim line names the item whose content is shown. Readers then see the content exactly as if it were written in the page: no frame, no name, the same spacing and fonts, and a table of contents, a list of figures and a list of tables of the page count its headings, pictures and tables as the page's own. The content stays the other item's: it is always current, cannot be edited in place, and shows only what each reader may read. A reader who may not read the item sees that an item is hidden there, as with a whole embed. Exports write the content alone in the same way.
 
 A sound plays in the text with the browser's own player and a caption, such as a recording spoken into a page, a task or **Today**'s daily note. **Sound file** uploads one (WebM, Ogg, M4A, MP3 or WAV); **Record sound** opens a window that records at once, and **Stop and attach** puts the recording into the text where the cursor is, while **Cancel** throws it away. The recording is also a file of the item. **Remove** takes the sound out of the text. If no other place in the text plays it, the editor asks whether to delete its file too, so that no recording stays behind unseen: **Remove and delete the file** destroys it and cannot be undone, **Remove, keep the file** leaves it in the item's files, **Cancel** keeps the sound in the text. A Word file names the sound, a page printed as PDF plays it, and Markdown links it by its name. Nothing is transcribed.
 
