@@ -148,7 +148,7 @@ type liveOpJSON struct {
 	After string    `json:"after"`
 	Block blockJSON `json:"block"`
 	// Numbered is what the operation "number" sets
-	// (ADR-draft-numbered-headings).
+	// (ADR-0241).
 	Numbered bool `json:"numbered"`
 }
 

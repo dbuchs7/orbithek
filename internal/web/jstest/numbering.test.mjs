@@ -1,4 +1,4 @@
-// The numbers of numbered headings (ADR-draft-numbered-headings), held to
+// The numbers of numbered headings (ADR-0241), held to
 // the cases the server's exports are tested with.
 import { test } from "node:test";
 import assert from "node:assert/strict";

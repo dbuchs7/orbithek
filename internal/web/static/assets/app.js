@@ -730,7 +730,7 @@ function embedLoader(chain) {
     const card = isWebLink(item) ? webLinkCard(item, (await get(`/api/items/${encodeURIComponent(ref)}/attachments`).catch(() => ({ attachments: [] }))).attachments) : null;
     // A whole embed numbers its headings as its own item does; the text of
     // an embed of its text alone is numbered by the text around it
-    // (ADR-draft-numbered-headings).
+    // (ADR-0241).
     const editor = () => (item.body.length ? createEditor({ blocks: item.body, numbered: Boolean(item.numbered), embeds, editable: false, resolve, childPages: childPagesOf(item), files: filesOf(item),
       embedContent: embedLoader([...chain, ref]), tasks: taskTools(item, false) }) : null);
     const text = () => editor()?.element || null;
@@ -5785,7 +5785,7 @@ function historySection(path, events, live, versions = true) {
     const i = bodies.indexOf(e);
     const [before, after] = await Promise.all([i > 0 ? version(bodies[i - 1].seq) : { body: [] }, version(e.seq)]);
     // Numbering the headings changes no block; the version says so
-    // (ADR-draft-numbered-headings).
+    // (ADR-0241).
     const renumbered = Boolean(before.numbered) !== Boolean(after.numbered);
     mount(shown, h("section", { class: "card" },
       h("h3", { text: t("version.title", { when: when(e.at), who: person(e.actor) }) }),

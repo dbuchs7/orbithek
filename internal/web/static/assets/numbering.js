@@ -1,4 +1,4 @@
-// Numbered headings (ADR-draft-numbered-headings): a body that is numbered
+// Numbered headings (ADR-0241): a body that is numbered
 // shows the number of each heading by its level — 1, 1.1, 1.1.1 — in the
 // text and in its tables of contents. The numbers are computed when shown,
 // never stored, exactly as the server's item.HeadingNumbers computes them
