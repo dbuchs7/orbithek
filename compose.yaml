@@ -39,6 +39,14 @@ services:
       # (ADR-0242).
       # OT_TLS_CERT: /certs/wiki.crt
       # OT_TLS_KEY: /certs/wiki.key
+      # With certificates: an address inside the container that answers
+      # plain HTTP by redirecting to HTTPS; publish it as port 80 under
+      # ports, e.g. "80:8081" (ADR-draft-hsts-and-redirect).
+      # OT_REDIRECT_ADDR: ":8081"
+      # Seconds for which browsers that visited over HTTPS keep asking
+      # over HTTPS. It binds the whole host name on every port: read
+      # README.md first, start small, and set 0 before taking TLS away.
+      # OT_HSTS_MAX_AGE: "300"
       # The server's local time, for scheduled clean-ups (ADR-0105).
       # TZ: Europe/Zurich
       # Another account to own the files of /data (ADR-0038).

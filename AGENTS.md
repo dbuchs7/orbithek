@@ -102,6 +102,7 @@ it is a view, not a stored object (ADR-0036).
 Behind a reverse proxy, forwarded headers count only from the addresses in `OT_TRUSTED_PROXIES` (ADR-0037).
 Without a reverse proxy the server terminates TLS itself: `serve -tls-cert` and `-tls-key`, or `OT_TLS_CERT` and `OT_TLS_KEY`, name pairs of PEM files;
 the name a client asks for (SNI) chooses the certificate, the first pair answers every other name, a changed pair is read again without a restart, and `healthcheck` trusts exactly those certificates on the loopback address (`internal/certs`, ADR-0242).
+On request the server sends readers of plain HTTP to HTTPS and keeps them there: `serve -redirect-addr` (`OT_REDIRECT_ADDR`) answers GET and HEAD on a second listener with a temporary redirect to the host asked for and refuses every other method, and `OT_HSTS_MAX_AGE`, a number of seconds, sends `Strict-Transport-Security` with every answer to a request that arrived over HTTPS, never with subdomains or preload (`RedirectToHTTPS`, `WithHSTS` in `internal/server/transport.go`; proposed, ADR-draft-hsts-and-redirect).
 The container image starts as root only to hand the data directory to `OT_RUN_AS` and gives root up before it opens anything (`internal/privdrop`, ADR-0038).
 Space administrators may check a space's web links on demand when `OT_LINKCHECK=on`;
 the checker never calls a non-public address (`internal/linkcheck`, ADR-0039).
