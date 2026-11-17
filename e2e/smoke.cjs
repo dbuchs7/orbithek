@@ -1537,6 +1537,8 @@ function webSource() {
     check(await page.locator("#body .pm-table th.pm-border-red").count() === 2, "both chosen header cells kept their border");
     check(await page.locator("#body .pm-table table.pm-table-sized col").evaluateAll((cols) => cols.every((c) => c.style.width.endsWith("px"))),
       "the columns kept their widths");
+    check(await page.locator("#body .pm-table tr:last-child > td").evaluateAll((cells) => cells.every((td) => getComputedStyle(td).borderBottomStyle !== "none"
+      && parseFloat(getComputedStyle(td).borderBottomWidth) >= 1)), "the cells of the last row keep their lower border");
     check(await page.locator("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-text").evaluate((el) => el.scrollWidth <= el.clientWidth + 1 && el.getClientRects().length > 0
       && el.closest("td").getBoundingClientRect().height > 40), "the long text wraps within its cell");
     await page.waitForSelector("#body .pm-toc button:has-text('Prepare')");
@@ -1593,8 +1595,15 @@ function webSource() {
       && await page.locator("#body .pm-table .pm-cell-chosen").count() === 2, "the column is pasted from the cell on, the pasted cells chosen");
     await page.keyboard.press("Control+z");
     await page.waitForFunction(() => document.querySelectorAll("#body .pm-table tr").length === 2);
+    // The text of a cell takes a colour and a size from the table's tools
+    // (ADR-0238).
+    await page.click("#body .pm-table tr:nth-child(2) td:first-child");
+    await page.waitForSelector("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-editor");
+    await page.selectOption("#body .pm-table-text-colour", "purple");
+    await page.selectOption("#body .pm-table-text-size", "large");
+    await page.waitForSelector("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-editor:has(.pm-text-purple):has(.pm-size-large):has-text('db1')");
     await page.click("#edit-done");
-    await page.waitForSelector("#body.reading .pm-table td:has-text('db1')");
+    await page.waitForSelector("#body.reading .pm-table td:has(.pm-text-purple):has(.pm-size-large):has-text('db1')"); // either may wrap the other
 
     step("versions: the changes of a body show word by word, and an earlier body comes back");
     // Two versions written through the API, so their content does not

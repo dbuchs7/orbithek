@@ -106,3 +106,33 @@ func TestTablesAreFormattedSizedAndColoured(t *testing.T) {
 		}
 	}
 }
+
+// TestTheTextOfACellTakesAColourAndASize: a cell's text is coloured in a
+// tone and sized in a named size, inside one cell, and nowhere but in a
+// table (ADR-0238).
+func TestTheTextOfACellTakesAColourAndASize(t *testing.T) {
+	s := setup(t)
+	page := mustItem(t)(s.Create("anna", NewItem{Space: "PLAT", Type: "page", Title: "Hosts"}))
+	table := Block{Kind: Table, Text: "Host\tRole\ndb1\tprimary", Marks: []Mark{{Type: MarkColor, Start: 0, End: 4, Value: "red"},
+		{Type: MarkSize, Start: 0, End: 4, Value: "larger"}, {Type: MarkSize, Start: 14, End: 21, Value: "small"}}}
+	noErr(t, s.CommitBody("anna", page.ID, Doc{Blocks: []Block{table}}))
+	cells := TableCells(mustItem(t)(s.Get(page.ID)).Body.Blocks[0])
+	if len(cells[0][0].Marks) != 2 || cells[1][1].Marks[0] != (Mark{Type: MarkSize, Start: 0, End: 7, Value: "small"}) {
+		t.Fatalf("cells = %+v", cells)
+	}
+	bad := map[string]Block{
+		"a colour not a tone":       {Kind: Table, Text: "a\tb", Marks: []Mark{{Type: MarkColor, Start: 0, End: 1, Value: "#ff0000"}}},
+		"a size not named":          {Kind: Table, Text: "a\tb", Marks: []Mark{{Type: MarkSize, Start: 0, End: 1, Value: "14pt"}}},
+		"a colour without a tone":   {Kind: Table, Text: "a\tb", Marks: []Mark{{Type: MarkColor, Start: 0, End: 1}}},
+		"a colour across two cells": {Kind: Table, Text: "a\tb", Marks: []Mark{{Type: MarkColor, Start: 0, End: 3, Value: "red"}}},
+		"a colour with a target":    {Kind: Table, Text: "a\tb", Marks: []Mark{{Type: MarkColor, Start: 0, End: 1, Value: "red", Href: "https://x.org"}}},
+		"a value on a bold mark":    {Kind: Table, Text: "a\tb", Marks: []Mark{{Type: MarkBold, Start: 0, End: 1, Value: "red"}}},
+		"a colour in a paragraph":   {Kind: Paragraph, Text: "red", Marks: []Mark{{Type: MarkColor, Start: 0, End: 3, Value: "red"}}},
+		"a size in a heading":       {Kind: Heading, Level: 1, Text: "big", Marks: []Mark{{Type: MarkSize, Start: 0, End: 3, Value: "larger"}}},
+	}
+	for name, b := range bad {
+		if err := s.CommitBody("anna", page.ID, Doc{Blocks: []Block{b}}); !errors.Is(err, ErrValidation) {
+			t.Errorf("%s: err = %v, want ErrValidation", name, err)
+		}
+	}
+}

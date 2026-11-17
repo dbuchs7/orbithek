@@ -51,7 +51,7 @@ type tool struct {
 const blockFormat = "A body is a list of blocks, each an object with kind and text. Kinds: paragraph, " +
 	"heading (level 1-3), bullet and ordered (one block per list item), task (checked true or false), quote, code, " +
 	"panel (tone info, note, warning, tip or error), table (text holds rows separated by \\n and cells by \\t; the first row " +
-	"is the header; marks format text inside one cell each; widths: a width in pixels per column, 24-2000 or 0 for what its text takes; heights: a least height in pixels per row, 16-1000 or 0; " +
+	"is the header; marks format text inside one cell each, and there also {\"type\": \"color\", \"value\": a tone} and {\"type\": \"size\", \"value\": small, large or larger}; widths: a width in pixels per column, 24-2000 or 0 for what its text takes; heights: a least height in pixels per row, 16-1000 or 0; " +
 	"cells: a list of {\"row\": 0, \"col\": 1, \"fill\": a tone, \"border\": a tone} in the order of rows and columns, counted from 0 with the header row, " +
 	"each tone one of blue, green, yellow, orange, red, purple, teal, gray; text that does not fit wraps), toc, children and divider (no text: a table of contents, a list of child pages, a horizontal rule; a toc may have level 1-3, the deepest level of the headings it lists, or none for every level), embed (ref: an item ID; view text shows the item's text alone, without its title, kind, state and fields, or none for the item whole), " +
 	"image (ref: an attachment ID of the item, text the caption, width 10-100 percent of the column or absent for its own size, align left or right to let text flow beside it, or center), " +

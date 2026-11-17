@@ -25,7 +25,7 @@ import { AUDIO_TYPES } from "./recorderparts.js";
 import { assist } from "./assist.js";
 import { markdownToBlocks, pastesAsMarkdown } from "./markdown.js";
 import {
-  TONES as TABLE_TONES, MARKS as TABLE_MARKS, cellsOf, joinCells, normalMarks, normalLayout, colourOf, rangeOf, inRange, paint, formatCells, tableData, tableDOM, tableFromDOM, classRules, subTable, tableAttrs, pasteCells, clearCells, gridFromText, manyCells, specHTML,
+  TONES as TABLE_TONES, MARKS as TABLE_MARKS, cellsOf, joinCells, normalMarks, normalLayout, colourOf, rangeOf, inRange, paint, formatCells, styleCells, styleOf, SIZES as TEXT_SIZES, tableData, tableDOM, tableFromDOM, classRules, subTable, tableAttrs, pasteCells, clearCells, gridFromText, manyCells, specHTML,
   insertRow, insertColumn, removeRow, removeColumn, resized, filledClass, borderClass,
 } from "./tableparts.js";
 import { viewBlock, pickView, viewsReady } from "./itemview.js";
@@ -575,15 +575,30 @@ function taskView(node, view, getPos) {
 
 // A cell is edited in an editor of its own, one at a time, whose schema
 // holds text with the formats a cell may carry.
+// A colour and a size of a cell's text are marks of the cell's schema
+// alone: the body's other blocks take neither
+// (ADR-0238).
+const valued = (type, prefix, values) => ({
+  attrs: { value: {} },
+  parseDOM: [{ tag: "span", getAttrs: (dom) => {
+    const v = [...dom.classList].map((c) => c.startsWith(prefix) && c.slice(prefix.length)).find((x) => x && values.includes(x));
+    return v ? { value: v } : false;
+  } }],
+  toDOM: (m) => ["span", { class: prefix + m.attrs.value }, 0],
+});
 const cellSchema = new Schema({
   nodes: { doc: { content: "text*" }, text: {} },
-  marks: Object.fromEntries(TABLE_MARKS.map((m) => [m, schema.spec.marks.get(m)])),
+  marks: Object.fromEntries(TABLE_MARKS.map((m) => [m, m === "color" ? valued(m, "pm-text-", TABLE_TONES)
+    : m === "size" ? valued(m, "pm-size-", TEXT_SIZES) : schema.spec.marks.get(m)])),
 });
 let cellAids = null;
 
 // toneName names a tone of a coloured cell, as a kanban names its tones.
 const toneName = (x) => ({ blue: t("tone.blue"), green: t("tone.green"), yellow: t("tone.yellow"), orange: t("tone.orange"),
   red: t("tone.red"), purple: t("tone.purple"), teal: t("tone.teal"), gray: t("tone.gray") })[x] || x;
+
+// sizeName names a size of a cell's text.
+const sizeName = (x) => ({ small: t("editor.tableSize.small"), large: t("editor.tableSize.large"), larger: t("editor.tableSize.larger") })[x] || x;
 
 // cellDoc is a cell's editor document; cellOf reads a cell back.
 function cellDoc(cell) {
@@ -593,7 +608,8 @@ function cellDoc(cell) {
   for (let i = 0; i + 1 < cuts.length; i++) {
     if (cuts[i] >= cuts[i + 1]) continue;
     const marks = cell.marks.filter((m) => m.start <= cuts[i] && m.end >= cuts[i + 1] && cellSchema.marks[m.type])
-      .map((m) => (m.type === "link" ? cellSchema.marks.link.create({ href: m.href }) : cellSchema.marks[m.type].create()));
+      .map((m) => (m.type === "link" ? cellSchema.marks.link.create({ href: m.href })
+        : m.type === "color" || m.type === "size" ? cellSchema.marks[m.type].create({ value: m.value }) : cellSchema.marks[m.type].create()));
     nodes.push(cellSchema.text(chars.slice(cuts[i], cuts[i + 1]).join(""), marks));
   }
   return cellSchema.nodes.doc.create(null, nodes);
@@ -605,7 +621,8 @@ function cellOf(doc) {
   doc.forEach((n) => {
     const start = cp(text);
     text += n.text;
-    for (const m of n.marks) marks.push({ type: m.type.name, start, end: cp(text), ...(m.type.name === "link" ? { href: m.attrs.href } : {}) });
+    for (const m of n.marks) marks.push({ type: m.type.name, start, end: cp(text), ...(m.type.name === "link" ? { href: m.attrs.href } : {}),
+      ...(m.attrs.value ? { value: m.attrs.value } : {}) });
   });
   return { text, marks: normalMarks(marks) };
 }
@@ -622,6 +639,8 @@ function cellContent(cell) {
       const tag = { bold: "strong", italic: "em", underline: "u", strike: "s", highlight: "mark", code: "code" }[m.type];
       if (tag) el = h(tag, {}, el);
       else if (m.type === "link" && isSafeLink(m.href)) el = h("a", { href: safeHref(m.href), rel: "noopener noreferrer nofollow", target: "_blank" }, el);
+      else if (m.type === "color" && TABLE_TONES.includes(m.value)) el = h("span", { class: "pm-text-" + m.value }, el);
+      else if (m.type === "size" && TEXT_SIZES.includes(m.value)) el = h("span", { class: "pm-size-" + m.value }, el);
     }
     out.push(el);
   }
@@ -893,6 +912,9 @@ function tableView(node, view, getPos) {
     const here = rg ? colourOf(layout, rg.r0, rg.c0) : { fill: "", border: "" };
     tools.querySelector(".pm-table-fill").value = here.fill;
     tools.querySelector(".pm-table-border").value = here.border;
+    const cell = rg ? read().rows[rg.r0]?.[rg.c0] : null;
+    tools.querySelector(".pm-table-text-colour").value = cell ? styleOf(cell, "color") : "";
+    tools.querySelector(".pm-table-text-size").value = cell ? styleOf(cell, "size") : "";
   };
   const toolbar = (rows, layout) => {
     const nRows = rows.length, nCols = rows[0].length;
@@ -922,6 +944,52 @@ function tableView(node, view, getPos) {
       });
       return h("label", { class: "pm-table-tone" }, h("span", { text: label }), select);
     };
+    // textStyle colours or sizes the selected text of the cell being
+    // edited, all of it when nothing is selected, or all of each chosen
+    // cell (ADR-0238).
+    const textStyle = (cls, label, type, options) => {
+      const select = h("select", { class: cls, title: label, "aria-label": label, "data-needs-cell": "" },
+        ...options.map(([value, text]) => h("option", { value, text })));
+      // The list takes the focus from the cell being edited, and with it
+      // the selection of its text: it is kept as the list is reached.
+      let kept = null;
+      // selectionOf reads the selection of the cell being edited from the
+      // page, which the editor takes in a moment later.
+      const selectionOf = (inner) => {
+        const sel = getSelection();
+        if (sel?.rangeCount && inner.dom.contains(sel.anchorNode) && inner.dom.contains(sel.focusNode)) {
+          const a = inner.posAtDOM(sel.anchorNode, sel.anchorOffset), b = inner.posAtDOM(sel.focusNode, sel.focusOffset);
+          return { from: Math.min(a, b), to: Math.max(a, b) };
+        }
+        return { from: inner.state.selection.from, to: inner.state.selection.to };
+      };
+      const keep = () => { kept = active && !head ? { view: active.view, ...selectionOf(active.view) } : null; };
+      select.addEventListener("pointerdown", keep);
+      select.addEventListener("focus", () => { if (!kept || kept.view !== active?.view) keep(); });
+      select.addEventListener("blur", () => { kept = null; });
+      select.addEventListener("change", () => {
+        if (!editable()) return showTools();
+        const value = select.value;
+        if (active && !head) {
+          const inner = active.view;
+          const { state } = inner;
+          let { from, to } = kept?.view === inner ? kept : selectionOf(inner);
+          kept = null;
+          if (from === to) { from = 0; to = state.doc.content.size; }
+          let tr = state.tr.removeMark(from, to, cellSchema.marks[type]);
+          if (value) tr = tr.addMark(from, to, cellSchema.marks[type].create({ value }));
+          inner.dispatch(tr);
+          inner.focus();
+          return;
+        }
+        const rg = range();
+        if (!rg) return showTools();
+        close();
+        const { rows: rs, layout: l } = read();
+        commit(styleCells(rs, rg, type, value), l);
+      });
+      return h("label", { class: "pm-table-tone" }, h("span", { text: label }), select);
+    };
     return h("div", { class: "pm-table-tools" },
       h("span", { class: "pm-group pm-table-choose" },
         h("span", { class: "muted", text: t("editor.tableChoose") }),
@@ -936,6 +1004,10 @@ function tableView(node, view, getPos) {
         button(h("mark", { text: "ab" }), t("editor.highlight"), format("highlight"), true, "pm-table-format"),
         button("</>", t("editor.code"), format("code"), true, "pm-table-format"),
         button(t("editor.link"), t("editor.tableLink"), format("link"), true, "pm-table-format")),
+      textStyle("pm-table-text-colour", t("editor.tableTextColour"), "color",
+        [["", t("editor.tableNoColour")], ...TABLE_TONES.map((x) => [x, toneName(x)])]),
+      textStyle("pm-table-text-size", t("editor.tableTextSize"), "size",
+        [["", t("editor.tableSizeNormal")], ...TEXT_SIZES.map((x) => [x, sizeName(x)])]),
       tone("pm-table-fill", t("editor.tableFill"), "fill"),
       tone("pm-table-border", t("editor.tableBorder"), "border"),
       h("span", { class: "pm-group" },
