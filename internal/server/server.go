@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -468,9 +469,14 @@ func securityHeaders(h http.Handler) http.Handler {
 const ShutdownTimeout = 10 * time.Second
 
 // Serve answers requests on ln until ctx ends, then shuts down gracefully.
-func Serve(ctx context.Context, ln net.Listener, h http.Handler, log *slog.Logger) error {
+//
+// With a TLS configuration the server terminates TLS itself on ln
+// (ADR-0242), speaking HTTP/2 with clients that offer
+// it; with none it answers in the clear, as behind a reverse proxy.
+func Serve(ctx context.Context, ln net.Listener, h http.Handler, tlsConfig *tls.Config, log *slog.Logger) error {
 	srv := &http.Server{
 		Handler:           h,
+		TLSConfig:         tlsConfig,
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       60 * time.Second,
 		WriteTimeout:      60 * time.Second,
@@ -478,8 +484,16 @@ func Serve(ctx context.Context, ln net.Listener, h http.Handler, log *slog.Logge
 		ErrorLog:          slog.NewLogLogger(log.Handler(), slog.LevelWarn),
 	}
 	errc := make(chan error, 1)
-	go func() { errc <- srv.Serve(ln) }()
-	log.Info("serving", "addr", ln.Addr().String())
+	go func() {
+		if tlsConfig == nil {
+			errc <- srv.Serve(ln)
+			return
+		}
+		// The certificates come from the configuration, which reads them
+		// again when they change; the file names here would be read once.
+		errc <- srv.ServeTLS(ln, "", "")
+	}()
+	log.Info("serving", "addr", ln.Addr().String(), "tls", tlsConfig != nil)
 
 	select {
 	case err := <-errc:

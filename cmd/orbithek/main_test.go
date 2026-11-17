@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -21,6 +23,8 @@ import (
 	"github.com/dbuchs7/orbithek/internal/audit"
 	"github.com/dbuchs7/orbithek/internal/backup"
 	"github.com/dbuchs7/orbithek/internal/budget"
+	"github.com/dbuchs7/orbithek/internal/certs"
+	"github.com/dbuchs7/orbithek/internal/certs/certstest"
 	"github.com/dbuchs7/orbithek/internal/item"
 	"github.com/dbuchs7/orbithek/internal/storage"
 	"github.com/dbuchs7/orbithek/internal/wal"
@@ -120,6 +124,169 @@ func TestServeAndHealthcheck(t *testing.T) {
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("serve did not stop after cancellation")
+	}
+}
+
+// waitHealthy runs healthcheck with args until the server started in the
+// test answers; done yields serve's exit code should it stop first.
+func waitHealthy(t *testing.T, done <-chan int, errOut *bytes.Buffer, args ...string) {
+	t.Helper()
+	deadline := time.Now().Add(60 * time.Second)
+	for {
+		code, _, probeErr := runCmd(t, context.Background(), append([]string{"healthcheck", "-timeout", "500ms"}, args...)...)
+		if code == 0 {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("healthcheck never succeeded against the running server: %s", probeErr)
+		}
+		select {
+		case code := <-done:
+			t.Fatalf("serve exited with %d before it answered:\n%s", code, errOut.String())
+		default:
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+// TestServeTerminatesTLS: with -tls-cert and -tls-key the server answers
+// HTTPS itself, presents the certificate made for the name asked for, and
+// the liveness probe, given the same certificate files, reaches it on the
+// loopback address no certificate names (ADR-0242).
+func TestServeTerminatesTLS(t *testing.T) {
+	t.Setenv("OT_ADMIN_PASSWORD", "a given password!")
+	dir := t.TempDir()
+	wikiCert, wikiKey := certstest.Write(t, dir, "wiki", "wiki.example.org")
+	docsCert, docsKey := certstest.Write(t, dir, "docs", "docs.example.com")
+	addr := freeAddr(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan int, 1)
+	var errOut bytes.Buffer
+	go func() {
+		done <- run(ctx, []string{"serve", "-addr", addr, "-data-dir", t.TempDir(),
+			"-tls-cert", wikiCert, "-tls-key", wikiKey, "-tls-cert", docsCert, "-tls-key", docsKey}, io.Discard, &errOut)
+	}()
+	url := "https://" + addr + "/healthz"
+	waitHealthy(t, done, &errOut, "-url", url, "-tls-cert", wikiCert+","+docsCert)
+
+	for name, certFile := range map[string]string{"wiki.example.org": wikiCert, "docs.example.com": docsCert} {
+		leaves, err := certs.Leaves([]string{certFile})
+		if err != nil {
+			t.Fatal(err)
+		}
+		pool := x509.NewCertPool()
+		pool.AddCert(leaves[0])
+		client := &http.Client{Timeout: 10 * time.Second, Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{RootCAs: pool, ServerName: name},
+		}}
+		res, err := client.Get(url)
+		if err != nil {
+			t.Errorf("%s: %v", name, err)
+			continue
+		}
+		res.Body.Close()
+		if res.StatusCode != http.StatusOK {
+			t.Errorf("%s: status %s", name, res.Status)
+		}
+	}
+
+	// The probe trusts the configured certificates, not the system's: without
+	// the files it refuses the server, and in the clear it gets no answer.
+	if code, _, _ := runCmd(t, context.Background(), "healthcheck", "-url", url, "-timeout", "2s"); code != 1 {
+		t.Errorf("healthcheck without the certificate files: exit %d, want 1", code)
+	}
+	if code, _, _ := runCmd(t, context.Background(), "healthcheck", "-url", "http://"+addr+"/healthz", "-timeout", "2s"); code != 1 {
+		t.Errorf("healthcheck in the clear: exit %d, want 1", code)
+	}
+
+	cancel()
+	select {
+	case code := <-done:
+		if code != 0 {
+			t.Errorf("serve exited %d after cancellation, want 0", code)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("serve did not stop after cancellation")
+	}
+	out := errOut.String()
+	for _, want := range []string{"tls=true", "names=wiki.example.org", "names=docs.example.com"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("the log lacks %q:\n%s", want, out)
+		}
+	}
+}
+
+// TestTLSFromTheEnvironment: OT_TLS_CERT and OT_TLS_KEY name the files where
+// no flag does, which is how the container image is configured, and the
+// liveness probe of the image, run without arguments, then asks over TLS on
+// the port the image serves.
+func TestTLSFromTheEnvironment(t *testing.T) {
+	t.Setenv("OT_ADMIN_PASSWORD", "a given password!")
+	dir := t.TempDir()
+	certFile, keyFile := certstest.Write(t, dir, "wiki", "wiki.example.org")
+	t.Setenv("OT_TLS_CERT", certFile)
+	t.Setenv("OT_TLS_KEY", keyFile)
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan int, 1)
+	var errOut bytes.Buffer
+	addr := freeAddr(t)
+	go func() {
+		done <- run(ctx, []string{"serve", "-addr", addr, "-data-dir", t.TempDir()}, io.Discard, &errOut)
+	}()
+	waitHealthy(t, done, &errOut, "-url", "https://"+addr+"/healthz")
+	cancel()
+	if code := <-done; code != 0 {
+		t.Errorf("serve exited %d after cancellation, want 0", code)
+	}
+
+	if got := probeURL("", true); got != "https://127.0.0.1:8080/healthz" {
+		t.Errorf("the probe's address with certificates is %q", got)
+	}
+	if got := probeURL("", false); got != "http://127.0.0.1:8080/healthz" {
+		t.Errorf("the probe's address without certificates is %q", got)
+	}
+	if got := probeURL("http://127.0.0.1:9/healthz", true); got != "http://127.0.0.1:9/healthz" {
+		t.Errorf("a given address was replaced by %q", got)
+	}
+
+	// Flags replace the environment as a whole.
+	other, otherKey := certstest.Write(t, dir, "other", "other.example.org")
+	ctx, cancel = context.WithCancel(context.Background())
+	cancel()
+	code, _, out := runCmd(t, ctx, "serve", "-addr", freeAddr(t), "-data-dir", t.TempDir(), "-tls-cert", other, "-tls-key", otherKey)
+	if code != 0 || !strings.Contains(out, "names=other.example.org") || strings.Contains(out, "names=wiki.example.org") {
+		t.Errorf("flags beside the environment: exit %d, stderr %q", code, out)
+	}
+}
+
+func TestTLSConfiguration(t *testing.T) {
+	t.Setenv("OT_ADMIN_PASSWORD", "a given password!")
+	dir := t.TempDir()
+	certFile, keyFile := certstest.Write(t, dir, "wiki", "wiki.example.org")
+	_, otherKey := certstest.Write(t, dir, "other", "other.example.org")
+	for _, c := range []struct {
+		name string
+		args []string
+		code int
+		want string
+	}{
+		{"a certificate without a key", []string{"-tls-cert", certFile}, 2, "name a key for every certificate"},
+		{"a key without a certificate", []string{"-tls-key", keyFile}, 2, "name a key for every certificate"},
+		{"a key of another certificate", []string{"-tls-cert", certFile, "-tls-key", otherKey}, 1, "cannot serve TLS"},
+		{"a missing file", []string{"-tls-cert", filepath.Join(dir, "none.crt"), "-tls-key", keyFile}, 1, "cannot serve TLS"},
+	} {
+		dataDir := filepath.Join(t.TempDir(), "data")
+		args := append([]string{"serve", "-addr", freeAddr(t), "-data-dir", dataDir}, c.args...)
+		code, _, errOut := runCmd(t, context.Background(), args...)
+		if code != c.code || !strings.Contains(errOut, c.want) {
+			t.Errorf("%s: exit %d, want %d; stderr %q lacks %q", c.name, code, c.code, errOut, c.want)
+		}
+		if _, err := os.Stat(dataDir); err == nil {
+			t.Errorf("%s: the data directory was created before the certificates were refused", c.name)
+		}
+	}
+	if code, _, errOut := runCmd(t, context.Background(), "healthcheck", "-url", "https://127.0.0.1:9/healthz", "-tls-cert", filepath.Join(dir, "none.crt")); code != 2 || !strings.Contains(errOut, "healthcheck:") {
+		t.Errorf("healthcheck with a missing certificate file: exit %d, stderr %q", code, errOut)
 	}
 }
 
