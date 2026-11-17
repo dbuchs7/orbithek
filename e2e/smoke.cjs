@@ -3612,6 +3612,33 @@ function webSource() {
       const jpeg = await saved("jpeg");
       check(jpeg.name.endsWith(".jpg") && jpeg.bytes[0] === 0xff && jpeg.bytes[1] === 0xd8, "the JPEG is a JPEG");
     }
+    step("roadmap period: a chosen period bounds the axis, and a bar that goes on beyond it fades out at that edge");
+    {
+      const long = await page.evaluate(async () => {
+        const send = (method, path, body) => fetch(path, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json());
+        const { item } = await send("POST", "/api/items", { space: "PLAT", type: "epic", title: "Across the year", properties: { start: "2030-11-01", due: "2031-02-15" } });
+        await send("PUT", `/api/items/${item.id}/labels`, { labels: ["plan-long"] });
+        return item.key;
+      });
+      const bar = `#roadmap-chart .tl-bar[data-key='${long}']`;
+      await page.goto(base + "/#/roadmap?labels=plan-long");
+      await page.waitForSelector(`${bar}:not(.tl-cut-before):not(.tl-cut-after)`);
+      check(await page.locator("#roadmap-period-clear").count() === 0, "without a period the chart spans every bar, none of them cut");
+      await page.fill("#roadmap-to", "2030-12");
+      await page.waitForFunction(() => location.hash.includes("to=2030-12"));
+      await page.waitForSelector(`${bar}.tl-cut-after:not(.tl-cut-before)`);
+      check((await page.getAttribute(bar, "aria-label")).includes("ends after the period shown"), "a cut bar says so in words");
+      check((await page.locator(bar).evaluate((el) => getComputedStyle(el).maskImage || getComputedStyle(el).webkitMaskImage)).includes("linear-gradient"), "a cut bar fades out");
+      await page.goto(base + "/#/roadmap?labels=plan-long&from=2030-12&to=2030-12");
+      await page.waitForSelector(`${bar}.tl-cut-before.tl-cut-after`);
+      check((await page.getAttribute(bar, "aria-label")).includes("2031"), "a cut bar names its own days, not the period's");
+      await page.goto(base + "/#/roadmap?labels=plan-long&from=2032-01");
+      await page.waitForSelector("#roadmap-empty");
+      await page.click("#roadmap-period-clear");
+      await page.waitForFunction(() => !location.hash.includes("from="));
+      await page.waitForSelector(`${bar}:not(.tl-cut-before):not(.tl-cut-after)`);
+    }
+
     // The tasks page and a room lead there too.
     await page.goto(base + "/#/tasks");
     await page.click("#tab-roadmap");

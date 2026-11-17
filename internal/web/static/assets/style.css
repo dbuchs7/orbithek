@@ -2454,6 +2454,21 @@ dialog.note-dialog { max-height: calc(100dvh - 32px); overflow: auto; }
 .tl-milestone:hover, .tl-milestone:focus-visible { background: none; color: var(--accent); }
 .tl-milestone.tl-done::before { background: var(--success-soft); border-color: var(--success); }
 .tl-milestone.tl-waiting::before, .tl-inverted::before { background: var(--surface); border-style: dashed; border-color: var(--warning); }
+/* A bar the chart cuts, at the edge of a chosen period, fades out at that
+   edge with square corners, so it does not seem to end there; its text
+   starts after a fade at its beginning. The mask fades border, fill and
+   text alike, in every look. */
+.tl-bar { --tl-fade: min(56px, 40%); }
+.tl-cut-after { border-top-right-radius: 0; border-bottom-right-radius: 0;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - var(--tl-fade)), transparent); mask-image: linear-gradient(to right, #000 calc(100% - var(--tl-fade)), transparent); }
+.tl-cut-before { border-top-left-radius: 0; border-bottom-left-radius: 0; padding-left: var(--tl-fade);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--tl-fade)); mask-image: linear-gradient(to right, transparent, #000 var(--tl-fade)); }
+.tl-cut-before.tl-cut-after {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--tl-fade), #000 calc(100% - var(--tl-fade)), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 var(--tl-fade), #000 calc(100% - var(--tl-fade)), transparent); }
+.tl-period { align-items: flex-end; }
+.tl-controls .tl-period .field { flex: 0 1 12rem; }
+.tl-period-hint { flex: 1 1 100%; margin: 0; }
 .tl-legend { font-size: 12px; }
 .tl-actions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-4); }
 .tl-actions + .tl-scroll { margin-top: var(--space-2); }

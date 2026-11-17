@@ -3,7 +3,8 @@
 // each item becomes, the frame of time they span at a scale, the ticks of
 // that frame, the lanes of a roadmap by label with their bars packed into
 // rows, the rows of a Gantt chart, where a bar stands in percent of the
-// frame, and the view's state as an address.
+// frame, the period a view may be narrowed to with the bars cut to it,
+// and the view's state as an address.
 //
 // Days are whole days counted from 1970-01-01 in UTC, so no time zone and
 // no daylight saving time moves a bar. The API answers a date field
@@ -162,17 +163,52 @@ function nextUnit(day, scale) {
 // frame is the span widened to whole units of the scale, with one unit of
 // room on either side, and its ticks: one per unit, each with the parts a
 // label needs. to is the first day after the frame. today widens nothing;
-// it only says whether the line of today falls in the frame.
-export function frame(s, scale, today) {
-  const from = unitStart(unitStart(s.from, scale) - 1, scale);
+// it only says whether the line of today falls in the frame. exact names
+// the sides a chosen period bounds (periodDays): there the frame ends with the
+// unit the span ends in, without room, so a bar cut there reaches the edge.
+export function frame(s, scale, today, exact = {}) {
+  const first = unitStart(s.from, scale);
+  const from = exact.from ? first : unitStart(first - 1, scale);
   let to = nextUnit(unitStart(s.to, scale), scale);
-  to = nextUnit(to, scale);
+  if (!exact.to) to = nextUnit(to, scale);
   const ticks = [];
   for (let at = from; at < to; at = nextUnit(at, scale)) {
     const p = parts(at);
     ticks.push({ day: at, end: nextUnit(at, scale), year: p.year, month: p.month, quarter: Math.floor(p.month / 3) + 1, week: isoWeek(at).week });
   }
   return { from, to, days: to - from, scale, ticks, today: today !== undefined && today >= from && today < to ? today : null };
+}
+
+// MONTH is how a bound of a chosen period is written: a month, YYYY-MM.
+const MONTH = /^(\d{4})-(0[1-9]|1[0-2])$/;
+
+// periodDays is the period chosen by the address's from and to, months as
+// YYYY-MM: from its first day to its last, both included. A side not
+// chosen is null, bounded by the bars alone. Without either it is null:
+// the chart spans every bar, as before.
+export function periodDays(state) {
+  const read = (v) => {
+    const m = MONTH.exec(v || "");
+    return m ? { year: Number(m[1]), month: Number(m[2]) - 1 } : null;
+  };
+  const f = read(state.from), t = read(state.to);
+  if (!f && !t) return null;
+  return { from: f ? dayOf(f.year, f.month) : null, to: t ? dayOf(t.year, t.month + 1) - 1 : null };
+}
+
+// clip cuts the bars to a stretch of days, from and to both included,
+// either of them null for no bound. A bar wholly outside is left out; one
+// that begins before or ends after is cut there and says so with before
+// and after, keeping its own days as begins and ends for its words.
+export function clip(bars, from, to) {
+  const out = [];
+  for (const bar of bars) {
+    if ((to !== null && bar.from > to) || (from !== null && bar.to < from)) continue;
+    const before = from !== null && bar.from < from;
+    const after = to !== null && bar.to > to;
+    out.push({ ...bar, from: before ? from : bar.from, to: after ? to : bar.to, before, after, begins: bar.from, ends: bar.to });
+  }
+  return out;
 }
 
 // place is where a stretch of days stands in a frame, in percent of its
@@ -253,7 +289,15 @@ export function readState(params) {
     labels: [...new Set(list("labels"))],
     start: get("start"),
     end: get("end"),
+    ...period(get("from"), get("to")),
   };
+}
+
+// period keeps the months of a chosen period that are months, the earlier
+// one first.
+function period(from, to) {
+  const f = MONTH.test(from) ? from : "", t = MONTH.test(to) ? to : "";
+  return f && t && f > t ? { from: t, to: f } : { from: f, to: t };
 }
 
 // address writes the view's state as its address, leaving out what holds
@@ -261,7 +305,7 @@ export function readState(params) {
 export function address(state) {
   const p = new URLSearchParams();
   if (state.mode && state.mode !== "roadmap") p.set("mode", state.mode);
-  for (const k of ["space", "type", "start", "end", "scale"]) if (state[k]) p.set(k, state[k]);
+  for (const k of ["space", "type", "start", "end", "scale", "from", "to"]) if (state[k]) p.set(k, state[k]);
   if (state.labels?.length) p.set("labels", state.labels.join(","));
   const q = p.toString();
   return "#/roadmap" + (q ? "?" + q : "");
