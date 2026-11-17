@@ -1470,9 +1470,17 @@ function webSource() {
     await page.waitForSelector("dialog.pm-children-dialog #pm-children-depth");
     check(await page.inputValue("dialog.pm-children-dialog #pm-children-depth") === "0", "the dialog offers one level first");
     await page.selectOption("dialog.pm-children-dialog #pm-children-depth", { label: "2 levels" });
+    // It asks for the types too, every one ticked at first (ADR-0240).
+    await page.waitForSelector("dialog.pm-children-dialog #pm-children-types input[value=task]:checked");
+    await page.uncheck("dialog.pm-children-dialog #pm-children-types input[value=task]");
     await page.click("dialog.pm-children-dialog #pm-children-ok");
-    await page.waitForSelector("#body .pm-children li:has(> a:text-is('Upgrade')) > ul a:text-is('Created from New, renamed')");
+    await page.waitForSelector("#body .pm-children .pm-children-types-toggle:text-is('without task')");
     check(await page.locator("#body .pm-children select.pm-children-depth").inputValue() === "2", "the list keeps the depth chosen on inserting");
+    check(await page.locator("#body .pm-children a:text-is('Created from New, renamed')").count() === 0, "the list leaves out the types left unticked on inserting");
+    await page.click("#body .pm-children .pm-children-types-toggle");
+    await page.check("#body .pm-children .pm-children-types input[value=task]");
+    await page.click("#body .pm-children .pm-children-types-toggle"); // closed again
+    await page.waitForSelector("#body .pm-children li:has(> a:text-is('Upgrade')) > ul a:text-is('Created from New, renamed')");
     // The choice on the list changes it.
     await page.selectOption("#body .pm-children select.pm-children-depth", { label: "1 level" });
     await page.waitForSelector("#body .pm-children ul a:text-is('Upgrade')");

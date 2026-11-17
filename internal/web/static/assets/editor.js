@@ -2177,24 +2177,32 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     dialog.showModal();
     depth.focus();
   };
-  // childrenDialog asks how deep a new list of child pages goes, then
-  // places it, as a table of contents asks for its depth
-  // (ADR-0237, ADR-0239).
+  // childrenDialog asks how deep a new list of child pages goes and which
+  // types it shows, then places it, as a table of contents asks for its
+  // depth (ADR-0237, ADR-0239, ADR-0240). Every type of the room is
+  // ticked at first; one left unticked is left out.
   const childrenDialog = () => {
     status.textContent = "";
     const depth = h("select", { id: "pm-children-depth", class: "pm-children-depth" },
       childDepths.map((d) => h("option", { value: String(d), text: childDepthName(d), selected: d === 0 })));
+    const types = h("div", { id: "pm-children-types", class: "pm-children-types", role: "group", "aria-labelledby": "pm-children-types-label" });
+    Promise.resolve(childPages?.types ? childPages.types() : []).catch(() => []).then((names) => {
+      types.replaceChildren(...[...new Set(names)].sort().map((name) => h("label", { class: "check" },
+        h("input", { type: "checkbox", value: name, checked: true }), " ", name)));
+    });
     const dialog = h("dialog", { class: "pm-dialog pm-children-dialog", "aria-labelledby": "pm-children-title" });
     const close = () => { if (dialog.open) dialog.close(); dialog.remove(); view.focus(); };
     const place = (ev) => {
       ev.preventDefault();
       const chosen = Number(depth.value);
+      const hidden = [...types.querySelectorAll("input:not(:checked)")].map((i) => i.value).sort();
       close();
-      insertBlock(schema.nodes.children.create({ depth: chosen }));
+      insertBlock(schema.nodes.children.create({ depth: chosen, hideTypes: hidden.length ? hidden : null }));
     };
     dialog.append(h("form", { method: "dialog", onsubmit: place },
       h("h2", { id: "pm-children-title", text: t("editor.childrenInsert") }),
       h("label", { for: "pm-children-depth", text: t("editor.childrenDepthChoose") }), depth,
+      h("p", { id: "pm-children-types-label", text: t("editor.childrenTypesShown") }), types,
       h("p", { class: "muted", text: t("editor.childrenDepthHint") }),
       h("div", { class: "pm-dialog-actions" }, h("button", { type: "submit", class: "primary", id: "pm-children-ok", text: t("editor.tocPlace") }),
         h("button", { type: "button", class: "link", id: "pm-children-cancel", text: t("common.cancel"), onclick: close }))));
