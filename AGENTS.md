@@ -101,7 +101,7 @@ A board shows the items of one type in a space as columns of workflow states and
 it is a view, not a stored object (ADR-0036).
 Behind a reverse proxy, forwarded headers count only from the addresses in `OT_TRUSTED_PROXIES` (ADR-0037).
 Without a reverse proxy the server terminates TLS itself: `serve -tls-cert` and `-tls-key`, or `OT_TLS_CERT` and `OT_TLS_KEY`, name pairs of PEM files;
-the name a client asks for (SNI) chooses the certificate, the first pair answers every other name, a changed pair is read again without a restart, and `healthcheck` trusts exactly those certificates on the loopback address (`internal/certs`; proposed, ADR-0242).
+the name a client asks for (SNI) chooses the certificate, the first pair answers every other name, a changed pair is read again without a restart, and `healthcheck` trusts exactly those certificates on the loopback address (`internal/certs`, ADR-0242).
 The container image starts as root only to hand the data directory to `OT_RUN_AS` and gives root up before it opens anything (`internal/privdrop`, ADR-0038).
 Space administrators may check a space's web links on demand when `OT_LINKCHECK=on`;
 the checker never calls a non-public address (`internal/linkcheck`, ADR-0039).
