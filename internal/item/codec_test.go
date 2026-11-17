@@ -1708,7 +1708,7 @@ func shareFileLog(t *testing.T) []Event {
 // heights and coloured cells, so the golden files pin the block fields
 // Widths, Heights and Cells and marks inside a table (ADR-0214), among
 // them a cell's text in a tone and a size, with the mark's Value
-// (ADR-draft-text-colour-and-size-in-table-cells).
+// (ADR-0237).
 func tableStyleLog(t *testing.T) []Event {
 	s := setup(t)
 	page := mustItem(t)(s.Create("anna", NewItem{Space: "PLAT", Type: "page", Title: "Hosts"}))

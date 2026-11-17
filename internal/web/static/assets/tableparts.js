@@ -11,7 +11,7 @@ export const TONES = ["blue", "green", "yellow", "orange", "red", "purple", "tea
 // MARKS are the formats a cell may carry; a mention and a protected
 // passage are not among them. A color mark colours a cell's text in one
 // of TONES, a size mark sizes it in one of SIZES; each holds its value
-// (ADR-draft-text-colour-and-size-in-table-cells).
+// (ADR-0237).
 export const MARKS = ["bold", "italic", "underline", "strike", "highlight", "code", "link", "color", "size"];
 export const SIZES = ["small", "large", "larger"];
 const VALUES = { color: TONES, size: SIZES };
@@ -156,7 +156,7 @@ export function formatCells(rows, range, type) {
 
 // styleCells colours (type "color") or sizes (type "size") all of each
 // cell's text in range with value, or takes the colour or size off with
-// an empty value (ADR-draft-text-colour-and-size-in-table-cells).
+// an empty value (ADR-0237).
 export function styleCells(rows, range, type, value) {
   return rows.map((row, r) => row.map((cell, c) => {
     if (!inRange(range, r, c)) return cell;
@@ -358,7 +358,7 @@ function marksAt(el, inherited, rules, safe) {
   }
   for (const cls of (el.getAttribute?.("class") || "").split(/\s+/)) {
     if (rules.has(cls)) styled(marks, rules.get(cls));
-    // A colour and a size the editor wrote (ADR-draft-text-colour-and-size-in-table-cells).
+    // A colour and a size the editor wrote (ADR-0237).
     const own = cls.match(/^pm-(text|size)-([a-z]+)$/);
     const type = own && (own[1] === "text" ? "color" : "size");
     if (type && VALUES[type].includes(own[2])) marks[type] = own[2];

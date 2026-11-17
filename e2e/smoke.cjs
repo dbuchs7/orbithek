@@ -1575,7 +1575,7 @@ function webSource() {
     await page.keyboard.press("Control+z");
     await page.waitForFunction(() => document.querySelectorAll("#body .pm-table tr").length === 2);
     // The text of a cell takes a colour and a size from the table's tools
-    // (ADR-draft-text-colour-and-size-in-table-cells).
+    // (ADR-0237).
     await page.click("#body .pm-table tr:nth-child(2) td:first-child");
     await page.waitForSelector("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-editor");
     await page.selectOption("#body .pm-table-text-colour", "purple");

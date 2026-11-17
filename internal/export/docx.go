@@ -502,7 +502,7 @@ type segment struct {
 	bold, italic, under, strike, code, high, link bool
 	href                                          string
 	// color is a tone of item.TableTones, size one of item.TextSizes
-	// (ADR-draft-text-colour-and-size-in-table-cells).
+	// (ADR-0237).
 	color, size string
 }
 
