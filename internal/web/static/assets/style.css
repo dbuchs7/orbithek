@@ -592,7 +592,7 @@ span.tree-toggle { cursor: default; }
 .pm-toc button.link, .pm-figures button.link, .pm-tables button.link { padding: 0; margin: 0; font-weight: normal; }
 .pm-toc-2 { margin-left: 14px; }
 .pm-toc-3 { margin-left: 28px; }
-/* Numbered headings (ADR-draft-numbered-headings): the number stands before the heading and its entry in a table of contents, which then needs no bullets. */
+/* Numbered headings (ADR-0241): the number stands before the heading and its entry in a table of contents, which then needs no bullets. */
 .pm-num, .pm-numbered::before { margin-right: 0.4em; font-variant-numeric: tabular-nums; }
 .pm-numbered::before { content: attr(data-num); }
 .pm-toc-numbered ul { list-style: none; padding-left: 0; }

@@ -253,3 +253,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0238](0238-text-colour-and-size-in-table-cells.md) | Text colour and size in table cells | Proposed | Partial |
 | [0239](0239-child-pages-to-a-chosen-depth.md) | A list of child pages shows the levels chosen | Proposed | Partial |
 | [0240](0240-child-pages-leave-out-types.md) | A list of child pages leaves out the types chosen | Proposed | Partial |
+| [0241](0241-numbered-headings.md) | Headings numbered by their level, switched per text | Proposed | Partial |

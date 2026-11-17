@@ -97,7 +97,7 @@ const (
 	Committed = "committed" // By, Name: a version was stored
 	Closed    = "closed"    // Reason; the stream ends
 	// Numbering: Numbered, By, Name: the headings were numbered or no
-	// longer are, and the body was stored so (ADR-draft-numbered-headings).
+	// longer are, and the body was stored so (ADR-0241).
 	Numbering = "numbered"
 )
 
@@ -130,7 +130,7 @@ type Op struct {
 	// Numbered is what "number" sets: whether the body's headings are
 	// numbered. It names no block and takes no lock; it is stored at once,
 	// with the blocks as they were last released
-	// (ADR-draft-numbered-headings).
+	// (ADR-0241).
 	Numbered bool
 }
 

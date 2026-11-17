@@ -325,7 +325,7 @@ type itemJSON struct {
 	Properties  map[string]any `json:"properties"`
 	State       string         `json:"state,omitempty"`
 	Body        []blockJSON    `json:"body"`
-	// Numbered numbers the body's headings (ADR-draft-numbered-headings).
+	// Numbered numbers the body's headings (ADR-0241).
 	Numbered    bool             `json:"numbered,omitempty"`
 	Version     int              `json:"version"`
 	Presence    item.Presence    `json:"presence"`
