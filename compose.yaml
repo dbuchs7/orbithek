@@ -36,7 +36,7 @@ services:
       # with on port 8080, as PEM files mounted below and readable by the
       # account of OT_RUN_AS; several are separated by commas, and the
       # name a client asks for chooses among them
-      # (ADR-draft-tls-in-the-binary).
+      # (ADR-0242).
       # OT_TLS_CERT: /certs/wiki.crt
       # OT_TLS_KEY: /certs/wiki.key
       # The server's local time, for scheduled clean-ups (ADR-0105).

@@ -471,7 +471,7 @@ const ShutdownTimeout = 10 * time.Second
 // Serve answers requests on ln until ctx ends, then shuts down gracefully.
 //
 // With a TLS configuration the server terminates TLS itself on ln
-// (ADR-draft-tls-in-the-binary), speaking HTTP/2 with clients that offer
+// (ADR-0242), speaking HTTP/2 with clients that offer
 // it; with none it answers in the clear, as behind a reverse proxy.
 func Serve(ctx context.Context, ln net.Listener, h http.Handler, tlsConfig *tls.Config, log *slog.Logger) error {
 	srv := &http.Server{

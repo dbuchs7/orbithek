@@ -101,7 +101,7 @@ A board shows the items of one type in a space as columns of workflow states and
 it is a view, not a stored object (ADR-0036).
 Behind a reverse proxy, forwarded headers count only from the addresses in `OT_TRUSTED_PROXIES` (ADR-0037).
 Without a reverse proxy the server terminates TLS itself: `serve -tls-cert` and `-tls-key`, or `OT_TLS_CERT` and `OT_TLS_KEY`, name pairs of PEM files;
-the name a client asks for (SNI) chooses the certificate, the first pair answers every other name, a changed pair is read again without a restart, and `healthcheck` trusts exactly those certificates on the loopback address (`internal/certs`; proposed, ADR-draft-tls-in-the-binary).
+the name a client asks for (SNI) chooses the certificate, the first pair answers every other name, a changed pair is read again without a restart, and `healthcheck` trusts exactly those certificates on the loopback address (`internal/certs`; proposed, ADR-0242).
 The container image starts as root only to hand the data directory to `OT_RUN_AS` and gives root up before it opens anything (`internal/privdrop`, ADR-0038).
 Space administrators may check a space's web links on demand when `OT_LINKCHECK=on`;
 the checker never calls a non-public address (`internal/linkcheck`, ADR-0039).
@@ -468,7 +468,7 @@ internal/governance/ finds sensitive data in text; used on every save and by the
 internal/linkcheck/ checks web links, refusing every non-public address (ADR-0039)
 internal/linkpreview/ reads what a web page says about itself and its main text, public addresses only, within budgets (ADR-0208)
 internal/privdrop/  hands the data directory over and drops root in the container (ADR-0038)
-internal/certs/     certificates the server terminates TLS with: pairs of files chosen by the name asked for, read again when they change, and the liveness probe's trust in them (ADR-draft-tls-in-the-binary); certs/certstest makes certificates for tests
+internal/certs/     certificates the server terminates TLS with: pairs of files chosen by the name asked for, read again when they change, and the liveness probe's trust in them (ADR-0242); certs/certstest makes certificates for tests
 internal/sso/       OpenID Connect relying party (ADR-0030); sso/ssotest is a fake provider for tests
 internal/mcp/      MCP adapter over the HTTP API: JSON-RPC, tool table, stdio transport (ADR-0012)
 internal/metrics/  Prometheus metrics on a registry of its own, labelled by route pattern (ADR-0016)

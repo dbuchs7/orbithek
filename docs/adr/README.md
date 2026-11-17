@@ -254,3 +254,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0239](0239-child-pages-to-a-chosen-depth.md) | A list of child pages shows the levels chosen | Proposed | Partial |
 | [0240](0240-child-pages-leave-out-types.md) | A list of child pages leaves out the types chosen | Proposed | Partial |
 | [0241](0241-numbered-headings.md) | Headings numbered by their level, switched per text | Proposed | Partial |
+| [0242](0242-tls-in-the-binary.md) | TLS in the binary, with certificates from files chosen by the name asked for | Proposed | Partial |

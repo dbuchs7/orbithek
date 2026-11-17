@@ -1,5 +1,5 @@
 // Package certs holds the certificates the server presents when it
-// terminates TLS itself (ADR-draft-tls-in-the-binary): pairs of PEM files,
+// terminates TLS itself (ADR-0242): pairs of PEM files,
 // a certificate chain and its key. The name a client asks for (SNI)
 // chooses the pair, and a pair is read again when its files change, so a
 // renewal needs no restart.

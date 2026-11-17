@@ -152,7 +152,7 @@ func waitHealthy(t *testing.T, done <-chan int, errOut *bytes.Buffer, args ...st
 // TestServeTerminatesTLS: with -tls-cert and -tls-key the server answers
 // HTTPS itself, presents the certificate made for the name asked for, and
 // the liveness probe, given the same certificate files, reaches it on the
-// loopback address no certificate names (ADR-draft-tls-in-the-binary).
+// loopback address no certificate names (ADR-0242).
 func TestServeTerminatesTLS(t *testing.T) {
 	t.Setenv("OT_ADMIN_PASSWORD", "a given password!")
 	dir := t.TempDir()

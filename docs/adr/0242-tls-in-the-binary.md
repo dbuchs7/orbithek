@@ -1,4 +1,4 @@
-# ADR-DRAFT: TLS in the binary, with certificates from files chosen by the name asked for
+# ADR-0242: TLS in the binary, with certificates from files chosen by the name asked for
 
 - **Status:** Proposed
 - **Implementation:** Partial

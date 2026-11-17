@@ -210,7 +210,7 @@ func TestServeReportsListenerFailure(t *testing.T) {
 // TestServeTerminatesTLS: given a TLS configuration, Serve answers HTTPS on
 // the listener, over HTTP/2 where the client speaks it, requests count as
 // secure, so cookies are Secure (ADR-0037), and a stream is flushed as it
-// is written (ADR-draft-tls-in-the-binary).
+// is written (ADR-0242).
 func TestServeTerminatesTLS(t *testing.T) {
 	dir := t.TempDir()
 	certFile, keyFile := certstest.Write(t, dir, "wiki", "wiki.example.org")

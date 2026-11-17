@@ -165,7 +165,7 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 	}
 
 	// The certificates are read after root is given up, as every renewal
-	// is, and before the data directory is touched (ADR-draft-tls-in-the-binary).
+	// is, and before the data directory is touched (ADR-0242).
 	var tlsConfig *tls.Config
 	if len(pairs) > 0 {
 		store, err := certs.Open(pairs, log)

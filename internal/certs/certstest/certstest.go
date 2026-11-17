@@ -1,5 +1,5 @@
 // Package certstest makes certificates for tests of the server's own TLS
-// (ADR-draft-tls-in-the-binary).
+// (ADR-0242).
 package certstest
 
 import (
