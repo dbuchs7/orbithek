@@ -52,7 +52,7 @@ table:not(.facts) .fill-purple { background: #e7dcf7; } table:not(.facts) .borde
 table:not(.facts) .fill-teal { background: #cfebeb; } table:not(.facts) .border-teal { border: 2px solid #0f9b9b; }
 table:not(.facts) .fill-gray { background: #e4e6ea; } table:not(.facts) .border-gray { border: 2px solid #7a8394; }
 table:not(.facts) td, table:not(.facts) th { overflow-wrap: anywhere; }
-/* Text of a cell in a tone and a size (ADR-0237);
+/* Text of a cell in a tone and a size (ADR-draft-text-colour-and-size-in-table-cells);
    a tone is its strong shade, as a border is. */
 .text-blue { color: #2f6fde; } .text-green { color: #1f9d55; } .text-yellow { color: #d4a106; } .text-orange { color: #e8710a; }
 .text-red { color: #d93636; } .text-purple { color: #8a4fd8; } .text-teal { color: #0f9b9b; } .text-gray { color: #7a8394; }

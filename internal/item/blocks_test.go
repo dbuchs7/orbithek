@@ -109,7 +109,7 @@ func TestTablesAreFormattedSizedAndColoured(t *testing.T) {
 
 // TestTheTextOfACellTakesAColourAndASize: a cell's text is coloured in a
 // tone and sized in a named size, inside one cell, and nowhere but in a
-// table (ADR-0237).
+// table (ADR-draft-text-colour-and-size-in-table-cells).
 func TestTheTextOfACellTakesAColourAndASize(t *testing.T) {
 	s := setup(t)
 	page := mustItem(t)(s.Create("anna", NewItem{Space: "PLAT", Type: "page", Title: "Hosts"}))

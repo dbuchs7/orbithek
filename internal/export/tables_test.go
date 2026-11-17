@@ -12,7 +12,7 @@ import (
 
 // styledTable has formatted cells, a column width, a row's height and
 // coloured cells (ADR-0214), and text in a tone and a size
-// (ADR-0237).
+// (ADR-draft-text-colour-and-size-in-table-cells).
 var styledTable = item.Block{Kind: item.Table, Text: "Host\tRole\ndb1\t primary ",
 	Marks: []item.Mark{{Type: item.MarkItalic, Start: 0, End: 4}, {Type: item.MarkBold, Start: 15, End: 22}, {Type: item.MarkLink, Start: 10, End: 13, Href: "https://db1.example.org"},
 		{Type: item.MarkColor, Start: 5, End: 9, Value: "purple"}, {Type: item.MarkSize, Start: 5, End: 9, Value: "large"}},

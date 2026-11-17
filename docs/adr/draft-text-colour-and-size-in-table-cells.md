@@ -1,4 +1,4 @@
-# ADR-0237: Text colour and size in table cells
+# ADR-DRAFT: Text colour and size in table cells
 
 - **Status:** Proposed
 - **Implementation:** Partial
