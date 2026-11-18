@@ -1474,7 +1474,7 @@ function webSource() {
     await page.click("#edit");
     await page.waitForSelector("#body.editing .ProseMirror");
     await page.locator("#body .ProseMirror").click();
-    await page.selectOption("#body .pm-toolbar select >> nth=1", "children");
+    await page.selectOption("#body .pm-toolbar select[aria-label='Insert…']", "children");
     // The list asks for its depth first, as a table of contents does.
     await page.waitForSelector("dialog.pm-children-dialog #pm-children-depth");
     check(await page.inputValue("dialog.pm-children-dialog #pm-children-depth") === "0", "the dialog offers one level first");
@@ -1535,7 +1535,7 @@ function webSource() {
     await page.keyboard.press("Enter"); // an empty task ends the list
     await page.keyboard.type("Writers must be stopped.");
     await page.selectOption("#body .pm-toolbar select", "panel:warning");
-    await page.selectOption("#body .pm-toolbar select >> nth=1", "table");
+    await page.selectOption("#body .pm-toolbar select[aria-label='Insert…']", "table");
     // A cell is edited in place, formatted, coloured, and its column and
     // row sized by dragging their edges; text that does not fit wraps
     // (ADR-0214).
@@ -1568,8 +1568,8 @@ function webSource() {
     const rowBefore = (await page.locator("#body .pm-table tr:nth-child(2)").boundingBox()).height;
     await dragEdge("#body .pm-table tr:nth-child(2) td:first-child .pm-row-handle", 0, 50);
     await page.waitForFunction((h) => document.querySelector("#body .pm-table tr:nth-child(2)").getBoundingClientRect().height >= h + 40, rowBefore);
-    await page.selectOption("#body .pm-toolbar select >> nth=1", "toc");
-    check(await page.locator("#body .pm-toolbar select >> nth=1").locator("option[value=toc]").textContent() === "Table of contents", "the insert menu says Table of contents");
+    await page.selectOption("#body .pm-toolbar select[aria-label='Insert…']", "toc");
+    check(await page.locator("#body .pm-toolbar select[aria-label='Insert…']").locator("option[value=toc]").textContent() === "Table of contents", "the insert menu says Table of contents");
     // Inserting asks for the depth; the table of contents changes it too
     // (ADR-0237).
     await page.selectOption("dialog.pm-toc-dialog #pm-toc-depth", "1");
@@ -1578,13 +1578,13 @@ function webSource() {
     await page.selectOption("#body .pm-toc select.pm-toc-depth", "2");
     await page.waitForSelector("#body .pm-toc button:has-text('Prepare')");
     // An item's content alone, without its heading and fields.
-    await page.selectOption("#body .pm-toolbar select >> nth=1", "embedtext");
+    await page.selectOption("#body .pm-toolbar select[aria-label='Insert…']", "embedtext");
     await page.fill("dialog.pm-dialog [name=q]", "PLAT-1");
     await page.click("dialog.pm-dialog .pm-result[data-key='PLAT-1']");
     await page.waitForSelector("#body .pm-embed.pm-embed-text.pm-embed-editing .pm-embed-head .pm-embed-title:has-text('PLAT-1')");
     check(await page.locator("#body .pm-embed.pm-embed-text select.pm-embed-view").inputValue() === "text", "the embed shows the content only");
-    await page.selectOption("#body .pm-toolbar select >> nth=1", "tables");
-    await page.selectOption("#body .pm-toolbar select >> nth=1", "figures");
+    await page.selectOption("#body .pm-toolbar select[aria-label='Insert…']", "tables");
+    await page.selectOption("#body .pm-toolbar select[aria-label='Insert…']", "figures");
     await page.click("#details h2"); // leave the editor: its blocks are released and saved
     await page.waitForSelector(".live[data-pending='0']");
     await page.reload();
