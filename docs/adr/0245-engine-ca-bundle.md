@@ -1,9 +1,9 @@
 # ADR-0245: Calls to process engines trust an organisation's own certificate authority on request
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-18
-- **Deciders:** Project initiators (request of 2026-11-18: implement the bundle of certificate authorities for the server's outgoing calls to atlas, the open question ADR-0244 left). That one setting covers every process engine, and its name, are proposed with the implementation, to be confirmed by the requester.
+- **Deciders:** Project initiators (request of 2026-11-18: implement the bundle of certificate authorities for the server's outgoing calls to atlas, the open question ADR-0244 left). That one setting covers every process engine, and its name, were proposed with the implementation; accepted by the requester on 2026-11-18, the open question below staying open.
 - **Open question:** whether the server's other outgoing calls should trust such a bundle too: single sign-on, mail, backups, connectors
 - **Question checked:** 2026-11
 
