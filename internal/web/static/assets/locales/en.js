@@ -498,7 +498,7 @@ export default {
   "editor.children": "Child pages",
   "editor.childrenNone": "No child pages.",
   "editor.childrenDepthChoose": "Depth",
-  "editor.childrenDepthHint": "It lists the pages below this page down to this level, without the types left unticked, each with everything below it; both can be changed later on the list.",
+  "editor.childrenDepthHint": "It lists the pages below this page down to this level, without the types left unticked, the pages below their items in their place; both can be changed later on the list.",
   "editor.childrenInsert": "Insert a list of child pages",
   "editor.childrenTypes": "Types",
   "editor.childrenTypesAll": "all",
