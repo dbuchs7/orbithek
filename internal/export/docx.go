@@ -149,9 +149,9 @@ type Page struct {
 	// whose file is missing or in a format the target cannot show keeps
 	// only its caption.
 	Images map[item.ID]Image
-	// Children are the child pages, each with its own as deep as the
-	// page's lists of child pages show, for a list of them.
-	Children []Child
+	// Children are, by ChildListKey, the child pages a list of child
+	// pages shows, each with its own (ADR-0239, ADR-0240).
+	Children map[string][]Child
 	// Tasks are, by TaskListKey, the tasks a task list shows: key, title
 	// and state, as a reader read them when the document was made
 	// (ADR-0114, ADR-0151).
@@ -584,7 +584,7 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int, num string
 		return out.String()
 	case item.Children:
 		var out strings.Builder
-		for _, c := range childLines(p.Children, bl.Depth, bl.HideTypes) {
+		for _, c := range childLines(p.Children[ChildListKey(bl)]) {
 			// A deeper page stands further in, by the indent of one
 			// level of the list.
 			indent := ""

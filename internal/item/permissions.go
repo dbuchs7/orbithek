@@ -911,8 +911,9 @@ type ChildPage struct {
 // ADR-0239). At most max pages are
 // listed, level by level, so a cut list keeps the upper levels whole; cut
 // reports that pages were left out for the budget. An item of a type in
-// hide is left out with everything below it, and neither counts against
-// the budget nor makes its parent's More
+// hide is left out, and its readable items that are not left out take
+// its place, in their order, as if they were its parent's: it is no
+// level, takes nothing of the budget and makes no one's More
 // (ADR-0240).
 func (x *Session) ChildPages(space string, parent ID, depth, max int, hide []string) (pages []ChildPage, cut bool, err error) {
 	if depth == 0 {
@@ -939,21 +940,35 @@ func (x *Session) ChildPages(space string, parent ID, depth, max int, hide []str
 			kids[it.Parent] = append(kids[it.Parent], it)
 		}
 	}
-	readable := map[ID][]Item{}
-	childrenOf := func(id ID) []Item {
-		if out, ok := readable[id]; ok {
+	// shown lists the readable children of an item as the list shows
+	// them: a left-out child gives way to its own, in its place. A page
+	// below an unreadable item is unreadable itself (D9), so only a
+	// readable left-out item is passed through.
+	shownOf := map[ID][]Item{}
+	var shown func(id ID) []Item
+	shown = func(id ID) []Item {
+		if out, ok := shownOf[id]; ok {
 			return out
 		}
-		out := []Item{}
+		direct := []Item{}
 		for _, k := range kids[id] {
-			if !slices.Contains(hide, k.Type) && x.s.canRead(x.who, k) {
-				out = append(out, k.summary())
+			if x.s.canRead(x.who, k) {
+				direct = append(direct, k.summary())
 			}
 		}
-		x.s.sortSiblings(space, id, out)
-		readable[id] = out
+		x.s.sortSiblings(space, id, direct)
+		out := []Item{}
+		for _, k := range direct {
+			if slices.Contains(hide, k.Type) {
+				out = append(out, shown(k.ID)...)
+			} else {
+				out = append(out, k)
+			}
+		}
+		shownOf[id] = out
 		return out
 	}
+	childrenOf := shown
 	// Level by level, so the budget cuts the deepest pages first.
 	listed := map[ID]bool{}
 	level, n := []ID{parent}, 0

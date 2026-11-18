@@ -145,8 +145,8 @@ func TestChildPagesLeaveOutTypesThroughTheAPI(t *testing.T) {
 
 	for hide, want := range map[string]string{
 		"":             "A[Sweep A1] Dust[Below the dust]",
-		"chore":        "A[A1]",
-		" chore , x ,": "A[A1]",
+		"chore":        "A[A1] Below the dust",
+		" chore , x ,": "A[A1] Below the dust",
 	} {
 		res := w.vera.expect("GET", "/api/spaces/PLAT/tree?parent="+home+"&depth=all&hide="+url.QueryEscape(hide), "", http.StatusOK)
 		if got := nested(res["items"].([]any)); got != want {
@@ -167,9 +167,9 @@ func TestChildPagesLeaveOutTypesThroughTheAPI(t *testing.T) {
 
 	// The export leaves them out too.
 	md := w.vera.do("GET", "/api/items/"+home+"/export/md", "").Body.String()
-	// The first list leaves the chores out; the second, which leaves
-	// nothing out, shows one level.
-	if !strings.Contains(md, "- A\n  - A1\n\n- A\n- Dust\n") || strings.Contains(md, "Sweep") || strings.Contains(md, "Below the dust") {
+	// The first list leaves the chores out, the page below one in its
+	// place; the second, which leaves nothing out, shows one level.
+	if !strings.Contains(md, "- A\n  - A1\n- Below the dust\n\n- A\n- Dust\n") || strings.Contains(md, "Sweep") {
 		t.Errorf("export:\n%s", md)
 	}
 }

@@ -76,7 +76,7 @@ func TestMarkdownWritesEachBlockKind(t *testing.T) {
 		},
 		Images: map[item.ID]Image{"pic": {Name: "plan.png", Type: "image/png"}, "vid": {Name: "demo.mp4", Type: "video/mp4"},
 			"flow": {Name: "order.bpmn", Type: "text/xml; charset=utf-8"}},
-		Children: []Child{{Title: "Child page"}},
+		Children: map[string][]Child{"1|": {{Title: "Child page"}}},
 		Tasks:    map[string][]string{"release": {"OPS-3 Tag the build (open)"}, "?label = release ORDER BY due": {"OPS-4 Ship it (open)"}},
 	}}}
 	want := strings.Join([]string{

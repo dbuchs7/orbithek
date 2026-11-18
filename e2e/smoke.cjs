@@ -1496,8 +1496,8 @@ function webSource() {
     check(await page.locator("#body .pm-children a:text-is('Created from New, renamed')").count() === 0, "one level lists the children alone");
     await page.selectOption("#body .pm-children select.pm-children-depth", { label: "2 levels" });
     await page.waitForSelector("#body .pm-children li:has(> a:text-is('Upgrade')) > ul a:text-is('Created from New, renamed')");
-    // Leaving the tasks out takes them out with what lies below them, and
-    // taking the type back in shows them again (ADR-0240).
+    // Leaving the tasks out takes them out, the pages below them in their
+    // place, and taking the type back in shows them again (ADR-0240).
     check(await page.textContent("#body .pm-children .pm-children-types-toggle") === "all", "a new list shows every type");
     await page.click("#body .pm-children .pm-children-types-toggle");
     await page.uncheck("#body .pm-children .pm-children-types input[value=task]");
