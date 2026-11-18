@@ -3,8 +3,8 @@
 - **Status:** Proposed
 - **Implementation:** Partial
 - **Date:** 2026-11-17
-- **Deciders:** Project initiators (request of 2026-11-17 that the text of table cells can take a font size and a font colour, and of 2026-11-18 that paragraphs can too); proposed for the maintainer's acceptance
-- **Open question:** whether headings, list items, quotes and panels should take a text colour and size too; whether a font family is wanted; whether more sizes or tones are wanted; whether the colours and sizes of a table pasted from elsewhere should be taken to the nearest tone and size; whether yellow text, which reads weakly on white, should be offered at all
+- **Deciders:** Project initiators (request of 2026-11-17 that the text of table cells can take a font size and a font colour, and of 2026-11-18 that paragraphs can too, and then headings, lists, quotes and panels); proposed for the maintainer's acceptance
+- **Open question:** whether a font family is wanted; whether more sizes or tones are wanted; whether the colours and sizes of a table pasted from elsewhere should be taken to the nearest tone and size; whether yellow text, which reads weakly on white, should be offered at all
 - **Question checked:** 2026-11
 
 ## Context and problem statement
@@ -36,7 +36,7 @@ How does a cell's text carry a colour and a size without free values, and withou
 Chosen option: **1**, because it gives cells a colour and a size of their text with values every theme, export and validation can hold, and keeps the rest of the body as it is.
 
 - **Marks:** `Mark.Value` holds a mark's value. A mark `color` colours its text in one of `item.TableTones`; a mark `size` sizes it as one of `item.TextSizes`: `small`, `large` or `larger`, the text's own size being no mark. Both lie inside one cell as every mark of a table does (ADR-0214), may overlap each other and the other formats, and a stretch of text has at most one of each where the editor writes them; the model accepts no value on another mark.
-- **In table cells and paragraphs:** a `color` or `size` mark in any other block is refused. The body's schema holds both marks, but only a paragraph allows them: headings, list items, tasks, quotes and panels allow the other formats alone, so text pasted into them drops a colour and a size. The body's toolbar offers **Text colour** and **Size** where the cursor stands in a paragraph: on the selected text, or, at the cursor, on what is typed next; codec version 68 lets a paragraph carry them (request of 2026-11-18).
+- **In table cells and every block of text but code:** paragraphs, headings, list items, tasks, quotes and panels take both marks, a code block, which takes no format, does not, and any other block refuses them. The body's toolbar offers **Text colour** and **Size** where the cursor stands in such a block: on the selected text, or, at the cursor, on what is typed next. Codec version 68 lets a paragraph carry them, codec version 69 a heading, a list item, a task, a quote and a panel (requests of 2026-11-18).
 - **Format:** codec version 64 adds `Mark.Value`, sealed with the body; versions 1 to 63 are still read, their cells' text in the text's own colour and size.
 - **API and agents:** a mark carries `value`; the MCP description of the body names the two marks (ADR-0012).
 - **Editor:** the table's tools gain **Text colour** and **Size**. They act on the selected text of the cell being edited, on all of its text when nothing is selected, or on all of each chosen cell (ADR-0236); the selection of a cell's text is kept as a list takes the focus. The UI mixes a tone into the theme's text colour, so it stays readable in a light and a dark theme; a size is a class, relative to the text around.
@@ -72,7 +72,7 @@ Strongest form: any colour and any size, as a word processor offers, so a table 
 Strongest form: a heading or a warning in colour is wanted as often as a cell, and one rule for all blocks is simpler to explain.
 
 - Good: one rule.
-- Bad: every block kind and the Markdown conversions would change at once, and a page's look would drift from its headings and panels, which already carry meaning by their kind. Paragraphs, the plain text of a page, were asked for on 2026-11-18 and take them; the other blocks can follow by a decision of their own.
+- Bad: every block kind and the Markdown conversions would change at once, and a page's look would drift from its headings and panels, which already carry meaning by their kind. Paragraphs, headings, lists, quotes and panels were asked for on 2026-11-18, one after the other, and take them: in the end the option was chosen block by block, as people asked for it.
 
 ### 4. Colour and size of a whole cell
 

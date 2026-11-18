@@ -39,7 +39,7 @@ func TestATableKeepsItsFormatsSizesAndColours(t *testing.T) {
 		`{"blocks":[{"kind":"table","text":"a\tb","cells":[{"row":0,"col":0,"fill":"#ff0000"}]}]}`,
 		`{"blocks":[{"kind":"paragraph","text":"a","heights":[40]}]}`,
 		`{"blocks":[{"kind":"table","text":"a\tb","marks":[{"type":"color","start":0,"end":1,"value":"pink"}]}]}`,
-		`{"blocks":[{"kind":"heading","level":1,"text":"a","marks":[{"type":"size","start":0,"end":1,"value":"large"}]}]}`,
+		`{"blocks":[{"kind":"code","text":"a","marks":[{"type":"size","start":0,"end":1,"value":"large"}]}]}`,
 		`{"blocks":[{"kind":"paragraph","text":"a","marks":[{"type":"color","start":0,"end":1,"value":"#f00"}]}]}`,
 	} {
 		w.bert.expect("PUT", "/api/items/"+key+"/body", bad, http.StatusBadRequest)

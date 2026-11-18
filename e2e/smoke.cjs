@@ -1070,8 +1070,8 @@ function webSource() {
     await editor.click();
     await page.keyboard.type("Steps");
     await page.selectOption(".pm-toolbar select", "heading:2");
-    // A heading takes neither a text colour nor a size (ADR-0238).
-    await page.waitForFunction(() => document.querySelector("#pm-text-colour").disabled && document.querySelector("#pm-text-size").disabled);
+    // A heading takes a text colour and a size, as a paragraph does (ADR-0238).
+    await page.waitForFunction(() => !document.querySelector("#pm-text-colour").disabled && !document.querySelector("#pm-text-size").disabled);
     await page.keyboard.press("End");
     await page.keyboard.press("Enter");
     await page.keyboard.type("- first item");
