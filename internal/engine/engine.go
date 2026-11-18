@@ -15,6 +15,8 @@ import (
 	"bytes"
 	"cmp"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -108,11 +110,29 @@ func NewReader(getenv func(string) string, client *http.Client) *Reader {
 	return &Reader{getenv: getenv, http: &c}
 }
 
+// TLSCAVar names a PEM file of certificate authorities the server trusts
+// for its calls to process engines, besides the host's: an engine inside
+// an organisation often has a certificate of the organisation's own
+// authority (ADR-0245). It is the operator's decision,
+// so it comes from the environment, and it reaches no other call the
+// server makes.
+const TLSCAVar = "OT_ENGINE_TLS_CA"
+
 // NewClient makes the client engines are called with: with the Timeout,
 // through the environment's proxy, kept to public addresses unless
-// AllowPrivateVar allows others, and following no redirect.
+// AllowPrivateVar allows others, and following no redirect. It verifies
+// engines against the host's certificate authorities.
 func NewClient(getenv func(string) string) *http.Client {
-	var transport http.RoundTripper = &http.Transport{
+	return NewClientTrusting(getenv, nil)
+}
+
+// NewClientTrusting is NewClient verifying engines against roots, the
+// host's certificate authorities with those of TLSCAVar added, as
+// certs.Roots builds them; nil roots are the host's alone. Which addresses
+// an engine may have is not theirs to say: AllowPrivateVar decides that as
+// before.
+func NewClientTrusting(getenv func(string) string, roots *x509.CertPool) *http.Client {
+	direct := &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
 		DialContext:           (&net.Dialer{Timeout: 10 * time.Second}).DialContext,
 		TLSHandshakeTimeout:   10 * time.Second,
@@ -120,6 +140,10 @@ func NewClient(getenv func(string) string) *http.Client {
 		MaxIdleConnsPerHost:   4,
 		IdleConnTimeout:       90 * time.Second,
 	}
+	if roots != nil {
+		direct.TLSClientConfig = &tls.Config{RootCAs: roots, MinVersion: tls.VersionTLS12}
+	}
+	var transport http.RoundTripper = direct
 	if getenv(AllowPrivateVar) != "on" {
 		transport = connector.PublicOnly(transport)
 	}

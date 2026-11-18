@@ -4,7 +4,7 @@
 - **Implementation:** Landed
 - **Date:** 2026-11-17
 - **Deciders:** Project initiators (request of 2026-11-17: implement the bundle of certificate authorities for private ones, the open question ADR-0242 left). That it covers the commands that call a server and not the server's own outgoing calls, and its form, were proposed with the implementation; accepted by the requester on 2026-11-17, the open question below staying open.
-- **Open question:** whether the server's own outgoing calls should trust such a bundle too, and which of them: process engines, single sign-on, mail, backups, connectors
+- **Open question:** whether the server's own outgoing calls other than those to process engines should trust such a bundle too: single sign-on, mail, backups, connectors
 - **Question checked:** 2026-11
 
 ## Context and problem statement
@@ -98,7 +98,8 @@ Strongest form: it works at once, for a test or a first try, with nothing to dis
 ## Open questions
 
 - **The server's outgoing calls.** `serve` calls process engines, identity providers, mail servers, backup destinations and connectors' sources, each of which may sit behind an organisation's own authority.
-  Whether a bundle should apply there, and to which of these, is undecided; the nearest to this record is the call to a process engine, which is one product of the same operator calling another.
+  For process engines this is settled by ADR-0245: `OT_ENGINE_TLS_CA`.
+  Whether a bundle should apply to the others, and to which, is undecided.
 
 ## Links
 

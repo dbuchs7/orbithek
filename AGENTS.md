@@ -103,6 +103,7 @@ Behind a reverse proxy, forwarded headers count only from the addresses in `OT_T
 Without a reverse proxy the server terminates TLS itself: `serve -tls-cert` and `-tls-key`, or `OT_TLS_CERT` and `OT_TLS_KEY`, name pairs of PEM files;
 the name a client asks for (SNI) chooses the certificate, the first pair answers every other name, a changed pair is read again without a restart, and `healthcheck` trusts exactly those certificates on the loopback address (`internal/certs`, ADR-0242).
 On request the server sends readers of plain HTTP to HTTPS and keeps them there: `serve -redirect-addr` (`OT_REDIRECT_ADDR`) answers GET and HEAD on a second listener with a temporary redirect to the host asked for and refuses every other method, and `OT_HSTS_MAX_AGE`, a number of seconds, sends `Strict-Transport-Security` with every answer to a request that arrived over HTTPS, never with subdomains or preload (`RedirectToHTTPS`, `WithHSTS` in `internal/server/transport.go`, ADR-0243).
+The server's calls to process engines trust an organisation's own certificate authority on request: `OT_ENGINE_TLS_CA` names a PEM file added to the host's authorities for the reader of engines and the broker of people's connections, and for no other call the server makes; a file that cannot be used stops the server (`engine.TLSCAVar`, `engine.NewClientTrusting`, ADR-0245).
 The commands that call a server, `mcp` and `healthcheck`, trust an organisation's own certificate authority on request: `-tls-ca` or `OT_TLS_CA` names a PEM file added to the host's authorities, never replacing them, a file that cannot be used stops the command, and nothing skips verification; `serve` does not read it (`certs.Roots`, ADR-0244).
 The container image starts as root only to hand the data directory to `OT_RUN_AS` and gives root up before it opens anything (`internal/privdrop`, ADR-0038).
 Space administrators may check a space's web links on demand when `OT_LINKCHECK=on`;
@@ -537,6 +538,7 @@ This is the maintainer's decision of 2026-11-12.
 
 - **Open a pull request only when no other is open.** Before opening one, list the repository's open pull requests; every open pull request counts, whoever opened it.
   While any is open, keep the work on its branch, committed and pushed, and open the pull request once the others are merged or closed, after merging the then current `main` into the branch.
+  A session asked to open a pull request does not ask the person again for this: it waits for the others, as *From a request to a merged pull request* below says.
   Two exceptions: a pull request that repairs a broken `main`, and one the person asking for the work explicitly wants opened alongside another.
   A pull request opened under an exception follows the rules below.
 
@@ -552,6 +554,32 @@ Where pull requests overlap all the same, these rules keep conflicts small and k
   decision records stay drafts until the last commit.
 - **Write prose with one sentence per line**, and break a long sentence after a semicolon.
   Two changes to the same paragraph then touch different lines; Markdown renders the paragraph unchanged.
+- **Add lines to shared files, do not move them.** In this guide, the README, the manuals, the catalogues and `e2e/smoke.cjs`, put what is new on lines of its own beside what it belongs to, and leave the lines around it as they are: no reflowing, reordering or rewording in passing.
+  Rows of the ADR index are added by `adrnum` alone.
+
+### From a request to a merged pull request
+
+A person asks a session to open a pull request, or to open it and merge it once the checks are green, and expects no conflict to be left for them on GitHub.
+The session that did the work then carries it through in this order.
+Every conflict is met and resolved on the branch, where the checks run; GitHub is only ever shown a branch that already contains `main`.
+This is the maintainer's decision of 2026-11-18.
+
+1. **Work on a branch that starts from the current `main`.** A branch whose pull request was merged is finished: a squash merge leaves its commits out of `main`'s history, so commits added to it afterwards conflict with their own earlier form.
+   For new work, start the branch again from `origin/main`, under the same name where the session is bound to one, and never continue on a merged branch.
+   Should the merged branch still exist on GitHub, it holds only merged history, and replacing it there (`git push --force-with-lease`) loses nothing; this is the one case in which pushed history is replaced.
+   What comes after a merge for the same subject, such as accepting its decision record, is a new pull request from the current `main`.
+2. **Wait for other pull requests instead of asking again.** If another pull request is open and neither exception above applies, do not open one and do not ask the person a second time: tell them once which pull request is waited for, look again at intervals where the session can schedule that, and go on with step 3 once none is open.
+   A session that cannot wait says so and stops.
+3. **Merge `main` in right before opening.** `git fetch origin main`, then `git merge origin/main` on the branch; resolve what conflicts there, generated files by generating them.
+   Only then number the drafts (`go run ./docs/adr/cmd/adrnum`), run the checks for what the merge and the numbering touched, the whole sequence if code conflicted, and push.
+4. **Open only a branch that contains `main`.** `git merge-base --is-ancestor origin/main HEAD` must succeed for the commit that is pushed; then open the pull request.
+5. **Change an open pull request by further commits on its branch**, such as accepting its record at the person's request; each push starts the checks again, and only the checks of the newest commit count.
+6. **Merge only when the person asked for it**, by squash, and only when all of this holds: every check of the pull request's current head has finished and is green, where a result reported for an earlier commit says nothing; the head still contains `main`'s head; nobody asked for changes.
+   Merge naming the head that was checked, so that a commit pushed in between stops the merge instead of being merged unseen.
+   An agent's merge is no sign-off: the rules of *DCO sign-off* below stand, and once sign-offs are enforced an agent does not merge a pull request that lacks a human's.
+7. **If `main` moved before the merge**, GitHub refuses it (ADR-0003): merge `main` into the branch again as in step 3, push, and wait for the checks of that commit.
+   Do not resolve a conflict in GitHub's editor: what is resolved there was never built or tested.
+8. **After the merge, look at `main`:** it holds the change, and the branch is finished as step 1 says.
 
 ## Style
 
