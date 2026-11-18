@@ -127,8 +127,13 @@ func startMarkdown(blocks []item.Block) string {
 	for _, b := range blocks {
 		if marker, ok := startMarkers[b.Kind]; ok {
 			flush()
-			if b.Kind == item.Children {
+			switch {
+			case b.Kind == item.Children:
 				marker = childrenMarker(b)
+			case b.Kind == item.TOC && b.Level > 0:
+				// A table of contents names the deepest level it lists
+				// (ADR-0237, ADR-0239).
+				marker = "[toc:" + strconv.Itoa(b.Level) + "]"
 			}
 			parts = append(parts, marker)
 			continue
@@ -145,7 +150,9 @@ var startMarkers = map[item.BlockKind]string{item.TOC: "[toc]", item.Children: "
 
 // startMarkerLine matches a marker line. A list of child pages may name
 // its depth, 1 to 5 or all, and the types it leaves out:
-// [children:2 without task, decision] (ADR-0239, ADR-0240).
+// [children:2 without task, decision] (ADR-0239, ADR-0240); a table of
+// contents the deepest level of the headings it lists, 1 to 3 or all:
+// [toc:2] (ADR-0237).
 var startMarkerLine = regexp.MustCompile(`(?mi)^[ \t]*\[(toc|children|figures|tables)(?::(all|[1-5]))?(?:[ \t]+without[ \t]+([^\]\n]+?))?[ \t]*\][ \t]*$`)
 
 // childrenMarker is the marker line of a list of child pages, with its
@@ -210,15 +217,23 @@ func startFromMarkdown(src string) []item.Block {
 			return src[m[2*i]:m[2*i+1]]
 		}
 		depth, without := group(2), group(3)
-		if kind != item.Children && (depth != "" || without != "") {
-			// Only a list of child pages has a depth and types; any
-			// other such line stays text.
+		level, _ := strconv.Atoi(depth)
+		switch {
+		case kind == item.Children:
+		case kind == item.TOC && without == "" && (depth == "" || strings.EqualFold(depth, "all") || level <= 3):
+		case depth != "" || without != "":
+			// Only a list of child pages has types, and a table of
+			// contents a level of 1 to 3; any other such line stays
+			// text.
 			continue
 		}
 		convert(src[at:m[0]])
-		if kind == item.Children {
+		switch kind {
+		case item.Children:
 			out = append(out, childrenFromMarker(depth, without))
-		} else {
+		case item.TOC:
+			out = append(out, item.Block{Kind: kind, Level: level})
+		default:
 			out = append(out, item.Block{Kind: kind})
 		}
 		at = m[1]

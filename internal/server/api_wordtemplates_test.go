@@ -306,9 +306,35 @@ func TestStartMarkdownKeepsAListsDepthAndTypes(t *testing.T) {
 	}
 	// What is no marker stays text: a depth out of range, or a depth or
 	// types on another block.
-	for _, src := range []string{"[children:6]", "[children:0]", "[toc:2]", "[tables without task]", "[children:two]"} {
+	for _, src := range []string{"[children:6]", "[children:0]", "[toc:4]", "[toc:2 without task]", "[tables without task]", "[figures:2]", "[children:two]"} {
 		if blocks := startFromMarkdown(src); len(blocks) != 1 || blocks[0].Kind != item.Paragraph {
 			t.Errorf("%q: %+v", src, blocks)
+		}
+	}
+}
+
+// TestStartMarkdownKeepsATableOfContentsLevel reads and writes the level
+// of a table of contents in a start text (ADR-0237, ADR-0239).
+func TestStartMarkdownKeepsATableOfContentsLevel(t *testing.T) {
+	for src, want := range map[string]struct {
+		level int
+		back  string
+	}{
+		"[toc]":     {0, "[toc]"},
+		"[TOC:all]": {0, "[toc]"},
+		"[toc:1]":   {1, "[toc:1]"},
+		"[toc:3]":   {3, "[toc:3]"},
+	} {
+		blocks := startFromMarkdown(src)
+		if len(blocks) != 1 || blocks[0].Kind != item.TOC || blocks[0].Level != want.level {
+			t.Errorf("%q: %+v", src, blocks)
+			continue
+		}
+		if err := item.CheckBlock(blocks[0], "self"); err != nil {
+			t.Errorf("%q: not a valid block: %v", src, err)
+		}
+		if got := startMarkdown(blocks); got != want.back {
+			t.Errorf("%q written back as %q, want %q", src, got, want.back)
 		}
 	}
 }

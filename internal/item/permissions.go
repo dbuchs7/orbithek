@@ -902,6 +902,11 @@ type ChildPage struct {
 	Item     Item
 	Children []ChildPage
 	More     bool
+	// Under is the left-out item the page stood below when it takes that
+	// item's place, the nearest of them; nil when the page stands below
+	// its own parent (ADR-0240). It is readable: only readable left-out
+	// items are passed through.
+	Under *Item
 }
 
 // ChildPages returns the readable children of an item, or the readable
@@ -945,6 +950,7 @@ func (x *Session) ChildPages(space string, parent ID, depth, max int, hide []str
 	// below an unreadable item is unreadable itself (D9), so only a
 	// readable left-out item is passed through.
 	shownOf := map[ID][]Item{}
+	underOf := map[ID]Item{}
 	var shown func(id ID) []Item
 	shown = func(id ID) []Item {
 		if out, ok := shownOf[id]; ok {
@@ -960,7 +966,14 @@ func (x *Session) ChildPages(space string, parent ID, depth, max int, hide []str
 		out := []Item{}
 		for _, k := range direct {
 			if slices.Contains(hide, k.Type) {
-				out = append(out, shown(k.ID)...)
+				for _, p := range shown(k.ID) {
+					// A page below a deeper left-out item keeps that
+					// nearer one.
+					if _, ok := underOf[p.ID]; !ok {
+						underOf[p.ID] = k
+					}
+					out = append(out, p)
+				}
 			} else {
 				out = append(out, k)
 			}
@@ -997,6 +1010,9 @@ func (x *Session) ChildPages(space string, parent ID, depth, max int, hide []str
 				continue
 			}
 			c := ChildPage{Item: k}
+			if u, ok := underOf[k.ID]; ok {
+				c.Under = &u
+			}
 			c.Children, c.More = build(k.ID)
 			out = append(out, c)
 		}
