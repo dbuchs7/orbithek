@@ -1070,6 +1070,8 @@ function webSource() {
     await editor.click();
     await page.keyboard.type("Steps");
     await page.selectOption(".pm-toolbar select", "heading:2");
+    // A heading takes a text colour and a size, as a paragraph does (ADR-0238).
+    await page.waitForFunction(() => !document.querySelector("#pm-text-colour").disabled && !document.querySelector("#pm-text-size").disabled);
     await page.keyboard.press("End");
     await page.keyboard.press("Enter");
     await page.keyboard.type("- first item");
@@ -1091,6 +1093,12 @@ function webSource() {
     await page.keyboard.press("Control+b");
     await page.keyboard.type("Bold");
     await page.keyboard.press("Control+b");
+    // A paragraph's text takes a colour: chosen at the cursor, it colours
+    // what is typed next (ADR-0238).
+    await page.selectOption("#pm-text-colour", "teal");
+    await page.keyboard.type(" Teal");
+    await page.selectOption("#pm-text-colour", "");
+    await page.waitForSelector(".ProseMirror p .pm-text-teal:text-is(' Teal')");
     await page.keyboard.type(" <script>alert('body')</script> see ");
     // Links, "@" and embedding work as in a word processor (ADR-0096).
     await page.keyboard.type("https://example.com/docs ");
@@ -1124,6 +1132,7 @@ function webSource() {
     check((await page.textContent(".ProseMirror h3")) === "Steps", "heading level 2 renders as h3 under the title");
     check(await page.locator(".pm-bullet").count() === 2, "two bulleted items");
     check((await page.textContent(".ProseMirror strong")) === "Bold", "bold text");
+    check((await page.textContent(".ProseMirror p .pm-text-teal")) === " Teal", "text in a colour");
     check((await page.textContent(".pm-mention")).startsWith("@") && (await page.getAttribute(".pm-mention", "href")).startsWith("#/item/"), "the mention");
     check(await page.locator(".ProseMirror a[href^='https://example.com/docs']").count() === 1, "the typed address stays a link");
     check((await page.textContent(".pm-embed .pm-embed-title")).includes("PLAT-1"), "the embed");
@@ -1474,7 +1483,7 @@ function webSource() {
     await page.click("#edit");
     await page.waitForSelector("#body.editing .ProseMirror");
     await page.locator("#body .ProseMirror").click();
-    await page.selectOption("#body .pm-toolbar select >> nth=1", "children");
+    await page.selectOption("#body .pm-toolbar select[aria-label='Insert…']", "children");
     // The list asks for its depth first, as a table of contents does.
     await page.waitForSelector("dialog.pm-children-dialog #pm-children-depth");
     check(await page.inputValue("dialog.pm-children-dialog #pm-children-depth") === "0", "the dialog offers one level first");
@@ -1536,7 +1545,7 @@ function webSource() {
     await page.keyboard.press("Enter"); // an empty task ends the list
     await page.keyboard.type("Writers must be stopped.");
     await page.selectOption("#body .pm-toolbar select", "panel:warning");
-    await page.selectOption("#body .pm-toolbar select >> nth=1", "table");
+    await page.selectOption("#body .pm-toolbar select[aria-label='Insert…']", "table");
     // A cell is edited in place, formatted, coloured, and its column and
     // row sized by dragging their edges; text that does not fit wraps
     // (ADR-0214).
@@ -1569,8 +1578,8 @@ function webSource() {
     const rowBefore = (await page.locator("#body .pm-table tr:nth-child(2)").boundingBox()).height;
     await dragEdge("#body .pm-table tr:nth-child(2) td:first-child .pm-row-handle", 0, 50);
     await page.waitForFunction((h) => document.querySelector("#body .pm-table tr:nth-child(2)").getBoundingClientRect().height >= h + 40, rowBefore);
-    await page.selectOption("#body .pm-toolbar select >> nth=1", "toc");
-    check(await page.locator("#body .pm-toolbar select >> nth=1").locator("option[value=toc]").textContent() === "Table of contents", "the insert menu says Table of contents");
+    await page.selectOption("#body .pm-toolbar select[aria-label='Insert…']", "toc");
+    check(await page.locator("#body .pm-toolbar select[aria-label='Insert…']").locator("option[value=toc]").textContent() === "Table of contents", "the insert menu says Table of contents");
     // Inserting asks for the depth; the table of contents changes it too
     // (ADR-0237).
     await page.selectOption("dialog.pm-toc-dialog #pm-toc-depth", "1");
@@ -1579,13 +1588,13 @@ function webSource() {
     await page.selectOption("#body .pm-toc select.pm-toc-depth", "2");
     await page.waitForSelector("#body .pm-toc button:has-text('Prepare')");
     // An item's content alone, without its heading and fields.
-    await page.selectOption("#body .pm-toolbar select >> nth=1", "embedtext");
+    await page.selectOption("#body .pm-toolbar select[aria-label='Insert…']", "embedtext");
     await page.fill("dialog.pm-dialog [name=q]", "PLAT-1");
     await page.click("dialog.pm-dialog .pm-result[data-key='PLAT-1']");
     await page.waitForSelector("#body .pm-embed.pm-embed-text.pm-embed-editing .pm-embed-head .pm-embed-title:has-text('PLAT-1')");
     check(await page.locator("#body .pm-embed.pm-embed-text select.pm-embed-view").inputValue() === "text", "the embed shows the content only");
-    await page.selectOption("#body .pm-toolbar select >> nth=1", "tables");
-    await page.selectOption("#body .pm-toolbar select >> nth=1", "figures");
+    await page.selectOption("#body .pm-toolbar select[aria-label='Insert…']", "tables");
+    await page.selectOption("#body .pm-toolbar select[aria-label='Insert…']", "figures");
     await page.click("#details h2"); // leave the editor: its blocks are released and saved
     await page.waitForSelector(".live[data-pending='0']");
     await page.reload();

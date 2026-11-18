@@ -69,3 +69,34 @@ func TestATableKeepsItsFormatsSizesAndColoursInWord(t *testing.T) {
 		}
 	}
 }
+
+// TestAParagraphKeepsItsColourAndSize: a paragraph's text in a tone and a
+// size is written as classes of the export's stylesheet and as Word's run
+// properties, as a cell's is (ADR-0238).
+func TestAParagraphKeepsItsColourAndSize(t *testing.T) {
+	para := item.Block{Kind: item.Paragraph, Text: "Stop the writers.", Marks: []item.Mark{{Type: item.MarkColor, Start: 0, End: 4, Value: "red"}, {Type: item.MarkSize, Start: 0, End: 4, Value: "small"}}}
+	var h bytes.Buffer
+	if err := HTML(&h, Document{Pages: []Page{{ID: "p", Title: "Writers", Body: []item.Block{para}}}}, "en"); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(h.String(), `<span class="text-red size-small">Stop</span> the writers.`) {
+		t.Errorf("the HTML lacks the paragraph's colour and size:\n%s", h.String())
+	}
+	var buf bytes.Buffer
+	if err := DOCX(&buf, Document{Pages: []Page{{ID: "p", Title: "Writers", Body: []item.Block{para}}}}); err != nil {
+		t.Fatal(err)
+	}
+	z, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range z.File {
+		if f.Name == "word/document.xml" {
+			r, _ := f.Open()
+			data, _ := io.ReadAll(r)
+			if !strings.Contains(string(data), `<w:color w:val="D93636"/><w:sz w:val="18"/><w:szCs w:val="18"/>`) {
+				t.Error("the document lacks the paragraph's colour and size")
+			}
+		}
+	}
+}

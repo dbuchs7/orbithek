@@ -83,10 +83,13 @@ Choose **Edit** to edit the text and **Done** to finish. Changes are saved conti
 
 - the block kind: paragraph, heading 1 to 3, bulleted, numbered and task items, quote, code block, and info, note, warning, tip and error panels;
 - bold, italic, underline, strike-through, highlight, inline code and alignment;
+- **Text colour** and **Size** for the text of a paragraph, a heading, a list item, a task, a quote or a panel: the selected text, or what you type next at the cursor; a code block keeps the text's own colour and size;
 - **Link** (Ctrl+K): a web address, or a page or task found by its title;
 - **Mention** (@): a person or an item;
 - **Number headings** (1.1): numbers the headings of the whole text by their level (see below);
 - **Undo** and **Redo**.
+
+On a phone the toolbar keeps to one row: swipe it sideways to reach its other buttons.
 
 **Number headings** numbers every heading by its level: 1, 1.1, 1.1.1.
 The numbers follow the headings as they are added, moved or removed; nothing has to be numbered by hand.

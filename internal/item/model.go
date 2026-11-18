@@ -182,14 +182,15 @@ const (
 	// MarkSecret protects its text (ADR-0088): Ref names the item's Secret
 	// that says who reads it in clear; others read a placeholder.
 	MarkSecret MarkType = "secret"
-	// MarkColor colours the text of a table's cell in one of TableTones,
+	// MarkColor colours the text of a paragraph, a heading, a list item, a
+	// task, a quote, a panel or a table's cell in one of TableTones,
 	// MarkSize sets its size to one of TextSizes; Value holds the tone or
 	// the size (ADR-0238).
 	MarkColor MarkType = "color"
 	MarkSize  MarkType = "size"
 )
 
-// TextSizes are the sizes the text of a table's cell may take besides the
+// TextSizes are the sizes such text may take besides the
 // text's own: named, as tones are, so that a page reads alike on every
 // screen and in every export (ADR-0238).
 var TextSizes = []string{"small", "large", "larger"}

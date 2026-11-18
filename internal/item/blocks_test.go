@@ -107,28 +107,41 @@ func TestTablesAreFormattedSizedAndColoured(t *testing.T) {
 	}
 }
 
-// TestTheTextOfACellTakesAColourAndASize: a cell's text is coloured in a
-// tone and sized in a named size, inside one cell, and nowhere but in a
-// table (ADR-0238).
+// TestTheTextOfACellTakesAColourAndASize: the text of a cell, a paragraph,
+// a heading, a list item, a task, a quote or a panel is coloured in a tone
+// and sized in a named size, inside one cell, and nowhere else: not in a
+// code block (ADR-0238).
 func TestTheTextOfACellTakesAColourAndASize(t *testing.T) {
 	s := setup(t)
 	page := mustItem(t)(s.Create("anna", NewItem{Space: "PLAT", Type: "page", Title: "Hosts"}))
 	table := Block{Kind: Table, Text: "Host\tRole\ndb1\tprimary", Marks: []Mark{{Type: MarkColor, Start: 0, End: 4, Value: "red"},
 		{Type: MarkSize, Start: 0, End: 4, Value: "larger"}, {Type: MarkSize, Start: 14, End: 21, Value: "small"}}}
-	noErr(t, s.CommitBody("anna", page.ID, Doc{Blocks: []Block{table}}))
+	// A paragraph's text takes them too.
+	para := Block{Kind: Paragraph, Text: "Stop the writers.", Marks: []Mark{{Type: MarkColor, Start: 0, End: 4, Value: "orange"}, {Type: MarkSize, Start: 5, End: 8, Value: "large"}}}
+	// So do a heading's, a list item's and a task's.
+	heading := Block{Kind: Heading, Level: 1, Text: "Big", Marks: []Mark{{Type: MarkSize, Start: 0, End: 3, Value: "larger"}}}
+	bullet := Block{Kind: BulletItem, Text: "red", Marks: []Mark{{Type: MarkColor, Start: 0, End: 3, Value: "red"}}}
+	ordered := Block{Kind: OrderedItem, Text: "one", Marks: []Mark{{Type: MarkColor, Start: 0, End: 3, Value: "blue"}}}
+	task := Block{Kind: TaskItem, Text: "do", Marks: []Mark{{Type: MarkSize, Start: 0, End: 2, Value: "small"}}}
+	quote := Block{Kind: Quote, Text: "said", Marks: []Mark{{Type: MarkColor, Start: 0, End: 4, Value: "gray"}}}
+	panel := Block{Kind: Panel, Tone: "warning", Text: "Stop", Marks: []Mark{{Type: MarkSize, Start: 0, End: 4, Value: "large"}}}
+	noErr(t, s.CommitBody("anna", page.ID, Doc{Blocks: []Block{table, para, heading, bullet, ordered, task, quote, panel}}))
+	if got := mustItem(t)(s.Get(page.ID)).Body.Blocks[1].Marks; len(got) != 2 || got[0].Value != "orange" || got[1].Value != "large" {
+		t.Fatalf("paragraph marks = %+v", got)
+	}
 	cells := TableCells(mustItem(t)(s.Get(page.ID)).Body.Blocks[0])
 	if len(cells[0][0].Marks) != 2 || cells[1][1].Marks[0] != (Mark{Type: MarkSize, Start: 0, End: 7, Value: "small"}) {
 		t.Fatalf("cells = %+v", cells)
 	}
 	bad := map[string]Block{
-		"a colour not a tone":       {Kind: Table, Text: "a\tb", Marks: []Mark{{Type: MarkColor, Start: 0, End: 1, Value: "#ff0000"}}},
-		"a size not named":          {Kind: Table, Text: "a\tb", Marks: []Mark{{Type: MarkSize, Start: 0, End: 1, Value: "14pt"}}},
-		"a colour without a tone":   {Kind: Table, Text: "a\tb", Marks: []Mark{{Type: MarkColor, Start: 0, End: 1}}},
-		"a colour across two cells": {Kind: Table, Text: "a\tb", Marks: []Mark{{Type: MarkColor, Start: 0, End: 3, Value: "red"}}},
-		"a colour with a target":    {Kind: Table, Text: "a\tb", Marks: []Mark{{Type: MarkColor, Start: 0, End: 1, Value: "red", Href: "https://x.org"}}},
-		"a value on a bold mark":    {Kind: Table, Text: "a\tb", Marks: []Mark{{Type: MarkBold, Start: 0, End: 1, Value: "red"}}},
-		"a colour in a paragraph":   {Kind: Paragraph, Text: "red", Marks: []Mark{{Type: MarkColor, Start: 0, End: 3, Value: "red"}}},
-		"a size in a heading":       {Kind: Heading, Level: 1, Text: "big", Marks: []Mark{{Type: MarkSize, Start: 0, End: 3, Value: "larger"}}},
+		"a colour not a tone":             {Kind: Table, Text: "a\tb", Marks: []Mark{{Type: MarkColor, Start: 0, End: 1, Value: "#ff0000"}}},
+		"a size not named":                {Kind: Table, Text: "a\tb", Marks: []Mark{{Type: MarkSize, Start: 0, End: 1, Value: "14pt"}}},
+		"a colour without a tone":         {Kind: Table, Text: "a\tb", Marks: []Mark{{Type: MarkColor, Start: 0, End: 1}}},
+		"a colour across two cells":       {Kind: Table, Text: "a\tb", Marks: []Mark{{Type: MarkColor, Start: 0, End: 3, Value: "red"}}},
+		"a colour with a target":          {Kind: Table, Text: "a\tb", Marks: []Mark{{Type: MarkColor, Start: 0, End: 1, Value: "red", Href: "https://x.org"}}},
+		"a value on a bold mark":          {Kind: Table, Text: "a\tb", Marks: []Mark{{Type: MarkBold, Start: 0, End: 1, Value: "red"}}},
+		"a colour in a code block":        {Kind: CodeBlock, Text: "red", Marks: []Mark{{Type: MarkColor, Start: 0, End: 3, Value: "red"}}},
+		"a size not named in a paragraph": {Kind: Paragraph, Text: "big", Marks: []Mark{{Type: MarkSize, Start: 0, End: 3, Value: "huge"}}},
 	}
 	for name, b := range bad {
 		if err := s.CommitBody("anna", page.ID, Doc{Blocks: []Block{b}}); !errors.Is(err, ErrValidation) {
