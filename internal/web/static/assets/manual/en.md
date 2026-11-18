@@ -83,7 +83,7 @@ Choose **Edit** to edit the text and **Done** to finish. Changes are saved conti
 
 - the block kind: paragraph, heading 1 to 3, bulleted, numbered and task items, quote, code block, and info, note, warning, tip and error panels;
 - bold, italic, underline, strike-through, highlight, inline code and alignment;
-- **Text colour** and **Size** for a paragraph's text: the selected text, or what you type next at the cursor; headings, lists, quotes and panels keep the text's own colour and size;
+- **Text colour** and **Size** for the text of a paragraph, a heading, a list item or a task: the selected text, or what you type next at the cursor; quotes and panels keep the text's own colour and size;
 - **Link** (Ctrl+K): a web address, or a page or task found by its title;
 - **Mention** (@): a person or an item;
 - **Number headings** (1.1): numbers the headings of the whole text by their level (see below);

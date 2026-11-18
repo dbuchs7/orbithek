@@ -78,7 +78,7 @@ func TestAChangeThatIsNotPersistedDoesNotHappen(t *testing.T) {
 
 func TestDecodeRejectsWhatItCannotReadExactly(t *testing.T) {
 	cases := map[string]string{
-		"newer format":       `[{"v":69,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
+		"newer format":       `[{"v":70,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"no format version":  `[{"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"unknown field":      `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated","colour":"red"}]`,
 		"unknown role":       `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"RoleGranted","role":"owner"}]`,
@@ -1721,8 +1721,9 @@ func shareFileLog(t *testing.T) []Event {
 // tableStyleLog writes a table with formatted cells, column widths, row
 // heights and coloured cells, so the golden files pin the block fields
 // Widths, Heights and Cells and marks inside a table (ADR-0214), among
-// them a cell's text in a tone and a size, with the mark's Value, and a
-// paragraph's text in a tone and a size (ADR-0238).
+// them a cell's text in a tone and a size, with the mark's Value, and the
+// text of a paragraph, a heading and a list item in a tone and a size
+// (ADR-0238).
 func tableStyleLog(t *testing.T) []Event {
 	s := setup(t)
 	page := mustItem(t)(s.Create("anna", NewItem{Space: "PLAT", Type: "page", Title: "Hosts"}))
@@ -1731,7 +1732,9 @@ func tableStyleLog(t *testing.T) []Event {
 			{Type: MarkLink, Start: 27, End: 46, Href: "https://example.org"}},
 		Widths: []int{120, 0}, Heights: []int{0, 48},
 		Cells: []Cell{{Row: 0, Col: 0, Fill: "blue"}, {Row: 1, Col: 1, Fill: "yellow", Border: "red"}}},
-		{Kind: Paragraph, Text: "Stop the writers first.", Marks: []Mark{{Type: MarkColor, Start: 0, End: 4, Value: "red"}, {Type: MarkSize, Start: 0, End: 4, Value: "larger"}}}}}))
+		{Kind: Paragraph, Text: "Stop the writers first.", Marks: []Mark{{Type: MarkColor, Start: 0, End: 4, Value: "red"}, {Type: MarkSize, Start: 0, End: 4, Value: "larger"}}},
+		{Kind: Heading, Level: 2, Text: "Writers", Marks: []Mark{{Type: MarkColor, Start: 0, End: 7, Value: "purple"}}},
+		{Kind: BulletItem, Text: "db1", Marks: []Mark{{Type: MarkSize, Start: 0, End: 3, Value: "small"}}}}}))
 	return s.Log()
 }
 
