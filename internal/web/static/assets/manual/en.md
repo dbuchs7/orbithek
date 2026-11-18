@@ -59,7 +59,7 @@ The overview of rooms lists your rooms, as tiles or as a list; a star marks a ro
 
 ### Creating a page or item
 
-Choose **+ New** in the top bar or **New page** in a room. The creation view asks for the room, the type and the title, and places the new item below the page you came from. On a page, **New child page** creates a page below it. If a type has a start text, a new item begins with it. A room's own types are offered only when that room is chosen.
+Choose **+ New** in the top bar or **New page** in a room. The creation view asks for the room, the type and the title, and places the new item below the page you came from. On a page, **New child page** creates a page below it. If a type has a start text, a new item begins with it; if the type numbers headings, the new item begins with its headings numbered. A room's own types are offered only when that room is chosen.
 
 ### Reading an item
 
@@ -95,6 +95,7 @@ The shallowest heading level the text uses counts first, so a text that starts w
 The table of contents shows the same numbers, and so do the Word file, the page printed as PDF and the Markdown export.
 The headings of an item embedded with its content alone count as the text's own and take its numbers; an item embedded whole keeps its own.
 Clicking the button again removes the numbers from the text and from the table of contents.
+A type can have its new items begin numbered (see *Item types* under Administration); each item can still switch it off, and items made before keep their own choice.
 The setting belongs to the text and is saved at once for everyone who reads it; the history records it as a version of the text.
 Someone who may not read a protected section of the text does not see its headings, and the numbers they read leave them out.
 
@@ -596,7 +597,7 @@ Administrators find under **Administration**:
   Under **Account requests** administrators also decide whether a first sign-in with single sign-on creates an account without roles.
   Turned off, only people whose account at the provider is already linked to an account here sign in with it; turn it off before single sign-on is set up if only known people shall use it;
 - **Rooms**: create rooms, open their settings, move a room to the trash and restore or delete it for good;
-- **Item types**: create and change types in a form — name, text, fields with their kind and options, workflow with states and transitions (or simply *open → done*) and start text — for the whole installation or for one room; the type as JSON stays under **Advanced**. Types are also made from the ready-made templates;
+- **Item types**: create and change types in a form — name, text, fields with their kind and options, workflow with states and transitions (or simply *open → done*), start text and **Number the headings of new items** — for the whole installation or for one room; the type as JSON stays under **Advanced**. Types are also made from the ready-made templates;
 - **Backup** (also on a schedule to a directory, WebDAV, S3, FTPS or SFTP) and **Storage**;
 - **Calendars of other services**, **Album: older versions**, **File shares**, **Connectors** and **Process engines**.
   Under **File shares** an album folder is bound to a directory the operator allows or to an S3 bucket, read now (**Read now**, **Dry run**) or on its schedule.

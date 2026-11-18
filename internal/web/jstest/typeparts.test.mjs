@@ -102,3 +102,13 @@ test("entries move and states are renamed everywhere", () => {
     transitions: [{ name: "finish", from: ["new"], to: "done" }, { name: "reopen", from: ["done"], to: "new" }],
   });
 });
+
+test("a type numbers the headings of its new items only with a body (ADR-0241)", () => {
+  const d = draftOf({ name: "concept", body: true, numbered: true, version: 1, fields: [] });
+  assert.equal(d.numbered, true, "the draft keeps the type's numbering");
+  assert.equal(definitionOf(d).numbered, true);
+  d.body = false;
+  assert.equal(definitionOf(d).numbered, undefined, "a type without a body numbers nothing");
+  assert.equal(emptyDraft().numbered, false);
+  assert.equal(definitionOf(draftOf({ name: "note", body: true, fields: [] })).numbered, undefined, "a type that does not number says nothing");
+});

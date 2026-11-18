@@ -829,6 +829,9 @@ type newItemJSON struct {
 	Properties map[string]json.RawMessage `json:"properties"`
 	// Body is the item's first body, saved with it.
 	Body []blockJSON `json:"body"`
+	// Numbered numbers its headings, or not; absent, the item does as its
+	// type says (ADR-0241).
+	Numbered *bool `json:"numbered"`
 }
 
 func (n newItemJSON) toNewItem(s *item.Store) (item.NewItem, error) {
@@ -838,16 +841,24 @@ func (n newItemJSON) toNewItem(s *item.Store) (item.NewItem, error) {
 	}
 	out := item.NewItem{Space: n.Space, Type: n.Type, Parent: n.Parent, Title: n.Title, Properties: props}
 	// A page made without a text begins with its type's (ADR-0167).
-	if td := s.Type(n.Type); n.Body == nil && td.Start != nil && len(td.Start.Blocks) > 0 {
+	td := s.Type(n.Type)
+	if n.Body == nil && td.Start != nil && len(td.Start.Blocks) > 0 {
 		for _, b := range td.Start.Blocks {
 			n.Body = append(n.Body, toBlockJSON(b))
 		}
 	}
-	if n.Body != nil {
+	// Its headings are numbered as its type says, with a text given or not,
+	// unless the request says otherwise (ADR-0241).
+	numbered := td.Start != nil && td.Start.Numbered
+	if n.Numbered != nil {
+		numbered = *n.Numbered
+	}
+	if n.Body != nil || numbered {
 		doc, err := toDoc(n.Body, nil)
 		if err != nil {
 			return item.NewItem{}, err
 		}
+		doc.Numbered = numbered
 		out.Body = &doc
 	}
 	return out, nil
