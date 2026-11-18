@@ -1593,7 +1593,7 @@ function webSource() {
     check(await page.locator("#body .pm-toc select.pm-toc-depth").inputValue() === "2", "the table of contents kept its depth");
     await page.waitForSelector("#body .pm-tables button:has-text('Table 1: ')"); // numbered, with its header row
     await page.waitForSelector("#body .pm-figures:has-text('No pictures yet.')");
-    // Numbered headings (ADR-draft-numbered-headings): the heading and its
+    // Numbered headings (ADR-0241): the heading and its
     // entry in the table of contents show the number, stored at once.
     check(await page.locator("#body .pm-num, #body [data-num]").count() === 0, "the headings are not numbered before they are asked to be");
     await page.click("#pm-number-headings");
@@ -1658,6 +1658,17 @@ function webSource() {
     await page.selectOption("#body .pm-table-text-colour", "purple");
     await page.selectOption("#body .pm-table-text-size", "large");
     await page.waitForSelector("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-editor:has(.pm-text-purple):has(.pm-size-large):has-text('db1')");
+    // The keyboard chooses cells: Escape leaves the cell, which stays
+    // chosen, Shift and an arrow widen the choice, a second Escape leaves
+    // the table (ADR-0236).
+    await page.click("#body .pm-table tr:nth-child(2) td:first-child .pm-cell-editor");
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Shift+ArrowRight");
+    check(await page.locator("#body .pm-table .pm-cell-chosen").count() === 2, "Shift and an arrow choose the cell beside too");
+    // The table has two columns: both cells of its second row are that row.
+    check(await page.locator("#body .pm-table [role=status]").textContent() === "Row 2 chosen, 2 cells", "a screen reader is told which cells are chosen");
+    await page.keyboard.press("Escape");
+    check(await page.locator("#body .pm-table .pm-cell-chosen").count() === 0, "a second Escape lets the cells go");
     await page.click("#edit-done");
     await page.waitForSelector("#body.reading .pm-table td:has(.pm-text-purple):has(.pm-size-large):has-text('db1')"); // either may wrap the other
 

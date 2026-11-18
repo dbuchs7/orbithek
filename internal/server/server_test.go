@@ -1,7 +1,12 @@
 package server
 
 import (
+	"bufio"
+	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"fmt"
 	"io"
 	"log/slog"
 	"net"
@@ -13,6 +18,8 @@ import (
 	"time"
 
 	"github.com/dbuchs7/orbithek/internal/auth"
+	"github.com/dbuchs7/orbithek/internal/certs"
+	"github.com/dbuchs7/orbithek/internal/certs/certstest"
 	"github.com/dbuchs7/orbithek/internal/storage"
 	"github.com/dbuchs7/orbithek/internal/web"
 )
@@ -164,7 +171,7 @@ func TestServeAnswersAndShutsDownWhenContextEnds(t *testing.T) {
 	done := make(chan error, 1)
 	h := testHandler(t)
 	go func() {
-		done <- Serve(ctx, ln, h, slog.New(slog.DiscardHandler))
+		done <- Serve(ctx, ln, h, nil, slog.New(slog.DiscardHandler))
 	}()
 
 	res, err := http.Get("http://" + ln.Addr().String() + "/healthz")
@@ -194,9 +201,108 @@ func TestServeReportsListenerFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 	ln.Close()
-	err = Serve(context.Background(), ln, http.NotFoundHandler(), slog.New(slog.DiscardHandler))
+	err = Serve(context.Background(), ln, http.NotFoundHandler(), nil, slog.New(slog.DiscardHandler))
 	if err == nil {
 		t.Fatal("Serve on a closed listener returned nil")
+	}
+}
+
+// TestServeTerminatesTLS: given a TLS configuration, Serve answers HTTPS on
+// the listener, over HTTP/2 where the client speaks it, requests count as
+// secure, so cookies are Secure (ADR-0037), and a stream is flushed as it
+// is written (ADR-0242).
+func TestServeTerminatesTLS(t *testing.T) {
+	dir := t.TempDir()
+	certFile, keyFile := certstest.Write(t, dir, "wiki", "wiki.example.org")
+	store, err := certs.Open([]certs.Pair{{Cert: certFile, Key: keyFile}}, slog.New(slog.DiscardHandler))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	more := make(chan struct{})
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "%s secure=%v\n", r.Proto, isSecure(r))
+		if r.URL.Path == "/stream" {
+			rc := http.NewResponseController(w)
+			if err := rc.SetWriteDeadline(time.Now().Add(time.Minute)); err != nil {
+				t.Errorf("no write deadline on a stream: %v", err)
+			}
+			if err := rc.Flush(); err != nil {
+				t.Errorf("cannot flush a stream: %v", err)
+			}
+			<-more
+			fmt.Fprintln(w, "more")
+		}
+	})
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	var logged bytes.Buffer
+	go func() { done <- Serve(ctx, ln, h, store.Config(), slog.New(slog.NewTextHandler(&logged, nil))) }()
+
+	pool := x509.NewCertPool()
+	leaves, err := certs.Leaves([]string{certFile})
+	if err != nil {
+		t.Fatal(err)
+	}
+	pool.AddCert(leaves[0])
+	client := func(http2 bool) *http.Client {
+		return &http.Client{Timeout: 10 * time.Second, Transport: &http.Transport{
+			TLSClientConfig:   &tls.Config{RootCAs: pool, ServerName: "wiki.example.org"},
+			ForceAttemptHTTP2: http2,
+		}}
+	}
+	url := "https://" + ln.Addr().String()
+	for _, c := range []struct {
+		http2 bool
+		want  string
+	}{{true, "HTTP/2.0 secure=true\n"}, {false, "HTTP/1.1 secure=true\n"}} {
+		res, err := client(c.http2).Get(url + "/")
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, _ := io.ReadAll(res.Body)
+		res.Body.Close()
+		if string(body) != c.want {
+			t.Errorf("answer %q, want %q", body, c.want)
+		}
+	}
+
+	res, err := client(true).Get(url + "/stream")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := bufio.NewReader(res.Body)
+	if first, err := lines.ReadString('\n'); err != nil || first != "HTTP/2.0 secure=true\n" {
+		t.Errorf("first line of the stream %q, %v; want it before the stream ends", first, err)
+	}
+	close(more)
+	if second, err := lines.ReadString('\n'); err != nil || second != "more\n" {
+		t.Errorf("second line of the stream %q, %v", second, err)
+	}
+	res.Body.Close()
+
+	// A client that does not speak TLS gets no content.
+	if res, err := http.Get("http://" + ln.Addr().String() + "/"); err == nil {
+		res.Body.Close()
+		if res.StatusCode == http.StatusOK {
+			t.Error("a request in the clear was answered")
+		}
+	}
+
+	cancel()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Errorf("Serve returned %v, want nil after shutdown", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("Serve did not return after the context ended")
+	}
+	if out := logged.String(); !strings.Contains(out, "tls=true") {
+		t.Errorf("the start does not say that TLS is served:\n%s", out)
 	}
 }
 

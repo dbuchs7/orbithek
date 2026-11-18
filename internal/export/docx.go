@@ -159,7 +159,7 @@ type Page struct {
 	// Depth is the page's level below the root.
 	Depth int
 	// Numbered numbers the body's headings, in the text and in its tables
-	// of contents (ADR-draft-numbered-headings).
+	// of contents (ADR-0241).
 	Numbered bool
 }
 
@@ -173,7 +173,7 @@ type heading struct {
 // tocEntries are the entries of a table of contents of page p: the
 // headings with text of its body as a reader reads it, the text of the
 // embeds of their text alone woven in (ADR-0237), down to the block's
-// level, numbered when the page is (ADR-draft-numbered-headings).
+// level, numbered when the page is (ADR-0241).
 func tocEntries(d Document, p Page, toc item.Block) []heading {
 	blocks := woven(d, p)
 	var nums []string
@@ -195,7 +195,7 @@ func tocEntries(d Document, p Page, toc item.Block) []heading {
 }
 
 // numberer hands out the numbers of a numbered page's headings in the
-// order they are written (ADR-draft-numbered-headings). A page written as
+// order they are written (ADR-0241). A page written as
 // a page of its own, or embedded whole, has numbers of its own; the text
 // of an embed of its text alone is woven into the page around it, as a
 // reader reads it (ADR-0237), and takes that page's next numbers, so the

@@ -26,7 +26,7 @@ import { AUDIO_TYPES } from "./recorderparts.js";
 import { assist } from "./assist.js";
 import { markdownToBlocks, pastesAsMarkdown } from "./markdown.js";
 import {
-  TONES as TABLE_TONES, MARKS as TABLE_MARKS, cellsOf, joinCells, normalMarks, normalLayout, colourOf, rangeOf, inRange, paint, formatCells, styleCells, styleOf, SIZES as TEXT_SIZES, tableData, tableDOM, tableFromDOM, classRules, subTable, tableAttrs, pasteCells, clearCells, gridFromText, manyCells, specHTML,
+  TONES as TABLE_TONES, MARKS as TABLE_MARKS, cellsOf, joinCells, normalMarks, normalLayout, colourOf, rangeOf, inRange, paint, formatCells, styleCells, styleOf, SIZES as TEXT_SIZES, tableData, tableDOM, tableFromDOM, classRules, subTable, tableAttrs, pasteCells, stepCells, wholeOf, chosenSaid, clearCells, gridFromText, manyCells, specHTML,
   insertRow, insertColumn, removeRow, removeColumn, resized, filledClass, borderClass,
 } from "./tableparts.js";
 import { viewBlock, pickView, viewsReady } from "./itemview.js";
@@ -657,6 +657,12 @@ function cellContent(cell) {
   return out;
 }
 
+const STEP_KEYS = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
+// The keys of the formats a cell takes, as the body's keys (Mod- and
+// Mod-Shift-).
+const FORMAT_KEYS = { b: "bold", i: "italic", u: "underline", "`": "code" };
+const FORMAT_SHIFT_KEYS = { x: "strike", h: "highlight" };
+
 // tableView draws a table: its cells with their formats, its column
 // widths and row heights and its coloured cells; the text wraps within
 // a cell. An editor edits a cell in place, formats it, chooses several
@@ -703,6 +709,26 @@ function tableView(node, view, getPos) {
     const rg = range();
     tds.forEach((row, i) => row.forEach((td, j) => td.classList.toggle("pm-cell-chosen", inRange(rg, i, j) && Boolean(head))));
     showTools();
+    say(head ? rg : null);
+  };
+  // say tells a screen reader which cells are chosen, through a polite
+  // live region, once for each new choice: a drawing of the table again
+  // with the same cells chosen says nothing (ADR-0236).
+  const said = h("div", { class: "visually-hidden", role: "status", "aria-live": "polite", "aria-atomic": "true" });
+  let saidFor = "";
+  let quiet = false; // while the table is drawn again
+  const say = (rg) => {
+    if (quiet) return;
+    const key = rg ? [rg.r0, rg.c0, rg.r1, rg.c1].join(",") : "";
+    if (key === saidFor) return;
+    saidFor = key;
+    if (!rg) { said.textContent = ""; return; }
+    const d = chosenSaid(rg, read().rows);
+    said.textContent = d.kind === "cell" ? (d.text ? t("editor.tableSaidCell", d) : t("editor.tableSaidEmptyCell", d))
+      : d.kind === "all" ? t("editor.tableSaidAll", d)
+        : d.kind === "rows" ? (d.from === d.to ? t("editor.tableSaidRow", d) : t("editor.tableSaidRows", d))
+          : d.kind === "columns" ? (d.from === d.to ? t("editor.tableSaidColumn", d) : t("editor.tableSaidColumns", d))
+            : t("editor.tableSaidCells", d);
   };
   // hold gives the table the focus and lets go of any selection of text,
   // so that a copy, cut or paste goes to the chosen cells.
@@ -727,12 +753,31 @@ function tableView(node, view, getPos) {
     const rg = range();
     if (!rg && what !== "all") return;
     close();
-    const rows = read().rows, last = rows.length - 1, lastCol = rows[0].length - 1;
-    if (what === "rows") { anchor = { r: rg.r0, c: 0 }; head = { r: rg.r1, c: lastCol }; }
-    else if (what === "columns") { anchor = { r: 0, c: rg.c0 }; head = { r: last, c: rg.c1 }; }
-    else { anchor = { r: 0, c: 0 }; head = { r: last, c: lastCol }; }
+    const rows = read().rows;
+    ({ anchor, head } = wholeOf(rg || { r0: 0, c0: 0, r1: 0, c1: 0 }, what, rows.length, rows[0].length));
     choose(head.r, head.c, true);
     hold();
+  };
+  // The keys of a table holding the focus while cells are chosen
+  // (ADR-0236): the arrows choose the cell beside, with Shift they widen
+  // the choice; Shift+Space chooses whole rows, Ctrl+Space whole columns,
+  // Ctrl+A every cell; the keys of the formats format them; Enter or F2
+  // edits the last chosen cell; Delete
+  // empties the chosen cells; Escape lets them go.
+  const tableKey = (ev) => {
+    const mod = ev.ctrlKey || ev.metaKey;
+    if (STEP_KEYS.includes(ev.key) && !mod && !ev.altKey) return ev.shiftKey ? "extend" : "step";
+    if (ev.key === " " && ev.shiftKey && !mod) return "rows";
+    if (ev.key === " " && mod && !ev.shiftKey) return "columns";
+    if (ev.key.toLowerCase() === "a" && mod && !ev.shiftKey && !ev.altKey) return "all";
+    // The keys that format text format every chosen cell.
+    const k = ev.key.toLowerCase();
+    if (mod && !ev.altKey && !ev.shiftKey && FORMAT_KEYS[k]) return "format:" + FORMAT_KEYS[k];
+    if (mod && !ev.altKey && ev.shiftKey && FORMAT_SHIFT_KEYS[k]) return "format:" + FORMAT_SHIFT_KEYS[k];
+    if ((ev.key === "Enter" || ev.key === "F2") && !mod && !ev.shiftKey) return "edit";
+    if (ev.key === "Delete" || ev.key === "Backspace") return "empty";
+    if (ev.key === "Escape") return "release";
+    return null;
   };
   // Chosen cells are copied as a table of their own, with their formats,
   // sizes and colours, and as text separated by tabs; cut empties them;
@@ -796,19 +841,46 @@ function tableView(node, view, getPos) {
   });
   dom.addEventListener("keydown", (ev) => {
     if (ev.target !== dom || !anchor) return;
-    if (ev.key === "Escape") {
-      ev.preventDefault();
+    const what = tableKey(ev);
+    if (!what) return;
+    ev.preventDefault();
+    const rows = read().rows;
+    if (what === "release") {
       anchor = head = null;
       tds.forEach((row) => row.forEach((td) => td.classList.remove("pm-cell-chosen")));
       showTools();
+      say(null);
       view.focus();
-    } else if ((ev.key === "Delete" || ev.key === "Backspace") && editable()) {
-      ev.preventDefault();
-      const { rows, layout } = read();
+    } else if (what === "empty") {
+      if (!editable()) return;
+      const { layout } = read();
       commit(clearCells(rows, range()), layout);
       hold();
+    } else if (what === "step" || what === "extend") {
+      ({ anchor, head } = stepCells(anchor, head, ev.key, what === "extend", rows.length, rows[0].length));
+      choose(head.r, head.c, true);
+      tds[head.r]?.[head.c]?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    } else if (what.startsWith("format:")) {
+      format(what.slice(7))();
+      hold();
+    } else if (what === "edit") {
+      const at = head || anchor;
+      if (editable()) open(at.r, at.c);
+    } else {
+      ({ anchor, head } = wholeOf(range(), what, rows.length, rows[0].length));
+      choose(head.r, head.c, true);
     }
   });
+  // leave closes the cell being edited at r, c and chooses it, or with an
+  // arrow key the rectangle from it to the cell beside, the table holding
+  // the focus.
+  const leave = (r, c, key) => {
+    close();
+    const rows = read().rows;
+    ({ anchor, head } = key ? stepCells({ r, c }, null, key, true, rows.length, rows[0].length) : { anchor: { r, c }, head: { r, c } });
+    choose(head.r, head.c, true);
+    hold();
+  };
   // move edits the cell dr rows and dc columns from the one being edited,
   // across the end of a row to the next.
   const move = (dr, dc) => {
@@ -849,7 +921,15 @@ function tableView(node, view, getPos) {
       "Mod-u": toggleMark(cellSchema.marks.underline), "Mod-Shift-x": toggleMark(cellSchema.marks.strike), "Mod-Shift-h": toggleMark(cellSchema.marks.highlight),
       "Mod-k": () => { format("link")(); return true; },
       Tab: () => move(0, 1), "Shift-Tab": () => move(0, -1), Enter: () => move(1, 0), "Shift-Enter": () => true,
-      Escape: () => { close(); view.focus(); return true; },
+      // Escape leaves the cell, which stays chosen, and gives the table
+      // the focus; a second Escape leaves the table (ADR-0236).
+      Escape: () => { leave(r, c, null); return true; },
+      // Shift and an arrow at the edge of the cell's text choose cells.
+      ...Object.fromEntries(STEP_KEYS.map((key) => ["Shift-" + key, (state, dispatch, v) => {
+        if (!v.endOfTextblock({ ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" }[key])) return false;
+        leave(r, c, key);
+        return true;
+      }])),
     };
     const inner = new EditorView(holder, {
       state: EditorState.create({ doc: cellDoc(read().rows[r][c]), plugins: [history(), keymap(keys), keymap(baseKeymap)] }),
@@ -1086,12 +1166,14 @@ function tableView(node, view, getPos) {
     });
     table.append(body);
     tools = edit ? toolbar(rows, layout) : null;
-    dom.replaceChildren(...[tools, h("div", { class: "pm-table-scroll" }, table)].filter(Boolean)); // replaceChildren writes a null out as "null"
+    dom.replaceChildren(...[tools, h("div", { class: "pm-table-scroll" }, table), said].filter(Boolean)); // replaceChildren writes a null out as "null"
     // The chosen cells stay chosen, so that several formats and colours
     // apply to them one after the other.
     const chosen = head;
+    quiet = true;
     if (anchor) choose(anchor.r, anchor.c, false);
     if (chosen) choose(chosen.r, chosen.c, true);
+    quiet = false;
     showTools();
   };
   render();
@@ -1103,7 +1185,7 @@ function tableView(node, view, getPos) {
     // empty them or let them go.
     stopEvent: (ev) => Boolean(ev.target.closest?.("a, button, input, select, .pm-cell-editable"))
       || (["copy", "cut", "paste"].includes(ev.type) && ownsClipboard(ev))
-      || (ev.target === dom && ev.type === "keydown" && ["Delete", "Backspace", "Escape"].includes(ev.key)),
+      || (ev.target === dom && ev.type === "keydown" && Boolean(anchor) && Boolean(tableKey(ev))),
     ignoreMutation: () => true,
     update: (n) => { if (n.type !== node.type) return false; node = n; render(); return true; },
     destroy: () => { close(); window.removeEventListener("mouseup", dragEnd); },
@@ -1111,7 +1193,7 @@ function tableView(node, view, getPos) {
 }
 
 // numbering holds whether a body's headings are numbered
-// (ADR-draft-numbered-headings): a setting of the whole body, not of a
+// (ADR-0241): a setting of the whole body, not of a
 // block, so it stays out of the undo history and out of the blocks a live
 // session compares. A transaction with the meta {numbered} sets it. The
 // numbers count the text as a reader reads it, the text of embeds of their
@@ -1183,7 +1265,7 @@ export function isNumbered(state) {
 
 // wovenNumbers are the numbers of woven blocks (wovenBlocks), "" for each
 // that has none, when numbered is set: the headings of an embed of its text
-// alone count as the text's own (ADR-draft-numbered-headings, ADR-0237).
+// alone count as the text's own (ADR-0241, ADR-0237).
 export function wovenNumbers(woven, numbered) {
   return numbered ? headingNumbers(woven.map(({ node }) => blockOf(node))) : woven.map(() => "");
 }
@@ -1245,7 +1327,7 @@ export function wovenBlocks(view, depth = 0) {
 // tocHeadings are the blocks a table of contents of the given level lists
 // among woven blocks: headings with text, down to the level, or every one
 // at level 0, each with its number when nums, as wovenNumbers counts them,
-// are given (ADR-draft-numbered-headings).
+// are given (ADR-0241).
 export function tocHeadings(blocks, level, nums = []) {
   return blocks.map((b, i) => ({ ...b, num: nums[i] || "" }))
     .filter(({ node: n }) => n.type === schema.nodes.heading && n.textContent.trim() && (!level || n.attrs.level <= level))
@@ -1837,7 +1919,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
   view.dom.addEventListener("pm-embed-loaded", () => tocs.forEach((f) => f()));
   // The numbers of the headings follow every change that moves the tables
   // of contents: of the text, of its numbering and of an embed's text
-  // (ADR-draft-numbered-headings). They are counted after the change is
+  // (ADR-0241). They are counted after the change is
   // shown, not while the view updates.
   let renumbering = false;
   const scheduleRenumber = () => {
@@ -2354,7 +2436,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     run(setBlockType(inIt ? schema.nodes.paragraph : node))();
   } });
   // Numbering the headings is a setting of the whole text
-  // (ADR-draft-numbered-headings): onNumbered, given by a live session,
+  // (ADR-0241): onNumbered, given by a live session,
   // stores it for everyone at once; until it answers, the text shows what
   // was chosen, and a refusal takes it back.
   const setNumbered = (on) => view.dispatch(view.state.tr.setMeta(numbering, { numbered: on }).setMeta("addToHistory", false));

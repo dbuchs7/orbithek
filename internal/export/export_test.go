@@ -351,7 +351,7 @@ func TestSoundIsPlayedOrNamed(t *testing.T) {
 // TestNumberedHeadingsInEveryFormat: a numbered body shows the numbers of
 // its headings in the text and in its table of contents, in the HTML, the
 // Word file and the Markdown; an unnumbered one shows none
-// (ADR-draft-numbered-headings).
+// (ADR-0241).
 func TestNumberedHeadingsInEveryFormat(t *testing.T) {
 	body := []item.Block{
 		{Kind: item.TOC},
@@ -632,7 +632,7 @@ func TestATableOfContentsCountsTheTextOfAnEmbedAsThePagesOwn(t *testing.T) {
 // TestTheTextOfAnEmbedIsNumberedAsThePagesOwn: the headings of an embed of
 // its text alone take the numbers of the page around it, in the text and
 // in its table of contents; an item embedded whole numbers its own
-// (ADR-draft-numbered-headings, ADR-0237).
+// (ADR-0241, ADR-0237).
 func TestTheTextOfAnEmbedIsNumberedAsThePagesOwn(t *testing.T) {
 	part := Page{ID: "s", Title: "Safety", Body: []item.Block{{Kind: item.Heading, Level: 1, Text: "Gloves"}}}
 	whole := Page{ID: "w", Key: "DOC-8", Title: "Other", Numbered: true, Body: []item.Block{{Kind: item.Heading, Level: 1, Text: "Own"}}}

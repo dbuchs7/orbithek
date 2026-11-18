@@ -599,3 +599,48 @@ export function specHTML(spec) {
   const attrs = Object.entries(hasAttrs ? maybe : {}).filter(([, v]) => v !== null && v !== undefined).map(([k, v]) => ` ${k}="${esc(v)}"`).join("");
   return VOID.has(tag) ? `<${tag}${attrs}>` : `<${tag}${attrs}>${kids.map(specHTML).join("")}</${tag}>`;
 }
+
+// --- choosing cells with the keyboard (ADR-0236) --------------------------------
+
+// STEPS are the arrow keys and the row and column each moves by.
+export const STEPS = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+
+// stepCells is the choice after an arrow key: the cell beside the last
+// chosen one alone, or, with extend (Shift), the rectangle from the
+// first chosen cell to it; the edges of the table hold it. A choice is
+// { anchor, head }, each { r, c }; null for a key that is no arrow.
+export function stepCells(anchor, head, key, extend, nRows, nCols) {
+  const d = STEPS[key];
+  if (!d || !anchor) return null;
+  const from = head || anchor;
+  const to = { r: Math.min(nRows - 1, Math.max(0, from.r + d[0])), c: Math.min(nCols - 1, Math.max(0, from.c + d[1])) };
+  return extend ? { anchor, head: to } : { anchor: to, head: to };
+}
+
+// wholeOf widens a range of cells to its whole rows ("rows"), its whole
+// columns ("columns"), or every cell ("all").
+export function wholeOf(range, what, nRows, nCols) {
+  if (what === "rows") return { anchor: { r: range.r0, c: 0 }, head: { r: range.r1, c: nCols - 1 } };
+  if (what === "columns") return { anchor: { r: 0, c: range.c0 }, head: { r: nRows - 1, c: range.c1 } };
+  return { anchor: { r: 0, c: 0 }, head: { r: nRows - 1, c: nCols - 1 } };
+}
+
+// --- the chosen cells, said (ADR-0236) ------------------------------------------
+
+// chosenSaid describes a choice of cells for a screen reader, counted from
+// 1: { kind: "cell", row, col, text } for one cell with its text,
+// "rows" or "columns" for whole rows or columns (from, to), "all" for
+// every cell, else "cells" with the count and the corners.
+export function chosenSaid(range, rows) {
+  const nRows = rows.length, nCols = rows[0].length;
+  const n = (range.r1 - range.r0 + 1) * (range.c1 - range.c0 + 1);
+  if (n === 1) {
+    const text = rows[range.r0][range.c0].text.trim();
+    return { kind: "cell", row: range.r0 + 1, col: range.c0 + 1, text: cp(text) > 80 ? Array.from(text).slice(0, 80).join("") + "…" : text };
+  }
+  const wholeRows = range.c0 === 0 && range.c1 === nCols - 1, wholeCols = range.r0 === 0 && range.r1 === nRows - 1;
+  if (wholeRows && wholeCols) return { kind: "all", n };
+  if (wholeRows) return { kind: "rows", from: range.r0 + 1, to: range.r1 + 1, n };
+  if (wholeCols) return { kind: "columns", from: range.c0 + 1, to: range.c1 + 1, n };
+  return { kind: "cells", n, fromRow: range.r0 + 1, fromCol: range.c0 + 1, toRow: range.r1 + 1, toCol: range.c1 + 1 };
+}

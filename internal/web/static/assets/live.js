@@ -287,7 +287,7 @@ export function liveBody({ ref, embeds, resolve, childPages, files, extra = [], 
     if (blocks.length === 0) blocks.push({ kind: "paragraph", text: "", id: newID() });
     if (!view) {
       // Numbering the headings is stored at once for everyone, without a
-      // lock (ADR-draft-numbered-headings); a refusal throws, and the
+      // lock (ADR-0241); a refusal throws, and the
       // editor takes the choice back.
       const onNumbered = (on) => post(`/api/items/${encodeURIComponent(ref)}/live`, { client: me, ops: [{ op: "number", numbered: on }] });
       const ed = createEditor({ blocks, embeds, editable: e.editable, resolve, childPages, files, extra: [plugin, ...extra], comment, actions, embedContent, tasks, markdown, weblinks, create,

@@ -542,7 +542,7 @@ func TestReleasingABlockNoLongerHeldIsAnswered(t *testing.T) {
 // TestNumberingIsStoredAtOnceWithTheReleasedBlocks: turning the numbering
 // of the headings on or off takes no lock, stores the body at once with
 // the blocks as they were last released, and tells every client
-// (ADR-draft-numbered-headings).
+// (ADR-0241).
 func TestNumberingIsStoredAtOnceWithTheReleasedBlocks(t *testing.T) {
 	f := newFixture(t, "one", "two")
 	anna, bert := f.join("anna"), f.join("bert")

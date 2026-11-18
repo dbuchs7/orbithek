@@ -2,15 +2,18 @@
 // server, the API and the embedded web UI in one executable, for every
 // supported platform and as a container image.
 //
-//	orbithek serve [-addr :8080] [-data-dir data]
+//	orbithek serve [-addr :8080] [-data-dir data] [-tls-cert FILE -tls-key FILE]... [-redirect-addr :80]
 //	orbithek check [-data-dir data]
 //	orbithek import -from SOURCE -site URL [-spaces KEY,...] [-projects KEY,...] [-data-dir data]
-//	orbithek healthcheck [-url http://127.0.0.1:8080/healthz]
+//	orbithek healthcheck [-url http://127.0.0.1:8080/healthz] [-tls-cert FILE]... [-tls-ca FILE]
+//	orbithek mcp [-url http://127.0.0.1:8080] [-tls-ca FILE]
 //	orbithek version
 package main
 
 import (
+	"cmp"
 	"context"
+	"crypto/tls"
 	"errors"
 	"flag"
 	"fmt"
@@ -19,6 +22,7 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -33,6 +37,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/backup/dest"
 	"github.com/dbuchs7/orbithek/internal/budget"
 	"github.com/dbuchs7/orbithek/internal/buildinfo"
+	"github.com/dbuchs7/orbithek/internal/certs"
 	"github.com/dbuchs7/orbithek/internal/collab"
 	"github.com/dbuchs7/orbithek/internal/connector"
 	"github.com/dbuchs7/orbithek/internal/engine"
@@ -128,8 +133,21 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 	fs := newFlags("serve", stderr)
 	addr := fs.String("addr", ":8080", "address to listen on")
 	dataDir := fs.String("data-dir", defaultDataDir, "directory holding the event log")
+	var certFiles, keyFiles fileList
+	fs.Var(&certFiles, "tls-cert", "PEM certificate chain to answer HTTPS with on -addr instead of a reverse proxy doing it; given once per certificate, the name a client asks for chooses among them and the first answers every other (default: $OT_TLS_CERT, separated by commas)")
+	fs.Var(&keyFiles, "tls-key", "PEM private key of the -tls-cert given at the same place (default: $OT_TLS_KEY)")
+	redirectAddr := fs.String("redirect-addr", os.Getenv("OT_REDIRECT_ADDR"), "with -tls-cert: address to answer plain HTTP on, e.g. :80, by sending readers to HTTPS (default: $OT_REDIRECT_ADDR)")
 	if err := fs.Parse(args); err != nil {
 		return parseFailed(err)
+	}
+	pairs, err := certs.Pairs(tlsFiles(certFiles, keyFiles, os.Getenv))
+	if err != nil {
+		fmt.Fprintln(stderr, "serve:", err)
+		return 2
+	}
+	if *redirectAddr != "" && len(pairs) == 0 {
+		fmt.Fprintln(stderr, "serve: -redirect-addr needs -tls-cert and -tls-key: without them nothing answers the HTTPS it sends readers to")
+		return 2
 	}
 	log := slog.New(slog.NewTextHandler(stderr, nil))
 	log.Info("starting", "build", buildinfo.Get().String())
@@ -152,6 +170,18 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 		if dropped {
 			log.Info("gave up root", "uid", to.UID, "gid", to.GID, "data-dir", *dataDir)
 		}
+	}
+
+	// The certificates are read after root is given up, as every renewal
+	// is, and before the data directory is touched (ADR-0242).
+	var tlsConfig *tls.Config
+	if len(pairs) > 0 {
+		store, err := certs.Open(pairs, log)
+		if err != nil {
+			log.Error("cannot serve TLS", "err", err)
+			return 1
+		}
+		tlsConfig = store.Config()
 	}
 
 	db, rec, err := storage.OpenWith(*dataDir, storage.Options{Log: log})
@@ -189,6 +219,21 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 			names[i] = p.String()
 		}
 		log.Info("trusting forwarded headers", "proxies", strings.Join(names, ","))
+	}
+
+	// The transport policy is sent only on request, as it binds the whole
+	// host name in every browser that receives it (ADR-0243).
+	hsts, err := server.HSTSValue(os.Getenv("OT_HSTS_MAX_AGE"))
+	if err != nil {
+		log.Error("OT_HSTS_MAX_AGE is unusable", "err", err)
+		return 1
+	}
+	if hsts != "" {
+		if tlsConfig == nil && len(proxies) == 0 {
+			log.Warn("OT_HSTS_MAX_AGE has no effect: no request arrives over HTTPS without -tls-cert or OT_TRUSTED_PROXIES")
+		} else {
+			log.Info("sending the transport policy over HTTPS", "strict-transport-security", hsts)
+		}
 	}
 
 	var links *server.LinkChecks
@@ -252,6 +297,13 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 	if err != nil {
 		log.Error("cannot listen", "addr", *addr, "err", err)
 		return 1
+	}
+	var redirectLn net.Listener
+	if *redirectAddr != "" {
+		if redirectLn, err = net.Listen("tcp", *redirectAddr); err != nil {
+			log.Error("cannot listen", "addr", *redirectAddr, "err", err)
+			return 1
+		}
 	}
 	providers, err := ssoFromEnv(os.Getenv)
 	if err != nil {
@@ -364,11 +416,43 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 	sharesDone := make(chan struct{})
 	go func() { shares.Loop(sharesCtx); close(sharesDone) }()
 	defer func() { stopShares(); <-sharesDone }()
-	if err := server.Serve(ctx, ln, server.BehindProxies(proxies, server.WithPublicURL(notifier.PublicURL(), server.Handler(routes, db.Accounts))), log); err != nil {
+	handler := server.BehindProxies(proxies, server.WithHSTS(hsts, server.WithPublicURL(notifier.PublicURL(), server.Handler(routes, db.Accounts))))
+	if err := serveWithRedirect(ctx, ln, handler, tlsConfig, redirectLn, httpsPort(notifier.PublicURL()), log); err != nil {
 		log.Error("server failed", "err", err)
 		return 1
 	}
 	return 0
+}
+
+// httpsPort is the port readers reach HTTPS at when it is not the
+// standard one: the port OT_PUBLIC_URL names, if it is an https address
+// that names one. The port of -addr does not tell, as a container
+// publishes it under another.
+func httpsPort(public string) string {
+	u, err := url.Parse(public)
+	if err != nil || u.Scheme != "https" {
+		return ""
+	}
+	return u.Port()
+}
+
+// serveWithRedirect serves h on ln and, given redirectLn, the redirect to
+// HTTPS on it (ADR-0243). The two stop together: a
+// server that answers on only one of its addresses is worse than one that
+// stopped.
+func serveWithRedirect(ctx context.Context, ln net.Listener, h http.Handler, tlsConfig *tls.Config, redirectLn net.Listener, httpsPort string, log *slog.Logger) error {
+	if redirectLn == nil {
+		return server.Serve(ctx, ln, h, tlsConfig, log)
+	}
+	ctx, stop := context.WithCancel(ctx)
+	defer stop()
+	errc := make(chan error, 2)
+	log.Info("redirecting plain HTTP to HTTPS", "addr", redirectLn.Addr().String(), "https-port", cmp.Or(httpsPort, "443"))
+	go func() { errc <- server.Serve(ctx, redirectLn, server.RedirectToHTTPS(httpsPort), nil, log) }()
+	go func() { errc <- server.Serve(ctx, ln, h, tlsConfig, log) }()
+	err := <-errc
+	stop()
+	return errors.Join(err, <-errc)
 }
 
 // applyBudgets puts the resource budgets from the environment in force
@@ -850,6 +934,7 @@ func pickChain(names []string, want, dir string) ([]string, error) {
 func mcpStdio(ctx context.Context, args []string, in io.Reader, out, stderr io.Writer) int {
 	fs := newFlags("mcp", stderr)
 	url := fs.String("url", "http://127.0.0.1:8080", "the server's base URL")
+	caFile := fs.String("tls-ca", os.Getenv("OT_TLS_CA"), "PEM file of certificate authorities to trust besides the host's, for a server whose certificate an organisation's own authority signed (default: $OT_TLS_CA)")
 	if err := fs.Parse(args); err != nil {
 		return parseFailed(err)
 	}
@@ -858,7 +943,17 @@ func mcpStdio(ctx context.Context, args []string, in io.Reader, out, stderr io.W
 		fmt.Fprintln(stderr, "mcp: set OT_TOKEN to an API token (POST /api/tokens); the agent acts with its rights")
 		return 2
 	}
+	// A bundle that cannot be used stops the adapter here, where the agent
+	// sees a process that did not start, not tool calls that all fail.
+	transport, err := trusting(*caFile)
+	if err != nil {
+		fmt.Fprintln(stderr, "mcp: -tls-ca:", err)
+		return 2
+	}
 	api := mcp.HTTPAPI{Base: *url, Header: http.Header{"Authorization": {"Bearer " + token}}}
+	if transport != nil {
+		api.Client = &http.Client{Timeout: 60 * time.Second, Transport: transport}
+	}
 	if err := mcp.Serve(ctx, api, in, out); err != nil {
 		fmt.Fprintln(stderr, "mcp:", err)
 		return 1
@@ -866,21 +961,97 @@ func mcpStdio(ctx context.Context, args []string, in io.Reader, out, stderr io.W
 	return 0
 }
 
+// trusting is the transport of a command that calls a server whose
+// certificate may come from an organisation's own authority: it verifies
+// against the host's authorities and those of caFile (ADR-0244).
+// Without a file it is nil, the default transport.
+func trusting(caFile string) (*http.Transport, error) {
+	roots, err := certs.Roots(caFile)
+	if err != nil || roots == nil {
+		return nil, err
+	}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = &tls.Config{RootCAs: roots, MinVersion: tls.VersionTLS12}
+	return transport, nil
+}
+
+// fileList is a flag naming files: given several times, or once with the
+// files separated by commas.
+type fileList []string
+
+func (l *fileList) String() string { return strings.Join(*l, ",") }
+
+func (l *fileList) Set(v string) error {
+	for _, f := range strings.Split(v, ",") {
+		if f = strings.TrimSpace(f); f != "" {
+			*l = append(*l, f)
+		}
+	}
+	return nil
+}
+
+// tlsFiles are the certificate and key files to serve TLS with: those the
+// flags name, or, where no flag names any, those of OT_TLS_CERT and
+// OT_TLS_KEY. The flags replace the environment as a whole, so a pair is
+// never made of one file from each.
+func tlsFiles(certFiles, keyFiles fileList, getenv func(string) string) (chains, keys []string) {
+	if len(certFiles) == 0 && len(keyFiles) == 0 {
+		_ = certFiles.Set(getenv("OT_TLS_CERT"))
+		_ = keyFiles.Set(getenv("OT_TLS_KEY"))
+	}
+	return certFiles, keyFiles
+}
+
+// probeURL is the liveness probe healthcheck asks: the one given, else the
+// port the container image serves, over TLS when the server was given
+// certificates.
+func probeURL(given string, secure bool) string {
+	switch {
+	case given != "":
+		return given
+	case secure:
+		return "https://127.0.0.1:8080/healthz"
+	}
+	return "http://127.0.0.1:8080/healthz"
+}
+
 func healthcheck(ctx context.Context, args []string, stderr io.Writer) int {
 	fs := newFlags("healthcheck", stderr)
-	url := fs.String("url", "http://127.0.0.1:8080/healthz", "liveness probe to query")
+	url := fs.String("url", "", "liveness probe to query (default: http://127.0.0.1:8080/healthz, or https:// with -tls-cert)")
 	timeout := fs.Duration("timeout", 3*time.Second, "how long to wait for an answer")
+	var certFiles fileList
+	fs.Var(&certFiles, "tls-cert", "the certificate files the server was given: an https probe then trusts exactly these certificates, at whatever address it asks (default: $OT_TLS_CERT)")
+	caFile := fs.String("tls-ca", os.Getenv("OT_TLS_CA"), "without -tls-cert: PEM file of certificate authorities to trust besides the host's, for an https probe by the server's name (default: $OT_TLS_CA)")
 	if err := fs.Parse(args); err != nil {
 		return parseFailed(err)
 	}
+	pinned, _ := tlsFiles(certFiles, nil, os.Getenv)
+	client := http.DefaultClient
+	if len(pinned) > 0 {
+		cfg, err := certs.Pinned(pinned)
+		if err != nil {
+			fmt.Fprintln(stderr, "healthcheck:", err)
+			return 2
+		}
+		client = &http.Client{Transport: &http.Transport{TLSClientConfig: cfg}}
+	} else {
+		transport, err := trusting(*caFile)
+		if err != nil {
+			fmt.Fprintln(stderr, "healthcheck: -tls-ca:", err)
+			return 2
+		}
+		if transport != nil {
+			client = &http.Client{Transport: transport}
+		}
+	}
 	ctx, cancel := context.WithTimeout(ctx, *timeout)
 	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, *url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, probeURL(*url, len(pinned) > 0), nil)
 	if err != nil {
 		fmt.Fprintln(stderr, "healthcheck:", err)
 		return 2
 	}
-	res, err := http.DefaultClient.Do(req)
+	res, err := client.Do(req)
 	if err != nil {
 		fmt.Fprintln(stderr, "healthcheck:", err)
 		return 1

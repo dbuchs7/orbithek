@@ -6,7 +6,7 @@ import (
 )
 
 // HeadingNumbers returns the number of every heading of a numbered body,
-// by block index: "1", "1.1", "1.1.1" (ADR-draft-numbered-headings). A
+// by block index: "1", "1.1", "1.1.1" (ADR-0241). A
 // block that is no heading, or a heading without text, has "". The
 // shallowest level the body uses counts as the first, so a body that
 // starts at level 2 numbers its level 2 headings 1, 2, 3; a level the body

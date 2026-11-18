@@ -1,4 +1,4 @@
-# ADR-DRAFT: Headings numbered by their level, switched per text
+# ADR-0241: Headings numbered by their level, switched per text
 
 - **Status:** Proposed
 - **Implementation:** Partial

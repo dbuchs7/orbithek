@@ -362,7 +362,7 @@ type Doc struct {
 	Blocks []Block
 	// Numbered numbers the body's headings by their levels — 1, 1.1,
 	// 1.1.1 — in the text, in its tables of contents and in its exports
-	// (ADR-draft-numbered-headings). The numbers are computed when shown,
+	// (ADR-0241). The numbers are computed when shown,
 	// never stored; HeadingNumbers computes them.
 	Numbered bool `json:",omitempty"`
 }

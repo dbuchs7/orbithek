@@ -168,7 +168,7 @@ func TestLiveEditingThroughTheAPI(t *testing.T) {
 // TestNumberedHeadingsThroughTheAPI: whether a body's headings are
 // numbered is read with the item, set with the body or kept when left out,
 // set in a live session for everyone at once and returned with a version
-// (ADR-draft-numbered-headings).
+// (ADR-0241).
 func TestNumberedHeadingsThroughTheAPI(t *testing.T) {
 	w := newWorld(t)
 	srv := httptest.NewServer(w.bert.h)

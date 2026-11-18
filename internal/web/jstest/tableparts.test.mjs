@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import {
   TONES, cellsOf, joinCells, cleanCell, normalMarks, normalLayout, colourOf, rangeOf, inRange, paint, formatCells,
   insertRow, insertColumn, removeRow, removeColumn, resized, tableDOM, tableFromDOM, classRules, declarations,
-  subTable, tableAttrs, pasteCells, clearCells, gridFromText, manyCells, specHTML, styleCells, styleOf, SIZES,
+  subTable, tableAttrs, pasteCells, clearCells, gridFromText, manyCells, specHTML, styleCells, styleOf, SIZES, stepCells, wholeOf, chosenSaid,
 } from "../static/assets/tableparts.js";
 
 test("the tones are the model's", () => {
@@ -311,4 +311,32 @@ test("a colour and a size are copied and pasted, and checked as everything paste
   assert.deepEqual(tableFromDOM(el("table", { "data-pm-table": data }, el("tr", {}, el("td", {}, "a"), el("td", {}, "b"))), safe).marks,
     [{ type: "color", start: 2, end: 3, value: "red" }], "values the model refuses are dropped");
   assert.deepEqual(tableFromDOM(el("table", {}, el("tr", {}, el("td", {}, el("span", { class: "pm-text-pink pm-size-huge" }, "x")))), safe).marks, []);
+});
+
+test("the arrows choose the cell beside, with Shift the rectangle to it, the edges holding", () => {
+  const a = { r: 1, c: 1 };
+  assert.deepEqual(stepCells(a, null, "ArrowRight", false, 3, 3), { anchor: { r: 1, c: 2 }, head: { r: 1, c: 2 } });
+  assert.deepEqual(stepCells(a, { r: 1, c: 2 }, "ArrowDown", true, 3, 3), { anchor: a, head: { r: 2, c: 2 } }, "Shift widens from the last chosen cell");
+  assert.deepEqual(stepCells({ r: 0, c: 0 }, null, "ArrowUp", true, 3, 3), { anchor: { r: 0, c: 0 }, head: { r: 0, c: 0 } });
+  assert.deepEqual(stepCells(a, { r: 2, c: 2 }, "ArrowRight", false, 3, 3), { anchor: { r: 2, c: 2 }, head: { r: 2, c: 2 } }, "without Shift one cell beside the last");
+  assert.equal(stepCells(a, null, "Home", false, 3, 3), null);
+});
+
+test("a choice widens to whole rows, whole columns or every cell", () => {
+  const rg = { r0: 1, c0: 1, r1: 2, c1: 1 };
+  assert.deepEqual(wholeOf(rg, "rows", 4, 3), { anchor: { r: 1, c: 0 }, head: { r: 2, c: 2 } });
+  assert.deepEqual(wholeOf(rg, "columns", 4, 3), { anchor: { r: 0, c: 1 }, head: { r: 3, c: 1 } });
+  assert.deepEqual(wholeOf(rg, "all", 4, 3), { anchor: { r: 0, c: 0 }, head: { r: 3, c: 2 } });
+});
+
+test("a choice of cells is described for a screen reader, counted from 1", () => {
+  const rows = cellsOf("H1\tH2\ta1\nb1\tb2\tb3\nc1\t\tc3");
+  assert.deepEqual(chosenSaid({ r0: 1, c0: 1, r1: 1, c1: 1 }, rows), { kind: "cell", row: 2, col: 2, text: "b2" });
+  assert.equal(chosenSaid({ r0: 2, c0: 1, r1: 2, c1: 1 }, rows).text, "", "an empty cell");
+  assert.deepEqual(chosenSaid({ r0: 0, c0: 0, r1: 1, c1: 1 }, rows), { kind: "cells", n: 4, fromRow: 1, fromCol: 1, toRow: 2, toCol: 2 });
+  assert.deepEqual(chosenSaid({ r0: 1, c0: 0, r1: 2, c1: 2 }, rows), { kind: "rows", from: 2, to: 3, n: 6 });
+  assert.deepEqual(chosenSaid({ r0: 0, c0: 2, r1: 2, c1: 2 }, rows), { kind: "columns", from: 3, to: 3, n: 3 });
+  assert.deepEqual(chosenSaid({ r0: 0, c0: 0, r1: 2, c1: 2 }, rows), { kind: "all", n: 9 });
+  const long = cellsOf("x".repeat(100));
+  assert.equal(Array.from(chosenSaid({ r0: 0, c0: 0, r1: 0, c1: 0 }, long).text).length, 81, "a long text is cut");
 });

@@ -9,7 +9,7 @@ import (
 )
 
 // TestHeadingNumbersFollowTheSharedVector holds the server's numbers to the
-// cases the browser is tested with (ADR-draft-numbered-headings).
+// cases the browser is tested with (ADR-0241).
 func TestHeadingNumbersFollowTheSharedVector(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("..", "web", "jstest", "heading-numbers-vector.json"))
 	if err != nil {
