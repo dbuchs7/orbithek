@@ -209,7 +209,11 @@ import (
 //   - 67: a list of child pages may carry HideTypes, the types it leaves
 //     out, sealed with the body (ADR-0240).
 //     Versions 1 to 66 are still read; their lists show every type.
-const CodecVersion = 67
+//   - 68: a paragraph may carry the marks color and size, as a table's
+//     cell does since version 64, sealed with the body (ADR-0238).
+//     Versions 1 to 67 are still read; their paragraphs have the text's
+//     own colour and size.
+const CodecVersion = 68
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

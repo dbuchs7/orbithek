@@ -1070,6 +1070,8 @@ function webSource() {
     await editor.click();
     await page.keyboard.type("Steps");
     await page.selectOption(".pm-toolbar select", "heading:2");
+    // A heading takes neither a text colour nor a size (ADR-0238).
+    await page.waitForFunction(() => document.querySelector("#pm-text-colour").disabled && document.querySelector("#pm-text-size").disabled);
     await page.keyboard.press("End");
     await page.keyboard.press("Enter");
     await page.keyboard.type("- first item");
@@ -1091,6 +1093,12 @@ function webSource() {
     await page.keyboard.press("Control+b");
     await page.keyboard.type("Bold");
     await page.keyboard.press("Control+b");
+    // A paragraph's text takes a colour: chosen at the cursor, it colours
+    // what is typed next (ADR-0238).
+    await page.selectOption("#pm-text-colour", "teal");
+    await page.keyboard.type(" Teal");
+    await page.selectOption("#pm-text-colour", "");
+    await page.waitForSelector(".ProseMirror p .pm-text-teal:text-is(' Teal')");
     await page.keyboard.type(" <script>alert('body')</script> see ");
     // Links, "@" and embedding work as in a word processor (ADR-0096).
     await page.keyboard.type("https://example.com/docs ");
@@ -1124,6 +1132,7 @@ function webSource() {
     check((await page.textContent(".ProseMirror h3")) === "Steps", "heading level 2 renders as h3 under the title");
     check(await page.locator(".pm-bullet").count() === 2, "two bulleted items");
     check((await page.textContent(".ProseMirror strong")) === "Bold", "bold text");
+    check((await page.textContent(".ProseMirror p .pm-text-teal")) === " Teal", "text in a colour");
     check((await page.textContent(".pm-mention")).startsWith("@") && (await page.getAttribute(".pm-mention", "href")).startsWith("#/item/"), "the mention");
     check(await page.locator(".ProseMirror a[href^='https://example.com/docs']").count() === 1, "the typed address stays a link");
     check((await page.textContent(".pm-embed .pm-embed-title")).includes("PLAT-1"), "the embed");
