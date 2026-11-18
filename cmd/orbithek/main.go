@@ -238,7 +238,7 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 
 	// Process engines inside an organisation often have a certificate of
 	// its own authority; the server trusts that authority for its calls to
-	// engines only, and only on request (ADR-draft-engine-ca-bundle).
+	// engines only, and only on request (ADR-0245).
 	engineRoots, err := certs.Roots(os.Getenv(engine.TLSCAVar))
 	if err != nil {
 		log.Error(engine.TLSCAVar+" is unusable", "err", err)

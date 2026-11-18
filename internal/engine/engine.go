@@ -113,7 +113,7 @@ func NewReader(getenv func(string) string, client *http.Client) *Reader {
 // TLSCAVar names a PEM file of certificate authorities the server trusts
 // for its calls to process engines, besides the host's: an engine inside
 // an organisation often has a certificate of the organisation's own
-// authority (ADR-draft-engine-ca-bundle). It is the operator's decision,
+// authority (ADR-0245). It is the operator's decision,
 // so it comes from the environment, and it reaches no other call the
 // server makes.
 const TLSCAVar = "OT_ENGINE_TLS_CA"

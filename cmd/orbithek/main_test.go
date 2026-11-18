@@ -938,7 +938,7 @@ func TestCommandsTrustAnOrganisationsAuthority(t *testing.T) {
 // TestEngineAuthoritiesConfiguration: OT_ENGINE_TLS_CA names the
 // authorities the server trusts for its calls to process engines; a file
 // that cannot be used stops the server at its start
-// (ADR-draft-engine-ca-bundle).
+// (ADR-0245).
 func TestEngineAuthoritiesConfiguration(t *testing.T) {
 	t.Setenv("OT_ADMIN_PASSWORD", "a given password!")
 	dir := t.TempDir()

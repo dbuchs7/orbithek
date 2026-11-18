@@ -98,7 +98,7 @@ Strongest form: it works at once, for a test or a first try, with nothing to dis
 ## Open questions
 
 - **The server's outgoing calls.** `serve` calls process engines, identity providers, mail servers, backup destinations and connectors' sources, each of which may sit behind an organisation's own authority.
-  For process engines this is settled by ADR-draft-engine-ca-bundle: `OT_ENGINE_TLS_CA`.
+  For process engines this is settled by ADR-0245: `OT_ENGINE_TLS_CA`.
   Whether a bundle should apply to the others, and to which, is undecided.
 
 ## Links

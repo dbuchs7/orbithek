@@ -1,4 +1,4 @@
-# ADR-DRAFT: Calls to process engines trust an organisation's own certificate authority on request
+# ADR-0245: Calls to process engines trust an organisation's own certificate authority on request
 
 - **Status:** Proposed
 - **Implementation:** Partial

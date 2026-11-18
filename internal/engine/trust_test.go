@@ -18,7 +18,7 @@ import (
 // certificate an organisation's own authority signed is read once the
 // client is given that authority, and refused with the host's authorities
 // alone; the authority changes nothing about which addresses an engine may
-// have (ADR-draft-engine-ca-bundle).
+// have (ADR-0245).
 func TestEnginesWithAnOrganisationsOwnCertificate(t *testing.T) {
 	dir := t.TempDir()
 	ca := certstest.NewCA(t, dir, "ca")
