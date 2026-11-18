@@ -275,6 +275,7 @@ var tools = []tool{
 			{"parent", str, inBody, false, "The ID of the item to place it under, e.g. a parent page."},
 			{"properties", object, inBody, false, "Field values by field name. " + fieldValues},
 			{"body", array, inBody, false, "The item's first body, as blocks; only for types with a body."},
+			{"numbered", boolean, inBody, false, "true numbers its headings by their levels (1, 1.1, 1.1.1), false does not; left out, the item does as its type says (list_types: numbered)."},
 		}},
 	{Name: "get_tree", Description: "The pages of a space in their order, one level at a time: the top of the space, or the children of parent. " +
 		"Each entry says whether it has children. With depth, each entry holds its children to that many levels, unpaged; truncated says the list was cut at the server's budget, the upper levels kept whole, and more marks an entry whose children are left out.",
