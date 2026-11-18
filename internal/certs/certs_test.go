@@ -307,3 +307,60 @@ func TestPinnedTrustsExactlyTheConfiguredCertificates(t *testing.T) {
 		t.Error("no certificate file: no error")
 	}
 }
+
+// TestRootsAddTheBundleToTheHostsAuthorities: a client given an
+// organisation's own authority trusts what it signed and still trusts
+// everything the host does; without a bundle it is left with the host's
+// (ADR-0244).
+func TestRootsAddTheBundleToTheHostsAuthorities(t *testing.T) {
+	if pool, err := Roots("  "); err != nil || pool != nil {
+		t.Errorf("without a bundle: %v, %v; want nil, which reads as the host's authorities", pool, err)
+	}
+	dir := t.TempDir()
+	ca := certstest.NewCA(t, dir, "ca")
+	certFile, keyFile := ca.Write(t, dir, "wiki", "wiki.example.org")
+	strangerCert, strangerKey := certstest.Write(t, dir, "stranger", "wiki.example.org")
+	ours := serve(t, open(t, nil, Pair{certFile, keyFile}))
+	theirs := serve(t, open(t, nil, Pair{strangerCert, strangerKey}))
+
+	pool, err := Roots(ca.File)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dial := func(addr string, roots *x509.CertPool) error {
+		conn, err := tls.DialWithDialer(&net.Dialer{Timeout: 5 * time.Second}, "tcp", addr, &tls.Config{RootCAs: roots, ServerName: "wiki.example.org"})
+		if err != nil {
+			return err
+		}
+		return conn.Close()
+	}
+	if err := dial(ours, pool); err != nil {
+		t.Errorf("a server with a certificate of the authority: %v", err)
+	}
+	if err := dial(ours, nil); err == nil {
+		t.Error("the host's authorities alone trusted the organisation's own")
+	}
+	if err := dial(theirs, pool); err == nil {
+		t.Error("a certificate the authority did not sign was trusted")
+	}
+
+	host, err := x509.SystemCertPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	bundle, err := os.ReadFile(ca.File)
+	if err != nil {
+		t.Fatal(err)
+	}
+	host.AppendCertsFromPEM(bundle)
+	if !pool.Equal(host) {
+		t.Error("the pool is not the host's authorities with the bundle added")
+	}
+
+	if _, err := Roots(filepath.Join(dir, "none.pem")); err == nil {
+		t.Error("a missing bundle: no error")
+	}
+	if _, err := Roots(keyFile); err == nil {
+		t.Error("a file without a certificate: no error")
+	}
+}

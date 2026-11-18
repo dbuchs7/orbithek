@@ -624,3 +624,23 @@ export function wholeOf(range, what, nRows, nCols) {
   if (what === "columns") return { anchor: { r: 0, c: range.c0 }, head: { r: nRows - 1, c: range.c1 } };
   return { anchor: { r: 0, c: 0 }, head: { r: nRows - 1, c: nCols - 1 } };
 }
+
+// --- the chosen cells, said (ADR-0236) ------------------------------------------
+
+// chosenSaid describes a choice of cells for a screen reader, counted from
+// 1: { kind: "cell", row, col, text } for one cell with its text,
+// "rows" or "columns" for whole rows or columns (from, to), "all" for
+// every cell, else "cells" with the count and the corners.
+export function chosenSaid(range, rows) {
+  const nRows = rows.length, nCols = rows[0].length;
+  const n = (range.r1 - range.r0 + 1) * (range.c1 - range.c0 + 1);
+  if (n === 1) {
+    const text = rows[range.r0][range.c0].text.trim();
+    return { kind: "cell", row: range.r0 + 1, col: range.c0 + 1, text: cp(text) > 80 ? Array.from(text).slice(0, 80).join("") + "…" : text };
+  }
+  const wholeRows = range.c0 === 0 && range.c1 === nCols - 1, wholeCols = range.r0 === 0 && range.r1 === nRows - 1;
+  if (wholeRows && wholeCols) return { kind: "all", n };
+  if (wholeRows) return { kind: "rows", from: range.r0 + 1, to: range.r1 + 1, n };
+  if (wholeCols) return { kind: "columns", from: range.c0 + 1, to: range.c1 + 1, n };
+  return { kind: "cells", n, fromRow: range.r0 + 1, fromCol: range.c0 + 1, toRow: range.r1 + 1, toCol: range.c1 + 1 };
+}
