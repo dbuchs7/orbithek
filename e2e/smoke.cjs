@@ -1459,15 +1459,15 @@ function webSource() {
     await page.goBack();
 
     step("child pages: a list of child pages shows the levels chosen (ADR-0239)");
-    // A page below a task, which a list that leaves tasks out shows in
+    // A ticket below a task, which a list that leaves tasks out shows in
     // the task's place, naming it (ADR-0240).
     const minutes = await page.evaluate(async () => {
       const [task] = (await (await fetch("/api/items?query=" + encodeURIComponent('title = "Created from New, renamed"'))).json()).items;
       const r = await fetch("/api/items", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ space: "PLAT", type: "page", title: "Minutes", parent: task.id }) });
+        body: JSON.stringify({ space: "PLAT", type: "ticket", title: "Minutes", parent: task.id }) });
       return r.status;
     });
-    check(minutes === 201, "a page is made below a task: " + minutes);
+    check(minutes === 201, "a ticket is made below a task: " + minutes);
     await page.click(".tree a:has-text('Runbook')");
     await page.waitForSelector(".tree a.current:has-text('Runbook')");
     await page.waitForSelector("#body.reading");
