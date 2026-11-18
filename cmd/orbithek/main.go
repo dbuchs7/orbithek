@@ -236,6 +236,18 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 		}
 	}
 
+	// Process engines inside an organisation often have a certificate of
+	// its own authority; the server trusts that authority for its calls to
+	// engines only, and only on request (ADR-draft-engine-ca-bundle).
+	engineRoots, err := certs.Roots(os.Getenv(engine.TLSCAVar))
+	if err != nil {
+		log.Error(engine.TLSCAVar+" is unusable", "err", err)
+		return 1
+	}
+	if engineRoots != nil {
+		log.Info("process engines are verified against the host's certificate authorities and those of "+engine.TLSCAVar, "file", os.Getenv(engine.TLSCAVar))
+	}
+
 	var links *server.LinkChecks
 	switch v := os.Getenv("OT_LINKCHECK"); v {
 	case "", "off":
@@ -368,8 +380,9 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 	// People connect their accounts to the engines by OAuth, through this
 	// server's registration there, coming back to OT_PUBLIC_URL; who sees
 	// a linked task is read from each one's own task list.
-	engines := engine.NewReader(nil, nil)
-	connect := engineauth.NewBroker(db.Connections, engines, engine.NewClient(os.Getenv), os.Getenv, notifier.PublicURL())
+	engineClient := engine.NewClientTrusting(os.Getenv, engineRoots)
+	engines := engine.NewReader(nil, engineClient)
+	connect := engineauth.NewBroker(db.Connections, engines, engineClient, os.Getenv, notifier.PublicURL())
 	connect.OnEnded(server.RecordEnded(db))
 	taskLinks := tasklink.New(db, engines, log).WithGrants(connect)
 	linksCtx, stopLinks := context.WithCancel(ctx)

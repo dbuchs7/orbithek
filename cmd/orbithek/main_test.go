@@ -935,6 +935,39 @@ func TestCommandsTrustAnOrganisationsAuthority(t *testing.T) {
 	}
 }
 
+// TestEngineAuthoritiesConfiguration: OT_ENGINE_TLS_CA names the
+// authorities the server trusts for its calls to process engines; a file
+// that cannot be used stops the server at its start
+// (ADR-draft-engine-ca-bundle).
+func TestEngineAuthoritiesConfiguration(t *testing.T) {
+	t.Setenv("OT_ADMIN_PASSWORD", "a given password!")
+	dir := t.TempDir()
+	ca := certstest.NewCA(t, dir, "ca")
+
+	t.Setenv("OT_ENGINE_TLS_CA", filepath.Join(dir, "none.pem"))
+	dataDir := filepath.Join(t.TempDir(), "data")
+	code, _, errOut := runCmd(t, context.Background(), "serve", "-addr", freeAddr(t), "-data-dir", dataDir)
+	if code != 1 || !strings.Contains(errOut, "OT_ENGINE_TLS_CA is unusable") {
+		t.Errorf("a missing file: exit %d, stderr %q", code, errOut)
+	}
+
+	t.Setenv("OT_ENGINE_TLS_CA", ca.File)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	code, _, errOut = runCmd(t, ctx, "serve", "-addr", freeAddr(t), "-data-dir", t.TempDir())
+	if code != 0 || !strings.Contains(errOut, "process engines are verified against") {
+		t.Errorf("the authority's file: exit %d, stderr %q", code, errOut)
+	}
+
+	t.Setenv("OT_ENGINE_TLS_CA", "")
+	ctx, cancel = context.WithCancel(context.Background())
+	cancel()
+	code, _, errOut = runCmd(t, ctx, "serve", "-addr", freeAddr(t), "-data-dir", t.TempDir())
+	if code != 0 || strings.Contains(errOut, "process engines are verified against") {
+		t.Errorf("without the setting: exit %d, stderr %q", code, errOut)
+	}
+}
+
 func TestNotifierFromEnv(t *testing.T) {
 	env := func(m map[string]string) func(string) string { return func(k string) string { return m[k] } }
 	n, every, err := notifierFromEnv(env(nil))
