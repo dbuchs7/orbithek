@@ -612,6 +612,9 @@ const (
 	// SpaceRenamed changes a space's display name; its key stays.
 	SpaceRenamed EventKind = "SpaceRenamed"
 	SpacePurged  EventKind = "SpacePurged"
+	// SpaceDescribed sets or removes a space's short description, shown
+	// with its name (ADR-draft-a-space-carries-a-short-description).
+	SpaceDescribed EventKind = "SpaceDescribed"
 	// Protected passages of a body (ADR-0088). SecretSet protects a
 	// passage or changes who reads it; SecretRemoved takes the protection
 	// off; SecretRequested asks to read it (Principal), SecretGranted lets
@@ -662,6 +665,11 @@ type Event struct {
 	// command, shared by all its events; 0 for a single-event command. A
 	// batch is applied as a whole or not at all (ADR-0020, ADR-0008).
 	Batch int
+
+	// SpaceDescription is a space's short description after
+	// SpaceDescribed, empty to remove it; plain like the name, since a
+	// space is no item.
+	SpaceDescription string
 
 	TypeDef     *TypeDef // TypeDefined
 	Space       string   // SpaceCreated, ItemCreated, ItemMoved, SpaceTrashed, SpaceRestored, SpacePurged

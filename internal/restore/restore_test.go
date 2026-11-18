@@ -46,6 +46,7 @@ func newBackup(t *testing.T) backup {
 	s := item.NewStore()
 	noErr(t, s.CreateSpace("root", "A", "Alpha"))
 	noErr(t, s.CreateSpace("root", "B", "Beta"))
+	noErr(t, s.DescribeSpace("root", "A", "The alpha team's pages"))
 	noErr(t, s.DefineType("root", item.TypeDef{Name: "page", Body: true}))
 	noErr(t, s.GrantRole("root", "A", "anna", item.Editor))
 	noErr(t, s.GrantRole("root", "A", "@team", item.Viewer))
@@ -116,6 +117,9 @@ func TestASpaceComesBackWhole(t *testing.T) {
 
 	if len(rep.Restored) != 3 || !slices.Equal(rep.Spaces, []string{"A", "B"}) || rep.Granted != 3 {
 		t.Fatalf("restored %+v, spaces %v, granted %d", rep.Restored, rep.Spaces, rep.Granted)
+	}
+	if sp := target.Spaces(); len(sp) != 2 || sp[0].Name != "Alpha" || sp[0].Description != "The alpha team's pages" || sp[1].Description != "" {
+		t.Fatalf("spaces %+v: the name and description come back with a space", sp)
 	}
 	if o, ok := outcome(rep.Restored, b.target.ID); !ok || o.Reason != "referenced by "+b.page.Key {
 		t.Fatalf("the mentioned item: %+v", o)

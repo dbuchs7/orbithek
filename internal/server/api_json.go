@@ -135,6 +135,9 @@ func (t typeJSON) toTypeDef() (item.TypeDef, error) {
 type spaceJSON struct {
 	Key  string `json:"key"`
 	Name string `json:"name"`
+	// Description is the space's short description, or empty
+	// (ADR-draft-a-space-carries-a-short-description).
+	Description string `json:"description,omitempty"`
 	// Role is the caller's role in the space (viewer, editor or
 	// space-admin), so the UI offers only what the caller may do.
 	Role string `json:"role,omitempty"`

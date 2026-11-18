@@ -4224,12 +4224,26 @@ function webSource() {
     await page.fill("#space-name [name=name]", spaceName);
     await page.click("#space-name button[type=submit]");
     await page.waitForSelector(`h1:has-text('Settings of ${spaceName}')`);
+    // The settings give the space a short description of a few lines
+    // (ADR-draft-a-space-carries-a-short-description). The page is drawn
+    // again after the rename first: its heading reads exactly the old name.
+    await page.waitForSelector(`h1:text-is('Settings of ${spaceName}')`);
+    await page.fill("#space-description-form [name=description]", "Runbooks and incidents\nof the smoke test.");
+    await page.click("#space-description-form button[type=submit]");
+    await page.waitForFunction(() => document.querySelector("#space-description-form [name=description]")?.value === "Runbooks and incidents\nof the smoke test.");
 
     step("rooms overview: the spaces as tiles with their icon, or as a list, as each reader chooses");
     await page.goto(base + "/#/spaces");
     await page.waitForSelector("#spaces-overview .space-tile:has-text('Platform') img.space-icon");
+    await page.waitForSelector("#spaces-overview .space-tile .space-description:has-text('Runbooks and incidents')");
     await page.click("#spaces-list");
     await page.waitForSelector("#spaces-overview table.space-list a:has-text('Platform') img.space-icon");
+    await page.waitForSelector("#spaces-overview table.space-list .space-description:has-text('of the smoke test')");
+    await page.goto(base + "/#/space/PLAT");
+    await page.waitForSelector("#space-description:has-text('Runbooks and incidents')");
+    check(await page.evaluate(async () => (await fetch("/api/spaces/PLAT/description", { method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ description: "" }) })).ok), "the description is removed again");
+    await page.goto(base + "/#/spaces");
     await page.reload();
     await page.waitForSelector("#spaces-list[aria-pressed=true]"); // the choice is kept
     await page.click("#spaces-tiles");

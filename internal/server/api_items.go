@@ -341,7 +341,7 @@ func (h itemHandlers) listSpaces(w http.ResponseWriter, r *http.Request) {
 		out := []spaceJSON{}
 		favourites := h.d.DB.Accounts.Favourites(auth.UserID(who(r)))
 		for _, sp := range x.Spaces() {
-			out = append(out, spaceJSON{Key: sp.Key, Name: sp.Name, Role: roleName(x.Role(sp.Key)), Icon: spaceIconTag(h.d.DB.Site, sp.Key),
+			out = append(out, spaceJSON{Key: sp.Key, Name: sp.Name, Description: sp.Description, Role: roleName(x.Role(sp.Key)), Icon: spaceIconTag(h.d.DB.Site, sp.Key),
 				Favourite: slices.Contains(favourites, sp.Key)})
 		}
 		return map[string]any{"spaces": out}, nil

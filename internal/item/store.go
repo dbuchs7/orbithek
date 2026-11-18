@@ -103,6 +103,8 @@ type space struct {
 	// state is empty for a live space, else spaceTrashed or spacePurged
 	// (ADR-0069).
 	state string
+	// description is shown with the name; empty for none.
+	description string
 }
 
 // Option configures a Store.
@@ -1072,7 +1074,7 @@ func (s *Store) apply(e Event) {
 		s.applyPictureOrder(e, touch)
 	case ItemsOrdered:
 		s.applyItemOrder(e, touch)
-	case SpaceTrashed, SpaceRestored, SpacePurged, SpaceRenamed:
+	case SpaceTrashed, SpaceRestored, SpacePurged, SpaceRenamed, SpaceDescribed:
 		s.applySpace(e, touch)
 	case SecretSet, SecretRemoved, SecretRequested, SecretGranted, SecretDeclined, SecretErased:
 		s.applySecret(e)
@@ -1220,6 +1222,8 @@ func (s *Store) ByKey(key string) (Item, error) {
 type SpaceInfo struct {
 	Key  string
 	Name string
+	// Description is the space's short description, empty for none.
+	Description string
 }
 
 // Seq is the sequence number of the newest event, or 0 for none.
@@ -1235,7 +1239,7 @@ func (s *Store) Spaces() []SpaceInfo {
 	out := make([]SpaceInfo, 0, len(s.spaces))
 	for k, sp := range s.spaces {
 		if sp.state == "" {
-			out = append(out, SpaceInfo{Key: k, Name: sp.name})
+			out = append(out, SpaceInfo{Key: k, Name: sp.name, Description: sp.description})
 		}
 	}
 	slices.SortFunc(out, func(a, b SpaceInfo) int { return strings.Compare(a.Key, b.Key) })

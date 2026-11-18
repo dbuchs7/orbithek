@@ -53,7 +53,8 @@ Die Leiste oben auf jeder Seite enthält von links nach rechts:
 
 Die Startseite begrüsst, zeigt die Anzahl Seiten, Aufgaben und Bilder und bietet einen Schnellzugriff auf die Sternenkarte, die **Räume** (die Übersicht der eigenen Räume, auch über den Modulwechsler erreichbar), **Mein Tag** (die Tagesnotiz von heute, mit dem heutigen Datum), die eigenen Aufgaben, Benachrichtigungen, persönlichen Notizen, das Album, die Whiteboards und den KI-Zugang.
 Zeigt man mit der Maus auf eine Kachel, erscheint eine kurze Erklärung, was sie bietet.
-Die Raumübersicht zeigt die eigenen Räume als Kacheln oder als Liste; ein Stern markiert einen Raum als Favorit. Gibt es noch keine Räume, findet die Administration auf der Startseite die ersten Schritte: einen Raum erstellen, mit den Vorlagen Typen hinzufügen (Seite, Aufgabe, Entscheidung, Tagesnotiz) und Personen eine Rolle geben.
+Die Raumübersicht zeigt die eigenen Räume als Kacheln oder als Liste; ein Stern markiert einen Raum als Favorit.
+Hat die Raumadministration einem Raum eine Kurzbeschreibung gegeben, steht sie unter seinem Namen. Gibt es noch keine Räume, findet die Administration auf der Startseite die ersten Schritte: einen Raum erstellen, mit den Vorlagen Typen hinzufügen (Seite, Aufgabe, Entscheidung, Tagesnotiz) und Personen eine Rolle geben.
 
 ## Seiten und Einträge
 
@@ -609,6 +610,8 @@ Die Administration findet unter **Administration**:
 - **Word-Vorlagen**, **Datenschutz-Regelwerke**, **Import** und das **Audit-Protokoll**.
 
 Die Raumadministration verwaltet Mitglieder und Rollen ihres Raums unter den **Einstellungen** des Raums. Dort legt sie unter **Eintragstypen dieses Raums** mit demselben Formular auch die eigenen Typen des Raums an, ändert und entfernt sie oder beginnt mit einer Vorlage. Entfernt wird ein Typ erst, wenn kein Eintrag und kein Kanban ihn nutzt.
+
+Unter **Beschreibung** gibt sie dem Raum dort eine **Kurzbeschreibung** von höchstens 300 Zeichen und wenigen Zeilen: wofür der Raum da ist. Sie steht mit dem Namen des Raums auf seiner Kachel, in der Liste der Räume und unter der Überschrift der Seite des Raums; leer gespeichert, wird sie entfernt. Alle Mitglieder des Raums lesen sie. Sie wird nicht wie der Inhalt von Einträgen verschlüsselt; eine Beschreibung mit einem Passwort, einem Schlüssel oder einer Kontonummer wird deshalb abgewiesen.
 
 ## Tastenkürzel
 

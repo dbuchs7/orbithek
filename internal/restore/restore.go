@@ -313,14 +313,22 @@ func (w *writer) prepare(t *item.Store) error {
 		if _, known := t.SpaceState(key); known {
 			continue
 		}
-		name := key
+		name, description := key, ""
 		for _, sp := range w.p.src.Spaces() {
 			if sp.Key == key {
-				name = sp.Name
+				name, description = sp.Name, sp.Description
 			}
 		}
 		if err := t.CreateSpace(w.p.opt.Actor, key, name); err != nil {
 			return fmt.Errorf("restore: creating space %s: %w", key, err)
+		}
+		// The space's short description comes with its name
+		// (ADR-draft-a-space-carries-a-short-description); one the rules
+		// here refuse is left out, and the report says so.
+		if description != "" {
+			if err := t.DescribeSpace(w.p.opt.Actor, key, description); err != nil {
+				w.p.note("space %s: its description is not restored: %v", key, err)
+			}
 		}
 		w.p.rep.Spaces = append(w.p.rep.Spaces, key)
 		grants := w.p.opt.Grants

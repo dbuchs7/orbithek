@@ -53,7 +53,8 @@ The bar at the top of every page holds, from left to right:
 
 The start page greets you, shows counts of pages, tasks and pictures, and offers quick access to the starmap, the **Rooms** (the overview of your rooms, also reached from the module switcher), **My day** (today's daily note, with today's date), your tasks, notifications, personal notes, the album, the whiteboards and AI access.
 Point at a tile with the mouse to see what it offers.
-The overview of rooms lists your rooms, as tiles or as a list; a star marks a room as a favourite. If there are no rooms yet, administrators find the first steps on the start page: create a room, add types from the ready-made templates (page, task, decision, daily note), and give people a role.
+The overview of rooms lists your rooms, as tiles or as a list; a star marks a room as a favourite.
+A room's short description, if its administrators gave it one, stands below its name. If there are no rooms yet, administrators find the first steps on the start page: create a room, add types from the ready-made templates (page, task, decision, daily note), and give people a role.
 
 ## Pages and items
 
@@ -609,6 +610,8 @@ Administrators find under **Administration**:
 - **Word templates**, **Data protection regulations**, **Import** and the **Audit trail**.
 
 Room administrators manage members and roles of their room under the room's **Settings**. There, under **Item types of this room**, they also define, change and remove the room's own types with the same form, or start from a ready-made template. A type is removed only when no item and no kanban uses it.
+
+Under **Description** in the same place they give the room a **Short description** of up to 300 characters and a few lines: what the room is for. It shows with the room's name on its tile, in the list of rooms and below the heading of the room's page; saving it empty removes it. Every member of the room reads it. It is not encrypted like the content of entries, so a description holding a password, a key or an account number is refused.
 
 ## Keyboard shortcuts
 

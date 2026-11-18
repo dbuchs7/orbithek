@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"unicode"
 	"unicode/utf8"
+
+	"github.com/dbuchs7/orbithek/internal/governance"
 )
 
 // Deleting a space (ADR-0069) takes two steps, as deleting an item does
@@ -73,6 +76,46 @@ func (x *Session) RenameSpace(key, name string) error {
 		return notFound("space %q", key)
 	}
 	return x.s.RenameSpace(x.who, key, name)
+}
+
+// maxSpaceDescription bounds a space's description, in characters.
+const maxSpaceDescription = 300
+
+// DescribeSpace sets a live space's short description, shown with its
+// name; an empty one removes it
+// (ADR-draft-a-space-carries-a-short-description). The description is
+// plain text of a few lines and, like the name, stored as it is, since a
+// space is no item and has no key of its own: text with sensitive data
+// (ADR-0040) is therefore refused rather than kept.
+func (s *Store) DescribeSpace(actor, key, text string) error {
+	sp, ok := s.spaces[key]
+	if !ok || sp.state != "" {
+		return notFound("space %q", key)
+	}
+	text = strings.TrimSpace(strings.ReplaceAll(text, "\r\n", "\n"))
+	switch {
+	case utf8.RuneCountInString(text) > maxSpaceDescription:
+		return invalid("a space's description has at most %d characters", maxSpaceDescription)
+	case strings.ContainsFunc(text, func(r rune) bool { return r != '\n' && unicode.IsControl(r) }):
+		return invalid("a space's description is plain text")
+	case len(governance.Sensitive(text)) > 0:
+		return invalid("a space's description is shown to every member and stored unencrypted; leave out passwords, keys and account numbers")
+	case text == sp.description:
+		return nil
+	}
+	return s.record(actor, Event{Kind: SpaceDescribed, Space: key, SpaceDescription: text})
+}
+
+// DescribeSpace sets the description of a space the principal
+// administers.
+func (x *Session) DescribeSpace(key, text string) error {
+	if x.s.spaceRole(x.who, key) < SpaceAdmin {
+		if x.s.spaceRole(x.who, key) >= Viewer {
+			return forbidden("only the space's administrators describe it")
+		}
+		return notFound("space %q", key)
+	}
+	return x.s.DescribeSpace(x.who, key, text)
 }
 
 // PurgeSpace deletes a space in the trash for good: its items become
@@ -156,7 +199,8 @@ func (s *Store) referencedFromOutside(key string) error {
 		ErrValidation, ErrReferenced, key, strings.Join(referrers, ", "))
 }
 
-// applySpace applies a space's trash, restore, purge or new name; it runs
+// applySpace applies a space's trash, restore, purge, new name or
+// description; it runs
 // live and on replay.
 func (s *Store) applySpace(e Event, touch func(...ID)) {
 	sp := s.spaces[e.Space]
@@ -167,6 +211,8 @@ func (s *Store) applySpace(e Event, touch func(...ID)) {
 		sp.state = ""
 	case SpaceRenamed:
 		sp.name = e.SpaceName
+	case SpaceDescribed:
+		sp.description = e.SpaceDescription
 	case SpacePurged:
 		sp.state = spacePurged
 		touch(s.purgeItems(e.Members...)...)

@@ -217,7 +217,11 @@ import (
 //     the marks color and size too, sealed with the body (ADR-0238).
 //     Versions 1 to 68 are still read; their text has the text's own
 //     colour and size.
-const CodecVersion = 69
+//   - 70: the kind SpaceDescribed with spaceDescription, a space's short
+//     description, plain like its name
+//     (ADR-draft-a-space-carries-a-short-description). Versions 1 to 69
+//     are still read; their spaces have no description.
+const CodecVersion = 70
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,
@@ -324,6 +328,7 @@ type wireEvent struct {
 	TypeDef      *TypeDef              `json:"typeDef,omitempty"`
 	Space        string                `json:"space,omitempty"`
 	SpaceName    string                `json:"spaceName,omitempty"`
+	SpaceDesc    string                `json:"spaceDescription,omitempty"`
 	TypeName     string                `json:"typeName,omitempty"`
 	TypeVersion  int                   `json:"typeVersion,omitempty"`
 	Parent       ID                    `json:"parent,omitempty"`
@@ -561,7 +566,7 @@ var roleNames = map[Role]string{Viewer: "viewer", Editor: "editor", SpaceAdmin: 
 func toWire(e Event) (wireEvent, error) {
 	w := wireEvent{
 		V: CodecVersion, Seq: e.Seq, At: e.At, Actor: e.Actor, Kind: e.Kind, Item: e.Item, Batch: e.Batch,
-		TypeDef: e.TypeDef, Space: e.Space, SpaceName: e.SpaceName, TypeName: e.TypeName,
+		TypeDef: e.TypeDef, Space: e.Space, SpaceName: e.SpaceName, SpaceDesc: e.SpaceDescription, TypeName: e.TypeName,
 		TypeVersion: e.TypeVersion, Parent: e.Parent, Order: e.Order, Title: e.Title, Field: e.Field,
 		Transition: e.Transition, From: e.From, To: e.To, Body: e.Body, Relation: e.Relation,
 		Members: e.Members, Group: e.Group, Principal: e.Principal, SystemRole: e.SystemRole,
@@ -601,7 +606,7 @@ func fromWire(w wireEvent) (Event, error) {
 	}
 	e := Event{
 		Seq: w.Seq, At: w.At, Actor: w.Actor, Kind: w.Kind, Item: w.Item, Batch: w.Batch,
-		TypeDef: w.TypeDef, Space: w.Space, SpaceName: w.SpaceName, TypeName: w.TypeName,
+		TypeDef: w.TypeDef, Space: w.Space, SpaceName: w.SpaceName, SpaceDescription: w.SpaceDesc, TypeName: w.TypeName,
 		TypeVersion: w.TypeVersion, Parent: w.Parent, Order: w.Order, Title: w.Title, Field: w.Field,
 		Transition: w.Transition, From: w.From, To: w.To, Body: w.Body, Relation: w.Relation,
 		Members: w.Members, Group: w.Group, Principal: w.Principal, SystemRole: w.SystemRole,

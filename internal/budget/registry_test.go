@@ -92,6 +92,7 @@ var classified = map[string]string{
 	"internal/item.maxCardFields":                      "the shape of a kanban's cards (ADR-0076): how many fields a card shows",
 	"internal/item.maxColumnLimit":                     "a sanity bound of a column's limit of cards (ADR-0134): a setting a person types, not memory a caller claims",
 	"internal/item.maxSpaceName":                       "the shape of a space (ADR-0086): the length of its display name, like the length of a title",
+	"internal/item.maxSpaceDescription":                "the shape of a space (ADR-draft-a-space-carries-a-short-description): the length of its short description, like the length of its name",
 	"internal/item.maxSecretReaders":                   "the shape of a protected passage (ADR-0088): how many people and groups it names, like the lists of a restriction",
 	"internal/item.maxPictureLabels":                   "the shape of a picture (ADR-0090): how many labels it carries, a list a person types, not a memory setting",
 	"internal/item.MaxFaces":                           "the shape of a picture (ADR-0194): how many faces it shows, like the labels it carries, not a memory setting",

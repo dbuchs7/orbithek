@@ -58,7 +58,7 @@ var accessKinds = map[EventKind]bool{
 }
 
 // spaceKinds are the events on a whole space.
-var spaceKinds = map[EventKind]bool{SpaceTrashed: true, SpaceRestored: true, SpacePurged: true, SpaceRenamed: true}
+var spaceKinds = map[EventKind]bool{SpaceTrashed: true, SpaceRestored: true, SpacePurged: true, SpaceRenamed: true, SpaceDescribed: true}
 
 // Changes returns the change feed after the event after, oldest first, at
 // most limit entries. last is the highest sequence number considered: the

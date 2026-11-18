@@ -122,6 +122,7 @@ AI agents reach the API through an MCP adapter, at `POST /mcp` or as the stdio c
 Hosted assistants such as Claude connect with OAuth: the MCP endpoint is a resource server and the server its own authorization server;
 an administrator registers the assistant on the *AI access* page, each person approves it and may withdraw the approval, and its tokens count on `/mcp` only (ADR-0068).
 Administrators delete a space in two steps: into the trash, where it is out of everyone's sight and can be restored, then for good, which leaves tombstones and keeps the key taken (ADR-0069).
+A space's administrators give it a short description of up to 300 characters, shown below its name on the start page and on its page: plain text in the event `SpaceDescribed` (codec version 70), unsealed like the name, so text with sensitive data is refused (`Session.DescribeSpace`, `PUT /api/spaces/{space}/description`, proposed, ADR-draft-a-space-carries-a-short-description).
 Pages export as Word documents (`internal/export`, pure Go) and print as PDF;
 tables of pages and lists of items export as CSV (ADR-0071); pages also export as Markdown, with their pictures in a ZIP archive, and agents read a page as Markdown over MCP (proposed, ADR-0131).
 A type can carry catalog rules — url fields, unique and recommended fields, a periodic review with an owner — so a catalog kept in step with another system by agents or a synchronisation stays free of duplicates and has someone who answers for each entry;

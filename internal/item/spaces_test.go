@@ -132,3 +132,53 @@ func TestASpaceIsRenamedByItsAdministrators(t *testing.T) {
 		t.Errorf("an unknown space: %v", err)
 	}
 }
+
+// A space's administrators give it a short description of a few lines,
+// shown with its name, and remove it again
+// (ADR-draft-a-space-carries-a-short-description).
+func TestASpaceIsDescribedByItsAdministrators(t *testing.T) {
+	s := permFixture(t)
+	noErr(t, s.GrantRole("root", "PLAT", "ben", Viewer))
+	noErr(t, s.GrantRole("root", "PLAT", "dora", SpaceAdmin))
+	if err := s.As("ben").DescribeSpace("PLAT", "Mine"); !errors.Is(err, ErrForbidden) {
+		t.Fatalf("a viewer describes: %v", err)
+	}
+	if err := s.As("carl").DescribeSpace("PLAT", "Mine"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("an outsider describes: %v", err)
+	}
+	for _, bad := range []string{strings.Repeat("x", maxSpaceDescription+1), "tab\there", "bell\a", "password: Sommer2026!"} {
+		if err := s.As("dora").DescribeSpace("PLAT", bad); !errors.Is(err, ErrValidation) {
+			t.Errorf("%q: %v", bad, err)
+		}
+	}
+	description := func() string {
+		for _, sp := range s.As("ben").Spaces() {
+			if sp.Key == "PLAT" {
+				return sp.Description
+			}
+		}
+		t.Fatal("PLAT is not listed")
+		return ""
+	}
+	before := len(s.Log())
+	noErr(t, s.As("dora").DescribeSpace("PLAT", "  Runbooks and incidents\r\nof the platform team. "))
+	noErr(t, s.As("dora").DescribeSpace("PLAT", "Runbooks and incidents\nof the platform team.")) // unchanged is nothing
+	if len(s.Log()) != before+1 {
+		t.Fatalf("events: %d", len(s.Log())-before)
+	}
+	if got := description(); got != "Runbooks and incidents\nof the platform team." {
+		t.Fatalf("description %q", got)
+	}
+	noErr(t, s.As("dora").DescribeSpace("PLAT", strings.Repeat("ü", maxSpaceDescription))) // characters, not bytes
+	noErr(t, s.As("dora").DescribeSpace("PLAT", " "))
+	if got := description(); got != "" {
+		t.Fatalf("after removing: %q", got)
+	}
+	noErr(t, s.TrashSpace("root", "PLAT"))
+	if err := s.DescribeSpace("root", "PLAT", "x"); !errors.Is(err, ErrNotFound) {
+		t.Errorf("a space in the trash: %v", err)
+	}
+	if err := s.DescribeSpace("root", "NOPE", "x"); !errors.Is(err, ErrNotFound) {
+		t.Errorf("an unknown space: %v", err)
+	}
+}

@@ -66,3 +66,36 @@ func TestASpaceIsRenamedThroughTheAPI(t *testing.T) {
 		}
 	}
 }
+
+// A space's administrators describe it; editors may not, outsiders do not
+// see it, and every member reads the description in the listing
+// (ADR-draft-a-space-carries-a-short-description).
+func TestASpaceIsDescribedThroughTheAPI(t *testing.T) {
+	w := newWorld(t)
+	w.bert.expect("PUT", "/api/spaces/PLAT/description", `{"description":"Mine"}`, http.StatusForbidden)
+	w.carla.expect("PUT", "/api/spaces/PLAT/description", `{"description":"Mine"}`, http.StatusNotFound)
+	w.admin.expect("PUT", "/api/spaces/PLAT/description", `{"description":"password: Sommer2026!"}`, http.StatusBadRequest)
+	got := w.admin.expect("PUT", "/api/spaces/PLAT/description", `{"description":" Runbooks and incidents\r\nof the platform team. "}`, http.StatusOK)
+	if got["description"] != "Runbooks and incidents\nof the platform team." || got["key"] != "PLAT" {
+		t.Fatalf("described %v", got)
+	}
+	listed := func() any {
+		for _, sp := range w.bert.expect("GET", "/api/spaces", "", http.StatusOK)["spaces"].([]any) {
+			if m := sp.(map[string]any); m["key"] == "PLAT" {
+				return m["description"]
+			}
+		}
+		t.Fatal("PLAT is not listed")
+		return nil
+	}
+	if d := listed(); d != "Runbooks and incidents\nof the platform team." {
+		t.Fatalf("listed with %v", d)
+	}
+	got = w.admin.expect("PUT", "/api/spaces/PLAT/description", `{"description":""}`, http.StatusOK)
+	if _, ok := got["description"]; ok && got["description"] != "" {
+		t.Fatalf("removed %v", got)
+	}
+	if d := listed(); d != nil {
+		t.Fatalf("still listed with %v", d)
+	}
+}

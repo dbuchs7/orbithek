@@ -24,6 +24,7 @@ func spaceIconRoutes(d Deps) []Route {
 		{Method: http.MethodPut, Pattern: "/api/spaces/{space}/icon", Summary: "Set a space's icon or logo: PNG, JPEG, GIF, WebP or SVG as application/octet-stream (space administrators)", Handler: http.HandlerFunc(h.setSpaceIcon)},
 		{Method: http.MethodDelete, Pattern: "/api/spaces/{space}/icon", Summary: "Remove a space's icon (space administrators)", Handler: http.HandlerFunc(h.removeSpaceIcon)},
 		{Method: http.MethodPut, Pattern: "/api/spaces/{space}/name", Summary: "Rename a space; its key stays (space administrators, ADR-0086)", Handler: http.HandlerFunc(h.renameSpace)},
+		{Method: http.MethodPut, Pattern: "/api/spaces/{space}/description", Summary: "Set a space's short description, shown with its name; empty removes it (space administrators)", Handler: http.HandlerFunc(h.describeSpace)},
 	}
 }
 
@@ -41,6 +42,29 @@ func (h itemHandlers) renameSpace(w http.ResponseWriter, r *http.Request) {
 			return nil, err
 		}
 		return map[string]string{"key": key, "name": strings.TrimSpace(req.Name)}, nil
+	})
+}
+
+// describeSpace sets or removes a space's short description
+// (ADR-draft-a-space-carries-a-short-description).
+func (h itemHandlers) describeSpace(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Description string `json:"description"`
+	}
+	if !decode(w, r, &req) {
+		return
+	}
+	key := r.PathValue("space")
+	h.write(w, r, http.StatusOK, func(x *item.Session, _ *item.Store) (any, error) {
+		if err := x.DescribeSpace(key, req.Description); err != nil {
+			return nil, err
+		}
+		for _, sp := range x.Spaces() {
+			if sp.Key == key {
+				return map[string]string{"key": key, "description": sp.Description}, nil
+			}
+		}
+		return map[string]string{"key": key}, nil
 	})
 }
 

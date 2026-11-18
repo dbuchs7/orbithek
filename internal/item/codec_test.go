@@ -78,7 +78,7 @@ func TestAChangeThatIsNotPersistedDoesNotHappen(t *testing.T) {
 
 func TestDecodeRejectsWhatItCannotReadExactly(t *testing.T) {
 	cases := map[string]string{
-		"newer format":       `[{"v":70,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
+		"newer format":       `[{"v":71,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"no format version":  `[{"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"unknown field":      `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated","colour":"red"}]`,
 		"unknown role":       `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"RoleGranted","role":"owner"}]`,
@@ -208,8 +208,9 @@ func TestPersistedFormatIsStable(t *testing.T) {
 	numbered := numberedLog(t)
 	numberedTypes := numberedTypeLog(t)
 	hidden := hideTypesLog(t)
+	described := spaceDescriptionLog(t)
 	kinds := map[EventKind]bool{}
-	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments, notes, photos, places, renames, geotags, moves, albumVideos, faces, slideOrders, fingerprints, times, turned, highlights, itemViews, kinds55, styledTables, shareFiles, sounds, depths, deepLists, numbered, numberedTypes, hidden) {
+	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments, notes, photos, places, renames, geotags, moves, albumVideos, faces, slideOrders, fingerprints, times, turned, highlights, itemViews, kinds55, styledTables, shareFiles, sounds, depths, deepLists, numbered, numberedTypes, hidden, described) {
 		kinds[e.Kind] = true
 	}
 	for _, k := range allEventKinds {
@@ -282,6 +283,7 @@ func TestPersistedFormatIsStable(t *testing.T) {
 		{"events.current.catalog.golden.jsonl", nil, catalog},
 		{"events.current.kanbancolumns.golden.jsonl", nil, columns},
 		{"events.current.spacenames.golden.jsonl", nil, names},
+		{"events.current.spacedescriptions.golden.jsonl", nil, described},
 		{"events.current.secrets.golden.jsonl", fakeSealer{}, secrets},
 		{"events.current.secrets.plain.golden.jsonl", nil, secrets},
 		{"events.current.secreterasure.golden.jsonl", fakeSealer{}, erasure},
@@ -2167,6 +2169,17 @@ func spaceNameLog(t *testing.T) []Event {
 	return s.Log()
 }
 
+// spaceDescriptionLog describes a space and removes the description, so
+// the golden file pins the kind SpaceDescribed
+// (ADR-draft-a-space-carries-a-short-description).
+func spaceDescriptionLog(t *testing.T) []Event {
+	s := setup(t)
+	noErr(t, s.DescribeSpace("admin", "PLAT", "Runbooks and incidents\nof the platform team."))
+	noErr(t, s.DescribeSpace("admin", "OPS", "Operations"))
+	noErr(t, s.DescribeSpace("admin", "OPS", ""))
+	return s.Log()
+}
+
 // layoutLog writes aligned text and images, a divider and the marks
 // underline, strike and highlight, so the golden file pins them (ADR-0059).
 func layoutLog(t *testing.T) []Event {
@@ -2543,7 +2556,7 @@ var allEventKinds = []EventKind{
 	ItemRedacted, GroupMemberAdded, RoleGranted, SystemRoleGranted, RestrictionSet,
 	ItemImported, ItemReleased, CommentAdded, CommentEdited, CommentDeleted, CommentResolved, CommentReopened, RoleRevoked, GroupMemberRemoved, SystemRoleRevoked, LabelsSet,
 	AttachmentAdded, AttachmentDeleted, Watched, Unwatched, HoldSet, HoldReleased, KanbanSet, KanbanRemoved, KanbanCardPlaced, PicturesOrdered,
-	SpaceTrashed, SpaceRestored, SpacePurged, SpaceRenamed,
+	SpaceTrashed, SpaceRestored, SpacePurged, SpaceRenamed, SpaceDescribed,
 	SecretSet, SecretRemoved, SecretRequested, SecretGranted, SecretDeclined, SecretErased, AttachmentLabelled,
 	AttachmentRetentionSet, AttachmentNotesSet, AttachmentPlaceSet, AttachmentRenamed, TemplateSet,
 	AttachmentMovedIn, AttachmentMovedOut, AttachmentTakenSet, AttachmentTurned, ItemsOrdered,

@@ -2518,13 +2518,15 @@ function spacesOverview(spaces) {
           h("tr", {}, h("th", { class: "favourite-col", "aria-label": t("spaces.favouriteCol") }), h("th", { text: t("field.name") }), h("th", { text: t("admin.key") }), h("th", { text: t("admin.role") })),
           ordered.map((s) => h("tr", { "data-f-role": roleText(s.role), "data-f-favourite": favourite(s), class: s.favourite ? "favourite" : null },
             h("td", { class: "favourite-col" }, star(s)),
-            h("td", {}, h("a", { href: href(s), class: "space-link" }, spaceIcon(s, 24), h("span", { text: s.name }))),
+            h("td", {}, h("a", { href: href(s), class: "space-link" }, spaceIcon(s, 24), h("span", { text: s.name })),
+              s.description ? h("div", { class: "space-description", text: s.description }) : null),
             h("td", { class: "muted", text: s.key }),
             h("td", {}, h("span", { class: "badge", text: roleText(s.role) })))))
         : h("ul", { class: "space-tiles spaces" }, ordered.map((s) => h("li", { "data-f-role": roleText(s.role), "data-f-favourite": favourite(s), class: s.favourite ? "favourite" : null },
           h("a", { href: href(s), class: "space-tile" },
             h("span", { class: "space-tile-head" }, h("span", { class: "space-key", text: s.key }), s.icon ? spaceIcon(s, 48) : ""),
             h("strong", { text: s.name }),
+            s.description ? h("span", { class: "space-description", text: s.description }) : null,
             h("span", { class: "badge", text: roleText(s.role) })),
           star(s)))),
       { id: "spaces", label: t("spaces.title"), choices: [{ key: "role", label: t("admin.role") }, { key: "favourite", label: t("spaces.favouriteCol") }] }));
@@ -2543,6 +2545,21 @@ function spaceNameCard(sp, key) {
     h("button", { type: "submit", text: t("common.save") }),
   ], async (d, st) => {
     await put(`/api/spaces/${encodeURIComponent(key)}/name`, { name: d.get("name") });
+    await route();
+  });
+}
+
+// spaceDescriptionCard sets or removes a space's short description, shown
+// with its name on the start page and on the room's page
+// (ADR-draft-a-space-carries-a-short-description).
+function spaceDescriptionCard(sp, key) {
+  return form({ class: "card", id: "space-description-form" }, [
+    h("h2", { text: t("space.description") }),
+    h("p", { class: "muted", text: t("space.descriptionHelp") }),
+    field(t("space.descriptionField"), h("textarea", { name: "description", value: sp.description || "", rows: 3, maxlength: 300 })),
+    h("button", { type: "submit", text: t("common.save") }),
+  ], async (d) => {
+    await put(`/api/spaces/${encodeURIComponent(key)}/description`, { description: d.get("description") });
     await route();
   });
 }
@@ -2774,6 +2791,7 @@ async function spaceView(key) {
         create && types.length ? h("button", { class: "primary", id: "space-new-page", text: t("space.newPage"), onclick: toForm }) : null,
         csv,
         watchButton("/api/spaces/" + encodeURIComponent(key), watches.some((w) => !w.item && w.space === key), status))),
+    sp.description ? h("p", { class: "space-description", id: "space-description", text: sp.description }) : null,
     h("nav", { class: "subnav", "aria-label": t("space.views") }, [...boards, ...views, link(`#/roadmap?space=${encodeURIComponent(key)}`, t("roadmap.tab")), link(`#/calendar?space=${encodeURIComponent(key)}`, t("calendar.tab")), link(`#/links/${encodeURIComponent(key)}`, t("space.linkCheck")), link(`#/governance/${encodeURIComponent(key)}`, t("nav.governance")),
       sp.role === "space-admin" ? link(`#/members/${encodeURIComponent(key)}`, t("members.title")) : null,
       sp.role === "space-admin" ? link(`#/import/${encodeURIComponent(key)}`, t("notesImport.title"), null, "space-import") : null].filter(Boolean)),
@@ -7708,6 +7726,7 @@ async function membersView(key) {
     h("p", { class: "muted", text: t("members.help") }),
     status,
     sp.role === "space-admin" ? spaceNameCard(sp, key) : null,
+    sp.role === "space-admin" ? spaceDescriptionCard(sp, key) : null,
     sp.role === "space-admin" ? spaceIconCard(sp, status) : null,
     // The room's own types (ADR-0201).
     sp.role === "space-admin" ? roomTypesCard({ space: key, types, templates: typeTemplates, onChange: () => route() }) : null,

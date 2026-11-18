@@ -211,7 +211,7 @@ var (
 // get_item, query_items by the label daily-note and commit_body cover. The
 // context of an item (ADR-0207) is offered as a read.
 var tools = []tool{
-	{Name: "list_spaces", Description: "List the spaces the caller holds a role in.", Method: "GET", Path: "/api/spaces"},
+	{Name: "list_spaces", Description: "List the spaces the caller holds a role in: key, name, short description when it has one, and the caller's role.", Method: "GET", Path: "/api/spaces"},
 	{Name: "get_own_roles", Description: "The caller's own roles: the system roles held, and every space role granted to the caller, directly or through a group (via), one entry per grant.",
 		Method: "GET", Path: "/api/me/roles"},
 	{Name: "list_changes", Description: "The change feed: what happened, oldest first, to the items the caller watches (and their ancestors and watched spaces) after the event after, " +
