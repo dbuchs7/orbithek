@@ -167,11 +167,16 @@ export function typeEditor({ type = null, template = null, space = "", spaces = 
       small(t("types.addTransition"), () => { w.transitions.push({ name: "", from: [], to: "" }); render(); }, { id: "type-add-transition" }));
   }
 
+  // The start of a new item: its text, and whether its headings are
+  // numbered (ADR-0167, ADR-0241).
   function startPart() {
     const area = h("textarea", { name: "type-start", id: "type-start", rows: 5 });
     area.value = draft.startText;
     area.addEventListener("input", () => { draft.startText = area.value; });
-    return h("label", { class: "field" }, h("span", { text: t("types.start") }), area, h("small", { class: "muted", text: t("types.startHint") }));
+    return h("div", {},
+      h("label", { class: "field" }, h("span", { text: t("types.start") }), area, h("small", { class: "muted", text: t("types.startHint") })),
+      h("div", { class: "field" }, check(draft.numbered, t("types.numbered"), (v) => { draft.numbered = v; }, { id: "type-numbered" }),
+        h("small", { class: "muted", text: t("types.numberedHint") })));
   }
 
   function jsonPart() {

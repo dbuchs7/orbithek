@@ -58,6 +58,9 @@ type typeJSON struct {
 	Template      string      `json:"template,omitempty"`
 	Start         []blockJSON `json:"start,omitempty"`
 	StartMarkdown string      `json:"startMarkdown,omitempty"`
+	// Numbered says that the type's new items begin with their headings
+	// numbered, kept as the start text's numbering (ADR-0241).
+	Numbered bool `json:"numbered,omitempty"`
 	// Space is the room a room type belongs to, empty for a type of the
 	// whole installation (ADR-0201).
 	Space string `json:"space,omitempty"`
@@ -74,6 +77,7 @@ func toTypeJSON(td item.TypeDef) typeJSON {
 			t.Start = append(t.Start, toBlockJSON(b))
 		}
 		t.StartMarkdown = startMarkdown(td.Start.Blocks)
+		t.Numbered = td.Start.Numbered
 	}
 	for _, f := range td.Fields {
 		t.Fields = append(t.Fields, fieldJSON{Name: f.Name, Kind: f.Kind, Required: f.Required, Values: f.Values, Unique: f.Unique, Recommended: f.Recommended, Targets: f.Targets})
@@ -101,6 +105,12 @@ func (t typeJSON) toTypeDef() (item.TypeDef, error) {
 		td.Start = &d
 	case strings.TrimSpace(t.StartMarkdown) != "":
 		td.Start = &item.Doc{Blocks: startFromMarkdown(t.StartMarkdown)}
+	}
+	if t.Numbered {
+		if td.Start == nil {
+			td.Start = &item.Doc{}
+		}
+		td.Start.Numbered = true
 	}
 	for _, f := range t.Fields {
 		fd := item.FieldDef{Name: f.Name, Kind: f.Kind, Required: f.Required, Values: f.Values, Unique: f.Unique, Recommended: f.Recommended}

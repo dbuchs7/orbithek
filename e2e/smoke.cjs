@@ -6583,11 +6583,12 @@ function webSource() {
       await rt.check("#type-workflow");
       check(await rt.locator("#type-editor .type-state").count() === 2, "the simple workflow open → done is preset");
       await rt.fill("#type-start", "## Impact\n\nWho is affected?");
+      await rt.check("#type-numbered"); // new items begin with numbered headings (ADR-0241)
       await rt.click("#type-save");
       await rt.waitForSelector("#room-type-list:has-text('incident')");
       const types = await rt.evaluate(async () => (await (await fetch("/api/types?space=PLAT")).json()).types);
       const incident = types.find((ty) => ty.name === "incident");
-      check(incident && incident.space === "PLAT" && incident.editable && incident.workflow.states.join() === "open,done" && incident.start?.length === 2,
+      check(incident && incident.space === "PLAT" && incident.editable && incident.workflow.states.join() === "open,done" && incident.start?.length === 2 && incident.numbered === true,
         "the room type is defined with its fields, workflow and start text: " + JSON.stringify(incident));
 
       await rt.goto(base + "/#/new?space=PLAT&type=incident");
@@ -6603,8 +6604,8 @@ function webSource() {
       await rt.click("#new-item button[type=submit]");
       await rt.waitForSelector("tr[data-field=stars]");
       const made = await rt.evaluate(async () => (await (await fetch("/api/items/" + location.hash.split("/")[2].split("?")[0])).json()).item);
-      check(made.properties.about === epic.id && made.properties.platforms.join() === "web,ios" && made.properties.stars === 4 && made.body.length === 2,
-        "the item holds the reference by ID, the values in their order, four stars and the start text: " + JSON.stringify(made.properties));
+      check(made.properties.about === epic.id && made.properties.platforms.join() === "web,ios" && made.properties.stars === 4 && made.body.length === 2 && made.numbered === true,
+        "the item holds the reference by ID, the values in their order, four stars, the start text and its type's numbering: " + JSON.stringify(made.properties));
       // The stars change on the item page, saved at once.
       await rt.goto(base + "/#/item/" + made.key);
       await rt.waitForSelector("tr[data-field=stars] .star");
