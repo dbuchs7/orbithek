@@ -59,7 +59,7 @@ Die Raumübersicht zeigt die eigenen Räume als Kacheln oder als Liste; ein Ster
 
 ### Eine Seite oder einen Eintrag erstellen
 
-Man wählt **+ Neu** in der oberen Leiste oder **Neue Seite** in einem Raum. Die Erstellungsansicht fragt nach Raum, Typ und Titel und legt den neuen Eintrag unterhalb der Seite an, von der man kam. Auf einer Seite erstellt **Neue Unterseite** eine Seite darunter. Hat ein Typ einen Starttext, beginnt ein neuer Eintrag damit. Die eigenen Typen eines Raums werden nur angeboten, wenn dieser Raum gewählt ist.
+Man wählt **+ Neu** in der oberen Leiste oder **Neue Seite** in einem Raum. Die Erstellungsansicht fragt nach Raum, Typ und Titel und legt den neuen Eintrag unterhalb der Seite an, von der man kam. Auf einer Seite erstellt **Neue Unterseite** eine Seite darunter. Hat ein Typ einen Starttext, beginnt ein neuer Eintrag damit. Im Starttext steht eine Zeile `[children]` für eine Unterseiten-Liste; `[children:3]` oder `[children:all]` legt deren Tiefe fest, und `[children:all without task, decision]` blendet zusätzlich Typen aus. Die eigenen Typen eines Raums werden nur angeboten, wenn dieser Raum gewählt ist.
 
 ### Einen Eintrag lesen
 

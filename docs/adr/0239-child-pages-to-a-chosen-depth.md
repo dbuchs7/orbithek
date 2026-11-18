@@ -3,8 +3,8 @@
 - **Status:** Proposed
 - **Implementation:** Partial
 - **Date:** 2026-11-17
-- **Deciders:** Project initiators. Request of 2026-11-17: a list of child pages embedded in a text should not show only the first level of child pages; the person editing chooses how deep it goes. The offered depths, the budget and the import of the macro's depth are defaults proposed with the implementation, to be confirmed by the requester.
-- **Open question:** whether a list should also offer to leave out the pages of some types, such as tasks, as the page tree shows them all; whether a Word template's start text should name a depth (`[children:2]`); whether five levels by number are enough before *All levels*
+- **Deciders:** Project initiators. Request of 2026-11-17: a list of child pages embedded in a text should not show only the first level of child pages; the person editing chooses how deep it goes. The offered depths, the budget and the import of the macro's depth are defaults proposed with the implementation, to be confirmed by the requester. Leaving out types was asked for later and is decided in ADR-0240. Request of 2026-11-18: a type's start text may name a list's depth.
+- **Open question:** whether five levels by number are enough before *All levels*
 - **Question checked:** 2026-11
 
 ## Context and problem statement
@@ -52,13 +52,17 @@ Chosen option: **1, a block field `Depth`**, because the depth is part of what t
 - **Exports:** Word, PDF and Markdown list each list to its own depth: nested lists in PDF and Markdown, and a deeper indent per level in Word, whose list numbering keeps a single level.
   The server reads the children once per page, to the depth of its deepest list.
 - **Import (ADR-0023):** the children macro brings its `depth` along, and `all` or a depth beyond five becomes every level, so no page the macro listed is left out.
+- **Start text (ADR-0167):** the marker line of a list of child pages in a type's start text (`startMarkdown`) may name its depth, `[children:2]` to `[children:5]` or `[children:all]`, and the types it leaves out (ADR-0240), `[children:all without task, decision]`; the keyword and `all` are read in any letter case, the type names as written, sorted and named once each.
+  `[children:1]` is one level, written back as `[children]`.
+  A start text written from a type's blocks names both, so editing it as Markdown keeps them.
+  A depth out of range, or a depth or types on another marker, leaves the line as text, as any other line that is no marker.
 
 ### Consequences
 
 - **Positive:** a page shows the tree below it as deep as its author wants, the same in every view, in exports and to agents; bodies written before keep their meaning.
 - **Negative / trade-offs accepted:** a list of every level asks the server to walk the space's tree for each reader each time it is shown, bounded by the budget; a body with a depth needs a binary that reads version 65.
   The depth is the author's, not the reader's: one who would rather see less opens the page tree.
-- **Follow-ups / risks to watch:** the open questions above; Word lists use indents, not list levels of their own, so a template's list styles apply to the first level only.
+- **Follow-ups / risks to watch:** the open question above; a table of contents' level (ADR-0237) has no form in a start text yet; Word lists use indents, not list levels of their own, so a template's list styles apply to the first level only.
 
 ADR-0237 gives a table of contents its depth in the existing field `Level`, where 0 lists every level.
 A list of child pages takes a field of its own instead, because its default, kept by every body written before, is one level, not all, and a heading's level counts from the top of the page, not from the page itself.

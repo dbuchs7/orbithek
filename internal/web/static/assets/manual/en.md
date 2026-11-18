@@ -59,7 +59,7 @@ The overview of rooms lists your rooms, as tiles or as a list; a star marks a ro
 
 ### Creating a page or item
 
-Choose **+ New** in the top bar or **New page** in a room. The creation view asks for the room, the type and the title, and places the new item below the page you came from. On a page, **New child page** creates a page below it. If a type has a start text, a new item begins with it. A room's own types are offered only when that room is chosen.
+Choose **+ New** in the top bar or **New page** in a room. The creation view asks for the room, the type and the title, and places the new item below the page you came from. On a page, **New child page** creates a page below it. If a type has a start text, a new item begins with it. In a start text, a line `[children]` stands for a list of child pages; `[children:3]` or `[children:all]` sets its depth, and `[children:all without task, decision]` also leaves types out. A room's own types are offered only when that room is chosen.
 
 ### Reading an item
 

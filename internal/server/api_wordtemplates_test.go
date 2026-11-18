@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -270,6 +272,65 @@ func TestStartMarkdownRoundTrips(t *testing.T) {
 	}
 	if got := controls(nil, item.Item{Title: "T", Key: "K-1", Labels: []string{"a", "b"}, Properties: item.Props{"Owner": "u1"}}, item.TypeDef{Fields: []item.FieldDef{{Name: "Owner", Kind: item.KindUser}}}, "Raum", nil); got["owner"] != "u1" || got["labels"] != "a, b" || got["space"] != "Raum" {
 		t.Errorf("controls %v", got)
+	}
+}
+
+// TestStartMarkdownKeepsAListsDepthAndTypes reads and writes the depth
+// and the left-out types of a list of child pages in a start text
+// (ADR-0239).
+func TestStartMarkdownKeepsAListsDepthAndTypes(t *testing.T) {
+	cases := map[string]struct {
+		depth int
+		hide  []string
+		back  string
+	}{
+		"[children]":              {0, nil, "[children]"},
+		"[children:1]":            {0, nil, "[children]"},
+		"[Children:3]":            {3, nil, "[children:3]"},
+		"[children:ALL]":          {item.ChildrenAll, nil, "[children:all]"},
+		"[children without task]": {0, []string{"task"}, "[children without task]"},
+		"  [children:2 without task , decision, task ]  ": {2, []string{"decision", "task"}, "[children:2 without decision, task]"},
+	}
+	for src, want := range cases {
+		blocks := startFromMarkdown(src)
+		if len(blocks) != 1 || blocks[0].Kind != item.Children || blocks[0].Depth != want.depth || !slices.Equal(blocks[0].HideTypes, want.hide) {
+			t.Errorf("%q: %+v", src, blocks)
+			continue
+		}
+		if err := item.CheckBlock(blocks[0], "self"); err != nil {
+			t.Errorf("%q: not a valid block: %v", src, err)
+		}
+		if got := startMarkdown(blocks); got != want.back {
+			t.Errorf("%q written back as %q, want %q", src, got, want.back)
+		}
+	}
+	// What is no marker stays text: a depth out of range, or a depth or
+	// types on another block.
+	for _, src := range []string{"[children:6]", "[children:0]", "[toc:2]", "[tables without task]", "[children:two]"} {
+		if blocks := startFromMarkdown(src); len(blocks) != 1 || blocks[0].Kind != item.Paragraph {
+			t.Errorf("%q: %+v", src, blocks)
+		}
+	}
+}
+
+// TestANewPageBeginsWithTheListItsStartTextNames makes a page of a type
+// whose start text names a list of child pages with a depth and left-out
+// types (ADR-0239).
+func TestANewPageBeginsWithTheListItsStartTextNames(t *testing.T) {
+	w := newWorld(t)
+	w.admin.expect("POST", "/api/types", `{"name":"handbook","body":true,"startMarkdown":"# Inhalt\n\n[children:all without task]","fields":[]}`, http.StatusCreated)
+	for _, ty := range w.bert.expect("GET", "/api/types", "", http.StatusOK)["types"].([]any) {
+		if def := ty.(map[string]any); def["name"] == "handbook" {
+			if md, _ := def["startMarkdown"].(string); !strings.Contains(md, "[children:all without task]") {
+				t.Errorf("start text %q", md)
+			}
+		}
+	}
+	it := w.bert.expect("POST", "/api/items", `{"space":"PLAT","type":"handbook","title":"Manual"}`, http.StatusCreated)
+	body := field(it, "item", "body").([]any)
+	last := body[len(body)-1].(map[string]any)
+	if last["kind"] != "children" || last["depth"] != -1.0 || !reflect.DeepEqual(last["hideTypes"], []any{"task"}) {
+		t.Errorf("the new page's list: %v", last)
 	}
 }
 
