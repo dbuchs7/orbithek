@@ -83,7 +83,7 @@ Mit **Bearbeiten** wird der Text bearbeitet, mit **Fertig** abgeschlossen. Ände
 
 - die Blockart: Absatz, Überschrift 1 bis 3, Aufzählungspunkt, nummerierter Punkt, Aufgabe, Zitat, Codeblock sowie Info-, Hinweis-, Warn-, Tipp- und Fehlerbox;
 - Fett, Kursiv, Unterstreichen, Durchstreichen, Hervorheben, Code im Text und Ausrichtung;
-- **Schriftfarbe** und **Grösse** für den Text eines Absatzes, einer Überschrift, eines Listenpunkts oder einer Aufgabe: den markierten Text oder das, was man am Cursor als Nächstes tippt; Zitate und Boxen behalten Farbe und Grösse des Textes;
+- **Schriftfarbe** und **Grösse** für den Text eines Absatzes, einer Überschrift, eines Listenpunkts, einer Aufgabe, eines Zitats oder einer Box: den markierten Text oder das, was man am Cursor als Nächstes tippt; ein Codeblock behält Farbe und Grösse des Textes;
 - **Link** (Ctrl+K): eine Webadresse oder eine Seite bzw. Aufgabe, gesucht nach ihrem Titel;
 - **Erwähnen** (@): eine Person oder einen Eintrag;
 - **Überschriften nummerieren** (1.1): nummeriert die Überschriften des ganzen Texts nach ihrer Ebene (siehe unten);

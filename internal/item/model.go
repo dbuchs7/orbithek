@@ -183,8 +183,9 @@ const (
 	// that says who reads it in clear; others read a placeholder.
 	MarkSecret MarkType = "secret"
 	// MarkColor colours the text of a paragraph, a heading, a list item, a
-	// task or a table's cell in one of TableTones, MarkSize sets its size
-	// to one of TextSizes; Value holds the tone or the size (ADR-0238).
+	// task, a quote, a panel or a table's cell in one of TableTones,
+	// MarkSize sets its size to one of TextSizes; Value holds the tone or
+	// the size (ADR-0238).
 	MarkColor MarkType = "color"
 	MarkSize  MarkType = "size"
 )

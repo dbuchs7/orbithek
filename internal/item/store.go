@@ -1624,7 +1624,7 @@ func checkBlock(b Block, self ID) error {
 			values := map[MarkType][]string{MarkColor: TableTones, MarkSize: TextSizes}[m.Type]
 			switch {
 			case !slices.Contains(styledKinds, b.Kind):
-				return invalid("only the text of a paragraph, a heading, a list item, a task or a table's cell takes a %s", m.Type)
+				return invalid("a %s block's text takes no %s", b.Kind, m.Type)
 			case m.Href != "" || m.Ref != "":
 				return invalid("a %s mark has no target", m.Type)
 			case !slices.Contains(values, m.Value):
@@ -1721,8 +1721,9 @@ func checkSizes(what string, sizes []int, n, least, most int) error {
 }
 
 // styledKinds are the blocks whose text takes a colour and a size
-// (ADR-0238): paragraphs, headings, list items, tasks and table cells.
-var styledKinds = []BlockKind{Paragraph, Heading, BulletItem, OrderedItem, TaskItem, Table}
+// (ADR-0238): paragraphs, headings, list items, tasks, quotes, panels and
+// table cells.
+var styledKinds = []BlockKind{Paragraph, Heading, BulletItem, OrderedItem, TaskItem, Quote, Panel, Table}
 
 // tableMarks are the formats a table's cell may carry (ADR-0214). A
 // mention and a protected passage are not among them: a table is one

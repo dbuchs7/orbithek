@@ -108,9 +108,9 @@ func TestTablesAreFormattedSizedAndColoured(t *testing.T) {
 }
 
 // TestTheTextOfACellTakesAColourAndASize: the text of a cell, a paragraph,
-// a heading, a list item or a task is coloured in a tone and sized in a
-// named size, inside one cell, and nowhere else: not in a quote or a
-// panel (ADR-0238).
+// a heading, a list item, a task, a quote or a panel is coloured in a tone
+// and sized in a named size, inside one cell, and nowhere else: not in a
+// code block (ADR-0238).
 func TestTheTextOfACellTakesAColourAndASize(t *testing.T) {
 	s := setup(t)
 	page := mustItem(t)(s.Create("anna", NewItem{Space: "PLAT", Type: "page", Title: "Hosts"}))
@@ -123,7 +123,9 @@ func TestTheTextOfACellTakesAColourAndASize(t *testing.T) {
 	bullet := Block{Kind: BulletItem, Text: "red", Marks: []Mark{{Type: MarkColor, Start: 0, End: 3, Value: "red"}}}
 	ordered := Block{Kind: OrderedItem, Text: "one", Marks: []Mark{{Type: MarkColor, Start: 0, End: 3, Value: "blue"}}}
 	task := Block{Kind: TaskItem, Text: "do", Marks: []Mark{{Type: MarkSize, Start: 0, End: 2, Value: "small"}}}
-	noErr(t, s.CommitBody("anna", page.ID, Doc{Blocks: []Block{table, para, heading, bullet, ordered, task}}))
+	quote := Block{Kind: Quote, Text: "said", Marks: []Mark{{Type: MarkColor, Start: 0, End: 4, Value: "gray"}}}
+	panel := Block{Kind: Panel, Tone: "warning", Text: "Stop", Marks: []Mark{{Type: MarkSize, Start: 0, End: 4, Value: "large"}}}
+	noErr(t, s.CommitBody("anna", page.ID, Doc{Blocks: []Block{table, para, heading, bullet, ordered, task, quote, panel}}))
 	if got := mustItem(t)(s.Get(page.ID)).Body.Blocks[1].Marks; len(got) != 2 || got[0].Value != "orange" || got[1].Value != "large" {
 		t.Fatalf("paragraph marks = %+v", got)
 	}
@@ -138,8 +140,7 @@ func TestTheTextOfACellTakesAColourAndASize(t *testing.T) {
 		"a colour across two cells":       {Kind: Table, Text: "a\tb", Marks: []Mark{{Type: MarkColor, Start: 0, End: 3, Value: "red"}}},
 		"a colour with a target":          {Kind: Table, Text: "a\tb", Marks: []Mark{{Type: MarkColor, Start: 0, End: 1, Value: "red", Href: "https://x.org"}}},
 		"a value on a bold mark":          {Kind: Table, Text: "a\tb", Marks: []Mark{{Type: MarkBold, Start: 0, End: 1, Value: "red"}}},
-		"a colour in a quote":             {Kind: Quote, Text: "red", Marks: []Mark{{Type: MarkColor, Start: 0, End: 3, Value: "red"}}},
-		"a size in a panel":               {Kind: Panel, Tone: "info", Text: "big", Marks: []Mark{{Type: MarkSize, Start: 0, End: 3, Value: "large"}}},
+		"a colour in a code block":        {Kind: CodeBlock, Text: "red", Marks: []Mark{{Type: MarkColor, Start: 0, End: 3, Value: "red"}}},
 		"a size not named in a paragraph": {Kind: Paragraph, Text: "big", Marks: []Mark{{Type: MarkSize, Start: 0, End: 3, Value: "huge"}}},
 	}
 	for name, b := range bad {

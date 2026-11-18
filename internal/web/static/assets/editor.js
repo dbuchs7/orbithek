@@ -57,9 +57,8 @@ const pastedRules = (dom) => {
 };
 
 // A colour and a size of text are marks with a value, a tone or a size,
-// drawn as classes (ADR-0238). Paragraphs, headings, list items, tasks
-// and a table's cells take them; quotes and panels take the formats of
-// PLAIN_MARKS alone.
+// drawn as classes (ADR-0238). Every block of text takes them but a code
+// block, which takes no format at all, and so does a table's cell.
 const valued = (prefix, values) => ({
   attrs: { value: {} },
   parseDOM: [{ tag: "span", getAttrs: (dom) => {
@@ -68,7 +67,6 @@ const valued = (prefix, values) => ({
   } }],
   toDOM: (m) => ["span", { class: prefix + m.attrs.value }, 0],
 });
-const PLAIN_MARKS = "bold italic code underline strike highlight link secret";
 
 export const schema = new Schema({
   nodes: {
@@ -83,12 +81,12 @@ export const schema = new Schema({
     },
     bullet: { group: "block", content: "inline*", attrs: textAttrs, parseDOM: [{ tag: "ul > li" }], toDOM: () => ["div", { class: "pm-bullet" }, 0] },
     ordered: { group: "block", content: "inline*", attrs: textAttrs, parseDOM: [{ tag: "ol > li" }], toDOM: () => ["div", { class: "pm-ordered" }, 0] },
-    quote: { group: "block", content: "inline*", marks: PLAIN_MARKS, attrs: alignAttrs, parseDOM: [{ tag: "blockquote" }], toDOM: (n) => ["blockquote", { class: alignClass(n) }, 0] },
+    quote: { group: "block", content: "inline*", attrs: alignAttrs, parseDOM: [{ tag: "blockquote" }], toDOM: (n) => ["blockquote", { class: alignClass(n) }, 0] },
     code_block: { group: "block", content: "text*", marks: "", code: true, defining: true, attrs: bid, parseDOM: [{ tag: "pre", preserveWhitespace: "full" }], toDOM: () => ["pre", ["code", 0]] },
     // ADR-0042. A task's checkbox and a table's cells are drawn by node
     // views (createEditor); toDOM is what a copy carries.
     task: { group: "block", content: "inline*", attrs: { ...textAttrs, checked: { default: false } }, toDOM: (n) => ["div", { class: "pm-task", "data-checked": String(n.attrs.checked) }, 0] },
-    panel: { group: "block", content: "inline*", marks: PLAIN_MARKS, attrs: { ...alignAttrs, tone: { default: "info" } }, toDOM: (n) => ["div", { class: ["pm-panel", alignClass(n)].filter(Boolean).join(" "), "data-tone": n.attrs.tone }, 0] },
+    panel: { group: "block", content: "inline*", attrs: { ...alignAttrs, tone: { default: "info" } }, toDOM: (n) => ["div", { class: ["pm-panel", alignClass(n)].filter(Boolean).join(" "), "data-tone": n.attrs.tone }, 0] },
     // A horizontal rule between blocks (ADR-0059).
     divider: { group: "block", atom: true, selectable: true, attrs: bid, parseDOM: [{ tag: "hr" }], toDOM: () => ["hr", { class: "pm-divider" }] },
     // A table's cells may be formatted, its columns and rows sized and its
@@ -2435,8 +2433,8 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     markButton("highlight", t("editor.highlight"), h("mark", { text: "ab" })),
     markButton("code", t("editor.code"), "</>"),
   ];
-  // Text colour and size of the text of a paragraph, a heading, a list
-  // item or a task (ADR-0238): the selected
+  // Text colour and size of the text of any block of text but a code
+  // block (ADR-0238): the selected
   // text, or what is typed next at the cursor. A list takes the focus from
   // the text, and with it the selection the editor has not read yet: it is
   // read from the page as the list is reached.
@@ -2455,7 +2453,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     st.doc.nodesBetween(from, to, (n) => { if (!value && n.isText) value = type.isInSet(n.marks)?.attrs.value || ""; });
     return value;
   };
-  const styledNodes = ["paragraph", "heading", "bullet", "ordered", "task"];
+  const styledNodes = ["paragraph", "heading", "bullet", "ordered", "task", "quote", "panel"];
   const canStyle = (st) => styledNodes.includes(st.selection.$from.parent.type.name);
   const textStyle = (id, label, name, options) => {
     const type = schema.marks[name];
