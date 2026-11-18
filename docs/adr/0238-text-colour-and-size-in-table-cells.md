@@ -1,9 +1,9 @@
 # ADR-0238: Text colour and size in table cells
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-17
-- **Deciders:** Project initiators (request of 2026-11-17 that the text of table cells can take a font size and a font colour, and of 2026-11-18 that paragraphs can too, and then headings, lists, quotes and panels); proposed for the maintainer's acceptance
+- **Deciders:** Project initiators (request of 2026-11-17 that the text of table cells can take a font size and a font colour, and of 2026-11-18 that paragraphs can too, and then headings, lists, quotes and panels); accepted 2026-11-18
 - **Open question:** whether a font family is wanted; whether more sizes or tones are wanted; whether the colours and sizes of a table pasted from elsewhere should be taken to the nearest tone and size; whether yellow text, which reads weakly on white, should be offered at all
 - **Question checked:** 2026-11
 
