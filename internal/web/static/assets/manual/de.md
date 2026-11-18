@@ -89,6 +89,8 @@ Mit **Bearbeiten** wird der Text bearbeitet, mit **Fertig** abgeschlossen. Ände
 - **Überschriften nummerieren** (1.1): nummeriert die Überschriften des ganzen Texts nach ihrer Ebene (siehe unten);
 - **Rückgängig** und **Wiederholen**.
 
+Auf einem Telefon bleibt die Leiste einzeilig: Man wischt sie seitwärts, um ihre übrigen Schaltflächen zu erreichen.
+
 **Überschriften nummerieren** nummeriert jede Überschrift nach ihrer Ebene: 1, 1.1, 1.1.1.
 Die Nummern folgen den Überschriften, wenn sie hinzukommen, verschoben oder entfernt werden; nichts muss von Hand nummeriert werden.
 Die höchste Überschriftenebene, die der Text verwendet, zählt als erste, sodass ein Text, der mit Überschrift 2 beginnt, seine Überschriften der Ebene 2 mit 1, 2, 3 nummeriert; eine übersprungene Ebene zählt als 0, etwa in 1.0.1, und Überschriften ohne Text werden nicht gezählt.

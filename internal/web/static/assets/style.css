@@ -195,6 +195,13 @@ table.history td { font-size: 13px; }
    text scrolls, however long it is (ADR-0149). The top bar's height is
    measured, as it wraps to two rows on narrow screens. */
 #body.editing .pm-wrap > .pm-toolbar { position: sticky; top: var(--top-offset, var(--topbar-h)); z-index: 15; }
+/* On a phone the toolbar keeps to one row and scrolls sideways, so that
+   while it stays in view it does not cover the text it formats (ADR-0116). */
+@media (max-width: 640px) {
+  #body.editing .pm-wrap > .pm-toolbar { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; }
+  #body.editing .pm-wrap > .pm-toolbar > * { flex: none; }
+  #body.editing .pm-wrap > .pm-toolbar .pm-group { flex-wrap: nowrap; }
+}
 /* The headings of a text differ at a glance: by size, weight and space
    above them, the first level also by a rule below it (ADR-0149). The
    levels 1 to 3 are h2 to h4, as h1 is the item's title. */

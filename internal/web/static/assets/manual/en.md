@@ -89,6 +89,8 @@ Choose **Edit** to edit the text and **Done** to finish. Changes are saved conti
 - **Number headings** (1.1): numbers the headings of the whole text by their level (see below);
 - **Undo** and **Redo**.
 
+On a phone the toolbar keeps to one row: swipe it sideways to reach its other buttons.
+
 **Number headings** numbers every heading by its level: 1, 1.1, 1.1.1.
 The numbers follow the headings as they are added, moved or removed; nothing has to be numbered by hand.
 The shallowest heading level the text uses counts first, so a text that starts with heading 2 numbers its level 2 headings 1, 2, 3; a level skipped below another shows as 0, as in 1.0.1, and headings without text are not counted.
