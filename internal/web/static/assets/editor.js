@@ -56,25 +56,38 @@ const pastedRules = (dom) => {
   return classRules([...(root?.querySelectorAll?.("style") || [])].map((s) => s.textContent).join("\n"));
 };
 
+// A colour and a size of text are marks with a value, a tone or a size,
+// drawn as classes (ADR-0238). Paragraphs and a table's cells take them;
+// every other block takes the formats of PLAIN_MARKS alone.
+const valued = (prefix, values) => ({
+  attrs: { value: {} },
+  parseDOM: [{ tag: "span", getAttrs: (dom) => {
+    const v = [...dom.classList].map((c) => c.startsWith(prefix) && c.slice(prefix.length)).find((x) => x && values.includes(x));
+    return v ? { value: v } : false;
+  } }],
+  toDOM: (m) => ["span", { class: prefix + m.attrs.value }, 0],
+});
+const PLAIN_MARKS = "bold italic code underline strike highlight link secret";
+
 export const schema = new Schema({
   nodes: {
     doc: { content: "block+" },
     paragraph: { group: "block", content: "inline*", attrs: alignAttrs, parseDOM: [{ tag: "p", getAttrs: (dom) => ({ align: pastedAlign(dom) }) }],
       toDOM: (n) => ["p", { class: alignClass(n) }, 0] },
     heading: {
-      group: "block", content: "inline*", defining: true,
+      group: "block", content: "inline*", defining: true, marks: PLAIN_MARKS,
       attrs: { ...alignAttrs, level: { default: 1 } },
       parseDOM: [1, 2, 3, 4, 5, 6].map((l) => ({ tag: "h" + l, getAttrs: (dom) => ({ level: Math.min(l, 3), align: pastedAlign(dom) }) })),
       toDOM: (n) => ["h" + (n.attrs.level + 1), { class: alignClass(n) }, 0], // h1 is the item's title
     },
-    bullet: { group: "block", content: "inline*", attrs: textAttrs, parseDOM: [{ tag: "ul > li" }], toDOM: () => ["div", { class: "pm-bullet" }, 0] },
-    ordered: { group: "block", content: "inline*", attrs: textAttrs, parseDOM: [{ tag: "ol > li" }], toDOM: () => ["div", { class: "pm-ordered" }, 0] },
-    quote: { group: "block", content: "inline*", attrs: alignAttrs, parseDOM: [{ tag: "blockquote" }], toDOM: (n) => ["blockquote", { class: alignClass(n) }, 0] },
+    bullet: { group: "block", content: "inline*", marks: PLAIN_MARKS, attrs: textAttrs, parseDOM: [{ tag: "ul > li" }], toDOM: () => ["div", { class: "pm-bullet" }, 0] },
+    ordered: { group: "block", content: "inline*", marks: PLAIN_MARKS, attrs: textAttrs, parseDOM: [{ tag: "ol > li" }], toDOM: () => ["div", { class: "pm-ordered" }, 0] },
+    quote: { group: "block", content: "inline*", marks: PLAIN_MARKS, attrs: alignAttrs, parseDOM: [{ tag: "blockquote" }], toDOM: (n) => ["blockquote", { class: alignClass(n) }, 0] },
     code_block: { group: "block", content: "text*", marks: "", code: true, defining: true, attrs: bid, parseDOM: [{ tag: "pre", preserveWhitespace: "full" }], toDOM: () => ["pre", ["code", 0]] },
     // ADR-0042. A task's checkbox and a table's cells are drawn by node
     // views (createEditor); toDOM is what a copy carries.
-    task: { group: "block", content: "inline*", attrs: { ...textAttrs, checked: { default: false } }, toDOM: (n) => ["div", { class: "pm-task", "data-checked": String(n.attrs.checked) }, 0] },
-    panel: { group: "block", content: "inline*", attrs: { ...alignAttrs, tone: { default: "info" } }, toDOM: (n) => ["div", { class: ["pm-panel", alignClass(n)].filter(Boolean).join(" "), "data-tone": n.attrs.tone }, 0] },
+    task: { group: "block", content: "inline*", marks: PLAIN_MARKS, attrs: { ...textAttrs, checked: { default: false } }, toDOM: (n) => ["div", { class: "pm-task", "data-checked": String(n.attrs.checked) }, 0] },
+    panel: { group: "block", content: "inline*", marks: PLAIN_MARKS, attrs: { ...alignAttrs, tone: { default: "info" } }, toDOM: (n) => ["div", { class: ["pm-panel", alignClass(n)].filter(Boolean).join(" "), "data-tone": n.attrs.tone }, 0] },
     // A horizontal rule between blocks (ADR-0059).
     divider: { group: "block", atom: true, selectable: true, attrs: bid, parseDOM: [{ tag: "hr" }], toDOM: () => ["hr", { class: "pm-divider" }] },
     // A table's cells may be formatted, its columns and rows sized and its
@@ -162,6 +175,8 @@ export const schema = new Schema({
     text: { group: "inline" },
   },
   marks: {
+    color: valued("pm-text-", TABLE_TONES),
+    size: valued("pm-size-", TEXT_SIZES),
     bold: { parseDOM: [{ tag: "strong" }, { tag: "b" }], toDOM: () => ["strong", 0] },
     italic: { parseDOM: [{ tag: "em" }, { tag: "i" }], toDOM: () => ["em", 0] },
     code: { parseDOM: [{ tag: "code" }], toDOM: () => ["code", 0] },
@@ -326,7 +341,8 @@ function inlineContent(text, marks) {
       .filter((m) => m.type !== "mention" && m.start <= i && m.end >= next)
       .filter((m) => schema.marks[m.type])
       .map((m) => (m.type === "link" ? schema.marks.link.create({ href: m.href })
-        : m.type === "secret" ? schema.marks.secret.create({ ref: m.ref }) : schema.marks[m.type].create()));
+        : m.type === "secret" ? schema.marks.secret.create({ ref: m.ref })
+          : m.type === "color" || m.type === "size" ? schema.marks[m.type].create({ value: m.value }) : schema.marks[m.type].create()));
     out.push(schema.text(chars.slice(i, next).join(""), pm));
     i = next;
   }
@@ -408,7 +424,8 @@ function plainBlock(node) {
       const mark = { type: m.type.name, start, end: cp(text) };
       if (m.type.name === "link") mark.href = m.attrs.href;
       if (m.type.name === "secret") mark.ref = m.attrs.ref;
-      const prev = marks.findLast((x) => x.type === mark.type && x.href === mark.href && x.ref === mark.ref && x.end === start);
+      if (m.attrs.value) mark.value = m.attrs.value;
+      const prev = marks.findLast((x) => x.type === mark.type && x.href === mark.href && x.ref === mark.ref && x.value === mark.value && x.end === start);
       if (prev) prev.end = mark.end; // one mark across adjacent text nodes
       else marks.push(mark);
     }
@@ -588,18 +605,9 @@ function taskView(node, view, getPos) {
 // A colour and a size of a cell's text are marks of the cell's schema
 // alone: the body's other blocks take neither
 // (ADR-0238).
-const valued = (type, prefix, values) => ({
-  attrs: { value: {} },
-  parseDOM: [{ tag: "span", getAttrs: (dom) => {
-    const v = [...dom.classList].map((c) => c.startsWith(prefix) && c.slice(prefix.length)).find((x) => x && values.includes(x));
-    return v ? { value: v } : false;
-  } }],
-  toDOM: (m) => ["span", { class: prefix + m.attrs.value }, 0],
-});
 const cellSchema = new Schema({
   nodes: { doc: { content: "text*" }, text: {} },
-  marks: Object.fromEntries(TABLE_MARKS.map((m) => [m, m === "color" ? valued(m, "pm-text-", TABLE_TONES)
-    : m === "size" ? valued(m, "pm-size-", TEXT_SIZES) : schema.spec.marks.get(m)])),
+  marks: Object.fromEntries(TABLE_MARKS.map((m) => [m, schema.spec.marks.get(m)])),
 });
 let cellAids = null;
 
@@ -2426,6 +2434,61 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     markButton("highlight", t("editor.highlight"), h("mark", { text: "ab" })),
     markButton("code", t("editor.code"), "</>"),
   ];
+  // Text colour and size of a paragraph's text (ADR-0238): the selected
+  // text, or what is typed next at the cursor. A list takes the focus from
+  // the text, and with it the selection the editor has not read yet: it is
+  // read from the page as the list is reached.
+  const domRange = () => {
+    const sel = getSelection();
+    if (sel?.rangeCount && view.dom.contains(sel.anchorNode) && view.dom.contains(sel.focusNode)) {
+      const a = view.posAtDOM(sel.anchorNode, sel.anchorOffset), b = view.posAtDOM(sel.focusNode, sel.focusOffset);
+      return { from: Math.min(a, b), to: Math.max(a, b) };
+    }
+    return { from: view.state.selection.from, to: view.state.selection.to };
+  };
+  const valueAt = (st, type) => {
+    const { $from, from, to, empty } = st.selection;
+    if (empty) return type.isInSet(st.storedMarks || $from.marks())?.attrs.value || "";
+    let value = "";
+    st.doc.nodesBetween(from, to, (n) => { if (!value && n.isText) value = type.isInSet(n.marks)?.attrs.value || ""; });
+    return value;
+  };
+  const inParagraph = (st) => st.selection.$from.parent.type === schema.nodes.paragraph;
+  const textStyle = (id, label, name, options) => {
+    const type = schema.marks[name];
+    const el = h("select", { id, title: label, "aria-label": label }, ...options.map(([value, text]) => h("option", { value, text })));
+    let kept = null;
+    const keep = () => { kept = domRange(); };
+    el.addEventListener("pointerdown", keep);
+    el.addEventListener("focus", () => { if (!kept) keep(); });
+    el.addEventListener("blur", () => { kept = null; });
+    el.addEventListener("change", () => {
+      const { from, to } = kept || domRange();
+      kept = null;
+      // The editor's selection follows the page's first, so that what is
+      // typed next goes where the cursor stands; the formats chosen at the
+      // cursor stay, a colour or size changed among them.
+      const sel = view.state.selection;
+      const same = sel.from === from && sel.to === to;
+      let tr = view.state.tr;
+      if (!same) tr = tr.setSelection(TextSelection.create(view.state.doc, from, to));
+      if (from === to) {
+        let marks = type.removeFromSet((same && view.state.storedMarks) || tr.doc.resolve(from).marks());
+        if (el.value) marks = type.create({ value: el.value }).addToSet(marks);
+        tr = tr.setStoredMarks(marks);
+      } else {
+        tr = tr.removeMark(from, to, type);
+        if (el.value) tr = tr.addMark(from, to, type.create({ value: el.value }));
+      }
+      view.dispatch(tr);
+      view.focus();
+    });
+    return { el, type };
+  };
+  const textStyles = [
+    textStyle("pm-text-colour", t("editor.tableTextColour"), "color", [["", t("editor.tableNoColour")], ...TABLE_TONES.map((x) => [x, toneName(x)])]),
+    textStyle("pm-text-size", t("editor.tableTextSize"), "size", [["", t("editor.tableSizeNormal")], ...TEXT_SIZES.map((x) => [x, sizeName(x)])]),
+  ];
   // An alignment icon: four lines, drawn by the stylesheet.
   const alignIcon = (a) => h("span", { class: "pm-ico pm-ico-" + a, "aria-hidden": "true" }, h("i"), h("i"), h("i"), h("i"));
   const alignButtons = [["", t("editor.alignLeft"), "left"], ["center", t("editor.alignCenter"), "center"], ["right", t("editor.alignRight"), "right"], ["justify", t("editor.alignJustify"), "justify"]]
@@ -2469,6 +2532,10 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     for (const b of stateful) b.el.setAttribute("aria-pressed", String(Boolean(b.isOn(st))));
     const canAlign = alignOf(st) !== null;
     for (const b of alignButtons) b.el.disabled = !canAlign;
+    for (const s of textStyles) {
+      s.el.disabled = !inParagraph(st);
+      s.el.value = valueAt(st, s.type);
+    }
   };
   const toolbar = !editable
     // The text's own actions, such as editing it, stand beside them.
@@ -2476,6 +2543,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     : h("div", { class: "pm-toolbar", role: "toolbar", "aria-label": t("editor.toolbar") },
     group(kindSelect),
     group(...markButtons.map((b) => b.el)),
+    group(...textStyles.map((s) => s.el)),
     group(...alignButtons.map((b) => b.el)),
     group(listButton("bullet", "•", t("editor.bullet")), listButton("ordered", "1.", t("editor.ordered")), listButton("task", "☑", t("editor.task"))),
     group(numberButton.el),
