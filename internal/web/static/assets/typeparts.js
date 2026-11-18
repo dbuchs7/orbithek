@@ -40,7 +40,7 @@ export function presetWorkflow() {
 
 // emptyDraft is a new type of a space ("" for the whole installation).
 export function emptyDraft(space = "") {
-  return { name: "", space, body: true, fields: [], workflow: null, review: null, template: "", startText: "", existing: false };
+  return { name: "", space, body: true, fields: [], workflow: null, review: null, template: "", startText: "", numbered: false, existing: false };
 }
 
 // newField is a field as "Add field" adds it.
@@ -65,6 +65,8 @@ export function draftOf(type, space) {
     // edited as Markdown, as the server gives and takes it.
     template: ty.template || "",
     startText: ty.startMarkdown || "",
+    // Whether new items begin with numbered headings (ADR-0241).
+    numbered: Boolean(ty.numbered),
     existing: Boolean(ty.version),
   };
 }
@@ -106,6 +108,7 @@ export function definitionOf(draft) {
   if (draft.review && out.fields.some((f) => f.name === draft.review.field)) out.review = draft.review;
   if (draft.template) out.template = draft.template;
   if (draft.body && String(draft.startText || "").trim()) out.startMarkdown = draft.startText;
+  if (draft.body && draft.numbered) out.numbered = true;
   return out;
 }
 
