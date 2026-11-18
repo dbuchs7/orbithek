@@ -3,8 +3,8 @@
 - **Status:** Proposed
 - **Implementation:** Partial
 - **Date:** 2026-11-17
-- **Deciders:** Project initiators (request of 2026-11-17 that headings can be numbered automatically by their formatting, heading 1 to x, the numbering switched on and off and shown or hidden in the table of contents accordingly; asked where the switch belongs, the requester chose one per page)
-- **Open question:** whether a type should give its new texts the numbering by default; whether other forms of numbers (a closing dot, letters, Roman numerals) are wanted; whether the Word export should write Word's own list numbering instead of the numbers as text; whether a text should refer to a heading by its number ("see 2.1") that follows the heading
+- **Deciders:** Project initiators (request of 2026-11-17 that headings can be numbered automatically by their formatting, heading 1 to x, the numbering switched on and off and shown or hidden in the table of contents accordingly; asked where the switch belongs, the requester chose one per page; on 2026-11-17 the requester asked for a type's default as well)
+- **Open question:** whether other forms of numbers (a closing dot, letters, Roman numerals) are wanted; whether the Word export should write Word's own list numbering instead of the numbers as text; whether a text should refer to a heading by its number ("see 2.1") that follows the heading
 - **Question checked:** 2026-11
 
 ## Context and problem statement
@@ -65,11 +65,21 @@ Chosen option: **1, a field of the body**, because the numbering is a property o
 - **MCP:** `commit_body` takes the optional `numbered`; `get_item_markdown` shows the numbers through the Markdown export.
 - **Server-side rewrites** of a body — copies, web links, whiteboard checkpoints, a connector's withdrawal note, the daily note — keep the setting.
 
+### A type's default
+
+- A type may say that its new items begin with their headings numbered: **Number the headings of new items** in the type editor, `numbered` on the type in the API, for the installation's types and a room's alike (ADR-0201).
+- It is kept as the numbering of the type's start text (`TypeDef.Start.Numbered`, ADR-0167): a type's start is the document a new item begins with, its text and whether it is numbered, with or without start text.
+- An item made through the API — the creation view, **Create and mention**, the calendar's new entry, agents through MCP `create_item` — begins numbered when its type says so, whether a text is given or not; a request's own `numbered` takes precedence.
+- It is a default, not a link: the item's own switch decides from then on, and items made before keep their choice; changing the type changes no item.
+- A copy keeps its original's numbering, even of a body without blocks; imports, connectors, linked tasks and daily notes make their items as before, as they do not take a start text either.
+- A type without a body refuses it.
+
 ### Codec
 
 Codec version 66 adds the body field `Numbered`, sealed with the body.
 Versions 1 to 65 are still read; their headings are not numbered.
 A server before this one refuses a version 66 log rather than dropping the setting.
+A type's default needs no version of its own: it is the same field in the type's start text, which version 66 already reads.
 
 **Implementation:** everything above is built and tested in Go, Node.js and Chromium. Not built: what the open questions ask.
 
@@ -84,7 +94,7 @@ A server before this one refuses a version 66 log rather than dropping the setti
   - Numbers are text in the Word export, not Word's list numbering: renumbering in Word after editing there is manual.
   - Only three levels exist, so numbers have at most three parts.
   - Readers who may not read a protected section see numbers that skip its headings.
-- **Follow-ups / risks to watch:** whether people expect a type to number its new texts by default; references to a heading by its number.
+- **Follow-ups / risks to watch:** references to a heading by its number.
 
 ## Pros and cons of the options
 
@@ -114,7 +124,17 @@ Strongest form: an organisation numbers all its concepts or none, set once by an
 
 - Good: consistent across a type without anyone deciding per text.
 - Bad: the request asks for a switch per text; a type cannot hold one text numbered and another not.
-  It remains possible as a default on top of option 1 (open question).
+  It is built as a default on top of option 1 (see *A type's default*).
+
+#### A type's default: copied at creation or followed
+
+Strongest form of following: an item without a choice of its own would follow its type, so switching a type numbers or unnumbers all its items at once, as a style sheet does.
+
+- Good: one change reaches every item of the type.
+- Bad:
+  - An item would need a third state, «as its type», in the body, the API, the live session and the editor's switch.
+  - A text would change its numbers, its exports and its table of contents without a version of its own, when someone redefines a type.
+  - Chosen instead: the default is copied when an item is made, as the start text is.
 
 ### Option 5: a setting of the viewer
 

@@ -2942,6 +2942,8 @@ export default {
   "types.addTransition": "Add transition",
   "types.start": "Start text",
   "types.startHint": "What a new item begins with when it is made without a text of its own, written as Markdown: # heading, - list item, 1. numbered item, > quote; a line [children:2 without task] is a list of child pages two levels deep without tasks. It names no item and no file.",
+  "types.numbered": "Number the headings of new items",
+  "types.numberedHint": "New items begin with their headings numbered by their level (1, 1.1, 1.1.1), with or without a start text; each item can switch it off in its editor. Items made before keep their own choice.",
   "types.json": "Advanced: as JSON",
   "types.jsonHelp": "The type as the server takes it. Change it here for what the form does not offer, then apply it to the form.",
   "types.jsonApply": "Apply to the form",

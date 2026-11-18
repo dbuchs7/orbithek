@@ -59,7 +59,7 @@ Die Raumübersicht zeigt die eigenen Räume als Kacheln oder als Liste; ein Ster
 
 ### Eine Seite oder einen Eintrag erstellen
 
-Man wählt **+ Neu** in der oberen Leiste oder **Neue Seite** in einem Raum. Die Erstellungsansicht fragt nach Raum, Typ und Titel und legt den neuen Eintrag unterhalb der Seite an, von der man kam. Auf einer Seite erstellt **Neue Unterseite** eine Seite darunter. Hat ein Typ einen Starttext, beginnt ein neuer Eintrag damit. Im Starttext steht eine Zeile `[children]` für eine Unterseiten-Liste; `[children:3]` oder `[children:all]` legt deren Tiefe fest, und `[children:all without task, decision]` blendet zusätzlich Typen aus. Die eigenen Typen eines Raums werden nur angeboten, wenn dieser Raum gewählt ist.
+Man wählt **+ Neu** in der oberen Leiste oder **Neue Seite** in einem Raum. Die Erstellungsansicht fragt nach Raum, Typ und Titel und legt den neuen Eintrag unterhalb der Seite an, von der man kam. Auf einer Seite erstellt **Neue Unterseite** eine Seite darunter. Hat ein Typ einen Starttext, beginnt ein neuer Eintrag damit; nummeriert der Typ Überschriften, beginnt der neue Eintrag mit nummerierten Überschriften. Im Starttext steht eine Zeile `[children]` für eine Unterseiten-Liste; `[children:3]` oder `[children:all]` legt deren Tiefe fest, und `[children:all without task, decision]` blendet zusätzlich Typen aus. Die eigenen Typen eines Raums werden nur angeboten, wenn dieser Raum gewählt ist.
 
 ### Einen Eintrag lesen
 
@@ -94,6 +94,7 @@ Die höchste Überschriftenebene, die der Text verwendet, zählt als erste, soda
 Das Inhaltsverzeichnis zeigt dieselben Nummern, ebenso das Word-Dokument, die als PDF gedruckte Seite und der Markdown-Export.
 Die Überschriften eines Eintrags, dessen Inhalt allein eingebettet ist, zählen wie die des Texts und erhalten seine Nummern; ein vollständig eingebetteter Eintrag behält seine eigenen.
 Ein erneuter Klick auf die Schaltfläche entfernt die Nummern aus dem Text und aus dem Inhaltsverzeichnis.
+Ein Typ kann festlegen, dass seine neuen Einträge nummeriert beginnen (siehe *Typen* unter Administration); jeder Eintrag kann dies weiterhin ausschalten, und bereits angelegte Einträge behalten ihre eigene Einstellung.
 Die Einstellung gehört zum Text und wird sofort für alle gespeichert, die ihn lesen; der Verlauf hält sie als Version des Texts fest.
 Überschriften in einem geschützten Abschnitt, den man nicht lesen darf, sind nicht sichtbar und werden bei den Nummern nicht mitgezählt.
 
@@ -595,7 +596,7 @@ Die Administration findet unter **Administration**:
   Unter **Kontoanträge** legt die Administration auch fest, ob eine erste Anmeldung über Single Sign-on ein Konto ohne Rollen anlegt.
   Ausgeschaltet melden sich damit nur Personen an, deren Konto beim Anbieter bereits mit einem Konto hier verknüpft ist; vor dem Einrichten von Single Sign-on ausschalten, wenn es nur bekannten Personen offenstehen soll;
 - **Räume**: Räume erstellen, ihre Einstellungen öffnen, einen Raum in den Papierkorb legen und wiederherstellen oder endgültig löschen;
-- **Typen**: Typen in einem Formular anlegen und ändern — Name, Text, Felder mit ihrer Art und ihren Optionen, Workflow mit Status und Übergängen (oder einfach *offen → erledigt*) und Starttext — für die ganze Installation oder für einen Raum; der Typ als JSON bleibt unter **Erweitert**. Typen entstehen auch aus den Vorlagen;
+- **Typen**: Typen in einem Formular anlegen und ändern — Name, Text, Felder mit ihrer Art und ihren Optionen, Workflow mit Status und Übergängen (oder einfach *offen → erledigt*), Starttext und **Überschriften neuer Einträge nummerieren** — für die ganze Installation oder für einen Raum; der Typ als JSON bleibt unter **Erweitert**. Typen entstehen auch aus den Vorlagen;
 - **Backup** (auch zeitgesteuert in ein Verzeichnis, per WebDAV, S3, FTPS oder SFTP) und **Speicher**;
 - **Kalender anderer Dienste**, **Album: ältere Versionen**, **Fileshares**, **Konnektoren** und **Prozess-Engines**.
   Unter **Fileshares** wird ein Album-Ordner an ein vom Betrieb freigegebenes Verzeichnis oder an einen S3-Bucket gebunden und sofort (**Jetzt lesen**, **Probelauf**) oder nach Zeitplan gelesen.
