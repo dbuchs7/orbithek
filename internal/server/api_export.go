@@ -235,9 +235,16 @@ func (h itemHandlers) exportDocument(r *http.Request, children, withData bool) (
 			if len(it.Labels) > 0 {
 				p.Facts = append(p.Facts, [2]string{words["labels"], strings.Join(it.Labels, ", ")})
 			}
-			if depth := childDepth(it.Body.Blocks); depth != 0 {
-				if kids, _, err := x.ChildPages(it.Space, it.ID, depth, budget.Get().ChildPages, nil); err == nil {
-					p.Children = exportChildren(kids)
+			// Each list of child pages is read as it shows them, once
+			// for the lists that show the same (ADR-0239, ADR-0240).
+			for _, b := range it.Body.Blocks {
+				if k := export.ChildListKey(b); b.Kind == item.Children && p.Children[k] == nil {
+					if kids, _, err := x.ChildPages(it.Space, it.ID, b.Depth, budget.Get().ChildPages, b.HideTypes); err == nil {
+						if p.Children == nil {
+							p.Children = map[string][]export.Child{}
+						}
+						p.Children[k] = exportChildren(kids)
+					}
 				}
 			}
 			for _, b := range it.Body.Blocks {
@@ -554,30 +561,12 @@ func taskLines(x *item.Session, s *item.Store, b item.Block, env item.QueryEnv) 
 	return out
 }
 
-// childDepth is how many levels the deepest list of child pages in blocks
-// shows, item.ChildrenAll for every level, or 0 when blocks hold no such
-// list (ADR-0239).
-func childDepth(blocks []item.Block) int {
-	depth := 0
-	for _, b := range blocks {
-		if b.Kind != item.Children {
-			continue
-		}
-		d := max(b.Depth, 1)
-		if b.Depth == item.ChildrenAll {
-			return item.ChildrenAll
-		}
-		depth = max(depth, d)
-	}
-	return depth
-}
-
 // exportChildren turns a list of child pages into the titles an export
 // lists.
 func exportChildren(pages []item.ChildPage) []export.Child {
 	out := make([]export.Child, len(pages))
 	for i, p := range pages {
-		out[i] = export.Child{Title: p.Item.Title, Type: p.Item.Type, Children: exportChildren(p.Children)}
+		out[i] = export.Child{Title: p.Item.Title, Children: exportChildren(p.Children)}
 	}
 	return out
 }
