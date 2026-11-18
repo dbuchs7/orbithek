@@ -1494,7 +1494,7 @@ function webSource() {
     await page.click("dialog.pm-children-dialog #pm-children-ok");
     await page.waitForSelector("#body .pm-children .pm-children-types-toggle:text-is('without task')");
     check(await page.locator("#body .pm-children select.pm-children-depth").inputValue() === "2", "the list keeps the depth chosen on inserting");
-    check(await page.locator("#body .pm-children a:text-is('Created from New, renamed')").count() === 0, "the list leaves out the types left unticked on inserting");
+    check(await page.locator("#body .pm-children li > a:text-is('Created from New, renamed')").count() === 0, "the list leaves out the types left unticked on inserting");
     await page.waitForSelector("#body .pm-children li:has(> a:text-is('Minutes')) .pm-children-under a:text-is('Created from New, renamed')");
     await page.click("#body .pm-children .pm-children-types-toggle");
     await page.check("#body .pm-children .pm-children-types input[value=task]");
@@ -1512,7 +1512,7 @@ function webSource() {
     await page.click("#body .pm-children .pm-children-types-toggle");
     await page.uncheck("#body .pm-children .pm-children-types input[value=task]");
     await page.waitForSelector("#body .pm-children .pm-children-types-toggle:text-is('without task')");
-    check(await page.locator("#body .pm-children a:text-is('Created from New, renamed')").count() === 0, "the list leaves the tasks out");
+    check(await page.locator("#body .pm-children li > a:text-is('Created from New, renamed')").count() === 0, "the list leaves the tasks out");
     // The box of types stays open while one ticks.
     await page.check("#body .pm-children .pm-children-types input[value=task]");
     await page.waitForSelector("#body .pm-children .pm-children-types-toggle:text-is('all')");
