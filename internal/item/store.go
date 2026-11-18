@@ -1623,8 +1623,8 @@ func checkBlock(b Block, self ID) error {
 		case MarkColor, MarkSize:
 			values := map[MarkType][]string{MarkColor: TableTones, MarkSize: TextSizes}[m.Type]
 			switch {
-			case b.Kind != Table:
-				return invalid("only the text of a table's cell takes a %s", m.Type)
+			case b.Kind != Table && b.Kind != Paragraph:
+				return invalid("only the text of a paragraph or a table's cell takes a %s", m.Type)
 			case m.Href != "" || m.Ref != "":
 				return invalid("a %s mark has no target", m.Type)
 			case !slices.Contains(values, m.Value):
