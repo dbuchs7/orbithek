@@ -422,6 +422,8 @@ export default {
   "live.saving": "Wird gespeichert…",
 
   "tree.title": "Seiten",
+  "tree.resize": "Breite des Seitenbaums",
+  "tree.resizeHint": "Ziehen ändert die Breite des Seitenbaums, ein Doppelklick stellt sie zurück",
   "tree.empty": "Noch keine Seiten.",
   "tree.expand": "{title} aufklappen",
   "tree.collapse": "{title} zuklappen",

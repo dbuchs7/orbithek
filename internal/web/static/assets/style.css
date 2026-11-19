@@ -496,7 +496,7 @@ dialog.note-dialog::backdrop { background: rgba(20, 22, 26, .45); }
 
 /* The page tree (ADR-0041): a sidebar beside a space's views on wide
    screens, a block that folds away above them on narrow ones. */
-.with-tree { display: grid; grid-template-columns: clamp(220px, 16vw, 320px) minmax(0, 1fr); gap: 24px; align-items: start; }
+.with-tree { display: grid; grid-template-columns: clamp(180px, var(--tree-w, clamp(220px, 16vw, 320px)), 50vw) minmax(0, 1fr); gap: 24px; align-items: start; }
 .tree-box {
   position: sticky; top: 12px; max-height: calc(100vh - var(--topbar-h) - 24px); overflow: auto;
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px;
@@ -2034,6 +2034,13 @@ dialog.pm-dialog .error:empty { display: none; }
 .col-toggle:hover { color: var(--text); }
 .col-toggle-tree { align-self: flex-end; }
 .col-toggle-side { align-self: flex-start; }
+/* The page tree widens by dragging its right edge (ADR-draft-a-page-tree-that-widens-by-dragging):
+   the handle lies in the gap beside the tree, a line shows on hover and focus. */
+.tree-resizer { position: absolute; top: 0; bottom: 0; right: -16px; width: 8px; cursor: col-resize; touch-action: none; border-radius: 4px; }
+.tree-resizer::after { content: ""; position: absolute; top: 0; bottom: 0; left: 3px; width: 2px; border-radius: 1px; background: transparent; }
+.tree-resizer:hover::after, .tree-resizer:focus-visible::after, html.tree-resizing .tree-resizer::after { background: var(--accent); }
+.tree-resizer:focus-visible { outline: none; }
+html.tree-resizing, html.tree-resizing * { cursor: col-resize !important; user-select: none !important; }
 html.tree-folded .with-tree { grid-template-columns: 32px minmax(0, 1fr); }
 html.tree-folded .tree-col > :not(.col-toggle) { display: none; }
 html.side-folded .item-layout { grid-template-columns: minmax(0, 1fr) 32px; }
@@ -2041,6 +2048,7 @@ html.side-folded .item-side > :not(.col-toggle) { display: none; }
 /* Where the columns stand one above the other, nothing is folded. */
 @media (max-width: 800px) {
   .col-toggle-tree { display: none; }
+  .tree-col > .tree-resizer { display: none !important; }
   html.tree-folded .with-tree { grid-template-columns: minmax(0, 1fr); }
   html.tree-folded .tree-col > :not(.col-toggle) { display: revert; }
   .tree-col { position: static; }

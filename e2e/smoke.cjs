@@ -1728,6 +1728,28 @@ function webSource() {
     await page.click("#fold-tree");
     await page.waitForSelector("#comments");
 
+    step("columns: the page tree widens by dragging its edge, keeps the width and goes back by a double-click (ADR-draft-a-page-tree-that-widens-by-dragging)");
+    const treeWidth = () => page.locator(".tree-col").evaluate((el) => Math.round(el.getBoundingClientRect().width));
+    const narrowTree = await treeWidth();
+    const edge = await page.locator("#tree-resizer").boundingBox();
+    await page.mouse.move(edge.x + edge.width / 2, edge.y + 20);
+    await page.mouse.down();
+    await page.mouse.move(edge.x + edge.width / 2 + 100, edge.y + 20, { steps: 4 });
+    await page.mouse.move(edge.x + edge.width / 2 + 200, edge.y + 20, { steps: 4 });
+    await page.mouse.up();
+    const wideTree = await treeWidth();
+    check(Math.abs(wideTree - narrowTree - 200) <= 2, `the tree follows the drag: ${narrowTree} → ${wideTree} px`);
+    await page.reload();
+    await page.waitForSelector("#tree-resizer");
+    check(Math.abs(await treeWidth() - wideTree) <= 2, "the tree keeps its width after a reload");
+    await page.focus("#tree-resizer");
+    await page.keyboard.press("ArrowLeft");
+    check(Math.abs(await treeWidth() - (wideTree - 16)) <= 2, "the left arrow narrows the tree");
+    check(await page.getAttribute("#tree-resizer", "aria-valuenow") === String(await treeWidth()), "the handle announces the width");
+    await page.dblclick("#tree-resizer");
+    check(Math.abs(await treeWidth() - narrowTree) <= 2, "a double-click brings back the usual width");
+    check(await page.evaluate(() => localStorage.getItem("ot.tree.width")) === null, "the usual width is not kept");
+
     step("reading mode: the content alone, by its button or Ctrl+Shift+F, ended by Esc (ADR-0101)");
     await page.click("#reading-toggle");
     await page.waitForSelector("html.reading-mode header.top", { state: "hidden" });
