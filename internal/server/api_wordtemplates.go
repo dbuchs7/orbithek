@@ -9,6 +9,7 @@ import (
 	"mime"
 	"net/http"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -126,6 +127,14 @@ func startMarkdown(blocks []item.Block) string {
 	for _, b := range blocks {
 		if marker, ok := startMarkers[b.Kind]; ok {
 			flush()
+			switch {
+			case b.Kind == item.Children:
+				marker = childrenMarker(b)
+			case b.Kind == item.TOC && b.Level > 0:
+				// A table of contents names the deepest level it lists
+				// (ADR-0237, ADR-0239).
+				marker = "[toc:" + strconv.Itoa(b.Level) + "]"
+			}
 			parts = append(parts, marker)
 			continue
 		}
@@ -139,7 +148,51 @@ func startMarkdown(blocks []item.Block) string {
 // for in a type's start text.
 var startMarkers = map[item.BlockKind]string{item.TOC: "[toc]", item.Children: "[children]", item.Figures: "[figures]", item.Tables: "[tables]"}
 
-var startMarkerLine = regexp.MustCompile(`(?mi)^[ \t]*\[(toc|children|figures|tables)\][ \t]*$`)
+// startMarkerLine matches a marker line. A list of child pages may name
+// its depth, 1 to 5 or all, and the types it leaves out:
+// [children:2 without task, decision] (ADR-0239, ADR-0240); a table of
+// contents the deepest level of the headings it lists, 1 to 3 or all:
+// [toc:2] (ADR-0237).
+var startMarkerLine = regexp.MustCompile(`(?mi)^[ \t]*\[(toc|children|figures|tables)(?::(all|[1-5]))?(?:[ \t]+without[ \t]+([^\]\n]+?))?[ \t]*\][ \t]*$`)
+
+// childrenMarker is the marker line of a list of child pages, with its
+// depth and the types it leaves out, so that the start text keeps them.
+func childrenMarker(b item.Block) string {
+	marker := "[children"
+	switch {
+	case b.Depth == item.ChildrenAll:
+		marker += ":all"
+	case b.Depth > 1:
+		marker += ":" + strconv.Itoa(b.Depth)
+	}
+	if len(b.HideTypes) > 0 {
+		marker += " without " + strings.Join(b.HideTypes, ", ")
+	}
+	return marker + "]"
+}
+
+// childrenFromMarker reads the depth and the types a list of child pages'
+// marker names: depth is all, 1 to 5 or empty, without the types
+// separated by commas, sorted and named once each as a block keeps them.
+func childrenFromMarker(depth, without string) item.Block {
+	b := item.Block{Kind: item.Children}
+	switch n, _ := strconv.Atoi(depth); {
+	case strings.EqualFold(depth, "all"):
+		b.Depth = item.ChildrenAll
+	case n > 1:
+		b.Depth = n
+	}
+	var hide []string
+	for _, ty := range strings.Split(without, ",") {
+		if ty = strings.TrimSpace(ty); ty != "" {
+			hide = append(hide, ty)
+		}
+	}
+	if len(hide) > 0 {
+		b.HideTypes = slices.Compact(slices.Sorted(slices.Values(hide)))
+	}
+	return b
+}
 
 // startFromMarkdown converts a type's start text from Markdown: a level-1
 // heading stays a heading, links keep their safe targets, pictures keep
@@ -156,9 +209,33 @@ func startFromMarkdown(src string) []item.Block {
 	}
 	at := 0
 	for _, m := range startMarkerLine.FindAllStringSubmatchIndex(src, -1) {
-		convert(src[at:m[0]])
 		kind := map[string]item.BlockKind{"toc": item.TOC, "children": item.Children, "figures": item.Figures, "tables": item.Tables}[strings.ToLower(src[m[2]:m[3]])]
-		out = append(out, item.Block{Kind: kind})
+		group := func(i int) string {
+			if m[2*i] < 0 {
+				return ""
+			}
+			return src[m[2*i]:m[2*i+1]]
+		}
+		depth, without := group(2), group(3)
+		level, _ := strconv.Atoi(depth)
+		switch {
+		case kind == item.Children:
+		case kind == item.TOC && without == "" && (depth == "" || strings.EqualFold(depth, "all") || level <= 3):
+		case depth != "" || without != "":
+			// Only a list of child pages has types, and a table of
+			// contents a level of 1 to 3; any other such line stays
+			// text.
+			continue
+		}
+		convert(src[at:m[0]])
+		switch kind {
+		case item.Children:
+			out = append(out, childrenFromMarker(depth, without))
+		case item.TOC:
+			out = append(out, item.Block{Kind: kind, Level: level})
+		default:
+			out = append(out, item.Block{Kind: kind})
+		}
 		at = m[1]
 	}
 	convert(src[at:])

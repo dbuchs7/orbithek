@@ -1095,6 +1095,16 @@ type childPageJSON struct {
 	treeNodeJSON
 	Children []childPageJSON `json:"children,omitempty"`
 	More     bool            `json:"more,omitempty"`
+	// Under names the left-out item the page stands in place of
+	// (ADR-0240).
+	Under *underJSON `json:"under,omitempty"`
+}
+
+// underJSON names a left-out item by its ID, key and title.
+type underJSON struct {
+	ID    item.ID `json:"id"`
+	Key   string  `json:"key"`
+	Title string  `json:"title"`
 }
 
 func toChildPagesJSON(pages []item.ChildPage) []childPageJSON {
@@ -1102,6 +1112,9 @@ func toChildPagesJSON(pages []item.ChildPage) []childPageJSON {
 	for i, p := range pages {
 		out[i] = childPageJSON{treeNodeJSON: treeNodeJSON{ID: p.Item.ID, Key: p.Item.Key, Title: p.Item.Title, Type: p.Item.Type,
 			HasChildren: p.More || len(p.Children) > 0}, Children: toChildPagesJSON(p.Children), More: p.More}
+		if p.Under != nil {
+			out[i].Under = &underJSON{ID: p.Under.ID, Key: p.Under.Key, Title: p.Under.Title}
+		}
 	}
 	return out
 }

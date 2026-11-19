@@ -153,6 +153,15 @@ func TestChildPagesLeaveOutTypesThroughTheAPI(t *testing.T) {
 			t.Errorf("hide %q: %q, want %q", hide, got, want)
 		}
 	}
+	// A page in a left-out item's place names it.
+	res := w.vera.expect("GET", "/api/spaces/PLAT/tree?parent="+home+"&depth=all&hide=chore", "", http.StatusOK)
+	items := res["items"].([]any)
+	if under, _ := items[1].(map[string]any)["under"].(map[string]any); under["title"] != "Dust" || under["id"] != chore {
+		t.Errorf("under %v", items[1])
+	}
+	if _, ok := items[0].(map[string]any)["under"]; ok {
+		t.Errorf("a page below its own parent names no one: %v", items[0])
+	}
 
 	// A body keeps the types a list leaves out, named once each and sorted.
 	w.bert.expect("PUT", "/api/items/"+home+"/body", `{"blocks":[{"kind":"children","depth":-1,"hideTypes":["task","chore","task"]},{"kind":"children","hideTypes":[]}]}`, http.StatusOK)
@@ -169,7 +178,7 @@ func TestChildPagesLeaveOutTypesThroughTheAPI(t *testing.T) {
 	md := w.vera.do("GET", "/api/items/"+home+"/export/md", "").Body.String()
 	// The first list leaves the chores out, the page below one in its
 	// place; the second, which leaves nothing out, shows one level.
-	if !strings.Contains(md, "- A\n  - A1\n- Below the dust\n\n- A\n- Dust\n") || strings.Contains(md, "Sweep") {
+	if !strings.Contains(md, "- A\n  - A1\n- Below the dust (under Dust)\n\n- A\n- Dust\n") || strings.Contains(md, "Sweep") {
 		t.Errorf("export:\n%s", md)
 	}
 }
