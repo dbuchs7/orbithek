@@ -44,7 +44,7 @@ export default {
   "nav.back": "Zurück",
   "nav.forward": "Vorwärts",
   "nav.spaces": "Räume",
-  "nav.tasks": "Aufgaben",
+  "nav.tasks": "Planung",
 
   "login.failed": "Die Anmeldung über Single Sign-on ist fehlgeschlagen. Versuchen Sie es erneut oder verwenden Sie Ihr Passwort.",
   "login.submit": "Anmelden",
@@ -107,7 +107,7 @@ export default {
   "board.viewHint": "Farbe und Swimlanes stehen in der Adresse und bleiben in diesem Browser gespeichert; ein Kanban speichert sie für alle.",
 
   "tasks.none": "Keine offenen Aufgaben.",
-  "tasks.title": "Aufgaben",
+  "tasks.title": "Planung",
   "tasks.truncated": "Nur die ersten {n} Einträge wurden gelesen.",
 
   "common.infoAbout": "Was prüft «{what}»?",
@@ -1359,7 +1359,7 @@ export default {
   "home.notesNone": "Nichts Neues",
   "home.starmapText": "Ihre Räume als Karte der Zusammenhänge",
   "home.spacesText": {"one": "1 Raum, als Kacheln oder Liste", "other": "{n} Räume, als Kacheln oder Liste"},
-  "home.today": "Mein Tag",
+  "home.today": "Mein Journal",
   "home.todayText": "Ihre Tagesnotiz für {date}",
   "home.albumText": "Bilder und Zeichnungen",
   "home.whiteboardsText": "Gemeinsam und live auf einer Fläche arbeiten",
@@ -1933,7 +1933,7 @@ export default {
   "envhelp.restart": "Geänderte Umgebungsvariablen gelten erst nach einem Neustart des Servers bzw. Containers. Danach zeigt diese Seite «eingerichtet».",
   "requests.waiting": {"one": "{n} Kontoantrag wartet auf Ihre Entscheidung", "other": "{n} Kontoanträge warten auf Ihre Entscheidung"},
   "requests.waitingHelp": "Freigeben legt das Konto mit dem gewählten Passwort an; Ablehnen verwirft den Antrag. Die Einstellungen dazu stehen unter Administration → Kontoanträge.",
-  "requests.homeHint": "Unter «Aufgaben» freigeben oder ablehnen.",
+  "requests.homeHint": "Unter «Planung» freigeben oder ablehnen.",
   "gov.colReview": "Wiederprüfung",
   "gov.reviews": {"one": "{n} Eintrag zur Wiederprüfung fällig", "other": "{n} Einträge zur Wiederprüfung fällig"},
   "gov.infoReview": "Typen mit einer Prüfregel verlangen, dass ihre Einträge regelmässig geprüft werden, z. B. jährlich. Fällig ist ein Eintrag, der nie oder vor zu langer Zeit geprüft wurde. Zuständig ist die Person im Owner-Feld des Eintrags.",
@@ -2980,6 +2980,7 @@ export default {
   "fields.fileLater": "Die Datei wählen, sobald der Eintrag Dateien hat.",
   "fields.noFiles": "Der Eintrag hat noch keine Dateien; fügen Sie unter Dateien eine hinzu.",
   "daily.today": "Heute",
+  "nav.daily": "Mein Journal",
   "daily.todayHint": "Tagesnotiz von heute (Alt+Shift+D)",
   "daily.intro": "Eine Tagesnotiz ist Ihre eigene Seite für einen Tag: nur Sie lesen und bearbeiten sie.",
   "daily.private": "Nur Sie lesen und bearbeiten diese Notiz.",
