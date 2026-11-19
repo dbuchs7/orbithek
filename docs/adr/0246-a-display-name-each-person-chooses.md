@@ -1,9 +1,9 @@
 # ADR-0246: A display name each person chooses
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-19
-- **Deciders:** Project initiators (request of 2026-11-19 that the greeting on the start page shows a display name, which a person defines on their account; decided on 2026-11-19 that other people keep seeing the username, which under single sign-on is often the mail address); proposed for the maintainer's acceptance
+- **Deciders:** Project initiators (request of 2026-11-19 that the greeting on the start page shows a display name, which a person defines on their account; decided on 2026-11-19 that other people keep seeing the username, which under single sign-on is often the mail address). Accepted by the requester on 2026-11-19; the open question below stays open.
 - **Open question:** whether an account created through single sign-on takes the provider's `name` claim as its first display name
 - **Question checked:** 2026-11
 
