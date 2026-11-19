@@ -3,7 +3,7 @@
 - **Status:** Proposed
 - **Implementation:** Partial
 - **Date:** 2026-11-17
-- **Deciders:** Project initiators. Request of 2026-11-17: a list of child pages gets a filter by type, for tasks; the requester chose that types are left out (rather than chosen to be shown) and that the change goes into a pull request of its own. They first chose that the items below a left-out item are left out with it, and later the same day that the pages below it show in its place. The rest are defaults proposed with the implementation, to be confirmed by the requester.
+- **Deciders:** Project initiators. Request of 2026-11-17: a list of child pages gets a filter by type, for tasks; the requester chose that types are left out (rather than chosen to be shown) and that the change goes into a pull request of its own. They first chose that the items below a left-out item are left out with it, and later the same day that the pages below it show in its place. The rest are defaults proposed with the implementation, to be confirmed by the requester. Request of 2026-11-18: such a page names the left-out item it stood below.
 
 ## Context and problem statement
 
@@ -41,6 +41,8 @@ Chosen option: **1, types left out**, because it says what the request asks ("wi
   A left-out item is no level, so a list of one level shows the pages below a task at the task's place, and a depth counts what the reader sees.
   `Session.ChildPages` passes through such items as it walks, so they take nothing of the budget `ChildPages` and make no one's `more`.
   Only a readable left-out item is passed through; below an unreadable one nothing is readable (D9).
+- **Naming the left-out item:** a page in a left-out item's place names that item, the nearest of a chain: `ChildPage.Under`, `under` (its ID, key and title) in the page tree's answer, *(under Meeting)* beside the page in the editor and the reading view, linked, and in Word, PDF and Markdown in the reader's language (`export.Document.Under`).
+  The item is readable, since only readable items are passed through, so naming it reveals nothing (D10).
 - **The API:** `GET /api/spaces/{space}/tree` takes `hide`, type names separated by commas, with `depth`; MCP's `get_tree` offers it, and its description of blocks names the field.
 - **The editor:** beside the depth, *Types* says *all* or *without* the types left out; a click opens a box per type of the item's room (`GET /api/types?space=`), and a type the list leaves out that is no longer defined stays offered so it can be shown again.
   Type names are content and stay untranslated.
@@ -50,8 +52,8 @@ Chosen option: **1, types left out**, because it says what the request asks ("wi
 ### Consequences
 
 - **Positive:** a project page lists its chapters without its tasks; lists written before are unchanged.
-- **Negative / trade-offs accepted:** a page in a left-out item's place no longer shows that it belongs below that item; a list of a few levels may walk deep through chains of left-out items, bounded by the space's items and the budget of pages it shows.
-- **Follow-ups / risks to watch:** whether readers miss the left-out item a promoted page stood below, which a later change could name beside it.
+- **Negative / trade-offs accepted:** a list of a few levels may walk deep through chains of left-out items, bounded by the space's items and the budget of pages it shows.
+- **Follow-ups / risks to watch:** a page below a long chain of left-out items names only the nearest.
 
 ## Pros and cons of the options
 

@@ -12,6 +12,10 @@ import (
 type Child struct {
 	Title    string
 	Children []Child
+	// Under is the title of the left-out item the page stands in place
+	// of, which the list names beside it; empty when the page stands
+	// below its own parent (ADR-0240).
+	Under string
 }
 
 // ChildListKey is what a list of child pages lists its pages by: its
@@ -34,13 +38,22 @@ type childLine struct {
 
 // childLines lists the child pages of a list, each followed by its own,
 // as the server read them for the list: to its depth, without the types
-// it leaves out, the pages below a left-out item in its place.
-func childLines(kids []Child) []childLine {
+// it leaves out, the pages below a left-out item in its place and naming
+// it, "A (under B)", in the document's words (ADR-0240).
+func (d Document) childLines(kids []Child) []childLine {
+	under := d.Under
+	if under == "" {
+		under = "under"
+	}
 	var out []childLine
 	var walk func(kids []Child, level int)
 	walk = func(kids []Child, level int) {
 		for _, c := range kids {
-			out = append(out, childLine{Title: c.Title, Level: level})
+			title := c.Title
+			if c.Under != "" {
+				title += " (" + under + " " + c.Under + ")"
+			}
+			out = append(out, childLine{Title: title, Level: level})
 			walk(c.Children, level+1)
 		}
 	}

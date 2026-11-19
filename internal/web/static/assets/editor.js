@@ -1485,9 +1485,12 @@ function itemViewView(node, v, getPos) {
     update: (n) => n.type === node.type && JSON.stringify(n.attrs) === JSON.stringify(attrs) };
 }
 
-// childTree draws child pages as nested lists, each page linked.
+// childTree draws child pages as nested lists, each page linked; a page
+// in a left-out item's place names that item beside it (ADR-0240).
 function childTree(pages) {
-  return h("ul", {}, pages.map((c) => h("li", {}, h("a", { href: "#/item/" + encodeURIComponent(c.key), text: c.title || c.key }),
+  const link = (it) => h("a", { href: "#/item/" + encodeURIComponent(it.key), text: it.title || it.key });
+  return h("ul", {}, pages.map((c) => h("li", {}, link(c),
+    c.under ? h("span", { class: "muted pm-children-under" }, " (", t("editor.childrenUnder"), " ", link(c.under), ")") : null,
     c.children?.length ? childTree(c.children) : null)));
 }
 

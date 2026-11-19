@@ -37,12 +37,12 @@ To sign in with an account at a provider your organisation has set up, link it o
 
 The bar at the top of every page holds, from left to right:
 
-- **Nine dots** (Modules): opens the module switcher with Rooms, Create, Tasks, Today, Comments, Album, Whiteboards, Starmap, AI access, Governance, Account and, for administrators, Administration.
+- **Nine dots** (Modules): opens the module switcher with Rooms, Create, Planning, My journal, Comments, Album, Whiteboards, Starmap, AI access, Governance, Account and, for administrators, Administration.
 - **Start page**, **Back** and **Forward**.
 - The **logo**, which also leads to the start page.
 - The **search** field.
 - **+ New**: creates a page or item where you are.
-- **Today**: your daily note of today (Alt+Shift+D); see *Daily notes*. On a narrow screen it is in the module switcher.
+- **Today**: your daily note of today (Alt+Shift+D); see *Daily notes*. On a narrow screen it is in the module switcher as **My journal**.
 - The **bell**: your notifications, with the number of unread ones.
 - **DE** and **EN**: the language of the interface.
 - The **light and dark mode** switch.
@@ -51,7 +51,7 @@ The bar at the top of every page holds, from left to right:
 
 ### The start page
 
-The start page greets you, shows counts of pages, tasks and pictures, and offers quick access to the starmap, the **Rooms** (the overview of your rooms, also reached from the module switcher), **My day** (today's daily note, with today's date), your tasks, notifications, personal notes, the album, the whiteboards and AI access.
+The start page greets you by your display name (see *Your account*), shows counts of pages, tasks and pictures, and offers quick access to **My journal** (today's daily note, with today's date), right beside it **My notes** (your personal notes), the starmap, the **Rooms** (the overview of your rooms, also reached from the module switcher), your tasks under **Planning**, notifications, the album, the whiteboards and AI access.
 Point at a tile with the mouse to see what it offers.
 The overview of rooms lists your rooms, as tiles or as a list; a star marks a room as a favourite. If there are no rooms yet, administrators find the first steps on the start page: create a room, add types from the ready-made templates (page, task, decision, daily note), and give people a role.
 
@@ -59,7 +59,7 @@ The overview of rooms lists your rooms, as tiles or as a list; a star marks a ro
 
 ### Creating a page or item
 
-Choose **+ New** in the top bar or **New page** in a room. The creation view asks for the room, the type and the title, and places the new item below the page you came from. On a page, **New child page** creates a page below it. If a type has a start text, a new item begins with it; if the type numbers headings, the new item begins with its headings numbered. A room's own types are offered only when that room is chosen.
+Choose **+ New** in the top bar or **New page** in a room. The creation view asks for the room, the type and the title, and places the new item below the page you came from. On a page, **New child page** creates a page below it. If a type has a start text, a new item begins with it; if the type numbers headings, the new item begins with its headings numbered. In a start text, a line `[toc]` stands for a table of contents and `[toc:2]` for one down to headings of level 2; a line `[children]` stands for a list of child pages; `[children:3]` or `[children:all]` sets its depth, and `[children:all without task, decision]` also leaves types out. A room's own types are offered only when that room is chosen.
 
 ### Reading an item
 
@@ -125,7 +125,7 @@ Pictures can be placed left or right with text beside them, centred, and resized
 
 An embedded item shows either **The whole item** or **The content only**; while you edit, the choice **Shows** on the embed switches between them, and a slim line names the item whose content is shown. Readers then see the content exactly as if it were written in the page: no frame, no name, the same spacing and fonts, and a table of contents, a list of figures and a list of tables of the page count its headings, pictures and tables as the page's own. The content stays the other item's: it is always current, cannot be edited in place, and shows only what each reader may read. A reader who may not read the item sees that an item is hidden there, as with a whole embed. Exports write the content alone in the same way.
 
-**Child pages** lists the pages below the page, each linked, in the order of the page tree, and only those you may read. It first asks how deep it lists them: under **Depth** **1 level** (the default), **2 levels** to **5 levels**, or **All levels**; under **Types shown** every type of the room is ticked, and a type left unticked is left out. While editing, the same choice stands beside its title and changes it at any time. Each deeper page stands indented below its parent. Beside it, **Types** shows *all* or which types the list leaves out; a click opens a box per type of the room, and unticking one leaves its items out, such as the tasks below a project page. The pages below a left-out item take its place and level, so a page below a task still shows. A very long list shows only its first pages, the upper levels whole, and says there are more. Word, PDF and Markdown exports list the pages to the same depth.
+**Child pages** lists the pages below the page, each linked, in the order of the page tree, and only those you may read. It first asks how deep it lists them: under **Depth** **1 level** (the default), **2 levels** to **5 levels**, or **All levels**; under **Types shown** every type of the room is ticked, and a type left unticked is left out. While editing, the same choice stands beside its title and changes it at any time. Each deeper page stands indented below its parent. Beside it, **Types** shows *all* or which types the list leaves out; a click opens a box per type of the room, and unticking one leaves its items out, such as the tasks below a project page. The pages below a left-out item take its place and level, so a page below a task still shows; it names the item it stands below, such as *(under Meeting)*. A very long list shows only its first pages, the upper levels whole, and says there are more. Word, PDF and Markdown exports list the pages to the same depth.
 
 A sound plays in the text with the browser's own player and a caption, such as a recording spoken into a page, a task or **Today**'s daily note. **Sound file** uploads one (WebM, Ogg, M4A, MP3 or WAV); **Record sound** opens a window that records at once, and **Stop and attach** puts the recording into the text where the cursor is, while **Cancel** throws it away. The recording is also a file of the item. **Remove** takes the sound out of the text. If no other place in the text plays it, the editor asks whether to delete its file too, so that no recording stays behind unseen: **Remove and delete the file** destroys it and cannot be undone, **Remove, keep the file** leaves it in the item's files, **Cancel** keeps the sound in the text. A Word file names the sound, a page printed as PDF plays it, and Markdown links it by its name. Nothing is transcribed.
 
@@ -239,7 +239,7 @@ Select a passage while reading and choose **Note** to keep a note on it that onl
 
 ### Daily notes
 
-A daily note is a page of your own for one day: only you read and edit it. **Today** in the top bar, **My day** on the start page, Alt+Shift+D or the command palette opens today's note; it is made the first time you open it, in the **Room for daily notes** you choose once, among the rooms where you may create pages. Until a room is chosen, the choice stands in the note's place; later you change the room in the column at the side, which its arrow folds away and shows again. Notes already made stay where they are.
+A daily note is a page of your own for one day: only you read and edit it. **Today** in the top bar, **My journal** on the start page and in the module switcher, Alt+Shift+D or the command palette opens today's note; it is made the first time you open it, in the **Room for daily notes** you choose once, among the rooms where you may create pages. Until a room is chosen, the choice stands in the note's place; later you change the room in the column at the side, which its arrow folds away and shows again. Notes already made stay where they are.
 
 The note's text is edited in place. **Previous day** and **Next day** move between days, and the month beside marks the days that have a note; a day without one offers **Start this day's note**. Beside the note, **Notifications** shows your newest notifications, the unread ones marked, without marking them read, and leads to all of them; **In the calendar this day** lists the items whose dates fall on that day, and **Created or changed this day** the items you may read that were created that day or last changed on it. **Open as a page** shows the note as an item, with its comments, history and fields. Daily notes carry the label `daily-note`, so a query by that label lists them all.
 
@@ -302,7 +302,7 @@ A label's page shows the items carrying its label as a view: **Table**, **Galler
 
 ### The task list
 
-The module **Tasks** lists open work across your rooms: items of the type *task* and of every type with a workflow and an *assignee* or *due* field. The tabs show **Assigned to me**, **Unassigned** and **All open**; filters narrow by room, state, person, due date and labels. **Take over** assigns a task to you, **Give back** releases it. Overdue tasks are marked.
+The module **Planning** lists open work across your rooms: items of the type *task* and of every type with a workflow and an *assignee* or *due* field. The tabs show **Assigned to me**, **Unassigned** and **All open**; filters narrow by room, state, person, due date and labels. **Take over** assigns a task to you, **Give back** releases it. Overdue tasks are marked.
 
 The ready-made type *task* has a *start* date beside its *due* date. A new task starts today: when it is created, its start date is filled with the current day, which can be changed or cleared in the form. The same holds for every date field named like a beginning (*start*, *begin*, *kickoff* and the like); a task created in the calendar takes the day chosen there. The calendar and the roadmap show a task with both dates as a bar from its start to its due date. A start date is not a deadline: on a kanban a past start date is not marked as overdue. Types created before gain the field when an administrator adds the ready-made types' new fields on the start page.
 
@@ -310,7 +310,7 @@ The ready-made type *task* has a *start* date beside its *due* date. A new task 
 
 A **board** shows the items of one type in a room as columns of their workflow states. Dragging a card to another column carries out the workflow's transition.
 
-A **kanban** gathers the tasks of a topic: choose **New kanban** under *Tasks → Kanbans*, give it a name, the type of its cards and optionally a label. Every card on it carries the label. In the **Board settings** you choose:
+A **kanban** gathers the tasks of a topic: choose **New kanban** under *Planning → Kanbans*, give it a name, the type of its cards and optionally a label. Every card on it carries the label. In the **Board settings** you choose:
 
 - the **Columns**: state columns move a card through the workflow; own columns keep its state;
 - a **Limit** of cards per column, which marks an overfull column;
@@ -574,6 +574,7 @@ Moving, deleting, restrictions and administration are deliberately not available
 **Account and password** in the account menu holds:
 
 - your **Profile picture**, shown next to your name;
+- your **Display name**, the name you are addressed by, as in the greeting on the start page; left empty, your username is used;
 - the **Language** of the interface;
 - the **Look**: as the system, light, dark, or *Cockpit*;
 - **Change password**;

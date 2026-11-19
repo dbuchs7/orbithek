@@ -2,6 +2,7 @@ package item
 
 import (
 	"errors"
+	"maps"
 	"slices"
 	"strings"
 	"testing"
@@ -250,6 +251,22 @@ func TestChildPagesLeaveOutTheTypesChosen(t *testing.T) {
 		{anna, ChildrenAll, 5, "A+ Below the work Deep+ Holder Below the secret", true},
 		// Ben does not read the secret task, nor what lies below it.
 		{ben, ChildrenAll, 100, "A[A1] Below the work Deep[Deeper] Holder", false},
+	}
+	// A page in a left-out item's place names it, the nearest of a chain.
+	got, _, _ = anna.ChildPages("PLAT", home.ID, ChildrenAll, 100, []string{"task"})
+	under := map[string]string{}
+	var walk func([]ChildPage)
+	walk = func(pages []ChildPage) {
+		for _, p := range pages {
+			if p.Under != nil {
+				under[p.Item.Title] = p.Under.Title
+			}
+			walk(p.Children)
+		}
+	}
+	walk(got)
+	if want := map[string]string{"Below the work": "Work", "Deep": "Step", "Below the secret": "Secret task"}; !maps.Equal(under, want) {
+		t.Errorf("under %v, want %v", under, want)
 	}
 	for _, c := range cases {
 		got, cut, err := c.who.ChildPages("PLAT", home.ID, c.depth, c.max, []string{"task"})

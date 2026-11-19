@@ -1109,9 +1109,9 @@ const modules = [
   { id: "spaces", name: "nav.spaces", href: "#/spaces", match: ["", "spaces", "space", "item", "board", "links", "search", "query", "label"], icon: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" },
   { id: "new", name: "nav.new", href: "#/new", match: ["new"], icon: "M12 8v8M8 12h8M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" },
   { id: "tasks", name: "nav.tasks", href: "#/tasks", match: ["tasks", "kanbans", "kanban", "roadmap", "calendar"], icon: "M9 11l3 3 8-8M20 12v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h11" },
-  // Today's daily note (ADR-0205); on a phone, where the top bar has no
-  // room for its button, it is reached here.
-  { id: "daily", name: "daily.today", href: "#/daily", match: ["daily"], icon: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4M9 15l2 2 4-4" },
+  // Today's daily note (ADR-0205), named "My journal" here; on a phone,
+  // where the top bar has no room for its button, it is reached here.
+  { id: "daily", name: "nav.daily", href: "#/daily", match: ["daily"], icon: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4M9 15l2 2 4-4" },
   { id: "comments", name: "nav.comments", href: "#/comments", match: ["comments"], icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" },
   { id: "album", name: "nav.album", href: "#/album", match: ["album"], icon: "M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15 8h.01" },
   { id: "whiteboards", name: "nav.whiteboards", href: "#/whiteboards", match: ["whiteboards", "whiteboard"], icon: "M3 4h18v12H3zM8 20l4-4 4 4M7 8h6M7 12h10" },
@@ -2369,7 +2369,7 @@ async function homeView() {
   // the start page's picture, and says on hover what it offers.
   const quick = (href, title, text, tip, id, extra, module, glyphs) => h("a", { class: "home-tile", href, id, title: tip },
     module ? moduleIcon(module, glyphs) : null, h("strong", { text: title }), h("span", { class: "muted", text }), extra || null);
-  // Today, where the browser is: its long date for "My day" and its day of
+  // Today, where the browser is: its long date for "My journal" and its day of
   // the month on the tile's calendar sheet.
   const now = new Date();
   const todayText = now.toLocaleDateString(language() || undefined, { weekday: "long", day: "numeric", month: "long" });
@@ -2399,7 +2399,9 @@ async function homeView() {
   show(
     h("section", { class: "welcome", id: "welcome" },
       h("div", { class: "welcome-text" },
-        h("h1", { text: `${greeting}, ${me.user.username}` }),
+        // The name one chose on one's account, else the username
+        // (ADR-0246).
+        h("h1", { id: "welcome-greeting", text: `${greeting}, ${me.user.displayName || me.user.username}` }),
         h("p", { class: "welcome-lead", text: t("home.lead", { name }) }),
         stats,
         h("p", { class: "actions-row" },
@@ -2418,20 +2420,21 @@ async function homeView() {
       h("strong", { text: t("storage.homeNotice", { level: storageLevel(storage.level) }) }), " ",
       t("storage.free", { free: sizeText(storage.free), total: sizeText(storage.total), share: storage.total ? Math.round((storage.free * 1000) / storage.total) / 10 : "?" })) : "",
     h("section", { class: "home-tiles", "aria-label": t("home.quick") },
-      // The starmap first: one's rooms as a map of connections (ADR-0157);
+      // My journal first: today's daily note, made in one's daily room on
+      // opening when there is none (ADR-0205).
+      quick("#/daily", t("home.today"), t("home.todayText", { date: todayText }), t("home.tip.today"), "home-today", null, "day", [todayNumber]),
+      // One's personal notes, wherever they were made (ADR-0113), right
+      // beside the journal.
+      quick("#/my-notes", t("note.title"), mine.notes.length ? t("home.myNotesText", { n: mine.notes.length }) : t("home.myNotesNone"), t("home.tip.myNotes"), "home-my-notes", null, "page"),
+      // The starmap: one's rooms as a map of connections (ADR-0157);
       // the view opens on every room (ADR-0228).
       quick("#/starmap", t("nav.starmap"), t("home.starmapText"), t("home.tip.starmap"), "home-starmap", null, "starmap"),
       // The rooms follow the starmap and lead to their own overview.
       quick("#/spaces", t("spaces.title"), t("home.spacesText", { n: spaces.length }), t("home.tip.spaces"), "home-spaces", null, "spaces"),
-      // My day: today's daily note, made in one's daily room on opening
-      // when there is none (ADR-0205).
-      quick("#/daily", t("home.today"), t("home.todayText", { date: todayText }), t("home.tip.today"), "home-today", null, "day", [todayNumber]),
       quick("#/tasks", t("nav.tasks"), t("home.tasksText"), t("home.tip.tasks"), "home-tasks",
         requests.length ? h("span", { class: "chip", text: t("nav.requestsWaiting", { n: requests.length }) }) : null, "tasks"),
       quick("#/notifications", t("nav.notifications"), notes.unread ? t("home.notesUnread", { n: notes.unread }) : t("home.notesNone"), t("home.tip.notifications"), "home-notes",
         findings ? h("span", { class: "chip", text: t("nav.findingsOpen", { n: findings }) }) : null, "conversations"),
-      // One's personal notes, wherever they were made (ADR-0113).
-      quick("#/my-notes", t("note.title"), mine.notes.length ? t("home.myNotesText", { n: mine.notes.length }) : t("home.myNotesNone"), t("home.tip.myNotes"), "home-my-notes", null, "page"),
       quick("#/album", t("nav.album"), t("home.albumText"), t("home.tip.album"), "home-album", null, "pictures"),
       // The whiteboards, and how many are in use now (ADR-0169).
       quick("#/whiteboards", t("nav.whiteboards"), boards.whiteboards.length ? t("home.whiteboardsLive", { n: boards.whiteboards.length }) : t("home.whiteboardsText"),
@@ -5835,6 +5838,8 @@ async function accountView() {
     h("h1", { text: me.user.username }),
     h("p", { class: "muted", text: t("account.id", { id: me.user.id, via: me.via }) }),
     avatarCard(),
+    // The name one is called by (ADR-0246).
+    displayNameCard(),
     contactsCard(contacts),
     // One's sign-ins at other providers (ADR-0229).
     identitiesCard(),
@@ -5914,6 +5919,25 @@ function avatarCard() {
         me.avatar ? h("button", { type: "button", class: "link", text: t("account.avatarRemove"),
           onclick: () => action(async () => { await del("/api/me/avatar"); me.avatar = ""; }, status) }) : null)),
     status);
+}
+
+// displayNameCard sets the name one is called by, as in the greeting of
+// the start page (ADR-0246). Left
+// empty, the username stands in its place.
+function displayNameCard() {
+  const input = h("input", { name: "displayName", id: "display-name-input", value: me.user.displayName || "",
+    maxlength: 64, autocomplete: "name", placeholder: me.user.username });
+  return form({ class: "card", id: "display-name" }, [
+    field(t("account.displayName"), input),
+    h("p", { class: "muted", text: t("account.displayNameHint", { username: me.user.username }) }),
+    h("button", { type: "submit", text: t("common.save") }),
+  ], async (data, status) => {
+    const name = String(data.get("displayName") || "").trim();
+    await put("/api/me/display-name", { displayName: name });
+    me.user.displayName = name;
+    input.value = name;
+    status.replaceChildren(h("p", { class: "notice success", text: t("common.saved") }));
+  });
 }
 
 // contactsCard sets the channels messages reach one on (ADR-0061): a mail

@@ -37,12 +37,12 @@ Um sich mit einem Konto bei einem von der Organisation eingerichteten Anbieter a
 
 Die Leiste oben auf jeder Seite enthält von links nach rechts:
 
-- **Neun Punkte** (Module): öffnet den Modulwechsler mit Räume, Erstellen, Aufgaben, Heute, Kommentare, Album, Whiteboards, Sternenkarte, KI-Zugang, Governance, Konto und, für die Administration, Administration.
+- **Neun Punkte** (Module): öffnet den Modulwechsler mit Räume, Erstellen, Planung, Mein Journal, Kommentare, Album, Whiteboards, Sternenkarte, KI-Zugang, Governance, Konto und, für die Administration, Administration.
 - **Startseite**, **Zurück** und **Vorwärts**.
 - Das **Logo**, das ebenfalls zur Startseite führt.
 - Das **Suchfeld**.
 - **+ Neu**: erstellt eine Seite oder einen Eintrag am aktuellen Ort.
-- **Heute**: die eigene Tagesnotiz von heute (Alt+Shift+D); siehe *Tagesnotizen*. Auf einem schmalen Bildschirm steht es im Modulwechsler.
+- **Heute**: die eigene Tagesnotiz von heute (Alt+Shift+D); siehe *Tagesnotizen*. Auf einem schmalen Bildschirm steht es als **Mein Journal** im Modulwechsler.
 - Die **Glocke**: die Benachrichtigungen, mit der Anzahl ungelesener.
 - **DE** und **EN**: die Sprache der Oberfläche.
 - Den Umschalter für **hellen und dunklen Modus**.
@@ -51,7 +51,7 @@ Die Leiste oben auf jeder Seite enthält von links nach rechts:
 
 ### Die Startseite
 
-Die Startseite begrüsst, zeigt die Anzahl Seiten, Aufgaben und Bilder und bietet einen Schnellzugriff auf die Sternenkarte, die **Räume** (die Übersicht der eigenen Räume, auch über den Modulwechsler erreichbar), **Mein Tag** (die Tagesnotiz von heute, mit dem heutigen Datum), die eigenen Aufgaben, Benachrichtigungen, persönlichen Notizen, das Album, die Whiteboards und den KI-Zugang.
+Die Startseite begrüsst mit dem Anzeigenamen (siehe *Das eigene Konto*), zeigt die Anzahl Seiten, Aufgaben und Bilder und bietet einen Schnellzugriff auf **Mein Journal** (die Tagesnotiz von heute, mit dem heutigen Datum), gleich daneben **Meine Notizen** (die persönlichen Notizen), die Sternenkarte, die **Räume** (die Übersicht der eigenen Räume, auch über den Modulwechsler erreichbar), die eigenen Aufgaben unter **Planung**, Benachrichtigungen, das Album, die Whiteboards und den KI-Zugang.
 Zeigt man mit der Maus auf eine Kachel, erscheint eine kurze Erklärung, was sie bietet.
 Die Raumübersicht zeigt die eigenen Räume als Kacheln oder als Liste; ein Stern markiert einen Raum als Favorit. Gibt es noch keine Räume, findet die Administration auf der Startseite die ersten Schritte: einen Raum erstellen, mit den Vorlagen Typen hinzufügen (Seite, Aufgabe, Entscheidung, Tagesnotiz) und Personen eine Rolle geben.
 
@@ -59,7 +59,7 @@ Die Raumübersicht zeigt die eigenen Räume als Kacheln oder als Liste; ein Ster
 
 ### Eine Seite oder einen Eintrag erstellen
 
-Man wählt **+ Neu** in der oberen Leiste oder **Neue Seite** in einem Raum. Die Erstellungsansicht fragt nach Raum, Typ und Titel und legt den neuen Eintrag unterhalb der Seite an, von der man kam. Auf einer Seite erstellt **Neue Unterseite** eine Seite darunter. Hat ein Typ einen Starttext, beginnt ein neuer Eintrag damit; nummeriert der Typ Überschriften, beginnt der neue Eintrag mit nummerierten Überschriften. Die eigenen Typen eines Raums werden nur angeboten, wenn dieser Raum gewählt ist.
+Man wählt **+ Neu** in der oberen Leiste oder **Neue Seite** in einem Raum. Die Erstellungsansicht fragt nach Raum, Typ und Titel und legt den neuen Eintrag unterhalb der Seite an, von der man kam. Auf einer Seite erstellt **Neue Unterseite** eine Seite darunter. Hat ein Typ einen Starttext, beginnt ein neuer Eintrag damit; nummeriert der Typ Überschriften, beginnt der neue Eintrag mit nummerierten Überschriften. Im Starttext steht eine Zeile `[toc]` für ein Inhaltsverzeichnis und `[toc:2]` für eines bis zu Überschriften der Ebene 2; eine Zeile `[children]` steht für eine Unterseiten-Liste; `[children:3]` oder `[children:all]` legt deren Tiefe fest, und `[children:all without task, decision]` blendet zusätzlich Typen aus. Die eigenen Typen eines Raums werden nur angeboten, wenn dieser Raum gewählt ist.
 
 ### Einen Eintrag lesen
 
@@ -125,7 +125,7 @@ Bilder lassen sich links oder rechts mit Text daneben oder zentriert platzieren 
 
 Ein eingebetteter Eintrag zeigt entweder **Den ganzen Eintrag** oder **Nur den Inhalt**; beim Bearbeiten wechselt die Wahl **Zeigt** an der Einbettung zwischen beiden, und eine schmale Zeile nennt den Eintrag, dessen Inhalt gezeigt wird. Lesende sehen den Inhalt dann genau so, als wäre er direkt in der Seite geschrieben: ohne Rahmen und Namen, mit denselben Abständen und Schriften, und Inhaltsverzeichnis, Bildverzeichnis und Tabellenverzeichnis der Seite zählen seine Überschriften, Bilder und Tabellen wie die eigenen. Der Inhalt bleibt der des anderen Eintrags: Er ist immer aktuell, lässt sich nicht an Ort und Stelle bearbeiten und zeigt allen nur, was sie lesen dürfen. Wer den Eintrag nicht lesen darf, sieht wie bei einer vollständigen Einbettung, dass dort ein Eintrag verborgen ist. Die Exporte schreiben den Inhalt ebenso allein.
 
-**Unterseiten** listet die Seiten unter der Seite auf, jede verlinkt, in der Reihenfolge des Seitenbaums und nur jene, die man lesen darf. Die Liste fragt zuerst, wie tief sie reicht: unter **Tiefe** **1 Ebene** (Standard), **2 Ebenen** bis **5 Ebenen** oder **Alle Ebenen**; unter **Gezeigte Typen** ist jeder Typ des Raums angekreuzt, und ein nicht angekreuzter Typ wird ausgeblendet. Beim Bearbeiten steht dieselbe Wahl neben dem Titel und ändert sie jederzeit. Jede tiefere Seite steht eingerückt unter ihrer übergeordneten Seite. Daneben zeigt **Typen** *alle* oder welche Typen die Liste ausblendet; ein Klick öffnet für jeden Typ des Raums ein Kästchen, und wer eines abwählt, blendet dessen Einträge aus, etwa die Aufgaben unter einer Projektseite. Die Seiten unter einem ausgeblendeten Eintrag rücken an dessen Stelle und Ebene, sodass eine Seite unter einer Aufgabe weiterhin erscheint. Eine sehr lange Liste zeigt nur ihre ersten Seiten, die oberen Ebenen vollständig, und weist darauf hin, dass es weitere gibt. Exporte nach Word, PDF und Markdown listen die Seiten bis zur selben Tiefe auf.
+**Unterseiten** listet die Seiten unter der Seite auf, jede verlinkt, in der Reihenfolge des Seitenbaums und nur jene, die man lesen darf. Die Liste fragt zuerst, wie tief sie reicht: unter **Tiefe** **1 Ebene** (Standard), **2 Ebenen** bis **5 Ebenen** oder **Alle Ebenen**; unter **Gezeigte Typen** ist jeder Typ des Raums angekreuzt, und ein nicht angekreuzter Typ wird ausgeblendet. Beim Bearbeiten steht dieselbe Wahl neben dem Titel und ändert sie jederzeit. Jede tiefere Seite steht eingerückt unter ihrer übergeordneten Seite. Daneben zeigt **Typen** *alle* oder welche Typen die Liste ausblendet; ein Klick öffnet für jeden Typ des Raums ein Kästchen, und wer eines abwählt, blendet dessen Einträge aus, etwa die Aufgaben unter einer Projektseite. Die Seiten unter einem ausgeblendeten Eintrag rücken an dessen Stelle und Ebene, sodass eine Seite unter einer Aufgabe weiterhin erscheint; sie nennt den Eintrag, unter dem sie steht, etwa *(unter Sitzung)*. Eine sehr lange Liste zeigt nur ihre ersten Seiten, die oberen Ebenen vollständig, und weist darauf hin, dass es weitere gibt. Exporte nach Word, PDF und Markdown listen die Seiten bis zur selben Tiefe auf.
 
 Ein Ton wird im Text mit dem Player des Browsers und einer Beschriftung abgespielt, etwa eine Aufnahme, die man in eine Seite, einen Task oder die Tagesnotiz unter **Heute** spricht. **Tondatei** lädt eine Datei hoch (WebM, Ogg, M4A, MP3 oder WAV); **Ton aufnehmen** öffnet ein Fenster, das sofort aufnimmt, **Beenden und anhängen** setzt die Aufnahme an der Stelle des Cursors in den Text, **Abbrechen** verwirft sie. Die Aufnahme ist zugleich eine Datei des Eintrags. **Entfernen** nimmt den Ton aus dem Text. Spielt ihn keine andere Stelle im Text ab, fragt der Editor, ob auch die Datei gelöscht werden soll, damit keine Aufnahme unbemerkt zurückbleibt: **Entfernen und Datei löschen** vernichtet sie und lässt sich nicht rückgängig machen, **Entfernen, Datei behalten** lässt sie bei den Dateien des Eintrags, **Abbrechen** lässt den Ton im Text. Ein Word-Dokument nennt den Ton, eine als PDF gedruckte Seite spielt ihn ab, und Markdown verlinkt ihn mit seinem Namen. Nichts wird transkribiert.
 
@@ -239,7 +239,7 @@ Beim Lesen markiert man eine Stelle und wählt **Notiz**, um eine Notiz dazu anz
 
 ### Tagesnotizen
 
-Eine Tagesnotiz ist eine eigene Seite für einen Tag: Nur man selbst liest und bearbeitet sie. **Heute** in der oberen Leiste, **Mein Tag** auf der Startseite, Alt+Shift+D oder die Befehlspalette öffnet die Notiz von heute; sie wird beim ersten Öffnen erstellt, im **Raum für Tagesnotizen**, den man einmal wählt, unter den Räumen, in denen man Seiten erstellen darf. Solange kein Raum gewählt ist, steht die Auswahl an der Stelle der Notiz; später ändert man den Raum in der Spalte an der Seite, die sich mit ihrem Pfeil ein- und ausklappen lässt. Bestehende Notizen bleiben, wo sie sind.
+Eine Tagesnotiz ist eine eigene Seite für einen Tag: Nur man selbst liest und bearbeitet sie. **Heute** in der oberen Leiste, **Mein Journal** auf der Startseite und im Modulwechsler, Alt+Shift+D oder die Befehlspalette öffnet die Notiz von heute; sie wird beim ersten Öffnen erstellt, im **Raum für Tagesnotizen**, den man einmal wählt, unter den Räumen, in denen man Seiten erstellen darf. Solange kein Raum gewählt ist, steht die Auswahl an der Stelle der Notiz; später ändert man den Raum in der Spalte an der Seite, die sich mit ihrem Pfeil ein- und ausklappen lässt. Bestehende Notizen bleiben, wo sie sind.
 
 Der Text der Notiz wird an Ort und Stelle bearbeitet. **Vorheriger Tag** und **Nächster Tag** wechseln den Tag, und der Monat daneben markiert die Tage mit Notiz; ein Tag ohne Notiz bietet **Notiz für diesen Tag beginnen** an. Neben der Notiz zeigt **Benachrichtigungen** die neuesten Benachrichtigungen, die ungelesenen hervorgehoben, ohne sie als gelesen zu markieren, und führt zu allen; **Im Kalender an diesem Tag** zeigt die Einträge, deren Daten auf diesen Tag fallen, und **An diesem Tag erstellt oder geändert** die lesbaren Einträge, die an diesem Tag erstellt oder zuletzt geändert wurden. **Als Seite öffnen** zeigt die Notiz als Eintrag, mit Kommentaren, Verlauf und Feldern. Tagesnotizen tragen das Label `daily-note`; eine Abfrage nach diesem Label listet sie alle.
 
@@ -302,7 +302,7 @@ Die Seite eines Labels zeigt die Einträge mit ihrem Label als Ansicht: **Tabell
 
 ### Die Aufgabenliste
 
-Das Modul **Aufgaben** listet die offene Arbeit in den eigenen Räumen auf: Einträge vom Typ *task* sowie jedes Typs mit Workflow und einem Feld *assignee* oder *due*. Die Reiter zeigen **Mir zugewiesen**, **Nicht zugewiesen** und **Alle offenen**; Filter schränken nach Raum, Status, Person, Fälligkeit und Labels ein. **Übernehmen** weist eine Aufgabe sich selbst zu, **Zurückgeben** gibt sie frei. Überfällige Aufgaben sind markiert.
+Das Modul **Planung** listet die offene Arbeit in den eigenen Räumen auf: Einträge vom Typ *task* sowie jedes Typs mit Workflow und einem Feld *assignee* oder *due*. Die Reiter zeigen **Mir zugewiesen**, **Nicht zugewiesen** und **Alle offenen**; Filter schränken nach Raum, Status, Person, Fälligkeit und Labels ein. **Übernehmen** weist eine Aufgabe sich selbst zu, **Zurückgeben** gibt sie frei. Überfällige Aufgaben sind markiert.
 
 Der vorgefertigte Typ *task* hat neben dem Datum *due* ein Datum *start*. Eine neue Aufgabe beginnt heute: Beim Erstellen wird ihr Startdatum mit dem aktuellen Tag vorbelegt, den man im Formular ändern oder leeren kann. Dasselbe gilt für jedes Datumsfeld, dessen Name einen Beginn bezeichnet (*start*, *begin*, *kickoff* und ähnliche); eine im Kalender erstellte Aufgabe übernimmt den dort gewählten Tag. Kalender und Roadmap zeigen eine Aufgabe mit beiden Daten als Balken vom Beginn bis zur Fälligkeit. Ein Startdatum ist keine Frist: Auf einem Kanban wird ein vergangenes Startdatum nicht als überfällig markiert. Bereits angelegte Typen erhalten das Feld, wenn eine Administratorin oder ein Administrator auf der Startseite die neuen Felder der vorgefertigten Typen hinzufügt.
 
@@ -310,7 +310,7 @@ Der vorgefertigte Typ *task* hat neben dem Datum *due* ein Datum *start*. Eine n
 
 Ein **Board** zeigt die Einträge eines Typs in einem Raum als Spalten ihrer Workflow-Status. Das Ziehen einer Karte in eine andere Spalte führt den Übergang des Workflows aus.
 
-Ein **Kanban** fasst die Aufgaben eines Themas zusammen: Unter *Aufgaben → Kanbans* wählt man **Neues Kanban**, gibt einen Namen, den Typ der Karten und optional ein Label an. Jede Karte darauf trägt das Label. In den **Board-Einstellungen** wählt man:
+Ein **Kanban** fasst die Aufgaben eines Themas zusammen: Unter *Planung → Kanbans* wählt man **Neues Kanban**, gibt einen Namen, den Typ der Karten und optional ein Label an. Jede Karte darauf trägt das Label. In den **Board-Einstellungen** wählt man:
 
 - die **Spalten**: Status-Spalten führen eine Karte durch den Workflow, eigene Spalten behalten ihren Status;
 - eine **Höchstzahl** Karten je Spalte, die eine überfüllte Spalte markiert;
@@ -574,6 +574,7 @@ Verschieben, Löschen, Einschränkungen und Administration stehen Assistenten be
 **Konto und Passwort** im Kontomenü enthält:
 
 - das **Profilbild**, das neben dem Namen erscheint;
+- der **Anzeigename**, mit dem man angesprochen wird, etwa in der Begrüssung auf der Startseite; bleibt er leer, wird der Benutzername verwendet;
 - die **Sprache** der Oberfläche;
 - die **Darstellung**: wie das System, hell, dunkel oder *Cockpit*;
 - **Passwort ändern**;
