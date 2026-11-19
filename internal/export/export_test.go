@@ -461,10 +461,24 @@ func TestChildPagesAreListedToTheirDepth(t *testing.T) {
 		t.Fatal(err)
 	}
 	doc := documentXML(t, w.Bytes())
-	for _, want := range []string{`<w:ind w:left="1440" w:hanging="360"/></w:pPr><w:r><w:t xml:space="preserve">A1</w:t>`,
-		`<w:ind w:left="2160" w:hanging="360"/></w:pPr><w:r><w:t xml:space="preserve">A1a</w:t>`} {
+	for _, want := range []string{`<w:ilvl w:val="1"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t xml:space="preserve">A1</w:t>`,
+		`<w:ilvl w:val="2"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t xml:space="preserve">A1a</w:t>`} {
 		if !strings.Contains(doc, want) {
 			t.Errorf("the Word file lacks %s:\n%s", want, doc)
+		}
+	}
+	// The bullet list defines a level for each depth.
+	z, err := zip.NewReader(bytes.NewReader(w.Bytes()), int64(w.Len()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range z.File {
+		if f.Name == "word/numbering.xml" {
+			r, _ := f.Open()
+			data, _ := io.ReadAll(r)
+			if n := string(data); !strings.Contains(n, `hybridMultilevel`) || !strings.Contains(n, `<w:lvl w:ilvl="8">`) || !strings.Contains(n, `<w:ind w:left="2160" w:hanging="360"/>`) {
+				t.Errorf("numbering:\n%s", n)
+			}
 		}
 	}
 	w.Reset()
@@ -483,7 +497,7 @@ func TestChildPagesLeaveOutTheTypesChosen(t *testing.T) {
 	body := []item.Block{{Kind: item.Children, Depth: item.ChildrenAll, HideTypes: []string{"chore"}}, {Kind: item.Children}}
 	lists := map[string][]Child{
 		// The page below the left-out chore Dust stands in its place.
-		ChildListKey(body[0]): {{Title: "A", Children: []Child{{Title: "A1"}}}, {Title: "Below the dust"}},
+		ChildListKey(body[0]): {{Title: "A", Children: []Child{{Title: "A1"}}}, {Title: "Below the dust", Under: "Dust <&>"}},
 		ChildListKey(body[1]): {{Title: "A"}, {Title: "Dust"}},
 	}
 	d := Document{Pages: []Page{{ID: "p", Title: "Home", Body: body, Children: lists}}}
@@ -491,7 +505,7 @@ func TestChildPagesLeaveOutTheTypesChosen(t *testing.T) {
 	if err := HTML(&b, d, "en"); err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{`<ul class="children"><li>A<ul><li>A1</li></ul></li><li>Below the dust</li></ul>`, `<ul class="children"><li>A</li><li>Dust</li></ul>`} {
+	for _, want := range []string{`<ul class="children"><li>A<ul><li>A1</li></ul></li><li>Below the dust (under Dust &lt;&amp;&gt;)</li></ul>`, `<ul class="children"><li>A</li><li>Dust</li></ul>`} {
 		if !strings.Contains(b.String(), want) {
 			t.Errorf("the HTML lacks %s:\n%s", want, b.String())
 		}
@@ -500,14 +514,14 @@ func TestChildPagesLeaveOutTheTypesChosen(t *testing.T) {
 	if err := Markdown(&m, d); err != nil {
 		t.Fatal(err)
 	}
-	if md := m.String(); !strings.Contains(md, "- A\n  - A1\n- Below the dust\n") || !strings.Contains(md, "- A\n- Dust\n") {
+	if md := m.String(); !strings.Contains(md, "- A\n  - A1\n- Below the dust (under Dust <&>)\n") || !strings.Contains(md, "- A\n- Dust\n") {
 		t.Errorf("the Markdown:\n%s", md)
 	}
 	var w bytes.Buffer
 	if err := DOCX(&w, d); err != nil {
 		t.Fatal(err)
 	}
-	if doc := documentXML(t, w.Bytes()); !strings.Contains(doc, ">A1<") || !strings.Contains(doc, ">Below the dust<") || !strings.Contains(doc, ">Dust<") {
+	if doc := documentXML(t, w.Bytes()); !strings.Contains(doc, ">A1<") || !strings.Contains(doc, ">Below the dust (under Dust &lt;&amp;&gt;)<") || !strings.Contains(doc, ">Dust<") {
 		t.Errorf("the Word file:\n%s", doc)
 	}
 	// A list the server read nothing for shows an empty list.

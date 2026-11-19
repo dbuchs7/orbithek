@@ -1472,6 +1472,15 @@ function webSource() {
     await page.goBack();
 
     step("child pages: a list of child pages shows the levels chosen (ADR-0239)");
+    // A ticket below a task, which a list that leaves tasks out shows in
+    // the task's place, naming it (ADR-0240).
+    const minutes = await page.evaluate(async () => {
+      const [task] = (await (await fetch("/api/items?query=" + encodeURIComponent('title = "Created from New, renamed"'))).json()).items;
+      const r = await fetch("/api/items", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ space: "PLAT", type: "ticket", title: "Minutes", parent: task.id }) });
+      return r.status;
+    });
+    check(minutes === 201, "a ticket is made below a task: " + minutes);
     await page.click(".tree a:has-text('Runbook')");
     await page.waitForSelector(".tree a.current:has-text('Runbook')");
     await page.waitForSelector("#body.reading");
@@ -1489,7 +1498,8 @@ function webSource() {
     await page.click("dialog.pm-children-dialog #pm-children-ok");
     await page.waitForSelector("#body .pm-children .pm-children-types-toggle:text-is('without task')");
     check(await page.locator("#body .pm-children select.pm-children-depth").inputValue() === "2", "the list keeps the depth chosen on inserting");
-    check(await page.locator("#body .pm-children a:text-is('Created from New, renamed')").count() === 0, "the list leaves out the types left unticked on inserting");
+    check(await page.locator("#body .pm-children li > a:text-is('Created from New, renamed')").count() === 0, "the list leaves out the types left unticked on inserting");
+    await page.waitForSelector("#body .pm-children li:has(> a:text-is('Minutes')) .pm-children-under a:text-is('Created from New, renamed')");
     await page.click("#body .pm-children .pm-children-types-toggle");
     await page.check("#body .pm-children .pm-children-types input[value=task]");
     await page.click("#body .pm-children .pm-children-types-toggle"); // closed again
@@ -1506,7 +1516,7 @@ function webSource() {
     await page.click("#body .pm-children .pm-children-types-toggle");
     await page.uncheck("#body .pm-children .pm-children-types input[value=task]");
     await page.waitForSelector("#body .pm-children .pm-children-types-toggle:text-is('without task')");
-    check(await page.locator("#body .pm-children a:text-is('Created from New, renamed')").count() === 0, "the list leaves the tasks out");
+    check(await page.locator("#body .pm-children li > a:text-is('Created from New, renamed')").count() === 0, "the list leaves the tasks out");
     // The box of types stays open while one ticks.
     await page.check("#body .pm-children .pm-children-types input[value=task]");
     await page.waitForSelector("#body .pm-children .pm-children-types-toggle:text-is('all')");
