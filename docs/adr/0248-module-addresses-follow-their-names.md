@@ -1,4 +1,4 @@
-# ADR-DRAFT: Planning and My journal are reached at #/planning and #/journal; the old addresses send on
+# ADR-0248: Planning and My journal are reached at #/planning and #/journal; the old addresses send on
 
 - **Status:** Proposed
 - **Implementation:** Partial

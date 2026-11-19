@@ -1776,7 +1776,7 @@ function refreshStorage() {
 }
 
 // movedSections maps the first part of an address a module had before to
-// the one it has now (ADR-draft-module-addresses-follow-their-names).
+// the one it has now (ADR-0248).
 const movedSections = { tasks: "planning", daily: "journal" };
 
 async function route() {
@@ -1803,7 +1803,7 @@ async function route() {
     // Planning was reached at #/tasks and My journal at #/daily; old links
     // and bookmarks are sent on to the same place, path and query kept,
     // without a step in the browser's history
-    // (ADR-draft-module-addresses-follow-their-names).
+    // (ADR-0248).
     if (Object.hasOwn(movedSections, section)) {
       location.replace("#/" + movedSections[section] + hash.slice(section.length + 1));
       return;
