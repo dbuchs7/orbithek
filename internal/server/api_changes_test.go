@@ -75,6 +75,7 @@ func TestReadTokensWatchButChangeNothingElse(t *testing.T) {
 	reader.expect("POST", "/api/notifications/seen", `{"seq":1}`, http.StatusForbidden)
 	reader.expect("POST", "/api/tokens", `{"name":"y","scope":"full","days":1}`, http.StatusForbidden)
 	reader.expect("PUT", "/api/me/language", `{"language":"de"}`, http.StatusForbidden)
+	reader.expect("PUT", "/api/me/display-name", `{"displayName":"x"}`, http.StatusForbidden)
 
 	// The description says which routes read tokens reach although they
 	// are no GET.

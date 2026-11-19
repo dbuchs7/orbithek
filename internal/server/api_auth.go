@@ -28,6 +28,7 @@ func authRoutes(d Deps) []Route {
 		{Method: http.MethodGet, Pattern: "/api/me", Summary: "The authenticated principal", Handler: http.HandlerFunc(h.me)},
 		{Method: http.MethodPut, Pattern: "/api/me/password", Summary: "Change one's own password", Handler: http.HandlerFunc(h.setPassword)},
 		{Method: http.MethodPut, Pattern: "/api/me/language", Summary: "Choose one's UI language (one of the web UI's languages, or empty)", Handler: http.HandlerFunc(h.setLanguage)},
+		{Method: http.MethodPut, Pattern: "/api/me/display-name", Summary: "Choose the name one is called by, at most 64 characters without control characters; empty clears it, and the username stays", Handler: http.HandlerFunc(h.setDisplayName)},
 		{Method: http.MethodGet, Pattern: "/api/tokens", Summary: "List one's own API tokens", Handler: http.HandlerFunc(h.listTokens)},
 		{Method: http.MethodPost, Pattern: "/api/tokens", Summary: "Create an API token; the secret is returned once", Handler: http.HandlerFunc(h.createToken)},
 		{Method: http.MethodDelete, Pattern: "/api/tokens/{id}", Summary: "Revoke one of one's own API tokens", Handler: http.HandlerFunc(h.revokeToken)},
@@ -57,6 +58,9 @@ func (h authHandlers) record(e audit.Entry) { h.d.DB.Audit.Record(e) }
 type userJSON struct {
 	ID       auth.UserID `json:"id"`
 	Username string      `json:"username"`
+	// DisplayName is the name the user chose to be called by, given to
+	// the user themselves only (ADR-0246).
+	DisplayName string `json:"displayName,omitempty"`
 	// Email and Channels are listed to administrators only (ADR-0061).
 	Email    string   `json:"email,omitempty"`
 	Channels []string `json:"channels,omitempty"`
@@ -136,7 +140,7 @@ func (h authHandlers) hasSystemRole(p auth.Principal, role string) bool {
 func (h authHandlers) me(w http.ResponseWriter, r *http.Request) {
 	p, _ := PrincipalFrom(r.Context())
 	writeJSON(w, http.StatusOK, map[string]any{
-		"user":  userJSON{ID: p.User, Username: p.Username},
+		"user":  userJSON{ID: p.User, Username: p.Username, DisplayName: h.d.DB.Accounts.DisplayName(p.User)},
 		"via":   p.Via,
 		"scope": p.Scope,
 		"admin": h.isAdmin(p),
@@ -319,6 +323,27 @@ func (h authHandlers) setLanguage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// setDisplayName records the name the caller chose to be called by
+// (ADR-0246).
+func (h authHandlers) setDisplayName(w http.ResponseWriter, r *http.Request) {
+	p, _ := PrincipalFrom(r.Context())
+	var req struct {
+		DisplayName string `json:"displayName"`
+	}
+	if err := readJSON(w, r, &req); err != nil {
+		badRequest(w, err)
+		return
+	}
+	switch err := h.d.DB.Accounts.SetDisplayName(p.User, req.DisplayName); {
+	case errors.Is(err, auth.ErrInvalid):
+		writeError(w, http.StatusBadRequest, err.Error())
+	case err != nil:
+		writeError(w, http.StatusInternalServerError, "display name not saved")
+	default:
+		w.WriteHeader(http.StatusNoContent)
+	}
 }
 
 // userNames resolves user IDs to usernames for anyone signed in, so the UI
