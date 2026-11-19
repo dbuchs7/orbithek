@@ -612,7 +612,7 @@ const folded = {
   apply() { for (const col of ["tree", "side"]) document.documentElement.classList.toggle(col + "-folded", folded.get(col)); },
 };
 folded.apply();
-// The page tree keeps the width it was dragged to (ADR-draft-a-page-tree-that-widens-by-dragging).
+// The page tree keeps the width it was dragged to (ADR-0247).
 applyTreeWidth();
 
 // columnToggle folds a column away or shows it again: "tree" on the left,

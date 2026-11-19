@@ -1,4 +1,4 @@
-# ADR-DRAFT: A page tree that widens by dragging
+# ADR-0247: A page tree that widens by dragging
 
 - **Status:** Proposed
 - **Implementation:** Partial

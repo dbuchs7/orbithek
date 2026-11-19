@@ -1,4 +1,4 @@
-// The page tree's width (ADR-draft-a-page-tree-that-widens-by-dragging):
+// The page tree's width (ADR-0247):
 // a handle at the tree's right edge widens or narrows it by dragging, by
 // the arrow keys, Home and End; a double-click forgets the width, and the
 // tree takes its default again. The width is kept in this browser, for

@@ -1742,7 +1742,7 @@ function webSource() {
     await page.click("#fold-tree");
     await page.waitForSelector("#comments");
 
-    step("columns: the page tree widens by dragging its edge, keeps the width and goes back by a double-click (ADR-draft-a-page-tree-that-widens-by-dragging)");
+    step("columns: the page tree widens by dragging its edge, keeps the width and goes back by a double-click (ADR-0247)");
     const treeWidth = () => page.locator(".tree-col").evaluate((el) => Math.round(el.getBoundingClientRect().width));
     const narrowTree = await treeWidth();
     const edge = await page.locator("#tree-resizer").boundingBox();
