@@ -51,7 +51,7 @@ The bar at the top of every page holds, from left to right:
 
 ### The start page
 
-The start page greets you, shows counts of pages, tasks and pictures, and offers quick access to **My journal** (today's daily note, with today's date), right beside it **My notes** (your personal notes), the starmap, the **Rooms** (the overview of your rooms, also reached from the module switcher), your tasks under **Planning**, notifications, the album, the whiteboards and AI access.
+The start page greets you by your display name (see *Your account*), shows counts of pages, tasks and pictures, and offers quick access to **My journal** (today's daily note, with today's date), right beside it **My notes** (your personal notes), the starmap, the **Rooms** (the overview of your rooms, also reached from the module switcher), your tasks under **Planning**, notifications, the album, the whiteboards and AI access.
 Point at a tile with the mouse to see what it offers.
 The overview of rooms lists your rooms, as tiles or as a list; a star marks a room as a favourite. If there are no rooms yet, administrators find the first steps on the start page: create a room, add types from the ready-made templates (page, task, decision, daily note), and give people a role.
 
@@ -572,6 +572,7 @@ Moving, deleting, restrictions and administration are deliberately not available
 **Account and password** in the account menu holds:
 
 - your **Profile picture**, shown next to your name;
+- your **Display name**, the name you are addressed by, as in the greeting on the start page; left empty, your username is used;
 - the **Language** of the interface;
 - the **Look**: as the system, light, dark, or *Cockpit*;
 - **Change password**;

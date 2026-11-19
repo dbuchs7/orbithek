@@ -264,6 +264,35 @@ func TestLanguageThroughTheAPI(t *testing.T) {
 	w.bert.expect("PUT", "/api/me/language", `{"language":""}`, http.StatusNoContent)
 }
 
+// TestDisplayNameThroughTheAPI: one chooses the name one is called by on
+// one's own account; GET /api/me names it beside the username, which stays
+// (ADR-0246).
+func TestDisplayNameThroughTheAPI(t *testing.T) {
+	w := newWorld(t)
+	user := func(c *client) map[string]any {
+		return c.expect("GET", "/api/me", "", http.StatusOK)["user"].(map[string]any)
+	}
+	if got, ok := user(w.bert)["displayName"]; ok {
+		t.Fatalf("a display name before one was chosen: %v", got)
+	}
+	w.bert.expect("PUT", "/api/me/display-name", `{"displayName":"  Bert Muster "}`, http.StatusNoContent)
+	if got := user(w.bert); got["displayName"] != "Bert Muster" || got["username"] != "bert" {
+		t.Fatalf("user %v", got)
+	}
+	if got, ok := user(w.vera)["displayName"]; ok {
+		t.Fatalf("another user's display name changed: %v", got)
+	}
+	w.bert.expect("PUT", "/api/me/display-name", `{"displayName":"`+strings.Repeat("x", auth.MaxDisplayName+1)+`"}`, http.StatusBadRequest)
+	w.bert.expect("PUT", "/api/me/display-name", `{"displayName":"Bert\nMuster"}`, http.StatusBadRequest)
+	if got := user(w.bert)["displayName"]; got != "Bert Muster" {
+		t.Fatalf("a refused name changed the display name: %v", got)
+	}
+	w.bert.expect("PUT", "/api/me/display-name", `{"displayName":""}`, http.StatusNoContent)
+	if got, ok := user(w.bert)["displayName"]; ok {
+		t.Fatalf("a cleared display name: %v", got)
+	}
+}
+
 func TestUserNamesForAnyoneSignedIn(t *testing.T) {
 	w := newWorld(t)
 	got := w.carla.expect("GET", "/api/users/names?id="+w.ids["bert"]+"&id="+w.ids["vera"]+"&id=nobody", "", http.StatusOK)
