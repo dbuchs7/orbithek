@@ -258,3 +258,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0243](0243-hsts-and-redirect.md) | A transport policy on request and a redirect from plain HTTP | Accepted | Landed |
 | [0244](0244-ca-bundle.md) | The commands that call a server trust an organisation's own certificate authority on request | Accepted | Landed |
 | [0245](0245-engine-ca-bundle.md) | Calls to process engines trust an organisation's own certificate authority on request | Accepted | Landed |
+| [0246](0246-a-display-name-each-person-chooses.md) | A display name each person chooses | Proposed | Partial |

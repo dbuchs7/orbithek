@@ -4512,6 +4512,22 @@ function webSource() {
     await page.click("#avatar button:has-text('Remove the picture')");
     await page.waitForSelector("#account-button .avatar:not(:has(img))");
 
+    step("account: the start page greets by the display name one chose, else by the username (ADR-0246)");
+    check((await page.getAttribute("#display-name-input", "placeholder")) === "admin", "the field names the username that stands in");
+    await page.fill("#display-name-input", "  Ada Admin ");
+    await page.click("#display-name button[type=submit]");
+    await page.waitForSelector("#display-name .notice.success");
+    await page.goto(base + "/#/");
+    await page.waitForSelector("#welcome-greeting:has-text(', Ada Admin')");
+    await page.goto(base + "/#/account");
+    check((await page.inputValue("#display-name-input")) === "Ada Admin", "the display name is kept, trimmed");
+    await page.fill("#display-name-input", "");
+    await page.click("#display-name button[type=submit]");
+    await page.waitForSelector("#display-name .notice.success");
+    await page.goto(base + "/#/");
+    await page.waitForSelector("#welcome-greeting:has-text(', admin')");
+    await page.goto(base + "/#/account");
+
     step("language: German on request, kept across sign-ins");
     await page.selectOption("#language [name=language]", "de");
     await page.waitForSelector("#nav-notifications[aria-label^='Benachrichtigungen']");
