@@ -5858,7 +5858,7 @@ function webSource() {
     const granted = (await page.request.get(`${base}/api/items/${budget.id}/attachments/${budget.pic}`)).status();
     check(granted === 200, "granted, bert fetches the picture: " + granted);
 
-    step("access requests: bert, who only reads a room, clicks a veiled block and one in an embed and asks; each request is a task for the page's owner, found in Tasks; admin grants one on its task and closes the other; bert reads the granted one (ADR-0161, ADR-0162)");
+    step("access requests: bert, who only reads a room, clicks a veiled block and one in an embed and asks; each request is a task for the page's owner, found under Planning; admin grants one on its task and closes the other; bert reads the granted one (ADR-0161, ADR-0162)");
     const deciderCtx = await browser.newContext();
     const decider = await deciderCtx.newPage();
     decider.on("pageerror", (e) => problems.push("admin's page error: " + e.message));
@@ -5928,7 +5928,7 @@ function webSource() {
     await page.click("#access-close");
     await page.waitForSelector(`#body .pm-embed-content .pm-veiled[data-secret="${vault.second}"] .secret-request-block.secret-waiting`);
     // Each request is a task in VAULT below the page, for its owner, admin
-    // (ADR-0162): admin finds them under Tasks, assigned to him, labelled.
+    // (ADR-0162): admin finds them under Planning, assigned to him, labelled.
     await decider.goto(base + "/#/tasks/mine");
     await decider.reload();
     await decider.waitForFunction(() => document.querySelectorAll("#tasks tbody tr:has(a[href*='VAULT-'])").length === 2);
