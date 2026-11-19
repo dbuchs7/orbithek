@@ -260,4 +260,5 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0245](0245-engine-ca-bundle.md) | Calls to process engines trust an organisation's own certificate authority on request | Accepted | Landed |
 | [0246](0246-a-display-name-each-person-chooses.md) | A display name each person chooses | Accepted | Landed |
 | [0247](0247-a-page-tree-that-widens-by-dragging.md) | A page tree that widens by dragging | Accepted | Landed |
-| [0248](0248-module-addresses-follow-their-names.md) | Planning and My journal are reached at #/planning and #/journal; the old addresses send on | Proposed | Partial |
+| [0248](0248-the-provider-names-a-first-display-name.md) | The sign-in provider names a first display name | Proposed | Partial |
+| [0249](0249-module-addresses-follow-their-names.md) | Planning and My journal are reached at #/planning and #/journal; the old addresses send on | Proposed | Partial |

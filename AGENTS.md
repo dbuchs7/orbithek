@@ -216,6 +216,7 @@ its Word export is the template's package with the text at the control tagged `o
 the reading view frames it as the template's document with sheets, header, footer and cover from `GET /api/items/{ref}/document` and a stylesheet per version, drawn by `assets/wordtemplates.js`;
 an editor moves a page to a newer version; a template is removed only when nothing uses it (ADR-0167).
 A person chooses a display name on their account, kept in the accounts journal (`DisplayNameSet`, `PUT /api/me/display-name`), by which the start page greets them, the username standing in when it is empty (ADR-0246).
+A sign-in through single sign-on takes the provider's `name` claim as the display name of an account that never had one set (`Accounts.SetFirstDisplayName`; proposed ADR-0248).
 A person saves calendar views under names, kept in the accounts journal (`CalendarViewsSet`);
 a saved view may have a feed at `/calendar/{secret}.ics`, a secret starting `otcal_` kept as its hash, which a calendar program subscribes to: iCalendar with the key, title, time and a link of each entry its owner may read, each occurrence an entry of its own (`internal/calendar`);
 feeds are off unless `OT_CALENDAR_FEEDS=on`; off, none is made and every feed address opens nothing.
@@ -254,7 +255,7 @@ Such a list may leave out the items of some types (`Block.HideTypes`, codec vers
 A label may have a page, an item of the ready-made type `topic` whose field `label` names it (`GET`/`POST /api/labels/{label}/page`, MCP `get_label_page`);
 the page shows the label's items as a view, ordered by hand and kept as item IDs in `ItemsOrdered`, not sealed (codec version 56, ADR-0204).
 Each person keeps a daily note per day: an item of the ready-made type `daily-note`, labelled `daily-note`, made in the room they chose once (`DailyRoomSet` in the accounts journal) and restricted to them in the same batch, one per day under concurrent requests (`Session.OpenDailyNote`, `Session.AppendToDailyNote`, `/api/daily…`, MCP `open_daily_note`);
-**Today**, Alt+Shift+D and the palette open `#/journal/<date>` (`assets/daily.js`, ADR-0205); `#/daily…` sends on to it (ADR-0248).
+**Today**, Alt+Shift+D and the palette open `#/journal/<date>` (`assets/daily.js`, ADR-0205); `#/daily…` sends on to it (ADR-0249).
 A title that matches nothing after "@" or in the link dialog is offered to be created with a type and room (`assets/mentioncreate.js`, ADR-0206).
 A command palette (Ctrl+K outside a text, Ctrl+Shift+P) finds items, recent items and commands (`assets/palette.js`);
 Shift+click or *Beside* opens an item in a pane kept as `?beside=` (`assets/beside.js`);

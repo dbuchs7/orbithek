@@ -28,7 +28,7 @@ func TestLogin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cb := idp.Authorize(t, authURL, ssotest.Claims{Subject: "s-1", PreferredUsername: "anna", Email: "anna@example.org"})
+	cb := idp.Authorize(t, authURL, ssotest.Claims{Subject: "s-1", PreferredUsername: "anna", Email: "anna@example.org", Name: "Anna Muster"})
 	if cb.Get("state") != state {
 		t.Fatal("state not passed through")
 	}
@@ -36,7 +36,7 @@ func TestLogin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if id.Subject != "s-1" || id.Issuer != idp.URL || id.Username != "anna" || !id.EmailVerified {
+	if id.Subject != "s-1" || id.Issuer != idp.URL || id.Username != "anna" || !id.EmailVerified || id.Name != "Anna Muster" {
 		t.Fatalf("identity %+v", id)
 	}
 	if _, err := p.Finish(ctx, state, cb.Get("code")); !errors.Is(err, ErrUnknownState) {
@@ -90,7 +90,7 @@ func TestUsernameFallsBackToEmail(t *testing.T) {
 	authURL, state, _ := p.Begin(context.Background())
 	cb := idp.Authorize(t, authURL, ssotest.Claims{Subject: "s", Email: "x@example.org"})
 	id, err := p.Finish(context.Background(), state, cb.Get("code"))
-	if err != nil || id.Username != "x@example.org" {
+	if err != nil || id.Username != "x@example.org" || id.Name != "" {
 		t.Fatalf("%+v %v", id, err)
 	}
 }

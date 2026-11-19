@@ -33,6 +33,8 @@ type IdP struct {
 // Claims is what a login asserts; zero fields get defaults.
 type Claims struct {
 	Subject, PreferredUsername, Email string
+	// Name is the standard claim name, left out of the token when empty.
+	Name string
 	// HostedDomain is Google's hd claim; EmailUnverified marks the e-mail
 	// address as not verified.
 	HostedDomain            string
@@ -124,6 +126,12 @@ func (idp *IdP) token(w http.ResponseWriter, r *http.Request) {
 		"preferred_username": c.PreferredUsername, "email": c.Email, "email_verified": c.Email != "" && !c.EmailUnverified,
 		"hd": c.HostedDomain,
 	})
+	if c.Name != "" {
+		var claims map[string]any
+		_ = json.Unmarshal(payload, &claims)
+		claims["name"] = c.Name
+		payload, _ = json.Marshal(claims)
+	}
 	signer, _ := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: idp.key}, (&jose.SignerOptions{}).WithHeader("kid", "k1"))
 	jws, _ := signer.Sign(payload)
 	idToken, _ := jws.CompactSerialize()

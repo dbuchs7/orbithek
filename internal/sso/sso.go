@@ -60,6 +60,10 @@ type Identity struct {
 	Username      string // preferred_username, else the e-mail address
 	Email         string
 	EmailVerified bool
+	// Name is the person's full name as the provider asserts it (the
+	// standard claim name), or empty; it may become the first display name
+	// of the account (ADR-0248).
+	Name string
 }
 
 // FlowLifetime bounds how long a started login may take.
@@ -219,11 +223,12 @@ func (p *Provider) Finish(ctx context.Context, state, code string) (Identity, er
 		Email             string `json:"email"`
 		EmailVerified     bool   `json:"email_verified"`
 		HostedDomain      string `json:"hd"`
+		Name              string `json:"name"`
 	}
 	if err := idt.Claims(&claims); err != nil {
 		return Identity{}, fmt.Errorf("sso: ID token claims: %w", err)
 	}
-	id := Identity{Issuer: idt.Issuer, Subject: idt.Subject, Username: claims.PreferredUsername, Email: claims.Email, EmailVerified: claims.EmailVerified}
+	id := Identity{Issuer: idt.Issuer, Subject: idt.Subject, Username: claims.PreferredUsername, Email: claims.Email, EmailVerified: claims.EmailVerified, Name: claims.Name}
 	if id.Username == "" {
 		id.Username = id.Email
 	}
