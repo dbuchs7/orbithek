@@ -6796,7 +6796,7 @@ function webSource() {
     await page.waitForSelector("#palette-list .palette-command[aria-selected=true]:has-text(\"Today's daily note\")");
     await page.keyboard.press("Enter");
     await page.waitForSelector("#daily-title");
-    check(/#\/daily$/.test(page.url()), "the command opened today's note");
+    check(/#\/journal$/.test(page.url()), "the command opened today's note");
     // In a text being edited, Ctrl+K stays the link dialog.
     await page.waitForSelector("#daily-note.editing .ProseMirror");
     await page.locator("#daily-note .ProseMirror").click();
