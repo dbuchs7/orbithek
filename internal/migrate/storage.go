@@ -38,7 +38,7 @@ var (
 // become paragraphs, page links become mentions, Jira issue macros become
 // embeds; info, note, warning and tip macros become panels, task lists
 // tasks, tables tables, and the toc and children macros their blocks
-// (ADR-0042); everything else becomes an Unsupported block with the
+// (ADR-0042), with their levels and depths (ADR-0237, ADR-0239); everything else becomes an Unsupported block with the
 // original markup. It returns problems for links it could not resolve and
 // for markup it could not parse; it never fails.
 func ConvertStorage(body, space string, r Resolver) (item.Doc, []string) {
@@ -203,8 +203,7 @@ func (c *converter) element(se xml.StartElement, start int) error {
 	case n == "ac:structured-macro" && panelTones[attr(se, "ac", "name")] != "" && c.tone == "":
 		return c.panelMacro(panelTones[attr(se, "ac", "name")])
 	case n == "ac:structured-macro" && attr(se, "ac", "name") == "toc":
-		c.emit(item.Block{Kind: item.TOC})
-		return c.dec.Skip()
+		return c.tocMacro()
 	case n == "ac:structured-macro" && attr(se, "ac", "name") == "children":
 		return c.childrenMacro()
 	case n == "ac:task-list":
@@ -296,18 +295,15 @@ func (c *converter) jiraMacro() error {
 	return nil
 }
 
-// childrenMacro turns a children macro into a list of child pages, as
-// deep as the macro's depth, or every level when it lists all
-// (ADR-0239). A depth beyond the most a
-// list names by number lists every level, so no page the macro listed is
-// left out.
-func (c *converter) childrenMacro() error {
+// macroParams reads the parameters of the macro whose start the decoder
+// has just read, up to its end, by name; a parameter's text is trimmed.
+func (c *converter) macroParams() (map[string]string, error) {
 	params := map[string]string{}
 	param, open := "", 1
 	for open > 0 {
 		tok, err := c.dec.Token()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		switch t := tok.(type) {
 		case xml.StartElement:
@@ -325,10 +321,43 @@ func (c *converter) childrenMacro() error {
 			}
 		}
 	}
+	for k, v := range params {
+		params[k] = strings.TrimSpace(v)
+	}
+	return params, nil
+}
+
+// tocMacro turns a toc macro into a table of contents down to the macro's
+// maxLevel (ADR-0237): 1 and 2 as they are, 3 and more as every level,
+// since headings of levels 4 to 6 are imported as level 3. A missing or
+// unreadable level lists every level, as the macro does.
+func (c *converter) tocMacro() error {
+	params, err := c.macroParams()
+	if err != nil {
+		return err
+	}
+	b := item.Block{Kind: item.TOC}
+	if level, err := strconv.Atoi(params["maxLevel"]); err == nil && level >= 1 && level <= 2 {
+		b.Level = level
+	}
+	c.emit(b)
+	return nil
+}
+
+// childrenMacro turns a children macro into a list of child pages, as
+// deep as the macro's depth, or every level when it lists all
+// (ADR-0239). A depth beyond the most a
+// list names by number lists every level, so no page the macro listed is
+// left out.
+func (c *converter) childrenMacro() error {
+	params, err := c.macroParams()
+	if err != nil {
+		return err
+	}
 	b := item.Block{Kind: item.Children}
-	depth, err := strconv.Atoi(strings.TrimSpace(params["depth"]))
+	depth, err := strconv.Atoi(params["depth"])
 	switch {
-	case strings.EqualFold(strings.TrimSpace(params["all"]), "true"):
+	case strings.EqualFold(params["all"], "true"):
 		b.Depth = item.ChildrenAll
 	case err != nil || depth <= 1:
 	case depth > item.MaxChildrenDepth:

@@ -72,7 +72,12 @@ func TestConvertStoragePanelsTasksTablesAndMacros(t *testing.T) {
 		`<ac:structured-macro ac:name="children"><ac:parameter ac:name="depth">3</ac:parameter></ac:structured-macro>` +
 		`<ac:structured-macro ac:name="children"><ac:parameter ac:name="depth">1</ac:parameter></ac:structured-macro>` +
 		`<ac:structured-macro ac:name="children"><ac:parameter ac:name="depth">9</ac:parameter></ac:structured-macro>` +
-		`<ac:structured-macro ac:name="children"><ac:parameter ac:name="all">true</ac:parameter><ac:parameter ac:name="depth">2</ac:parameter></ac:structured-macro>`
+		`<ac:structured-macro ac:name="children"><ac:parameter ac:name="all">true</ac:parameter><ac:parameter ac:name="depth">2</ac:parameter></ac:structured-macro>` +
+		`<ac:structured-macro ac:name="toc"/>` +
+		`<ac:structured-macro ac:name="toc"><ac:parameter ac:name="maxLevel"> 1 </ac:parameter></ac:structured-macro>` +
+		`<ac:structured-macro ac:name="toc"><ac:parameter ac:name="maxLevel">3</ac:parameter></ac:structured-macro>` +
+		`<ac:structured-macro ac:name="toc"><ac:parameter ac:name="maxLevel">6</ac:parameter><ac:parameter ac:name="minLevel">2</ac:parameter></ac:structured-macro>` +
+		`<ac:structured-macro ac:name="toc"><ac:parameter ac:name="maxLevel">x</ac:parameter></ac:structured-macro>`
 	doc, problems := ConvertStorage(src, "PLAT", fakeResolver{users: map[string]string{"acc-1": "anna"}})
 	got := []string{}
 	for _, b := range doc.Blocks {
@@ -80,10 +85,13 @@ func TestConvertStoragePanelsTasksTablesAndMacros(t *testing.T) {
 		if b.Depth != 0 {
 			line += fmt.Sprintf("|%d", b.Depth)
 		}
+		if b.Kind == item.TOC && b.Level != 0 {
+			line += fmt.Sprintf("|level %d", b.Level)
+		}
 		got = append(got, line)
 	}
 	want := []string{
-		"toc|||false",
+		"toc|||false|level 2",
 		"panel|Stop the writers.|warning|false",
 		"panel|Then restore.|warning|false",
 		"task|Back up||true",
@@ -95,6 +103,13 @@ func TestConvertStoragePanelsTasksTablesAndMacros(t *testing.T) {
 		"children|||false",
 		"children|||false|-1",
 		"children|||false|-1",
+		// A table of contents keeps the macro's maxLevel 1 or 2; 3 and
+		// more, none or one unread lists every level (ADR-0237).
+		"toc|||false",
+		"toc|||false|level 1",
+		"toc|||false",
+		"toc|||false",
+		"toc|||false",
 	}
 	if strings.Join(got, "\n") != strings.Join(want, "\n") || len(problems) != 0 {
 		t.Fatalf("blocks:\n%s\nwant:\n%s\nproblems %q", strings.Join(got, "\n"), strings.Join(want, "\n"), problems)
