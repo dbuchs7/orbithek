@@ -1,9 +1,9 @@
 # ADR-0240: A list of child pages leaves out the types chosen
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-17
-- **Deciders:** Project initiators. Request of 2026-11-17: a list of child pages gets a filter by type, for tasks; the requester chose that types are left out (rather than chosen to be shown) and that the change goes into a pull request of its own. They first chose that the items below a left-out item are left out with it, and later the same day that the pages below it show in its place. The rest are defaults proposed with the implementation, to be confirmed by the requester. Request of 2026-11-18: such a page names the left-out item it stood below.
+- **Deciders:** Project initiators. Request of 2026-11-17: a list of child pages gets a filter by type, for tasks; the requester chose that types are left out (rather than chosen to be shown) and that the change goes into a pull request of its own. They first chose that the items below a left-out item are left out with it, and later the same day that the pages below it show in its place. The rest are defaults proposed with the implementation, to be confirmed by the requester. Request of 2026-11-18: such a page names the left-out item it stood below. Accepted 2026-11-19.
 
 ## Context and problem statement
 
