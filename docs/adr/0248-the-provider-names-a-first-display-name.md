@@ -1,9 +1,9 @@
 # ADR-0248: The sign-in provider names a first display name
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-19
-- **Deciders:** Project initiators (request of 2026-11-19 to take the single sign-on `name` claim as the first display name, the open question of ADR-0246); proposed for the maintainer's acceptance
+- **Deciders:** Project initiators (request of 2026-11-19 to take the single sign-on `name` claim as the first display name, the open question of ADR-0246). Accepted by the requester on 2026-11-19; the open question below stays open.
 - **Open question:** whether a later change of the name at the provider should reach a display name that came from it and was never changed on the account page
 - **Question checked:** 2026-11
 
