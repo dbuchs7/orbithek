@@ -249,7 +249,7 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0234](0234-a-cloud-collides-by-its-size.md) | A cloud keeps other nodes off by its own size | Accepted | Landed |
 | [0235](0235-rooms-keep-apart.md) | Rooms on the starmap of all rooms keep apart as wholes | Accepted | Landed |
 | [0236](0236-a-table-is-copied-and-pasted-with-its-formats.md) | A table is copied and pasted with its formats | Proposed | Partial |
-| [0237](0237-embedded-text-alone-and-toc-depth.md) | An embed may show its item's text alone, and a table of contents lists headings down to a chosen level | Proposed | Not started |
+| [0237](0237-embedded-text-alone-and-toc-depth.md) | An embed may show its item's text alone, and a table of contents lists headings down to a chosen level | Accepted | Landed |
 | [0238](0238-text-colour-and-size-in-table-cells.md) | Text colour and size in table cells | Accepted | Landed |
 | [0239](0239-child-pages-to-a-chosen-depth.md) | A list of child pages shows the levels chosen | Accepted | Landed |
 | [0240](0240-child-pages-leave-out-types.md) | A list of child pages leaves out the types chosen | Accepted | Landed |
