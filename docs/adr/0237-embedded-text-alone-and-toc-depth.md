@@ -4,8 +4,6 @@
 - **Implementation:** Landed
 - **Date:** 2026-11-17
 - **Deciders:** Project initiators (the maintainer asked that a page can be embedded with its content only, without its heading, and that inserting a table of contents asks how many heading levels it lists, 2026-11-17; then that such content, for reading, looks exactly as if written in the page, 2026-11-17); landed with #352, a start text names the level since #377 (ADR-0239); accepted 2026-11-19
-- **Open question:** whether the import of ADR-0023 should carry a source's table of contents depth
-- **Question checked:** 2026-11
 
 ## Context and problem statement
 
@@ -66,7 +64,7 @@ A server before this one refuses a version 63 log rather than misreading it.
   - The text is a read-only editor of its own inside the page: a selection does not run across the boundary, and a numbered list does not continue its numbers across it.
   - A comment or a protection acts on the part's own page, as for a whole embed (ADR-0106).
   - The depth is a block's, not a page's: two tables of contents of one body may list different levels.
-- **Follow-ups / risks to watch:** the import's table of contents, under *Open question*; a type's start text names the level as `[toc:1]` to `[toc:3]` (ADR-0239); if headings gain levels beyond 3, `Level` on a table of contents keeps its meaning and only the choices grow.
+- **Follow-ups / risks to watch:** the import of ADR-0023 carries a source's table of contents depth since 2026-11-19, as the requester asked: the toc macro's `maxLevel` 1 or 2 becomes that level, 3 and more, none or an unreadable one every level, since headings of levels 4 to 6 are imported as level 3; a type's start text names the level as `[toc:1]` to `[toc:3]` (ADR-0239); if headings gain levels beyond 3, `Level` on a table of contents keeps its meaning and only the choices grow.
 
 ## Pros and cons of the options
 
