@@ -320,7 +320,7 @@ func (m *mdBuilder) block(bl item.Block, p Page, base int, num string) []string 
 		return list(entries)
 	case item.Children:
 		var entries []string
-		for _, c := range childLines(p.Children[ChildListKey(bl)]) {
+		for _, c := range m.d.childLines(p.Children[ChildListKey(bl)]) {
 			entries = append(entries, strings.Repeat("  ", c.Level)+"- "+inlineMarkdown(c.Title, nil))
 		}
 		return list(entries)

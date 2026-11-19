@@ -27,6 +27,9 @@ type Document struct {
 	// may read them; an embed missing here is shown as Restricted.
 	Embeds     map[item.ID]Page
 	Restricted string
+	// Under names the left-out item a child page stands in place of in a
+	// list of child pages, "under" when empty (ADR-0240).
+	Under string
 	// Contents, when set, heads a list of the pages at the start.
 	Contents string
 	// Figure and Table name an entry of a list of figures or of tables,
@@ -399,10 +402,20 @@ func (b *docxBuilder) s(id string) string {
 func (b *docxBuilder) pStyle(id string) string { return `<w:pStyle w:val="` + b.s(id) + `"/>` }
 
 // bulletNum is the bullet list's numbering; an ordered list's is listNum.
-func (b *docxBuilder) bulletNum() string {
+func (b *docxBuilder) bulletNum() string { return b.bulletLevel(0) }
+
+// bulletLevel is the bullet list's numbering at a level below its first,
+// 0 to bulletLevels-1, deeper levels at the deepest: a nested list of
+// child pages stands on the list's own levels, so a template's numbering
+// and list styles apply to each (ADR-0239).
+func (b *docxBuilder) bulletLevel(level int) string {
 	b.lists = true
-	return fmt.Sprintf(`<w:numPr><w:ilvl w:val="0"/><w:numId w:val="%d"/></w:numPr>`, b.numBase)
+	return fmt.Sprintf(`<w:numPr><w:ilvl w:val="%d"/><w:numId w:val="%d"/></w:numPr>`, min(level, bulletLevels-1), b.numBase)
 }
+
+// bulletLevels is the number of levels a Word numbering defines; Word
+// knows nine.
+const bulletLevels = 9
 
 func (b *docxBuilder) body() string {
 	var out strings.Builder
@@ -584,14 +597,9 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int, num string
 		return out.String()
 	case item.Children:
 		var out strings.Builder
-		for _, c := range childLines(p.Children[ChildListKey(bl)]) {
-			// A deeper page stands further in, by the indent of one
-			// level of the list.
-			indent := ""
-			if c.Level > 0 {
-				indent = fmt.Sprintf(`<w:ind w:left="%d" w:hanging="360"/>`, 720*(c.Level+1))
-			}
-			out.WriteString(paraPr(b.pStyle("ListParagraph")+b.bulletNum()+indent, run(c.Title, "")))
+		for _, c := range b.d.childLines(p.Children[ChildListKey(bl)]) {
+			// A deeper page stands on the next level of the list.
+			out.WriteString(paraPr(b.pStyle("ListParagraph")+b.bulletLevel(c.Level), run(c.Title, "")))
 		}
 		return out.String()
 	default: // paragraph, and content an import could not convert
@@ -951,11 +959,23 @@ func (b *docxBuilder) numbering() string {
 		strings.Join(abs, "") + strings.Join(nums, "") + "</w:numbering>"
 }
 
+// bulletAbstract is the bullet list's abstract numbering: a level for
+// each depth of a nested list, each further in by half an inch, with a
+// round, a hollow and a square bullet in turn (ADR-0239).
+func bulletAbstract(id int) string {
+	var lvls strings.Builder
+	for l := range bulletLevels {
+		fmt.Fprintf(&lvls, `<w:lvl w:ilvl="%d"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="%s"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="%d" w:hanging="360"/></w:pPr></w:lvl>`,
+			l, []string{"•", "◦", "▪"}[l%3], 720*(l+1))
+	}
+	return fmt.Sprintf(`<w:abstractNum w:abstractNumId="%d"><w:multiLevelType w:val="hybridMultilevel"/>%s</w:abstractNum>`, id, lvls.String())
+}
+
 // numberingDefs are the abstract numberings and the numberings of the
 // document's lists.
 func (b *docxBuilder) numberingDefs() (abs, nums []string) {
 	abs = []string{
-		fmt.Sprintf(`<w:abstractNum w:abstractNumId="%d"><w:multiLevelType w:val="singleLevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum>`, b.absBase),
+		bulletAbstract(b.absBase),
 		fmt.Sprintf(`<w:abstractNum w:abstractNumId="%d"><w:multiLevelType w:val="singleLevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%%1."/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum>`, b.absBase+1),
 	}
 	nums = []string{fmt.Sprintf(`<w:num w:numId="%d"><w:abstractNumId w:val="%d"/></w:num>`, b.numBase, b.absBase)}

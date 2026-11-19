@@ -36,8 +36,8 @@ func exportRoutes(h itemHandlers) []Route {
 
 // exportWords are the labels of an export in each UI language.
 var exportWords = map[string]map[string]string{
-	"de": {"key": "Schlüssel", "title": "Titel", "space": "Raum", "type": "Typ", "state": "Status", "labels": "Labels", "restricted": "(eingeschränkt)", "table": "Tabelle", "contents": "Inhaltsverzeichnis", "figure": "Abbildung", "tableN": "Tabelle"},
-	"en": {"key": "Key", "title": "Title", "space": "Room", "type": "Type", "state": "State", "labels": "Labels", "restricted": "(restricted)", "table": "table", "contents": "Table of contents", "figure": "Figure", "tableN": "Table"},
+	"de": {"under": "unter", "key": "Schlüssel", "title": "Titel", "space": "Raum", "type": "Typ", "state": "Status", "labels": "Labels", "restricted": "(eingeschränkt)", "table": "Tabelle", "contents": "Inhaltsverzeichnis", "figure": "Abbildung", "tableN": "Tabelle"},
+	"en": {"under": "under", "key": "Key", "title": "Title", "space": "Room", "type": "Type", "state": "State", "labels": "Labels", "restricted": "(restricted)", "table": "table", "contents": "Table of contents", "figure": "Figure", "tableN": "Table"},
 }
 
 func (h itemHandlers) lang(r *http.Request) string {
@@ -150,7 +150,7 @@ func userIDs(items []item.Item, types func(string) item.TypeDef) []auth.UserID {
 // their pictures, read as files only when withData is set.
 func (h itemHandlers) exportDocument(r *http.Request, children, withData bool) (export.Document, item.Item, error) {
 	words := exportWords[h.lang(r)]
-	doc := export.Document{Embeds: map[item.ID]export.Page{}, Restricted: words["restricted"], Figure: words["figure"], Table: words["tableN"]}
+	doc := export.Document{Embeds: map[item.ID]export.Page{}, Restricted: words["restricted"], Figure: words["figure"], Table: words["tableN"], Under: words["under"]}
 	var root item.Item
 	type file struct {
 		owner item.ID
@@ -567,6 +567,9 @@ func exportChildren(pages []item.ChildPage) []export.Child {
 	out := make([]export.Child, len(pages))
 	for i, p := range pages {
 		out[i] = export.Child{Title: p.Item.Title, Children: exportChildren(p.Children)}
+		if p.Under != nil {
+			out[i].Under = p.Under.Title
+		}
 	}
 	return out
 }
