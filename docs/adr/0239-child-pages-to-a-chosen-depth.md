@@ -1,9 +1,9 @@
 # ADR-0239: A list of child pages shows the levels chosen
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-17
-- **Deciders:** Project initiators. Request of 2026-11-17: a list of child pages embedded in a text should not show only the first level of child pages; the person editing chooses how deep it goes. The offered depths, the budget and the import of the macro's depth are defaults proposed with the implementation, to be confirmed by the requester. Leaving out types was asked for later and is decided in ADR-0240. Requests of 2026-11-18: a type's start text may name a list's depth; five levels by number are enough before *All levels*; the open points are settled in one change.
+- **Deciders:** Project initiators. Request of 2026-11-17: a list of child pages embedded in a text should not show only the first level of child pages; the person editing chooses how deep it goes. The offered depths, the budget and the import of the macro's depth are defaults proposed with the implementation, to be confirmed by the requester. Leaving out types was asked for later and is decided in ADR-0240. Requests of 2026-11-18: a type's start text may name a list's depth; five levels by number are enough before *All levels*; the open points are settled in one change. Accepted 2026-11-19.
 
 ## Context and problem statement
 
