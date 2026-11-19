@@ -1316,7 +1316,11 @@ function webSource() {
       await send("POST", "/api/items", { space: "PLAT", type: "ticket", title: "Renew the certificate", properties: { due: "2020-01-31", priority: "high" } });
       await send("POST", "/api/items", { space: "PLAT", type: "ticket", title: "Tidy the wiki", properties: { priority: "low" } });
     });
-    await page.goto(base + "/#/tasks/unassigned");
+    // The old address #/tasks still leads there, sent on to #/planning with its filters.
+    await page.goto(base + "/#/tasks/unassigned?space=PLAT");
+    await page.waitForFunction(() => location.hash.startsWith("#/planning/unassigned") && location.hash.includes("space=PLAT"));
+    await page.waitForSelector("#tasks tr.overdue:has-text('Renew the certificate') .badge:has-text('overdue since 2020-01-31')");
+    await page.goto(base + "/#/planning/unassigned");
     await page.waitForSelector("#tasks tr.overdue:has-text('Renew the certificate') .badge:has-text('overdue since 2020-01-31')");
     // Every column filters; the filters stay in the address and across a reload.
     await page.selectOption("#tasks select[aria-label='Filter Due']", "overdue");
@@ -1333,7 +1337,7 @@ function webSource() {
     await page.waitForSelector("#tasks tbody tr:has-text('Renew the certificate')", { state: "hidden" });
     await page.fill("#tasks input[aria-label='Filter Title']", "");
     await page.click("#tasks tr:has-text('Renew the certificate') button:has-text('Take over')");
-    await page.goto(base + "/#/tasks/mine");
+    await page.goto(base + "/#/planning/mine");
     await page.waitForSelector("#tasks tr:has-text('Renew the certificate') td:has-text('you')");
     await page.click("#tasks tr:has-text('Renew the certificate') button:has-text('close')");
     await page.waitForSelector("#tasks tr:has-text('Renew the certificate')", { state: "detached" });
@@ -3524,7 +3528,7 @@ function webSource() {
     check(await page.locator("#hold").count() === 0, "released for everyone");
 
     step("kanbans: two kanbans on topics; a new card and an existing ticket; one ticket on both; taken off one");
-    await page.goto(base + "/#/tasks");
+    await page.goto(base + "/#/planning");
     await page.click("#tab-kanbans");
     await page.fill("#new-kanban [name=name]", "Website relaunch");
     await page.selectOption("#new-kanban [name=type]", "ticket");
@@ -3824,7 +3828,7 @@ function webSource() {
     }
 
     // The tasks page and a room lead there too.
-    await page.goto(base + "/#/tasks");
+    await page.goto(base + "/#/planning");
     await page.click("#tab-roadmap");
     await page.waitForSelector("#roadmap-controls");
 
@@ -3867,7 +3871,7 @@ function webSource() {
     check(await page.evaluate(() => document.getElementById("calendar-q").selectionStart) === 8, "the cursor stands at the mistake");
     // The tasks page hands its tab to the calendar as choices in words, and
     // a sentence says what they show.
-    await page.goto(base + "/#/tasks/mine");
+    await page.goto(base + "/#/planning/mine");
     await page.click("#tab-calendar");
     await page.waitForFunction(() => location.hash.includes("who=me") && location.hash.includes("status=open"));
     await page.waitForSelector("#calendar-summary");
@@ -4105,7 +4109,7 @@ function webSource() {
     await page.waitForSelector("h1:has-text('Hero image'), .page-head :has-text('Hero image')");
 
     step("task list: tasks on a kanban are listed too, with their label; the labels at the right filter the list");
-    await page.goto(base + "/#/tasks/all");
+    await page.goto(base + "/#/planning/all");
     await page.waitForSelector("#tasks tr:has-text('Hero image') .task-labels a.kanban-chip");
     await page.waitForSelector("#tasks tr:has-text('Tidy the wiki') .task-labels a.kanban-chip");
     await page.click("#tasks-labels label:has-text('relaunch') input");
@@ -4706,7 +4710,7 @@ function webSource() {
     check(decision.fields.map((f) => f.name).join(",") === "decided,assignee" && decision.workflow.states.length === 2, "the decision gained its assignee and kept the rest");
     // The start page counts what one may read: pages, tasks, pictures.
     await page.waitForSelector("#home-stats #home-pages strong");
-    await page.waitForSelector("#home-stats a#home-task-count[href='#/tasks/all'] strong");
+    await page.waitForSelector("#home-stats a#home-task-count[href='#/planning/all'] strong");
     await page.waitForSelector("#home-stats a#home-album-count[href='#/album'] strong");
     check(Number(await page.textContent("#home-task-count strong")) > 0, "tasks are counted");
     await page.goto(base + "/#/search/");
@@ -4726,7 +4730,7 @@ function webSource() {
     await page.waitForSelector(".hits li:has-text('Price list') .hit-words s.hit-missing:has-text('zebraquark')");
     const [found] = await Promise.all([page.waitForEvent("download"), page.click("#search-csv")]);
     check(require("fs").readFileSync(await found.path(), "utf8").includes(exported + ",Price list,PLAT,task"), "the search as CSV");
-    await page.goto(base + "/#/tasks/all");
+    await page.goto(base + "/#/planning/all");
     const [tasks] = await Promise.all([page.waitForEvent("download"), page.click("#tasks-csv")]);
     const tasksText = require("fs").readFileSync(await tasks.path(), "utf8");
     check(tasksText.includes(exported + ",Price list"), "the task list as CSV: " + JSON.stringify(tasksText.slice(0, 300)));
@@ -4768,7 +4772,7 @@ function webSource() {
     await page.waitForSelector(".item-main a[href='https://air.example.org/v1']");
     await page.waitForSelector(".item-main a[href='https://air.example.org/data.csv']");
     // A catalog page is no task.
-    await page.goto(base + "/#/tasks/all");
+    await page.goto(base + "/#/planning/all");
     await page.waitForSelector("#tasks");
     check(await page.locator("#tasks tr:has-text('Luftqualität')").count() === 0, "a catalog entry is not in the task list");
 
@@ -5607,7 +5611,7 @@ function webSource() {
     await phone.fill("#login [name=password]", adminPassword);
     await phone.press("#login [name=password]", "Enter");
     await phone.waitForSelector("#account-button");
-    for (const view of ["#/", "#/space/PLAT", "#/item/PLAT-2", "#/item/" + plan.key, "#/item/" + plan.key + "?edit", "#/tasks/all", "#/kanbans", "#/board/PLAT/task?lanes=priority", "#/labelboard/website-relaunch", "#/calendar", "#/calendar?view=week", "#/governance", "#/governance/PLAT", "#/mcp", "#/admin", "#/search/runbook"]) {
+    for (const view of ["#/", "#/space/PLAT", "#/item/PLAT-2", "#/item/" + plan.key, "#/item/" + plan.key + "?edit", "#/planning/all", "#/kanbans", "#/board/PLAT/task?lanes=priority", "#/labelboard/website-relaunch", "#/calendar", "#/calendar?view=week", "#/governance", "#/governance/PLAT", "#/mcp", "#/admin", "#/search/runbook"]) {
       await phone.goto(base + "/" + view);
       await phone.waitForSelector("main h1, main .welcome, #body");
       await phone.waitForTimeout(400);
@@ -5929,7 +5933,7 @@ function webSource() {
     await page.waitForSelector(`#body .pm-embed-content .pm-veiled[data-secret="${vault.second}"] .secret-request-block.secret-waiting`);
     // Each request is a task in VAULT below the page, for its owner, admin
     // (ADR-0162): admin finds them under Planning, assigned to him, labelled.
-    await decider.goto(base + "/#/tasks/mine");
+    await decider.goto(base + "/#/planning/mine");
     await decider.reload();
     await decider.waitForFunction(() => document.querySelectorAll("#tasks tbody tr:has(a[href*='VAULT-'])").length === 2);
     const taskRow = await decider.textContent("#tasks tbody tr:has-text('Editortest') >> nth=0");
