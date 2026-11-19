@@ -66,7 +66,7 @@ func checkDisplayName(name string) error {
 
 // SetFirstDisplayName takes a name a sign-in provider asserts as the
 // display name of an account that never had one chosen
-// (ADR-draft-the-provider-names-a-first-display-name): taken says whether
+// (ADR-0248): taken says whether
 // it was. A name chosen, changed or cleared on the account page before is
 // never replaced. An empty name is not taken; one checkDisplayName refuses
 // answers ErrInvalid and is not taken either.

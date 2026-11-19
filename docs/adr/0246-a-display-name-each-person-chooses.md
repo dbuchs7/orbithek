@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Implementation:** Landed
 - **Date:** 2026-11-19
-- **Deciders:** Project initiators (request of 2026-11-19 that the greeting on the start page shows a display name, which a person defines on their account; decided on 2026-11-19 that other people keep seeing the username, which under single sign-on is often the mail address). Accepted by the requester on 2026-11-19. Its open question, whether an account created through single sign-on takes the provider's `name` claim as its first display name, was settled by ADR-draft-the-provider-names-a-first-display-name on 2026-11-19.
+- **Deciders:** Project initiators (request of 2026-11-19 that the greeting on the start page shows a display name, which a person defines on their account; decided on 2026-11-19 that other people keep seeing the username, which under single sign-on is often the mail address). Accepted by the requester on 2026-11-19. Its open question, whether an account created through single sign-on takes the provider's `name` claim as its first display name, was settled by ADR-0248 on 2026-11-19.
 
 ## Context and problem statement
 

@@ -103,7 +103,7 @@ func TestSingleSignOn(t *testing.T) {
 // never had one, a new one or an existing one; it never replaces a name,
 // nor one cleared on purpose, and a name the account page would refuse is
 // not taken while the sign-in goes on
-// (ADR-draft-the-provider-names-a-first-display-name).
+// (ADR-0248).
 func TestTheProviderNamesAFirstDisplayName(t *testing.T) {
 	h, _, idp := ssoSetup(t)
 	signIn := func(c ssotest.Claims) *client {

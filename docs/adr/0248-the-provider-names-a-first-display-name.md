@@ -1,4 +1,4 @@
-# ADR-DRAFT: The sign-in provider names a first display name
+# ADR-0248: The sign-in provider names a first display name
 
 - **Status:** Proposed
 - **Implementation:** Partial

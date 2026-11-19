@@ -62,7 +62,7 @@ type Identity struct {
 	EmailVerified bool
 	// Name is the person's full name as the provider asserts it (the
 	// standard claim name), or empty; it may become the first display name
-	// of the account (ADR-draft-the-provider-names-a-first-display-name).
+	// of the account (ADR-0248).
 	Name string
 }
 

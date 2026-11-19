@@ -164,7 +164,7 @@ func (h oidcHandlers) callback(w http.ResponseWriter, r *http.Request) {
 			Detail: map[string]string{"username": u.Username, "method": "oidc", "provider": prov.ID(), "issuer": id.Issuer}})
 	}
 	// The provider's name becomes the display name of an account that never
-	// had one (ADR-draft-the-provider-names-a-first-display-name). A name the
+	// had one (ADR-0248). A name the
 	// account page would refuse is left out; the sign-in goes on either way.
 	if _, err := accounts.SetFirstDisplayName(u.ID, id.Name); err != nil && !errors.Is(err, auth.ErrInvalid) {
 		h.log.Warn("display name from single sign-on not saved", "err", err)

@@ -82,7 +82,7 @@ func TestTheDisplayNameOfAnUnknownUserIsRefusedOnLoad(t *testing.T) {
 // TestAFirstDisplayNameIsTakenOnlyWhileNoneWasEverChosen: the name a
 // sign-in provider asserts becomes the display name of an account that
 // never had one, and never replaces a name, nor one cleared on purpose
-// (ADR-draft-the-provider-names-a-first-display-name).
+// (ADR-0248).
 func TestAFirstDisplayNameIsTakenOnlyWhileNoneWasEverChosen(t *testing.T) {
 	a, j, _ := newAccounts(t)
 	u, err := a.CreateUser("anna", "anna's password")

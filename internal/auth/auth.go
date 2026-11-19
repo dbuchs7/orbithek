@@ -161,7 +161,7 @@ type user struct {
 	displayName string
 	// displayNameChosen says whether the account ever had a display name
 	// set, cleared included, so a provider's name is taken only as the
-	// first (ADR-draft-the-provider-names-a-first-display-name).
+	// first (ADR-0248).
 	displayNameChosen bool
 }
 
