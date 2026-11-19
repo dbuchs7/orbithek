@@ -1111,7 +1111,7 @@ const modules = [
   { id: "tasks", name: "nav.tasks", href: "#/planning", match: ["planning", "kanbans", "kanban", "roadmap", "calendar"], icon: "M9 11l3 3 8-8M20 12v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h11" },
   // Today's daily note (ADR-0205), named "My journal" here; on a phone,
   // where the top bar has no room for its button, it is reached here.
-  { id: "daily", name: "nav.daily", href: "#/daily", match: ["daily"], icon: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4M9 15l2 2 4-4" },
+  { id: "daily", name: "nav.daily", href: "#/journal", match: ["journal"], icon: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4M9 15l2 2 4-4" },
   { id: "comments", name: "nav.comments", href: "#/comments", match: ["comments"], icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" },
   { id: "album", name: "nav.album", href: "#/album", match: ["album"], icon: "M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15 8h.01" },
   { id: "whiteboards", name: "nav.whiteboards", href: "#/whiteboards", match: ["whiteboards", "whiteboard"], icon: "M3 4h18v12H3zM8 20l4-4 4 4M7 8h6M7 12h10" },
@@ -1443,7 +1443,7 @@ function renderNav() {
     search,
     newButton(),
     // Today's daily note (ADR-0205).
-    h("button", { type: "button", id: "nav-today", class: "nav-today", title: t("daily.todayHint"), text: t("daily.today"), onclick: () => { location.hash = "#/daily"; } }),
+    h("button", { type: "button", id: "nav-today", class: "nav-today", title: t("daily.todayHint"), text: t("daily.today"), onclick: () => { location.hash = "#/journal"; } }),
     bell,
     lookToggles(),
     accountMenu(),
@@ -1775,6 +1775,10 @@ function refreshStorage() {
   get("/api/status").then((s) => showStorage(s.storage)).catch(() => {});
 }
 
+// movedSections maps the first part of an address a module had before to
+// the one it has now (ADR-draft-module-addresses-follow-their-names).
+const movedSections = { tasks: "planning", daily: "journal" };
+
 async function route() {
   const hash = location.hash.replace(/^#/, "") || "/";
   for (const fn of leaving) fn();
@@ -1796,11 +1800,12 @@ async function route() {
     closeDrawer();
     const [, section, arg, arg2] = hash.split("?")[0].split("/").map(decodeURIComponent);
     const params = new URLSearchParams(hash.split("?")[1] || "");
-    // The module Planning was reached at #/tasks; old links and bookmarks
-    // are sent on to the same list, filters and all, without a step in the
-    // browser's history (ADR-draft-planning-is-reached-at-its-own-address).
-    if (section === "tasks") {
-      location.replace("#/planning" + hash.slice("/tasks".length));
+    // Planning was reached at #/tasks and My journal at #/daily; old links
+    // and bookmarks are sent on to the same place, path and query kept,
+    // without a step in the browser's history
+    // (ADR-draft-module-addresses-follow-their-names).
+    if (Object.hasOwn(movedSections, section)) {
+      location.replace("#/" + movedSections[section] + hash.slice(section.length + 1));
       return;
     }
     renderModules(section || "");
@@ -1831,7 +1836,7 @@ async function route() {
       case "roadmap": return await roadmapScreen(params);
       case "calendar": return await calendarScreen(params);
       case "view": return await viewRoute(params);
-      case "daily": return await dailyScreen(arg, params);
+      case "journal": return await dailyScreen(arg, params);
       case "spaces": return await spacesView();
       case "space": return await spaceView(arg);
       case "board": return await boardView(arg, arg2);
@@ -2429,7 +2434,7 @@ async function homeView() {
     h("section", { class: "home-tiles", "aria-label": t("home.quick") },
       // My journal first: today's daily note, made in one's daily room on
       // opening when there is none (ADR-0205).
-      quick("#/daily", t("home.today"), t("home.todayText", { date: todayText }), t("home.tip.today"), "home-today", null, "day", [todayNumber]),
+      quick("#/journal", t("home.today"), t("home.todayText", { date: todayText }), t("home.tip.today"), "home-today", null, "day", [todayNumber]),
       // One's personal notes, wherever they were made (ADR-0113), right
       // beside the journal.
       quick("#/my-notes", t("note.title"), mine.notes.length ? t("home.myNotesText", { n: mine.notes.length }) : t("home.myNotesNone"), t("home.tip.myNotes"), "home-my-notes", null, "page"),
@@ -4189,7 +4194,7 @@ async function paletteCommands() {
   const go = (href) => () => { location.hash = href; };
   const cmds = [
     { id: "new", name: t("palette.new"), hint: t("nav.newButton"), run: go(newHref()) },
-    { id: "today", name: t("palette.today"), hint: "Alt+Shift+D", run: go("#/daily") },
+    { id: "today", name: t("palette.today"), hint: "Alt+Shift+D", run: go("#/journal") },
     { id: "query", name: t("palette.query"), run: go("#/query") },
     { id: "calendar", name: t("palette.calendar"), run: go("#/calendar") },
     ...modules.filter((m) => m.id !== "new" && m.id !== "daily" && (!m.admin || me.admin)).map((m) => ({ id: "module-" + m.id, name: t("palette.goTo", { name: t(m.name) }), run: go(m.href) })),

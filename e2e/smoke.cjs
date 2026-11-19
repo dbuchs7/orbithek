@@ -826,7 +826,7 @@ function webSource() {
       "each quick access says on hover what it offers, in a text of its own");
     // My journal comes first: today's daily note, its date and its
     // day of the month on the calendar sheet (ADR-0205).
-    check(await page.getAttribute(".home-tiles a:first-child", "id") === "home-today" && await page.getAttribute("#home-today", "href") === "#/daily"
+    check(await page.getAttribute(".home-tiles a:first-child", "id") === "home-today" && await page.getAttribute("#home-today", "href") === "#/journal"
       && (await page.textContent("#home-today")).includes("My journal")
       && (await page.textContent("#home-today .module-icon.module-day svg text")) === String(new Date().getDate()), "my journal is the first quick access and leads to today's daily note");
     // One's notes stand right beside the journal (ADR-0113).
@@ -6829,7 +6829,7 @@ function webSource() {
     check(bertDailyKey !== dailyKey, "bert has a daily note of their own");
     await dailyPhone.goto(base + "/#/item/" + fromMention.key + "?beside=" + bertDailyKey);
     await dailyPhone.waitForSelector("#beside-pane .beside-title");
-    for (const view of ["#/daily", "#/item/" + fromMention.key + "?beside=" + bertDailyKey]) {
+    for (const view of ["#/journal", "#/item/" + fromMention.key + "?beside=" + bertDailyKey]) {
       await dailyPhone.goto(base + "/" + view);
       await dailyPhone.waitForTimeout(400);
       const wide = await dailyPhone.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -6866,7 +6866,9 @@ function webSource() {
     check(await page.locator("#attachments li").count() === filesBefore + 1, "a discarded recording is not attached");
 
     step("sound in the text: recorded into today's note from the editor and played there (ADR-0224)");
+    // The old address #/daily still leads to today's note, sent on to #/journal.
     await page.goto(base + "/#/daily");
+    await page.waitForFunction(() => location.hash === "#/journal");
     await page.waitForSelector("#daily-note.editing .ProseMirror");
     await page.locator("#daily-note .ProseMirror").click();
     await page.selectOption("#daily-note .pm-toolbar select[aria-label='Insert…']", "record");
