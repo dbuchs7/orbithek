@@ -3,8 +3,8 @@
 - **Status:** Proposed
 - **Implementation:** Partial
 - **Date:** 2026-11-19
-- **Deciders:** Project initiators (request of 2026-11-19 that the greeting on the start page shows a display name, which a person defines on their account); proposed for the maintainer's acceptance
-- **Open question:** whether the display name is shown to other people too — beside comments, in an item's history, in fields that name a person, in the list of accounts — and how two people choosing the same name are told apart there; whether an account created through single sign-on takes the provider's `name` claim as its first display name
+- **Deciders:** Project initiators (request of 2026-11-19 that the greeting on the start page shows a display name, which a person defines on their account; decided on 2026-11-19 that other people keep seeing the username, which under single sign-on is often the mail address); proposed for the maintainer's acceptance
+- **Open question:** whether an account created through single sign-on takes the provider's `name` claim as its first display name
 - **Question checked:** 2026-11
 
 ## Context and problem statement
@@ -43,15 +43,16 @@ Chosen option: **"A display name in the accounts journal"**, because it serves e
   A read token cannot set it, as with every write.
 - **UI:** the account page has a card *Display name*, whose placeholder and help text name the username that stands in when the field is empty.
   The start page greets with the display name, else the username.
-- Everywhere else — the account menu, authors of comments, history, fields that name a person, the list of accounts — the username stays, until the open question is decided.
+- **Other people see the username**, not the display name: beside comments, in an item's history, in fields that name a person, in the list of accounts and in the account menu the username stays.
+  Under single sign-on the username is often the mail address (ADR-0030), and that is what others keep recognising a person by.
+  A display name chosen freely by its owner is therefore never shown to anyone else, so nobody can be misled by a name imitating another person's.
 
 ### Consequences
 
 - **Positive:** a person is greeted by the name they chose; nothing that identifies or finds an account changes.
-- **Negative / trade-offs accepted:** the greeting and the rest of the interface name the person differently until the display name is shown elsewhere too.
+- **Negative / trade-offs accepted:** the greeting names a person by their display name, the rest of the interface by their username.
   The browser's length limit on the field counts UTF-16 units, so a name of characters outside the Basic Multilingual Plane may be cut shorter than the server allows; the server's check of 64 characters is the binding one.
-- **Follow-ups / risks to watch:** once others see the name, two people can choose the same one, or one that imitates another person's; showing the username beside it, or on hover, is then needed.
-  Changing the name is not audited (ADR-0029), as changing the language is not; it should be once others see it.
+- **Follow-ups / risks to watch:** should others ever see the display name, two people could choose the same one, or one imitating another person's; that needs a record of its own, the username shown beside the name, and an audit of changes (ADR-0029), which a name seen only by its owner does not need.
 
 ## Pros and cons of the options
 
