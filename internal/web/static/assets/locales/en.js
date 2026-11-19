@@ -424,6 +424,8 @@ export default {
   "live.saving": "Saving…",
 
   "tree.title": "Pages",
+  "tree.resize": "Width of the page tree",
+  "tree.resizeHint": "Drag to change the width of the page tree; double-click to reset it",
   "tree.empty": "No pages yet.",
   "tree.expand": "Expand {title}",
   "tree.collapse": "Collapse {title}",
