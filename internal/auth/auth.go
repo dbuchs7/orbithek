@@ -157,7 +157,7 @@ type user struct {
 	// empty (ADR-0205).
 	dailyRoom string
 	// displayName is the name the user chose to be called by, or empty
-	// (ADR-draft-a-display-name-each-person-chooses).
+	// (ADR-0246).
 	displayName string
 }
 
@@ -252,7 +252,7 @@ type event struct {
 	// Room is the space of a DailyRoomSet, empty to clear it (ADR-0205).
 	Room string `json:"room,omitempty"`
 	// DisplayName is the name of a DisplayNameSet, empty to clear it
-	// (ADR-draft-a-display-name-each-person-chooses).
+	// (ADR-0246).
 	DisplayName string `json:"displayName,omitempty"`
 }
 
@@ -297,7 +297,7 @@ const (
 	// (ADR-0205).
 	dailyRoomSet = "DailyRoomSet"
 	// displayNameSet records the name a user chose to be called by
-	// (ADR-draft-a-display-name-each-person-chooses).
+	// (ADR-0246).
 	displayNameSet = "DisplayNameSet"
 )
 

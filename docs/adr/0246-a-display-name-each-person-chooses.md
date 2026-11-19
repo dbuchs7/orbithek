@@ -1,4 +1,4 @@
-# ADR-DRAFT: A display name each person chooses
+# ADR-0246: A display name each person chooses
 
 - **Status:** Proposed
 - **Implementation:** Partial

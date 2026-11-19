@@ -266,7 +266,7 @@ func TestLanguageThroughTheAPI(t *testing.T) {
 
 // TestDisplayNameThroughTheAPI: one chooses the name one is called by on
 // one's own account; GET /api/me names it beside the username, which stays
-// (ADR-draft-a-display-name-each-person-chooses).
+// (ADR-0246).
 func TestDisplayNameThroughTheAPI(t *testing.T) {
 	w := newWorld(t)
 	user := func(c *client) map[string]any {

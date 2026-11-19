@@ -8,7 +8,7 @@ import (
 
 // TestTheDisplayNameIsKeptPerUserAndSurvivesReload: the name a person
 // chooses to be called by is recorded once, trimmed, cleared by an empty
-// name, and a reload of the journal gives it back (ADR-draft-a-display-name-each-person-chooses).
+// name, and a reload of the journal gives it back (ADR-0246).
 func TestTheDisplayNameIsKeptPerUserAndSurvivesReload(t *testing.T) {
 	a, j, _ := newAccounts(t)
 	u, err := a.CreateUser("anna", "anna's password")

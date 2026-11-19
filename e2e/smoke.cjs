@@ -4512,7 +4512,7 @@ function webSource() {
     await page.click("#avatar button:has-text('Remove the picture')");
     await page.waitForSelector("#account-button .avatar:not(:has(img))");
 
-    step("account: the start page greets by the display name one chose, else by the username (ADR-draft-a-display-name-each-person-chooses)");
+    step("account: the start page greets by the display name one chose, else by the username (ADR-0246)");
     check((await page.getAttribute("#display-name-input", "placeholder")) === "admin", "the field names the username that stands in");
     await page.fill("#display-name-input", "  Ada Admin ");
     await page.click("#display-name button[type=submit]");

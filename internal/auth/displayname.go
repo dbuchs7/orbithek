@@ -11,7 +11,7 @@ import (
 const MaxDisplayName = 64
 
 // DisplayName returns the name a user chose to be called by, or empty when
-// they have not chosen one (ADR-draft-a-display-name-each-person-chooses).
+// they have not chosen one (ADR-0246).
 // The username stays what identifies the account.
 func (a *Accounts) DisplayName(id UserID) string {
 	a.mu.Lock()

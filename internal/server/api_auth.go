@@ -59,7 +59,7 @@ type userJSON struct {
 	ID       auth.UserID `json:"id"`
 	Username string      `json:"username"`
 	// DisplayName is the name the user chose to be called by, given to
-	// the user themselves only (ADR-draft-a-display-name-each-person-chooses).
+	// the user themselves only (ADR-0246).
 	DisplayName string `json:"displayName,omitempty"`
 	// Email and Channels are listed to administrators only (ADR-0061).
 	Email    string   `json:"email,omitempty"`
@@ -326,7 +326,7 @@ func (h authHandlers) setLanguage(w http.ResponseWriter, r *http.Request) {
 }
 
 // setDisplayName records the name the caller chose to be called by
-// (ADR-draft-a-display-name-each-person-chooses).
+// (ADR-0246).
 func (h authHandlers) setDisplayName(w http.ResponseWriter, r *http.Request) {
 	p, _ := PrincipalFrom(r.Context())
 	var req struct {

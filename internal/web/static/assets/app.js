@@ -2395,7 +2395,7 @@ async function homeView() {
     h("section", { class: "welcome", id: "welcome" },
       h("div", { class: "welcome-text" },
         // The name one chose on one's account, else the username
-        // (ADR-draft-a-display-name-each-person-chooses).
+        // (ADR-0246).
         h("h1", { id: "welcome-greeting", text: `${greeting}, ${me.user.displayName || me.user.username}` }),
         h("p", { class: "welcome-lead", text: t("home.lead", { name }) }),
         stats,
@@ -5832,7 +5832,7 @@ async function accountView() {
     h("h1", { text: me.user.username }),
     h("p", { class: "muted", text: t("account.id", { id: me.user.id, via: me.via }) }),
     avatarCard(),
-    // The name one is called by (ADR-draft-a-display-name-each-person-chooses).
+    // The name one is called by (ADR-0246).
     displayNameCard(),
     contactsCard(contacts),
     // One's sign-ins at other providers (ADR-0229).
@@ -5916,7 +5916,7 @@ function avatarCard() {
 }
 
 // displayNameCard sets the name one is called by, as in the greeting of
-// the start page (ADR-draft-a-display-name-each-person-chooses). Left
+// the start page (ADR-0246). Left
 // empty, the username stands in its place.
 function displayNameCard() {
   const input = h("input", { name: "displayName", id: "display-name-input", value: me.user.displayName || "",
