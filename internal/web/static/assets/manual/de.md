@@ -282,6 +282,8 @@ Ctrl+Enter führt eine Abfrage aus. Die Ergebnisse lassen sich als CSV exportier
 
 Ein Raum bietet mehrere Ansichten: seinen Seitenbaum, **Alle Einträge**, ein **Board** je Typ mit Workflow, **Ansichten** seiner Einträge, den **Kalender**, die **Roadmap** und, je nach Rolle, **Governance** und **Linkprüfung**. **Beobachten** in einem Raum meldet alles, was darin geschieht.
 
+Der Seitenbaum steht links neben den Ansichten. Seinen rechten Rand zieht man mit der Maus oder dem Finger, um ihn breiter oder schmaler zu machen; mit dem Rand gewählt, ändern ihn auch die Pfeiltasten, mit Shift in grösseren Schritten, und Pos1 und Ende machen ihn so schmal oder so breit wie möglich. Ein Doppelklick auf den Rand stellt die übliche Breite wieder her. Die Breite gilt in diesem Browser für jede Seite, höchstens die halbe Fensterbreite.
+
 ### Ansichten von Einträgen
 
 **Ansichten** in einem Raum, oder **Ansicht eines Typs…** daneben, zeigt die Einträge, die Sie lesen dürfen, als **Tabelle**, als **Galerie** von Karten oder als **Liste** kompakter Zeilen. Wählen Sie den **Raum** (oder alle Räume), den **Typ** und nach Wunsch eine **Abfrage** in der Abfragesprache, dann **Anwenden**. **Gruppieren nach** ordnet die Einträge unter Überschriften mit ihrer Anzahl: nach Status, nach Label oder nach einem Feld mit einer Auswahl, einer Person oder ja und nein; ein Klick auf eine Überschrift klappt die Gruppe zu. **Sortierung** ordnet sie nach einer Spalte, ebenso ein Klick auf eine Spaltenüberschrift, ein zweiter Klick umgekehrt. **Spalten** wählt, was die Tabelle zeigt; die Karten einer Galerie zeigen das erste Bild des Texts oder die Datei eines Dateifelds, mit dem Titel und den gewählten Feldern.
