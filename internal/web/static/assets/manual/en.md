@@ -575,6 +575,7 @@ Moving, deleting, restrictions and administration are deliberately not available
 
 - your **Profile picture**, shown next to your name;
 - your **Display name**, the name you are addressed by, as in the greeting on the start page; left empty, your username is used;
+  signing in through single sign-on, the name your organisation's sign-in gives you becomes your display name once, as long as you never set one yourself;
 - the **Language** of the interface;
 - the **Look**: as the system, light, dark, or *Cockpit*;
 - **Change password**;

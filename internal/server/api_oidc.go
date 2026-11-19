@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/dbuchs7/orbithek/internal/audit"
+	"github.com/dbuchs7/orbithek/internal/auth"
 	"github.com/dbuchs7/orbithek/internal/site"
 	"github.com/dbuchs7/orbithek/internal/sso"
 )
@@ -161,6 +162,12 @@ func (h oidcHandlers) callback(w http.ResponseWriter, r *http.Request) {
 		}
 		h.d.DB.Audit.Record(audit.Entry{Event: audit.UserCreated, Addr: clientAddr(r), Subject: string(u.ID),
 			Detail: map[string]string{"username": u.Username, "method": "oidc", "provider": prov.ID(), "issuer": id.Issuer}})
+	}
+	// The provider's name becomes the display name of an account that never
+	// had one (ADR-draft-the-provider-names-a-first-display-name). A name the
+	// account page would refuse is left out; the sign-in goes on either way.
+	if _, err := accounts.SetFirstDisplayName(u.ID, id.Name); err != nil && !errors.Is(err, auth.ErrInvalid) {
+		h.log.Warn("display name from single sign-on not saved", "err", err)
 	}
 	secret, p, err := accounts.StartSession(u.ID)
 	if err != nil {

@@ -575,6 +575,7 @@ Verschieben, Löschen, Einschränkungen und Administration stehen Assistenten be
 
 - das **Profilbild**, das neben dem Namen erscheint;
 - der **Anzeigename**, mit dem man angesprochen wird, etwa in der Begrüssung auf der Startseite; bleibt er leer, wird der Benutzername verwendet;
+  meldet man sich über Single Sign-on an, wird der Name, den die Anmeldung der Organisation übermittelt, einmalig als Anzeigename übernommen, sofern man selbst noch nie einen festgelegt hat;
 - die **Sprache** der Oberfläche;
 - die **Darstellung**: wie das System, hell, dunkel oder *Cockpit*;
 - **Passwort ändern**;

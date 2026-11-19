@@ -216,6 +216,7 @@ its Word export is the template's package with the text at the control tagged `o
 the reading view frames it as the template's document with sheets, header, footer and cover from `GET /api/items/{ref}/document` and a stylesheet per version, drawn by `assets/wordtemplates.js`;
 an editor moves a page to a newer version; a template is removed only when nothing uses it (ADR-0167).
 A person chooses a display name on their account, kept in the accounts journal (`DisplayNameSet`, `PUT /api/me/display-name`), by which the start page greets them, the username standing in when it is empty (ADR-0246).
+A sign-in through single sign-on takes the provider's `name` claim as the display name of an account that never had one set (`Accounts.SetFirstDisplayName`; proposed ADR-draft-the-provider-names-a-first-display-name).
 A person saves calendar views under names, kept in the accounts journal (`CalendarViewsSet`);
 a saved view may have a feed at `/calendar/{secret}.ics`, a secret starting `otcal_` kept as its hash, which a calendar program subscribes to: iCalendar with the key, title, time and a link of each entry its owner may read, each occurrence an entry of its own (`internal/calendar`);
 feeds are off unless `OT_CALENDAR_FEEDS=on`; off, none is made and every feed address opens nothing.

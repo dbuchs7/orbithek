@@ -78,3 +78,51 @@ func TestTheDisplayNameOfAnUnknownUserIsRefusedOnLoad(t *testing.T) {
 		t.Fatal("the display name of an unknown user was loaded")
 	}
 }
+
+// TestAFirstDisplayNameIsTakenOnlyWhileNoneWasEverChosen: the name a
+// sign-in provider asserts becomes the display name of an account that
+// never had one, and never replaces a name, nor one cleared on purpose
+// (ADR-draft-the-provider-names-a-first-display-name).
+func TestAFirstDisplayNameIsTakenOnlyWhileNoneWasEverChosen(t *testing.T) {
+	a, j, _ := newAccounts(t)
+	u, err := a.CreateUser("anna", "anna's password")
+	noErr(t, err)
+	taken, err := a.SetFirstDisplayName(u.ID, "  Anna Muster ")
+	noErr(t, err)
+	if !taken || a.DisplayName(u.ID) != "Anna Muster" {
+		t.Fatalf("taken %v, display name %q", taken, a.DisplayName(u.ID))
+	}
+	n := len(j.records)
+	if taken, err := a.SetFirstDisplayName(u.ID, "Anna Changed"); err != nil || taken || a.DisplayName(u.ID) != "Anna Muster" {
+		t.Fatalf("a second name replaced the first: %v %v %q", taken, err, a.DisplayName(u.ID))
+	}
+	if len(j.records) != n {
+		t.Error("a name not taken was recorded")
+	}
+
+	// Cleared by its owner: the provider's name does not come back, also
+	// not after a reload of the journal.
+	noErr(t, a.SetDisplayName(u.ID, ""))
+	b, err := New(j.records, j.append, WithIterations(1000))
+	noErr(t, err)
+	if taken, err := b.SetFirstDisplayName(u.ID, "Anna Muster"); err != nil || taken || b.DisplayName(u.ID) != "" {
+		t.Fatalf("a cleared display name came back: %v %v %q", taken, err, b.DisplayName(u.ID))
+	}
+
+	// Empty and refused names are not taken, and leave the account free to
+	// take a valid one later.
+	v, err := b.CreateUser("vera", "vera's password")
+	noErr(t, err)
+	for _, bad := range []string{"", "   ", "Vera\nMuster", strings.Repeat("v", MaxDisplayName+1)} {
+		taken, err := b.SetFirstDisplayName(v.ID, bad)
+		if taken || (strings.TrimSpace(bad) != "" && !errors.Is(err, ErrInvalid)) {
+			t.Errorf("%q: taken %v, %v", bad, taken, err)
+		}
+	}
+	if taken, err := b.SetFirstDisplayName(v.ID, "Vera Muster"); err != nil || !taken {
+		t.Fatalf("a valid name after refused ones: %v %v", taken, err)
+	}
+	if _, err := b.SetFirstDisplayName("nobody", "X"); !errors.Is(err, ErrNotFound) {
+		t.Errorf("unknown user: %v", err)
+	}
+}
