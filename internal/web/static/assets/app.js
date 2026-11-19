@@ -1108,10 +1108,10 @@ function renderFooter() {
 const modules = [
   { id: "spaces", name: "nav.spaces", href: "#/spaces", match: ["", "spaces", "space", "item", "board", "links", "search", "query", "label"], icon: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" },
   { id: "new", name: "nav.new", href: "#/new", match: ["new"], icon: "M12 8v8M8 12h8M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" },
-  { id: "tasks", name: "nav.tasks", href: "#/tasks", match: ["tasks", "kanbans", "kanban", "roadmap", "calendar"], icon: "M9 11l3 3 8-8M20 12v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h11" },
+  { id: "tasks", name: "nav.tasks", href: "#/planning", match: ["planning", "kanbans", "kanban", "roadmap", "calendar"], icon: "M9 11l3 3 8-8M20 12v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h11" },
   // Today's daily note (ADR-0205), named "My journal" here; on a phone,
   // where the top bar has no room for its button, it is reached here.
-  { id: "daily", name: "nav.daily", href: "#/daily", match: ["daily"], icon: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4M9 15l2 2 4-4" },
+  { id: "daily", name: "nav.daily", href: "#/journal", match: ["journal"], icon: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4M9 15l2 2 4-4" },
   { id: "comments", name: "nav.comments", href: "#/comments", match: ["comments"], icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" },
   { id: "album", name: "nav.album", href: "#/album", match: ["album"], icon: "M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15 8h.01" },
   { id: "whiteboards", name: "nav.whiteboards", href: "#/whiteboards", match: ["whiteboards", "whiteboard"], icon: "M3 4h18v12H3zM8 20l4-4 4 4M7 8h6M7 12h10" },
@@ -1443,7 +1443,7 @@ function renderNav() {
     search,
     newButton(),
     // Today's daily note (ADR-0205).
-    h("button", { type: "button", id: "nav-today", class: "nav-today", title: t("daily.todayHint"), text: t("daily.today"), onclick: () => { location.hash = "#/daily"; } }),
+    h("button", { type: "button", id: "nav-today", class: "nav-today", title: t("daily.todayHint"), text: t("daily.today"), onclick: () => { location.hash = "#/journal"; } }),
     bell,
     lookToggles(),
     accountMenu(),
@@ -1775,6 +1775,10 @@ function refreshStorage() {
   get("/api/status").then((s) => showStorage(s.storage)).catch(() => {});
 }
 
+// movedSections maps the first part of an address a module had before to
+// the one it has now (ADR-0249).
+const movedSections = { tasks: "planning", daily: "journal" };
+
 async function route() {
   const hash = location.hash.replace(/^#/, "") || "/";
   for (const fn of leaving) fn();
@@ -1796,6 +1800,14 @@ async function route() {
     closeDrawer();
     const [, section, arg, arg2] = hash.split("?")[0].split("/").map(decodeURIComponent);
     const params = new URLSearchParams(hash.split("?")[1] || "");
+    // Planning was reached at #/tasks and My journal at #/daily; old links
+    // and bookmarks are sent on to the same place, path and query kept,
+    // without a step in the browser's history
+    // (ADR-0249).
+    if (Object.hasOwn(movedSections, section)) {
+      location.replace("#/" + movedSections[section] + hash.slice(section.length + 1));
+      return;
+    }
     renderModules(section || "");
     if (section === "reset") return resetView(arg || "");
     // An assistant's consent page survives signing in, single sign-on
@@ -1817,14 +1829,14 @@ async function route() {
     if (await silentConnect()) return;
     switch (section) {
       case "new": return await newView(params);
-      case "tasks": return await tasksView(arg, params);
+      case "planning": return await tasksView(arg, params);
       case "kanbans": return await kanbansView();
       case "kanban": return await kanbanView(arg, arg2);
       case "labelboard": return await labelBoardView(arg, params.get("space") || "");
       case "roadmap": return await roadmapScreen(params);
       case "calendar": return await calendarScreen(params);
       case "view": return await viewRoute(params);
-      case "daily": return await dailyScreen(arg, params);
+      case "journal": return await dailyScreen(arg, params);
       case "spaces": return await spacesView();
       case "space": return await spaceView(arg);
       case "board": return await boardView(arg, arg2);
@@ -2391,7 +2403,7 @@ async function homeView() {
       h("strong", { text: count(total) }), " ", h("span", { text: t(key, { n: total.value }) }));
     stats.replaceChildren(...[
       pages && stat("home-pages", null, pages, "home.statPages"),
-      stat("home-task-count", "#/tasks/all", sum, "home.statTasks"),
+      stat("home-task-count", "#/planning/all", sum, "home.statTasks"),
       album && stat("home-album-count", "#/album", album, "home.statAlbum"),
     ].filter(Boolean));
   });
@@ -2406,14 +2418,14 @@ async function homeView() {
         stats,
         h("p", { class: "actions-row" },
           anyEditable ? link("#/new", t("home.newPage"), "button primary") : null,
-          link("#/tasks", t("home.myTasks"), "button", "home-my-tasks"))),
+          link("#/planning", t("home.myTasks"), "button", "home-my-tasks"))),
       // The design's own picture replaces the product's (ADR-0095).
       brand.assets?.welcome ? ownWelcome(brand) : h("img", { class: "welcome-art", id: "welcome-art", src: welcomeArt, alt: "", width: 480, height: 320 }),
       // The installed version, small, for support questions and releases.
       me.version ? h("span", { class: "welcome-version", id: "home-version", title: me.revision ? t("home.revision", { revision: me.revision }) : "", text: t("home.version", { version: me.version }) }) : ""),
     // Account requests wait on an administrator (ADR-0061): said first,
     // and decided under the tasks.
-    requests.length ? h("a", { class: "notice requests-notice", href: "#/tasks", id: "home-requests" },
+    requests.length ? h("a", { class: "notice requests-notice", href: "#/planning", id: "home-requests" },
       h("strong", { text: t("requests.waiting", { n: requests.length }) }), " ", t("requests.homeHint")) : "",
     // A storage getting full is said to administrators first (ADR-0150).
     storage && storage.level !== "ok" ? h("a", { class: "notice storage-notice storage-" + storage.level, href: "#/admin", id: "home-storage" },
@@ -2422,7 +2434,7 @@ async function homeView() {
     h("section", { class: "home-tiles", "aria-label": t("home.quick") },
       // My journal first: today's daily note, made in one's daily room on
       // opening when there is none (ADR-0205).
-      quick("#/daily", t("home.today"), t("home.todayText", { date: todayText }), t("home.tip.today"), "home-today", null, "day", [todayNumber]),
+      quick("#/journal", t("home.today"), t("home.todayText", { date: todayText }), t("home.tip.today"), "home-today", null, "day", [todayNumber]),
       // One's personal notes, wherever they were made (ADR-0113), right
       // beside the journal.
       quick("#/my-notes", t("note.title"), mine.notes.length ? t("home.myNotesText", { n: mine.notes.length }) : t("home.myNotesNone"), t("home.tip.myNotes"), "home-my-notes", null, "page"),
@@ -2431,7 +2443,7 @@ async function homeView() {
       quick("#/starmap", t("nav.starmap"), t("home.starmapText"), t("home.tip.starmap"), "home-starmap", null, "starmap"),
       // The rooms follow the starmap and lead to their own overview.
       quick("#/spaces", t("spaces.title"), t("home.spacesText", { n: spaces.length }), t("home.tip.spaces"), "home-spaces", null, "spaces"),
-      quick("#/tasks", t("nav.tasks"), t("home.tasksText"), t("home.tip.tasks"), "home-tasks",
+      quick("#/planning", t("nav.tasks"), t("home.tasksText"), t("home.tip.tasks"), "home-tasks",
         requests.length ? h("span", { class: "chip", text: t("nav.requestsWaiting", { n: requests.length }) }) : null, "tasks"),
       quick("#/notifications", t("nav.notifications"), notes.unread ? t("home.notesUnread", { n: notes.unread }) : t("home.notesNone"), t("home.tip.notifications"), "home-notes",
         findings ? h("span", { class: "chip", text: t("nav.findingsOpen", { n: findings }) }) : null, "conversations"),
@@ -3115,7 +3127,7 @@ async function tasksView(tab, params) {
     count.textContent = n === rows.length ? "" : t("tasks.filtered", { n, total: rows.length });
     noneShown.hidden = n > 0;
     reset.hidden = !filterNames.some((k) => filters[k]);
-    history.replaceState(null, "", `#/tasks/${current}${query()}`);
+    history.replaceState(null, "", `#/planning/${current}${query()}`);
     relink();
   };
   const set = (k) => (ev) => { filters[k] = ev.target.value; apply(); };
@@ -3140,7 +3152,7 @@ async function tasksView(tab, params) {
     h("td", {}, choose("due", t("tasks.due"), [["overdue", t("tasks.dueOverdue")], ["today", t("tasks.dueToday")], ["week", t("tasks.dueWeek")], ["none", t("tasks.dueNone")]])),
     h("td", {}, choose("prio", t("tasks.priority"), distinct(shown.map((it) => { const f = typeOf.get(it.type).f.priority; return f ? it.properties[f.name] : ""; })).map((v) => [v, v]))),
     h("td", {}, h("select", { "aria-label": t("tasks.filterOf", { column: t("col.space") }), onchange: (ev) => {
-      location.hash = `#/tasks/${current}${query({ space: ev.target.value })}`;
+      location.hash = `#/planning/${current}${query({ space: ev.target.value })}`;
     } }, h("option", { value: "", text: t("tasks.allSpaces") }),
     [...new Set(open.map((it) => it.space))].sort().map((k) => h("option", { value: k, text: k, selected: k === space })))),
     h("td", {}));
@@ -3164,9 +3176,9 @@ async function tasksView(tab, params) {
     h("div", { class: "tasks-label-list" }, labelBoxes.map(([, el]) => el)),
     h("p", {}, modeBox)) : null;
   const reset = h("button", { type: "button", class: "link", text: t("tasks.filterReset"), hidden: true, onclick: () => {
-    location.hash = `#/tasks/${current}${space ? "?space=" + encodeURIComponent(space) : ""}`;
+    location.hash = `#/planning/${current}${space ? "?space=" + encodeURIComponent(space) : ""}`;
   } });
-  const tabLink = (id, label) => link(`#/tasks/${id}${query()}`, `${label} (${lists[id].length})`, id === current ? "tab active" : "tab");
+  const tabLink = (id, label) => link(`#/planning/${id}${query()}`, `${label} (${lists[id].length})`, id === current ? "tab active" : "tab");
   const tabs = h("nav", { class: "tabs", "aria-label": t("tasks.title") },
     tabLink("mine", t("tasks.mine")), tabLink("unassigned", t("tasks.unassigned")), tabLink("all", t("tasks.all")),
     link("#/kanbans", t("kanban.tab"), "tab", "tab-kanbans"), link(`#/roadmap${space ? "?space=" + encodeURIComponent(space) : ""}`, t("roadmap.tab"), "tab", "tab-roadmap"),
@@ -3262,7 +3274,7 @@ async function labelBoardView(label, space) {
     ...view.look,
   }) : null;
   show(
-    h("p", {}, link("#/tasks", t("nav.tasks")), " / ", link("#/kanbans", t("kanban.tab")), " / " + label),
+    h("p", {}, link("#/planning", t("nav.tasks")), " / ", link("#/kanbans", t("kanban.tab")), " / " + label),
     h("div", { class: "page-head" }, h("h1", {}, t("labelboard.title") + " ", labelChip(label))),
     h("p", { class: "muted", text: t("labelboard.intro") }),
     kept.length ? h("p", { class: "muted" }, t("labelboard.kept") + " ",
@@ -3315,7 +3327,7 @@ async function kanbansView() {
   show(
     h("div", { class: "page-head" }, h("h1", { text: t("kanban.title") })),
     h("nav", { class: "tabs", "aria-label": t("tasks.title") },
-      link("#/tasks/mine", t("tasks.mine"), "tab"), link("#/tasks/unassigned", t("tasks.unassigned"), "tab"), link("#/tasks/all", t("tasks.all"), "tab"),
+      link("#/planning/mine", t("tasks.mine"), "tab"), link("#/planning/unassigned", t("tasks.unassigned"), "tab"), link("#/planning/all", t("tasks.all"), "tab"),
       link("#/kanbans", t("kanban.tab"), "tab active", "tab-kanbans"), link("#/roadmap", t("roadmap.tab"), "tab", "tab-roadmap"),
       link("#/calendar", t("calendar.tab"), "tab", "tab-calendar")),
     // The boards by label lead on the left, the kanbans stand in the
@@ -3440,7 +3452,7 @@ async function kanbanView(space, id) {
     } }) : ""),
   });
   show(
-    h("p", {}, link("#/tasks", t("nav.tasks")), " / ", link("#/kanbans", t("kanban.tab")), " / " + k.name),
+    h("p", {}, link("#/planning", t("nav.tasks")), " / ", link("#/kanbans", t("kanban.tab")), " / " + k.name),
     h("div", { class: "page-head" }, h("div", { class: "kanban-title" }, kanbanIcon({ ...k, space }, 48), h("h1", { text: k.name })),
       h("div", { class: "actions" }, h("span", { class: "muted", text: t("kanban.metaLong", { space, type: k.type, label: k.label }) }),
         settings ? h("button", { type: "button", class: "secondary kanban-settings-open", id: "kanban-settings-open", onclick: () => settings.showModal() },
@@ -4097,7 +4109,7 @@ function kanbanSettings(k, type, columns, kpath) {
 async function roadmapScreen(params) {
   const section = h("section", { id: "roadmap" });
   screen()(
-    h("p", {}, link("#/tasks", t("nav.tasks")), " / " + t("roadmap.tab")),
+    h("p", {}, link("#/planning", t("nav.tasks")), " / " + t("roadmap.tab")),
     h("div", { class: "page-head" }, h("h1", { text: t("roadmap.title") })),
     h("p", { class: "muted", text: t("roadmap.intro") }),
     section);
@@ -4122,7 +4134,7 @@ async function viewRoute(params) {
 async function calendarScreen(params) {
   const section = h("section", { id: "calendar" });
   screen()(
-    h("p", {}, link("#/tasks", t("nav.tasks")), " / " + t("calendar.tab")),
+    h("p", {}, link("#/planning", t("nav.tasks")), " / " + t("calendar.tab")),
     h("div", { class: "page-head" }, h("h1", { text: t("calendar.title") })),
     h("p", { class: "muted", text: t("calendar.intro") }),
     section);
@@ -4182,7 +4194,7 @@ async function paletteCommands() {
   const go = (href) => () => { location.hash = href; };
   const cmds = [
     { id: "new", name: t("palette.new"), hint: t("nav.newButton"), run: go(newHref()) },
-    { id: "today", name: t("palette.today"), hint: "Alt+Shift+D", run: go("#/daily") },
+    { id: "today", name: t("palette.today"), hint: "Alt+Shift+D", run: go("#/journal") },
     { id: "query", name: t("palette.query"), run: go("#/query") },
     { id: "calendar", name: t("palette.calendar"), run: go("#/calendar") },
     ...modules.filter((m) => m.id !== "new" && m.id !== "daily" && (!m.admin || me.admin)).map((m) => ({ id: "module-" + m.id, name: t("palette.goTo", { name: t(m.name) }), run: go(m.href) })),

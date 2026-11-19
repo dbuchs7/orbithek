@@ -1,8 +1,8 @@
-// A daily note per person and day (ADR-0205): the view #/daily/<date>
+// A daily note per person and day (ADR-0205): the view #/journal/<date>
 // shows one's own note of a day with its text editable in place, the days
 // before and after, a month marking the days one has a note on, the items
 // made or changed that day that one may read, and the items the calendar
-// places on it (ADR-0166). #/daily alone is today, where the browser is,
+// places on it (ADR-0166). #/journal alone is today, where the browser is,
 // and opens today's note, making it in one's daily room when there is
 // none; another day's note is made only when one starts it. The room is
 // chosen once, among the rooms one may create in, and kept with one's
@@ -24,7 +24,7 @@ import { besidePane } from "./beside.js";
 
 // openToday goes to today's note.
 export function openToday() {
-  location.hash = "#/daily";
+  location.hash = "#/journal";
 }
 
 // appendToDailyNote adds text, a paragraph per line, at the end of one's
@@ -186,7 +186,7 @@ export async function dailyView(show, arg, params, tools) {
       h("h1", { id: "daily-title", text: noteTitle(day, lang) }),
       h("p", { class: "actions daily-nav" },
         h("a", { href: dailyHref(day - 1), class: "button", id: "daily-prev", rel: "prev", text: "‹ " + t("daily.prev") }),
-        day !== today ? h("a", { href: "#/daily", class: "button", id: "daily-today", text: t("daily.today") }) : null,
+        day !== today ? h("a", { href: "#/journal", class: "button", id: "daily-today", text: t("daily.today") }) : null,
         h("a", { href: dailyHref(day + 1), class: "button", id: "daily-next", rel: "next", text: t("daily.next") + " ›" }),
         note ? h("a", { href: "#/item/" + encodeURIComponent(note.key), class: "button", id: "daily-item", text: t("daily.asItem") }) : null)),
     h("p", { class: "muted", text: note ? t("daily.private") : t("daily.intro") }),

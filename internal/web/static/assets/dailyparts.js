@@ -8,8 +8,8 @@ import { period } from "./calendar.js";
 
 const DAY = 86400000;
 
-// dayOfAddress is the day an address of the view names: #/daily/YYYY-MM-DD,
-// or today, where the browser is, for #/daily alone. A day that is none
+// dayOfAddress is the day an address of the view names: #/journal/YYYY-MM-DD,
+// or today, where the browser is, for #/journal alone. A day that is none
 // (2026-02-30) is null.
 export function dayOfAddress(arg, now = new Date()) {
   if (!arg) return todayDay(now);
@@ -18,7 +18,7 @@ export function dayOfAddress(arg, now = new Date()) {
 
 // dailyHref is the address of the daily note of a day number.
 export function dailyHref(day) {
-  return "#/daily/" + dayString(day);
+  return "#/journal/" + dayString(day);
 }
 
 // month is the month drawn beside a note: whole weeks, Monday first, as

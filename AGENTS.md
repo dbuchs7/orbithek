@@ -255,7 +255,7 @@ Such a list may leave out the items of some types (`Block.HideTypes`, codec vers
 A label may have a page, an item of the ready-made type `topic` whose field `label` names it (`GET`/`POST /api/labels/{label}/page`, MCP `get_label_page`);
 the page shows the label's items as a view, ordered by hand and kept as item IDs in `ItemsOrdered`, not sealed (codec version 56, ADR-0204).
 Each person keeps a daily note per day: an item of the ready-made type `daily-note`, labelled `daily-note`, made in the room they chose once (`DailyRoomSet` in the accounts journal) and restricted to them in the same batch, one per day under concurrent requests (`Session.OpenDailyNote`, `Session.AppendToDailyNote`, `/api/daily…`, MCP `open_daily_note`);
-**Today**, Alt+Shift+D and the palette open `#/daily/<date>` (`assets/daily.js`, ADR-0205).
+**Today**, Alt+Shift+D and the palette open `#/journal/<date>` (`assets/daily.js`, ADR-0205); `#/daily…` sends on to it (ADR-0249).
 A title that matches nothing after "@" or in the link dialog is offered to be created with a type and room (`assets/mentioncreate.js`, ADR-0206).
 A command palette (Ctrl+K outside a text, Ctrl+Shift+P) finds items, recent items and commands (`assets/palette.js`);
 Shift+click or *Beside* opens an item in a pane kept as `?beside=` (`assets/beside.js`);

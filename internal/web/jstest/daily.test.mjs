@@ -23,7 +23,7 @@ test("an address names a day, or today without one", () => {
   assert.equal(dayOfAddress("2026-02-30"), null);
   assert.equal(dayOfAddress("2026-2-3"), null);
   assert.equal(dayOfAddress("yesterday"), null);
-  assert.equal(dailyHref(parseDay("2026-11-12")), "#/daily/2026-11-12");
+  assert.equal(dailyHref(parseDay("2026-11-12")), "#/journal/2026-11-12");
 });
 
 test("the month beside a note is drawn in whole weeks from Monday", () => {
