@@ -1,9 +1,9 @@
 # ADR-0247: A page tree that widens by dragging
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-19
-- **Deciders:** Project initiators. A person asked for the page tree on the left to be widened with the mouse, since long page titles are cut off at its fixed width.
+- **Deciders:** Project initiators. A person asked for the page tree on the left to be widened with the mouse, since long page titles are cut off at its fixed width. Accepted 2026-11-19 by the requester.
 
 ## Context and problem statement
 
