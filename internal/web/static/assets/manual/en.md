@@ -282,6 +282,8 @@ Ctrl+Enter runs a query. The results can be exported as CSV.
 
 A room offers several views: its page tree, **All items**, a **Board** per type with a workflow, **Views** of its items, the **Calendar**, the **Roadmap** and, depending on your role, **Governance** and **Link check**. **Watch** on a room tells you of everything that happens in it.
 
+The page tree stands to the left of the views. Drag its right edge with the mouse or a finger to make it wider or narrower; with the edge chosen, the arrow keys change it too, in larger steps with Shift, and Home and End make it as narrow or as wide as it goes. A double-click on the edge brings back the usual width. The width holds in this browser for every page, at most half the window.
+
 ### Views of items
 
 **Views** in a room, or **View of a type…** beside it, shows the items you may read as a **Table**, a **Gallery** of cards or a **List** of compact rows. Choose the **Room** (or all rooms), the **Type** and, if you like, a **Query** in the query language, then **Apply**. **Group by** puts the items under headers with their counts: by state, by label, or by a field that holds a choice, a person or yes and no; a click on a header folds the group. **Sort** orders them by a column, as does a click on a column's heading, a second click the other way. **Columns** chooses what the table shows; the cards of a gallery show the first picture of the text, or a file field's file, with the title and the chosen fields.

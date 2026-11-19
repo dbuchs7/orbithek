@@ -259,3 +259,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0244](0244-ca-bundle.md) | The commands that call a server trust an organisation's own certificate authority on request | Accepted | Landed |
 | [0245](0245-engine-ca-bundle.md) | Calls to process engines trust an organisation's own certificate authority on request | Accepted | Landed |
 | [0246](0246-a-display-name-each-person-chooses.md) | A display name each person chooses | Accepted | Landed |
+| [0247](0247-a-page-tree-that-widens-by-dragging.md) | A page tree that widens by dragging | Proposed | Partial |

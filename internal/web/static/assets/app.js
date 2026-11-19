@@ -6,6 +6,7 @@ import { createEditor, isSafeLink, setSecretClass, setVeiledContent } from "./ed
 import { protectChoices } from "./protect.js";
 import { liveBody, watchLive } from "./live.js";
 import { pageTree, ancestors } from "./tree.js";
+import { applyTreeWidth, treeHandle } from "./treewidth.js";
 import { renderDiff } from "./diff.js";
 import { commentPlugin } from "./anchors.js";
 import { personalNotes } from "./notes.js";
@@ -598,7 +599,9 @@ async function addToCollection(item, path, status) {
 
 // withTree lays a space's page tree beside a view's content.
 function withTree(tree, ...content) {
-  return h("div", { class: "with-tree" }, h("div", { class: "tree-col" }, columnToggle("tree"), tree), h("div", { class: "with-tree-main" }, ...content));
+  const col = h("div", { class: "tree-col" }, columnToggle("tree"), tree);
+  col.append(treeHandle(col, t("tree.resize"), t("tree.resizeHint")));
+  return h("div", { class: "with-tree" }, col, h("div", { class: "with-tree-main" }, ...content));
 }
 
 // The page tree and an item's side column fold away to give the content
@@ -609,6 +612,8 @@ const folded = {
   apply() { for (const col of ["tree", "side"]) document.documentElement.classList.toggle(col + "-folded", folded.get(col)); },
 };
 folded.apply();
+// The page tree keeps the width it was dragged to (ADR-0247).
+applyTreeWidth();
 
 // columnToggle folds a column away or shows it again: "tree" on the left,
 // "side" on the right.
