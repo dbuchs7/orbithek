@@ -1676,6 +1676,8 @@ export default {
   "account.avatarChoose": "Bild wählen",
   "account.avatarRemove": "Bild entfernen",
   "account.avatarNotImage": "Diese Datei ist kein Bild, das der Browser lesen kann.",
+  "account.displayName": "Anzeigename",
+  "account.displayNameHint": "So werden Sie angesprochen, zum Beispiel in der Begrüssung auf der Startseite; höchstens 64 Zeichen. Bleibt das Feld leer, wird Ihr Benutzername {username} verwendet.",
   "item.edit": "Bearbeiten",
   "item.done": "Fertig",
   "item.noBody": "Dieser Typ hat keinen Text; seine Angaben stehen rechts.",

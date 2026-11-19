@@ -1678,6 +1678,8 @@ export default {
   "account.avatarChoose": "Choose a picture",
   "account.avatarRemove": "Remove the picture",
   "account.avatarNotImage": "This file is not an image the browser can read.",
+  "account.displayName": "Display name",
+  "account.displayNameHint": "How you are addressed, for example in the greeting on the start page; at most 64 characters. Left empty, your username {username} is used.",
   "item.edit": "Edit",
   "item.done": "Done",
   "item.noBody": "This type has no text; its details are on the right.",

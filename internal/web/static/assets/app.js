@@ -2394,7 +2394,9 @@ async function homeView() {
   show(
     h("section", { class: "welcome", id: "welcome" },
       h("div", { class: "welcome-text" },
-        h("h1", { text: `${greeting}, ${me.user.username}` }),
+        // The name one chose on one's account, else the username
+        // (ADR-draft-a-display-name-each-person-chooses).
+        h("h1", { id: "welcome-greeting", text: `${greeting}, ${me.user.displayName || me.user.username}` }),
         h("p", { class: "welcome-lead", text: t("home.lead", { name }) }),
         stats,
         h("p", { class: "actions-row" },
@@ -5830,6 +5832,8 @@ async function accountView() {
     h("h1", { text: me.user.username }),
     h("p", { class: "muted", text: t("account.id", { id: me.user.id, via: me.via }) }),
     avatarCard(),
+    // The name one is called by (ADR-draft-a-display-name-each-person-chooses).
+    displayNameCard(),
     contactsCard(contacts),
     // One's sign-ins at other providers (ADR-0229).
     identitiesCard(),
@@ -5909,6 +5913,25 @@ function avatarCard() {
         me.avatar ? h("button", { type: "button", class: "link", text: t("account.avatarRemove"),
           onclick: () => action(async () => { await del("/api/me/avatar"); me.avatar = ""; }, status) }) : null)),
     status);
+}
+
+// displayNameCard sets the name one is called by, as in the greeting of
+// the start page (ADR-draft-a-display-name-each-person-chooses). Left
+// empty, the username stands in its place.
+function displayNameCard() {
+  const input = h("input", { name: "displayName", id: "display-name-input", value: me.user.displayName || "",
+    maxlength: 64, autocomplete: "name", placeholder: me.user.username });
+  return form({ class: "card", id: "display-name" }, [
+    field(t("account.displayName"), input),
+    h("p", { class: "muted", text: t("account.displayNameHint", { username: me.user.username }) }),
+    h("button", { type: "submit", text: t("common.save") }),
+  ], async (data, status) => {
+    const name = String(data.get("displayName") || "").trim();
+    await put("/api/me/display-name", { displayName: name });
+    me.user.displayName = name;
+    input.value = name;
+    status.replaceChildren(h("p", { class: "notice success", text: t("common.saved") }));
+  });
 }
 
 // contactsCard sets the channels messages reach one on (ADR-0061): a mail

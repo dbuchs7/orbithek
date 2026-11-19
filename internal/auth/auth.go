@@ -156,6 +156,9 @@ type user struct {
 	// dailyRoom is the key of the space the user's daily notes go to, or
 	// empty (ADR-0205).
 	dailyRoom string
+	// displayName is the name the user chose to be called by, or empty
+	// (ADR-draft-a-display-name-each-person-chooses).
+	displayName string
 }
 
 type token struct {
@@ -248,6 +251,9 @@ type event struct {
 	On      bool        `json:"on,omitempty"`
 	// Room is the space of a DailyRoomSet, empty to clear it (ADR-0205).
 	Room string `json:"room,omitempty"`
+	// DisplayName is the name of a DisplayNameSet, empty to clear it
+	// (ADR-draft-a-display-name-each-person-chooses).
+	DisplayName string `json:"displayName,omitempty"`
 }
 
 const (
@@ -290,6 +296,9 @@ const (
 	// dailyRoomSet records the space a user's daily notes go to
 	// (ADR-0205).
 	dailyRoomSet = "DailyRoomSet"
+	// displayNameSet records the name a user chose to be called by
+	// (ADR-draft-a-display-name-each-person-chooses).
+	displayNameSet = "DisplayNameSet"
 )
 
 // apply is the only code that changes accounts; it runs live and on load.
@@ -359,6 +368,12 @@ func (a *Accounts) apply(e event) error {
 			return fmt.Errorf("daily room of unknown user %s", e.User)
 		}
 		u.dailyRoom = e.Room
+	case displayNameSet:
+		u, ok := a.users[e.User]
+		if !ok {
+			return fmt.Errorf("display name of unknown user %s", e.User)
+		}
+		u.displayName = e.DisplayName
 	case pictureFavouriteSet:
 		return a.applyPictureFavourite(e)
 	case digestSent:

@@ -119,6 +119,7 @@ var classified = map[string]string{
 	"internal/auth.MaxReasonLength":                    "the shape of an account request (ADR-0061), like the length of a username; the waiting requests are bounded by AccountRequests",
 	"internal/auth.maxCalendarViews":                   "the shape of one's preferences (ADR-0168), like the number of favourites: views are kept whole in each journal record, and what a request carries is bounded by RequestBody",
 	"internal/auth.maxViewName":                        "the shape of a saved view (ADR-0168), like the length of a username",
+	"internal/auth.MaxDisplayName":                     "the shape of an account (ADR-draft-a-display-name-each-person-chooses): the length of a display name, like the length of a username",
 	"internal/auth.maxViewParams":                      "the shape of a saved view (ADR-0168): the parameters of a calendar's address, which hold a few choices and a query",
 	"internal/item.maxInterval":                        "the shape of a rule (ADR-0168), like the values of an enumeration: every 999 periods is longer than any calendar shows",
 	"internal/item.maxCount":                           "the shape of a rule (ADR-0168): how many times it repeats, which bounds the occurrences it gives",
