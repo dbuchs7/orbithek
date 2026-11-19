@@ -159,6 +159,10 @@ type user struct {
 	// displayName is the name the user chose to be called by, or empty
 	// (ADR-0246).
 	displayName string
+	// displayNameChosen says whether the account ever had a display name
+	// set, cleared included, so a provider's name is taken only as the
+	// first (ADR-0248).
+	displayNameChosen bool
 }
 
 type token struct {
@@ -373,7 +377,7 @@ func (a *Accounts) apply(e event) error {
 		if !ok {
 			return fmt.Errorf("display name of unknown user %s", e.User)
 		}
-		u.displayName = e.DisplayName
+		u.displayName, u.displayNameChosen = e.DisplayName, true
 	case pictureFavouriteSet:
 		return a.applyPictureFavourite(e)
 	case digestSent:

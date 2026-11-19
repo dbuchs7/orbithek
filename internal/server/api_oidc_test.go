@@ -98,6 +98,59 @@ func TestSingleSignOn(t *testing.T) {
 	}
 }
 
+// TestTheProviderNamesAFirstDisplayName: a sign-in through single sign-on
+// takes the provider's name claim as the display name of an account that
+// never had one, a new one or an existing one; it never replaces a name,
+// nor one cleared on purpose, and a name the account page would refuse is
+// not taken while the sign-in goes on
+// (ADR-0248).
+func TestTheProviderNamesAFirstDisplayName(t *testing.T) {
+	h, _, idp := ssoSetup(t)
+	signIn := func(c ssotest.Claims) *client {
+		t.Helper()
+		rec := signOn(t, h, idp, c)
+		if rec.Code != http.StatusFound || rec.Header().Get("Location") != "/" {
+			t.Fatalf("callback: %d %s", rec.Code, rec.Header().Get("Location"))
+		}
+		return &client{t: t, h: h, cookie: cookie(rec, SessionCookie)}
+	}
+	displayName := func(c *client) any {
+		return c.expect("GET", "/api/me", "", http.StatusOK)["user"].(map[string]any)["displayName"]
+	}
+
+	// A new account takes the name.
+	anna := signIn(ssotest.Claims{Subject: "s-anna", PreferredUsername: "anna@example.org", Name: " Anna Muster "})
+	if got := displayName(anna); got != "Anna Muster" {
+		t.Fatalf("new account: %v", got)
+	}
+	// A later sign-in with another name keeps the first.
+	anna = signIn(ssotest.Claims{Subject: "s-anna", PreferredUsername: "anna@example.org", Name: "Anna Renamed"})
+	if got := displayName(anna); got != "Anna Muster" {
+		t.Fatalf("a later name replaced the first: %v", got)
+	}
+	// Cleared on the account page, it does not come back.
+	anna.expect("PUT", "/api/me/display-name", `{"displayName":""}`, http.StatusNoContent)
+	anna = signIn(ssotest.Claims{Subject: "s-anna", PreferredUsername: "anna@example.org", Name: "Anna Muster"})
+	if got := displayName(anna); got != nil {
+		t.Fatalf("a cleared display name came back: %v", got)
+	}
+
+	// An account made before the provider sent a name takes it at its next
+	// sign-in; a name with a line break is not taken, and the sign-in goes on.
+	bert := signIn(ssotest.Claims{Subject: "s-bert", PreferredUsername: "bert@example.org"})
+	if got := displayName(bert); got != nil {
+		t.Fatalf("no name claim, yet a display name: %v", got)
+	}
+	bert = signIn(ssotest.Claims{Subject: "s-bert", PreferredUsername: "bert@example.org", Name: "Bert\nMuster"})
+	if got := displayName(bert); got != nil {
+		t.Fatalf("a refused name was taken: %v", got)
+	}
+	bert = signIn(ssotest.Claims{Subject: "s-bert", PreferredUsername: "bert@example.org", Name: "Bert Muster"})
+	if got := displayName(bert); got != "Bert Muster" {
+		t.Fatalf("existing account: %v", got)
+	}
+}
+
 func TestSingleSignOnRefusals(t *testing.T) {
 	h, d, idp := ssoSetup(t)
 	failed := func(rec *httptest.ResponseRecorder, name string) {
