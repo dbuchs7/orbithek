@@ -4231,7 +4231,15 @@ async function starmapScreen(space, path, params) {
     el.addEventListener("keydown", askOnVeiled);
     return el;
   };
-  await starmapView(section, space, path, params, { preview });
+  // Items show the page tree's symbols, finished tasks in green
+  // (ADR-draft-starmap-items-show-the-page-trees-symbols).
+  const { types } = await get("/api/types");
+  const workflows = new Map(types.filter((ty) => ty.workflow).map((ty) => [ty.name, ty.workflow]));
+  const symbols = {
+    taskTypes: new Set(types.filter(isTaskType).map((ty) => ty.name)),
+    finished: (type, state) => workflows.has(type) && finished(workflows.get(type), state),
+  };
+  await starmapView(section, space, path, params, { preview, symbols });
 }
 
 // starmapTabs switches between the starmap of a room and the starmap of

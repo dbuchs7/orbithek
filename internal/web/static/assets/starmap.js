@@ -8,7 +8,8 @@
 // neighbourhood by a double-click. From a node's panel, an impact view
 // (ADR-0159) shows what depends on it, or what it depends on, across
 // rooms to a chosen depth, as the server walks it. Shapes and outlines tell the kinds
-// apart, not colour alone; the colours are the look's tokens (style.css),
+// apart, not colour alone: an item shows the page tree's symbol, a page's
+// sheet or a task's ticked box, filled green when the task is finished; the colours are the look's tokens (style.css),
 // so it reads in the light, dark and cockpit looks alike. A focused node's
 // panel shows the page itself, read-only and as the reader may read it,
 // clipped with "Read more", so one stays on the map (ADR-0157).
@@ -16,8 +17,9 @@ import { h, mount } from "./dom.js";
 import { t } from "./i18n.js";
 import { get } from "./api.js";
 import { DEPTHS, GROUPS, IMPACT_DEPTHS, distanceClass, drillBack, drillInto, fitView, groupOf, impactAddress, impactGraph, impactList, impactParams, impactPath,
-  CLOUD_BOTTOM, cloudPath, cloudReach, groupRadius, impactSummary, kinds, layout, mergeLabelCounts, HULL_PAD, neighbourhood, nodeRadii, ROOM_GAP, roomAddress, roomClusters, roomHull, roomLinks, roomStart, roomToneOf, size, startRoom, toneOf, visible, zoomBand } from "./starmap-graph.js";
+  CLOUD_BOTTOM, cloudPath, cloudReach, groupRadius, impactSummary, itemSymbols, kinds, layout, mergeLabelCounts, HULL_PAD, neighbourhood, nodeRadii, ROOM_GAP, roomAddress, roomClusters, roomHull, roomLinks, roomStart, roomToneOf, size, startRoom, toneOf, visible, zoomBand } from "./starmap-graph.js";
 import { DEFAULTS as SIM, simulation } from "./starmap-sim.js";
+import { treeIconLayers } from "./treeicons.js";
 
 const NS = "http://www.w3.org/2000/svg";
 
@@ -32,16 +34,31 @@ function s(tag, attrs = {}, ...children) {
 const text = (value) => document.createTextNode(String(value));
 const short = (value, n = 22) => (value.length > n ? value.slice(0, n - 1) + "…" : value);
 
-// shape draws a node's mark: a circle for an item, a square for a
-// picture, a diamond for a label, a bubble as big as its items for a
-// group of the starmap of all rooms (ADR-0191).
-function shape(kind, node = {}) {
+// shape draws a node's mark: the page tree's symbol for an item (sym, see
+// itemSymbols; ADR-draft-starmap-items-show-the-page-trees-symbols), a
+// square for a picture, a diamond for a label, a cloud as big as its items
+// for a group of the starmap of all rooms (ADR-0191, ADR-0230).
+function shape(kind, node = {}, sym = { kind: "page", stacked: false }) {
   // A group of the starmap of all rooms is a cloud, as big as its items
   // (ADR-0191, ADR-0230).
   if (kind === "group") return s("path", { d: cloudPath(groupRadius(node.count)), class: "star-shape star-cloud" });
   if (kind === "picture") return s("rect", { x: -9, y: -9, width: 18, height: 18, rx: 3, class: "star-shape" });
   if (kind === "label") return s("polygon", { points: "0,-11 11,0 0,11 -11,0", class: "star-shape" });
-  return s("circle", { r: 11, class: "star-shape" });
+  return symbol(sym);
+}
+
+// SYMBOL_SCALE is how much larger than in the page tree's 24 by 24 box an
+// item's symbol is drawn, so it takes about the room the circle took.
+const SYMBOL_SCALE = 1.25;
+
+// symbol draws the page tree's symbol of an item centred on the node: the
+// outline is the node's shape, filled; the marks inside it and the
+// outlines of a stack behind it are lines in the node's tone.
+function symbol(sym) {
+  const half = 12 * SYMBOL_SCALE;
+  return s("g", { class: "star-symbol", "data-symbol": sym.kind, "data-stacked": sym.stacked ? "" : null, transform: `translate(${-half} ${-half}) scale(${SYMBOL_SCALE})` },
+    ...treeIconLayers(sym.kind, sym.stacked).map((l) =>
+      s("path", { d: l.d, transform: l.transform, class: l.layer === "outline" ? "star-shape" : "star-" + l.layer, "vector-effect": "non-scaling-stroke" })));
 }
 
 const edgeKinds = ["parent", "relation", "mentions", "embeds", "picture", "copy", "label"];
@@ -86,7 +103,11 @@ let impactReturn = null;
 // preview, given by the page that shows the map, draws an item's page
 // read-only for the panel (the renderer embeds use, so protected content
 // stays veiled); without it the panel shows the facts only.
-export async function starmapView(container, space, path = [], params = new URLSearchParams(), { preview = null } = {}) {
+// symbols, given by the page that shows the map, names the task types
+// (taskTypes, a Set) and tells a finished state (finished(type, state)),
+// so items show the page tree's symbols and finished tasks are green;
+// without it every item shows a page's symbol.
+export async function starmapView(container, space, path = [], params = new URLSearchParams(), { preview = null, symbols = {} } = {}) {
   const depth = Number(params.get("depth")) || 1;
   const impact = path.length ? impactParams(params) : null;
   const { spaces } = await get("/api/spaces");
@@ -104,7 +125,7 @@ export async function starmapView(container, space, path = [], params = new URLS
     const start = path[path.length - 1];
     const result = await get(impactPath(start, impact));
     const map = drawMap({ ...impactGraph(result), truncated: false }, key, select,
-      { path: [], depth: 1, preview, impact: { ...impact, result, stations: path.slice(0, -1), start: result.start } });
+      { path: [], depth: 1, preview, symbols, impact: { ...impact, result, stations: path.slice(0, -1), start: result.start } });
     mount(container, map.root);
     map.start();
     return;
@@ -116,13 +137,13 @@ export async function starmapView(container, space, path = [], params = new URLS
     const label = (params.get("label") || "").trim();
     const data = await get("/api/starmap" + (label ? "?label=" + encodeURIComponent(label) : ""));
     const keep = new URLSearchParams(label ? { label } : {});
-    const map = drawMap(data, key, select, { path: key === space ? path : [], depth, preview, keep, extra: labelChooser(label) });
+    const map = drawMap(data, key, select, { path: key === space ? path : [], depth, preview, symbols, keep, extra: labelChooser(label) });
     mount(container, map.root);
     map.start();
     return;
   }
   const data = await get(`/api/spaces/${encodeURIComponent(key)}/starmap`);
-  const map = drawMap(data, key, select, { path: key === space ? path : [], depth, preview });
+  const map = drawMap(data, key, select, { path: key === space ? path : [], depth, preview, symbols });
   mount(container, map.root);
   map.start();
 }
@@ -150,8 +171,9 @@ function labelChooser(label) {
   return form;
 }
 
-function drawMap(data, space, select, { path, depth: askedDepth, impact = null, preview = null, keep = new URLSearchParams(), extra = null }) {
+function drawMap(data, space, select, { path, depth: askedDepth, impact = null, preview = null, symbols = {}, keep = new URLSearchParams(), extra = null }) {
   const graph = { nodes: data.nodes, edges: data.edges };
+  const symbolOf = itemSymbols(graph, symbols);
   const n = graph.nodes.length;
   const tone = toneOf(graph.nodes);
   const roomTone = roomToneOf(graph.nodes);
@@ -206,16 +228,19 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
     return g;
   });
   const nodeEls = graph.nodes.map((node, i) => {
-    const cls = ["star-node", "kind-" + node.kind, node.kind === "item" ? "tone-" + tone(node.type) : node.kind === "group" ? "tone-" + roomTone(node.space) : "", node.outside ? "outside" : "",
+    const sym = symbolOf.get(node.id);
+    const cls = ["star-node", "kind-" + node.kind, node.kind === "item" ? "tone-" + tone(node.type) : node.kind === "group" ? "tone-" + roomTone(node.space) : "", node.outside ? "outside" : "", sym?.done ? "done" : "",
       impact ? distanceClass(node.distance) : "", impact && node.id === impact.start ? "root impact-start" : ""].join(" ");
     const caption = node.kind === "item" ? short(node.title || node.key)
       : node.kind === "group" ? `${short(node.name || "", 26)} (${node.count})` : short(node.name || "");
     // In an impact view a ring grades the node by its distance, and its
     // name says the distance too.
-    const name = impact ? nodeName(node) + ", " + distanceName(node.distance) : nodeName(node);
+    // A finished task says so in its name too, not by its colour alone.
+    const named = sym?.done ? nodeName(node) + ", " + t("starmap.nodeDone") : nodeName(node);
+    const name = impact ? named + ", " + distanceName(node.distance) : named;
     const g = s("g", { class: cls, tabindex: 0, role: "button", "aria-label": name, "data-id": node.id, "data-key": node.key || null,
       "data-distance": impact ? node.distance : null },
-    s("title", {}, text(name)), impact ? s("circle", { r: 17, class: "star-ring" }) : null, shape(node.kind, node),
+    s("title", {}, text(name)), impact ? s("circle", { r: 17, class: "star-ring" }) : null, shape(node.kind, node, sym),
     s("text", { y: node.kind === "group" ? Math.round(CLOUD_BOTTOM * groupRadius(node.count)) + 16 : 24, "text-anchor": "middle", class: "star-caption" }, text(caption)));
     g.addEventListener("click", (ev) => {
       ev.stopPropagation();
@@ -698,7 +723,10 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
   const legend = h("section", { class: "starmap-legend", id: "starmap-legend", "aria-label": t("starmap.legend") },
     h("h2", { text: t("starmap.legend") }),
     h("ul", {},
-      h("li", {}, swatch(s("g", { class: "star-node kind-item tone-0" }, shape("item"))), h("span", { text: t("starmap.legendItem") })),
+      h("li", { id: "starmap-legend-page" }, swatch(s("g", { class: "star-node kind-item tone-0" }, shape("item"))), h("span", { text: t("starmap.legendItem") })),
+      h("li", { id: "starmap-legend-task" }, swatch(s("g", { class: "star-node kind-item tone-0" }, shape("item", {}, { kind: "task", stacked: false }))), h("span", { text: t("starmap.legendTask") })),
+      h("li", { id: "starmap-legend-done" }, swatch(s("g", { class: "star-node kind-item done" }, shape("item", {}, { kind: "task", stacked: false }))), h("span", { text: t("starmap.legendDone") })),
+      h("li", { id: "starmap-legend-stack" }, swatch(s("g", { class: "star-node kind-item tone-0" }, shape("item", {}, { kind: "page", stacked: true }))), h("span", { text: t("starmap.legendStack") })),
       h("li", {}, swatch(s("g", { class: "star-node kind-picture" }, shape("picture"))), h("span", { text: t("starmap.legendPicture") })),
       h("li", {}, swatch(s("g", { class: "star-node kind-label" }, shape("label"))), h("span", { text: t("starmap.legendLabel") })),
       h("li", {}, swatch(s("g", { class: "star-node kind-item outside" }, shape("item"))), h("span", { text: t("starmap.legendOutside") })),

@@ -13,7 +13,7 @@
 // The view itself is in e2e/smoke.cjs.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DEPTHS, GROUPS, IMPACT_DEPTHS, IMPACT_DIRECTIONS, around, captionShown, distanceClass, drillBack, drillInto, filter, fitView, groupOf, impactAddress, impactGraph,
+import { DEPTHS, GROUPS, itemSymbols, IMPACT_DEPTHS, IMPACT_DIRECTIONS, around, captionShown, distanceClass, drillBack, drillInto, filter, fitView, groupOf, impactAddress, impactGraph,
   impactList, impactParams, impactPath, impactSummary, kinds, kindOf, groupRadius, CLOUD_BOTTOM, CLOUD_MARGIN, CLOUD_REACH, cloudPath, cloudReach, layout, roomAddress, startRoom, matches, mergeLabelCounts, neighbourhood, size, nodeRadii, roomClusters, roomLinks, roomHull, roomStart, roomToneOf, toneOf, visible, zoomBand } from "../static/assets/starmap-graph.js";
 import { DEFAULTS, chargeExact, chargeTree, quadtree, simulation } from "../static/assets/starmap-sim.js";
 
@@ -616,4 +616,35 @@ test("a cloud keeps its caption at a middle zoom, as an item does", () => {
   assert.equal(captionShown("far", { kind: "group" }), false);
   assert.equal(captionShown("mid", { kind: "label" }), false, "labels as before");
   assert.equal(captionShown("mid", { kind: "item" }), true, "items as before");
+});
+
+test("an item shows the page tree's symbol: a task's box for a task type, a stack above an item on the map, green when the task is finished", () => {
+  const map = {
+    nodes: [
+      { id: "p", kind: "item", type: "page" },
+      { id: "t1", kind: "item", type: "task", state: "open" },
+      { id: "t2", kind: "item", type: "task", state: "done" },
+      { id: "d", kind: "item", type: "decision", state: "accepted" },
+      { id: "x", kind: "item", type: "task", state: "done", outside: true },
+      { id: "picture:p/a", kind: "picture" },
+      { id: "label:x", kind: "label" },
+      { id: "g", kind: "group", type: "task", count: 3 },
+    ],
+    edges: [
+      { from: "p", to: "t1", kind: "parent" },
+      { from: "t1", to: "t2", kind: "parent" },
+      { from: "d", to: "p", kind: "relation" },
+      { from: "p", to: "picture:p/a", kind: "picture" },
+    ],
+  };
+  const taskTypes = new Set(["task"]);
+  const finished = (type, state) => state === (type === "decision" ? "accepted" : "done");
+  const sym = itemSymbols(map, { taskTypes, finished });
+  assert.deepEqual(sym.get("p"), { kind: "page", stacked: true, done: false });
+  assert.deepEqual(sym.get("t1"), { kind: "task", stacked: true, done: false });
+  assert.deepEqual(sym.get("t2"), { kind: "task", stacked: false, done: true });
+  assert.deepEqual(sym.get("d"), { kind: "page", stacked: false, done: false }, "a finished item that is no task is not marked done");
+  assert.deepEqual(sym.get("x"), { kind: "task", stacked: false, done: true }, "an item of another room shows its symbol too");
+  for (const id of ["picture:p/a", "label:x", "g"]) assert.equal(sym.has(id), false, "pictures, labels and clouds keep their shapes");
+  assert.deepEqual(itemSymbols(map).get("t2"), { kind: "page", stacked: false, done: false }, "without the task types every item is a page");
 });
