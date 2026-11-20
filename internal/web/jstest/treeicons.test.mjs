@@ -8,7 +8,7 @@
 // The tree itself is in e2e/smoke.cjs.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { treeIconKind, treeIconParts } from "../static/assets/treeicons.js";
+import { treeIconKind, treeIconLayers, treeIconParts } from "../static/assets/treeicons.js";
 
 // points returns the end points a path's commands name, in absolute
 // coordinates; the paths use only M, H, V, A and relative h and l.
@@ -92,6 +92,22 @@ test("no outline behind is drawn where the symbol in front covers it", () => {
         const inside = x > minX + 1e-6 && x < maxX - 1e-6 && y > minY + 1e-6 && y < maxY - 1e-6;
         assert.ok(!inside, `${kind}: ${x},${y} lies under the symbol in front`);
       }
+    }
+  }
+});
+
+test("the layers of a symbol split its outline from its marks, the stack behind first", () => {
+  for (const kind of ["page", "task"]) {
+    for (const stacked of [false, true]) {
+      const parts = treeIconParts(kind, stacked);
+      const layers = treeIconLayers(kind, stacked);
+      assert.deepEqual(layers.map((l) => l.layer), [...parts.slice(0, -1).map(() => "behind"), "outline", "marks"]);
+      const [outline, marks] = layers.slice(-2);
+      assert.equal(outline.d + marks.d, parts[parts.length - 1].d, "outline and marks make the symbol");
+      assert.match(outline.d, /Z$/, "the outline is closed, so it can be filled");
+      assert.doesNotMatch(marks.d, /Z/, "the marks are lines");
+      for (const l of layers.slice(-2)) assert.equal(l.transform, parts[parts.length - 1].transform);
+      layers.slice(0, -2).forEach((l, i) => assert.deepEqual(l, { ...parts[i], layer: "behind" }));
     }
   }
 });

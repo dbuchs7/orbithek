@@ -84,6 +84,24 @@ export function kinds(nodes) {
   return out;
 }
 
+// itemSymbols is the symbol each item of the map shows, as the page tree
+// draws it (treeicons.js): kind is "task" for an item of one of the task
+// types and "page" for every other; stacked when the map holds an item
+// below it; done when it is a task whose state is finished, which the map
+// draws green (ADR-0250).
+// finished(type, state) tells a finished state. Pictures, labels and
+// clouds keep their shapes and have no entry.
+export function itemSymbols(graph, { taskTypes = new Set(), finished = () => false } = {}) {
+  const parents = new Set(graph.edges.filter((e) => e.kind === "parent").map((e) => e.from));
+  const out = new Map();
+  for (const n of graph.nodes) {
+    if (n.kind !== "item") continue;
+    const kind = taskTypes.has(n.type) ? "task" : "page";
+    out.set(n.id, { kind, stacked: parents.has(n.id), done: kind === "task" && Boolean(finished(n.type, n.state)) });
+  }
+  return out;
+}
+
 // toneOf gives each item type of the map a tone, 0 to 5, by its place
 // among the types: the colour that tells types apart besides the legend.
 export function toneOf(nodes) {

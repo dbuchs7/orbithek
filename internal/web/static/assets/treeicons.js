@@ -62,3 +62,21 @@ export function treeIconParts(kind, stacked) {
     { d: front, transform: `translate(${num(fx - x * s.scale)} ${num(fy - y * s.scale)}) scale(${s.scale})` },
   ];
 }
+
+// treeIconLayers returns the parts of treeIconParts with the front symbol
+// split into its outline and its marks, each named by its layer: "behind"
+// for the outlines of a stack, then "outline", a closed shape that may be
+// filled, and "marks", the lines inside it. The starmap fills the outline
+// (ADR-0250).
+export function treeIconLayers(kind, stacked) {
+  const s = shapes[kind] || shapes.page;
+  const [x, y, w, h] = s.box;
+  const parts = treeIconParts(kind, stacked);
+  const front = parts[parts.length - 1];
+  const at = front.transform ? { transform: front.transform } : {};
+  return [
+    ...parts.slice(0, -1).map((p) => ({ ...p, layer: "behind" })),
+    { d: outline(x, y, w, h, s.r), ...at, layer: "outline" },
+    { d: s.marks, ...at, layer: "marks" },
+  ];
+}

@@ -2970,9 +2970,32 @@ function webSource() {
         body: JSON.stringify({ space: "PLAT", type: "task", title: "Star chart", properties: { priority: "low" }, body }) });
       return (await r.json()).item.key;
     });
+    // A finished task, which the map draws green (ADR-0250):
+    // made and moved along its workflow to a state no transition leaves, or its last.
+    const doneTask = await page.evaluate(async () => {
+      const { types } = await (await fetch("/api/types")).json();
+      const wf = types.find((ty) => ty.name === "task").workflow;
+      const end = (st) => st === wf.states[wf.states.length - 1] || !wf.transitions.some((tr) => tr.from.includes(st));
+      const { item } = await (await fetch("/api/items", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ space: "PLAT", type: "task", title: "Charted star", properties: { priority: "low" } }) })).json();
+      let state = item.state;
+      for (let i = 0; i < wf.states.length && !end(state); i++) {
+        const tr = wf.transitions.find((x) => x.from.includes(state) && end(x.to)) || wf.transitions.find((x) => x.from.includes(state));
+        await fetch(`/api/items/${item.key}/transitions`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: tr.name }) });
+        state = tr.to;
+      }
+      return item.key;
+    });
     await page.goto(base + "/#/starmap/PLAT");
     await page.waitForSelector("#starmap-canvas .star-node");
     check(await page.inputValue("#starmap-space") === "PLAT", "the room of the address is chosen");
+    check(await page.locator(`#starmap-canvas .star-node[data-key='${longPage}'] .star-symbol[data-symbol=task]`).count() === 1
+      && await page.locator(`#starmap-canvas .star-node[data-key='${longPage}'].done`).count() === 0, "an open task shows the page tree's ticked box, not green");
+    check(await page.locator(`#starmap-canvas .star-node.done[data-key='${doneTask}'] .star-symbol[data-symbol=task]`).count() === 1
+      && (await page.getAttribute(`.star-node[data-key='${doneTask}']`, "aria-label")).endsWith(", finished"), "a finished task is green and says so in its name");
+    check(await page.locator("#starmap-canvas .star-node.kind-item .star-symbol[data-symbol=page]").count() > 0
+      && await page.locator("#starmap-canvas .star-node.kind-item circle.star-shape").count() === 0, "pages show the page tree's sheet, no item is a circle");
+    check(await page.locator("#starmap-legend-page, #starmap-legend-task, #starmap-legend-done, #starmap-legend-stack").count() === 4, "the legend explains the symbols");
     check((await page.getAttribute("#starmap-canvas", "aria-label")).includes("PLAT"), "the canvas is named");
     for (const sel of [".star-node.kind-item[data-key='PLAT-1']", ".star-node.kind-item[data-key='PLAT-2']", ".star-node.kind-picture",
       ".star-node.kind-label[data-id='label:constellation']", ".star-link[data-kind=mentions]", ".star-link[data-kind=relation]",
