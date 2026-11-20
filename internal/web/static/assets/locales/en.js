@@ -2230,6 +2230,7 @@ export default {
   "starmap.kindPicture": "Pictures",
   "starmap.kindLabel": "Labels",
   "starmap.kindOutside": "Other rooms",
+  "starmap.kindDone": "Finished tasks",
   "starmap.groupTree": "Tree",
   "starmap.groupRelations": "Relations and mentions",
   "starmap.groupPictures": "Pictures and origins",

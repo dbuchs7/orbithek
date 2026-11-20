@@ -2228,6 +2228,7 @@ export default {
   "starmap.kindPicture": "Bilder",
   "starmap.kindLabel": "Labels",
   "starmap.kindOutside": "Andere Räume",
+  "starmap.kindDone": "Erledigte Aufgaben",
   "starmap.groupTree": "Baum",
   "starmap.groupRelations": "Beziehungen und Erwähnungen",
   "starmap.groupPictures": "Bilder und Herkunft",
