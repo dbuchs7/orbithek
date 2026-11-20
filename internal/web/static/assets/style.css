@@ -2197,7 +2197,7 @@ dialog.note-dialog { max-height: calc(100dvh - 32px); overflow: auto; }
    stack are lines in its tone. Green is kept for finished tasks, so the
    type of the second tone is drawn in violet; a finished task is filled
    green with its tick in the surface's colour
-   (ADR-draft-starmap-items-show-the-page-trees-symbols). */
+   (ADR-0250). */
 .star-marks, .star-behind { fill: none; stroke: var(--tone); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .star-behind { stroke-width: 1.5; }
 .star-node.kind-item.tone-1 { --tone: color-mix(in srgb, var(--accent) 50%, var(--danger)); }

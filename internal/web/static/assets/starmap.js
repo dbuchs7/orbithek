@@ -35,7 +35,7 @@ const text = (value) => document.createTextNode(String(value));
 const short = (value, n = 22) => (value.length > n ? value.slice(0, n - 1) + "…" : value);
 
 // shape draws a node's mark: the page tree's symbol for an item (sym, see
-// itemSymbols; ADR-draft-starmap-items-show-the-page-trees-symbols), a
+// itemSymbols; ADR-0250), a
 // square for a picture, a diamond for a label, a cloud as big as its items
 // for a group of the starmap of all rooms (ADR-0191, ADR-0230).
 function shape(kind, node = {}, sym = { kind: "page", stacked: false }) {

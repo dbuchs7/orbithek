@@ -1,4 +1,4 @@
-# ADR-DRAFT: Items on the starmap show the page tree's symbols, finished tasks in green
+# ADR-0250: Items on the starmap show the page tree's symbols, finished tasks in green
 
 - **Status:** Proposed
 - **Implementation:** Partial

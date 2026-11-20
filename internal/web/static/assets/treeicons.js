@@ -67,7 +67,7 @@ export function treeIconParts(kind, stacked) {
 // split into its outline and its marks, each named by its layer: "behind"
 // for the outlines of a stack, then "outline", a closed shape that may be
 // filled, and "marks", the lines inside it. The starmap fills the outline
-// (ADR-draft-starmap-items-show-the-page-trees-symbols).
+// (ADR-0250).
 export function treeIconLayers(kind, stacked) {
   const s = shapes[kind] || shapes.page;
   const [x, y, w, h] = s.box;

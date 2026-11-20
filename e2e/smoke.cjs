@@ -2970,7 +2970,7 @@ function webSource() {
         body: JSON.stringify({ space: "PLAT", type: "task", title: "Star chart", properties: { priority: "low" }, body }) });
       return (await r.json()).item.key;
     });
-    // A finished task, which the map draws green (ADR-draft-starmap-items-show-the-page-trees-symbols):
+    // A finished task, which the map draws green (ADR-0250):
     // made and moved along its workflow to a state no transition leaves, or its last.
     const doneTask = await page.evaluate(async () => {
       const { types } = await (await fetch("/api/types")).json();

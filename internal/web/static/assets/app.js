@@ -4232,7 +4232,7 @@ async function starmapScreen(space, path, params) {
     return el;
   };
   // Items show the page tree's symbols, finished tasks in green
-  // (ADR-draft-starmap-items-show-the-page-trees-symbols).
+  // (ADR-0250).
   const { types } = await get("/api/types");
   const workflows = new Map(types.filter((ty) => ty.workflow).map((ty) => [ty.name, ty.workflow]));
   const symbols = {

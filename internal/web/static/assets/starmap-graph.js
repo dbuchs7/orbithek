@@ -88,7 +88,7 @@ export function kinds(nodes) {
 // draws it (treeicons.js): kind is "task" for an item of one of the task
 // types and "page" for every other; stacked when the map holds an item
 // below it; done when it is a task whose state is finished, which the map
-// draws green (ADR-draft-starmap-items-show-the-page-trees-symbols).
+// draws green (ADR-0250).
 // finished(type, state) tells a finished state. Pictures, labels and
 // clouds keep their shapes and have no entry.
 export function itemSymbols(graph, { taskTypes = new Set(), finished = () => false } = {}) {
