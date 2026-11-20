@@ -25,7 +25,8 @@ export function groupOf(kind) {
 
 // kindOf is the filter a node falls under: an item by its type (types are
 // the users' own, never named here), a picture or a label. Outside nodes
-// have a switch of their own besides (outsideKind).
+// have a switch of their own besides (outsideKind), as finished tasks do
+// (doneKind).
 export function kindOf(node) {
   if (node.kind === "item" || node.kind === "group") return "type:" + node.type;
   return node.kind;
@@ -73,14 +74,20 @@ export function groupRadius(count) {
 
 export const outsideKind = "outside";
 
+// doneKind is the switch of the finished tasks, nodes marked done (see
+// itemSymbols): switched off, the map hides them with their edges
+// (ADR-0250).
+export const doneKind = "done";
+
 // kinds lists the node filters the map needs: every item type on it in
-// the order of the alphabet, then pictures, labels and outside nodes when
-// it has them.
+// the order of the alphabet, then pictures, labels, outside nodes and
+// finished tasks when it has them.
 export function kinds(nodes) {
   const types = [...new Set(nodes.filter((n) => n.kind === "item" || n.kind === "group").map((n) => n.type))].sort();
   const out = types.map((type) => ({ key: "type:" + type, type }));
   for (const k of ["picture", "label"]) if (nodes.some((n) => n.kind === k)) out.push({ key: k });
   if (nodes.some((n) => n.outside)) out.push({ key: outsideKind });
+  if (nodes.some((n) => n.done)) out.push({ key: doneKind });
   return out;
 }
 
@@ -235,12 +242,12 @@ export function matches(node, query) {
 
 // filter applies the filters: hidden is a set of node kinds and edge
 // groups switched off. A node shows when its kind is on (and, outside, the
-// outside switch); an edge when its group is on and both ends show. With
+// outside switch; a finished task, the switch of finished tasks); an edge when its group is on and both ends show. With
 // a query, only the matches show and what one shown edge joins to them.
 // It returns the ids of the nodes shown, the indexes of the edges shown
 // and the ids of the matches.
 export function filter(graph, { query = "", hidden = new Set() } = {}) {
-  const on = new Set(graph.nodes.filter((n) => !hidden.has(kindOf(n)) && !(n.outside && hidden.has(outsideKind))).map((n) => n.id));
+  const on = new Set(graph.nodes.filter((n) => !hidden.has(kindOf(n)) && !(n.outside && hidden.has(outsideKind)) && !(n.done && hidden.has(doneKind))).map((n) => n.id));
   const edgeOn = (e) => !hidden.has(groupOf(e.kind)) && on.has(e.from) && on.has(e.to);
   const found = new Set();
   let shown = on;

@@ -13,7 +13,7 @@
 // The view itself is in e2e/smoke.cjs.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DEPTHS, GROUPS, itemSymbols, IMPACT_DEPTHS, IMPACT_DIRECTIONS, around, captionShown, distanceClass, drillBack, drillInto, filter, fitView, groupOf, impactAddress, impactGraph,
+import { DEPTHS, GROUPS, doneKind, itemSymbols, IMPACT_DEPTHS, IMPACT_DIRECTIONS, around, captionShown, distanceClass, drillBack, drillInto, filter, fitView, groupOf, impactAddress, impactGraph,
   impactList, impactParams, impactPath, impactSummary, kinds, kindOf, groupRadius, CLOUD_BOTTOM, CLOUD_MARGIN, CLOUD_REACH, cloudPath, cloudReach, layout, roomAddress, startRoom, matches, mergeLabelCounts, neighbourhood, size, nodeRadii, roomClusters, roomLinks, roomHull, roomStart, roomToneOf, toneOf, visible, zoomBand } from "../static/assets/starmap-graph.js";
 import { DEFAULTS, chargeExact, chargeTree, quadtree, simulation } from "../static/assets/starmap-sim.js";
 
@@ -647,4 +647,24 @@ test("an item shows the page tree's symbol: a task's box for a task type, a stac
   assert.deepEqual(sym.get("x"), { kind: "task", stacked: false, done: true }, "an item of another room shows its symbol too");
   for (const id of ["picture:p/a", "label:x", "g"]) assert.equal(sym.has(id), false, "pictures, labels and clouds keep their shapes");
   assert.deepEqual(itemSymbols(map).get("t2"), { kind: "page", stacked: false, done: false }, "without the task types every item is a page");
+});
+
+test("finished tasks have a switch of their own that hides them with their edges, the search included", () => {
+  const map = {
+    nodes: [
+      { id: "p", kind: "item", type: "page", title: "Plan" },
+      { id: "t1", kind: "item", type: "task", title: "Open star" },
+      { id: "t2", kind: "item", type: "task", title: "Done star", done: true },
+    ],
+    edges: [{ from: "p", to: "t1", kind: "parent" }, { from: "p", to: "t2", kind: "parent" }],
+  };
+  assert.deepEqual(kinds(map.nodes).map((k) => k.key), ["type:page", "type:task", doneKind], "the switch is offered where the map holds a finished task");
+  assert.deepEqual(kinds(map.nodes.slice(0, 2)).map((k) => k.key), ["type:page", "type:task"], "and only there");
+  const all = filter(map);
+  assert.deepEqual([...all.nodes].sort(), ["p", "t1", "t2"], "finished tasks show by default");
+  const off = filter(map, { hidden: new Set([doneKind]) });
+  assert.deepEqual([...off.nodes].sort(), ["p", "t1"]);
+  assert.deepEqual(off.edges, [0], "the edge to a hidden task goes with it");
+  assert.equal(filter(map, { query: "star", hidden: new Set([doneKind]) }).matches.has("t2"), false, "the search finds no hidden task");
+  assert.deepEqual([...visible(map, { hidden: new Set([doneKind]), trail: ["p"] }).nodes].sort(), ["p", "t1"], "a separated neighbourhood leaves it out too");
 });

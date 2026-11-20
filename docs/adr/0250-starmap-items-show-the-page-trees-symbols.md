@@ -44,6 +44,8 @@ Chosen option: **1**, because it is what was asked for, reuses the symbols the n
 - A finished task carries the class `done`: its outline is filled with `--success` and its tick drawn in `--surface`; its name ends in ", finished" (de: "erledigt").
   The type of the second tone, which was drawn in `--success`, is drawn in a mix of `--accent` and `--danger` instead, so green on an item means a finished task alone.
 - The legend explains the page's sheet, the task's box, the green box and the stack; the manual says the same.
+- Finished tasks have a switch of their own among the filters (*Finished tasks*, `doneKind`), offered while the map holds one and on by default: switched off, the map hides them with their edges, the search and a separated neighbourhood included.
+  Request of 2026-11-20, after the first part: hide the finished tasks.
 
 ### Consequences
 

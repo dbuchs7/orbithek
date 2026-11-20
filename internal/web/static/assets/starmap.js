@@ -67,7 +67,7 @@ const edgeKinds = ["parent", "relation", "mentions", "embeds", "picture", "copy"
 const groupName = (g) => ({ tree: t("starmap.groupTree"), relations: t("starmap.groupRelations"), pictures: t("starmap.groupPictures"), labels: t("starmap.groupLabels") })[g];
 const edgeName = (k) => ({ parent: t("starmap.edgeParent"), relation: t("starmap.edgeRelation"), mentions: t("starmap.edgeMentions"), embeds: t("starmap.edgeEmbeds"),
   picture: t("starmap.edgePicture"), copy: t("starmap.edgeCopy"), label: t("starmap.edgeLabel") })[k];
-const kindName = (k) => (k.type !== undefined ? k.type : { picture: t("starmap.kindPicture"), label: t("starmap.kindLabel"), outside: t("starmap.kindOutside") }[k.key]);
+const kindName = (k) => (k.type !== undefined ? k.type : { picture: t("starmap.kindPicture"), label: t("starmap.kindLabel"), outside: t("starmap.kindOutside"), done: t("starmap.kindDone") }[k.key]);
 
 function nodeName(n) {
   let name;
@@ -172,8 +172,9 @@ function labelChooser(label) {
 }
 
 function drawMap(data, space, select, { path, depth: askedDepth, impact = null, preview = null, symbols = {}, keep = new URLSearchParams(), extra = null }) {
-  const graph = { nodes: data.nodes, edges: data.edges };
-  const symbolOf = itemSymbols(graph, symbols);
+  // A finished task is marked done, so the filters can hide it (ADR-0250).
+  const symbolOf = itemSymbols({ nodes: data.nodes, edges: data.edges }, symbols);
+  const graph = { nodes: data.nodes.map((node) => (symbolOf.get(node.id)?.done ? { ...node, done: true } : node)), edges: data.edges };
   const n = graph.nodes.length;
   const tone = toneOf(graph.nodes);
   const roomTone = roomToneOf(graph.nodes);

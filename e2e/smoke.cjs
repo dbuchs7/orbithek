@@ -2996,6 +2996,11 @@ function webSource() {
     check(await page.locator("#starmap-canvas .star-node.kind-item .star-symbol[data-symbol=page]").count() > 0
       && await page.locator("#starmap-canvas .star-node.kind-item circle.star-shape").count() === 0, "pages show the page tree's sheet, no item is a circle");
     check(await page.locator("#starmap-legend-page, #starmap-legend-task, #starmap-legend-done, #starmap-legend-stack").count() === 4, "the legend explains the symbols");
+    await page.uncheck("#starmap-kinds [data-filter=done] input");
+    check(await page.locator(`#starmap-canvas .star-node[data-key='${doneTask}'][hidden]`).count() === 1
+      && await page.locator(`#starmap-canvas .star-node[data-key='${longPage}']:not([hidden])`).count() === 1, "the switch of finished tasks hides them and keeps the open ones");
+    await page.check("#starmap-kinds [data-filter=done] input");
+    check(await page.locator(`#starmap-canvas .star-node[data-key='${doneTask}']:not([hidden])`).count() === 1, "switched on again, the finished task shows");
     check((await page.getAttribute("#starmap-canvas", "aria-label")).includes("PLAT"), "the canvas is named");
     for (const sel of [".star-node.kind-item[data-key='PLAT-1']", ".star-node.kind-item[data-key='PLAT-2']", ".star-node.kind-picture",
       ".star-node.kind-label[data-id='label:constellation']", ".star-link[data-kind=mentions]", ".star-link[data-kind=relation]",
