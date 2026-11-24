@@ -1279,7 +1279,7 @@ function webSource() {
     await page.click("#app-switcher");
     await page.waitForSelector("#drawer:not([hidden])");
     const modules = (await page.locator("#drawer-apps a").allTextContents()).join(",");
-    check(modules === "Rooms,Create,Planning,My journal,Comments,Album,Whiteboards,Starmap,AI access,Governance,Account,Administration", "the modules of an administrator: " + modules);
+    check(modules === "Rooms,Create,Planning,My journal,Comments,Album,Whiteboards,Shop,Starmap,AI access,Governance,Account,Administration", "the modules of an administrator: " + modules);
     await page.keyboard.press("Escape");
     await page.waitForSelector("#drawer", { state: "hidden" });
     // On a low window the list scrolls, so the last module is still reached.
