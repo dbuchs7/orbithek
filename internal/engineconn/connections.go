@@ -39,6 +39,12 @@ type Profile struct {
 	// System is what the engine approved for this server, on its system
 	// grant only (ADR-0152).
 	System *System `json:"system,omitempty"`
+	// Shop says the grant is for the person's shop rather than their tasks
+	// alone (ADR-draft-a-shop-and-catalogues-from-an-engine): it reaches the
+	// same tasks, and besides them the engine's catalogues, the person's
+	// orders and approvals and, for those who maintain catalogues, their
+	// import.
+	Shop bool `json:"shop,omitempty"`
 }
 
 // System is what an engine's administrator approved for this server's

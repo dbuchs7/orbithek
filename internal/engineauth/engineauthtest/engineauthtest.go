@@ -12,12 +12,14 @@
 package engineauthtest
 
 import (
+	"cmp"
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -94,8 +96,17 @@ type Engine struct {
 	Assertions int
 	// System is the system grant standing, nil before one.
 	System *SystemGrant
+	// Shop offers people a grant of their shop besides one of their tasks
+	// (ADR-draft-a-shop-and-catalogues-from-an-engine). ShopAnswers are
+	// the answers of the shop's routes to such a grant, by method and path
+	// ("POST /api/v1/orders"); a route without one answers 404. ShopCalls
+	// records every call a shop grant made of them.
+	Shop        bool
+	ShopAnswers map[string]ShopAnswer
+	ShopCalls   []ShopCall
 
 	codes   map[string]code
+	shop    map[string]bool   // access and refresh tokens of shop grants
 	refresh map[string]string // refresh token -> person ID
 	access  map[string]string // access token -> person ID
 	jtis    map[string]bool
@@ -110,6 +121,20 @@ type SystemGrant struct {
 
 // systemPrincipal is whose a token of the system grant is.
 const systemPrincipal = "system"
+
+// ShopAnswer is what a shop route answers: a status, a body, and its
+// type, JSON when empty.
+type ShopAnswer struct {
+	Status      int
+	Body        string
+	ContentType string
+}
+
+// ShopCall is a call of a shop route: by whom, the method, the path with
+// its query, and the body sent.
+type ShopCall struct {
+	Person, Method, Path, Body string
+}
 
 // Completion is a task completed at the fake engine.
 type Completion struct {
@@ -134,7 +159,7 @@ func New(t *testing.T) *Engine {
 	t.Helper()
 	e := &Engine{Person: Person{ID: "u-17", Username: "anna", Email: "anna@example.org", DisplayName: "Anna Muster", Groups: []string{"hr", "Team Lead"}},
 		Admin:     Person{ID: "u-1", Username: "patrick", Email: "patrick@example.org", DisplayName: "Patrick Admin"},
-		ExpiresIn: 7200, codes: map[string]code{}, refresh: map[string]string{}, access: map[string]string{}, jtis: map[string]bool{}}
+		ExpiresIn: 7200, codes: map[string]code{}, shop: map[string]bool{}, refresh: map[string]string{}, access: map[string]string{}, jtis: map[string]bool{}}
 	e.Server = httptest.NewServer(e)
 	t.Cleanup(e.Close)
 	return e
@@ -192,6 +217,12 @@ func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"resource": e.URL + "/system", "authorization_servers": []string{e.URL}, "bearer_methods_supported": []string{"header"}})
+	case "/.well-known/oauth-protected-resource/shop":
+		if !e.Shop {
+			http.NotFound(w, r)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"resource": e.URL + "/shop", "authorization_servers": []string{e.URL}, "bearer_methods_supported": []string{"header"}})
 	case "/.well-known/oauth-authorization-server":
 		m := map[string]any{"issuer": e.URL, "authorization_endpoint": e.URL + "/oauth/authorize", "token_endpoint": e.URL + "/oauth/token",
 			"code_challenge_methods_supported": []string{"S256"}, "token_endpoint_auth_methods_supported": []string{"client_secret_post", "private_key_jwt"}}
@@ -240,12 +271,52 @@ func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "/api/v1/auth/me":
 		e.me(w, r)
 	default:
+		if shopRoute(r.URL.Path) {
+			e.shopWork(w, r)
+			return
+		}
 		if strings.HasPrefix(r.URL.Path, "/api/v1/") {
 			e.work(w, r)
 			return
 		}
 		http.NotFound(w, r)
 	}
+}
+
+// shopRoute reports whether a path is one a person's shop reaches beyond
+// their tasks.
+func shopRoute(path string) bool {
+	for _, p := range []string{"/api/v1/shop/", "/api/v1/orders", "/api/v1/approvals", "/api/v1/catalogs", "/api/v1/catalog-products/"} {
+		if strings.HasPrefix(path, p) {
+			return true
+		}
+	}
+	return false
+}
+
+// shopWork answers a shop route as atlas confines it: only a grant of
+// the person's shop reaches it, every other credential is refused.
+func (e *Engine) shopWork(w http.ResponseWriter, r *http.Request) {
+	bearer := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+	person, ok := e.access[bearer]
+	switch {
+	case !ok:
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	case !e.shop[bearer]:
+		writeJSON(w, http.StatusForbidden, map[string]any{"error": "this token's scope does not reach " + r.URL.Path})
+		return
+	}
+	body, _ := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+	e.ShopCalls = append(e.ShopCalls, ShopCall{Person: person, Method: r.Method, Path: r.URL.RequestURI(), Body: string(body)})
+	a, ok := e.ShopAnswers[r.Method+" "+r.URL.Path]
+	if !ok {
+		writeJSON(w, http.StatusNotFound, map[string]any{"error": "no route " + r.URL.Path})
+		return
+	}
+	w.Header().Set("Content-Type", cmp.Or(a.ContentType, "application/json"))
+	w.WriteHeader(cmp.Or(a.Status, http.StatusOK))
+	_, _ = io.WriteString(w, a.Body)
 }
 
 // person is whose access token a request carries.
@@ -429,7 +500,7 @@ func (e *Engine) authorize(w http.ResponseWriter, r *http.Request) {
 		back.Set("error", "invalid_request")
 	case system && (e.NoSystem || q.Get("client_id") == ClientID):
 		back.Set("error", "invalid_target")
-	case !system && q.Get("resource") != e.Resource():
+	case !system && q.Get("resource") != e.Resource() && (!e.Shop || q.Get("resource") != e.URL+"/shop"):
 		back.Set("error", "invalid_target")
 	case q.Get("prompt") == "none" && e.NoSession:
 		back.Set("error", "login_required")
@@ -513,6 +584,7 @@ func (e *Engine) token(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var person string
+	var shop bool
 	switch r.PostFormValue("grant_type") {
 	case "authorization_code":
 		c, ok := e.codes[r.PostFormValue("code")]
@@ -526,7 +598,7 @@ func (e *Engine) token(w http.ResponseWriter, r *http.Request) {
 			oauthError(w, http.StatusBadRequest, "invalid_target")
 			return
 		}
-		person = c.person
+		person, shop = c.person, c.resource == e.URL+"/shop"
 		if person == systemPrincipal {
 			// A new system grant replaces the one before.
 			for tok, p := range e.refresh {
@@ -543,7 +615,7 @@ func (e *Engine) token(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		delete(e.refresh, r.PostFormValue("refresh_token")) // replaced on every use
-		person = p
+		person, shop = p, e.shop[r.PostFormValue("refresh_token")]
 		e.Refreshes++
 	default:
 		oauthError(w, http.StatusBadRequest, "unsupported_grant_type")
@@ -551,6 +623,9 @@ func (e *Engine) token(w http.ResponseWriter, r *http.Request) {
 	}
 	access, refresh := token("atlasoa_"), token("atlasor_")
 	e.access[access], e.refresh[refresh] = person, person
+	if shop {
+		e.shop[access], e.shop[refresh] = true, true
+	}
 	w.Header().Set("Cache-Control", "no-store")
 	writeJSON(w, http.StatusOK, map[string]any{"access_token": access, "token_type": "Bearer", "expires_in": e.ExpiresIn, "refresh_token": refresh})
 }

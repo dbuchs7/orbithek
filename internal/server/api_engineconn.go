@@ -33,7 +33,7 @@ func engineConnRoutes(d Deps) []Route {
 	}
 	return []Route{
 		{Method: http.MethodGet, Pattern: "/api/me/engines", Summary: "The process engines one may connect one's account to, and who one is at each one connected: the engine's username, name, mail address and groups, and whether that mail address differs from one's own here (ADR-0151)", Handler: http.HandlerFunc(h.list)},
-		{Method: http.MethodGet, Pattern: "/api/engines/{id}/connect", Summary: "Begin connecting one's account to a process engine; redirects to the engine, where one signs in and approves this server for one's tasks (ADR-0151). With silent=1 the engine shows no page — where its administrator approved people's grants beforehand, one comes back connected at once (ADR-0152) —, and back names the page of the web UI to go on to", Handler: http.HandlerFunc(h.connect)},
+		{Method: http.MethodGet, Pattern: "/api/engines/{id}/connect", Summary: "Begin connecting one's account to a process engine; redirects to the engine, where one signs in and approves this server for one's tasks (ADR-0151). With silent=1 the engine shows no page — where its administrator approved people's grants beforehand, one comes back connected at once (ADR-0152) —, back names the page of the web UI to go on to, and shop=1 asks for a grant of one's shop where the engine offers one (ADR-draft-a-shop-and-catalogues-from-an-engine)", Handler: http.HandlerFunc(h.connect)},
 		{Method: http.MethodGet, Pattern: "/api/engines/{id}/connect/callback", Summary: "The engine's redirect back after one approved or refused this server; keeps the connection, bound to the browser that began it, and goes on to one's account page, the page it was begun from, or the administration", Access: Public, Handler: http.HandlerFunc(h.callback)},
 		{Method: http.MethodDelete, Pattern: "/api/me/engines/{id}", Summary: "End one's connection to a process engine; its grant is revoked at the engine where the engine offers that (ADR-0151), and one is not connected again without asking (ADR-0152)", Handler: http.HandlerFunc(h.disconnect)},
 		{Method: http.MethodGet, Pattern: "/api/engines/client-metadata", Summary: "This server's client metadata document: the client ID it names itself by at process engines, its name, where people are sent back to and the public key of its signed assertions (ADR-0152)", Access: Public, Handler: http.HandlerFunc(h.clientMetadata)},
@@ -125,7 +125,7 @@ func (h engineConnHandlers) connect(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusForbidden, "connect to an engine from the web UI, signed in")
 		return
 	}
-	o := engineauth.Flow{Silent: r.URL.Query().Get("silent") == "1"}
+	o := engineauth.Flow{Silent: r.URL.Query().Get("silent") == "1", Shop: r.URL.Query().Get("shop") == "1"}
 	if back := r.URL.Query().Get("back"); backRoute.MatchString(back) {
 		o.Back = back
 	}

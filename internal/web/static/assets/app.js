@@ -51,6 +51,7 @@ import { installPalette, rememberItem } from "./palette.js";
 import { besidePane, installBeside, openBeside } from "./beside.js";
 import { contextSection } from "./context.js";
 import { mentionCreator } from "./mentioncreate.js";
+import { shopView, catalogueCard, shopTypesCard } from "./shop.js";
 
 const app = document.getElementById("app");
 const nav = document.getElementById("nav");
@@ -1115,6 +1116,9 @@ const modules = [
   { id: "comments", name: "nav.comments", href: "#/comments", match: ["comments"], icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" },
   { id: "album", name: "nav.album", href: "#/album", match: ["album"], icon: "M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15 8h.01" },
   { id: "whiteboards", name: "nav.whiteboards", href: "#/whiteboards", match: ["whiteboards", "whiteboard"], icon: "M3 4h18v12H3zM8 20l4-4 4 4M7 8h6M7 12h10" },
+  // A process engine's shop, with one's own grant of it
+  // (ADR-draft-a-shop-and-catalogues-from-an-engine).
+  { id: "shop", name: "nav.shop", href: "#/shop", match: ["shop"], icon: "M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h9.2a1 1 0 0 0 1-.8L20 8H6.2M9 20h.01M17 20h.01" },
   { id: "starmap", name: "nav.starmap", href: "#/starmap", match: ["starmap", "labelmap"], icon: "M5 7l7 4 7-5M12 11l-4 8M12 11l6 6M5 7h.01M19 6h.01M12 11h.01M8 19h.01M18 17h.01" },
   { id: "mcp", name: "nav.mcp", href: "#/mcp", match: ["mcp"], icon: "M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8zM19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z" },
   { id: "governance", name: "nav.governance", href: "#/governance", match: ["governance"], icon: "M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6zM9 12l2 2 4-4" },
@@ -1850,6 +1854,7 @@ async function route() {
       case "album": return albumView();
       case "present": return await presentScreen(params);
       case "show": return showScreen(params);
+      case "shop": return await shopScreen(params);
       case "whiteboards": return await whiteboardsView();
       case "whiteboard": return await whiteboardView(arg, arg2);
       case "pdf": return await pdfScreen(arg, arg2, params);
@@ -4116,6 +4121,17 @@ async function roadmapScreen(params) {
   await roadmapView(section, params, { readAll, favouritesFirst });
 }
 
+// shopScreen shows a process engine's shop: its catalogues, one's orders
+// and one's approvals (ADR-draft-a-shop-and-catalogues-from-an-engine).
+async function shopScreen(params) {
+  const section = h("section", { id: "shop" });
+  screen()(
+    h("div", { class: "page-head" }, h("h1", { text: t("shop.title") })),
+    h("p", { class: "muted", text: t("shop.intro") }),
+    section);
+  await shopView(section, params);
+}
+
 // viewRoute shows the items of a type as a table, a gallery or a list,
 // grouped by a field (ADR-0203); its state is the address.
 async function viewRoute(params) {
@@ -5112,6 +5128,9 @@ async function itemView(ref, params = new URLSearchParams()) {
     labelsLine(path, item, canEdit));
   // The task of a linked item, worked at its engine as oneself (ADR-0151).
   const engineTask = item.linked && live ? taskPanel(item, () => route()) : null;
+  // A catalogue of an engine's shop is published from its page
+  // (ADR-draft-a-shop-and-catalogues-from-an-engine).
+  const shopCatalogue = item.type === "shop-catalogue" && live && canEdit ? catalogueCard(item) : null;
   // Copying and moving a page with its child pages, to any place one may
   // create in (ADR-0067); dragging in the tree moves within a space.
   const relocate = h("div", { id: "relocate" });
@@ -5148,6 +5167,7 @@ async function itemView(ref, params = new URLSearchParams()) {
       h("aside", { class: "item-side", "aria-label": t("item.side") },
         columnToggle("side"),
         engineTask,
+        shopCatalogue,
         accessRequestCard(item, status),
         details,
         secretsSection(path, item, status),
@@ -7075,7 +7095,10 @@ function engineEditor(e, kinds, taken, reopen) {
     }),
     checkStatus,
     // Its user tasks become linked tasks by the rules set here (ADR-0151).
-    e.isNew ? "" : taskLinksCard(e));
+    e.isNew ? "" : taskLinksCard(e),
+    // The types catalogues of a shop are written in
+    // (ADR-draft-a-shop-and-catalogues-from-an-engine).
+    e.isNew ? "" : shopTypesCard());
 }
 
 // connectorsCard lists the connectors that keep catalog spaces in step
