@@ -13,7 +13,7 @@ import (
 	"github.com/dbuchs7/orbithek/internal/site"
 )
 
-// A person's shop at an engine (ADR-draft-a-shop-and-catalogues-from-an-engine)
+// A person's shop at an engine (ADR-0251)
 // is read and used with the access token of the person's grant of it: the
 // engine decides what the person sees and may do, as on its own shop page,
 // and its answers are handed on as it gives them. This server names the

@@ -6,7 +6,7 @@ export class ApiError extends Error {
   // code names a failure the UI words itself, such as a calendar server
   // refusing a password (ADR-0174); body is the whole answer, such as the
   // problems an engine names with a refusal
-  // (ADR-draft-a-shop-and-catalogues-from-an-engine).
+  // (ADR-0251).
   constructor(status, message, at, code, body) {
     super(message);
     this.status = status;

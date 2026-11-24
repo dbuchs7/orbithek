@@ -18,7 +18,7 @@ import (
 )
 
 // shopRoutes are a person's shop at a process engine, used with the
-// person's own grant of it (ADR-draft-a-shop-and-catalogues-from-an-engine):
+// person's own grant of it (ADR-0251):
 // the catalogues they may order from, their orders and the approvals they
 // hold. The engine decides everything — what a person sees, may order and
 // may decide — as on its own shop page; this server names the routes it
@@ -30,7 +30,7 @@ func shopRoutes(d Deps) []Route {
 		return func(w http.ResponseWriter, r *http.Request) { h.pass(w, r, method, engine) }
 	}
 	return []Route{
-		{Method: http.MethodGet, Pattern: "/api/engines/{id}/shop", Summary: "Whether one may shop at a process engine: whether it offers a grant of one's shop, whether one is connected, and whether one's connection is such a grant (ADR-draft-a-shop-and-catalogues-from-an-engine)", Handler: http.HandlerFunc(h.status)},
+		{Method: http.MethodGet, Pattern: "/api/engines/{id}/shop", Summary: "Whether one may shop at a process engine: whether it offers a grant of one's shop, whether one is connected, and whether one's connection is such a grant (ADR-0251)", Handler: http.HandlerFunc(h.status)},
 		{Method: http.MethodGet, Pattern: "/api/engines/{id}/shop/catalogs", Summary: "The engine's catalogues one may order from, highest rank first, as the engine answers them to one's grant", Handler: pass(http.MethodGet, "/api/v1/shop/catalogs")},
 		{Method: http.MethodGet, Pattern: "/api/engines/{id}/shop/catalogs/{catalog}/release", Summary: "The newest release of a catalogue one may order from — what can be ordered from it — as {\"release\": …}, null before the first", Handler: http.HandlerFunc(h.release)},
 		{Method: http.MethodGet, Pattern: "/api/engines/{id}/shop/catalogs/{catalog}/logo", Summary: "A catalogue's logo, a PNG, JPEG, WebP or GIF picture", Handler: http.HandlerFunc(h.picture)},

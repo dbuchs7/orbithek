@@ -10,7 +10,7 @@ import (
 )
 
 // TestACatalogueMaintainedInTheWikiIsPublishedAtItsEngine covers the
-// catalogue maintenance of ADR-draft-a-shop-and-catalogues-from-an-engine:
+// catalogue maintenance of ADR-0251:
 // administrators set up the two types; a catalogue item and the product
 // items below it are shown as the document they would be published as,
 // or with their problems; who may edit the catalogue publishes it with

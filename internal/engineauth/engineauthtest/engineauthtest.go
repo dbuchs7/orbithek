@@ -97,7 +97,7 @@ type Engine struct {
 	// System is the system grant standing, nil before one.
 	System *SystemGrant
 	// Shop offers people a grant of their shop besides one of their tasks
-	// (ADR-draft-a-shop-and-catalogues-from-an-engine). ShopAnswers are
+	// (ADR-0251). ShopAnswers are
 	// the answers of the shop's routes to such a grant, by method and path
 	// ("POST /api/v1/orders"); a route without one answers 404. ShopCalls
 	// records every call a shop grant made of them.

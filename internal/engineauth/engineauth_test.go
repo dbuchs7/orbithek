@@ -298,7 +298,7 @@ func TestTheEngineMayNotSendTokensElsewhere(t *testing.T) {
 // TestAConnectionBegunForTheShopEndsWhereTheShopWasWithdrawn: once the
 // engine's metadata, read again, offers no shop, a connection begun for
 // it is not finished as a grant of tasks under the name of a shop
-// (ADR-draft-a-shop-and-catalogues-from-an-engine).
+// (ADR-0251).
 func TestAConnectionBegunForTheShopEndsWhereTheShopWasWithdrawn(t *testing.T) {
 	s := newSetup(t)
 	ctx := context.Background()

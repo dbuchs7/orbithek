@@ -10,7 +10,7 @@ import (
 )
 
 // TestAPersonShopsAtAnEngineWithTheirOwnGrant covers the shop of
-// ADR-draft-a-shop-and-catalogues-from-an-engine: one learns whether one
+// ADR-0251: one learns whether one
 // may shop; without a connection, or with one for tasks alone, one is
 // asked to connect for the shop; connected so, the catalogues, a
 // catalogue's newest release, forms, orders and approvals are the

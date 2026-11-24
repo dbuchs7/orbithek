@@ -40,7 +40,7 @@ type Profile struct {
 	// grant only (ADR-0152).
 	System *System `json:"system,omitempty"`
 	// Shop says the grant is for the person's shop rather than their tasks
-	// alone (ADR-draft-a-shop-and-catalogues-from-an-engine): it reaches the
+	// alone (ADR-0251): it reaches the
 	// same tasks, and besides them the engine's catalogues, the person's
 	// orders and approvals and, for those who maintain catalogues, their
 	// import.

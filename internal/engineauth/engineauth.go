@@ -69,7 +69,7 @@ const tasksResource = "/tasks"
 // shopResource is the engine's resource for a person's shop: the same
 // tasks, and besides them the catalogues the person may order from, their
 // orders and approvals and the import of catalogues they maintain
-// (ADR-draft-a-shop-and-catalogues-from-an-engine). An engine that does
+// (ADR-0251). An engine that does
 // not publish it is connected for tasks alone.
 const shopResource = "/shop"
 
@@ -565,7 +565,7 @@ func (b *Broker) metadata(ctx context.Context, e site.Engine) (metadata, error) 
 		sys.Resource != "" && slices.Contains(sys.AuthorizationServers, pr.AuthorizationServers[0]) {
 		m.system = sys.Resource
 	}
-	// So is a person's shop (ADR-draft-a-shop-and-catalogues-from-an-engine),
+	// So is a person's shop (ADR-0251),
 	// granted by the same authorization server.
 	var shop struct {
 		Resource             string   `json:"resource"`
@@ -582,7 +582,7 @@ func (b *Broker) metadata(ctx context.Context, e site.Engine) (metadata, error) 
 }
 
 // OffersShop reports whether the engine grants people their shop
-// (ADR-draft-a-shop-and-catalogues-from-an-engine); an engine whose
+// (ADR-0251); an engine whose
 // authorization cannot be read offers none.
 func (b *Broker) OffersShop(ctx context.Context, e site.Engine) bool {
 	m, err := b.metadata(ctx, e)

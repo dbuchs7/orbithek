@@ -166,7 +166,7 @@ var classified = map[string]string{
 	"internal/extcal.maxOccurrences":                   "a guard of what a window shows of one repeating entry of another service (ADR-0174), not a choice",
 	"internal/extcal.maxBody":                          "a guard of reading another service's answer (ADR-0174): one calendar, read at most four at once, every 15 minutes",
 	"internal/extcal/reader.go:maxBody + 1":            "the same bound, where the answer is read",
-	"internal/engine/shop.go:64 << 10": "the start of an engine's refusal of a person's shop request, quoted in its words and handed on when it names problems (ADR-draft-a-shop-and-catalogues-from-an-engine); " +
+	"internal/engine/shop.go:64 << 10": "the start of an engine's refusal of a person's shop request, quoted in its words and handed on when it names problems (ADR-0251); " +
 		"its successful answers are bounded by EngineResponseBytes",
 	"internal/engineauth/engineauthtest/engineauthtest.go:1 << 20": "the fake engine of the tests reading a shop request's body; test code, never served",
 	"internal/extcal/reader.go:64 << 10":                           "the start of a refusal, read only to be dropped",

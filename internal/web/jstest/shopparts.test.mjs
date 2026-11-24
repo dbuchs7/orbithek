@@ -1,5 +1,5 @@
 // Unit tests of the shop's parts (shopparts.js,
-// ADR-draft-a-shop-and-catalogues-from-an-engine): which text is shown,
+// ADR-0251): which text is shown,
 // which products are picked on their own, how answers of a form and a
 // basket become the engine's orders. They run in Node.js without a
 // browser and without dependencies:

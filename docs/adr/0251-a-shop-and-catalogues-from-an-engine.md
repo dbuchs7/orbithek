@@ -1,4 +1,4 @@
-# ADR-DRAFT: A process engine's shop in the wiki, and its catalogues maintained as items
+# ADR-0251: A process engine's shop in the wiki, and its catalogues maintained as items
 
 - **Status:** Proposed
 - **Implementation:** Partial

@@ -180,7 +180,7 @@ func TestTheFakeEngineConnectsASystemAsTheContractSays(t *testing.T) {
 }
 
 // TestAPersonConnectsForTheShopWhereTheEngineOffersIt drives the grant of
-// a person's shop (ADR-draft-a-shop-and-catalogues-from-an-engine): asked
+// a person's shop (ADR-0251): asked
 // for, it is the shop resource the engine is asked for and the connection
 // says so; connecting again from anywhere keeps it; the grant reaches the
 // shop and still the person's tasks, and stays one of the shop when

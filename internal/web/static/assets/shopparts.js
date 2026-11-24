@@ -1,4 +1,4 @@
-// The parts of the shop (ADR-draft-a-shop-and-catalogues-from-an-engine)
+// The parts of the shop (ADR-0251)
 // that work without a browser: which text of a catalogue or product to
 // show, which products a release offers on their own, how a basket becomes
 // the engine's orders, and how answers of a form become the strings an

@@ -3019,7 +3019,7 @@ dialog.palette::backdrop { background: rgba(20, 22, 26, .45); }
 .identity-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .identity-link-form { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; }
 
-/* A process engine's shop (ADR-draft-a-shop-and-catalogues-from-an-engine):
+/* A process engine's shop (ADR-0251):
    the products of a catalogue as tiles that wrap, a picture at the head of
    each, and the product's dialog no wider than the screen. */
 .shop-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin: 8px 0 24px; }

@@ -1,5 +1,5 @@
 // A process engine's shop in the wiki
-// (ADR-draft-a-shop-and-catalogues-from-an-engine): the catalogues one may
+// (ADR-0251): the catalogues one may
 // order from as tiles, a product with its order form, a basket, one's
 // orders and the approvals one holds. Everything is the engine's answer to
 // one's own grant of one's shop; the engine decides what one sees, orders

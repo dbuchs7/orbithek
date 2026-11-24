@@ -918,7 +918,7 @@ type request struct {
 	// gone is a read of one task, whose 410 says how it ended (ADR-0152).
 	gone bool
 	// shop is a person's request of the engine's shop
-	// (ADR-draft-a-shop-and-catalogues-from-an-engine): every answer of
+	// (ADR-0251): every answer of
 	// the 2xx class is a success, and every refusal but 401 comes back as
 	// a ShopError with the engine's status and words.
 	shop bool

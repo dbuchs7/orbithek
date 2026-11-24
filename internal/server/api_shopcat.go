@@ -14,7 +14,7 @@ import (
 )
 
 // shopCatalogueRoutes maintain a catalogue of a process engine's shop in
-// the wiki and publish it there (ADR-draft-a-shop-and-catalogues-from-an-engine):
+// the wiki and publish it there (ADR-0251):
 // the catalogue and its products are items, written, discussed and
 // versioned here; publishing sends them as the engine's catalogue document
 // with the publisher's own grant, so the engine decides whether they may

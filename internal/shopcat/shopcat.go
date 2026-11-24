@@ -1,6 +1,6 @@
 // Package shopcat writes a catalogue maintained in the wiki as the
 // catalogue document a process engine imports
-// (ADR-draft-a-shop-and-catalogues-from-an-engine): a catalogue is an item
+// (ADR-0251): a catalogue is an item
 // of type shop-catalogue, its products are the items of type shop-product
 // below it, and the structure and precedence between them are relations
 // made by hand. The engine stays the system of record for what is
