@@ -52,12 +52,13 @@ func TestACatalogueMaintainedInTheWikiIsPublishedAtItsEngine(t *testing.T) {
 	got = w.bert.expect("GET", "/api/items/"+catID+"/shop/document", "", http.StatusOK)
 	doc := toJSON(t, got["document"])
 	for _, want := range []string{`"id":"cat-it"`, `"items":["laptop","dock"]`, `{"from":"laptop","kind":"aggregation","to":"dock"}`,
-		`"descriptions":{"de":"Für alle."}`, `"maintainedIn":{"url":"`, `/#/item/` + catID} {
+		`"descriptions":{"de":"Für alle."}`} {
 		if !strings.Contains(doc, want) {
 			t.Errorf("document lacks %s:\n%s", want, doc)
 		}
 	}
-	if strings.Contains(doc, "elsewhere") {
+	// The test server is reached by plain http, so the address is left out.
+	if strings.Contains(doc, "elsewhere") || strings.Contains(doc, "maintainedIn") {
 		t.Errorf("a product outside the catalogue is in it:\n%s", doc)
 	}
 	w.vera.expect("GET", "/api/items/"+catID+"/shop/document", "", http.StatusForbidden)

@@ -299,7 +299,10 @@ func Write(in Input, publish bool) (Document, []Problem) {
 	if len(cat.Texts) == 0 {
 		add(c, "has no name")
 	}
-	if in.URL != "" {
+	// The engine takes the address of the catalogue's page only as https;
+	// a server reached by plain http publishes without it, and the engine
+	// still knows the catalogue is maintained here from the grant.
+	if strings.HasPrefix(in.URL, "https://") {
 		cat.MaintainedIn = &Maintainer{URL: in.URL}
 	}
 

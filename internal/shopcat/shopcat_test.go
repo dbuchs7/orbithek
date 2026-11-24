@@ -61,6 +61,9 @@ func TestACatalogueIsWrittenAsTheEnginesDocument(t *testing.T) {
 	if doc, _ := Write(Input{Catalogue: catalogue()}, false); doc.Publish || len(doc.Products) != 0 || doc.Products == nil || doc.Catalogs[0].MaintainedIn != nil {
 		t.Errorf("an empty catalogue = %+v", doc)
 	}
+	if doc, _ := Write(Input{Catalogue: catalogue(), URL: "http://wiki.local/#/item/c1"}, false); doc.Catalogs[0].MaintainedIn != nil {
+		t.Errorf("a plain http address was sent: %+v", doc.Catalogs[0].MaintainedIn)
+	}
 	if CatalogueID(catalogue()) != "ot-c1" || Engine(catalogue()) != "atlas" || ProductID(dock) != "dock" {
 		t.Error("IDs or engine")
 	}

@@ -69,7 +69,7 @@ Chosen option: **1**, because it puts the catalogue where it is written and the 
 - `GET /api/items/{ref}/shop/document` shows the document a catalogue would be published as, or every problem the wiki can see.
 - `POST /api/items/{ref}/shop/publish` sends it to the catalogue's engine with the publisher's grant of the shop, replacing what the engine held of the catalogue and its products (`overwrite=*`) and asking for a release; `{"dryRun": true}` asks the engine what it would do.
   Who may edit the catalogue item may publish it; whether they maintain catalogues at the engine, the engine decides.
-- The document says where the catalogue is maintained (`maintainedIn.url`, the address of its item); the engine then refuses changes made in its own catalogue editor, so the next publish cannot overwrite them unseen.
+- The document says where the catalogue is maintained (`maintainedIn.url`, the address of its item, sent only when it is https, as the engine requires); the engine marks the catalogue as maintained by this server's grant either way and then refuses changes made in its own catalogue editor, so the next publish cannot overwrite them unseen.
 - Mapping and validation are a pure function of the items (`internal/shopcat`), so what is sent is what is shown.
 
 ### What stays in the engine
