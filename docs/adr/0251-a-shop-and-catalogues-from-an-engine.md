@@ -55,6 +55,7 @@ Chosen option: **1**, because it puts the catalogue where it is written and the 
 - A request body is one JSON object sent as `application/json`, which keeps a cross-site form out as the rest of the API does.
 - Pictures are handed on only as PNG, JPEG, WebP or GIF, never SVG, with `nosniff` and a content security policy that allows nothing.
 - Only people with an account here reach the shop, connected to the engine with their own grant; there is no anonymous ordering.
+- The shop is reached from the module switcher and from a quick access of its own on the start page, with a shopping cart as its symbol.
 - The shop page (`#/shop`) shows the catalogues as tiles, a product with its order form, a basket per catalogue release, one's orders with the state of each position, and the approvals one holds.
 
 ### Catalogues as items

@@ -51,7 +51,7 @@ The bar at the top of every page holds, from left to right:
 
 ### The start page
 
-The start page greets you by your display name (see *Your account*), shows counts of pages, tasks and pictures, and offers quick access to **My journal** (today's daily note, with today's date), right beside it **My notes** (your personal notes), the starmap, the **Rooms** (the overview of your rooms, also reached from the module switcher), your tasks under **Planning**, notifications, the album, the whiteboards and AI access.
+The start page greets you by your display name (see *Your account*), shows counts of pages, tasks and pictures, and offers quick access to **My journal** (today's daily note, with today's date), right beside it **My notes** (your personal notes), the starmap, the **Rooms** (the overview of your rooms, also reached from the module switcher), your tasks under **Planning**, notifications, the album, the whiteboards, the **Shop** with its shopping cart and AI access.
 Point at a tile with the mouse to see what it offers.
 The overview of rooms lists your rooms, as tiles or as a list; a star marks a room as a favourite. If there are no rooms yet, administrators find the first steps on the start page: create a room, add types from the ready-made templates (page, task, decision, daily note), and give people a role.
 
@@ -564,7 +564,7 @@ Tasks of an engine can appear as linked tasks in a room. Under **Account and pas
 
 ### The shop of an engine
 
-If an engine offers a shop, **Shop** in the module switcher shows the catalogues you may order from, your orders and the approvals you hold.
+If an engine offers a shop, **Shop** in the module switcher, or its tile with the shopping cart on the start page, shows the catalogues you may order from, your orders and the approvals you hold.
 The engine decides what you see, order and approve; you act as yourself.
 The first time, **Connect for the shop** takes you to the engine, where you sign in and allow Orbithek your shop and your tasks.
 A connection made only for tasks is asked to connect again once.

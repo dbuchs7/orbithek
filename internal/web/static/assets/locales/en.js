@@ -1380,6 +1380,8 @@ export default {
   "home.tip.myNotes": "Lists all your personal notes with the passages they belong to. Only you see them. You make one by selecting a passage while reading and choosing Note.",
   "home.tip.album": "Opens the album: the pictures and drawings of every page and task you may read, by folders, timeline, favourites, on this day, map or duplicates, searchable by name, label and date.",
   "home.tip.whiteboards": "Lists the whiteboards in use and the drawings you can open as a whiteboard, and creates new ones. Up to 20 people and AI agents draw on a whiteboard at the same time.",
+  "home.shopText": "Order from an engine's catalogues",
+  "home.tip.shop": "Shows the catalogues of a process engine you may order from, your basket, your orders with the state of each position, and the approvals you hold. You order and decide as yourself.",
   "home.tip.mcp": "Explains how an AI assistant reads, searches and writes pages over the Model Context Protocol (MCP), always with exactly your rights, and creates the token and settings for an assistant on your own computer.",
   "home.step1": "Create a room below, for example for a team or a project.",
   "home.step2": "Add the types you need with the ready-made templates (page, task, decision).",
