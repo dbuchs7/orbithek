@@ -1516,6 +1516,10 @@ func checkBlock(b Block, self ID) error {
 		if err := checkViewBlock(b); err != nil {
 			return err
 		}
+	case StarmapBlock:
+		if err := checkStarmapBlock(b); err != nil {
+			return err
+		}
 	case Architecture:
 		switch {
 		case !ValidEngineID(b.Engine):
@@ -1550,8 +1554,14 @@ func checkBlock(b Block, self ID) error {
 	if b.Kind != TaskList && b.Kind != ItemsView && b.Query != "" {
 		return invalid("only a task list or a view has a query")
 	}
-	if b.Kind != ItemsView && (b.Layout != "" || b.ItemType != "" || b.Space != "" || b.Group != "" || b.Columns != nil || b.Sort != "") {
-		return invalid("only a view names a layout, a type, a room, a grouping, columns and a sort")
+	if b.Kind != ItemsView && (b.Layout != "" || b.ItemType != "" || b.Group != "" || b.Columns != nil || b.Sort != "") {
+		return invalid("only a view names a layout, a type, a grouping, columns and a sort")
+	}
+	if b.Kind != ItemsView && b.Kind != StarmapBlock && b.Space != "" {
+		return invalid("only a view or a starmap names a room")
+	}
+	if b.Kind != StarmapBlock && (b.Label != "" || b.Search != "" || b.HideKinds != nil) {
+		return invalid("only a starmap names a label, a search text and kinds it leaves out")
 	}
 	switch {
 	case b.View == "":
@@ -1588,8 +1598,8 @@ func checkBlock(b Block, self ID) error {
 	if b.Kind != Heading && b.Kind != TOC && b.Level != 0 || b.Level < 0 || b.Level > 3 {
 		return invalid("level %d: only headings have a level, and a table of contents the deepest level it lists, 1 to 3", b.Level)
 	}
-	if b.Depth != 0 && (b.Kind != Children || b.Depth != ChildrenAll && (b.Depth < 2 || b.Depth > MaxChildrenDepth)) {
-		return invalid("depth %d: only a list of child pages has a depth, 2 to %d levels or %d for every level; one level is 0", b.Depth, MaxChildrenDepth, ChildrenAll)
+	if b.Depth != 0 && b.Kind != StarmapBlock && (b.Kind != Children || b.Depth != ChildrenAll && (b.Depth < 2 || b.Depth > MaxChildrenDepth)) {
+		return invalid("depth %d: only a list of child pages has a depth, 2 to %d levels or %d for every level; one level is 0, and a starmap the reach of its item's neighbourhood", b.Depth, MaxChildrenDepth, ChildrenAll)
 	}
 	if b.HideTypes != nil {
 		if err := checkHideTypes(b); err != nil {

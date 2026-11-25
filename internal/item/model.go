@@ -124,6 +124,11 @@ const (
 	// Space, Query, Group, Columns and Sort name what it shows. Like a
 	// task list it is computed when shown and holds no item.
 	ItemsView BlockKind = "view"
+	// StarmapBlock shows a starmap in a text (ADR-draft-a-starmap-in-a-text):
+	// the room's, every room's or a room's map, narrowed at first by
+	// Space, Label, Search, HideTypes, HideKinds and Depth. Like a view it
+	// is computed when shown and holds no item.
+	StarmapBlock BlockKind = "starmap"
 )
 
 // PrefillSources are what a start form's field may be filled in with
@@ -302,12 +307,24 @@ type Block struct {
 	// every such list did before, 2 to MaxChildrenDepth that many, and
 	// ChildrenAll every level. One level is written as 0 only, so a body
 	// says it one way.
+	// On a starmap in a text it is the reach of the neighbourhood of the
+	// item the text is on, 1 to MaxStarmapDepth; 0 shows the whole map
+	// (ADR-draft-a-starmap-in-a-text).
 	Depth int `json:",omitempty"`
 	// HideTypes are the types a list of child pages leaves out, the
 	// pages below such an item shown in its place; none shows every type
 	// (ADR-0240). They are named once each, in sorted order, so a body
 	// says them one way.
 	HideTypes []string `json:",omitempty"`
+	// Label, Search and HideKinds name how a starmap in a text is narrowed
+	// when it is shown (ADR-draft-a-starmap-in-a-text): to the items and
+	// pictures that carry a label, to the nodes a search text matches,
+	// and without the kinds of node among StarmapKinds it names, sorted.
+	// Its Space names the room, its HideTypes the types it leaves out and
+	// its Depth the neighbourhood of the item it is on.
+	Label     string   `json:",omitempty"`
+	Search    string   `json:",omitempty"`
+	HideKinds []string `json:",omitempty"`
 }
 
 // MaxChildrenDepth is the most levels a list of child pages names by

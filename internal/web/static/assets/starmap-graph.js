@@ -530,3 +530,66 @@ export function layout(graph, { iterations = 300, seed = 0x5EED, start = null } 
   graph.nodes.forEach((node, i) => out.set(node.id, { x: Math.round(x[i] * 10) / 10, y: Math.round(y[i] * 10) / 10 }));
   return out;
 }
+
+// --- a starmap in a text (ADR-draft-a-starmap-in-a-text) ---
+
+// BLOCK_KINDS are the kinds of node a starmap in a text may leave out, in
+// the order its block names them: finished tasks, labels, items of other
+// rooms and pictures. BLOCK_ALL names every room as its room.
+export const BLOCK_KINDS = [doneKind, "label", outsideKind, "picture"];
+export const BLOCK_ALL = "*";
+
+// blockFilters reads how a starmap block narrows the map when it is
+// shown: its room ("" for the room of its item, BLOCK_ALL for every
+// room), its label, its search text, the reach of its item's
+// neighbourhood (0 for the whole map) and the filters it switches off, as
+// the starmap's filters name them (kinds).
+export function blockFilters(block = {}) {
+  const hidden = new Set([...(block.hideTypes || []).map((type) => "type:" + type), ...(block.hideKinds || []).filter((k) => BLOCK_KINDS.includes(k))]);
+  return { space: block.space || "", label: block.label || "", search: block.search || "", depth: DEPTHS.includes(block.depth) ? block.depth : 0, hidden };
+}
+
+// blockSource is the API path of the map a starmap block shows in room:
+// every room's map narrowed by the server to a label, or a room's.
+export function blockSource(room, label = "") {
+  if (room === BLOCK_ALL) return "/api/starmap" + (label ? "?label=" + encodeURIComponent(label) : "");
+  return `/api/spaces/${encodeURIComponent(room)}/starmap`;
+}
+
+// withLabel narrows a room's map to the items and pictures that carry
+// label, with the label's own star and the edges between what stays; the
+// node keep (the item a text shows the neighbourhood of) stays too. The
+// map of every room is narrowed by the server instead (ADR-0191).
+export function withLabel(data, label, keep = null) {
+  if (!label) return data;
+  const carries = (n) => (n.kind === "item" || n.kind === "picture") && (n.labels || []).includes(label);
+  const ids = new Set(data.nodes.filter((n) => carries(n) || (n.kind === "label" && n.name === label) || n.id === keep).map((n) => n.id));
+  return { ...data, nodes: data.nodes.filter((n) => ids.has(n.id)), edges: data.edges.filter((e) => ids.has(e.from) && ids.has(e.to)) };
+}
+
+// starmapBlockOf is the block a choice of a starmap in a text makes: the
+// room, label and search text when given, a depth of DEPTHS, and the
+// types and kinds it leaves out, each once and in order, none left out
+// named as none, as the server keeps it.
+export function starmapBlockOf({ space = "", label = "", search = "", depth = 0, hideTypes = [], hideKinds = [] } = {}) {
+  const b = { kind: "starmap" };
+  if (space) b.space = space;
+  if (label.trim()) b.label = label.trim();
+  if (search.trim()) b.search = search.trim();
+  if (DEPTHS.includes(depth)) b.depth = depth;
+  const types = [...new Set(hideTypes)].sort();
+  if (types.length) b.hideTypes = types;
+  const left = BLOCK_KINDS.filter((k) => hideKinds.includes(k));
+  if (left.length) b.hideKinds = left;
+  return b;
+}
+
+// nodeHref is where a click on a node of a starmap in a text leads: an
+// item opens, a picture opens its item, a label its page and a bubble the
+// map of its room.
+export function nodeHref(node, byID = new Map()) {
+  if (node.kind === "item") return "#/item/" + encodeURIComponent(node.key || node.id);
+  if (node.kind === "picture") return "#/item/" + encodeURIComponent(byID.get(node.item)?.key || node.item);
+  if (node.kind === "label") return "#/label/" + encodeURIComponent(node.name);
+  return roomAddress(node);
+}
