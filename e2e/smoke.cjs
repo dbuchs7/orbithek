@@ -5531,12 +5531,12 @@ function webSource() {
     step("trash: a room lists what was deleted in it, one row per deletion, and restores and purges from there (ADR-0021)");
     const binned = await page.evaluate(async () => {
       const make = async (title, parent) => (await (await fetch("/api/items", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ space: "PLAT", type: "page", title, parent }) })).json()).item;
+        body: JSON.stringify({ space: "PLAT", type: "task", title, parent, properties: { priority: "low" } }) })).json()).item;
       const guide = await make("Binned guide");
       await make("Binned chapter", guide.id);
       const note = await make("Binned note");
       for (const it of [guide, note]) await fetch(`/api/items/${it.id}/trash`, { method: "POST" });
-      return { guide: guide.key, note: note.key };
+      return { guide: guide.key, guideID: guide.id, note: note.key };
     });
     await page.goto(base + "/#/space/PLAT");
     await page.click("#space-trash");
@@ -5549,6 +5549,8 @@ function webSource() {
     await page.click(`#trash button[data-purge='${binned.note}']`);
     await page.waitForFunction((k) => !document.querySelector(`#trash tr[data-trash-item='${k}']`), binned.note);
     check(await page.evaluate(async (k) => (await (await fetch("/api/items/" + k)).json()).item.presence, binned.guide) === "live", "the restored guide is live again");
+    // The guide goes for good too, so the steps after these see what they saw before.
+    check(await page.evaluate(async (id) => (await fetch(`/api/items/${id}/trash`, { method: "POST" })).ok && (await fetch(`/api/items/${id}/purge`, { method: "POST" })).ok, binned.guideID), "the guide is deleted for good");
 
     step("filters: a paged list is filtered by the server (ADR-0098)");
     await page.goto(base + "/#/notifications?notifications.kind=mentions");
