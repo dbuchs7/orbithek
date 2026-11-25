@@ -97,6 +97,17 @@ export default {
   "space.board": "Board: {type}",
   "space.items": { "one": "{n} Eintrag", "other": "{n} Einträge" },
   "space.linkCheck": "Linkprüfung",
+  "space.trash": "Papierkorb",
+
+  "trash.colBy": "Gelöscht",
+  "trash.colItems": "Einträge",
+  "trash.count": { "one": "{n} Löschung", "other": "{n} Löschungen" },
+  "trash.crumb": "Papierkorb",
+  "trash.empty": "Der Papierkorb dieses Raums ist leer.",
+  "trash.heading": "{key} · Papierkorb",
+  "trash.items": { "one": "{n} Eintrag", "other": "{n} Einträge" },
+  "trash.note": "Was in diesem Raum gelöscht wurde, das Neueste zuerst. Jede Zeile ist, was eine Löschung mitgenommen hat, mit den Seiten darunter: «Wiederherstellen» holt alles unverändert zurück, «Endgültig löschen» entfernt den Inhalt und lässt sich nicht rückgängig machen.",
+  "trash.waiting": "Zuerst {key} wiederherstellen",
 
   "board.crumb": "Board: {type}",
   "board.none": "Kein Übergang führt von {from} nach {to}.",

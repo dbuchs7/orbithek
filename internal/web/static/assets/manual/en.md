@@ -173,6 +173,9 @@ The fields of an item stand in the panel at the side and are saved as soon as th
 - **Move…** puts a page with its child pages below another page or at the top of the room. Within a room, **Move up** and **Move down** change the order.
 - **Copy…** copies a page, optionally **With its child pages**.
 - **Move to trash** removes an item from sight. It is possible only when no other item outside its subtree refers to it. From the trash it can be restored with **Restore**, or erased with **Delete for good**, which cannot be undone.
+- **Trash** among the views of a room lists what was deleted there, the most recent first: one row per deletion, with how many items went with it, who deleted it and when.
+  **Restore** and **Delete for good** are offered there as on the item's page: restoring needs the right to edit everything that went with it, deleting for good the room administrator role.
+  An item deleted below a page that is itself in the trash waits until that page is restored.
 
 ### History and versions
 

@@ -173,6 +173,9 @@ Die Felder eines Eintrags stehen in der Spalte an der Seite und werden gespeiche
 - **Verschieben …** setzt eine Seite mit ihren Unterseiten unter eine andere Seite oder auf die oberste Ebene des Raums. Innerhalb eines Raums ändern **Nach oben** und **Nach unten** die Reihenfolge.
 - **Kopieren …** kopiert eine Seite, auf Wunsch **Mit Unterseiten**.
 - **In den Papierkorb** entfernt einen Eintrag aus der Ansicht. Das ist nur möglich, wenn kein anderer Eintrag ausserhalb seines Teilbaums auf ihn verweist. Aus dem Papierkorb lässt er sich mit **Wiederherstellen** zurückholen oder mit **Endgültig löschen** vernichten; das lässt sich nicht rückgängig machen.
+- **Papierkorb** in den Ansichten eines Raums listet auf, was dort gelöscht wurde, das Neueste zuerst: eine Zeile je Löschung, mit der Anzahl mitgelöschter Einträge, wer gelöscht hat und wann.
+  **Wiederherstellen** und **Endgültig löschen** stehen dort wie auf der Seite des Eintrags zur Verfügung: Wiederherstellen braucht das Recht, alles Mitgelöschte zu bearbeiten, endgültiges Löschen die Rolle der Raumadministration.
+  Ein Eintrag, der unter einer Seite gelöscht wurde, die selbst im Papierkorb liegt, wartet, bis diese Seite wiederhergestellt ist.
 
 ### Verlauf und Versionen
 

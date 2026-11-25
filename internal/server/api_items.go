@@ -90,6 +90,7 @@ func itemRoutes(d Deps) []Route {
 	routes = append(routes, pdfRoutes(h)...)
 	routes = append(routes, copyRoutes(h)...)
 	routes = append(routes, spaceTrashRoutes(h)...)
+	routes = append(routes, itemTrashRoutes(h)...)
 	routes = append(routes, secretRoutes(h)...)
 	routes = append(routes, exportRoutes(h)...)
 	routes = append(routes, linkCheckRoutes(h)...)

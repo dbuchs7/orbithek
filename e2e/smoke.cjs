@@ -5528,6 +5528,28 @@ function webSource() {
     await page.click("#space-trash button:has-text('Delete for good')");
     await page.waitForFunction(() => !document.querySelector("#space-trash") && !document.querySelector("button[data-trash-space=TMP]"));
 
+    step("trash: a room lists what was deleted in it, one row per deletion, and restores and purges from there (ADR-0021)");
+    const binned = await page.evaluate(async () => {
+      const make = async (title, parent) => (await (await fetch("/api/items", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ space: "PLAT", type: "page", title, parent }) })).json()).item;
+      const guide = await make("Binned guide");
+      await make("Binned chapter", guide.id);
+      const note = await make("Binned note");
+      for (const it of [guide, note]) await fetch(`/api/items/${it.id}/trash`, { method: "POST" });
+      return { guide: guide.key, note: note.key };
+    });
+    await page.goto(base + "/#/space/PLAT");
+    await page.click("#space-trash");
+    await page.waitForSelector(`#trash tr[data-trash-item='${binned.guide}']`);
+    check((await page.textContent(`#trash tr[data-trash-item='${binned.guide}']`)).includes("2 items"), "a deletion counts the pages that went with it");
+    check(!(await page.$("#trash tr:has-text('Binned chapter')")), "a page deleted with another has no row of its own");
+    await page.click(`#trash button[data-restore='${binned.guide}']`);
+    await page.waitForFunction((k) => !document.querySelector(`#trash tr[data-trash-item='${k}']`), binned.guide);
+    answer = true;
+    await page.click(`#trash button[data-purge='${binned.note}']`);
+    await page.waitForFunction((k) => !document.querySelector(`#trash tr[data-trash-item='${k}']`), binned.note);
+    check(await page.evaluate(async (k) => (await (await fetch("/api/items/" + k)).json()).item.presence, binned.guide) === "live", "the restored guide is live again");
+
     step("filters: a paged list is filtered by the server (ADR-0098)");
     await page.goto(base + "/#/notifications?notifications.kind=mentions");
     await page.waitForSelector("#notifications-filterbar select[data-choice=kind]");

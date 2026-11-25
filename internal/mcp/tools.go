@@ -119,6 +119,9 @@ var (
 // text as a person reads it, protected passages veiled, with exactly the
 // caller's rights; the ZIP archive with pictures is for people.
 //
+// The list of a room's trash (ADR-0021) is not offered: it serves
+// restoring and purging, which are not offered either.
+//
 // A request to read a protection is a task (ADR-0162): an agent finds the
 // tasks of requests as any task, with query_items or find_items by the
 // label access-request, and the list of ADR-0161 is gone with its route.

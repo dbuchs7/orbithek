@@ -99,6 +99,17 @@ export default {
   "space.board": "Board: {type}",
   "space.items": { "one": "{n} item", "other": "{n} items" },
   "space.linkCheck": "Link check",
+  "space.trash": "Trash",
+
+  "trash.colBy": "Deleted",
+  "trash.colItems": "Items",
+  "trash.count": { "one": "{n} deletion", "other": "{n} deletions" },
+  "trash.crumb": "trash",
+  "trash.empty": "The trash of this room is empty.",
+  "trash.heading": "{key} · trash",
+  "trash.items": { "one": "{n} item", "other": "{n} items" },
+  "trash.note": "What was deleted in this room, the most recent first. Each row is what one deletion took, with the pages below it: Restore brings it all back as it was, Delete for good removes its content and cannot be undone.",
+  "trash.waiting": "Restore {key} first",
 
   "board.crumb": "board: {type}",
   "board.none": "No transition leads from {from} to {to}.",

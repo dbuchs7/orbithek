@@ -1107,7 +1107,7 @@ function renderFooter() {
 // admin marks the modules only administrators see. The notifications are
 // reached through the bell in the header, not here.
 const modules = [
-  { id: "spaces", name: "nav.spaces", href: "#/spaces", match: ["", "spaces", "space", "item", "board", "links", "search", "query", "label"], icon: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" },
+  { id: "spaces", name: "nav.spaces", href: "#/spaces", match: ["", "spaces", "space", "item", "board", "links", "trash", "search", "query", "label"], icon: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" },
   { id: "new", name: "nav.new", href: "#/new", match: ["new"], icon: "M12 8v8M8 12h8M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z" },
   { id: "tasks", name: "nav.tasks", href: "#/planning", match: ["planning", "kanbans", "kanban", "roadmap", "calendar"], icon: "M9 11l3 3 8-8M20 12v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h11" },
   // Today's daily note (ADR-0205), named "My journal" here; on a phone,
@@ -1850,6 +1850,7 @@ async function route() {
       case "space": return await spaceView(arg);
       case "board": return await boardView(arg, arg2);
       case "links": return await linksView(arg);
+      case "trash": return await trashView(arg);
       case "governance": return arg ? await governanceView(arg) : await governanceOverview();
       case "item": return await itemView(arg, params);
       case "label": return await labelView(arg);
@@ -2808,6 +2809,7 @@ async function spaceView(key) {
         csv,
         watchButton("/api/spaces/" + encodeURIComponent(key), watches.some((w) => !w.item && w.space === key), status))),
     h("nav", { class: "subnav", "aria-label": t("space.views") }, [...boards, ...views, link(`#/roadmap?space=${encodeURIComponent(key)}`, t("roadmap.tab")), link(`#/calendar?space=${encodeURIComponent(key)}`, t("calendar.tab")), link(`#/links/${encodeURIComponent(key)}`, t("space.linkCheck")), link(`#/governance/${encodeURIComponent(key)}`, t("nav.governance")),
+      link(`#/trash/${encodeURIComponent(key)}`, t("space.trash"), null, "space-trash"),
       sp.role === "space-admin" ? link(`#/members/${encodeURIComponent(key)}`, t("members.title")) : null,
       sp.role === "space-admin" ? link(`#/import/${encodeURIComponent(key)}`, t("notesImport.title"), null, "space-import") : null].filter(Boolean)),
     status,
@@ -4554,6 +4556,53 @@ async function linksView(key) {
     h("p", {}, link("#/spaces", t("nav.spaces")), " / ", link("#/space/" + encodeURIComponent(key), key), " / " + t("links.crumb")),
     h("h1", { text: t("links.heading", { key }) }),
     h("section", { id: "linkcheck" }, body),
+  );
+}
+
+// trashView lists a room's trash: one row per deletion, the item it
+// started from with how many items went with it, the most recent first.
+// Restore and purge act on that item, and only what the server allows is
+// offered (ADR-0021).
+async function trashView(key) {
+  const show = screen();
+  const path = `/api/spaces/${encodeURIComponent(key)}/trash?limit=100`;
+  const first = await get(path);
+  here.space = key;
+  const status = h("div", { class: "status", id: "trash-status" });
+  const rows = h("tbody");
+  const more = h("div");
+  const addRows = async (page) => {
+    await learnNames(page.items.map((e) => e.by));
+    for (const e of page.items) {
+      const item = "/api/items/" + encodeURIComponent(e.id);
+      rows.append(h("tr", { "data-trash-item": e.key },
+        h("td", {}, link("#/item/" + encodeURIComponent(e.key), e.key, "key")),
+        h("td", { text: e.title }),
+        h("td", { text: e.type }),
+        h("td", { class: "muted", text: t("trash.items", { n: e.items }) }),
+        h("td", {}, h("span", { class: "who" }, face(e.by, 20), person(e.by)), h("div", { class: "muted", text: when(e.at) })),
+        h("td", {},
+          // A deletion below a deleted page waits for that page.
+          e.waiting ? h("span", { class: "muted", text: t("trash.waiting", { key: e.waiting }) })
+            : e.mayRestore ? h("button", { type: "button", class: "link", "data-restore": e.key, text: t("item.restore"), onclick: () => action(() => post(item + "/restore"), status) }) : null,
+          e.mayPurge ? [" ", h("button", { type: "button", class: "link danger", "data-purge": e.key, text: t("item.purge"),
+            onclick: () => confirm(t("item.purgeConfirm")) && action(() => post(item + "/purge"), status) })] : null)));
+    }
+    more.replaceChildren();
+    if (page.next) more.append(h("button", { text: t("common.more"), onclick: async () => addRows(await get(path + "&after=" + encodeURIComponent(page.next))) }));
+  };
+  await addRows(first);
+  show(
+    h("p", {}, link("#/spaces", t("nav.spaces")), " / ", link("#/space/" + encodeURIComponent(key), key), " / " + t("trash.crumb")),
+    h("h1", { text: t("trash.heading", { key }) }),
+    h("p", { class: "muted", text: t("trash.note") }),
+    status,
+    first.total.value
+      ? h("section", { id: "trash" },
+        h("p", { class: "muted", id: "trash-count", text: t("trash.count", { n: first.total.value }) }),
+        h("table", {}, h("thead", {}, h("tr", {}, [t("col.key"), t("col.title"), t("col.type"), t("trash.colItems"), t("trash.colBy"), ""].map((c) => h("th", { text: c })))), rows),
+        more)
+      : empty(t("trash.empty"), "trash-empty"),
   );
 }
 
