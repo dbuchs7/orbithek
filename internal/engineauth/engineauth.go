@@ -66,6 +66,13 @@ const metadataLifetime = time.Hour
 // the person's tasks, their forms and values, and who they are.
 const tasksResource = "/tasks"
 
+// shopResource is the engine's resource for a person's shop: the same
+// tasks, and besides them the catalogues the person may order from, their
+// orders and approvals and the import of catalogues they maintain
+// (ADR-0251). An engine that does
+// not publish it is connected for tasks alone.
+const shopResource = "/shop"
+
 // systemResource is the engine's resource a system grant is for, and
 // systemScopes the capabilities this server asks for with it (ADR-0152).
 const systemResource = "/system"
@@ -98,6 +105,8 @@ type Broker struct {
 
 type flow struct {
 	Flow
+	// shop says the grant is asked for the shop resource.
+	shop           bool
 	base, verifier string
 	client         client
 	expires        time.Time
@@ -114,14 +123,19 @@ type Flow struct {
 	Silent bool
 	// Back is the page of the web UI to go on to, a hash route.
 	Back string
+	// Shop asks for a grant of the person's shop where the engine offers
+	// one; a person already connected so is asked for it again whatever
+	// page they connect from, so connecting again never narrows a grant.
+	Shop bool
 }
 
 // metadata is what the engine says of its resources and of the
 // authorization server that grants them (RFC 9728, RFC 8414); system is
-// empty when the engine offers no system grant.
+// empty when the engine offers no system grant, shop when it offers no
+// grant of a person's shop.
 type metadata struct {
-	base, resource, system, authURL, tokenURL, revokeURL string
-	read                                                 time.Time
+	base, resource, system, shop, authURL, tokenURL, revokeURL string
+	read                                                       time.Time
 }
 
 type access struct {
@@ -228,12 +242,14 @@ func (b *Broker) Begin(ctx context.Context, e site.Engine, user string, o Flow) 
 	if err != nil {
 		return "", "", err
 	}
-	resource := m.resource
+	resource, shop := m.resource, false
 	if o.System {
 		if m.system == "" {
 			return "", "", ErrNoSystem
 		}
 		resource = m.system
+	} else if c, ok := b.conns.Get(user, e.ID); m.shop != "" && (o.Shop || ok && c.Shop) {
+		resource, shop = m.shop, true
 	}
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -248,7 +264,7 @@ func (b *Broker) Begin(ctx context.Context, e site.Engine, user string, o Flow) 
 	}
 	state, verifier := random(), oauth2.GenerateVerifier()
 	o.User, o.Engine = user, e.ID
-	b.pending[state] = flow{Flow: o, base: e.BaseURL, verifier: verifier, client: c, expires: now.Add(FlowLifetime)}
+	b.pending[state] = flow{Flow: o, shop: shop, base: e.BaseURL, verifier: verifier, client: c, expires: now.Add(FlowLifetime)}
 	cfg := &oauth2.Config{ClientID: c.id, Endpoint: oauth2.Endpoint{AuthURL: m.authURL, TokenURL: m.tokenURL}, RedirectURL: b.Callback(e.ID)}
 	opts := []oauth2.AuthCodeOption{oauth2.S256ChallengeOption(verifier), oauth2.SetAuthURLParam("resource", resource)}
 	if o.System {
@@ -295,8 +311,13 @@ func (b *Broker) Finish(ctx context.Context, e site.Engine, state, code string) 
 		return engineconn.Connection{}, err
 	}
 	resource, user := m.resource, f.User
-	if f.System {
+	switch {
+	case f.System:
 		resource, user = m.system, engineconn.SystemUser
+	case f.shop && m.shop == "":
+		return engineconn.Connection{}, fmt.Errorf("%w: the engine no longer offers a grant of the shop", ErrUnavailable)
+	case f.shop:
+		resource = m.shop
 	}
 	tok, err := b.retrieve(ctx, m, f.client, url.Values{"grant_type": {"authorization_code"}, "code": {code},
 		"redirect_uri": {b.Callback(e.ID)}, "code_verifier": {f.verifier}, "resource": {resource}})
@@ -311,6 +332,7 @@ func (b *Broker) Finish(ctx context.Context, e site.Engine, state, code string) 
 		return engineconn.Connection{}, err
 	}
 	profile := profileOf(p)
+	profile.Shop = f.shop
 	if f.client.metadata {
 		profile.Client = f.client.id
 	}
@@ -543,10 +565,28 @@ func (b *Broker) metadata(ctx context.Context, e site.Engine) (metadata, error) 
 		sys.Resource != "" && slices.Contains(sys.AuthorizationServers, pr.AuthorizationServers[0]) {
 		m.system = sys.Resource
 	}
+	// So is a person's shop (ADR-0251),
+	// granted by the same authorization server.
+	var shop struct {
+		Resource             string   `json:"resource"`
+		AuthorizationServers []string `json:"authorization_servers"`
+	}
+	if err := b.getJSON(ctx, e.BaseURL+"/.well-known/oauth-protected-resource"+shopResource, &shop); err == nil &&
+		shop.Resource != "" && slices.Contains(shop.AuthorizationServers, pr.AuthorizationServers[0]) {
+		m.shop = shop.Resource
+	}
 	b.mu.Lock()
 	b.meta[e.ID] = m
 	b.mu.Unlock()
 	return m, nil
+}
+
+// OffersShop reports whether the engine grants people their shop
+// (ADR-0251); an engine whose
+// authorization cannot be read offers none.
+func (b *Broker) OffersShop(ctx context.Context, e site.Engine) bool {
+	m, err := b.metadata(ctx, e)
+	return err == nil && m.shop != ""
 }
 
 // sameOrigin reports whether u is on the server of base: the person's

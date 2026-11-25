@@ -917,6 +917,11 @@ type request struct {
 	feed bool
 	// gone is a read of one task, whose 410 says how it ended (ADR-0152).
 	gone bool
+	// shop is a person's request of the engine's shop
+	// (ADR-0251): every answer of
+	// the 2xx class is a success, and every refusal but 401 comes back as
+	// a ShopError with the engine's status and words.
+	shop bool
 }
 
 // call makes a request of the engine and hands the answer's type and body
@@ -981,6 +986,8 @@ func (r *Reader) call(ctx context.Context, e site.Engine, rq request, read func(
 		return fmt.Errorf("%w: %s", ErrRejected, engineMessage(res.Body))
 	case rq.public && res.StatusCode == http.StatusTooManyRequests:
 		return ErrBusy
+	case rq.shop && res.StatusCode != http.StatusUnauthorized && (res.StatusCode < 200 || res.StatusCode > 299):
+		return shopErrorOf(res)
 	case rq.feed && res.StatusCode == http.StatusGone:
 		return ErrCursorGone
 	case rq.gone && res.StatusCode == http.StatusGone:
@@ -998,7 +1005,7 @@ func (r *Reader) call(ctx context.Context, e site.Engine, rq request, read func(
 		return fmt.Errorf("%w (%d)", ErrRefused, res.StatusCode)
 	case res.StatusCode == http.StatusNotFound:
 		return fmt.Errorf("%w (%s)", ErrNotFound, rq.path)
-	case res.StatusCode != http.StatusOK:
+	case res.StatusCode != http.StatusOK && !rq.shop:
 		return fmt.Errorf("%w: it answered %d", ErrUnavailable, res.StatusCode)
 	}
 	limit := budget.Get().EngineResponseBytes

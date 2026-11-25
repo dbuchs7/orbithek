@@ -4,12 +4,15 @@
 export class ApiError extends Error {
   // at is where a mistake in a query is, in characters from 0 (ADR-0136);
   // code names a failure the UI words itself, such as a calendar server
-  // refusing a password (ADR-0174).
-  constructor(status, message, at, code) {
+  // refusing a password (ADR-0174); body is the whole answer, such as the
+  // problems an engine names with a refusal
+  // (ADR-0251).
+  constructor(status, message, at, code, body) {
     super(message);
     this.status = status;
     this.at = at;
     this.code = code;
+    this.body = body;
   }
 }
 
@@ -31,7 +34,7 @@ export async function api(method, path, body) {
       }
     }
   }
-  if (!res.ok) throw new ApiError(res.status, (data && data.error) || res.statusText, data?.at, data?.code);
+  if (!res.ok) throw new ApiError(res.status, (data && data.error) || res.statusText, data?.at, data?.code, data);
   return data;
 }
 

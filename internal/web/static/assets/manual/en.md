@@ -562,6 +562,31 @@ If your administrator has connected a process engine, a text can show its proces
 
 Tasks of an engine can appear as linked tasks in a room. Under **Account and password → Connected engines** you connect your account to an engine; then you take a task on, give it back and complete it with its form directly in Orbithek (**Take on**, **Give back**, **Complete…**). A linked task's title and fields belong to the engine; it ends when the engine ends it.
 
+### The shop of an engine
+
+If an engine offers a shop, **Shop** in the module switcher shows the catalogues you may order from, your orders and the approvals you hold.
+The engine decides what you see, order and approve; you act as yourself.
+The first time, **Connect for the shop** takes you to the engine, where you sign in and allow Orbithek your shop and your tasks.
+A connection made only for tasks is asked to connect again once.
+
+Under **Catalogues**, **Choose** opens a product with what comes with it, its options, its version and its order form.
+**Add to basket** puts it in the **Basket**; **Place order** places one order per catalogue.
+Under **My orders** you follow each position, **Withdraw order** stops what has not happened yet, and **Give back** returns a delivered position.
+Under **Approvals** you decide the approvals you hold with **Approve** or **Refuse**; a refusal needs a reason, which the person who ordered reads.
+
+### Maintaining a shop catalogue
+
+A catalogue of an engine's shop can be written in a room.
+An administrator sets up the types once, on the engine's page under **Administration** with **Set up the types**.
+A catalogue is an item of type `shop-catalogue` with the engine, its languages and its rank; its products are items of type `shop-product` below it in the page tree.
+A product names the processes that provision it and take it back, its approval, its order form and price; it is offered once it is active.
+Relations of the types `composition`, `aggregation`, `requires` and `excludes` between products become the catalogue's structure; a product's labels become its keywords and its text, without protected passages, its description.
+
+On the catalogue's page, the card **Shop catalogue** shows what would be published or what stops it (**Check**).
+**Dry run** asks the engine whether it would accept the catalogue, without changing anything; **Publish** replaces what the engine holds of it and offers a new release.
+You publish with your own connection to the shop; whether you may maintain catalogues there, the engine decides.
+Afterwards the engine accepts changes to the catalogue only from Orbithek.
+
 ## AI assistants
 
 **AI access** explains how an AI assistant reads, searches and writes pages over the Model Context Protocol (MCP), always with exactly your rights:
