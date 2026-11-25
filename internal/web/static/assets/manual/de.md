@@ -51,7 +51,7 @@ Die Leiste oben auf jeder Seite enthält von links nach rechts:
 
 ### Die Startseite
 
-Die Startseite begrüsst mit dem Anzeigenamen (siehe *Das eigene Konto*), zeigt die Anzahl Seiten, Aufgaben und Bilder und bietet einen Schnellzugriff auf **Mein Journal** (die Tagesnotiz von heute, mit dem heutigen Datum), gleich daneben **Meine Notizen** (die persönlichen Notizen), die Sternenkarte, die **Räume** (die Übersicht der eigenen Räume, auch über den Modulwechsler erreichbar), die eigenen Aufgaben unter **Planung**, Benachrichtigungen, das Album, die Whiteboards und den KI-Zugang.
+Die Startseite begrüsst mit dem Anzeigenamen (siehe *Das eigene Konto*), zeigt die Anzahl Seiten, Aufgaben und Bilder und bietet einen Schnellzugriff auf **Mein Journal** (die Tagesnotiz von heute, mit dem heutigen Datum), gleich daneben **Meine Notizen** (die persönlichen Notizen), die Sternenkarte, die **Räume** (die Übersicht der eigenen Räume, auch über den Modulwechsler erreichbar), die eigenen Aufgaben unter **Planung**, Benachrichtigungen, das Album, die Whiteboards, den **Shop** mit dem Einkaufswagen und den KI-Zugang.
 Zeigt man mit der Maus auf eine Kachel, erscheint eine kurze Erklärung, was sie bietet.
 Die Raumübersicht zeigt die eigenen Räume als Kacheln oder als Liste; ein Stern markiert einen Raum als Favorit. Gibt es noch keine Räume, findet die Administration auf der Startseite die ersten Schritte: einen Raum erstellen, mit den Vorlagen Typen hinzufügen (Seite, Aufgabe, Entscheidung, Tagesnotiz) und Personen eine Rolle geben.
 
@@ -564,7 +564,7 @@ Tasks einer Engine können als verknüpfte Aufgaben in einem Raum erscheinen. Un
 
 ### Der Shop einer Engine
 
-Bietet eine Engine einen Shop an, zeigt **Shop** im Modulwechsler die Kataloge, aus denen man bestellen darf, die eigenen Bestellungen und die Genehmigungen, die man hält.
+Bietet eine Engine einen Shop an, zeigt **Shop** im Modulwechsler oder seine Kachel mit dem Einkaufswagen auf der Startseite die Kataloge, aus denen man bestellen darf, die eigenen Bestellungen und die Genehmigungen, die man hält.
 Die Engine entscheidet, was man sieht, bestellt und genehmigt; man handelt als man selbst.
 Beim ersten Mal führt **Für den Shop verbinden** zur Engine, wo man sich anmeldet und Orbithek den eigenen Shop und die eigenen Tasks erlaubt.
 Eine Verbindung, die nur für Tasks besteht, wird einmal erneut verbunden.

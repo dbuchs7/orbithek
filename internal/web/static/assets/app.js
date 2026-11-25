@@ -1254,6 +1254,11 @@ const moduleGlyphs = {
   day: [
     ["rect", { x: "3.5", y: "5", width: "17", height: "15.5", rx: "2.5", fill: "none", stroke: "#fff", "stroke-width": "1.8" }],
     ["path", { d: "M3.5 9.5h17M8 3v4M16 3v4", fill: "none", stroke: "#fff", "stroke-width": "1.8", "stroke-linecap": "round" }]],
+  // A shopping cart: the shop of a process engine (ADR-0251).
+  cart: [
+    ["path", { d: "M3 4h2.4l2.2 10.3a1.3 1.3 0 0 0 1.3 1h8.6a1.3 1.3 0 0 0 1.3-1L20.5 7.5H6.2", fill: "none", stroke: "#fff", "stroke-width": "1.8", "stroke-linecap": "round", "stroke-linejoin": "round" }],
+    ["path", { d: "M7 9.5h12.8l-1.3 5H8.1z", fill: "#fff" }],
+    ["circle", { cx: "9.5", cy: "19", r: "1.6", fill: "#fff" }], ["circle", { cx: "17", cy: "19", r: "1.6", fill: "#fff" }]],
   protection: [
     ["path", { d: "M12 3l7 3v5c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6z", fill: "#fff" }],
     ["path", { d: "M8.8 11.8l2.3 2.3 4.2-4.4", fill: "none", class: "module-stroke", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }]],
@@ -2456,6 +2461,9 @@ async function homeView() {
       // The whiteboards, and how many are in use now (ADR-0169).
       quick("#/whiteboards", t("nav.whiteboards"), boards.whiteboards.length ? t("home.whiteboardsLive", { n: boards.whiteboards.length }) : t("home.whiteboardsText"),
         t("home.tip.whiteboards"), "home-whiteboards", null, "whiteboard"),
+      // The shop of a process engine: its catalogues, one's orders and
+      // approvals (ADR-0251).
+      quick("#/shop", t("shop.title"), t("home.shopText"), t("home.tip.shop"), "home-shop", null, "cart"),
       quick("#/mcp", t("nav.mcp"), t("home.mcpText"), t("home.tip.mcp"), "home-mcp", null, "protection")),
     // The rooms are listed on their own overview (#/spaces), reached by
     // their tile; without rooms the start page shows the first steps.

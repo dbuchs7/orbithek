@@ -1378,6 +1378,8 @@ export default {
   "home.tip.myNotes": "Listet alle Ihre persönlichen Notizen mit den Textstellen, zu denen sie gehören. Nur Sie sehen sie. Eine Notiz entsteht, indem Sie beim Lesen eine Textstelle markieren und «Notiz» wählen.",
   "home.tip.album": "Öffnet das Album: die Bilder und Zeichnungen aller Seiten und Aufgaben, die Sie lesen dürfen, nach Ordnern, Zeitachse, Favoriten, «An diesem Tag», Karte oder Duplikaten, durchsuchbar nach Name, Label und Datum.",
   "home.tip.whiteboards": "Listet die Whiteboards in Verwendung und die Zeichnungen, die Sie als Whiteboard öffnen können, und legt neue an. Bis zu 20 Personen und KI-Agenten zeichnen gleichzeitig auf einem Whiteboard.",
+  "home.shopText": "Aus den Katalogen einer Engine bestellen",
+  "home.tip.shop": "Zeigt die Kataloge einer Prozess-Engine, aus denen Sie bestellen dürfen, Ihren Warenkorb, Ihre Bestellungen mit dem Stand jeder Position und die Genehmigungen, die Sie halten. Sie bestellen und entscheiden als Sie selbst.",
   "home.tip.mcp": "Erklärt, wie ein KI-Assistent über das Model Context Protocol (MCP) Seiten liest, durchsucht und schreibt, stets mit genau Ihren Rechten, und erstellt Token und Einstellungen für einen Assistenten auf Ihrem eigenen Computer.",
   "home.step1": "Erstellen Sie unten einen Raum, zum Beispiel für ein Team oder ein Projekt.",
   "home.step2": "Fügen Sie mit den Vorlagen die benötigten Typen hinzu (Seite, Aufgabe, Entscheidung).",
