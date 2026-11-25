@@ -486,6 +486,7 @@ internal/connector/ connectors that keep catalog spaces in step with sources suc
 internal/noteimport/ imports ZIP archives of notes into a room: folders of Markdown notes and workspace exports of Markdown and CSV, through the room administrator's session (ADR-0211)
 internal/engine/   reads processes from process engines (atlas): newest versions, BPMN models, operations as counts (ADR-0129); forms with their schemas and decisions with their DMN models (ADR-0144); the architecture sketches of releases as SVG pictures (ADR-0146); the forms of a process's steps, public start links and starts through them without the credential (ADR-0148); the open user tasks, with a credential of their own (ADR-0151)
 internal/tasklink/ keeps linked tasks in step with the engines' open user tasks, by the rules set per engine (ADR-0151)
+internal/shopcat/  writes a catalogue maintained as items — a shop-catalogue and the shop-product items below it — as the catalogue document a process engine imports (ADR-0251)
 internal/markdown/  converts Markdown into the block document: goldmark parses, its own walker makes every block and mark (ADR-0138)
 internal/wordtemplate/ reads Word templates, checks and cleans them, writes documents into them and frames pages as them for the reading view (ADR-0167)
 internal/gitrepo/   reads files and folders of Git repositories through the public APIs of GitHub, GitLab, Bitbucket, Gitea and Forgejo (ADR-0138)

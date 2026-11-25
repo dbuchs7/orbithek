@@ -294,3 +294,31 @@ func TestTheEngineMayNotSendTokensElsewhere(t *testing.T) {
 		t.Errorf("an engine of another kind = %v", err)
 	}
 }
+
+// TestAConnectionBegunForTheShopEndsWhereTheShopWasWithdrawn: once the
+// engine's metadata, read again, offers no shop, a connection begun for
+// it is not finished as a grant of tasks under the name of a shop
+// (ADR-0251).
+func TestAConnectionBegunForTheShopEndsWhereTheShopWasWithdrawn(t *testing.T) {
+	s := newSetup(t)
+	ctx := context.Background()
+	s.fake.Shop = true
+	authURL, state, err := s.b.Begin(ctx, s.e, "bert", Flow{Shop: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := s.client.Get(authURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	back, _ := url.Parse(res.Header.Get("Location"))
+	s.fake.Shop = false
+	s.b.meta = map[string]metadata{} // read again, as after metadataLifetime
+	if _, err := s.b.Finish(ctx, s.e, state, back.Query().Get("code")); !errors.Is(err, ErrUnavailable) {
+		t.Fatalf("finishing once the shop is withdrawn = %v", err)
+	}
+	if _, ok := s.conns.Get("bert", "atlas"); ok {
+		t.Error("a connection was kept")
+	}
+}

@@ -263,3 +263,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0248](0248-the-provider-names-a-first-display-name.md) | The sign-in provider names a first display name | Accepted | Landed |
 | [0249](0249-module-addresses-follow-their-names.md) | Planning and My journal are reached at #/planning and #/journal; the old addresses send on | Proposed | Partial |
 | [0250](0250-starmap-items-show-the-page-trees-symbols.md) | Items on the starmap show the page tree's symbols, finished tasks in green | Proposed | Partial |
+| [0251](0251-a-shop-and-catalogues-from-an-engine.md) | A process engine's shop in the wiki, and its catalogues maintained as items | Proposed | Partial |

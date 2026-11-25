@@ -167,11 +167,14 @@ var classified = map[string]string{
 	"internal/extcal.maxOccurrences":                   "a guard of what a window shows of one repeating entry of another service (ADR-0174), not a choice",
 	"internal/extcal.maxBody":                          "a guard of reading another service's answer (ADR-0174): one calendar, read at most four at once, every 15 minutes",
 	"internal/extcal/reader.go:maxBody + 1":            "the same bound, where the answer is read",
-	"internal/extcal/reader.go:64 << 10":               "the start of a refusal, read only to be dropped",
-	"internal/extcal.maxPages":                         "a guard of reading Google's pages (ADR-0174): ten pages of 2,500 events of one month and its edges",
-	"internal/extcal.maxPending":                       "a guard of begun Google connections (ADR-0174), as EngineConnectsPending is for engines: each expires after ten minutes",
-	"internal/extcal.maxRedirects":                     "a guard of following a calendar service's redirects (ADR-0174), not a choice",
-	"internal/server.maxEventDays":                     "the shape of a request for another service's entries (ADR-0174): a calendar shows at most a few weeks",
+	"internal/engine/shop.go:64 << 10": "the start of an engine's refusal of a person's shop request, quoted in its words and handed on when it names problems (ADR-0251); " +
+		"its successful answers are bounded by EngineResponseBytes",
+	"internal/engineauth/engineauthtest/engineauthtest.go:1 << 20": "the fake engine of the tests reading a shop request's body; test code, never served",
+	"internal/extcal/reader.go:64 << 10":                           "the start of a refusal, read only to be dropped",
+	"internal/extcal.maxPages":                                     "a guard of reading Google's pages (ADR-0174): ten pages of 2,500 events of one month and its edges",
+	"internal/extcal.maxPending":                                   "a guard of begun Google connections (ADR-0174), as EngineConnectsPending is for engines: each expires after ten minutes",
+	"internal/extcal.maxRedirects":                                 "a guard of following a calendar service's redirects (ADR-0174), not a choice",
+	"internal/server.maxEventDays":                                 "the shape of a request for another service's entries (ADR-0174): a calendar shows at most a few weeks",
 	"internal/auth.maxFavourites": "the shape of one's preferences (ADR-0145), like the length of a username: favourites are space keys, " +
 		"which only an administrator creates, so the list cannot outgrow the spaces",
 	"internal/wal.MaxRecord": "part of the event log format: a server must read every record a server wrote, " +

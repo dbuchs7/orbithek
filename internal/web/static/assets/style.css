@@ -1369,6 +1369,7 @@ section.hold .chip, #governance .chip { font-size: 11px; padding: 1px 8px; borde
 .module-spaces { --module: #16a34a; }
 .module-day { --module: #ef4444; }
 .module-whiteboard { --module: #ec4899; }
+.module-cart { --module: #ea580c; }
 .module-page { --module: linear-gradient(135deg, #0b5cff, #7c5cff); --module-ink: #3f5cf0; background: linear-gradient(135deg, #0b5cff, #7c5cff); box-shadow: 0 2px 6px rgba(63, 92, 240, .35); }
 .home-tile .chip { align-self: flex-start; font-size: 11px; padding: 1px 8px; border-radius: 999px; background: #fff4e5; color: #8a5300; }
 .space-tiles { list-style: none; margin: 0 0 22px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
@@ -3027,3 +3028,17 @@ dialog.palette::backdrop { background: rgba(20, 22, 26, .45); }
 .identity-list { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 8px; }
 .identity-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .identity-link-form { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; }
+
+/* A process engine's shop (ADR-0251):
+   the products of a catalogue as tiles that wrap, a picture at the head of
+   each, and the product's dialog no wider than the screen. */
+.shop-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin: 8px 0 24px; }
+.shop-tile { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+.shop-tile h3 { margin: 0; }
+.shop-tile p { margin: 0; }
+.shop-picture { width: 100%; max-height: 140px; object-fit: contain; border-radius: 6px; }
+.shop-price { font-weight: 600; }
+.shop-description { white-space: pre-line; }
+.shop-dialog { width: min(640px, calc(100vw - 32px)); }
+.shop-orders, .shop-approvals, .shop-basket-lines { list-style: none; padding: 0; }
+.shop-answers { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; }
