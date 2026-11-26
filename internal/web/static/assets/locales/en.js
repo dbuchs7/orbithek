@@ -1130,7 +1130,7 @@ export default {
   "slides.folder": "Album folder or collection",
   "slides.chooseFolder": "Choose a folder or collection of the album",
   "slides.current": "The folder shown now",
-  "slides.collection": "collection",
+  "slides.collection": "album collection",
   "slides.caption": "Caption",
   "slides.ok": "Insert the slide deck",
   "slides.hint": "The pictures of the folder become the slides, in its order of slides, with their speaker's notes; each reader sees the pictures they may read. A presentation file (.pptx) dropped onto a folder in the album becomes such a folder.",

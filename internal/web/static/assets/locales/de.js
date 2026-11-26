@@ -1128,7 +1128,7 @@ export default {
   "slides.folder": "Album-Ordner oder Sammlung",
   "slides.chooseFolder": "Einen Ordner oder eine Sammlung des Albums wählen",
   "slides.current": "Der jetzt gezeigte Ordner",
-  "slides.collection": "Sammlung",
+  "slides.collection": "Sammlung des Albums",
   "slides.caption": "Beschriftung",
   "slides.ok": "Foliensatz einfügen",
   "slides.hint": "Die Bilder des Ordners werden zu Folien, in seiner Reihenfolge der Folien und mit ihren Sprechernotizen; jede Leserin und jeder Leser sieht die Bilder, die sie oder er lesen darf. Eine Präsentationsdatei (.pptx), die im Album auf einen Ordner gezogen wird, wird zu einem solchen Ordner.",
