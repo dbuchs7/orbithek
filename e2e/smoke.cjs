@@ -2763,10 +2763,17 @@ function webSource() {
       await page.waitForSelector("#body.reading figure.pm-slides .pm-slides-newer:not([hidden])");
       await page.goto(base + "/#/item/" + deckPage.key + "?edit");
       await page.click(".ProseMirror figure.pm-slides .pm-slides-update");
-      await page.waitForFunction(async ([key, before]) => {
-        const deck = (await (await fetch("/api/items/" + key)).json()).item.body.find((b) => b.kind === "slides");
-        return deck?.files?.length === 3 && !deck.files.includes(before[0]);
-      }, [deckPage.key, saved.files]);
+      // Copying runs in the editor; the deck is saved with the new copies
+      // once it is done.
+      let updated = false;
+      for (let i = 0; i < 100 && !updated; i++) {
+        updated = await page.evaluate(async ([key, before]) => {
+          const deck = (await (await fetch("/api/items/" + key)).json()).item.body.find((b) => b.kind === "slides");
+          return deck?.files?.length === 3 && !deck.files.includes(before[0]);
+        }, [deckPage.key, saved.files]);
+        if (!updated) await page.waitForTimeout(100);
+      }
+      check(updated, "updating from the folder saves the deck with new copies");
       await page.click("#edit-done");
       // The counter shows once the deck has compared itself with its folder.
       await page.waitForSelector("#body.reading figure.pm-slides .pm-slides-counter");
