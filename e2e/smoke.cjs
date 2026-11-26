@@ -1218,6 +1218,40 @@ function webSource() {
     await page.waitForSelector("text=state: done");
     await page.waitForSelector("text=mentions (from the body)");
 
+    step("start page: what was made or changed last is listed below the tiles, ten rows and more on request");
+    const beforeRecent = await page.evaluate(() => location.hash);
+    await page.click("#history-nav #nav-home");
+    await page.waitForSelector("#home-recent .recent-list tbody tr");
+    check(await page.evaluate(() => {
+      const recent = document.getElementById("home-recent");
+      return recent.previousElementSibling?.classList.contains("home-tiles") && (!document.getElementById("setup-types") || recent.nextElementSibling?.id === "setup-types");
+    }), "the list stands right below the tiles, before the first steps with types");
+    const recentKeys = await page.locator("#home-recent tbody tr").evaluateAll((rows) => rows.map((r) => r.dataset.key));
+    check(recentKeys.includes("PLAT-1") && recentKeys.includes("PLAT-2") && recentKeys.length <= 10, "the items made so far are listed: " + recentKeys.join(", "));
+    check(await page.locator("#home-recent tbody tr:has-text('Platform') a[href^='#/item/PLAT-']").count() === recentKeys.filter((k) => k.startsWith("PLAT-")).length,
+      "each row names its room by name and leads to its item");
+    check(await page.locator("#home-recent-more").count() === 0, "with fewer than eleven items nothing more is offered");
+    // More than ten items, as a listing paged by the server answers them.
+    const fakeItem = (n) => ({ id: "fake-" + n, key: "FAKE-" + n, title: "Fake " + n, type: "task", space: "PLAT", updated: new Date(Date.UTC(2026, 0, 30 - n)).toISOString() });
+    await page.route("**/api/items?*", (r) => {
+      const u = new URL(r.request().url());
+      if (u.searchParams.get("query") !== "ORDER BY updated DESC") return r.continue();
+      const first = !u.searchParams.get("after");
+      check(u.searchParams.get("limit") === "10", "the list asks for ten rows at a time");
+      const items = first ? Array.from({ length: 10 }, (_, i) => fakeItem(i + 1)) : [11, 12, 13].map(fakeItem);
+      return r.fulfill({ contentType: "application/json", body: JSON.stringify({ total: { value: 13, exact: true }, items, ...(first ? { next: "fake-10" } : {}) }) });
+    });
+    await page.reload();
+    await page.waitForSelector("#home-recent-more");
+    check(await page.locator("#home-recent tbody tr").count() === 10, "ten rows are shown first");
+    await page.click("#home-recent-more");
+    await page.waitForSelector("#home-recent tbody tr[data-key='FAKE-13']");
+    check(await page.locator("#home-recent tbody tr").count() === 13 && await page.locator("#home-recent-more").count() === 0,
+      "Show more adds the next rows below the first, and goes when there are no more");
+    await page.unroute("**/api/items?*");
+    await page.evaluate((h) => { location.hash = h; }, beforeRecent);
+    await page.waitForSelector("text=mentions (from the body)");
+
     step("search: the body is found, its markup shows as text");
     const beforeSearch = await page.evaluate(() => location.hash);
     await page.fill("nav input[name=q]", "alert body");

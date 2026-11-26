@@ -2483,6 +2483,9 @@ async function homeView() {
       // wherever they were made (ADR-0113), close the tiles.
       quick("#/journal", t("home.today"), t("home.todayText", { date: todayText }), t("home.tip.today"), "home-today", null, "day", [todayNumber]),
       quick("#/my-notes", t("note.title"), mine.notes.length ? t("home.myNotesText", { n: mine.notes.length }) : t("home.myNotesNone"), t("home.tip.myNotes"), "home-my-notes", null, "page")),
+    // What was made or changed last, below the tiles; without rooms there
+    // is nothing to list.
+    spaces.length ? recentCard(spaces) : null,
     // The rooms are listed on their own overview (#/spaces), reached by
     // their tile; without rooms the start page shows the first steps.
     spaces.length === 0 ? h("h2", { text: t("spaces.title") }) : null,
@@ -2496,6 +2499,62 @@ async function homeView() {
     // the overview of rooms or New in the header.
     me.admin && spaces.length === 0 ? newSpaceForm(true) : null,
   );
+}
+
+// recentCard lists on the start page the items made or changed last in the
+// rooms one may read, newest first: ten rows, and ten more on each "Show
+// more". It asks the item listing for the query language's order by the
+// field updated (ADR-0136, ADR-0203), so an item made counts as changed and
+// the server's permission check decides what is listed (D10). The rows are
+// loaded after the start page is shown.
+function recentCard(spaces) {
+  const pageSize = 10;
+  const names = new Map(spaces.map((s) => [s.key, s.name]));
+  const url = (after) => {
+    const p = new URLSearchParams({ query: "ORDER BY updated DESC", limit: pageSize });
+    if (after) p.set("after", after);
+    return "/api/items?" + p;
+  };
+  const rows = h("tbody");
+  const table = h("table", { class: "recent-list", hidden: true },
+    h("thead", {}, h("tr", {},
+      h("th", { text: t("col.title") }), h("th", { text: t("col.type") }), h("th", { text: t("col.space") }), h("th", { text: t("home.recentChanged") }))),
+    rows);
+  const none = h("p", { class: "empty", id: "home-recent-none", hidden: true, text: t("home.recentNone") });
+  const more = h("div", { class: "recent-more" });
+  const status = h("div", { class: "status" });
+  const add = (page) => {
+    for (const it of page.items) {
+      rows.append(h("tr", { "data-key": it.key },
+        h("td", {}, link("#/item/" + encodeURIComponent(it.key), it.title || it.key, "recent-title"), " ", h("span", { class: "muted key", text: it.key })),
+        h("td", { text: it.type }),
+        h("td", { text: names.get(it.space) || it.space }),
+        h("td", { class: "muted" }, it.updated ? h("time", { datetime: it.updated, text: when(it.updated) }) : "")));
+    }
+    table.hidden = rows.childElementCount === 0;
+    none.hidden = rows.childElementCount > 0;
+    more.replaceChildren();
+    if (page.next) {
+      const button = h("button", { type: "button", class: "secondary", id: "home-recent-more", text: t("home.recentMore"),
+        // The next rows are added in place; the start page is not drawn
+        // again, so the rows already shown stay.
+        onclick: async () => {
+          button.disabled = true;
+          status.replaceChildren();
+          try {
+            add(await get(url(page.next)));
+          } catch (err) {
+            button.disabled = false;
+            status.replaceChildren(errorBox(err));
+          }
+        } });
+      more.append(button);
+    }
+  };
+  get(url()).then(add).catch((err) => status.replaceChildren(errorBox(err)));
+  return h("section", { class: "card recent-card", id: "home-recent" },
+    h("h2", { text: t("home.recent") }),
+    table, none, more, status);
 }
 
 // spacesView is the overview of one's rooms at #/spaces: the start page's

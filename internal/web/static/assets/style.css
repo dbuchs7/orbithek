@@ -1349,6 +1349,12 @@ section.hold .chip, #governance .chip { font-size: 11px; padding: 1px 8px; borde
 .welcome-lead { margin: 0 0 16px; font-size: 15px; color: var(--muted); max-width: 62ch; }
 .welcome-art { flex: none; width: min(360px, 34vw); height: auto; }
 .home-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 22px; }
+/* What was made or changed last, below the tiles of the start page. */
+.recent-list td { padding: 7px 12px; }
+.recent-list td:last-child, .recent-list th:last-child { white-space: nowrap; }
+.recent-list .key { font-size: 12px; }
+.recent-more:not(:empty) { margin-top: 12px; }
+@media (max-width: 640px) { .recent-list th:nth-child(2), .recent-list td:nth-child(2) { display: none; } }
 .my-notes li { display: flex; flex-direction: column; gap: 4px; }
 .my-notes li > p { margin: 0; }
 .my-note-quote { margin: 0; padding: 2px 0 2px 10px; border-left: 3px solid #3b6fd8; color: var(--muted); font-style: italic; }

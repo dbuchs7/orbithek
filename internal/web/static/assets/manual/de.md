@@ -55,6 +55,7 @@ Die Leiste oben auf jeder Seite enthält von links nach rechts:
 
 Die Startseite begrüsst mit dem Anzeigenamen (siehe *Das eigene Konto*), zeigt die Anzahl Seiten, Aufgaben und Bilder und bietet einen Schnellzugriff auf die Sternenkarte, die **Räume** (die Übersicht der eigenen Räume, auch über den Modulwechsler erreichbar), die eigenen Aufgaben unter **Planung**, Benachrichtigungen, das Album, die Whiteboards, den **Shop** mit dem Einkaufswagen, den KI-Zugang und am Ende auf **Mein Journal** (die Tagesnotiz von heute, mit dem heutigen Datum) und gleich daneben **Meine Notizen** (die persönlichen Notizen).
 Zeigt man mit der Maus auf eine Kachel, erscheint eine kurze Erklärung, was sie bietet.
+Unter den Kacheln listet **Zuletzt erstellt oder geändert** die Einträge der eigenen Räume, die zuletzt erstellt oder geändert wurden, die neuesten zuerst: zehn Zeilen mit Titel, Typ, Raum und Zeitpunkt der Änderung, und mit **Mehr anzeigen** jeweils zehn weitere. Als Änderung zählen Inhalt, Felder, Status, Labels, Verschieben, Kommentare und Dateien; aufgeführt wird nur, was man lesen darf.
 Die Raumübersicht zeigt die eigenen Räume als Kacheln oder als Liste; ein Stern markiert einen Raum als Favorit. Gibt es noch keine Räume, findet die Administration auf der Startseite die ersten Schritte: einen Raum erstellen, mit den Vorlagen Typen hinzufügen (Seite, Aufgabe, Entscheidung, Tagesnotiz) und Personen eine Rolle geben.
 
 ![Die Kacheln der Startseite](img/de/home.png)
