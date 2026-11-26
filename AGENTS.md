@@ -310,7 +310,7 @@ both keep the same outline of headings (ADR-0183).
 Two checks hold changes to this (ADR-0185).
 A test fails when a manual names in bold a label its catalogue does not have: rename the label in the manual as the UI now calls it, or list bold text that is no label (a key, a symbol, a concept) in `internal/web/manual_terms.txt` with a reason.
 On pull requests, the job `Manual (user-visible changes)` fails, and so blocks the merge, when catalogue values, routes, views or UI modules are added or changed and not every manual is: update the manuals, or write a line of its own `Manual: not needed — <reason>` into the pull request description.
-The same job fails when a pull request changes what a picture of the manual shows, as `internal/web/static/assets/manual/img/sources.txt` names it (a file, a function `app.js#homeView` or a key prefix `key:shop.setup`), and not the picture in every language: take the pictures again with the two commands below, or write a line of its own `Pictures: not needed — <reason>`; a new picture gets a line in `sources.txt`, and a test fails when a line names what has gone (ADR-0254).
+The same job fails when a pull request changes what a picture of the manual shows, as `internal/web/static/assets/manual/img/sources.txt` names it (a file, a function `app.js#homeView` or a key prefix `key:shop.setup`), and not the picture in every language: take the pictures again with the two commands below or the workflow *Manual pictures* on GitHub, or write a line of its own `Pictures: not needed — <reason>`; a new picture gets a line in `sources.txt`, and a test fails when a line names what has gone (ADR-0254).
 
 **UI code never turns a string into markup or code** (ADR-0014, ADR-0031).
 Create elements with `h()` from `internal/web/static/assets/dom.js`;
@@ -394,6 +394,7 @@ cd e2e && npm ci && BASE_URL=http://127.0.0.1:8080 ADMIN_PASSWORD=… node smoke
 OT_TOKEN=… go run ./cmd/orbithek mcp -url http://localhost:8080   # MCP tools on stdin/stdout for a local agent
 cd e2e && BASE_URL=http://127.0.0.1:8080 ADMIN_PASSWORD=… node manual-shots.cjs   # the manual's pictures, against a fresh server started with OT_PUBLIC_URL (ADR-0253)
 python3 -I e2e/shrink-pictures.py internal/web/static/assets/manual/img   # then shrink them (Pillow); commit the pictures
+# or on GitHub: Actions → Manual pictures → Run workflow on the branch: takes, shrinks and commits them (ADR-0254)
 go run ./cmd/orbithek version
 GOOS=windows GOARCH=arm64 CGO_ENABLED=0 go build ./cmd/orbithek   # any release platform
 docker build -t orbithek:dev .               # container image
@@ -459,7 +460,7 @@ THIRD_PARTY_NOTICES.md licenses of the modules in the binary; shipped with every
 README.md          what the project is and how to run it
 SECURITY.md        how to report a vulnerability privately
 go.mod             module github.com/dbuchs7/orbithek
-.github/workflows/ CI (fmt, vet, race tests, cross-build, DCO, manual), container image, release, settings drift
+.github/workflows/ CI (fmt, vet, race tests, cross-build, DCO, manual), container image, release, settings drift, the manual's pictures on demand
 .github/rulesets/  ruleset protecting main, source of truth for GitHub settings (ADR-0003)
 .github/repository-settings.json  general GitHub settings (merge methods, default branch), checked daily for drift (ADR-0003)
 Dockerfile         container image: distroless, nonroot, multi-arch (ADR-0024)

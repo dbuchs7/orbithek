@@ -1,4 +1,4 @@
-"""Shrinks the user manual's pictures (ADR-draft-pictures-and-help-links-in-the-manual).
+"""Shrinks the user manual's pictures (ADR-0253).
 
 Screenshots of the UI hold few colours, so a palette of 256 without
 dithering keeps them sharp at about a third of the size. Run after

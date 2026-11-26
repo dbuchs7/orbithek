@@ -64,7 +64,7 @@ func main() {
 			fmt.Println("::warning title=User manual not updated (advisory)::This pull request changes what people see but not every user manual. Update internal/web/static/assets/manual/*.md, or add a line \"Manual: not needed — <reason>\" to the description (ADR-0185).")
 		}
 		if !ok.pictures {
-			fmt.Println("::warning title=Pictures of the manual not taken again (advisory)::This pull request changes what pictures of the user manual show but not the pictures. Take them again with e2e/manual-shots.cjs, or add a line \"Pictures: not needed — <reason>\" to the description (ADR-0254).")
+			fmt.Println("::warning title=Pictures of the manual not taken again (advisory)::This pull request changes what pictures of the user manual show but not the pictures. Take them again with the workflow Manual pictures (Actions → Run workflow on this branch) or e2e/manual-shots.cjs, or add a line \"Pictures: not needed — <reason>\" to the description (ADR-0254).")
 		}
 		return
 	}
@@ -74,7 +74,7 @@ func main() {
 		fmt.Println("::error title=User manual not updated::This pull request changes what people see but not every user manual. Update internal/web/static/assets/manual/*.md, or add a line \"Manual: not needed — <reason>\" to the description (ADR-0185).")
 	}
 	if !ok.pictures {
-		fmt.Println("::error title=Pictures of the manual not taken again::This pull request changes what pictures of the user manual show but not the pictures. Take them again with e2e/manual-shots.cjs, or add a line \"Pictures: not needed — <reason>\" to the description (ADR-0254).")
+		fmt.Println("::error title=Pictures of the manual not taken again::This pull request changes what pictures of the user manual show but not the pictures. Take them again with the workflow Manual pictures (Actions → Run workflow on this branch) or e2e/manual-shots.cjs, or add a line \"Pictures: not needed — <reason>\" to the description (ADR-0254).")
 	}
 	os.Exit(1)
 }
@@ -200,7 +200,8 @@ func reportPictures(w io.Writer, r manualcheck.Report) {
 				fmt.Fprintf(w, "          %s\n", f)
 			}
 		}
-		fmt.Fprintln(w, "      Take them again (e2e/manual-shots.cjs, then e2e/shrink-pictures.py), or add a line of its own to the description:")
+		fmt.Fprintln(w, "      Take them again: on GitHub, Actions → Manual pictures → Run workflow on this branch; or e2e/manual-shots.cjs, then")
+		fmt.Fprintln(w, "      e2e/shrink-pictures.py. Or add a line of its own to the description:")
 		fmt.Fprintln(w, "      Pictures: not needed — <reason>")
 	}
 }

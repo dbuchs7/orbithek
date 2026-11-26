@@ -1,0 +1,120 @@
+name: Manual pictures
+
+# ADR-0254: takes the user manual's pictures on demand, so that no one needs
+# a browser and a fresh server of their own to answer Check C of the manual
+# check. Run it from the Actions tab ("Run workflow"), choosing the branch
+# of the pull request under "Use workflow from":
+#
+# - It builds the branch, starts a fresh server, takes every picture with
+#   e2e/manual-shots.cjs and shrinks them with e2e/shrink-pictures.py.
+# - The pictures are always kept as an artifact of the run.
+# - On a branch other than the default one, and unless "commit" is turned
+#   off, the pictures that changed are committed to the branch.
+#
+# A push made with the default token starts no workflow (GitHub's rule), so
+# the pull request's checks would not run on the new commit.
+# PICTURES_PUSH_TOKEN, a fine-grained token limited to this repository with
+# "Contents: read and write", pushes so that they do; without it the job
+# pushes with the default token and warns that the next push of the branch
+# runs the checks.
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: Commit the pictures that changed to the branch (never to the default branch)
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: manual-pictures-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pictures:
+    name: take the manual's pictures
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PICTURES_PUSH_TOKEN || github.token }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # As in the e2e job of ci.yml: Chromium with its fonts, tried again
+      # when a mirror is out of reach for a moment. Without its fonts the
+      # pictures would be wrong, so here a failure fails the run.
+      - name: Install Playwright, Chromium and Pillow
+        run: |
+          set -euo pipefail
+          (cd e2e && npm ci --no-audit --no-fund)
+          for attempt in 1 2 3; do
+            (cd e2e && npx playwright install --with-deps chromium) && break
+            if [ "$attempt" -eq 3 ]; then exit 1; fi
+            sleep $((attempt * 30))
+            sudo apt-get update || true
+          done
+          python -m pip install --quiet Pillow
+
+      # A fresh server with nothing in it; manual-shots.cjs seeds the example
+      # content. The password exists only for this run.
+      - name: Take the pictures
+        run: |
+          set -euo pipefail
+          go build -o "$RUNNER_TEMP/orbithek" ./cmd/orbithek
+          password="shots-$(openssl rand -hex 16)"
+          OT_ADMIN_PASSWORD="$password" OT_PUBLIC_URL=http://127.0.0.1:8080 OT_MAP_TILES=off OT_GEOCODER=off \
+            "$RUNNER_TEMP/orbithek" serve -addr 127.0.0.1:8080 -data-dir "$RUNNER_TEMP/data" > "$RUNNER_TEMP/server.log" 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/healthz >/dev/null && break; sleep 1; done
+          (cd e2e && BASE_URL=http://127.0.0.1:8080 ADMIN_PASSWORD="$password" node manual-shots.cjs)
+          python -I e2e/shrink-pictures.py internal/web/static/assets/manual/img
+
+      - name: Keep the pictures
+        uses: actions/upload-artifact@v4
+        with:
+          name: manual-pictures
+          path: internal/web/static/assets/manual/img
+          retention-days: 14
+
+      - name: Keep the server's log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: manual-pictures-server-log
+          path: ${{ runner.temp }}/server.log
+          retention-days: 7
+
+      # Bots never sign off (ADR-0018); the commit names the run that made
+      # it, so a reviewer can see where the pictures come from.
+      - name: Commit the pictures that changed
+        if: inputs.commit && github.ref_name != github.event.repository.default_branch
+        env:
+          HAS_PUSH_TOKEN: ${{ secrets.PICTURES_PUSH_TOKEN != '' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          git add internal/web/static/assets/manual/img
+          if git diff --cached --quiet; then
+            echo "The pictures are as they were; nothing to commit."
+            exit 0
+          fi
+          git diff --cached --stat
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Take the manual's pictures again" -m "Taken by $RUN_URL (ADR-0254)."
+          git push origin "HEAD:$GITHUB_REF_NAME"
+          if [ "$HAS_PUSH_TOKEN" != "true" ]; then
+            echo "::warning title=Checks not started::The pictures were pushed with the default token, which starts no workflow. The pull request's checks run with the next push of the branch; set PICTURES_PUSH_TOKEN to start them at once (ADR-0254)."
+          fi
