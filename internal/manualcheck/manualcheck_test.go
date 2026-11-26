@@ -161,3 +161,49 @@ func TestEvaluate(t *testing.T) {
 		t.Error("a broken head catalogue is not reported")
 	}
 }
+
+func TestParseSources(t *testing.T) {
+	ps, err := ParseSources("# comment\n\nhome app.js#homeView key:home.\nicons/shop shop.js\n")
+	if err != nil || len(ps) != 2 || ps[0].Name != "home" || !slices.Equal(ps[0].Sources, []string{"app.js#homeView", "key:home."}) {
+		t.Fatalf("ParseSources = %+v, %v", ps, err)
+	}
+	if got := ps[0].Files([]string{"en", "de"}); !slices.Equal(got, []string{Pictures + "en/home.png", Pictures + "de/home.png"}) {
+		t.Errorf("Files = %q", got)
+	}
+	if got := ps[1].Files([]string{"en", "de"}); !slices.Equal(got, []string{Pictures + "icons/shop.png"}) {
+		t.Errorf("a neutral picture's Files = %q", got)
+	}
+	for _, bad := range []string{"home\n", "Home app.js\n", "home app.js\nhome shop.js\n", "home ../x.js\n", "home app.js#\n", "home key:\n"} {
+		if _, err := ParseSources(bad); err == nil {
+			t.Errorf("ParseSources(%q) accepts it", bad)
+		}
+	}
+}
+
+func TestExcerpt(t *testing.T) {
+	text := "const glyphs = {\n  a: 1,\n};\nexport async function homeView() {\n  if (x) {\n  }\n}\nfunction homeViewer() {\n}\n"
+	if got, ok := Excerpt(text, "app.js#homeView"); !ok || got != "export async function homeView() {\n  if (x) {\n  }\n}" {
+		t.Errorf("Excerpt of a function = %q, %v", got, ok)
+	}
+	if got, ok := Excerpt(text, "app.js#glyphs"); !ok || got != "const glyphs = {\n  a: 1,\n}" {
+		t.Errorf("Excerpt of a constant = %q, %v", got, ok)
+	}
+	if _, ok := Excerpt(text, "app.js#missing"); ok {
+		t.Error("Excerpt finds a function the text lacks")
+	}
+	if got, ok := Excerpt(text, "app.js"); !ok || got != text {
+		t.Error("Excerpt of a file is not the whole file")
+	}
+	if SourceFile("key:home.") != "" || SourceFile("app.js#homeView") != Assets+"app.js" {
+		t.Error("SourceFile")
+	}
+}
+
+func TestPicturesNotNeeded(t *testing.T) {
+	if got := PicturesNotNeeded("x\nPictures: not needed — a tooltip\n"); got != "a tooltip" {
+		t.Errorf("PicturesNotNeeded = %q", got)
+	}
+	if got := PicturesNotNeeded("Pictures: not needed\nManual: not needed — x\n"); got != "" {
+		t.Errorf("a line without a reason gives %q", got)
+	}
+}

@@ -227,6 +227,10 @@ jobs:
   # every user manual, or its description says "Manual: not needed —
   # <reason>". Check A, that the manual names only labels the UI has, is a
   # test in internal/web and runs with the others.
+  # Check C: a pull request that changes what a picture of the manual shows
+  # (manual/img/sources.txt) takes it again, or its description says
+  # "Pictures: not needed — <reason>"
+  # (ADR-draft-keeping-the-manual-and-its-pictures-current).
   manual:
     name: Manual (user-visible changes)
     if: github.event_name == 'pull_request'

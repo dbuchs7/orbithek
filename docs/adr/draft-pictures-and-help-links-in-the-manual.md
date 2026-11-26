@@ -4,7 +4,7 @@
 - **Implementation:** Partial
 - **Date:** 2026-11-26
 - **Deciders:** the maintainer asked for the manual to show current screenshots and icons, so that readers recognise what they read about, and for the UI to jump to a topic of the manual where needed (2026-11-26)
-- **Open question:** how a picture that no longer shows the UI as it is gets noticed; today nothing fails when a view changes and its picture is not taken again
+- **Open question:** which further chapters should show a picture; how a stale picture gets noticed is answered by ADR-draft-keeping-the-manual-and-its-pictures-current
 - **Question checked:** 2026-11
 
 ## Context and problem statement
@@ -59,8 +59,8 @@ Chosen option: **1**.
 - **Positive:** readers see the view a chapter speaks of, and get from a view to its chapter in one click.
 - **Positive:** the manual stays one Markdown file per language, still readable on GitHub with its pictures.
 - **Negative / trade-offs accepted:** the pictures add about 650 KB to the binary.
-- **Negative / trade-offs accepted:** a picture shows the UI of the day it was taken; nothing notices when a view changes (the open question).
-- **Follow-ups / risks to watch:** pictures for further chapters; a check that compares a picture with a fresh one taken in CI and reports a large difference.
+- **Negative / trade-offs accepted:** a picture shows the UI of the day it was taken; ADR-draft-keeping-the-manual-and-its-pictures-current makes the manual check warn when a change touches what a picture shows.
+- **Follow-ups / risks to watch:** pictures for further chapters.
 
 ## Pros and cons of the options
 
@@ -87,4 +87,5 @@ Strongest form: no new syntax; the heading is the anchor.
 
 ## Links
 
+- amended by ADR-draft-keeping-the-manual-and-its-pictures-current (pictures kept current by a check)
 - relates to ADR-0183 (the user manual), ADR-0185 (the manual kept current by checks), ADR-0133 (Markdown into blocks), ADR-0056 (picture widths), ADR-0014 (no markup from strings)

@@ -310,6 +310,7 @@ both keep the same outline of headings (ADR-0183).
 Two checks hold changes to this (ADR-0185).
 A test fails when a manual names in bold a label its catalogue does not have: rename the label in the manual as the UI now calls it, or list bold text that is no label (a key, a symbol, a concept) in `internal/web/manual_terms.txt` with a reason.
 On pull requests, the job `Manual (user-visible changes)` warns when catalogue values, routes, views or UI modules are added or changed and not every manual is: update the manuals, or write a line of its own `Manual: not needed — <reason>` into the pull request description.
+The same job warns when a pull request changes what a picture of the manual shows, as `internal/web/static/assets/manual/img/sources.txt` names it (a file, a function `app.js#homeView` or a key prefix `key:shop.setup`), and not the picture in every language: take the pictures again with the two commands below, or write a line of its own `Pictures: not needed — <reason>`; a new picture gets a line in `sources.txt`, and a test fails when a line names what has gone (ADR-draft-keeping-the-manual-and-its-pictures-current).
 
 **UI code never turns a string into markup or code** (ADR-0014, ADR-0031).
 Create elements with `h()` from `internal/web/static/assets/dom.js`;
@@ -464,7 +465,7 @@ go.mod             module github.com/dbuchs7/orbithek
 Dockerfile         container image: distroless, nonroot, multi-arch (ADR-0024)
 cmd/orbithek/ the product's single binary: serve, check, healthcheck, version (ADR-0024)
 cmd/dcocheck/      CLI that checks DCO sign-offs over a git range
-cmd/manualcheck/   CLI that checks a git range changes the user manuals with what people see (ADR-0185)
+cmd/manualcheck/   CLI that checks a git range changes the user manuals with what people see (ADR-0185), and takes again the pictures whose view it changes
 cmd/adrnumbers/    CLI that warns when a decision record number a pull request adds is taken on main or by another open pull request
 cmd/settingscheck/ CLI that compares the GitHub settings with the recorded files (ADR-0003)
 internal/audit/    security audit trail, persisted in audit.wal (ADR-0029)
@@ -503,7 +504,7 @@ internal/web/      embedded web UI (plain HTML, CSS, ES modules; ADR-0009, ADR-0
 internal/web/jstest/  unit tests of UI modules that run without a browser, such as the Markdown conversion, the processes in a drawing, the description of a model, the forms and decisions of an engine, the architecture sketches of releases and the fields of a form and what a start form fills in, and the starmap's filters, layout, live simulation, drill path and impact view, what a selection may protect, the bars, lanes and axis of the roadmap and Gantt chart, the query that reads their items and their picture in pixels, the page tree's symbols for pages and tasks, the labels' starmap's filters, sizes and layout, what a Word template's frame admits of runs, pictures and lengths, the parts of a live whiteboard, the formats and file names of a picture's export, the album's map, timeline, choosing, what a dragged picture takes with it, where a folder may be moved, the times set by hand and ZIP archives, the order, zoom, laser pointer, keys and messages of a presentation of pictures, where pictures dropped among others go in the order of slides, reading a presentation's slides and notes, the scenes, text layout and charts its slides are drawn from, and pairing them with their exported pictures, the file name a download names, the user manual's outline in every language, the fingerprint by which the album finds pictures that look the same, which duplicates are deleted at once, the cells, sizes and colours of a table and how it is copied and pasted, the numbers of numbered headings, and that the UI's symbols in `docs/brand/icons` match the code (node --test; ADR-0133, ADR-0142, ADR-0143, ADR-0144, ADR-0146, ADR-0148, ADR-0157, ADR-0158, ADR-0159, ADR-0160, ADR-0164, ADR-0165, ADR-0167, ADR-0169, ADR-0173, ADR-0176, ADR-0177, ADR-0180, ADR-0183, ADR-0184, ADR-0186, ADR-0195, ADR-0196, ADR-0198, ADR-0200, ADR-0214, ADR-0218, ADR-0241)
 internal/web/vendor/  pinned npm packages and build.sh for static/vendor/prosemirror.js (ADR-0032), excalidraw.js (ADR-0053) and bpmn-viewer.js and bpmn-modeler.js (ADR-0129), form-viewer.js and dmn-viewer.js (ADR-0144), and palettes.mjs for the drawing palettes (ADR-0117), and pdf.js and pdf.worker.js with their fonts, character maps and image decoders in pdfjs/ (ADR-0210); only needed to update them
 internal/dco/      DCO sign-off rules (humans only), with tests
-internal/manualcheck/ rules of the manual check: what changes what people see, and what answers it (ADR-0185)
+internal/manualcheck/ rules of the manual check: what changes what people see, and what answers it (ADR-0185); which pictures of the manual a change makes stale (pictures.go)
 internal/item/     prototype of the unified item model (ADR-0001), event-sourced, versioned event codec
 internal/migrate/  prototype of the Jira/Confluence import engine (ADR-0023)
 internal/repoconfig/ tests keeping ruleset, CI workflow and release matrix consistent

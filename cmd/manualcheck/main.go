@@ -11,8 +11,14 @@
 // or when its description holds a line "Manual: not needed — <reason>".
 // See internal/manualcheck for the rules.
 //
+// It also runs Check C (ADR-draft-keeping-the-manual-and-its-pictures-current):
+// a pull request that changes what a picture of the manual shows, as
+// manual/img/sources.txt names it, takes the picture again in every
+// language, or its description holds a line "Pictures: not needed —
+// <reason>".
+//
 // With -advisory the result is reported but never fails: a missing manual
-// becomes a warning annotation and the command exits 0. CI runs in this
+// or a stale picture becomes a warning annotation and the command exits 0. CI runs in this
 // mode until the maintainer makes the check required.
 package main
 
@@ -22,6 +28,8 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path"
+	"slices"
 	"strings"
 
 	"github.com/dbuchs7/orbithek/internal/manualcheck"
@@ -44,38 +52,47 @@ func main() {
 		fmt.Fprintln(os.Stderr, "manualcheck:", err)
 		os.Exit(2)
 	}
-	if ok {
+	if ok.manual && ok.pictures {
 		return
 	}
 	if *advisory {
-		// A GitHub Actions workflow command: shown as a warning on the run
+		// GitHub Actions workflow commands: shown as warnings on the run
 		// and the pull request, without failing the job.
-		fmt.Println("::warning title=User manual not updated (advisory)::This pull request changes what people see but not every user manual. Update internal/web/static/assets/manual/*.md, or add a line \"Manual: not needed — <reason>\" to the description (ADR-0185).")
+		if !ok.manual {
+			fmt.Println("::warning title=User manual not updated (advisory)::This pull request changes what people see but not every user manual. Update internal/web/static/assets/manual/*.md, or add a line \"Manual: not needed — <reason>\" to the description (ADR-0185).")
+		}
+		if !ok.pictures {
+			fmt.Println("::warning title=Pictures of the manual not taken again (advisory)::This pull request changes what pictures of the user manual show but not the pictures. Take them again with e2e/manual-shots.cjs, or add a line \"Pictures: not needed — <reason>\" to the description.")
+		}
 		return
 	}
 	os.Exit(1)
 }
 
+// verdict says which checks a pull request passes.
+type verdict struct{ manual, pictures bool }
+
 // run reads the change between base and head from git, applies the rules
-// and writes the report to w. It reports whether the pull request passes.
-func run(w io.Writer, base, head, prBodyFile string) (bool, error) {
+// and writes the report to w. It reports which checks the pull request
+// passes.
+func run(w io.Writer, base, head, prBodyFile string) (verdict, error) {
 	var c manualcheck.Change
 	if prBodyFile != "" {
 		body, err := os.ReadFile(prBodyFile)
 		if err != nil {
-			return false, err
+			return verdict{}, err
 		}
 		c.Body = string(body)
 	}
 	mergeBase, err := git("merge-base", base, head)
 	if err != nil {
-		return false, err
+		return verdict{}, err
 	}
 	mergeBase = strings.TrimSpace(mergeBase)
 
 	status, err := git("diff", "--name-status", "-M", mergeBase, head)
 	if err != nil {
-		return false, err
+		return verdict{}, err
 	}
 	for _, line := range strings.Split(status, "\n") {
 		fields := strings.Split(line, "\t")
@@ -90,20 +107,20 @@ func run(w io.Writer, base, head, prBodyFile string) (bool, error) {
 		}
 	}
 	if c.OldCatalogue, err = show(mergeBase, manualcheck.Catalogue); err != nil {
-		return false, err
+		return verdict{}, err
 	}
 	if c.NewCatalogue, err = show(head, manualcheck.Catalogue); err != nil {
-		return false, err
+		return verdict{}, err
 	}
 	if c.OldShell, err = show(mergeBase, manualcheck.Shell); err != nil {
-		return false, err
+		return verdict{}, err
 	}
 	if c.NewShell, err = show(head, manualcheck.Shell); err != nil {
-		return false, err
+		return verdict{}, err
 	}
 	files, err := git("ls-tree", "--name-only", head, manualcheck.Manuals)
 	if err != nil {
-		return false, err
+		return verdict{}, err
 	}
 	for _, f := range strings.Fields(files) {
 		if manualcheck.IsManual(f) {
@@ -111,12 +128,71 @@ func run(w io.Writer, base, head, prBodyFile string) (bool, error) {
 		}
 	}
 
+	if err := readPictures(&c, mergeBase, head); err != nil {
+		return verdict{}, err
+	}
+
 	r, err := manualcheck.Evaluate(c)
 	if err != nil {
-		return false, err
+		return verdict{}, err
 	}
 	report(w, r)
-	return r.OK(), nil
+	reportPictures(w, r)
+	return verdict{manual: r.ManualOK(), pictures: r.PicturesOK()}, nil
+}
+
+// readPictures reads the manual's pictures and what they show at head, the
+// manual's languages, and the files their sources read at both commits.
+func readPictures(c *manualcheck.Change, base, head string) error {
+	text, err := show(head, manualcheck.PictureSources)
+	if err != nil {
+		return err
+	}
+	if c.Pictures, err = manualcheck.ParseSources(text); err != nil {
+		return fmt.Errorf("%s: %w", manualcheck.PictureSources, err)
+	}
+	for _, m := range c.Manuals {
+		c.Langs = append(c.Langs, strings.TrimSuffix(path.Base(m), ".md"))
+	}
+	c.OldSources, c.NewSources = map[string]string{}, map[string]string{}
+	for _, p := range c.Pictures {
+		for _, s := range p.Sources {
+			f := manualcheck.SourceFile(s)
+			if f == "" || !slices.Contains(c.Changed, f) {
+				continue
+			}
+			if _, done := c.NewSources[f]; done {
+				continue
+			}
+			if c.OldSources[f], err = show(base, f); err != nil {
+				return err
+			}
+			if c.NewSources[f], err = show(head, f); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// reportPictures writes the verdict on the manual's pictures.
+func reportPictures(w io.Writer, r manualcheck.Report) {
+	switch {
+	case len(r.Stale) == 0:
+		fmt.Fprintln(w, "ok    no picture of the manual shows what the pull request changes, or it is taken again")
+	case r.PicturesReason != "":
+		fmt.Fprintf(w, "ok    the description says the pictures need not be taken again: %s\n", r.PicturesReason)
+	default:
+		fmt.Fprintln(w, "FAIL  these pictures of the manual show what the pull request changes, but are not taken again:")
+		for _, p := range r.Stale {
+			fmt.Fprintf(w, "      - %s (because of %s)\n", p.Name, strings.Join(p.Because, ", "))
+			for _, f := range p.Files {
+				fmt.Fprintf(w, "          %s\n", f)
+			}
+		}
+		fmt.Fprintln(w, "      Take them again (e2e/manual-shots.cjs, then e2e/shrink-pictures.py), or add a line of its own to the description:")
+		fmt.Fprintln(w, "      Pictures: not needed — <reason>")
+	}
 }
 
 // report writes what the pull request changes that people see, and the
