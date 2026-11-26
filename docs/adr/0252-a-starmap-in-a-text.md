@@ -9,7 +9,8 @@
   - a picture opens its item, a label its page and a bubble its room's map.
 
   The rest are defaults proposed with the implementation.
-- **Open question:** whether a reader's change of the filters should be kept per reader, as a remembered tab is; whether exports should draw the map as a picture rather than name it; whether a map in a text should also offer the node's panel and the impact view (ADR-0159), here left to the starmap's own page
+  Request of 2026-11-26, after the first part: when several types are chosen for display, all of them show; the dialog's boxes now choose what shows, and the item a text is about stays on its map.
+- **Open question:** whether a reader's change of the filters should be kept per reader, as a remembered tab is; whether the block should keep the types it shows rather than those it leaves out, so that a type defined later does not appear on a map that named its types; whether exports should draw the map as a picture rather than name it; whether a map in a text should also offer the node's panel and the impact view (ADR-0159), here left to the starmap's own page
 - **Question checked:** 2026-11
 
 ## Context and problem statement
@@ -50,11 +51,15 @@ Chosen option: **1**, because it follows the view of items (ADR-0203), keeps not
 - **Format.** Codec version 70 adds the kind and the fields `Label`, `Search` and `HideKinds`; `Space`, `HideTypes` and `Depth` gain a meaning for it. Versions 1 to 69 are still read.
 - **Which map.** Every room's map is read with the label from the server (`GET /api/starmap?label=`), so beyond the budget the label still narrows it before bubbles are drawn (ADR-0191); a room's map is read whole and narrowed to the label in the browser by the labels its nodes carry (`withLabel`), the item the text is on kept, as no route narrows a room's map by label.
   When the block asks for the neighbourhood and the map does not hold the item — left out by the label's narrowing elsewhere, by the budget or by another room chosen — the map says so and shows the whole map.
+  When it holds the item, the item shows whatever the filters and the search say (`keep` in `filter` and `visible`), so a block that leaves out the item's own type still shows its neighbourhood; on the starmap's own page a station its filters hide still leaves nothing (ADR-0158).
 - **Drawing.** `embeddedStarmap` in `assets/starmap.js` draws the starmap's own view in a mode for texts (`embed`): its element ids begin with a prefix of their own, so several maps share a page; the filters, the search and the drill path start from the block; there is no room chooser, panel or impact view; the address stays as it is; the filters and the legend fold below the map; the canvas is lower; the wheel zooms only with Ctrl, and touch scrolls the page vertically, so the page scrolls past the map; Escape answers only within the map.
   Items show the page tree's symbols and finished tasks are green (ADR-0250), with the types the page shares (`configureStarmaps`).
 - **Reading.** Readers may change the search, the filters and the depth; nothing of that is kept, and the text shows the map as the block says again on the next visit.
 - **A click** opens what a node stands for (`nodeHref`): an item, a picture's item, a label's page (ADR-0204), a bubble's room map. The keyboard does the same with Enter; Shift+Enter still separates a node.
-- **Editing.** **Insert…** → **Starmap…** opens a dialog with the room, what the map shows, the label (suggested from the labels in use), the search text and the types and kinds to leave out; **Change the starmap…** changes it; a line above the map says how it is narrowed.
+- **Editing.** **Insert…** → **Starmap…** opens a dialog with the room, what the map shows, the label (suggested from the labels in use), the search text and the types and kinds to show; **Change the starmap…** changes it.
+  A ticked box shows its type or kind, as in the map's own filters, every one ticked at first; the block keeps what is not ticked (`HideTypes`, `HideKinds`), and a type it leaves out that is no longer listed stays left out.
+  The first version asked for the types to leave out, so ticking the types one wanted to see hid them.
+  A line above the map says how it is narrowed.
 - **Exports** name the map (`export.StarmapName`), as they name a view.
 - **MCP** (ADR-0012): no tool is added; an agent writes the block with `commit_body`, whose description of blocks names the kind and its fields.
 

@@ -691,7 +691,9 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
   let shownNow = { nodes: new Set(), edges: [], matches: new Set() };
   let signature = null;
   function render() {
-    const shown = visible(graph, { query: search.value, hidden, trail, depth });
+    // In a text the item it is about shows whatever the filters say
+    // (ADR-0252), so its neighbourhood never leaves an empty map.
+    const shown = visible(graph, { query: search.value, hidden, trail, depth, keep: embed?.centre && byID.has(embed.centre) ? embed.centre : null });
     shownNow = shown;
     const at = trail[trail.length - 1];
     const near = focused && shown.nodes.has(focused) ? neighbourhood(graph, focused, shown.edges) : null;

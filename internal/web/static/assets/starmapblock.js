@@ -64,12 +64,17 @@ export async function pickStarmap(initial = {}, helpers = shared) {
   const label = h("input", { id: "starmap-pick-label", name: "label", type: "text", list: "starmap-pick-labels", value: initial.label || "", maxlength: 64, autocomplete: "off" });
   const labelList = h("datalist", { id: "starmap-pick-labels" }, labels.map((l) => h("option", { value: l.label })));
   const search = h("input", { id: "starmap-pick-search", name: "search", type: "search", value: initial.search || "", maxlength: 200 });
-  const box = (key, text, on) => h("label", { class: "check", "data-hide": key }, h("input", { type: "checkbox", value: key, checked: on }), " ", text);
-  const typeBoxes = h("fieldset", { class: "starmap-pick-types", id: "starmap-pick-types" }, h("legend", { text: t("starmap.blockHideTypes") }),
-    [...new Set(types.map((ty) => ty.name))].sort().map((name) => box(name, name, (initial.hideTypes || []).includes(name))));
-  const kindBoxes = h("fieldset", { class: "starmap-pick-kinds", id: "starmap-pick-kinds" }, h("legend", { text: t("starmap.blockHideKinds") }),
-    BLOCK_KINDS.map((k) => box(k, kindName(k), (initial.hideKinds || []).includes(k))));
-  const ticked = (set) => [...set.querySelectorAll("input:checked")].map((i) => i.value);
+  // A box ticked shows its type or kind, as the map's own filters do; the
+  // block keeps what is not ticked. A type the block leaves out that is
+  // no longer listed stays left out.
+  const box = (key, text, on) => h("label", { class: "check", "data-show": key }, h("input", { type: "checkbox", value: key, checked: on }), " ", text);
+  const names = [...new Set(types.map((ty) => ty.name))].sort();
+  const typeBoxes = h("fieldset", { class: "starmap-pick-types", id: "starmap-pick-types" }, h("legend", { text: t("starmap.blockShowTypes") }),
+    names.map((name) => box(name, name, !(initial.hideTypes || []).includes(name))));
+  const kindBoxes = h("fieldset", { class: "starmap-pick-kinds", id: "starmap-pick-kinds" }, h("legend", { text: t("starmap.blockShowKinds") }),
+    BLOCK_KINDS.map((k) => box(k, kindName(k), !(initial.hideKinds || []).includes(k))));
+  const unticked = (set) => [...set.querySelectorAll("input:not(:checked)")].map((i) => i.value);
+  const unlisted = (initial.hideTypes || []).filter((name) => !names.includes(name));
   return helpers.formDialog(t("starmap.blockInsert"), "starmap-dialog", [
     choice(t("starmap.space"), room),
     choice(t("starmap.blockReach"), depth),
@@ -78,5 +83,5 @@ export async function pickStarmap(initial = {}, helpers = shared) {
     typeBoxes, kindBoxes,
     h("p", { class: "muted", text: t("starmap.blockHint") }),
   ], async () => starmapBlockOf({ space: room.value, label: normalLabel(label.value), search: search.value, depth: Number(depth.value),
-    hideTypes: ticked(typeBoxes), hideKinds: ticked(kindBoxes) }), t("starmap.blockOk"));
+    hideTypes: [...unticked(typeBoxes), ...unlisted], hideKinds: unticked(kindBoxes) }), t("starmap.blockOk"));
 }
