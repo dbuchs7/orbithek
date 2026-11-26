@@ -271,4 +271,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0256](0256-readers-and-members-exist.md) | Readers of protected passages, members of groups and holders of system roles exist | Proposed | Partial |
 | [0257](0257-the-administration-marks-principals-without-an-account.md) | The administration marks group members and system role holders without an account | Proposed | Partial |
 | [0258](0258-the-start-repairs-only-what-the-operator-names.md) | The start warns when no administrator has an account, and repairs only for the account the operator names | Proposed | Partial |
-| [0259](0259-a-folder-is-shown-in-the-order-of-its-slides.md) | A folder or collection is shown in the order of its slides by default | Proposed | Partial |
+| [0259](0259-a-folder-is-shown-in-the-order-of-its-slides.md) | A folder or collection is shown in the order of its slides by default | Accepted | Landed |

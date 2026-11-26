@@ -1,9 +1,9 @@
 # ADR-0259: A folder or collection is shown in the order of its slides by default
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-26
-- **Deciders:** Project initiators (request of 2026-11-26: the order of the slides becomes the default view of a folder in the album, so that the order of a presentation is set and seen where the pictures are kept)
+- **Deciders:** Project initiators (request of 2026-11-26: the order of the slides becomes the default view of a folder in the album, so that the order of a presentation is set and seen where the pictures are kept; built in #401 and accepted by the requester on 2026-11-26)
 - **Open question:** whether the choice should be kept per folder or per person on the server rather than per browser; whether a folder whose pictures come from a camera should still open newest first
 - **Question checked:** 2026-11
 
