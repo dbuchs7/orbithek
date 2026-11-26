@@ -2715,7 +2715,7 @@ function webSource() {
       await page.waitForSelector("#album-order-hint", { state: "hidden" });
     }
 
-    step("slide deck in a text: a page shows the pictures of an album folder as slides, steps through them and presents them, and ending returns to the page (ADR-draft-a-slide-deck-in-a-text)");
+    step("slide deck in a text: a page shows the pictures of an album folder as slides, steps through them and presents them, and ending returns to the page (ADR-0260)");
     {
       const { item: deckPage } = await page.evaluate(async () => (await fetch("/api/items", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ space: "PLAT", type: "task", title: "Talk page", properties: { priority: "low" }, body: [{ kind: "paragraph", text: "Our talk." }] }) })).json());

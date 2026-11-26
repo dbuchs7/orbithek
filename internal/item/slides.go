@@ -1,6 +1,6 @@
 package item
 
-// A slide deck in a text (ADR-draft-a-slide-deck-in-a-text) is a block of
+// A slide deck in a text (ADR-0260) is a block of
 // the kind slides that names an album folder or collection by its ID in
 // Ref and has a plain caption in Text. Its slides are the pictures the
 // album shows of that folder or collection, in its order of slides

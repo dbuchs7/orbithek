@@ -223,7 +223,7 @@ import (
 //     Versions 1 to 69 are still read; their bodies show no starmap.
 //   - 71: the block kind slides, an album folder or collection in Ref
 //     and a plain caption, sealed with the body
-//     (ADR-draft-a-slide-deck-in-a-text).
+//     (ADR-0260).
 //     Versions 1 to 70 are still read; their bodies show no slide deck.
 const CodecVersion = 71
 

@@ -1,4 +1,4 @@
-// A slide deck in a text (ADR-draft-a-slide-deck-in-a-text): a block of
+// A slide deck in a text (ADR-0260): a block of
 // the kind slides names an album folder or collection, and the text shows
 // its pictures as slides — in the order of slides of the folder or
 // collection (ADR-0195), read with each reader's rights, so a reader sees

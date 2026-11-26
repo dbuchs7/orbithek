@@ -7,7 +7,7 @@ import (
 )
 
 // A slide deck in a text names an album folder or collection and has a
-// plain caption (ADR-draft-a-slide-deck-in-a-text).
+// plain caption (ADR-0260).
 func TestASlideDeckNamesAnItemAndHasAPlainCaption(t *testing.T) {
 	for i, b := range []Block{{Kind: Slides, Ref: "f"}, {Kind: Slides, Ref: "f", Text: "Board, 4 December"}} {
 		if err := checkBlock(b, "self"); err != nil {

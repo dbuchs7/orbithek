@@ -79,7 +79,7 @@ configureViews({
 // A starmap in a text (ADR-0252) draws the page
 // tree's symbols and asks in the page's dialog.
 configureStarmaps({ symbols: () => starmapSymbols(), formDialog });
-// A slide deck in a text (ADR-draft-a-slide-deck-in-a-text) asks for its
+// A slide deck in a text (ADR-0260) asks for its
 // folder in the page's dialog.
 configureSlides({ formDialog });
 
@@ -4460,7 +4460,7 @@ async function presentScreen(params) {
   document.body.classList.add("presenting");
   onLeave(() => document.body.classList.remove("presenting"));
   // Ending returns to the album, or to the text it was started from
-  // (ADR-draft-a-slide-deck-in-a-text).
+  // (ADR-0260).
   const back = backOf(params);
   await presenterView({ params, show, onLeave, done: () => { location.hash = back ? "#/item/" + encodeURIComponent(back) : "#/album"; } });
 }

@@ -51,7 +51,7 @@ export function slidesOf(pictures) {
 export const orderOf = (params) => params.get("collection") || params.get("folder") || "";
 
 // backOf is the item whose text a presentation was started from, which
-// ending it returns to (ADR-draft-a-slide-deck-in-a-text): its key or ID
+// ending it returns to (ADR-0260): its key or ID
 // in the address's back, or "" for a presentation started in the album.
 export const backOf = (params) => {
   const back = params.get("back") || "";

@@ -239,7 +239,7 @@ func TestALaterBackupFillsAnOlderInstallation(t *testing.T) {
 			Marks: []item.Mark{{Type: item.MarkMention, Start: 4, End: 8, Ref: lost.ID}}}, {Kind: item.Embed, Ref: lost.ID}}}}))
 
 	// A slide deck of a folder deleted for good is left out, as an embed
-	// is (ADR-draft-a-slide-deck-in-a-text).
+	// is (ADR-0260).
 	deck := must[item.Item](t)(s.Create("anna", item.NewItem{Space: "A", Type: "page", Title: "Deck",
 		Body: &item.Doc{Blocks: []item.Block{{Kind: item.Paragraph, Text: "Slides"}, {Kind: item.Slides, Ref: lostFolder.ID}}}}))
 

@@ -1,4 +1,4 @@
-# ADR-DRAFT: A slide deck in a text, shown from an album folder and presented from the text
+# ADR-0260: A slide deck in a text, shown from an album folder and presented from the text
 
 - **Status:** Proposed
 - **Implementation:** Partial
