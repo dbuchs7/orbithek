@@ -86,17 +86,19 @@ func refSecrets(d Doc) map[string][]ID {
 // first Secret that showed it until that Secret is taken off or erased.
 func (it *Item) noteSecretFiles(d Doc) {
 	for _, b := range d.Blocks {
-		if b.Secret == "" || b.Ref == "" || !showsFile(b.Kind) {
+		if b.Secret == "" {
 			continue
 		}
-		if _, ok := it.secretFiles[b.Ref]; ok {
-			continue
+		for _, f := range b.shownFiles() {
+			if _, ok := it.secretFiles[f]; ok {
+				continue
+			}
+			it.secretFiles = maps.Clone(it.secretFiles)
+			if it.secretFiles == nil {
+				it.secretFiles = map[ID]ID{}
+			}
+			it.secretFiles[f] = b.Secret
 		}
-		it.secretFiles = maps.Clone(it.secretFiles)
-		if it.secretFiles == nil {
-			it.secretFiles = map[ID]ID{}
-		}
-		it.secretFiles[b.Ref] = b.Secret
 	}
 }
 
@@ -178,32 +180,33 @@ func (s *Store) readsFile(principal string, it *Item, file ID) bool {
 func checkSecretFiles(it *Item, d Doc) error {
 	trial := maps.Clone(it.secretFiles)
 	for _, b := range d.Blocks {
-		if b.Secret == "" || b.Ref == "" || !showsFile(b.Kind) {
+		if b.Secret == "" {
 			continue
 		}
-		if _, ok := trial[b.Ref]; !ok {
-			if trial == nil {
-				trial = map[ID]ID{}
+		for _, f := range b.shownFiles() {
+			if _, ok := trial[f]; !ok {
+				if trial == nil {
+					trial = map[ID]ID{}
+				}
+				trial[f] = b.Secret
 			}
-			trial[b.Ref] = b.Secret
 		}
 	}
 	prot := protectedFiles(it, trial)
 	for i, b := range d.Blocks {
-		if b.Ref == "" || !showsFile(b.Kind) {
-			continue
-		}
-		sec, ok := prot[b.Ref]
-		if !ok && b.Secret != "" {
-			// A file the item does not have yet is checked by CommitBody;
-			// it is protected by this block alone.
-			continue
-		}
-		if sec != b.Secret {
-			if b.Secret == "" {
-				return wrapf(invalid("this file is protected in another place of the text; show it there, or protect this block with the same protection"), "block %d", i+1)
+		for _, f := range b.shownFiles() {
+			sec, ok := prot[f]
+			if !ok && b.Secret != "" {
+				// A file the item does not have yet is checked by
+				// CommitBody; it is protected by this block alone.
+				continue
 			}
-			return wrapf(invalid("this file is protected by another protection of the text"), "block %d", i+1)
+			if sec != b.Secret {
+				if b.Secret == "" {
+					return wrapf(invalid("this file is protected in another place of the text; show it there, or protect this block with the same protection"), "block %d", i+1)
+				}
+				return wrapf(invalid("this file is protected by another protection of the text"), "block %d", i+1)
+			}
 		}
 	}
 	return nil

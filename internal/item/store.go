@@ -313,8 +313,8 @@ func (s *Store) firstBodyOf(td TypeDef, created Event, d Doc) (Event, error) {
 		return Event{}, invalid("type %q has no body", td.Name)
 	}
 	for i, b := range d.Blocks {
-		if b.Kind == Image || b.Kind == Video || b.Kind == Audio || b.Kind == BPMN {
-			return Event{}, wrapf(invalid("an image, a video, a sound or a BPMN diagram shows a file of the item; add it after creating the item"), "block %d", i+1)
+		if b.Kind == Image || b.Kind == Video || b.Kind == Audio || b.Kind == BPMN || b.Kind == Slides {
+			return Event{}, wrapf(invalid("an image, a video, a sound, a BPMN diagram or a slide deck shows files of the item; add it after creating the item"), "block %d", i+1)
 		}
 		if err := checkBlock(b, created.Item); err != nil {
 			return Event{}, wrapf(err, "block %d", i+1)
@@ -332,9 +332,6 @@ func (s *Store) firstBodyOf(td TypeDef, created Event, d Doc) (Event, error) {
 		if target.Presence != Live {
 			return Event{}, invalid("item %s is %s and cannot be newly referenced", target.Key, target.Presence)
 		}
-	}
-	if err := s.checkSlideDecks(d); err != nil {
-		return Event{}, err
 	}
 	body := d.clone()
 	return Event{Kind: BodyCommitted, Item: created.Item, Body: &body}, nil
@@ -777,7 +774,7 @@ func (s *Store) CommitBody(actor string, id ID, d Doc) error {
 			return invalid("item %s is %s and cannot be newly referenced", target.Key, target.Presence)
 		}
 	}
-	if err := s.checkSlideDecks(d); err != nil {
+	if err := s.checkSlideDecks(it, d); err != nil {
 		return err
 	}
 	if err := checkSecrets(it, d); err != nil {
@@ -1569,6 +1566,9 @@ func checkBlock(b Block, self ID) error {
 	}
 	if b.Kind != ItemsView && b.Kind != StarmapBlock && b.Space != "" {
 		return invalid("only a view or a starmap names a room")
+	}
+	if b.Kind != Slides && b.Files != nil {
+		return invalid("only a slide deck keeps files as its slides")
 	}
 	if b.Kind != StarmapBlock && (b.Label != "" || b.Search != "" || b.HideKinds != nil) {
 		return invalid("only a starmap names a label, a search text and kinds it leaves out")

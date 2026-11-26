@@ -50,6 +50,16 @@ export function slidesOf(pictures) {
 // follows, from the album's filters: "" for a deck of neither.
 export const orderOf = (params) => params.get("collection") || params.get("folder") || "";
 
+// deckSourceOf is the slide deck of a text a presentation shows
+// (ADR-0260): the item's ID in deck and the deck's place among the decks
+// of its text in n, or null for a presentation of the album's pictures.
+export function deckSourceOf(params) {
+  const item = params.get("deck") || "";
+  const n = Number(params.get("n") || "0");
+  if (!/^[0-9a-f]{32}$/.test(item) || !Number.isInteger(n) || n < 0 || n > 999) return null;
+  return { item, n };
+}
+
 // backOf is the item whose text a presentation was started from, which
 // ending it returns to (ADR-0260): its key or ID
 // in the address's back, or "" for a presentation started in the album.
@@ -59,8 +69,9 @@ export const backOf = (params) => {
 };
 
 // DECK_FILTERS are the album's filters a presentation is chosen by, a
-// collection (ADR-0175) among them.
-export const DECK_FILTERS = ["folder", "collection", "space", "q", "kind", "label", "person"];
+// collection (ADR-0175) among them, and the slide deck of a text
+// (deck and n, ADR-0260).
+export const DECK_FILTERS = ["folder", "collection", "space", "q", "kind", "label", "person", "deck", "n"];
 
 // deckParams keeps only the album's filters of a set of parameters, the
 // empty ones left out.

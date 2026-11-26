@@ -212,6 +212,9 @@ type blockJSON struct {
 	Label     string   `json:"label,omitempty"`
 	Search    string   `json:"search,omitempty"`
 	HideKinds []string `json:"hideKinds,omitempty"`
+	// Files are a slide deck's slides, files of the item in their order
+	// (ADR-0260).
+	Files []item.ID `json:"files,omitempty"`
 }
 
 type cellJSON struct {
@@ -239,7 +242,7 @@ func toBlockJSON(b item.Block) blockJSON {
 	j := blockJSON{Kind: b.Kind, Text: b.Text, Level: b.Level, Mentions: b.Mentions, Ref: b.Ref, Checked: b.Checked, Tone: b.Tone, Width: b.Width, Align: b.Align, Engine: b.Engine, Process: b.Process, View: b.View,
 		Form: b.Form, Decision: b.Decision, Application: b.Application, Release: b.Release, Layers: b.Layers, Link: b.Link, Query: b.Query, Secret: b.Secret,
 		Layout: b.Layout, ItemType: b.ItemType, Space: b.Space, Group: b.Group, Columns: b.Columns, Sort: b.Sort, Depth: b.Depth, HideTypes: b.HideTypes,
-		Label: b.Label, Search: b.Search, HideKinds: b.HideKinds}
+		Label: b.Label, Search: b.Search, HideKinds: b.HideKinds, Files: b.Files}
 	for _, m := range b.Marks {
 		j.Marks = append(j.Marks, markJSON{Type: m.Type, Start: m.Start, End: m.End, Href: m.Href, Ref: m.Ref, Value: m.Value})
 	}
@@ -275,7 +278,7 @@ func toDoc(blocks []blockJSON, kept func(text string) bool) (item.Doc, error) {
 		blk := item.Block{Kind: b.Kind, Text: b.Text, Level: b.Level, Mentions: b.Mentions, Ref: b.Ref, Checked: b.Checked, Tone: b.Tone, Width: b.Width, Align: b.Align, Engine: b.Engine, Process: b.Process, View: b.View,
 			Form: b.Form, Decision: b.Decision, Application: b.Application, Release: b.Release, Link: b.Link, Query: b.Query, Secret: b.Secret,
 			Layout: b.Layout, ItemType: b.ItemType, Space: b.Space, Group: b.Group, Sort: b.Sort, Depth: b.Depth,
-			Label: b.Label, Search: b.Search}
+			Label: b.Label, Search: b.Search, Files: b.Files}
 		if len(b.HideKinds) > 0 {
 			// Named once each, in their order; an empty list hides
 			// nothing, as none does (ADR-0252).

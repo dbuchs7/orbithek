@@ -129,12 +129,11 @@ const (
 	// Space, Label, Search, HideTypes, HideKinds and Depth. Like a view it
 	// is computed when shown and holds no item.
 	StarmapBlock BlockKind = "starmap"
-	// Slides shows the pictures of an album folder or collection as a
-	// deck of slides in a text, which a reader steps through and presents
-	// (ADR-0260): Ref names the folder or
-	// collection by its ID and Text is the caption. Like an embed it
-	// implies the relation embeds to what it names; the body holds no
-	// copy of the pictures.
+	// Slides shows a slide deck in a text, kept as it was when it was
+	// saved (ADR-0260): Files names, in the order of the slides, copies of
+	// the pictures of an album folder or collection kept as files of the
+	// item, Ref names that folder or collection as the source it is
+	// updated from, and Text is the caption.
 	Slides BlockKind = "slides"
 )
 
@@ -332,6 +331,9 @@ type Block struct {
 	Label     string   `json:",omitempty"`
 	Search    string   `json:",omitempty"`
 	HideKinds []string `json:",omitempty"`
+	// Files are, on a slide deck, its slides in their order: files of the
+	// item, each named once (ADR-0260).
+	Files []ID `json:",omitempty"`
 }
 
 // MaxChildrenDepth is the most levels a list of child pages names by

@@ -225,7 +225,11 @@ import (
 //     and a plain caption, sealed with the body
 //     (ADR-0260).
 //     Versions 1 to 70 are still read; their bodies show no slide deck.
-const CodecVersion = 71
+//   - 72: the block field Files, the slides a slide deck keeps as files of
+//     its item, sealed with the body (ADR-0260).
+//     Versions 1 to 71 are still read; their slide decks keep no slides
+//     and show their folder as it is.
+const CodecVersion = 72
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

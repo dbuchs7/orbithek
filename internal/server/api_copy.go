@@ -221,6 +221,26 @@ func (h itemHandlers) copyOne(r *http.Request, space string, t copyTask) (item.I
 					body.Blocks[i].Ref = to
 				}
 			}
+			if b.Kind == item.Slides && b.Files != nil {
+				// A slide deck shows the copy's own slides (ADR-0260);
+				// a slide whose file was deleted is left out, and a
+				// source the copier cannot read live is forgotten.
+				var files []item.ID
+				for _, f := range b.Files {
+					if to, ok := renamed[f]; ok {
+						files = append(files, to)
+					}
+				}
+				body.Blocks[i].Files = files
+				live := false
+				h.d.DB.Read(func(s *item.Store) {
+					src, err := s.As(who(r)).Get(b.Ref)
+					live = err == nil && src.Presence == item.Live
+				})
+				if !live {
+					body.Blocks[i].Ref = ""
+				}
+			}
 		}
 		if err := h.d.DB.Write(func(s *item.Store) error { return s.As(who(r)).CommitBody(made.ID, body) }); err != nil {
 			return made, err

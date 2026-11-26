@@ -112,9 +112,12 @@ func (x *Session) SetPictureLabels(id, attachment ID, labels []string) error {
 	return x.s.record(x.who, Event{Kind: AttachmentLabelled, Item: id, Attachment: &Attachment{ID: attachment, Labels: out}})
 }
 
-// inBody reports whether a body shows a file of its item.
+// inBody reports whether a body shows a file of its item in a picture or
+// among the slides of a slide deck (ADR-0260).
 func inBody(d Doc, attachment ID) bool {
-	return slices.ContainsFunc(d.Blocks, func(b Block) bool { return b.Kind == Image && b.Ref == attachment })
+	return slices.ContainsFunc(d.Blocks, func(b Block) bool {
+		return b.Kind == Image && b.Ref == attachment || b.Kind == Slides && slices.Contains(b.Files, attachment)
+	})
 }
 
 // notesOf returns a stack's speaker's notes, held by its first version
