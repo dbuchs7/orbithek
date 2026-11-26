@@ -37,8 +37,18 @@ func TestASlideDeckInATextThroughTheAPI(t *testing.T) {
 	w.bert.expect("PUT", "/api/items/"+home+"/body", `{"blocks":[{"kind":"slides","ref":"`+folder+`","files":["`+original+`"]}]}`, http.StatusNotFound)
 	w.bert.expect("PUT", "/api/items/"+home+"/body", `{"blocks":[{"kind":"slides","ref":"`+home+`","files":["`+first+`"]}]}`, http.StatusBadRequest)
 	w.bert.expect("PUT", "/api/items/"+home+"/body", `{"blocks":[{"kind":"slides","ref":"`+folder+`"}]}`, http.StatusBadRequest)
-	// The album says the slides are used, so their versions are kept.
+	// The album leaves the slides out, but lists them for their own item,
+	// as a deck's presentation reads them; it says they are used, so their
+	// versions are kept.
+	for _, p := range w.vera.expect("GET", "/api/album?q=Intro", "", http.StatusOK)["pictures"].([]any) {
+		if field(p.(map[string]any), "item", "id") == home {
+			t.Errorf("the album shows a slide: %v", p)
+		}
+	}
 	album := w.vera.expect("GET", "/api/album?folder="+home, "", http.StatusOK)
+	if len(album["pictures"].([]any)) != 2 {
+		t.Errorf("the item's own listing shows its two slides: %v", album["pictures"])
+	}
 	for _, p := range album["pictures"].([]any) {
 		if !p.(map[string]any)["used"].(bool) {
 			t.Errorf("a slide the body shows is used: %v", p)

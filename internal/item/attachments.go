@@ -550,7 +550,17 @@ func firstVersion(it *Item, a Attachment) ID {
 // for which keep returns true, in space (every space when empty), newest
 // first. Reading an item is the right to see its files; the album shows
 // nothing one could not open item by item.
+//
+// The slides a slide deck keeps are copies a text owns, not pictures of the
+// album: they are left out (ADR-0260). PicturesWithSlides lists them for
+// one item, as the presentation of its decks needs.
 func (x *Session) Pictures(space string, keep func(Attachment) bool) []Picture {
+	return x.PicturesWithSlides(space, keep, "")
+}
+
+// PicturesWithSlides is Pictures, with the slides of the item slidesOf
+// (none for no item's) listed among them.
+func (x *Session) PicturesWithSlides(space string, keep func(Attachment) bool, slidesOf ID) []Picture {
 	var out []Picture
 	for _, it := range x.s.items {
 		if it.Presence != Live || (space != "" && it.Space != space) || len(it.Attachments) == 0 || !x.s.canRead(x.who, it) {
@@ -560,6 +570,9 @@ func (x *Session) Pictures(space string, keep func(Attachment) bool) []Picture {
 		for i, a := range it.Attachments {
 			if !a.Deleted && !a.Withdrawn() && keep(a) && x.s.readsFile(x.who, it, a.ID) {
 				first := firstVersion(it, a)
+				if it.ID != slidesOf && it.isSlide(a, first) {
+					continue
+				}
 				out = append(out, Picture{Item: Item{ID: it.ID, Key: it.Key, Title: it.Title, Space: it.Space, Type: it.Type, Parent: it.Parent, Labels: it.Labels}, Attachment: seenBy(x.who, a),
 					Used: inBody(it.Body, a.ID), Editable: editable, First: first, Retention: ruleOf(it, first), Notes: notesOf(it, first), order: i})
 			}

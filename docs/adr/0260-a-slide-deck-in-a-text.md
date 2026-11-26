@@ -9,8 +9,8 @@
   - only kept decks remain, and decks written by #403 keep their slides on their next edit;
   - whoever may edit the text edits the notes of its slides.
 
-  The rest are defaults proposed with the implementation.
-- **Open question:** whether a presentation file (.pptx) should be imported from the block's dialog straight into the text rather than through a folder of the album; whether exports should show the slides as pictures rather than name the deck; whether the copies a deck keeps should stay out of the album's listing, where they show as pictures of the text; whether copies no version of the text shows any more should be cleaned up; whether a deck should offer a presentation that other browsers follow (ADR-0176 left it out too)
+  Request of 2026-11-26, after the first version of option 2: the copies a deck keeps are left out of the album. The rest are defaults proposed with the implementation.
+- **Open question:** whether a presentation file (.pptx) should be imported from the block's dialog straight into the text rather than through a folder of the album; whether exports should show the slides as pictures rather than name the deck; whether copies no version of the text shows any more should be cleaned up; whether a deck should offer a presentation that other browsers follow (ADR-0176 left it out too)
 - **Question checked:** 2026-11
 
 ## Context and problem statement
@@ -48,6 +48,7 @@ Chosen option: **2** (the requester's choice), because only copies the text owns
 - **Slides are files of the item.** `checkSlideDecks` accepts only the item's own files; one deleted since stays only while the current body shows it in a deck, as for a picture (ADR-0045). A new item cannot start with a deck, since its files come after it.
 - **The source is no reference.** A deck implies no relation to its folder (`Block.Embedded` names only an embed's item), so the folder may be trashed and deleted while texts keep their slides (D8 does not hold it). A source named anew must be a live folder or collection that the writer reads; one kept from the current body may be gone. A deck whose source is gone keeps its slides and cannot be updated.
 - **The slides are shown files** (`Block.shownFiles`): a protected deck protects its slides (ADR-0160), the album counts them as used, so clean-up keeps their versions (ADR-0103) and moving them to another item is refused, as for a picture the body shows (ADR-0188).
+- **The slides stay out of the album.** A file is a slide once a committed version of the text showed it in a deck; the item remembers such files as state derived from the log (`slideFiles`, noted on every body commit, live and on replay, as `secretFiles` is). `Session.Pictures` leaves them out, and with them the newer versions of their stacks, so the album, its labels, its people and face suggestions, collections, the order of slides and the starmap's pictures do not show them. They remain files of the item, listed among its files. `PicturesWithSlides` lists them for one item: the album's listing filtered to the item itself (`folder=<item>`), which a deck's view and presentation read.
 - **Decks of codec version 71** name a source and keep no files. A body may keep such a deck unchanged; it shows the folder as it is now. The editor keeps its slides as soon as the text is edited, and no body may newly hold a deck without slides.
 
 ### Keeping and updating
@@ -89,9 +90,9 @@ Chosen option: **2** (the requester's choice), because only copies the text owns
 
 - **Positive:** every version of a text shows the slides, order and notes it was saved with; a board's record stays what the board saw.
 - **Positive:** the slides follow the text's access, protection, backup and erasure (ADR-0022, ADR-0026, ADR-0160); a folder may be reorganised or deleted without breaking a text.
-- **Positive:** the album remains where slides are made; a deck is brought up to date with one button, and says when it is behind.
+- **Positive:** the album remains where slides are made; a deck is brought up to date with one button, and says when it is behind. The copies do not crowd the album or show there as duplicates of their originals.
 - **Negative / trade-offs accepted:** every keeping copies the files: a deck takes the space of its slides again, and each update adds copies, which earlier versions of the text still show.
-- **Negative / trade-offs accepted:** the copies are pictures of the text's item and show in the album beside their originals.
+- **Negative / trade-offs accepted:** a file stays out of the album once a version of the text showed it as a slide, also after the deck is removed; it remains among the item's files. A copy made but never saved in a deck — an editor left while copying — shows in the album.
 - **Negative / trade-offs accepted:** copying runs in the editor's browser and takes as long as the downloads and uploads; an editor left before it ends keeps the copies made so far as unused files.
 - **Negative / trade-offs accepted:** a deck kept while a text is edited by several people at once may be kept twice; the second keeping wins and the first copies stay unused.
 - **Negative / trade-offs accepted:** codec versions 71 and 72; older binaries cannot read a data directory once a text holds a deck.

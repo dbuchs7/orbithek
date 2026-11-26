@@ -1030,6 +1030,7 @@ func (s *Store) apply(e Event) {
 		it.Body = e.Body.clone()
 		it.Version++
 		it.noteSecretFiles(it.Body)
+		it.noteSlideFiles(it.Body)
 		protectedBy := refSecrets(it.Body)
 		for _, ref := range it.Body.refs() {
 			id := ID(fmt.Sprintf("%s/%s/%s", it.ID, ref.Type, ref.To))
