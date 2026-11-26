@@ -1,4 +1,4 @@
-# ADR-DRAFT: The start warns when no administrator has an account, and repairs only for the account the operator names
+# ADR-0258: The start warns when no administrator has an account, and repairs only for the account the operator names
 
 - **Status:** Proposed
 - **Implementation:** Partial

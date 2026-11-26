@@ -540,7 +540,7 @@ func TestServeUsesTheGivenAdministrator(t *testing.T) {
 // When admin is held only by IDs no account has, the start warns and
 // repairs nothing by itself; it gives the role to the account
 // OT_ADMIN_USERNAME names, and only when it is set
-// (ADR-draft-the-start-repairs-only-what-the-operator-names).
+// (ADR-0258).
 func TestServeWarnsWhenNoAdministratorHasAnAccount(t *testing.T) {
 	dir := t.TempDir()
 	db, _, err := storage.Open(dir)

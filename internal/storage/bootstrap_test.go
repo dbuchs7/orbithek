@@ -167,7 +167,7 @@ func TestAuditListingReachesTheJournal(t *testing.T) {
 // TestEnsureAdminSeesHoldersWithoutAnAccount covers a role of admin held
 // only by IDs no account has, stored before ADR-0256: the start repairs
 // nothing by itself, says who holds it, and RestoreAdmin gives the role to
-// the account the operator names (ADR-draft-the-start-repairs-only-what-the-operator-names).
+// the account the operator names (ADR-0258).
 func TestEnsureAdminSeesHoldersWithoutAnAccount(t *testing.T) {
 	db := openFast(t, t.TempDir())
 	defer db.Close()

@@ -23,7 +23,7 @@ type Bootstrap struct {
 	Password string
 	// WithoutAccount names the holders of admin when none of them is an
 	// account: nobody can sign in to administer the installation, and
-	// nothing was repaired (ADR-draft-the-start-repairs-only-what-the-operator-names).
+	// nothing was repaired (ADR-0258).
 	WithoutAccount []string
 }
 
@@ -41,7 +41,7 @@ func (db *DB) EnsureAdmin(username, password string) (Bootstrap, error) {
 		// (ADR-0256). Then the start repairs nothing by itself: giving
 		// the role to an account named by default could raise someone
 		// nobody chose; RestoreAdmin gives it to the account the operator
-		// names (ADR-draft-the-start-repairs-only-what-the-operator-names).
+		// names (ADR-0258).
 		ids := make([]auth.UserID, len(holders))
 		for i, h := range holders {
 			ids[i] = auth.UserID(h)
@@ -88,7 +88,7 @@ func (db *DB) EnsureAdmin(username, password string) (Bootstrap, error) {
 
 // RestoreAdmin gives the admin system role to the account with the given
 // username, for an operator who names it when no holder of admin has an
-// account (ADR-draft-the-start-repairs-only-what-the-operator-names).
+// account (ADR-0258).
 func (db *DB) RestoreAdmin(username string) (auth.User, error) {
 	var user auth.User
 	found := false

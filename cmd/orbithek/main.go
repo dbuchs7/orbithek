@@ -487,7 +487,7 @@ func applyBudgets(getenv func(string) string, log *slog.Logger) {
 // generated password that is logged this once. When admin is held only by
 // IDs no account has, it warns and gives the role only to the account
 // OT_ADMIN_USERNAME names, when it is set
-// (ADR-draft-the-start-repairs-only-what-the-operator-names).
+// (ADR-0258).
 func ensureAdmin(db *storage.DB, log *slog.Logger) error {
 	named := os.Getenv("OT_ADMIN_USERNAME")
 	username := named

@@ -69,6 +69,6 @@ Strongest form: reuses whatever single sign-on an organisation already runs, wit
 
 ## Links
 
-- amended by ADR-draft-the-start-repairs-only-what-the-operator-names (the start counts administrators with an account)
+- amended by ADR-0258 (the start counts administrators with an account)
 - atlas [ADR-0044](https://github.com/pblumer/atlas/blob/main/docs/adr/0044-user-management-and-authentication-boundary.md), [ADR-0195](https://github.com/pblumer/atlas/blob/main/docs/adr/0195-auth-on-by-default.md), [ADR-0194](https://github.com/pblumer/atlas/blob/main/docs/adr/0194-api-tokens.md), [ADR-0212](https://github.com/pblumer/atlas/blob/main/docs/adr/0212-federated-authentication.md), [ADR-0197](https://github.com/pblumer/atlas/blob/main/docs/adr/0197-login-throttle-and-audit-log.md)
 - relates to ADR-0011, ADR-0012

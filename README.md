@@ -38,7 +38,7 @@ curl -b cookies http://localhost:8080/api/me
 ```
 
 If the administrator role is held only by IDs that no account has, the start logs a warning and changes nothing;
-set `OT_ADMIN_USERNAME` to an existing account and start again to give that account the role (ADR-draft-the-start-repairs-only-what-the-operator-names).
+set `OT_ADMIN_USERNAME` to an existing account and start again to give that account the role (ADR-0258).
 
 Single sign-on with OpenID Connect ([ADR-0030](docs/adr/0030-openid-connect-single-sign-on.md), [ADR-0066](docs/adr/0066-several-identity-providers-entra-id-and-google.md)) offers Microsoft Entra ID, Google and any other provider side by side. Microsoft: `OT_ENTRA_TENANT_ID` (the tenant's ID, a GUID), `OT_ENTRA_CLIENT_ID`, `OT_ENTRA_CLIENT_SECRET`. Google: `OT_GOOGLE_CLIENT_ID`, `OT_GOOGLE_CLIENT_SECRET` and `OT_GOOGLE_DOMAINS` (e.g. `example.org`; without it any Google account may sign in). Another provider: `OT_OIDC_ISSUER`, `OT_OIDC_CLIENT_ID`, `OT_OIDC_CLIENT_SECRET`, optionally `OT_OIDC_NAME` and `OT_OIDC_DOMAINS`. Register `https://<host>/api/oidc/callback` as the redirect address at each provider; it is taken from `OT_PUBLIC_URL` unless `OT_OIDC_REDIRECT_URL` sets it. New users get an account without roles; an administrator grants them.
 
