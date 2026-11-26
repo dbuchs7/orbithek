@@ -2647,7 +2647,8 @@ function webSource() {
     {
       const names = () => page.$$eval("#album .album-grid > .album-card .album-name", (els) => els.map((e) => e.textContent).join(" | "));
       const cardOf = (name) => `#album .album-grid > .album-card:has(.album-name:text-is('${name}'))`;
-      await page.selectOption("#album-sort", "slides");
+      // A folder opens in the order of its slides by default (ADR-draft-a-folder-is-shown-in-the-order-of-its-slides).
+      check(await page.inputValue("#album-sort") === "slides", "a folder is shown in the order of its slides by default");
       await page.waitForFunction(() => [...document.querySelectorAll("#album .album-grid > .album-card .album-name")].map((e) => e.textContent).join(" | ") === "2 Plan | 3 Outlook | 12 Clip");
       await page.waitForSelector("#album-order-hint:not([hidden])");
       check(await page.locator("#album-order-reset").isHidden(), "no order to forget before one is set");

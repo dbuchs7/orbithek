@@ -43,10 +43,12 @@ const fileURL = (p) => `/api/items/${p.item.id}/attachments/${p.attachment.id}`;
 const VIEWS = ["folders", "timeline", "favourites", "memories", "map", "people", "duplicates"];
 
 // SORT keeps, in this browser, how a folder or collection is shown:
-// newest first ("") or in the order of its slides ("slides", ADR-0195).
+// in the order of its slides ("slides", ADR-0195) or newest first ("").
+// The order of the slides is the default; newest first holds only once
+// it was chosen in this browser (ADR-draft-a-folder-is-shown-in-the-order-of-its-slides).
 const SORT = "ot.albumSort";
 const sortKept = () => {
-  try { return localStorage.getItem(SORT) === "slides" ? "slides" : ""; } catch { return ""; }
+  try { return localStorage.getItem(SORT) === "" ? "" : "slides"; } catch { return "slides"; }
 };
 const keepSort = (v) => {
   try { localStorage.setItem(SORT, v); } catch { /* for this visit only */ }
@@ -168,8 +170,8 @@ export function albumBrowser({ pick, pickText } = {}) {
   // draggingFolder is the folder being dragged onto another folder or the
   // trail, to move it there with what it holds (ADR-0200).
   let draggingFolder = null;
-  // sort is how a folder or collection is shown: newest first, or as its
-  // slides; order says whether it has an order set by hand, whether one
+  // sort is how a folder or collection is shown: as its slides, or newest
+  // first; order says whether it has an order set by hand, whether one
   // may change it, and whether every picture is shown (ADR-0195).
   let sort = pick ? "" : sortKept();
   let order = { ordered: false, orderable: false, complete: false };
