@@ -309,8 +309,8 @@ A change to what people see or can do updates the user manual, `internal/web/sta
 both keep the same outline of headings (ADR-0183).
 Two checks hold changes to this (ADR-0185).
 A test fails when a manual names in bold a label its catalogue does not have: rename the label in the manual as the UI now calls it, or list bold text that is no label (a key, a symbol, a concept) in `internal/web/manual_terms.txt` with a reason.
-On pull requests, the job `Manual (user-visible changes)` warns when catalogue values, routes, views or UI modules are added or changed and not every manual is: update the manuals, or write a line of its own `Manual: not needed — <reason>` into the pull request description.
-The same job warns when a pull request changes what a picture of the manual shows, as `internal/web/static/assets/manual/img/sources.txt` names it (a file, a function `app.js#homeView` or a key prefix `key:shop.setup`), and not the picture in every language: take the pictures again with the two commands below, or write a line of its own `Pictures: not needed — <reason>`; a new picture gets a line in `sources.txt`, and a test fails when a line names what has gone (ADR-0254).
+On pull requests, the job `Manual (user-visible changes)` fails, and so blocks the merge, when catalogue values, routes, views or UI modules are added or changed and not every manual is: update the manuals, or write a line of its own `Manual: not needed — <reason>` into the pull request description.
+The same job fails when a pull request changes what a picture of the manual shows, as `internal/web/static/assets/manual/img/sources.txt` names it (a file, a function `app.js#homeView` or a key prefix `key:shop.setup`), and not the picture in every language: take the pictures again with the two commands below, or write a line of its own `Pictures: not needed — <reason>`; a new picture gets a line in `sources.txt`, and a test fails when a line names what has gone (ADR-0254).
 
 **UI code never turns a string into markup or code** (ADR-0014, ADR-0031).
 Create elements with `h()` from `internal/web/static/assets/dom.js`;

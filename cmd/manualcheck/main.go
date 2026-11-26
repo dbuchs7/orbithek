@@ -17,9 +17,11 @@
 // language, or its description holds a line "Pictures: not needed —
 // <reason>".
 //
-// With -advisory the result is reported but never fails: a missing manual
-// or a stale picture becomes a warning annotation and the command exits 0. CI runs in this
-// mode until the maintainer makes the check required.
+// Without -advisory a missing manual or a stale picture becomes an error
+// annotation and the command exits 1; CI runs so since the maintainer
+// switched the check to enforce (ADR-0185, ADR-0254). With -advisory the
+// result is reported but never fails: it becomes a warning annotation and
+// the command exits 0. CI ran in this mode at first.
 package main
 
 import (
@@ -62,9 +64,17 @@ func main() {
 			fmt.Println("::warning title=User manual not updated (advisory)::This pull request changes what people see but not every user manual. Update internal/web/static/assets/manual/*.md, or add a line \"Manual: not needed — <reason>\" to the description (ADR-0185).")
 		}
 		if !ok.pictures {
-			fmt.Println("::warning title=Pictures of the manual not taken again (advisory)::This pull request changes what pictures of the user manual show but not the pictures. Take them again with e2e/manual-shots.cjs, or add a line \"Pictures: not needed — <reason>\" to the description.")
+			fmt.Println("::warning title=Pictures of the manual not taken again (advisory)::This pull request changes what pictures of the user manual show but not the pictures. Take them again with e2e/manual-shots.cjs, or add a line \"Pictures: not needed — <reason>\" to the description (ADR-0254).")
 		}
 		return
+	}
+	// The same as errors: shown on the run and the pull request, and the
+	// job fails, so the merge waits.
+	if !ok.manual {
+		fmt.Println("::error title=User manual not updated::This pull request changes what people see but not every user manual. Update internal/web/static/assets/manual/*.md, or add a line \"Manual: not needed — <reason>\" to the description (ADR-0185).")
+	}
+	if !ok.pictures {
+		fmt.Println("::error title=Pictures of the manual not taken again::This pull request changes what pictures of the user manual show but not the pictures. Take them again with e2e/manual-shots.cjs, or add a line \"Pictures: not needed — <reason>\" to the description (ADR-0254).")
 	}
 	os.Exit(1)
 }

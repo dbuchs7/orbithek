@@ -1,10 +1,10 @@
 # ADR-0254: The manual's pictures are kept current by a check, as its text is
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-26
-- **Deciders:** the maintainer asked for a decision so that the manual and its pictures are updated with every change (2026-11-26); the means below were proposed with this record
-- **Open question:** whether Checks B and C should block merging rather than warn; whether a change to the look (`style.css`) should call for every picture to be taken again
+- **Deciders:** the maintainer asked for a decision so that the manual and its pictures are updated with every change (2026-11-26); the means below were proposed with this record; accepted by the maintainer, who switched Checks B and C to enforce (2026-11-26)
+- **Open question:** whether a change to the look (`style.css`) should call for every picture to be taken again
 - **Question checked:** 2026-11
 
 ## Context and problem statement
@@ -12,7 +12,7 @@
 ADR-0185 keeps the manual's text current with two checks:
 
 - Check A, a test, fails when the manual names a label the UI does not have.
-- Check B, in CI, warns when a pull request changes what people see but not every manual.
+- Check B, in CI, flags a pull request that changes what people see but not every manual.
 
 ADR-0253 added screenshots of the UI and the symbols of the modules: twelve pictures per language and ten symbols. It left open how a picture that no longer shows the UI gets noticed. Neither check sees pictures:
 
@@ -29,7 +29,7 @@ How does the project notice, before a change is merged, that a picture of the ma
 - **No busywork:** a change elsewhere in a large file such as `app.js` must not call for every picture taken from it.
 - **Checks over memory:** agents write most changes and follow what CI says; a rule in prose is skipped.
 - **Deterministic:** the check must give the same answer on every runner; fonts, timing and antialiasing must not decide it.
-- **One mechanism:** pictures are answered the way the text is, in the same job, with the same advisory mode and the same kind of escape line.
+- **One mechanism:** pictures are answered the way the text is, in the same job, with the same mode and the same kind of escape line.
 
 ## Considered options
 
@@ -72,7 +72,7 @@ Chosen option: **1**. Option 3 stays welcome as an occasional full pass, not as 
   `Pictures: not needed — <reason>`
   Examples of a reason: a tooltip the picture does not show; a refactoring that draws the same.
 - The report names each stale picture, the sources that made it stale and the files left untouched.
-- The check runs in the mode of Check B: **advisory**, a warning that does not fail the job. Making Checks B and C block merging is the maintainer's decision, recorded in ADR-0185 and here, never an agent's own change.
+- The check runs in the mode of Check B. Both are **enforced**: the maintainer switched them from advisory on 2026-11-26, with this record. A pull request with a stale picture fails the job, a required check, and cannot be merged until it takes the picture again or its description gives the reason; a description edited later re-runs the job. Switching back is the maintainer's decision too, never an agent's own change.
 
 ### What it does not cover, and how that is answered
 
@@ -90,7 +90,7 @@ Chosen option: **1**. Option 3 stays welcome as an occasional full pass, not as 
 - **Positive:** the answer is the same on every runner; no browser runs in CI for it.
 - **Negative / trade-offs accepted:** the list must be kept; a new picture needs a line, and a view drawn by a new function needs that function named. The test catches names that have gone, not sources that were never listed.
 - **Negative / trade-offs accepted:** a picture is taken again by hand against a fresh server; the script makes this one command, but it still needs a browser and a few minutes.
-- **Follow-ups / risks to watch:** if warnings are ignored in practice, switch Checks B and C to enforce; a CI job that takes the pictures on demand and attaches them to the pull request would spare the author the local run.
+- **Follow-ups / risks to watch:** if the escape line becomes a habit rather than an exception, review the reasons given; a CI job that takes the pictures on demand and attaches them to the pull request would spare the author the local run.
 
 ## Pros and cons of the options
 
@@ -118,4 +118,4 @@ Strongest form: no list, no tooling; authors know which views they changed.
 ## Links
 
 - amends [ADR-0185](0185-the-user-manual-is-kept-current-by-checks.md) (the manual kept current by checks) with a third check
-- relates to ADR-0253 (the pictures), ADR-0183 (the user manual), ADR-0018 and ADR-0019 (an advisory check first)
+- relates to ADR-0253 (the pictures), ADR-0183 (the user manual), ADR-0018 and ADR-0019 (an advisory check first, then enforced)

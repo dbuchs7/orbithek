@@ -4,7 +4,7 @@
 - **Implementation:** Landed
 - **Date:** 2026-11-10
 - **Deciders:** Project initiators (request of 2026-11-10: a decision so that the user manual always stays current and is kept up to date; the means below were proposed with this record; accepted by the requester 2026-11-10)
-- **Open question:** whether the change check should block merging from the start or only warn first, as the DCO check did (ADR-0019); whether the manual should name the release it describes; whether screenshots belong in the manual once it is kept current
+- **Open question:** whether the manual should name the release it describes; whether screenshots belong in the manual once it is kept current
 - **Question checked:** 2026-11
 
 ## Context and problem statement
@@ -64,6 +64,7 @@ Chosen option: **3**, with the rule of option 1 kept as the explanation of the c
 - Such a pull request passes when it changes `manual/en.md` and every other manual, or when its description holds a line of its own, `Manual: not needed — <reason>` (an en dash or a hyphen does for the dash). Examples of a reason: a fixed typo in a label, an error message no one looks up.
 - This catches the **missing** manual at review, where the author still knows what changed.
 - The job is named `Manual (user-visible changes)`. Like every CI job it is a required check of the ruleset (`internal/repoconfig` holds every job to that), and it starts in **advisory** mode, as the DCO check did: it reports a missing manual as a warning and passes, so it blocks only when it cannot run. Switching it to `enforce`, so that a missing manual blocks the merge, is the maintainer's decision, recorded in this ADR. The ruleset's new entry is applied on GitHub after the merge (ADR-0003).
+- **Enforced since 2026-11-26:** the maintainer switched the job to `enforce`, together with Check C of ADR-0254, so that the manual and its pictures are updated with every change. A pull request that changes what people see and leaves a manual untouched now fails the job and cannot be merged until it changes the manuals or its description gives the reason; a description edited later re-runs the job.
 
 ### What stays as it is
 
