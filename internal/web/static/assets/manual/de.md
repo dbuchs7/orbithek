@@ -728,6 +728,11 @@ sie lässt sich nicht ändern, nur entziehen.
 Mitglieder von Gruppen und Inhaber von Systemrollen sind Konten;
 eine Gruppe gilt nur dann als Gruppe mit Mitgliedern, wenn eines davon ein Konto hat.
 
+Unter **Gruppen** erscheint ein Mitglied, das ohne Konto gespeichert wurde, mit seiner ID und der Markierung **Kein Konto**, eine Gruppe aus nur solchen Mitgliedern mit **Erreicht niemanden**;
+man entfernt sie mit ×.
+Systemrollen, die von IDs ohne Konto gehalten werden, stehen unter **Benutzer und Systemrollen** als **Systemrollen ohne Konto**, mit einer Schaltfläche zum Entziehen jeder Rolle;
+ein solcher Inhaber zählt nicht als letzte Administratorin oder letzter Administrator.
+
 ## Tastenkürzel
 
 | Tasten | Aktion |

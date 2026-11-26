@@ -6339,6 +6339,7 @@ async function adminView(params) {
   const status = h("div", { class: "status" });
   const userOptions = () => users.map((u) => h("option", { value: u.id, text: u.username }));
   const rolesOf = (id) => holders.find((x) => x.principal === id)?.roles || [];
+  const ghostHolders = holders.filter((x) => x.unknown);
 
   // The table of contents scrolls to a section; the hash stays the route.
   const sections = [];
@@ -6502,6 +6503,17 @@ async function adminView(params) {
       h("td", {}, sysToggle(u, "admin", t("admin.roleAdmin"))),
       h("td", {}, sysToggle(u, "erasure", t("admin.roleErasure"))),
       resetCell(u)))), { id: "admin-users", label: t("admin.users"), choices: [{ key: "role", label: t("admin.role") }] }),
+    // Holders without an account, stored before ADR-0256, are listed
+    // apart so they can be taken out
+    // (ADR-draft-the-administration-marks-principals-without-an-account).
+    ghostHolders.length ? h("div", { class: "card", id: "holders-unknown" },
+      h("h3", { text: t("admin.holdersUnknown") }),
+      h("p", { class: "muted", text: t("admin.holdersUnknownHelp") }),
+      h("table", {}, ghostHolders.map((x) => h("tr", { "data-principal": x.principal },
+        h("td", {}, h("span", { text: x.principal }), " ", h("span", { class: "badge danger", text: t("admin.noAccount") })),
+        h("td", {}, x.roles.map((role) => h("button", { type: "button", class: "link danger",
+          text: t("admin.revokeSystemRole", { role: role === "admin" ? t("admin.roleAdmin") : t("admin.roleErasure") }),
+          onclick: () => action(() => del(`/api/system-roles/${encodeURIComponent(role)}/${encodeURIComponent(x.principal)}`), status) }))))))) : null,
     form({ id: "new-user" }, [
       h("h3", { text: t("admin.newUser") }),
       field(t("field.username"), h("input", { name: "username", required: true })),
@@ -6511,9 +6523,14 @@ async function adminView(params) {
 
   const groupsSection = section("groups", t("admin.groups"),
     h("p", { class: "muted", text: t("admin.groupsHelp") }),
-    groups.length ? filteredGroups(h("table", { id: "groups" }, groups.map((g) => h("tr", {},
-      h("th", { text: "@" + g.name }),
-      h("td", {}, g.members.map((m) => h("span", { class: "member" }, person(m),
+    // Members without an account are named as stored and marked; a group
+    // of none but them reaches nobody
+    // (ADR-draft-the-administration-marks-principals-without-an-account).
+    groups.length ? filteredGroups(h("table", { id: "groups" }, groups.map((g) => h("tr", { class: g.reachesNobody ? "unknown" : null },
+      h("th", {}, "@" + g.name,
+        g.reachesNobody ? [" ", h("span", { class: "badge danger", text: t("secret.reachesNobody"), title: t("admin.groupReachesNobody") })] : null),
+      h("td", {}, g.members.map((m) => h("span", { class: "member" + ((g.unknown || []).includes(m) ? " unknown" : ""), "data-principal": m },
+        (g.unknown || []).includes(m) ? [m, " ", h("span", { class: "badge danger", text: t("admin.noAccount"), title: t("admin.memberNoAccount") })] : person(m),
         h("button", { type: "button", class: "link", text: "×", title: t("admin.removeMember", { name: person(m), group: g.name }),
           "aria-label": t("admin.removeMember", { name: person(m), group: g.name }),
           onclick: () => action(() => del(`/api/groups/${encodeURIComponent(g.name)}/members/${encodeURIComponent(m)}`), status) })))))))) : h("p", { class: "muted", text: t("admin.noGroups") }),

@@ -728,6 +728,11 @@ it cannot be changed, only taken back.
 Members of groups and holders of system roles are accounts;
 a group counts as having members only when one of them has an account.
 
+Under **Groups**, a member stored without an account is shown with its ID and marked **No account**, and a group of none but such members is marked **Reaches nobody**;
+take them out with ×.
+System roles held by IDs without an account are listed under **Users and system roles** as **System roles without an account**, with a button to take each back;
+such a holder does not count as the last administrator.
+
 ## Keyboard shortcuts
 
 | Keys | Action |

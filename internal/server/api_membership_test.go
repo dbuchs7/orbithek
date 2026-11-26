@@ -192,3 +192,55 @@ func TestReadersMembersAndSystemRolesExist(t *testing.T) {
 	w.bert.expect("PUT", path+"/secrets/"+secID, `{"readers":["@ops","%40ops","@ghosts"]}`, http.StatusBadRequest)
 	w.bert.expect("PUT", path+"/secrets/"+secID, `{"readers":["@ops"]}`, http.StatusOK)
 }
+
+// The administration marks group members and system role holders without
+// an account, stored before ADR-0256; they are taken out from there, and a
+// holder of admin without an account does not count as the administrator
+// who keeps the role (ADR-draft-the-administration-marks-principals-without-an-account).
+func TestTheAdministrationMarksPrincipalsWithoutAnAccount(t *testing.T) {
+	w := newWorld(t)
+	adminID := w.admin.expect("GET", "/api/me", "", http.StatusOK)["user"].(map[string]any)["id"].(string)
+	const ghost = "0123456789abcdef"
+	w.admin.expect("PUT", "/api/groups/ops/members/"+w.ids["carla"], "", http.StatusNoContent)
+	if err := w.db.Write(func(s *item.Store) error {
+		for _, g := range []string{"ops", "ghosts"} {
+			if err := s.AddToGroup(adminID, g, ghost); err != nil {
+				return err
+			}
+		}
+		return s.GrantSystemRole(adminID, ghost, item.RoleAdmin)
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	groups := map[string]map[string]any{}
+	for _, g := range w.admin.expect("GET", "/api/groups", "", http.StatusOK)["groups"].([]any) {
+		m := g.(map[string]any)
+		groups[m["name"].(string)] = m
+	}
+	if fmt.Sprint(groups["ops"]["unknown"]) != "["+ghost+"]" || groups["ops"]["reachesNobody"] == true {
+		t.Fatalf("ops %v", groups["ops"])
+	}
+	if fmt.Sprint(groups["ghosts"]["unknown"]) != "["+ghost+"]" || groups["ghosts"]["reachesNobody"] != true {
+		t.Fatalf("ghosts %v", groups["ghosts"])
+	}
+	unknown := map[string]bool{}
+	for _, x := range w.admin.expect("GET", "/api/system-roles", "", http.StatusOK)["holders"].([]any) {
+		m := x.(map[string]any)
+		unknown[m["principal"].(string)] = m["unknown"] == true
+	}
+	if !unknown[ghost] || unknown[adminID] {
+		t.Fatalf("holders %v", unknown)
+	}
+
+	// The ghost does not keep the installation administered.
+	w.admin.expect("DELETE", "/api/system-roles/admin/"+adminID, "", http.StatusBadRequest)
+	// Taken out from the administration.
+	w.admin.expect("DELETE", "/api/groups/ghosts/members/"+ghost, "", http.StatusNoContent)
+	w.admin.expect("DELETE", "/api/system-roles/admin/"+ghost, "", http.StatusNoContent)
+	for _, g := range w.admin.expect("GET", "/api/groups", "", http.StatusOK)["groups"].([]any) {
+		if g.(map[string]any)["name"] == "ghosts" {
+			t.Fatal("the emptied group is still listed")
+		}
+	}
+}
