@@ -3254,5 +3254,6 @@ export default {
   "shopcat.typesStep1": "Click «Set up the types» once.",
   "shopcat.typesStep2": "Then create a catalogue in a room: «Create», type shop-catalogue.",
   "shopcat.typesStep3": "Below it, create a child page of the type shop-product for each product.",
-  "shopcat.typesNext": "Next, create a catalogue in a room with «Create» and the type shop-catalogue."
+  "shopcat.typesNext": "Next, create a catalogue in a room with «Create» and the type shop-catalogue.",
+  "help.manual": "Open the manual at this topic"
 };

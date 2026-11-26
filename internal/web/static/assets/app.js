@@ -35,7 +35,8 @@ import { freshNotice, taskDialog, taskPanel } from "./taskdialog.js";
 import { finishing } from "./taskparts.js";
 import { noteImportCard } from "./noteimport.js";
 import { documentView, upgradeTemplate, wordTemplatesCard } from "./wordtemplates.js";
-import { manualBlocks, manualLanguage, manualLanguages, manualPath } from "./manual.js";
+import { manualBlocks, manualLanguage, manualLanguages, manualPath, manualPictureURL } from "./manual.js";
+import { helpLink } from "./help.js";
 import { configureViews, labelItems, viewScreen } from "./itemview.js";
 import { configureStarmaps } from "./starmapblock.js";
 import { pdfView } from "./pdfview.js";
@@ -310,7 +311,7 @@ async function commentsView(tab = "") {
   await add(first);
   const tabLink = (id, label) => link("#/comments" + (id ? "/" + id : ""), label, id === current ? "tab active" : "tab", "comments-tab-" + (id || "all"));
   show(
-    h("div", { class: "page-head" }, h("h1", { text: t("comments.title") })),
+    h("div", { class: "page-head" }, h("h1", {}, t("comments.title"), " ", helpLink("comments"))),
     h("p", { class: "muted", text: t("comments.help") }),
     h("nav", { class: "tabs", "aria-label": t("comments.title") },
       tabLink("", t("comments.all")), tabLink("watched", kinds.watched), tabLink("mine", kinds.mine), tabLink("mentions", kinds.mentions)),
@@ -2133,7 +2134,7 @@ async function searchView(q) {
   const toQuery = h("p", { class: "search-to-query" }, link("#/query?" + new URLSearchParams({ q: q.trim() ? `text ~ "${q.trim().replace(/["\\]/g, "\\$&")}"` : "" }),
     t("search.toQuery"), null, "search-to-query"));
   if (!/[\p{L}\p{N}]/u.test(q)) {
-    show(h("div", { class: "page-head" }, h("h1", { text: t("search.title") })), box,
+    show(h("div", { class: "page-head" }, h("h1", {}, t("search.title"), " ", helpLink("search"))), box,
       h("p", { class: "muted", id: "search-hint", text: q.trim() ? t("search.needsTerm") : t("search.prompt") }), toQuery);
     box.querySelector("input").focus();
     return;
@@ -2195,7 +2196,7 @@ async function searchView(q) {
   };
   addHits(first);
   show(
-    h("div", { class: "page-head" }, h("h1", { text: t("search.title") }),
+    h("div", { class: "page-head" }, h("h1", {}, t("search.title"), " ", helpLink("search")),
       first.total.value ? h("p", { class: "actions" }, csvLink("/api/search.csv?q=" + encodeURIComponent(q), "search-csv")) : null),
     box,
     toQuery,
@@ -2266,7 +2267,7 @@ async function queryView(params) {
     h("p", { class: "muted", text: t("query.examples") }),
     h("ul", { class: "query-examples" }, queryExamples.map((ex) => h("li", {},
       h("button", { type: "button", class: "link", text: ex, onclick: () => { input.value = ex; input.focus(); } })))));
-  const head = h("div", { class: "page-head" }, h("h1", { text: t("query.title") }));
+  const head = h("div", { class: "page-head" }, h("h1", {}, t("query.title"), " ", helpLink("queries")));
   const lead = h("p", { class: "muted", text: t("query.lead") });
   if (!q.trim()) {
     help.open = true;
@@ -2313,7 +2314,7 @@ async function queryView(params) {
   addRows(first);
   const n = first.total.value;
   show(
-    h("div", { class: "page-head" }, h("h1", { text: t("query.title") }),
+    h("div", { class: "page-head" }, h("h1", {}, t("query.title"), " ", helpLink("queries")),
       n ? h("p", { class: "actions" }, csvLink("/api/items.csv?" + new URLSearchParams({ query: q }), "query-csv")) : null),
     lead, box, help,
     h("p", { class: "muted", id: "query-total", role: "status", text: t("query.results", { n }) }),
@@ -2336,7 +2337,7 @@ async function myNotesView() {
     n.anchor?.quote ? h("blockquote", { class: "my-note-quote", text: n.anchor.quote }) : null,
     h("p", { class: "my-note-text", text: n.text }))));
   show(
-    h("div", { class: "page-head" }, h("h1", { text: t("note.title") })),
+    h("div", { class: "page-head" }, h("h1", {}, t("note.title"), " ", helpLink("notes"))),
     h("p", { class: "muted", text: t("note.private") }),
     notes.length ? filtered(list, { id: "mynotes", label: t("note.title") }) : empty(t("note.noneAnywhere"), "my-notes-empty"),
   );
@@ -2353,16 +2354,26 @@ async function manualView(params) {
   const res = await fetch(manualPath(lang), { credentials: "same-origin", cache: "no-cache" });
   if (!res.ok) throw new Error(t("manual.missing"));
   const text = await res.text();
-  const { title, blocks } = manualBlocks(text, isSafeLink);
-  const body = createEditor({ blocks, embeds: [], editable: false, resolve: async () => null, childPages: [], files: null }).element;
+  const { title, blocks, sections } = manualBlocks(text, isSafeLink);
+  // The manual's pictures are files served with the UI beside it
+  // (ADR-draft-pictures-and-help-links-in-the-manual).
+  const pictures = { url: manualPictureURL, knows: () => true, isDrawing: () => false };
+  const body = createEditor({ blocks, embeds: [], editable: false, resolve: async () => null, childPages: [], files: pictures }).element;
   const others = languages.filter((l) => manualLanguages.includes(l.code));
   show(h("article", { class: "manual", id: "manual", lang },
     h("div", { class: "page-head" }, h("h1", { text: title || t("nav.manual") }),
       h("nav", { class: "manual-languages", id: "manual-languages", "aria-label": t("manual.languages") },
         others.map((l) => (l.code === lang
           ? h("strong", { "aria-current": "page", text: l.name })
-          : link("#/manual?lang=" + encodeURIComponent(l.code), l.name))))),
+          : link("#/manual?" + new URLSearchParams({ lang: l.code, ...(params.get("section") ? { section: params.get("section") } : {}) }).toString(), l.name))))),
     body));
+  // A help link opens the manual at its chapter.
+  const at = sections[params.get("section") || ""];
+  if (at !== undefined) {
+    const heading = body.querySelectorAll("h1, h2, h3")[at];
+    heading?.classList.add("manual-target");
+    heading?.scrollIntoView({ block: "start" });
+  }
 }
 
 // --- spaces ------------------------------------------------------------------
@@ -3210,7 +3221,7 @@ async function tasksView(tab, params) {
   // its own choices instead.
   const relink = () => tabs.querySelectorAll("a:not(#tab-calendar)").forEach((a) => { a.href = a.getAttribute("href").split("?")[0] + query(); });
   show(
-    h("div", { class: "page-head" }, h("h1", { text: t("tasks.title") }),
+    h("div", { class: "page-head" }, h("h1", {}, t("tasks.title"), " ", helpLink("tasks")),
       h("p", { class: "actions" }, link(newHref(space || here.space, "", taskType(types)), t("tasks.new"), "button primary", "tasks-new"),
         rows.length ? h("button", { type: "button", class: "secondary", id: "tasks-csv", text: t("export.csv"), onclick: () => downloadCSV("tasks.csv", [
           [t("col.item"), t("col.title"), t("tasks.labels"), t("col.state"), t("tasks.assignee"), t("tasks.due"), t("tasks.priority"), t("col.space")],
@@ -3345,7 +3356,7 @@ async function kanbansView() {
   const bySpace = new Map();
   kanbans.forEach((k, i) => bySpace.set(k.space, [...(bySpace.get(k.space) || []), { ...k, count: counts[i] }]));
   show(
-    h("div", { class: "page-head" }, h("h1", { text: t("kanban.title") })),
+    h("div", { class: "page-head" }, h("h1", {}, t("kanban.title"), " ", helpLink("boards"))),
     h("nav", { class: "tabs", "aria-label": t("tasks.title") },
       link("#/planning/mine", t("tasks.mine"), "tab"), link("#/planning/unassigned", t("tasks.unassigned"), "tab"), link("#/planning/all", t("tasks.all"), "tab"),
       link("#/kanbans", t("kanban.tab"), "tab active", "tab-kanbans"), link("#/roadmap", t("roadmap.tab"), "tab", "tab-roadmap"),
@@ -4130,7 +4141,7 @@ async function roadmapScreen(params) {
   const section = h("section", { id: "roadmap" });
   screen()(
     h("p", {}, link("#/planning", t("nav.tasks")), " / " + t("roadmap.tab")),
-    h("div", { class: "page-head" }, h("h1", { text: t("roadmap.title") })),
+    h("div", { class: "page-head" }, h("h1", {}, t("roadmap.title"), " ", helpLink("roadmap"))),
     h("p", { class: "muted", text: t("roadmap.intro") }),
     section);
   await roadmapView(section, params, { readAll, favouritesFirst });
@@ -4141,7 +4152,7 @@ async function roadmapScreen(params) {
 async function shopScreen(params) {
   const section = h("section", { id: "shop" });
   screen()(
-    h("div", { class: "page-head" }, h("h1", { text: t("shop.title") })),
+    h("div", { class: "page-head" }, h("h1", {}, t("shop.title"), " ", helpLink("shop"))),
     h("p", { class: "muted", text: t("shop.intro") }),
     section);
   await shopView(section, params, { admin: Boolean(me?.admin) });
@@ -4166,7 +4177,7 @@ async function calendarScreen(params) {
   const section = h("section", { id: "calendar" });
   screen()(
     h("p", {}, link("#/planning", t("nav.tasks")), " / " + t("calendar.tab")),
-    h("div", { class: "page-head" }, h("h1", { text: t("calendar.title") })),
+    h("div", { class: "page-head" }, h("h1", {}, t("calendar.title"), " ", helpLink("calendar"))),
     h("p", { class: "muted", text: t("calendar.intro") }),
     section);
   // A new entry is made from the calendar with the inputs of item fields
@@ -4243,7 +4254,7 @@ async function paletteCommands() {
 // parameters may ask for the impact of its last station (ADR-0159).
 async function starmapScreen(space, path, params) {
   const section = h("section", { id: "starmap" });
-  screen()(h("h1", { text: t("starmap.title") }), starmapTabs("room"), h("p", { class: "muted", text: t("starmap.intro") }), section);
+  screen()(h("h1", {}, t("starmap.title"), " ", helpLink("starmap")), starmapTabs("room"), h("p", { class: "muted", text: t("starmap.intro") }), section);
   // A node's panel shows the page as an embed shows it (ADR-0106): read-
   // only, protected content veiled, a veiled block asking for access
   // (ADR-0161).
@@ -4290,7 +4301,7 @@ function starmapTabs(current) {
 // share (ADR-0165); its state is the address.
 async function labelmapScreen(params) {
   const section = h("section", { id: "labelmap" });
-  screen()(h("h1", { text: t("starmap.title") }), starmapTabs("labels"), h("p", { class: "muted", text: t("labelmap.intro") }), section);
+  screen()(h("h1", {}, t("starmap.title"), " ", helpLink("starmap")), starmapTabs("labels"), h("p", { class: "muted", text: t("labelmap.intro") }), section);
   await labelmapView(section, params, { favouritesFirst });
 }
 
@@ -4366,7 +4377,7 @@ async function whiteboardsView() {
     })
     : h("p", { class: "muted", text: t("wb.cannotCreate") });
   show(
-    h("h1", { text: t("nav.whiteboards") }),
+    h("h1", {}, t("nav.whiteboards"), " ", helpLink("whiteboards")),
     h("p", { class: "muted", text: t("wb.intro") }),
     h("section", { class: "card" }, h("h2", { text: t("wb.live") }), live),
     create, status,
@@ -4374,7 +4385,7 @@ async function whiteboardsView() {
 }
 
 function albumView() {
-  screen()(h("h1", { text: t("album.title") }), h("p", { class: "muted", text: t("album.intro") }), h("section", { id: "album" }, albumBrowser()));
+  screen()(h("h1", {}, t("album.title"), " ", helpLink("album")), h("p", { class: "muted", text: t("album.intro") }), h("section", { id: "album" }, albumBrowser()));
 }
 
 // presentScreen is the presenter's window of a presentation of the
@@ -5915,7 +5926,7 @@ async function accountView() {
   const [{ tokens }, contacts] = await Promise.all([get("/api/tokens"), get("/api/me/contacts")]);
   const secret = h("div");
   show(
-    h("h1", { text: me.user.username }),
+    h("h1", {}, me.user.username, " ", helpLink("account")),
     h("p", { class: "muted", text: t("account.id", { id: me.user.id, via: me.via }) }),
     avatarCard(),
     // The name one is called by (ADR-0246).
@@ -6238,7 +6249,7 @@ async function mcpView() {
     h("p", { class: "muted" }, t("mcp.tokensAt"), " ", link("#/account", t("nav.account"))));
 
   show(
-    h("h1", { text: t("mcp.title") }),
+    h("h1", {}, t("mcp.title"), " ", helpLink("ai")),
     h("p", { text: t("mcp.intro") }),
     connect,
     apps,
@@ -6324,8 +6335,10 @@ async function adminView(params) {
 
   // The table of contents scrolls to a section; the hash stays the route.
   const sections = [];
+  // Sections the manual has a chapter of their own for link to it.
+  const helpFor = { engines: "process-engines" };
   const section = (id, title, ...content) => {
-    const el = h("section", { class: "card", id: "admin-" + id }, h("h2", { text: title }), ...content);
+    const el = h("section", { class: "card", id: "admin-" + id }, h("h2", {}, title, helpFor[id] ? [" ", helpLink(helpFor[id])] : null), ...content);
     sections.push([el, title]);
     return el;
   };
@@ -6620,7 +6633,7 @@ async function adminView(params) {
     leaving.push(() => seen.disconnect());
   }
   show(
-    h("h1", { text: t("admin.title") }),
+    h("h1", {}, t("admin.title"), " ", helpLink("administration")),
     h("p", { class: "muted", text: t("admin.lead") }),
     status,
     h("div", { class: "admin-layout" },

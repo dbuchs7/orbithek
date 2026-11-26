@@ -3252,5 +3252,6 @@ export default {
   "shopcat.typesStep1": "Klicken Sie einmal auf «Typen einrichten».",
   "shopcat.typesStep2": "Legen Sie danach in einem Raum einen Katalog an: «Erstellen», Typ shop-catalogue.",
   "shopcat.typesStep3": "Legen Sie darunter für jedes Produkt eine Unterseite vom Typ shop-product an.",
-  "shopcat.typesNext": "Als Nächstes legen Sie in einem Raum mit «Erstellen» einen Eintrag vom Typ shop-catalogue an."
+  "shopcat.typesNext": "Als Nächstes legen Sie in einem Raum mit «Erstellen» einen Eintrag vom Typ shop-catalogue an.",
+  "help.manual": "Das Handbuch bei diesem Thema öffnen"
 };

@@ -5,6 +5,7 @@
 import { h, when } from "./dom.js";
 import { get, del } from "./api.js";
 import { t } from "./i18n.js";
+import { helpLink } from "./help.js";
 
 const errorBox = (err) => h("p", { class: "error", role: "alert", text: err instanceof Error ? err.message : String(err) });
 
@@ -68,7 +69,7 @@ export function connectionsCard() {
     card.hidden = false;
     const named = engines.find((e) => e.id === back.connected);
     card.replaceChildren(
-      h("h2", { text: t("engineconn.title") }),
+      h("h2", {}, t("engineconn.title"), " ", helpLink("process-engines")),
       h("p", { class: "muted", text: t("engineconn.note") }),
       named ? h("p", { class: "notice success", id: "engine-connected", text: t("engineconn.connected", { name: named.name }) }) : "",
       back.error ? h("p", { class: "error", role: "alert", id: "engine-error", text: errorText(back.error) }) : "",

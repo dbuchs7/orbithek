@@ -391,6 +391,8 @@ go run ./cmd/orbithek check -data-dir data   # verify a data directory, read-onl
 cd e2e && npm ci && BASE_URL=http://127.0.0.1:8080 ADMIN_PASSWORD=… node smoke.cjs   # UI in Chromium, against a fresh server
                                                      # ENGINE_TOKEN=x, with OT_ENGINE_ATLAS_TOKEN=x, OT_ENGINE_ATLAS_TASKLIST_TOKEN=x and OT_ENGINE_ALLOW_PRIVATE=on on the server, adds the process engine steps
 OT_TOKEN=… go run ./cmd/orbithek mcp -url http://localhost:8080   # MCP tools on stdin/stdout for a local agent
+cd e2e && BASE_URL=http://127.0.0.1:8080 ADMIN_PASSWORD=… node manual-shots.cjs   # the manual's pictures, against a fresh server started with OT_PUBLIC_URL (ADR-draft-pictures-and-help-links-in-the-manual)
+python3 -I e2e/shrink-pictures.py internal/web/static/assets/manual/img   # then shrink them (Pillow); commit the pictures
 go run ./cmd/orbithek version
 GOOS=windows GOARCH=arm64 CGO_ENABLED=0 go build ./cmd/orbithek   # any release platform
 docker build -t orbithek:dev .               # container image
@@ -507,6 +509,7 @@ internal/migrate/  prototype of the Jira/Confluence import engine (ADR-0023)
 internal/repoconfig/ tests keeping ruleset, CI workflow and release matrix consistent
 internal/settingsdrift/ comparison of recorded and live GitHub settings (ADR-0003)
 e2e/               browser smoke test of the UI (Playwright; test tool only, not part of the build)
+                   and manual-shots.cjs with shrink-pictures.py, which take the user manual's pictures (ADR-draft-pictures-and-help-links-in-the-manual)
 docs/architecture/ the invariants with their checks
 docs/brand/        the logo in every format and its generator; the web UI embeds copies
 docs/testing/      the guide for people testing a release; .github/ISSUE_TEMPLATE/ holds the matching report form

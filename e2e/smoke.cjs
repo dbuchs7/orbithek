@@ -889,6 +889,15 @@ function webSource() {
     await page.waitForSelector("#manual[lang=de] .pm-toc li");
     check(await page.locator("#manual h1").first().textContent() === "Orbithek-Benutzerhandbuch", "the German manual is a click away");
     check(await page.locator("#manual .ProseMirror[contenteditable=true]").count() === 0, "the manual is read, not edited");
+    // Pictures of the UI, and a help link opening the chapter of its place
+    // (ADR-draft-pictures-and-help-links-in-the-manual).
+    check(await page.locator("#manual .pm-image img[src^='/assets/manual/img/']").count() > 5, "the manual shows pictures of the UI");
+    await page.goto(base + "/#/shop");
+    await page.waitForSelector(".page-head .help-link[data-section=shop]");
+    await page.click(".page-head .help-link[data-section=shop]");
+    await page.waitForSelector("#manual .manual-target");
+    check(await page.evaluate(() => location.hash) === "#/manual?section=shop" && (await page.textContent("#manual .manual-target")).trim() === "The shop of an engine",
+      "the shop's help link opens the manual at the shop's chapter");
     await page.goto(base + "/#/");
     await page.waitForSelector("#welcome, #app h1");
 

@@ -9,6 +9,7 @@
 import { h, when } from "./dom.js";
 import { get, post } from "./api.js";
 import { t, language } from "./i18n.js";
+import { helpLink } from "./help.js";
 import { loadForm } from "./engineviews.js";
 import { engineOnly } from "./taskparts.js";
 import { textOf, offered, partsOf, answers, orders as basketOrders, settled, listOf, statuses } from "./shopparts.js";
@@ -85,7 +86,7 @@ async function setupCard(admin, states) {
   const status = !atlas.length ? t("shop.adminNoEngine")
     : t("shop.adminNoShop", { engines: atlas.map((e) => known.get(e.id)?.engine.name || e.name || e.id).join(", ") });
   return h("section", { class: "card", id: "shop-none" },
-    h("h2", { text: t("shop.setupTitle") }),
+    h("h2", {}, t("shop.setupTitle"), " ", helpLink("process-engines")),
     h("p", { class: "notice", id: "shop-setup-status", text: status }),
     h("p", { text: t("shop.setupLead") }),
     h("ol", { class: "shop-steps" },
@@ -181,7 +182,7 @@ async function cataloguesTab(ctx) {
   drawBasket();
   if (!all.length) {
     return ctx.body.replaceChildren(h("section", { class: "card", id: "shop-empty" },
-      h("h2", { text: t("shop.noCatalogueTitle") }),
+      h("h2", {}, t("shop.noCatalogueTitle"), " ", helpLink("shop-catalogue")),
       h("p", { text: t("shop.noCatalogue", { engine: ctx.name }) }),
       ctx.admin ? h("details", { class: "shop-help" }, h("summary", { text: t("shop.howCatalogue") }),
         h("ol", { class: "shop-steps" },
@@ -356,7 +357,7 @@ async function approvalsTab(ctx) {
 export function catalogueCard(it) {
   const path = "/api/items/" + enc(it.id) + "/shop";
   const out = h("div", { class: "status", role: "status" });
-  const card = h("section", { class: "side-card", id: "shop-catalogue" }, h("h2", { text: t("shopcat.title") }),
+  const card = h("section", { class: "side-card", id: "shop-catalogue" }, h("h2", {}, t("shopcat.title"), " ", helpLink("shop-catalogue")),
     h("p", { class: "muted", text: t("shopcat.note") }),
     fieldHelp("shopcat-help", t("shopcat.helpTitle"), catalogueFields, [t("shopcat.helpProducts"), t("shopcat.helpPublish")]), out);
   const show = (got, dryRun) => {
@@ -425,7 +426,7 @@ function fieldHelp(id, title, fields, notes = []) {
 // catalogue it is published with.
 export function productCard(it) {
   const to = h("p", {});
-  const card = h("section", { class: "side-card", id: "shop-product" }, h("h2", { text: t("shopprod.title") }),
+  const card = h("section", { class: "side-card", id: "shop-product" }, h("h2", {}, t("shopprod.title"), " ", helpLink("shop-catalogue")),
     h("p", { class: "muted", text: t("shopprod.note") }),
     h("p", { class: "muted", text: it.state === "active" ? t("shopprod.active") : it.state === "withdrawn" ? t("shopprod.withdrawn") : t("shopprod.draft") }),
     fieldHelp("shopprod-help", t("shopcat.helpTitle"), productFields), to);
@@ -449,7 +450,7 @@ export function productCard(it) {
 // written in.
 export function shopTypesCard() {
   const out = h("div", { class: "status", role: "status" });
-  return h("section", { class: "card", id: "shop-types" }, h("h3", { text: t("shopcat.typesTitle") }),
+  return h("section", { class: "card", id: "shop-types" }, h("h3", {}, t("shopcat.typesTitle"), " ", helpLink("shop-catalogue")),
     h("p", { class: "muted", text: t("shopcat.typesNote") }),
     h("ol", { class: "shop-steps" },
       h("li", { text: t("shopcat.typesStep1") }),

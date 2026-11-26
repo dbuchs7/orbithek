@@ -3052,3 +3052,19 @@ dialog.palette::backdrop { background: rgba(20, 22, 26, .45); }
 .shop-fields dt code { white-space: normal; word-break: break-word; }
 .side-card .shop-fields { grid-template-columns: 1fr; }
 .side-card .shop-fields dd { margin: 0 0 6px; }
+/* A help link opens the manual at its chapter, and the chapter is marked
+   (ADR-draft-pictures-and-help-links-in-the-manual). */
+.help-link { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%;
+  border: 1px solid var(--border-strong, var(--border)); color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1;
+  text-decoration: none; vertical-align: middle; margin-left: 4px; }
+.help-link:hover, .help-link:focus-visible { color: var(--accent); border-color: var(--accent); text-decoration: none; }
+.manual .manual-target { scroll-margin-top: calc(var(--top-offset, 64px) + 12px); }
+.manual .manual-target::after { content: ""; display: block; width: 48px; height: 3px; margin-top: 4px; border-radius: 2px; background: var(--accent); }
+.manual .pm-image img { box-shadow: 0 2px 10px rgba(0, 0, 0, .08); }
+.manual .pm-image-left img, .manual .pm-image-right img { border: 0; box-shadow: none; }
+/* The symbols of the manual's legend stand each before its own line, one
+   line as high as a symbol; a picture without a caption shows none. */
+.manual .pm-image figcaption:empty { display: none; }
+.manual .pm-image.pm-image-left { clear: left; margin: 0 14px 8px 0; line-height: 0; }
+.manual .pm-image.pm-image-left + p { min-height: 40px; margin: 0 0 8px; display: flex; align-items: center; }
+.manual .ProseMirror h1, .manual .ProseMirror h2, .manual .ProseMirror h3 { clear: both; }
