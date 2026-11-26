@@ -45,7 +45,7 @@ const VIEWS = ["folders", "timeline", "favourites", "memories", "map", "people",
 // SORT keeps, in this browser, how a folder or collection is shown:
 // in the order of its slides ("slides", ADR-0195) or newest first ("").
 // The order of the slides is the default; newest first holds only once
-// it was chosen in this browser (ADR-draft-a-folder-is-shown-in-the-order-of-its-slides).
+// it was chosen in this browser (ADR-0259).
 const SORT = "ot.albumSort";
 const sortKept = () => {
   try { return localStorage.getItem(SORT) === "" ? "" : "slides"; } catch { return "slides"; }

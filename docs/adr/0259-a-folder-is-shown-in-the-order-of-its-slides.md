@@ -1,4 +1,4 @@
-# ADR-DRAFT: A folder or collection is shown in the order of its slides by default
+# ADR-0259: A folder or collection is shown in the order of its slides by default
 
 - **Status:** Proposed
 - **Implementation:** Partial
