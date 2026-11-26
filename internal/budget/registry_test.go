@@ -102,6 +102,7 @@ var classified = map[string]string{
 	"internal/storage/faces.go:maxFaceVectorBytes + 1": "the same bound, where the file is read",
 	"internal/item.MaxChildrenDepth":                   "the shape of a list of child pages (ADR-0239): how many levels it names by number, like a heading's level; how many pages it shows is the budget ChildPages",
 	"internal/item.MaxHiddenTypes":                     "the shape of a list of child pages (ADR-0240): how many types it leaves out, a list a person chooses, like the columns of a view",
+	"internal/item.MaxSlides":                          "the shape of a slide deck in a text (ADR-0260): how many slides it keeps, files of its own item, which the budget of an item's files bounds as well",
 	"internal/item.MaxStarmapDepth":                    "the shape of a starmap in a text (ADR-0252): how far the neighbourhood of its item reaches, the depths a separated neighbourhood offers on the starmap; how many nodes it shows is the budget StarmapNodes",
 	"internal/item.MaxPrefill":                         "the shape of a start form (ADR-0148): how many of its fields it fills in beforehand, a list a person chooses, like the labels of a picture",
 	"internal/item.MaxViewColumns":                     "the shape of a view in a text (ADR-0203): how many columns it names, a list a person chooses, like the fields a start form fills in",

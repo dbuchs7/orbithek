@@ -51,3 +51,40 @@ export function slideURLs(s) {
   const file = `/api/items/${s.item.id}/attachments/${s.attachment.id}`;
   return { file, stage: `${file}/thumbnail?edge=1600`, thumb: s.video && !s.poster ? "" : `${file}/thumbnail?edge=400` };
 }
+
+// keptSlides picks, from the album's listing of the pictures of the item a
+// deck is on (stacks of versions, ADR-0103), the files the deck keeps, in
+// its order: the very version each names, with its stack's notes and
+// whether one may edit them. A file the listing lacks — deleted, or not
+// the reader's to see — is left out.
+export function keptSlides(pictures, files) {
+  const byId = new Map();
+  for (const top of pictures || []) {
+    for (const p of [top, ...(top.versions || [])]) {
+      byId.set(p.attachment.id, { ...p, notes: top.notes || "", editable: !!top.editable, first: top.first || top.attachment.id, versions: undefined });
+    }
+  }
+  return (files || []).map((id) => byId.get(id)).filter(Boolean);
+}
+
+// deckChanged tells whether the slides of a deck's source differ from
+// those the deck keeps: another number of slides, another picture at a
+// place (by its content), or other notes. Both are album pictures in the
+// order of the slides.
+export function deckChanged(kept, source) {
+  if ((kept || []).length !== (source || []).length) return true;
+  return kept.some((k, i) => k.attachment.sha256 !== source[i].attachment.sha256 || (k.notes || "") !== (source[i].notes || ""));
+}
+
+// QUARTERS are the quarter turns clockwise of the orientations of a
+// picture that only turn it (EXIF 1, 6, 3 and 8).
+const QUARTERS = { 1: 0, 6: 1, 3: 2, 8: 3 };
+
+// turnBetween is the turn a copy needs to show as its source does — 1 a
+// quarter clockwise, -1 counter-clockwise, 2 upside down — or 0 when it
+// needs none or the orientations also mirror.
+export function turnBetween(copy, source) {
+  const from = QUARTERS[copy || 1], to = QUARTERS[source || 1];
+  if (from === undefined || to === undefined) return 0;
+  return [0, 1, 2, -1][(to - from + 4) % 4];
+}

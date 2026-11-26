@@ -9,4 +9,6 @@
 [{"v":"current","seq":9,"at":"2026-10-16T09:00:08Z","actor":"anna","kind":"TypeDefined","typeDef":{"Name":"folder","Version":1,"Fields":null,"Workflow":null,"Body":false,"Review":null}}]
 [{"v":"current","seq":10,"at":"2026-10-16T09:00:09Z","actor":"anna","kind":"ItemCreated","item":"id002","batch":10,"space":"PLAT","typeName":"folder","typeVersion":1,"title":"Talk"}]
 [{"v":"current","seq":11,"at":"2026-10-16T09:00:09Z","actor":"anna","kind":"Watched","item":"id002","batch":10,"principal":"anna"}]
-[{"v":"current","seq":12,"at":"2026-10-16T09:00:10Z","actor":"anna","kind":"BodyCommitted","item":"id001","body":{"Blocks":[{"Kind":"slides","Text":"Board, 4 December","Mentions":null,"Ref":"id002"}]}}]
+[{"v":"current","seq":12,"at":"2026-10-16T09:00:10Z","actor":"anna","kind":"AttachmentAdded","item":"id001","attachment":{"ID":"11111111111111111111111111111111","Name":"01 Intro.png","Type":"image/png","Size":3,"SHA256":"abababababababababababababababababababababababababababababababab"}}]
+[{"v":"current","seq":13,"at":"2026-10-16T09:00:11Z","actor":"anna","kind":"AttachmentAdded","item":"id001","attachment":{"ID":"22222222222222222222222222222222","Name":"02 Plan.png","Type":"image/png","Size":3,"SHA256":"abababababababababababababababababababababababababababababababab"}}]
+[{"v":"current","seq":14,"at":"2026-10-16T09:00:12Z","actor":"anna","kind":"BodyCommitted","item":"id001","body":{"Blocks":[{"Kind":"slides","Text":"Board, 4 December","Mentions":null,"Ref":"id002","Files":["22222222222222222222222222222222","11111111111111111111111111111111"]}]}}]

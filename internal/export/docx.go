@@ -118,13 +118,21 @@ func StarmapName(bl item.Block) string {
 
 // SlidesName names a slide deck in a document
 // (ADR-0260): a document does not show the
-// slides, which each reader reads with their own rights; it says that a
-// deck stands here, by its caption.
+// slides; it says that a deck stands here, by its caption and the number
+// of slides it keeps.
 func SlidesName(bl item.Block) string {
+	name := "Slide deck"
 	if c := strings.TrimSpace(bl.Text); c != "" {
-		return "Slide deck: " + c
+		name += ": " + c
 	}
-	return "Slide deck"
+	switch n := len(bl.Files); n {
+	case 0:
+	case 1:
+		name += " (1 slide)"
+	default:
+		name += fmt.Sprintf(" (%d slides)", n)
+	}
+	return name
 }
 
 // namedByCaption reports whether a block's name in a document is its

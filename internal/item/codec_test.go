@@ -78,7 +78,7 @@ func TestAChangeThatIsNotPersistedDoesNotHappen(t *testing.T) {
 
 func TestDecodeRejectsWhatItCannotReadExactly(t *testing.T) {
 	cases := map[string]string{
-		"newer format":       `[{"v":72,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
+		"newer format":       `[{"v":73,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"no format version":  `[{"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"unknown field":      `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated","colour":"red"}]`,
 		"unknown role":       `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"RoleGranted","role":"owner"}]`,
@@ -1960,16 +1960,18 @@ func starmapBlockLog(t *testing.T) []Event {
 	return s.Log()
 }
 
-// slidesLog places a slide deck of an album folder in a text, with a
-// caption, so the golden files pin the block kind slides
-// (ADR-0260).
+// slidesLog places a slide deck in a text that keeps two slides, copies
+// of an album folder's pictures, with a caption, so the golden files pin
+// the block kind slides and its Files (ADR-0260).
 func slidesLog(t *testing.T) []Event {
 	s := setup(t)
 	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))
 	anna := s.As("anna")
 	page := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Review"}))
 	folder := mustItem(t)(anna.CreateFolder("PLAT", "", "Talk"))
-	noErr(t, anna.CommitBody(page.ID, Doc{Blocks: []Block{{Kind: Slides, Ref: folder.ID, Text: "Board, 4 December"}}}))
+	addPicture(t, anna, page.ID, slide1, "01 Intro.png")
+	addPicture(t, anna, page.ID, slide2, "02 Plan.png")
+	noErr(t, anna.CommitBody(page.ID, Doc{Blocks: []Block{{Kind: Slides, Ref: folder.ID, Files: []ID{slide2, slide1}, Text: "Board, 4 December"}}}))
 	return s.Log()
 }
 

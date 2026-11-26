@@ -6,23 +6,45 @@ import (
 	"testing"
 )
 
-// A slide deck in a text names an album folder or collection and has a
-// plain caption (ADR-0260).
-func TestASlideDeckNamesAnItemAndHasAPlainCaption(t *testing.T) {
-	for i, b := range []Block{{Kind: Slides, Ref: "f"}, {Kind: Slides, Ref: "f", Text: "Board, 4 December"}} {
+const (
+	slide1 = "11111111111111111111111111111111"
+	slide2 = "22222222222222222222222222222222"
+	slide3 = "33333333333333333333333333333333"
+)
+
+// A slide deck in a text keeps its slides as files of its item, each
+// named once, with the folder they came from and a plain caption
+// (ADR-0260).
+func TestASlideDeckKeepsFilesOfItsItemAndNamesItsSource(t *testing.T) {
+	good := []Block{
+		{Kind: Slides, Ref: "f", Files: []ID{slide1}},
+		{Kind: Slides, Ref: "f", Files: []ID{slide1, slide2}, Text: "Board, 4 December"},
+		{Kind: Slides, Files: []ID{slide1}}, // its source is gone
+		{Kind: Slides, Ref: "f"},            // kept no slides yet (codec version 71)
+	}
+	for i, b := range good {
 		if err := checkBlock(b, "self"); err != nil {
 			t.Errorf("good %d: %v", i, err)
 		}
+	}
+	many := make([]ID, MaxSlides+1)
+	for i := range many {
+		many[i] = ID(strings.Repeat("0", 28) + string(rune('a'+i%26)) + "000")
 	}
 	bad := map[string]struct {
 		b    Block
 		want string
 	}{
-		"no reference":        {Block{Kind: Slides}, "names an album folder"},
-		"itself":              {Block{Kind: Slides, Ref: "self"}, "names an album folder"},
-		"marks":               {Block{Kind: Slides, Ref: "f", Text: "Board", Marks: []Mark{{Type: MarkBold, Start: 0, End: 5}}}, "plain caption"},
-		"mentions":            {Block{Kind: Slides, Ref: "f", Mentions: []ID{"x"}}, "plain caption"},
-		"aligned":             {Block{Kind: Slides, Ref: "f", Align: "center"}, "no alignment"},
+		"nothing":             {Block{Kind: Slides}, "keeps its slides"},
+		"itself as source":    {Block{Kind: Slides, Ref: "self", Files: []ID{slide1}}, "not its own item"},
+		"marks":               {Block{Kind: Slides, Ref: "f", Files: []ID{slide1}, Text: "Board", Marks: []Mark{{Type: MarkBold, Start: 0, End: 5}}}, "plain caption"},
+		"mentions":            {Block{Kind: Slides, Ref: "f", Files: []ID{slide1}, Mentions: []ID{"x"}}, "plain caption"},
+		"aligned":             {Block{Kind: Slides, Ref: "f", Files: []ID{slide1}, Align: "center"}, "no alignment"},
+		"empty list":          {Block{Kind: Slides, Ref: "f", Files: []ID{}}, "1 to"},
+		"too many":            {Block{Kind: Slides, Ref: "f", Files: many}, "1 to"},
+		"twice":               {Block{Kind: Slides, Ref: "f", Files: []ID{slide1, slide1}}, "each slide once"},
+		"no file ID":          {Block{Kind: Slides, Ref: "f", Files: []ID{"x"}}, "each slide once"},
+		"files elsewhere":     {Block{Kind: Image, Ref: slide1, Files: []ID{slide2}}, "only a slide deck"},
 		"reference elsewhere": {Block{Kind: Paragraph, Text: "x", Ref: "f"}, "slide deck"},
 	}
 	for name, c := range bad {
@@ -30,18 +52,19 @@ func TestASlideDeckNamesAnItemAndHasAPlainCaption(t *testing.T) {
 			t.Errorf("%s: got %v, want an error with %q", name, err, c.want)
 		}
 	}
-	if to, ok := (Block{Kind: Slides, Ref: "f"}).Embedded(); !ok || to != "f" {
-		t.Errorf("a slide deck embeds its folder: %q %v", to, ok)
+	if _, ok := (Block{Kind: Slides, Ref: "f"}).Embedded(); ok {
+		t.Error("a slide deck's source is no embed")
 	}
-	if _, ok := (Block{Kind: Image, Ref: "a"}).Embedded(); ok {
-		t.Error("an image embeds no item")
+	if got := (Block{Kind: Slides, Files: []ID{slide1, slide2}}).shownFiles(); len(got) != 2 {
+		t.Errorf("a deck shows its slides: %v", got)
 	}
 }
 
-// A slide deck shows a folder or a collection, nothing else; it implies
-// the relation embeds, so the folder stays while a text shows it (D8),
-// and only who reads the folder may place it in a text (D10).
-func TestASlideDeckShowsAFolderOrCollectionAndEmbedsIt(t *testing.T) {
+// A deck's slides are files of its item; a version of the text keeps the
+// slides it showed. Its source is a folder or collection the writer
+// reads, and no reference: the folder may be deleted while texts keep
+// their slides (ADR-0260).
+func TestASlideDeckKeepsItsSlidesAndItsSourceMayGo(t *testing.T) {
 	s := setup(t)
 	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))
 	noErr(t, s.GrantRole("admin", "PLAT", "bert", Editor))
@@ -52,35 +75,119 @@ func TestASlideDeckShowsAFolderOrCollectionAndEmbedsIt(t *testing.T) {
 	coll := mustItem(t)(anna.CreateCollection("PLAT", "", "Logos", CollectionRule{Labels: []string{"logo"}}))
 	other := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Other"}))
 	hidden := mustItem(t)(anna.CreateFolder("OPS", "", "Secret talk"))
+	for _, f := range []ID{slide1, slide2, slide3} {
+		addPicture(t, anna, page.ID, f, string(f[:2])+".png")
+	}
 
-	noErr(t, anna.CommitBody(page.ID, Doc{Blocks: []Block{{Kind: Slides, Ref: folder.ID, Text: "Board"}, {Kind: Slides, Ref: coll.ID}}}))
-	embeds := 0
+	deck := Doc{Blocks: []Block{{Kind: Slides, Ref: folder.ID, Files: []ID{slide2, slide1}, Text: "Board"}, {Kind: Slides, Ref: coll.ID, Files: []ID{slide3}}}}
+	noErr(t, anna.CommitBody(page.ID, deck))
 	for _, r := range s.Relations(page.ID, Outgoing) {
-		if r.Type == RelEmbeds && r.Derived && (r.To == folder.ID || r.To == coll.ID) {
-			embeds++
+		if r.To == folder.ID || r.To == coll.ID {
+			t.Errorf("a deck implies no relation to its source: %+v", r)
 		}
 	}
-	if embeds != 2 {
-		t.Errorf("the decks imply %d embeds, want 2", embeds)
+	// The slides are files the body shows: the album says they are used.
+	if pics := mustPictures(t, anna, page.ID); !pics[slide1] || !pics[slide3] {
+		t.Errorf("the slides are used by the body: %v", pics)
 	}
-	if err := anna.CommitBody(page.ID, Doc{Blocks: []Block{{Kind: Slides, Ref: other.ID}}}); err == nil || !strings.Contains(err.Error(), "no album folder") {
-		t.Errorf("a page is no deck: %v", err)
+	// Only files of the item, and a source that is a folder or collection.
+	cases := map[string]struct {
+		d    Doc
+		want error
+		text string
+	}{
+		"a file of another item": {Doc{Blocks: []Block{{Kind: Slides, Ref: folder.ID, Files: []ID{albumPic}}}}, ErrNotFound, ""},
+		"a page as source":       {Doc{Blocks: []Block{{Kind: Slides, Ref: other.ID, Files: []ID{slide1}}}}, nil, "no album folder"},
+		"an unknown source":      {Doc{Blocks: []Block{{Kind: Slides, Ref: "nothing", Files: []ID{slide1}}}}, ErrNotFound, ""},
+		"no slides, newly":       {Doc{Blocks: []Block{{Kind: Slides, Ref: folder.ID}}}, nil, "copy them"},
 	}
-	if err := anna.CommitBody(page.ID, Doc{Blocks: []Block{{Kind: Slides, Ref: "nothing"}}}); !errors.Is(err, ErrNotFound) {
-		t.Errorf("an unknown folder: %v", err)
+	for name, c := range cases {
+		err := anna.CommitBody(page.ID, c.d)
+		if err == nil || c.want != nil && !errors.Is(err, c.want) || c.text != "" && !strings.Contains(err.Error(), c.text) {
+			t.Errorf("%s: %v", name, err)
+		}
 	}
-	if err := anna.Trash(folder.ID); !errors.Is(err, ErrReferenced) {
-		t.Errorf("a folder a text shows is not trashed: %v", err)
+	if err := bert.CommitBody(page.ID, Doc{Blocks: []Block{{Kind: Slides, Ref: hidden.ID, Files: []ID{slide1}}}}); !errors.Is(err, ErrNotFound) {
+		t.Errorf("a folder bert does not read is no source for him: %v", err)
 	}
-	if err := bert.CommitBody(page.ID, Doc{Blocks: []Block{{Kind: Slides, Ref: hidden.ID}}}); !errors.Is(err, ErrNotFound) {
-		t.Errorf("a folder bert does not read is not found for him: %v", err)
+	// The folder goes; the deck keeps its slides and stays editable.
+	noErr(t, anna.Trash(folder.ID))
+	noErr(t, anna.CommitBody(page.ID, Doc{Blocks: []Block{{Kind: Slides, Ref: folder.ID, Files: []ID{slide2, slide1}, Text: "Board, again"}}}))
+	if err := anna.CommitBody(page.ID, Doc{Blocks: []Block{{Kind: Slides, Ref: hidden.ID, Files: []ID{slide1}}, {Kind: Slides, Ref: folder.ID, Files: []ID{slide2}}}}); err != nil {
+		t.Errorf("a source kept from the current body stays, even in the trash: %v", err)
 	}
-	// A new item may start with a deck too.
-	if _, err := anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Copy", Body: &Doc{Blocks: []Block{{Kind: Slides, Ref: other.ID}}}}); err == nil {
-		t.Error("a new page with a deck of a page")
+	// A deleted slide stays only while the current body shows it.
+	noErr(t, anna.DeleteAttachment(page.ID, slide3))
+	if err := anna.CommitBody(page.ID, Doc{Blocks: []Block{{Kind: Slides, Ref: folder.ID, Files: []ID{slide3}}}}); !errors.Is(err, ErrNotFound) {
+		t.Errorf("a deleted slide is not newly shown: %v", err)
 	}
-	mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Second", Body: &Doc{Blocks: []Block{{Kind: Slides, Ref: folder.ID}}}}))
-	if bodyEmpty(Doc{Blocks: []Block{{Kind: Slides, Ref: folder.ID}}}) {
+	// A new item cannot start with a deck: its files come after it.
+	if _, err := anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Copy", Body: &Doc{Blocks: []Block{{Kind: Slides, Ref: coll.ID, Files: []ID{slide1}}}}}); err == nil || !strings.Contains(err.Error(), "after creating") {
+		t.Errorf("a new page with a deck: %v", err)
+	}
+	if bodyEmpty(Doc{Blocks: []Block{{Kind: Slides, Files: []ID{slide1}}}}) {
 		t.Error("a body with a deck is not empty")
 	}
+}
+
+// A deck written before slides were kept (codec version 71) stays while
+// the text keeps it unchanged (ADR-0260).
+func TestADeckWithoutSlidesStaysUnchanged(t *testing.T) {
+	s := setup(t)
+	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))
+	anna := s.As("anna")
+	page := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Review"}))
+	folder := mustItem(t)(anna.CreateFolder("PLAT", "", "Talk"))
+	old := Block{Kind: Slides, Ref: folder.ID, Text: "Board"}
+	// As an older binary wrote it.
+	noErr(t, s.record("anna", Event{Kind: BodyCommitted, Item: page.ID, Body: &Doc{Blocks: []Block{old}}}))
+	noErr(t, anna.CommitBody(page.ID, Doc{Blocks: []Block{{Kind: Paragraph, Text: "Intro"}, old}}))
+	addPicture(t, anna, page.ID, slide1, "01.png")
+	noErr(t, anna.CommitBody(page.ID, Doc{Blocks: []Block{{Kind: Slides, Ref: folder.ID, Files: []ID{slide1}, Text: "Board"}}}))
+	if err := anna.CommitBody(page.ID, Doc{Blocks: []Block{old}}); err == nil {
+		t.Error("a kept deck does not go back to keeping none")
+	}
+}
+
+// The slides of a protected deck are protected files: whoever does not
+// read the protection gets none of them (ADR-0160, ADR-0260).
+func TestTheSlidesOfAProtectedDeckAreProtected(t *testing.T) {
+	s := setup(t)
+	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))
+	noErr(t, s.GrantRole("admin", "PLAT", "vera", Viewer))
+	anna, vera := s.As("anna"), s.As("vera")
+	page := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Review"}))
+	folder := mustItem(t)(anna.CreateFolder("PLAT", "", "Talk"))
+	addPicture(t, anna, page.ID, slide1, "01.png")
+	addPicture(t, anna, page.ID, slide2, "02.png")
+	noErr(t, anna.CommitBody(page.ID, Doc{Blocks: []Block{{Kind: Paragraph, Text: "Open"}, {Kind: Slides, Ref: folder.ID, Files: []ID{slide1, slide2}}}}))
+	_, err := anna.ProtectBlocks(page.ID, 1, 1, nil)
+	noErr(t, err)
+	for _, f := range []ID{slide1, slide2} {
+		if _, err := vera.Attachment(page.ID, f); err == nil {
+			t.Errorf("vera reads the protected slide %s", f)
+		}
+		if _, err := anna.Attachment(page.ID, f); err != nil {
+			t.Errorf("anna reads her slide %s: %v", f, err)
+		}
+	}
+	// A slide may not show unprotected elsewhere in the text.
+	body := mustItem(t)(anna.Get(page.ID)).Body
+	body.Blocks = append(body.Blocks, Block{Kind: Image, Ref: slide1})
+	if err := anna.CommitBody(page.ID, body); err == nil || !strings.Contains(err.Error(), "protected") {
+		t.Errorf("a protected slide shown in the open: %v", err)
+	}
+}
+
+// mustPictures lists which pictures of an item the album says its body
+// uses.
+func mustPictures(t *testing.T, x *Session, id ID) map[ID]bool {
+	t.Helper()
+	out := map[ID]bool{}
+	for _, p := range x.Pictures("", func(Attachment) bool { return true }) {
+		if p.Item.ID == id {
+			out[p.Attachment.ID] = p.Used
+		}
+	}
+	return out
 }

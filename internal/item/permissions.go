@@ -787,6 +787,15 @@ func (x *Session) CommitBody(id ID, d Doc) error {
 			}
 		}
 	}
+	// A slide deck's source named anew is one the principal reads
+	// (ADR-0260).
+	for _, src := range slideSources(d) {
+		if !slices.Contains(slideSources(it.Body), src) {
+			if _, err := x.readable(src); err != nil {
+				return err
+			}
+		}
+	}
 	return x.s.CommitBody(x.who, id, d)
 }
 

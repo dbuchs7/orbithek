@@ -2715,7 +2715,7 @@ function webSource() {
       await page.waitForSelector("#album-order-hint", { state: "hidden" });
     }
 
-    step("slide deck in a text: a page shows the pictures of an album folder as slides, steps through them and presents them, and ending returns to the page (ADR-0260)");
+    step("slide deck in a text: a page keeps copies of an album folder's pictures as slides, steps through them, says when the folder changed and is updated from it, and presents them, ending back on the page (ADR-0260)");
     {
       const { item: deckPage } = await page.evaluate(async () => (await fetch("/api/items", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ space: "PLAT", type: "task", title: "Talk page", properties: { priority: "low" }, body: [{ kind: "paragraph", text: "Our talk." }] }) })).json());
@@ -2731,12 +2731,16 @@ function webSource() {
       await page.waitForSelector("#slides-pick-preview .slides-pick-thumbs > *");
       await page.fill("#slides-pick-caption", "The talk");
       await page.click("#slides-dialog-ok");
+      // The folder's slides are copied into the item before the deck shows.
       await page.waitForSelector(".ProseMirror figure.pm-slides .pm-slides-change");
+      await page.waitForSelector(".ProseMirror figure.pm-slides .pm-slides-media");
       check(await page.locator(".ProseMirror figure.pm-slides .pm-slides-present").count() === 0, "editing shows the slides without presenting them");
       await page.click("#edit-done");
       await page.waitForSelector("#body.reading figure.pm-slides .pm-slides-present");
       const saved = await page.evaluate(async (key) => (await (await fetch("/api/items/" + key)).json()).item.body.find((b) => b.kind === "slides"), deckPage.key);
-      check(saved?.ref === talk && saved.text === "The talk", "the deck names the folder by its ID and keeps its caption");
+      check(saved?.ref === talk && saved.text === "The talk" && saved.files?.length === 3, "the deck keeps three slides, names its folder by its ID and keeps its caption");
+      const copies = await page.evaluate(async (key) => (await (await fetch(`/api/items/${key}/attachments`)).json()).attachments.map((a) => a.id), deckPage.key);
+      check(saved.files.every((f) => copies.includes(f)), "the kept slides are files of the page itself");
       await page.waitForSelector("figure.pm-slides .pm-slides-counter:text-is('1 / 3')"); // in the folder's order of slides
       check(await page.getAttribute("figure.pm-slides .pm-slides-media", "alt") === "2 Plan", "the first slide is the folder's first");
       await page.click("figure.pm-slides .pm-slides-next");
@@ -2747,11 +2751,34 @@ function webSource() {
       await page.keyboard.press("Home");
       await page.waitForSelector("figure.pm-slides .pm-slides-counter:text-is('1 / 3')");
       check((await page.textContent("figure.pm-slides figcaption")) === "The talk", "the caption shows below the deck");
-      // The folder stays while a text shows it.
-      expectedConsole = /status of 409/; // the trash is refused
-      const trashed = await page.evaluate(async (id) => (await fetch(`/api/items/${id}/trash`, { method: "POST" })).status, talk);
-      expectedConsole = null;
-      check(trashed === 409, "a folder a text shows is not trashed");
+      await page.waitForSelector("#body.reading figure.pm-slides .pm-slides-counter");
+      check(await page.locator("#body.reading figure.pm-slides .pm-slides-newer").isHidden(), "a deck just kept is not behind its folder");
+      // A note changed in the album: the deck keeps its slides and says so.
+      const outlook = await page.evaluate(async (id) => (await (await fetch(`/api/album?folder=${id}&order=slides`)).json()).pictures
+        .find((p) => p.attachment.name.startsWith("3 Outlook")), talk);
+      const setNotes = (notes) => page.evaluate(async ([p, n]) => fetch(`/api/items/${p.item.id}/attachments/${p.attachment.id}/notes`,
+        { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ notes: n }) }), [outlook, notes]);
+      await setNotes("A new closing line.");
+      await page.reload();
+      await page.waitForSelector("#body.reading figure.pm-slides .pm-slides-newer:not([hidden])");
+      await page.goto(base + "/#/item/" + deckPage.key + "?edit");
+      await page.click(".ProseMirror figure.pm-slides .pm-slides-update");
+      // Copying runs in the editor; the deck is saved with the new copies
+      // once it is done.
+      let updated = false;
+      for (let i = 0; i < 100 && !updated; i++) {
+        updated = await page.evaluate(async ([key, before]) => {
+          const deck = (await (await fetch("/api/items/" + key)).json()).item.body.find((b) => b.kind === "slides");
+          return deck?.files?.length === 3 && !deck.files.includes(before[0]);
+        }, [deckPage.key, saved.files]);
+        if (!updated) await page.waitForTimeout(100);
+      }
+      check(updated, "updating from the folder saves the deck with new copies");
+      await page.click("#edit-done");
+      // The counter shows once the deck has compared itself with its folder.
+      await page.waitForSelector("#body.reading figure.pm-slides .pm-slides-counter");
+      check(await page.locator("#body.reading figure.pm-slides .pm-slides-newer").isHidden(), "the deck is up to date after updating from the folder");
+      await setNotes("");
       const [show] = await Promise.all([page.waitForEvent("popup"), page.click("figure.pm-slides .pm-slides-present")]);
       show.on("pageerror", (e) => problems.push("presentation window: " + e.message));
       await page.waitForSelector("#present-console #present-name:text-is('2 Plan')");
@@ -2759,8 +2786,14 @@ function webSource() {
       await Promise.all([show.isClosed() ? null : show.waitForEvent("close"), page.click("#present-end")]);
       await page.waitForSelector("#body.reading figure.pm-slides");
       check(page.url().endsWith("#/item/" + deckPage.key), "ending the presentation returns to the page");
-      // The page no longer shows the deck, so the album may delete the folder later.
-      await page.evaluate(async (id) => fetch(`/api/items/${id}/body`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ blocks: [{ kind: "paragraph", text: "Our talk." }] }) }), deckPage.id);
+      // The page no longer shows the deck, and its copies go, so the album
+      // shows the folder's pictures alone again for the steps that follow.
+      await page.evaluate(async (id) => {
+        await fetch(`/api/items/${id}/body`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ blocks: [{ kind: "paragraph", text: "Our talk." }] }) });
+        for (const a of (await (await fetch(`/api/items/${id}/attachments`)).json()).attachments) {
+          await fetch(`/api/items/${id}/attachments/${a.id}`, { method: "DELETE" });
+        }
+      }, deckPage.id);
       await page.goto(base + "/#/album");
       await page.click("#album .album-folder:has-text('Talk')");
       await page.waitForSelector("#album .album-card:has(.album-name:text-is('2 Plan'))");

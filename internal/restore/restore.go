@@ -263,6 +263,10 @@ func (p *plan) refs(it item.Item) []item.ID {
 		if to, ok := b.Embedded(); ok {
 			add(to)
 		}
+		if b.Kind == item.Slides {
+			// A slide deck's source, which it is updated from (ADR-0260).
+			add(b.Ref)
+		}
 		for _, m := range b.Mentions {
 			add(m)
 		}
@@ -574,7 +578,35 @@ func (w *writer) body(t *item.Store, it item.Item) item.Doc {
 				continue
 			}
 			b.Ref = to
-		case item.Embed, item.Slides:
+		case item.Slides:
+			// A deck keeps the slides that came back; it forgets a source
+			// that is not here, and is left out when it has no slide
+			// (ADR-0260).
+			if len(b.Files) == 0 {
+				// A deck that keeps no slides yet shows its source.
+				if !w.live(t, b.Ref) {
+					w.p.note("%s: a slide deck is left out: its album folder %s is not here", it.Key, w.key(b.Ref))
+					continue
+				}
+				break
+			}
+			var files []item.ID
+			for _, f := range b.Files {
+				if to, ok := w.files[it.ID][f]; ok {
+					files = append(files, to)
+				}
+			}
+			if b.Ref != "" && !w.live(t, b.Ref) {
+				b.Ref = ""
+			}
+			if len(files) < len(b.Files) {
+				w.p.note("%s: %d of the %d slides of a slide deck did not come back", it.Key, len(b.Files)-len(files), len(b.Files))
+			}
+			if len(files) == 0 {
+				continue
+			}
+			b.Files = files
+		case item.Embed:
 			if !w.live(t, b.Ref) {
 				w.p.note("%s: the embedded %s is left out: it is not here", it.Key, w.key(b.Ref))
 				continue

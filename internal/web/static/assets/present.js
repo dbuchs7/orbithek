@@ -15,8 +15,9 @@ import { h, mount } from "./dom.js";
 import { t } from "./i18n.js";
 import { get, put } from "./api.js";
 import { moveWithin, orderDrop } from "./photoparts.js";
+import { keptSlides } from "./slidesparts.js";
 import {
-  LASER_TRAIL, ZOOM_STEP, slidesOf, orderOf, backOf, clampView, deckParams, placement, toImage, toView, zoomAt, panBy, keyAction, clock,
+  LASER_TRAIL, ZOOM_STEP, slidesOf, orderOf, backOf, deckSourceOf, clampView, deckParams, placement, toImage, toView, zoomAt, panBy, keyAction, clock,
   channelName, newId, validMessage, apply,
 } from "./present-parts.js";
 
@@ -54,8 +55,12 @@ export function startPresentation(filters, back = "") {
 }
 
 // loadDeck reads every picture the filters select, page by page, in the
-// order of slides (ADR-0195), and whether one may change that order.
+// order of slides (ADR-0195), and whether one may change that order. The
+// slide deck of a text shows the slides it keeps, in its order, which is
+// changed by editing the text (ADR-0260).
 async function loadDeck(filters) {
+  const source = deckSourceOf(filters);
+  if (source) return { slides: slidesOf(await keptDeck(source)), orderable: false };
   const all = [];
   let offset = 0;
   for (;;) {
@@ -68,6 +73,23 @@ async function loadDeck(filters) {
     if (!page.next) return { slides: slidesOf(all), orderable: !!page.orderable };
     offset = page.next;
   }
+}
+
+// keptDeck reads the slides the n-th slide deck of an item's text keeps:
+// the item's pictures as the album lists them, picked in the deck's order.
+async function keptDeck({ item, n }) {
+  const { item: it } = await get("/api/items/" + encodeURIComponent(item));
+  const deck = (it.body || []).filter((b) => b.kind === "slides")[n];
+  if (!deck?.files?.length) return [];
+  const all = [];
+  let offset = 0;
+  for (;;) {
+    const page = await get(`/api/album?folder=${encodeURIComponent(it.id)}&limit=200&offset=${offset}`);
+    all.push(...page.pictures);
+    if (!page.next) break;
+    offset = page.next;
+  }
+  return keptSlides(all, deck.files);
 }
 
 // stage shows one slide, fitted to its box and zoomed about a point of it,

@@ -547,11 +547,13 @@ Both windows must be in the same browser on the same computer. People elsewhere 
 
 ### Slide deck in a text
 
-While editing, **Insert…** → **Slide deck…** places the pictures of an album folder or collection in the text as a slide deck. Under **Album folder or collection** the dialog offers the folders you may read, shows the first slides to check, and takes a **Caption**; **Insert the slide deck** places it, and **Change the slide deck…** chooses another folder later. A presentation file (.pptx) is first imported into a folder in the album (see *Importing a PowerPoint presentation*).
+While editing, **Insert…** → **Slide deck…** places the pictures of an album folder or collection in the text as a slide deck. Under **Album folder or collection** the dialog offers the folders you may read, shows the first slides to check, and takes a **Caption**. **Insert the slide deck** copies the slides into the item, in the folder's order and with their speaker's notes; a line in the editor shows how far copying has come. A presentation file (.pptx) is first imported into a folder in the album (see *Importing a PowerPoint presentation*).
+
+The deck keeps the slides as they were when it was saved: later changes in the album do not change it, and every earlier version of the text shows the slides it showed then. When the slides in the folder have changed, the deck says so; while editing, **Update from the folder** copies them anew. **Change the slide deck…** chooses another folder or changes only the caption. Whoever may edit the text edits the speaker's notes of the kept slides, for example in the presenter's window.
 
 While reading, the deck shows the current slide with a strip of every slide below it. Step with **Previous slide** and **Next slide** (‹ and ›), a click in the strip, or, after clicking into the slide, the arrow keys, Page Up and Down, the space bar, Home and End. **Full screen** shows the slide alone. **Present** opens the presenter's window with the speaker's notes and the presentation window for the projector, as in the album (see *Presenting pictures*); **End** returns to the text.
 
-The slides, their order and their notes stay in the album: what you change there, every text with this deck shows at once. The folder's name in the deck's bar opens it in the album. Every reader sees the pictures they may read; whoever may not read the folder sees that the deck cannot be shown. As long as a text shows a folder, the folder cannot be deleted. Exports name the deck by its caption instead of showing the slides.
+The slides are files of the item: they follow the text's access, a protected deck protects its slides, and the folder in the album may be deleted without the text losing its slides. The copies also show in the album as pictures of the item. A deck inserted before this change shows the folder as it is now and keeps its slides on its next edit. Exports name the deck by its caption and the number of its slides instead of showing the slides.
 
 ### Ordering slides by hand
 
