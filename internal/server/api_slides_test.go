@@ -9,7 +9,7 @@ import (
 // A slide deck in a text names an album folder by its ID and keeps its
 // caption; the API refuses one of a page, and the folder stays while a
 // text shows it; the exports name the deck
-// (ADR-draft-a-slide-deck-in-a-text).
+// (ADR-0260).
 func TestASlideDeckInATextThroughTheAPI(t *testing.T) {
 	w := newWorld(t)
 	w.admin.expect("POST", "/api/types", `{"name":"page","body":true,"fields":[]}`, http.StatusCreated)

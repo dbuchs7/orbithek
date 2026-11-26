@@ -131,7 +131,7 @@ const (
 	StarmapBlock BlockKind = "starmap"
 	// Slides shows the pictures of an album folder or collection as a
 	// deck of slides in a text, which a reader steps through and presents
-	// (ADR-draft-a-slide-deck-in-a-text): Ref names the folder or
+	// (ADR-0260): Ref names the folder or
 	// collection by its ID and Text is the caption. Like an embed it
 	// implies the relation embeds to what it names; the body holds no
 	// copy of the pictures.

@@ -10,7 +10,7 @@ import (
 
 // A slide deck is named in every document by its caption, which is not
 // written again below it; a document does not show the slides
-// (ADR-draft-a-slide-deck-in-a-text).
+// (ADR-0260).
 func TestSlideDecksAreNamedInDocuments(t *testing.T) {
 	page := Page{ID: "p", Title: "Review", Body: []item.Block{
 		{Kind: item.Slides, Ref: "f", Text: "Board, 4 December"},

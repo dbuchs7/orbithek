@@ -117,7 +117,7 @@ func StarmapName(bl item.Block) string {
 }
 
 // SlidesName names a slide deck in a document
-// (ADR-draft-a-slide-deck-in-a-text): a document does not show the
+// (ADR-0260): a document does not show the
 // slides, which each reader reads with their own rights; it says that a
 // deck stands here, by its caption.
 func SlidesName(bl item.Block) string {

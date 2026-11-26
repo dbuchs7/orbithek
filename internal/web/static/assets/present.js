@@ -42,7 +42,7 @@ let started = null;
 // startPresentation opens the presentation window for the album's filters
 // and leads this window to the presenter's view. It is called on a click.
 // back names the item whose text the presentation is started from, which
-// ending it returns to (ADR-draft-a-slide-deck-in-a-text); none returns
+// ending it returns to (ADR-0260); none returns
 // to the album.
 export function startPresentation(filters, back = "") {
   const id = newId(crypto.getRandomValues(new Uint8Array(8)));

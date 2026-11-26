@@ -1,5 +1,5 @@
 // Unit tests of a slide deck in a text (slidesparts.js,
-// ADR-draft-a-slide-deck-in-a-text): which album filter a deck reads its
+// ADR-0260): which album filter a deck reads its
 // slides by, how the dialog names a folder or collection, which slide a
 // key leads to and where a slide's pictures are served; and where a
 // presentation started from a text returns to (present-parts.js). They

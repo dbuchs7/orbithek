@@ -2178,7 +2178,7 @@ dialog.note-dialog { max-height: calc(100dvh - 32px); overflow: auto; }
    scrolls past it on touch, filters and legend folded below. */
 .pm-starmap { margin: 0.75rem 0; }
 .pm-starmap .pm-box-title { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: baseline; }
-/* A slide deck in a text (ADR-draft-a-slide-deck-in-a-text): a bar with
+/* A slide deck in a text (ADR-0260): a bar with
    its name and tools, the slide on black, a strip of every slide. */
 .pm-slides { margin: 0.75rem 0; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
 .pm-slides-bar { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--border); background: var(--surface-2); }

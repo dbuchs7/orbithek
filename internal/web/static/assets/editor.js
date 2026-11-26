@@ -123,7 +123,7 @@ export const schema = new Schema({
     // block keeps how it is narrowed at first.
     starmap: { group: "block", atom: true, selectable: true, attrs: { ...bid, space: { default: "" }, label: { default: "" }, search: { default: "" },
       depth: { default: 0 }, hideTypes: { default: null }, hideKinds: { default: null } }, toDOM: () => ["div", { class: "pm-starmap" }] },
-    // A slide deck (ADR-draft-a-slide-deck-in-a-text): the album folder or
+    // A slide deck (ADR-0260): the album folder or
     // collection whose pictures are its slides, and a plain caption.
     slides: { group: "block", atom: true, selectable: true, attrs: { ...bid, ref: {}, text: { default: "" } }, toDOM: () => ["figure", { class: "pm-slides" }] },
     // An image attachment of the item (ADR-0045), with a plain caption.
@@ -1541,7 +1541,7 @@ function starmapView(node, v, getPos, here) {
 }
 
 // slidesView shows the slide deck a block names
-// (ADR-draft-a-slide-deck-in-a-text): while reading, a reader steps
+// (ADR-0260): while reading, a reader steps
 // through it and presents it; while editing, a button changes its folder
 // and caption. The deck takes its own pointer and keys.
 function slidesView(node, v, getPos) {
@@ -2476,7 +2476,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
       status.textContent = err.message;
     }
   };
-  // A slide deck (ADR-draft-a-slide-deck-in-a-text): its album folder or
+  // A slide deck (ADR-0260): its album folder or
   // collection and caption are chosen in a dialog.
   const slidesInsert = async () => {
     status.textContent = "";

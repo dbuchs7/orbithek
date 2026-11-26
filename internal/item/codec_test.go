@@ -1962,7 +1962,7 @@ func starmapBlockLog(t *testing.T) []Event {
 
 // slidesLog places a slide deck of an album folder in a text, with a
 // caption, so the golden files pin the block kind slides
-// (ADR-draft-a-slide-deck-in-a-text).
+// (ADR-0260).
 func slidesLog(t *testing.T) []Event {
 	s := setup(t)
 	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))

@@ -1,4 +1,4 @@
-// The parts of a slide deck in a text (ADR-draft-a-slide-deck-in-a-text)
+// The parts of a slide deck in a text (ADR-0260)
 // that need no browser: which album filter a deck reads its slides by,
 // how a folder or collection is named in the dialog, and which slide a
 // key leads to. They are tested in Node (jstest/slides.test.mjs);
