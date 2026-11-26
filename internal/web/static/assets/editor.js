@@ -118,7 +118,7 @@ export const schema = new Schema({
     // computed when shown; the block keeps what it shows.
     itemview: { group: "block", atom: true, selectable: true, attrs: { ...bid, layout: { default: "table" }, itemType: { default: "" }, space: { default: "" }, query: { default: "" },
       group: { default: "" }, columns: { default: null }, sort: { default: "" } }, toDOM: (n) => ["div", { class: "pm-itemview", "data-layout": n.attrs.layout }] },
-    // A starmap (ADR-draft-a-starmap-in-a-text), computed when shown; the
+    // A starmap (ADR-0252), computed when shown; the
     // block keeps how it is narrowed at first.
     starmap: { group: "block", atom: true, selectable: true, attrs: { ...bid, space: { default: "" }, label: { default: "" }, search: { default: "" },
       depth: { default: 0 }, hideTypes: { default: null }, hideKinds: { default: null } }, toDOM: () => ["div", { class: "pm-starmap" }] },
@@ -1503,7 +1503,7 @@ function itemViewView(node, v, getPos) {
 }
 
 // starmapView shows the starmap a block names for the item the text is
-// on (ADR-draft-a-starmap-in-a-text), as far as the reader reads it; while
+// on (ADR-0252), as far as the reader reads it; while
 // editing, a button changes how it is narrowed at first. The map takes
 // its own pointer and keys, so the editor leaves them to it.
 function starmapView(node, v, getPos, here) {
@@ -1908,7 +1908,7 @@ function audioView(node, view, getPos, files, report = () => {}) {
 // resolve(keyOrId) returns an item (for mentions and embeds) or throws;
 // childPages() the item's child pages as [{key, title}], for a list of
 // child pages; its here names the item ({ id, space }) for a starmap in
-// the text (ADR-draft-a-starmap-in-a-text). files, for an item's attachments (ADR-0045), has url(id),
+// the text (ADR-0252). files, for an item's attachments (ADR-0045), has url(id),
 // where a file is served, and upload(file), which stores a file and returns
 // the attachment. extra adds plugins, such as a live session's (live.js);
 // viewProps adds editor view properties. comment(anchor), if given, starts
@@ -2438,7 +2438,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
       status.textContent = err.message;
     }
   };
-  // A starmap (ADR-draft-a-starmap-in-a-text): how it is narrowed at
+  // A starmap (ADR-0252): how it is narrowed at
   // first is chosen in a dialog.
   const starmapInsert = async () => {
     status.textContent = "";

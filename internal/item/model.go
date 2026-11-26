@@ -124,7 +124,7 @@ const (
 	// Space, Query, Group, Columns and Sort name what it shows. Like a
 	// task list it is computed when shown and holds no item.
 	ItemsView BlockKind = "view"
-	// StarmapBlock shows a starmap in a text (ADR-draft-a-starmap-in-a-text):
+	// StarmapBlock shows a starmap in a text (ADR-0252):
 	// the room's, every room's or a room's map, narrowed at first by
 	// Space, Label, Search, HideTypes, HideKinds and Depth. Like a view it
 	// is computed when shown and holds no item.
@@ -309,7 +309,7 @@ type Block struct {
 	// says it one way.
 	// On a starmap in a text it is the reach of the neighbourhood of the
 	// item the text is on, 1 to MaxStarmapDepth; 0 shows the whole map
-	// (ADR-draft-a-starmap-in-a-text).
+	// (ADR-0252).
 	Depth int `json:",omitempty"`
 	// HideTypes are the types a list of child pages leaves out, the
 	// pages below such an item shown in its place; none shows every type
@@ -317,7 +317,7 @@ type Block struct {
 	// says them one way.
 	HideTypes []string `json:",omitempty"`
 	// Label, Search and HideKinds name how a starmap in a text is narrowed
-	// when it is shown (ADR-draft-a-starmap-in-a-text): to the items and
+	// when it is shown (ADR-0252): to the items and
 	// pictures that carry a label, to the nodes a search text matches,
 	// and without the kinds of node among StarmapKinds it names, sorted.
 	// Its Space names the room, its HideTypes the types it leaves out and

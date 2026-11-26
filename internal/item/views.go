@@ -114,7 +114,7 @@ func checkViewBlock(b Block) error {
 
 // checkHideTypes validates the types a list of child pages leaves out
 // (ADR-0240), and those a starmap in a text leaves out
-// (ADR-draft-a-starmap-in-a-text): only these leave types
+// (ADR-0252): only these leave types
 // out, 1 to MaxHiddenTypes names of types, each once and in sorted order.
 // An empty list that is not none is refused, so that a body decoded from
 // the log, where it reads as none, holds what the live one held. A name

@@ -3,7 +3,7 @@ package item
 import "testing"
 
 // A starmap in a text names the map it shows and how it is narrowed at
-// first; it holds no item (ADR-draft-a-starmap-in-a-text).
+// first; it holds no item (ADR-0252).
 func TestAStarmapBlockNamesItsRoomLabelSearchHiddenKindsAndDepth(t *testing.T) {
 	good := []Block{
 		{Kind: StarmapBlock},

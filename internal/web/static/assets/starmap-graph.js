@@ -531,7 +531,7 @@ export function layout(graph, { iterations = 300, seed = 0x5EED, start = null } 
   return out;
 }
 
-// --- a starmap in a text (ADR-draft-a-starmap-in-a-text) ---
+// --- a starmap in a text (ADR-0252) ---
 
 // BLOCK_KINDS are the kinds of node a starmap in a text may leave out, in
 // the order its block names them: finished tasks, labels, items of other

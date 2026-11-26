@@ -208,7 +208,7 @@ type blockJSON struct {
 	HideTypes []string `json:"hideTypes,omitempty"`
 	// Label, Search and HideKinds narrow a starmap in a text when it is
 	// shown: to a label, to a search text, and without the kinds of node
-	// it names (ADR-draft-a-starmap-in-a-text).
+	// it names (ADR-0252).
 	Label     string   `json:"label,omitempty"`
 	Search    string   `json:"search,omitempty"`
 	HideKinds []string `json:"hideKinds,omitempty"`
@@ -278,7 +278,7 @@ func toDoc(blocks []blockJSON, kept func(text string) bool) (item.Doc, error) {
 			Label: b.Label, Search: b.Search}
 		if len(b.HideKinds) > 0 {
 			// Named once each, in their order; an empty list hides
-			// nothing, as none does (ADR-draft-a-starmap-in-a-text).
+			// nothing, as none does (ADR-0252).
 			blk.HideKinds = slices.Compact(slices.Sorted(slices.Values(b.HideKinds)))
 		}
 		if b.Kind == item.Children && b.Depth == 1 {

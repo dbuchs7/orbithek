@@ -1,4 +1,4 @@
-# ADR-DRAFT: A starmap in a text, narrowed at first, a click opening the item
+# ADR-0252: A starmap in a text, narrowed at first, a click opening the item
 
 - **Status:** Proposed
 - **Implementation:** Partial

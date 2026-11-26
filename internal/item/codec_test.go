@@ -1944,7 +1944,7 @@ func hideTypesLog(t *testing.T) []Event {
 // starmapBlockLog places two starmaps in a text, one of the item's
 // room narrowed as far as it goes and one of every room, so the golden
 // files pin the block kind starmap and its fields
-// (ADR-draft-a-starmap-in-a-text).
+// (ADR-0252).
 func starmapBlockLog(t *testing.T) []Event {
 	s := setup(t)
 	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))

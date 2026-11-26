@@ -11,7 +11,7 @@ import (
 )
 
 // A starmap in a text is named in every document, as a view is: a
-// document does not draw it (ADR-draft-a-starmap-in-a-text).
+// document does not draw it (ADR-0252).
 func TestStarmapsAreNamedInDocuments(t *testing.T) {
 	page := Page{ID: "p", Title: "Overview", Body: []item.Block{
 		{Kind: item.StarmapBlock, Space: "PLAT", Label: "onboarding", Search: "plan", HideTypes: []string{"task"}, HideKinds: []string{"done"}},

@@ -1,4 +1,4 @@
-// A starmap in a text (ADR-draft-a-starmap-in-a-text): a block of the
+// A starmap in a text (ADR-0252): a block of the
 // kind starmap names the map it shows and how it is narrowed at first —
 // the room, a label, a search text, the types and kinds of node it leaves
 // out and the reach of the neighbourhood of the item it is on. Every

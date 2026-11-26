@@ -87,7 +87,7 @@ func ViewName(bl item.Block) string {
 }
 
 // StarmapName names a starmap in a document
-// (ADR-draft-a-starmap-in-a-text): a document does not draw the map, it
+// (ADR-0252): a document does not draw the map, it
 // says which map it is and how it is narrowed.
 func StarmapName(bl item.Block) string {
 	room := "the item's room"

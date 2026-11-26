@@ -219,7 +219,7 @@ import (
 //     colour and size.
 //   - 70: the block kind starmap, with the block fields Label, Search and
 //     HideKinds and its Space, HideTypes and Depth, sealed with the body
-//     (ADR-draft-a-starmap-in-a-text).
+//     (ADR-0252).
 //     Versions 1 to 69 are still read; their bodies show no starmap.
 const CodecVersion = 70
 

@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// A starmap in a text (ADR-draft-a-starmap-in-a-text) is a block of the
+// A starmap in a text (ADR-0252) is a block of the
 // kind starmap that names the map it shows and how it is narrowed when it
 // is shown: the room (none for the room of the item the text is on,
 // StarmapAllRooms for every room the reader reads), a label, a search

@@ -155,7 +155,7 @@ const ALL = BLOCK_ALL;
 let embedded = 0;
 
 // embeddedStarmap draws the starmap a block of a text names
-// (ADR-draft-a-starmap-in-a-text) for its reader, narrowed at first as
+// (ADR-0252) for its reader, narrowed at first as
 // the block says: here is the item the text is on ({ id, space }), whose
 // room the block shows unless it names one and whose neighbourhood it
 // shows at its depth; symbols are as for starmapView. It answers the
@@ -193,7 +193,7 @@ function labelChooser(label) {
   return form;
 }
 
-// embed, given for a starmap in a text (ADR-draft-a-starmap-in-a-text),
+// embed, given for a starmap in a text (ADR-0252),
 // draws the map inside a page: its ids begin with embed.prefix, so
 // several maps share a page; the filters start from embed.hidden and
 // embed.search, the neighbourhood of embed.centre at depth when the map
@@ -274,7 +274,7 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
       "data-distance": impact ? node.distance : null },
     s("title", {}, text(name)), impact ? s("circle", { r: 17, class: "star-ring" }) : null, shape(node.kind, node, sym),
     s("text", { y: node.kind === "group" ? Math.round(CLOUD_BOTTOM * groupRadius(node.count)) + 16 : 24, "text-anchor": "middle", class: "star-caption" }, text(caption)));
-    // In a text a click opens what the node stands for (ADR-draft-a-starmap-in-a-text).
+    // In a text a click opens what the node stands for (ADR-0252).
     const open = () => {
       const href = nodeHref(node, byID);
       if (href) location.hash = href;

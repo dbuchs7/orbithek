@@ -6289,7 +6289,7 @@ function webSource() {
     const viewBlock = (await viewAPI("GET", "/api/items/" + overview.id)).item.body.find((b) => b.kind === "view");
     check(viewBlock && viewBlock.layout === "gallery" && viewBlock.itemType === "story" && viewBlock.group === "state", "the text keeps what the view shows: " + JSON.stringify(viewBlock));
 
-    step("starmaps in a text: narrowed at first as the block says, the filters the reader's, a click opens the item (ADR-draft-a-starmap-in-a-text)");
+    step("starmaps in a text: narrowed at first as the block says, the filters the reader's, a click opens the item (ADR-0252)");
     const { item: chart } = await viewAPI("POST", "/api/items", { space: "VIEWS", type: "story", title: "Chart", properties: {} });
     await page.goto(base + `/#/item/${chart.key}?edit`);
     await page.waitForSelector("#body .ProseMirror[contenteditable=true]");

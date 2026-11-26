@@ -72,7 +72,7 @@ configureViews({
   },
   mayEditSpace: (key) => mayEdit(viewRoles?.get(key)),
 });
-// A starmap in a text (ADR-draft-a-starmap-in-a-text) draws the page
+// A starmap in a text (ADR-0252) draws the page
 // tree's symbols and asks in the page's dialog.
 configureStarmaps({ symbols: () => starmapSymbols(), formDialog });
 
@@ -661,7 +661,7 @@ function chevronIcon(left) {
 // children (ADR-0239, ADR-0240). Its types()
 // names the types of the item's room, which such a list may leave out.
 // Its here names the item, whose room and neighbourhood a starmap in its
-// text shows (ADR-draft-a-starmap-in-a-text).
+// text shows (ADR-0252).
 const childPagesOf = (item) => Object.assign(async (depth = 1, hide = []) =>
   get(`/api/spaces/${encodeURIComponent(item.space)}/tree?parent=${item.id}&depth=${childDepthQuery(depth)}${childHideQuery(hide)}`), {
   types: async () => (await get(`/api/types?space=${encodeURIComponent(item.space)}`)).types.map((ty) => ty.name),

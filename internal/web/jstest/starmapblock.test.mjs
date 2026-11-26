@@ -1,4 +1,4 @@
-// Unit tests of a starmap in a text (ADR-draft-a-starmap-in-a-text): how
+// Unit tests of a starmap in a text (ADR-0252): how
 // its block narrows the map when shown, which map it reads, a room's map
 // narrowed to a label, the block a choice makes and where a click on a
 // node leads. They run in Node.js without a browser:

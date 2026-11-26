@@ -9,7 +9,7 @@ import (
 
 // A starmap in a text keeps how it is narrowed when shown, its hidden
 // kinds named once each in their order; the export names it
-// (ADR-draft-a-starmap-in-a-text).
+// (ADR-0252).
 func TestAStarmapInATextThroughTheAPI(t *testing.T) {
 	w := newWorld(t)
 	w.admin.expect("POST", "/api/types", `{"name":"page","body":true,"fields":[]}`, http.StatusCreated)
