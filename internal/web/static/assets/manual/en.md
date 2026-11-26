@@ -116,6 +116,7 @@ The menu **Insert…** adds blocks after the cursor:
 - **Embed an item's content…**: shows only the other item's text, without its title, type, state and fields, so that it reads as part of your text;
 - **New task…** (created below the page and shown as a link or whole) and **Task list…** (every task with a label, or the result of a query);
 - **View of items…**: the items of a type as a table, a gallery or a list, grouped by a field (see *Views of items*);
+- **Starmap…**: a starmap inside the text, narrowed as you choose (see *Starmap in a text*);
 - **Paste Markdown…** and **Markdown file from a repository…** (if enabled);
 - BPMN diagrams, and processes, forms, decisions, start forms and architecture sketches of a process engine (see *Process engines*).
 
@@ -523,6 +524,11 @@ The starmap opens on **All rooms**: the items of every room you may read on one 
 ### Impact
 
 From a node's panel, **Impact** shows what depends on an item or picture (**Affected**) or what it depends on (**Depends on**), up to a chosen depth. The list orders the reached items by distance. Use it before changing or deleting something central.
+
+### Starmap in a text
+
+While editing, **Insert…** → **Starmap…** places a starmap in the text. The dialog chooses how the map starts: the room (**This item's room**, **All rooms** or one room), what it **Shows** (the whole map, or the neighbourhood of this item to a depth of 1 to 3), **Only items and pictures with the label**, a search text, the types to leave out (**Leave out these types**) and whether to **Leave out** finished tasks, labels, items of other rooms and pictures; **Show the map** places it, and **Change the starmap…** changes it later.
+A line above the map says how it is narrowed. Readers see only what they may read, and they may change the search, the **Filters** and the depth while reading; nothing of that is kept, and the text starts again as chosen. A click on an item opens it, a picture opens its item, a label its page and a cloud its room's map. The page scrolls past the map; Ctrl and the mouse wheel zoom it. The **Legend** folds below the map. Exports name the map instead of drawing it.
 
 ### Starmap of the labels
 

@@ -217,7 +217,11 @@ import (
 //     the marks color and size too, sealed with the body (ADR-0238).
 //     Versions 1 to 68 are still read; their text has the text's own
 //     colour and size.
-const CodecVersion = 69
+//   - 70: the block kind starmap, with the block fields Label, Search and
+//     HideKinds and its Space, HideTypes and Depth, sealed with the body
+//     (ADR-0252).
+//     Versions 1 to 69 are still read; their bodies show no starmap.
+const CodecVersion = 70
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

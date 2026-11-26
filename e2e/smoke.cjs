@@ -6289,6 +6289,30 @@ function webSource() {
     const viewBlock = (await viewAPI("GET", "/api/items/" + overview.id)).item.body.find((b) => b.kind === "view");
     check(viewBlock && viewBlock.layout === "gallery" && viewBlock.itemType === "story" && viewBlock.group === "state", "the text keeps what the view shows: " + JSON.stringify(viewBlock));
 
+    step("starmaps in a text: narrowed at first as the block says, the filters the reader's, a click opens the item (ADR-0252)");
+    const { item: chart } = await viewAPI("POST", "/api/items", { space: "VIEWS", type: "story", title: "Chart", properties: {} });
+    await page.goto(base + `/#/item/${chart.key}?edit`);
+    await page.waitForSelector("#body .ProseMirror[contenteditable=true]");
+    await page.selectOption("select[aria-label='Insert…']", "starmap");
+    await page.waitForSelector("#starmap-dialog");
+    await page.fill("#starmap-pick-label", "First week");
+    await page.check("#starmap-pick-kinds [data-hide=label] input");
+    await page.click("#starmap-dialog-ok");
+    await page.waitForSelector("#body .pm-starmap .starmap-canvas .star-node:not([hidden])");
+    await page.click("#edit-done");
+    await page.waitForSelector("#body.reading .pm-starmap .starmap-canvas .star-node:not([hidden])");
+    const chartBlock = (await viewAPI("GET", "/api/items/" + chart.id)).item.body.find((b) => b.kind === "starmap");
+    check(chartBlock && chartBlock.label === "first-week" && chartBlock.hideKinds?.join() === "label" && !chartBlock.space, "the text keeps how the map is narrowed, the label as stored: " + JSON.stringify(chartBlock));
+    const charted = await page.$$eval("#body .pm-starmap .starmap-canvas .star-node:not([hidden])", (els) => els.map((el) => el.dataset.key).sort());
+    check(charted.join() === [signIn.key, profile.key].sort().join(), "the map shows the items carrying the label and leaves the label's star out: " + charted);
+    check(/^starmap-\d+-canvas$/.test(await page.getAttribute("#body .pm-starmap .starmap-canvas", "id")), "a map in a text has ids of its own");
+    // The reader switches the labels on; nothing is kept.
+    await page.click("#body .pm-starmap .starmap-more-filters summary");
+    await page.check("#body .pm-starmap [data-filter=label] input");
+    await page.waitForSelector("#body .pm-starmap .starmap-canvas .star-node.kind-label:not([hidden])");
+    await page.click(`#body .pm-starmap .starmap-canvas .star-node[data-key='${signIn.key}']`, { force: true });
+    await page.waitForFunction((key) => location.hash === "#/item/" + key, signIn.key);
+
     step("label pages: a label is described by a page that shows its items, ordered by hand (ADR-0204)");
     await page.goto(base + "/#/label/first-week");
     await page.click("#label-describe");

@@ -70,6 +70,8 @@ func diagramName(bl item.Block, files map[item.ID]Image) string {
 		return "Start form: " + cmp.Or(bl.Process, strings.TrimSpace(bl.Text), "public start link") + " (" + bl.Engine + ")"
 	case item.ItemsView:
 		return ViewName(bl)
+	case item.StarmapBlock:
+		return StarmapName(bl)
 	}
 	return "BPMN: " + files[bl.Ref].Name
 }
@@ -80,6 +82,34 @@ func ViewName(bl item.Block) string {
 	name := "View: " + cmp.Or(bl.Layout, item.ViewTable) + " of " + cmp.Or(bl.ItemType, "every type") + " in " + cmp.Or(bl.Space, "every room")
 	if bl.Query != "" {
 		name += " where " + bl.Query
+	}
+	return name
+}
+
+// StarmapName names a starmap in a document
+// (ADR-0252): a document does not draw the map, it
+// says which map it is and how it is narrowed.
+func StarmapName(bl item.Block) string {
+	room := "the item's room"
+	switch bl.Space {
+	case "":
+	case item.StarmapAllRooms:
+		room = "every room"
+	default:
+		room = bl.Space
+	}
+	name := "Starmap of " + room
+	if bl.Depth > 0 {
+		name += fmt.Sprintf(" around this item, depth %d", bl.Depth)
+	}
+	if bl.Label != "" {
+		name += ", label " + bl.Label
+	}
+	if bl.Search != "" {
+		name += ", matching " + bl.Search
+	}
+	if hidden := slices.Concat(bl.HideTypes, bl.HideKinds); len(hidden) > 0 {
+		name += ", without " + strings.Join(hidden, ", ")
 	}
 	return name
 }
@@ -563,7 +593,7 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int, num string
 			out += para(b.s("Caption"), "", run(bl.Text, ""))
 		}
 		return out
-	case item.BPMN, item.Process, item.Form, item.Decision, item.Architecture, item.StartForm, item.ItemsView:
+	case item.BPMN, item.Process, item.Form, item.Decision, item.Architecture, item.StartForm, item.ItemsView, item.StarmapBlock:
 		// A document does not draw a diagram, a form, a decision or a
 		// sketch; it names the file, the process, the form, the decision,
 		// the sketch or the start form (ADR-0129, ADR-0144, ADR-0146,

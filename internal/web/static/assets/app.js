@@ -37,6 +37,7 @@ import { noteImportCard } from "./noteimport.js";
 import { documentView, upgradeTemplate, wordTemplatesCard } from "./wordtemplates.js";
 import { manualBlocks, manualLanguage, manualLanguages, manualPath } from "./manual.js";
 import { configureViews, labelItems, viewScreen } from "./itemview.js";
+import { configureStarmaps } from "./starmapblock.js";
 import { pdfView } from "./pdfview.js";
 import { attachmentLink, isPdf, onPdf, readerHref } from "./pdfparts.js";
 import { bookmarklet, captureAddress, readCapture } from "./capture.js";
@@ -71,6 +72,9 @@ configureViews({
   },
   mayEditSpace: (key) => mayEdit(viewRoles?.get(key)),
 });
+// A starmap in a text (ADR-0252) draws the page
+// tree's symbols and asks in the page's dialog.
+configureStarmaps({ symbols: () => starmapSymbols(), formDialog });
 
 // --- shared pieces -------------------------------------------------------
 
@@ -656,9 +660,12 @@ function chevronIcon(left) {
 // the types in hide: it answers { items, truncated }, each page with its
 // children (ADR-0239, ADR-0240). Its types()
 // names the types of the item's room, which such a list may leave out.
+// Its here names the item, whose room and neighbourhood a starmap in its
+// text shows (ADR-0252).
 const childPagesOf = (item) => Object.assign(async (depth = 1, hide = []) =>
   get(`/api/spaces/${encodeURIComponent(item.space)}/tree?parent=${item.id}&depth=${childDepthQuery(depth)}${childHideQuery(hide)}`), {
   types: async () => (await get(`/api/types?space=${encodeURIComponent(item.space)}`)).types.map((ty) => ty.name),
+  here: { id: item.id, space: item.space },
 });
 
 // filesOf serves and stores an item's attachments for its body (ADR-0045),
@@ -4255,15 +4262,19 @@ async function starmapScreen(space, path, params) {
     el.addEventListener("keydown", askOnVeiled);
     return el;
   };
-  // Items show the page tree's symbols, finished tasks in green
-  // (ADR-0250).
+  await starmapView(section, space, path, params, { preview, symbols: await starmapSymbols() });
+}
+
+// starmapSymbols names the task types and tells a finished state, so the
+// items of a starmap show the page tree's symbols, finished tasks in
+// green (ADR-0250), on the starmap's page and in a text alike.
+async function starmapSymbols() {
   const { types } = await get("/api/types");
   const workflows = new Map(types.filter((ty) => ty.workflow).map((ty) => [ty.name, ty.workflow]));
-  const symbols = {
+  return {
     taskTypes: new Set(types.filter(isTaskType).map((ty) => ty.name)),
     finished: (type, state) => workflows.has(type) && finished(workflows.get(type), state),
   };
-  await starmapView(section, space, path, params, { preview, symbols });
 }
 
 // starmapTabs switches between the starmap of a room and the starmap of

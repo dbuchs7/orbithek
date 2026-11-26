@@ -116,6 +116,7 @@ Das Menü **Einfügen…** fügt Blöcke nach dem Cursor ein:
 - **Inhalt eines Eintrags einbetten…**: zeigt nur den Text des anderen Eintrags, ohne Titel, Typ, Status und Felder, sodass er sich wie ein Teil des eigenen Textes liest;
 - **Neue Aufgabe…** (wird unter der Seite angelegt und als Link oder vollständig gezeigt) und **Aufgabenliste…** (alle Aufgaben mit einem Label oder das Ergebnis einer Abfrage);
 - **Ansicht von Einträgen…**: die Einträge eines Typs als Tabelle, Galerie oder Liste, gruppiert nach einem Feld (siehe *Ansichten von Einträgen*);
+- **Sternenkarte…**: eine Sternenkarte im Text, eingegrenzt nach Wahl (siehe *Sternenkarte im Text*);
 - **Markdown einfügen…** und **Markdown-Datei aus einem Repository…** (sofern eingeschaltet);
 - BPMN-Diagramme sowie Prozesse, Formulare, Entscheidungen, Startformulare und Architekturskizzen einer Prozess-Engine (siehe *Prozess-Engines*).
 
@@ -523,6 +524,11 @@ Die Sternenkarte öffnet mit **Alle Räume**: Die Karte zeigt die Einträge alle
 ### Auswirkungen
 
 Aus den Angaben eines Knotens zeigt **Auswirkungen**, was von einem Eintrag oder Bild abhängt (**Betroffen**) oder wovon er abhängt (**Abhängig von**), bis zu einer gewählten Tiefe. Die Liste ordnet die erreichten Einträge nach Abstand. Das ist vor dem Ändern oder Löschen von etwas Zentralem nützlich.
+
+### Sternenkarte im Text
+
+Beim Bearbeiten fügt **Einfügen…** → **Sternenkarte…** eine Sternenkarte in den Text ein. Der Dialog legt fest, wie die Karte beginnt: der Raum (**Raum dieses Eintrags**, **Alle Räume** oder ein bestimmter Raum), was sie **Zeigt** (die ganze Karte oder das Umfeld dieses Eintrags bis Tiefe 1 bis 3), **Nur Einträge und Bilder mit dem Label**, ein Suchtext, die auszublendenden Typen (**Diese Typen ausblenden**) und ob erledigte Aufgaben, Labels, Einträge anderer Räume und Bilder **Ausblenden** sind; **Karte zeigen** fügt sie ein, und **Sternenkarte ändern…** ändert sie später.
+Eine Zeile über der Karte nennt, wie sie eingegrenzt ist. Lesende sehen nur, was sie lesen dürfen, und können beim Lesen die Suche, die **Filter** und die Tiefe ändern; davon wird nichts gespeichert, und der Text beginnt wieder wie gewählt. Ein Klick auf einen Eintrag öffnet ihn, ein Bild öffnet seinen Eintrag, ein Label seine Seite und eine Wolke die Karte ihres Raums. Die Seite scrollt an der Karte vorbei; Ctrl und das Mausrad zoomen sie. Die **Legende** ist unter der Karte eingeklappt. Exporte nennen die Karte, statt sie zu zeichnen.
 
 ### Sternenkarte der Labels
 

@@ -30,6 +30,7 @@ import {
   insertRow, insertColumn, removeRow, removeColumn, resized, filledClass, borderClass,
 } from "./tableparts.js";
 import { viewBlock, pickView, viewsReady } from "./itemview.js";
+import { pickStarmap, starmapBlockElement, starmapSummary, starmapsReady } from "./starmapblock.js";
 import { headingNumbers } from "./numbering.js";
 
 // Every block carries bid, its ID in a live session (ADR-0010); it is not
@@ -117,6 +118,10 @@ export const schema = new Schema({
     // computed when shown; the block keeps what it shows.
     itemview: { group: "block", atom: true, selectable: true, attrs: { ...bid, layout: { default: "table" }, itemType: { default: "" }, space: { default: "" }, query: { default: "" },
       group: { default: "" }, columns: { default: null }, sort: { default: "" } }, toDOM: (n) => ["div", { class: "pm-itemview", "data-layout": n.attrs.layout }] },
+    // A starmap (ADR-0252), computed when shown; the
+    // block keeps how it is narrowed at first.
+    starmap: { group: "block", atom: true, selectable: true, attrs: { ...bid, space: { default: "" }, label: { default: "" }, search: { default: "" },
+      depth: { default: 0 }, hideTypes: { default: null }, hideKinds: { default: null } }, toDOM: () => ["div", { class: "pm-starmap" }] },
     // An image attachment of the item (ADR-0045), with a plain caption.
     // width is percent of the column, 0 for the picture's own size (ADR-0056).
     // align is left or right (the text flows beside it) or center (ADR-0059).
@@ -291,6 +296,10 @@ function plainNode(b, embeds) {
   if (b.kind === "tasklist") return schema.nodes.tasklist.create({ bid: id, label: b.text || "", query: b.query || "" });
   if (b.kind === "view") return schema.nodes.itemview.create({ bid: id, layout: b.layout || "table", itemType: b.itemType || "", space: b.space || "", query: b.query || "",
     group: b.group || "", columns: b.columns?.length ? [...b.columns] : null, sort: b.sort || "" });
+  if (b.kind === "starmap") {
+    return schema.nodes.starmap.create({ bid: id, space: b.space || "", label: b.label || "", search: b.search || "", depth: b.depth || 0,
+      hideTypes: b.hideTypes?.length ? [...b.hideTypes] : null, hideKinds: b.hideKinds?.length ? [...b.hideKinds] : null });
+  }
   if (b.kind === "image" || b.kind === "video") return schema.nodes[b.kind].create({ bid: id, ref: b.ref, text: b.text || "", width: b.width || 0, align: b.align || "" });
   if (b.kind === "bpmn") return schema.nodes.bpmn.create({ bid: id, ref: b.ref, text: b.text || "", view: b.view || "" });
   if (b.kind === "audio") return schema.nodes.audio.create({ bid: id, ref: b.ref, text: b.text || "" });
@@ -382,6 +391,14 @@ function plainBlock(node) {
     const b = { kind: "view", layout: a.layout };
     for (const k of ["itemType", "space", "query", "group", "sort"]) if (a[k]) b[k] = a[k];
     if (a.columns?.length) b.columns = [...a.columns];
+    return b;
+  }
+  if (node.type === schema.nodes.starmap) {
+    const a = node.attrs;
+    const b = { kind: "starmap" };
+    for (const k of ["space", "label", "search", "depth"]) if (a[k]) b[k] = a[k];
+    if (a.hideTypes?.length) b.hideTypes = [...a.hideTypes];
+    if (a.hideKinds?.length) b.hideKinds = [...a.hideKinds];
     return b;
   }
   if (node.type === schema.nodes.bpmn) return { kind: "bpmn", text: node.attrs.text, ref: node.attrs.ref, ...(node.attrs.view ? { view: node.attrs.view } : {}) };
@@ -1485,6 +1502,38 @@ function itemViewView(node, v, getPos) {
     update: (n) => n.type === node.type && JSON.stringify(n.attrs) === JSON.stringify(attrs) };
 }
 
+// starmapView shows the starmap a block names for the item the text is
+// on (ADR-0252), as far as the reader reads it; while
+// editing, a button changes how it is narrowed at first. The map takes
+// its own pointer and keys, so the editor leaves them to it.
+function starmapView(node, v, getPos, here) {
+  const attrs = node.attrs;
+  const block = blockFromNode(node);
+  const dom = h("section", { class: "pm-starmap", contenteditable: "false" });
+  const body = h("div", { class: "pm-starmap-body", "aria-busy": "true" }, h("p", { class: "muted", text: "…" }));
+  const head = h("p", { class: "pm-box-title" }, h("span", { class: "muted pm-starmap-summary", text: starmapSummary(block) }));
+  if (v.editable && starmapsReady()) {
+    head.append(" ", h("button", { type: "button", class: "link pm-starmap-edit", text: t("starmap.blockChange"), onclick: async () => {
+      const next = await pickStarmap(block);
+      const pos = getPos();
+      if (!next || typeof pos !== "number") return;
+      v.dispatch(v.state.tr.setNodeMarkup(pos, null, { ...node.attrs, space: next.space || "", label: next.label || "", search: next.search || "",
+        depth: next.depth || 0, hideTypes: next.hideTypes || null, hideKinds: next.hideKinds || null }));
+    } }));
+  }
+  dom.append(head, body);
+  Promise.resolve(starmapsReady() ? starmapBlockElement(block, here) : null)
+    .then((map) => {
+      if (!map) return body.replaceChildren(h("p", { class: "muted", text: t("embed.failed") }));
+      body.replaceChildren(map.root);
+      map.start();
+    })
+    .catch(() => body.replaceChildren(h("p", { class: "muted", text: t("embed.failed") })))
+    .finally(() => body.removeAttribute("aria-busy"));
+  return { dom, ignoreMutation: () => true, stopEvent: (ev) => dom.contains(ev.target),
+    update: (n) => n.type === node.type && JSON.stringify(n.attrs) === JSON.stringify(attrs) };
+}
+
 // childTree draws child pages as nested lists, each page linked; a page
 // in a left-out item's place names that item beside it (ADR-0240).
 function childTree(pages) {
@@ -1858,7 +1907,8 @@ function audioView(node, view, getPos, files, report = () => {}) {
 // function reading the blocks back. With editable false it is a viewer.
 // resolve(keyOrId) returns an item (for mentions and embeds) or throws;
 // childPages() the item's child pages as [{key, title}], for a list of
-// child pages. files, for an item's attachments (ADR-0045), has url(id),
+// child pages; its here names the item ({ id, space }) for a starmap in
+// the text (ADR-0252). files, for an item's attachments (ADR-0045), has url(id),
 // where a file is served, and upload(file), which stores a file and returns
 // the attachment. extra adds plugins, such as a live session's (live.js);
 // viewProps adds editor view properties. comment(anchor), if given, starts
@@ -1919,6 +1969,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
       embed: (node, v, getPos) => embedView(node, embedContent, v, getPos),
       tasklist: (node) => taskListView(node, tasks),
       itemview: (node, v, getPos) => itemViewView(node, v, getPos),
+      starmap: (node, v, getPos) => starmapView(node, v, getPos, childPages?.here || null),
       veiled: (node) => ({ dom: h("div", { class: "pm-veiled", "data-secret": node.attrs.secret, contenteditable: "false" },
         h("span", { class: "pm-veiled-bar", "aria-hidden": "true", text: "▒▒▒▒▒▒▒▒" }), veiledContent(node.attrs.secret)), ...selectable }),
     },
@@ -1984,9 +2035,10 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     else if (kind === "newtask") newTask();
     else if (kind === "tasklist") taskList();
     else if (kind === "itemview") itemView();
+    else if (kind === "starmap") starmapInsert();
     else if (kind === "markdownfile") markdownFile("");
     else if (kind) insertBlock(schema.nodes[kind].create());
-  } }, [["", t("editor.insert")], ["embed", t("assist.embedItem")], ["embedtext", t("editor.embedTextInsert")], ["markdown", t("editor.markdown")], markdown ? ["markdownfile", t("editor.markdownFile")] : null, tasks?.create ? ["newtask", t("editor.newTask")] : null, tasks?.pickLabel ? ["tasklist", t("editor.taskList")] : null, viewsReady() ? ["itemview", t("views.insert")] : null, ["table", t("editor.table")], ["divider", t("editor.divider")], ["toc", t("editor.toc")], ["figures", t("editor.figures")], ["tables", t("editor.tables")], ["children", t("editor.children")],
+  } }, [["", t("editor.insert")], ["embed", t("assist.embedItem")], ["embedtext", t("editor.embedTextInsert")], ["markdown", t("editor.markdown")], markdown ? ["markdownfile", t("editor.markdownFile")] : null, tasks?.create ? ["newtask", t("editor.newTask")] : null, tasks?.pickLabel ? ["tasklist", t("editor.taskList")] : null, viewsReady() ? ["itemview", t("views.insert")] : null, starmapsReady() ? ["starmap", t("starmap.blockInsert")] : null, ["table", t("editor.table")], ["divider", t("editor.divider")], ["toc", t("editor.toc")], ["figures", t("editor.figures")], ["tables", t("editor.tables")], ["children", t("editor.children")],
     files ? ["image", t("editor.image")] : null, files ? ["video", t("editor.video")] : null, files ? ["audio", t("editor.audio")] : null, files && canRecordHere() ? ["record", t("editor.record")] : null, files ? ["drawing", t("draw.insert")] : null, files ? ["album", t("album.fromAlbum")] : null, files ? ["clip", t("editor.copiedPicture")] : null,
     files ? ["bpmnnew", t("bpmn.insertNew")] : null, files ? ["bpmnfile", t("bpmn.insertFile")] : null, ["process", t("bpmn.insertProcess")],
     ["form", t("form.insert")], ["startform", t("start.insert")], ["decision", t("decision.insert")], ["architecture", t("arch.insert")]].filter(Boolean)
@@ -2382,6 +2434,19 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
       if (!spec) return view.focus();
       insertBlock(schema.nodes.itemview.create({ layout: spec.layout, itemType: spec.itemType || "", space: spec.space || "", query: spec.query || "",
         group: spec.group || "", columns: spec.columns?.length ? spec.columns : null, sort: spec.sort || "" }));
+    } catch (err) {
+      status.textContent = err.message;
+    }
+  };
+  // A starmap (ADR-0252): how it is narrowed at
+  // first is chosen in a dialog.
+  const starmapInsert = async () => {
+    status.textContent = "";
+    try {
+      const spec = await pickStarmap({});
+      if (!spec) return view.focus();
+      insertBlock(schema.nodes.starmap.create({ space: spec.space || "", label: spec.label || "", search: spec.search || "", depth: spec.depth || 0,
+        hideTypes: spec.hideTypes || null, hideKinds: spec.hideKinds || null }));
     } catch (err) {
       status.textContent = err.message;
     }

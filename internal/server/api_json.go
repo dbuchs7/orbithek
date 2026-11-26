@@ -206,6 +206,12 @@ type blockJSON struct {
 	// HideTypes are the types a list of child pages leaves out
 	// (ADR-0240).
 	HideTypes []string `json:"hideTypes,omitempty"`
+	// Label, Search and HideKinds narrow a starmap in a text when it is
+	// shown: to a label, to a search text, and without the kinds of node
+	// it names (ADR-0252).
+	Label     string   `json:"label,omitempty"`
+	Search    string   `json:"search,omitempty"`
+	HideKinds []string `json:"hideKinds,omitempty"`
 }
 
 type cellJSON struct {
@@ -232,7 +238,8 @@ type prefillJSON struct {
 func toBlockJSON(b item.Block) blockJSON {
 	j := blockJSON{Kind: b.Kind, Text: b.Text, Level: b.Level, Mentions: b.Mentions, Ref: b.Ref, Checked: b.Checked, Tone: b.Tone, Width: b.Width, Align: b.Align, Engine: b.Engine, Process: b.Process, View: b.View,
 		Form: b.Form, Decision: b.Decision, Application: b.Application, Release: b.Release, Layers: b.Layers, Link: b.Link, Query: b.Query, Secret: b.Secret,
-		Layout: b.Layout, ItemType: b.ItemType, Space: b.Space, Group: b.Group, Columns: b.Columns, Sort: b.Sort, Depth: b.Depth, HideTypes: b.HideTypes}
+		Layout: b.Layout, ItemType: b.ItemType, Space: b.Space, Group: b.Group, Columns: b.Columns, Sort: b.Sort, Depth: b.Depth, HideTypes: b.HideTypes,
+		Label: b.Label, Search: b.Search, HideKinds: b.HideKinds}
 	for _, m := range b.Marks {
 		j.Marks = append(j.Marks, markJSON{Type: m.Type, Start: m.Start, End: m.End, Href: m.Href, Ref: m.Ref, Value: m.Value})
 	}
@@ -257,17 +264,23 @@ func toDoc(blocks []blockJSON, kept func(text string) bool) (item.Doc, error) {
 		switch b.Kind {
 		case item.Paragraph, item.Heading, item.Embed, item.BulletItem, item.OrderedItem, item.Quote, item.CodeBlock,
 			item.TaskItem, item.Panel, item.Table, item.TOC, item.Children, item.Image, item.Video, item.Audio, item.Divider, item.TaskList, item.Figures, item.Tables, item.BPMN, item.Process, item.Form, item.Decision,
-			item.Architecture, item.StartForm, item.ItemsView:
+			item.Architecture, item.StartForm, item.ItemsView, item.StarmapBlock:
 		case item.Unsupported:
 			if kept == nil || !kept(b.Text) {
 				return d, badInput("block %d: unsupported blocks come only from imports", i+1)
 			}
 		default:
-			return d, badInput("block %d: kind must be paragraph, heading, bullet, ordered, quote, code, task, panel, table, toc, figures, tables, children, divider, image, video, bpmn, process, form, decision, architecture, startform, tasklist, view or embed", i+1)
+			return d, badInput("block %d: kind must be paragraph, heading, bullet, ordered, quote, code, task, panel, table, toc, figures, tables, children, divider, image, video, bpmn, process, form, decision, architecture, startform, tasklist, view, starmap or embed", i+1)
 		}
 		blk := item.Block{Kind: b.Kind, Text: b.Text, Level: b.Level, Mentions: b.Mentions, Ref: b.Ref, Checked: b.Checked, Tone: b.Tone, Width: b.Width, Align: b.Align, Engine: b.Engine, Process: b.Process, View: b.View,
 			Form: b.Form, Decision: b.Decision, Application: b.Application, Release: b.Release, Link: b.Link, Query: b.Query, Secret: b.Secret,
-			Layout: b.Layout, ItemType: b.ItemType, Space: b.Space, Group: b.Group, Sort: b.Sort, Depth: b.Depth}
+			Layout: b.Layout, ItemType: b.ItemType, Space: b.Space, Group: b.Group, Sort: b.Sort, Depth: b.Depth,
+			Label: b.Label, Search: b.Search}
+		if len(b.HideKinds) > 0 {
+			// Named once each, in their order; an empty list hides
+			// nothing, as none does (ADR-0252).
+			blk.HideKinds = slices.Compact(slices.Sorted(slices.Values(b.HideKinds)))
+		}
 		if b.Kind == item.Children && b.Depth == 1 {
 			// One level is written as none, so a body says it one way
 			// (ADR-0239).
