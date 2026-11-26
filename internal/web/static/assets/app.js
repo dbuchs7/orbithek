@@ -5348,11 +5348,14 @@ function bodySection(item, embeds, editing, threads, attachments, protect, edit,
 // principalPicker chooses people and groups, found by typing, as the
 // protection of an item does (ADR-0078); values() are the user IDs and
 // @groups chosen.
-function principalPicker(id, initial) {
+// unknown names the chosen principals that reach nobody, marked until
+// they are taken out (ADR-0256).
+function principalPicker(id, initial, unknown = []) {
   let chosen = [...initial];
   const list = h("ul", { class: "access-entries", id: id + "-entries" });
-  const draw = () => list.replaceChildren(...chosen.map((p) => h("li", { class: "chip access-entry" + (p.startsWith("@") ? " group" : ""), "data-principal": p },
-    h("span", { text: p.startsWith("@") ? p : person(p) }),
+  const draw = () => list.replaceChildren(...chosen.map((p) => h("li", { class: "chip access-entry" + (p.startsWith("@") ? " group" : "") + (unknown.includes(p) ? " unknown" : ""), "data-principal": p },
+    h("span", { text: p.startsWith("@") || unknown.includes(p) ? p : person(p) }),
+    unknown.includes(p) ? h("span", { class: "badge danger", text: t("secret.reachesNobody"), title: t("secret.unknownReaderHelp") }) : null,
     h("button", { type: "button", class: "link", text: "×", "aria-label": t("access.removeWho", { who: p.startsWith("@") ? p : person(p) }),
       onclick: () => { chosen = chosen.filter((x) => x !== p); draw(); } }))));
   draw();
@@ -5560,7 +5563,11 @@ function secretsSection(path, item, status) {
   const named = (p) => (p.startsWith("@") ? t("access.group", { name: p.slice(1) }) : person(p));
   const base = (sc) => `${path}/secrets/${encodeURIComponent(sc.id)}`;
   const entry = (sc, i) => {
-    const readers = [sc.by, ...(sc.readers || [])].map(named).join(", ");
+    // A reader that reaches nobody is named as stored and marked
+    // (ADR-0256).
+    const unknown = sc.unknownReaders || [];
+    const reader = (p) => (unknown.includes(p) ? t("secret.unknownReader", { who: p }) : named(p));
+    const readers = [named(sc.by), ...(sc.readers || []).map(reader)].join(", ");
     const parts = [h("strong", { text: sc.blocks ? t("secret.section", { n: i + 1 }) : t("secret.passage", { n: i + 1 }) }), " ",
       h("span", { class: "chip " + (sc.readable ? "secret-chip-readable" : "secret-chip-veiled"), text: sc.readable ? t("secret.readable") : t("secret.veiled") })];
     if (sc.readable || sc.decides) parts.push(h("p", { class: "muted", text: t("secret.readers", { who: readers }) }));
@@ -5588,7 +5595,7 @@ function secretsSection(path, item, status) {
           h("button", { type: "button", class: "secret-decline", text: t("secret.decline"), onclick: () => action(() => post(`${base(sc)}/requests/${encodeURIComponent(p)}`, { grant: false }), status) })));
     }
     if (sc.decides) {
-      const picker = principalPicker("secret-" + sc.id, sc.readers || []);
+      const picker = principalPicker("secret-" + sc.id, sc.readers || [], unknown);
       parts.push(h("details", { class: "secret-edit" }, h("summary", { text: t("secret.change") }),
         picker.element,
         h("p", { class: "actions-row" },

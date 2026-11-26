@@ -596,6 +596,11 @@ Under **Access**, those who may edit an item **Protect for people or groups**: f
 
 Single words, paragraphs or whole blocks (a heading with its section, a picture, a table) can be protected: select them while editing and choose **Protect**, then name the people and groups who may read them. Everyone else reads a placeholder that names who decides. A protected passage can be opened to more readers (**Change readers**), unprotected, or erased for good.
 
+Readers are people with an account and groups with at least one member who has an account;
+any other name is refused.
+A reader that reaches nobody — named before this check, or a group whose last member has left — shows as *reaches nobody* in the list of readers and is marked *Reaches nobody* in **Change readers**;
+take it out before saving.
+
 ### Asking for access
 
 A click on a veiled passage or block explains it and offers **Ask for access**. The request becomes a task for the page's owner, or for the person who protected it; it appears in their task list. **Grant** or **Decline** answers it, and the requester is notified.
@@ -719,6 +724,9 @@ A role goes only to a person with an account or to a group with at least one mem
 anything else is refused with a message.
 A role that reaches nobody — granted before this check, or to a group whose last member has left — is marked **Unknown** or **No members** in the list;
 it cannot be changed, only taken back.
+
+Members of groups and holders of system roles are accounts;
+a group counts as having members only when one of them has an account.
 
 ## Keyboard shortcuts
 

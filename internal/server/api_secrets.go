@@ -46,7 +46,15 @@ func (h itemHandlers) protect(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "fromBlock and toBlock come together")
 		return
 	}
-	h.change(w, r, func(x *item.Session, _ *item.Store, it item.Item) error {
+	h.change(w, r, func(x *item.Session, s *item.Store, it item.Item) error {
+		// Only people and groups that exist: a reader no account or
+		// group answers to would read nothing. Only whoever may protect
+		// learns which exist (ADR-0256).
+		if x.CanEdit(it.ID) {
+			if err := h.existing(s, req.Readers); err != nil {
+				return err
+			}
+		}
 		var err error
 		if req.FromBlock != nil {
 			_, err = x.ProtectBlocks(it.ID, *req.FromBlock, *req.ToBlock, req.Readers)
@@ -64,7 +72,12 @@ func (h itemHandlers) setSecretReaders(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &req) {
 		return
 	}
-	h.change(w, r, func(x *item.Session, _ *item.Store, it item.Item) error {
+	h.change(w, r, func(x *item.Session, s *item.Store, it item.Item) error {
+		if decides(x, it.ID, item.ID(r.PathValue("id"))) {
+			if err := h.existing(s, req.Readers); err != nil {
+				return err
+			}
+		}
 		return x.SetSecretReaders(it.ID, item.ID(r.PathValue("id")), req.Readers)
 	})
 }
@@ -103,4 +116,18 @@ func (h itemHandlers) decideSecret(w http.ResponseWriter, r *http.Request) {
 	h.change(w, r, func(x *item.Session, _ *item.Store, it item.Item) error {
 		return x.DecideSecret(it.ID, item.ID(r.PathValue("id")), r.PathValue("principal"), req.Grant)
 	})
+}
+
+// decides reports whether the caller decides who reads a passage.
+func decides(x *item.Session, id, secret item.ID) bool {
+	views, err := x.Secrets(id)
+	if err != nil {
+		return false
+	}
+	for _, v := range views {
+		if v.ID == secret {
+			return v.Decides
+		}
+	}
+	return false
 }

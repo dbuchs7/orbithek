@@ -84,4 +84,5 @@ Strongest form: the server did nothing wrong; it stored exactly the name it was 
 ## Links
 
 - amends ADR-0048 (roles are listed and taken back): a role is granted only to a principal that exists
+- amended by ADR-0256 (a group exists when a member has an account)
 - relates to ADR-0022 (permission model), ADR-0078 (restrictions for people and groups that exist), ADR-0023 (import), ADR-0008 (event log)

@@ -42,6 +42,18 @@ func (s *Store) Groups() map[string][]string {
 	return out
 }
 
+// GroupMembers lists the members of a group, named with or without its
+// "@", sorted; none for a group nobody belongs to.
+func (s *Store) GroupMembers(group string) []string {
+	members := s.groups[strings.TrimPrefix(group, "@")]
+	out := make([]string, 0, len(members))
+	for m := range members {
+		out = append(out, m)
+	}
+	slices.Sort(out)
+	return out
+}
+
 // SystemRoles lists the principals holding a system role, with their roles
 // sorted.
 func (s *Store) SystemRoles() map[string][]string {
