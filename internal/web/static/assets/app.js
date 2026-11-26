@@ -7812,19 +7812,26 @@ async function membersView(key) {
     get(`/api/spaces/${encodeURIComponent(key)}/roles`), get("/api/users"), get("/api/spaces"), get(`/api/types?space=${encodeURIComponent(key)}`),
   ]);
   for (const u of users) names.set(u.id, u.username);
-  await learnNames(roles.map((r) => r.principal).filter((p) => !p.startsWith("@")));
+  await learnNames(roles.filter((r) => !r.unknown).map((r) => r.principal).filter((p) => !p.startsWith("@")));
   here.space = key;
   const sp = spaces.find((s) => s.key === key) || { name: key };
   const status = h("div", { class: "status" });
   const base = `/api/spaces/${encodeURIComponent(key)}/roles/`;
   const roleSelect = (value) => h("select", { name: "role" }, [["viewer", t("role.viewer")], ["editor", t("role.editor")], ["space-admin", t("role.space-admin")]]
     .map(([r, label]) => h("option", { value: r, text: label, selected: r === value })));
+  // A grant that reaches nobody — no account has the ID, or the group has
+  // no members — is marked; it can only be taken back
+  // (ADR-0255).
   const row = (g) => {
     const sel = roleSelect(g.role);
     sel.setAttribute("aria-label", t("admin.role"));
+    sel.disabled = !!g.unknown;
     sel.addEventListener("change", () => action(() => put(base + encodeURIComponent(g.principal), { role: sel.value }), status));
-    return h("tr", { "data-f-role": g.role },
-      h("td", { text: g.principal.startsWith("@") ? g.principal : person(g.principal) }),
+    const group = g.principal.startsWith("@");
+    return h("tr", { "data-f-role": g.role, class: g.unknown ? "unknown" : null },
+      h("td", {}, h("span", { text: group || g.unknown ? g.principal : person(g.principal) }),
+        g.unknown ? [" ", h("span", { class: "badge danger", text: t(group ? "members.emptyGroup" : "members.unknown"),
+          title: t(group ? "members.emptyGroupHelp" : "members.unknownHelp") })] : null),
       h("td", {}, sel),
       h("td", {}, h("button", { type: "button", class: "link danger", text: t("members.revoke"),
         onclick: () => confirm(t("members.revokeConfirm", { name: g.principal.startsWith("@") ? g.principal : person(g.principal) }))

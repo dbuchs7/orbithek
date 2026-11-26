@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/dbuchs7/orbithek/internal/item"
 )
 
 func TestAccessIsListedAndTakenBackThroughTheAPI(t *testing.T) {
@@ -40,6 +42,59 @@ func TestAccessIsListedAndTakenBackThroughTheAPI(t *testing.T) {
 		if !strings.Contains(audit, e) {
 			t.Errorf("the audit trail has no %s", e)
 		}
+	}
+}
+
+// A role goes only to a person with an account or to a group with members:
+// a name that resolves to nobody would be a grant that opens the space to
+// no one, shown in the list as if it worked. A grant made before the check
+// is listed as unknown and can still be taken back (ADR-0255).
+func TestARoleGoesOnlyToPeopleAndGroupsThatExist(t *testing.T) {
+	w := newWorld(t)
+	// A group nobody belongs to, a name its "@" was encoded twice on the
+	// way (a proxy's doing), an ID no account has.
+	w.admin.expect("PUT", "/api/spaces/PLAT/roles/%40ops", `{"role":"viewer"}`, http.StatusBadRequest)
+	w.admin.expect("PUT", "/api/spaces/PLAT/roles/%2540ops", `{"role":"viewer"}`, http.StatusBadRequest)
+	w.admin.expect("PUT", "/api/spaces/PLAT/roles/0123456789abcdef", `{"role":"viewer"}`, http.StatusBadRequest)
+	// Whoever may not grant learns nothing about who exists.
+	w.bert.expect("PUT", "/api/spaces/PLAT/roles/0123456789abcdef", `{"role":"viewer"}`, http.StatusForbidden)
+	w.carla.expect("PUT", "/api/spaces/PLAT/roles/0123456789abcdef", `{"role":"viewer"}`, http.StatusForbidden)
+	w.admin.expect("PUT", "/api/spaces/NOPE/roles/@ops", `{"role":"viewer"}`, http.StatusNotFound)
+	if len(w.carla.expect("GET", "/api/spaces", "", http.StatusOK)["spaces"].([]any)) != 0 {
+		t.Fatal("a refused grant opened the space")
+	}
+
+	// Once the group has a member it takes the role, encoded or not.
+	w.admin.expect("PUT", "/api/groups/ops/members/"+w.ids["carla"], "", http.StatusNoContent)
+	w.admin.expect("PUT", "/api/spaces/PLAT/roles/%40ops", `{"role":"viewer"}`, http.StatusNoContent)
+	if len(w.carla.expect("GET", "/api/spaces", "", http.StatusOK)["spaces"].([]any)) != 1 {
+		t.Fatal("the group's role did not reach its member")
+	}
+
+	// A grant from before the check: listed as unknown, not changed,
+	// taken back.
+	adminID := w.admin.expect("GET", "/api/me", "", http.StatusOK)["user"].(map[string]any)["id"].(string)
+	if err := w.db.Write(func(s *item.Store) error { return s.GrantRole(adminID, "PLAT", "%40ops", item.Viewer) }); err != nil {
+		t.Fatal(err)
+	}
+	unknown := func() map[string]bool {
+		out := map[string]bool{}
+		for _, g := range w.admin.expect("GET", "/api/spaces/PLAT/roles", "", http.StatusOK)["roles"].([]any) {
+			m := g.(map[string]any)
+			out[m["principal"].(string)] = m["unknown"] == true
+		}
+		return out
+	}
+	if got := unknown(); !got["%40ops"] || got["@ops"] || got[w.ids["vera"]] || got[w.ids["bert"]] || len(got) != 4 {
+		t.Fatalf("unknown principals %v", got)
+	}
+	w.admin.expect("PUT", "/api/spaces/PLAT/roles/%2540ops", `{"role":"editor"}`, http.StatusBadRequest)
+	w.admin.expect("DELETE", "/api/spaces/PLAT/roles/%2540ops", "", http.StatusNoContent)
+
+	// A group whose last member left gives nobody access either.
+	w.admin.expect("DELETE", "/api/groups/ops/members/"+w.ids["carla"], "", http.StatusNoContent)
+	if got := unknown(); !got["@ops"] || len(got) != 3 {
+		t.Fatalf("unknown principals after the group emptied %v", got)
 	}
 }
 

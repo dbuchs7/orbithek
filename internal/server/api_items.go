@@ -421,7 +421,15 @@ func (h itemHandlers) grantRole(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "role must be viewer, editor or space-admin")
 		return
 	}
-	h.write(w, r, 0, func(x *item.Session, _ *item.Store) (any, error) {
+	h.write(w, r, 0, func(x *item.Session, s *item.Store) (any, error) {
+		// Whoever administers the room learns whether the principal
+		// exists; whoever does not is refused by Grant as before
+		// (ADR-0255).
+		if _, err := x.SpaceGrants(r.PathValue("space")); err == nil {
+			if err := h.existing(s, []string{r.PathValue("principal")}); err != nil {
+				return nil, err
+			}
+		}
 		if err := x.Grant(r.PathValue("space"), r.PathValue("principal"), role); err != nil {
 			return nil, err
 		}
@@ -465,17 +473,57 @@ func (h itemHandlers) grantSystemRole(w http.ResponseWriter, r *http.Request) {
 
 // listGrants lists the roles granted in a space (ADR-0048).
 func (h itemHandlers) listGrants(w http.ResponseWriter, r *http.Request) {
-	h.read(w, r, func(x *item.Session) (any, error) {
-		grants, err := x.SpaceGrants(r.PathValue("space"))
-		if err != nil {
-			return nil, err
+	type grantJSON struct {
+		Principal string `json:"principal"`
+		Role      string `json:"role"`
+		// Unknown marks a grant that reaches nobody: no account has the
+		// ID, or the group has no members (ADR-0255).
+		Unknown bool `json:"unknown,omitempty"`
+	}
+	var out []grantJSON
+	var err error
+	h.d.DB.Read(func(s *item.Store) {
+		var grants []item.Grant
+		if grants, err = s.As(who(r)).SpaceGrants(r.PathValue("space")); err != nil {
+			return
 		}
-		out := []map[string]string{}
+		out = make([]grantJSON, 0, len(grants))
 		for _, g := range grants {
-			out = append(out, map[string]string{"principal": g.Principal, "role": roleName(g.Role)})
+			out = append(out, grantJSON{Principal: g.Principal, Role: roleName(g.Role), Unknown: h.existing(s, []string{g.Principal}) != nil})
 		}
-		return map[string]any{"roles": out}, nil
 	})
+	if err != nil {
+		h.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"roles": out})
+}
+
+// existing refuses principals that reach nobody: a group is named with
+// "@" and has members, anything else is the ID of an account. A grant or
+// a restriction to such a name would open nothing to anyone and look as
+// if it did (ADR-0078, ADR-0255).
+func (h itemHandlers) existing(s *item.Store, principals []string) error {
+	var users []auth.UserID
+	for _, p := range principals {
+		if g, ok := strings.CutPrefix(p, "@"); ok {
+			if s.GroupSize(g) == 0 {
+				return fmt.Errorf("%w: there is no group %s", item.ErrValidation, p)
+			}
+		} else {
+			users = append(users, auth.UserID(p))
+		}
+	}
+	if len(users) == 0 {
+		return nil
+	}
+	known := h.d.DB.Accounts.Usernames(users)
+	for _, u := range users {
+		if _, ok := known[u]; !ok {
+			return fmt.Errorf("%w: there is no user %s", item.ErrValidation, u)
+		}
+	}
+	return nil
 }
 
 func (h itemHandlers) revokeRole(w http.ResponseWriter, r *http.Request) {
@@ -1437,21 +1485,8 @@ func (h itemHandlers) restrict(w http.ResponseWriter, r *http.Request) {
 			// Only people and groups that exist: a typing error would
 			// otherwise close the item to everyone but its space's
 			// administrators (ADR-0078).
-			var users []auth.UserID
-			for _, p := range slices.Concat(req.Read, req.Edit) {
-				if g, ok := strings.CutPrefix(p, "@"); ok {
-					if s.GroupSize(g) == 0 {
-						return fmt.Errorf("%w: there is no group %s", item.ErrValidation, p)
-					}
-				} else {
-					users = append(users, auth.UserID(p))
-				}
-			}
-			known := h.d.DB.Accounts.Usernames(users)
-			for _, u := range users {
-				if _, ok := known[u]; !ok {
-					return fmt.Errorf("%w: there is no user %s", item.ErrValidation, u)
-				}
+			if err := h.existing(s, slices.Concat(req.Read, req.Edit)); err != nil {
+				return err
 			}
 			return x.Restrict(it.ID, item.Restriction{Read: req.Read, Edit: req.Edit})
 		})

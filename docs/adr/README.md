@@ -267,3 +267,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0252](0252-a-starmap-in-a-text.md) | A starmap in a text, narrowed at first, a click opening the item | Proposed | Partial |
 | [0253](0253-pictures-and-help-links-in-the-manual.md) | Pictures of the UI in the manual, and help links that open its chapters | Proposed | Partial |
 | [0254](0254-the-manuals-pictures-kept-current.md) | The manual's pictures are kept current by a check, as its text is | Accepted | Landed |
+| [0255](0255-a-role-goes-to-someone-who-exists.md) | A role goes to someone who exists, and a grant that reaches nobody is shown as such | Proposed | Partial |

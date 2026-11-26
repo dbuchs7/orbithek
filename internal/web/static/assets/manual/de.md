@@ -715,6 +715,11 @@ Die Administration findet unter **Administration**:
 
 Die Raumadministration verwaltet Mitglieder und Rollen ihres Raums unter den **Einstellungen** des Raums. Dort legt sie unter **Eintragstypen dieses Raums** mit demselben Formular auch die eigenen Typen des Raums an, ändert und entfernt sie oder beginnt mit einer Vorlage. Entfernt wird ein Typ erst, wenn kein Eintrag und kein Kanban ihn nutzt.
 
+Eine Rolle geht nur an eine Person mit Konto oder an eine Gruppe mit mindestens einem Mitglied;
+alles andere wird mit einer Meldung abgelehnt.
+Eine Rolle, die niemanden erreicht — vor dieser Prüfung vergeben oder an eine Gruppe, deren letztes Mitglied gegangen ist —, ist in der Liste als **Unbekannt** oder **Keine Mitglieder** markiert;
+sie lässt sich nicht ändern, nur entziehen.
+
 ## Tastenkürzel
 
 | Tasten | Aktion |

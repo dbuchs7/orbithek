@@ -715,6 +715,11 @@ Administrators find under **Administration**:
 
 Room administrators manage members and roles of their room under the room's **Settings**. There, under **Item types of this room**, they also define, change and remove the room's own types with the same form, or start from a ready-made template. A type is removed only when no item and no kanban uses it.
 
+A role goes only to a person with an account or to a group with at least one member;
+anything else is refused with a message.
+A role that reaches nobody — granted before this check, or to a group whose last member has left — is marked **Unknown** or **No members** in the list;
+it cannot be changed, only taken back.
+
 ## Keyboard shortcuts
 
 | Keys | Action |
