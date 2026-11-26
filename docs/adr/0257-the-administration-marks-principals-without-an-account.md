@@ -70,4 +70,5 @@ Strongest form: the last administrator check belongs to the item model, which do
 
 - amends ADR-0256 (readers and members exist): its follow-up on the administration's lists
 - amends ADR-0048 (roles are listed and taken back): the last administrator is one with an account
+- amended by ADR-0258 (the start warns when no administrator has an account)
 - relates to ADR-0255 (a role goes to someone who exists), ADR-0013 (the first administrator), ADR-0008 (event log), ADR-0027 (accounts)

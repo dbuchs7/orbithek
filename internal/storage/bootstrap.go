@@ -21,6 +21,10 @@ type Bootstrap struct {
 	// Password is set when it was generated; it is shown once and never
 	// stored in clear.
 	Password string
+	// WithoutAccount names the holders of admin when none of them is an
+	// account: nobody can sign in to administer the installation, and
+	// nothing was repaired (ADR-0258).
+	WithoutAccount []string
 }
 
 // EnsureAdmin makes sure the installation has an administrator (ADR-0013):
@@ -30,9 +34,21 @@ type Bootstrap struct {
 // between the two steps), the role goes to username's account.
 func (db *DB) EnsureAdmin(username, password string) (Bootstrap, error) {
 	var b Bootstrap
-	held := false
-	db.Read(func(s *item.Store) { held = s.SystemRoleHeld(item.RoleAdmin) })
-	if held {
+	var holders []string
+	db.Read(func(s *item.Store) { holders = s.SystemRoleHolders(item.RoleAdmin) })
+	if len(holders) > 0 {
+		// Holders stored before accounts were checked may be none
+		// (ADR-0256). Then the start repairs nothing by itself: giving
+		// the role to an account named by default could raise someone
+		// nobody chose; RestoreAdmin gives it to the account the operator
+		// names (ADR-0258).
+		ids := make([]auth.UserID, len(holders))
+		for i, h := range holders {
+			ids[i] = auth.UserID(h)
+		}
+		if len(db.Accounts.Usernames(ids)) == 0 {
+			b.WithoutAccount = holders
+		}
 		return b, nil
 	}
 	var found bool
@@ -68,4 +84,27 @@ func (db *DB) EnsureAdmin(username, password string) (Bootstrap, error) {
 	}
 	db.Audit.Record(audit.Entry{Event: audit.SystemRole, Actor: SystemActor, Subject: string(b.User.ID), Detail: map[string]string{"role": item.RoleAdmin}})
 	return b, nil
+}
+
+// RestoreAdmin gives the admin system role to the account with the given
+// username, for an operator who names it when no holder of admin has an
+// account (ADR-0258).
+func (db *DB) RestoreAdmin(username string) (auth.User, error) {
+	var user auth.User
+	found := false
+	for _, u := range db.Accounts.Users() {
+		if u.Username == username {
+			user, found = u, true
+		}
+	}
+	if !found {
+		return auth.User{}, fmt.Errorf("storage: there is no account %q to make an administrator", username)
+	}
+	if err := db.Write(func(s *item.Store) error {
+		return s.GrantSystemRole(SystemActor, string(user.ID), item.RoleAdmin)
+	}); err != nil {
+		return auth.User{}, fmt.Errorf("storage: granting the administrator role: %w", err)
+	}
+	db.Audit.Record(audit.Entry{Event: audit.SystemRole, Actor: SystemActor, Subject: string(user.ID), Detail: map[string]string{"role": item.RoleAdmin}})
+	return user, nil
 }
