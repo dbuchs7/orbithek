@@ -180,14 +180,62 @@ func TestTheSlidesOfAProtectedDeckAreProtected(t *testing.T) {
 }
 
 // mustPictures lists which pictures of an item the album says its body
-// uses.
+// uses, its slides among them.
 func mustPictures(t *testing.T, x *Session, id ID) map[ID]bool {
 	t.Helper()
 	out := map[ID]bool{}
-	for _, p := range x.Pictures("", func(Attachment) bool { return true }) {
+	for _, p := range x.PicturesWithSlides("", func(Attachment) bool { return true }, id) {
 		if p.Item.ID == id {
 			out[p.Attachment.ID] = p.Used
 		}
 	}
 	return out
+}
+
+// The slides a deck keeps are left out of the album, also those only an
+// earlier version of the text showed and new versions of a slide; the
+// album lists them when it lists their own item (ADR-0260).
+func TestTheAlbumLeavesOutTheSlidesADeckKeeps(t *testing.T) {
+	s := setup(t)
+	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))
+	anna := s.As("anna")
+	page := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Review"}))
+	folder := mustItem(t)(anna.CreateFolder("PLAT", "", "Talk"))
+	addPicture(t, anna, folder.ID, albumPic, "01 Intro.png")
+	addPicture(t, anna, page.ID, slide1, "01 Intro.png")
+	addPicture(t, anna, page.ID, slide2, "02 Plan.png")
+	addPicture(t, anna, page.ID, slide3, "A picture.png")
+	noErr(t, anna.CommitBody(page.ID, Doc{Blocks: []Block{{Kind: Slides, Ref: folder.ID, Files: []ID{slide1}}, {Kind: Image, Ref: slide3}}}))
+	// Updated: the second version keeps another copy; the first stays out.
+	noErr(t, anna.CommitBody(page.ID, Doc{Blocks: []Block{{Kind: Slides, Ref: folder.ID, Files: []ID{slide2}}, {Kind: Image, Ref: slide3}}}))
+	// A new version of a slide, as a drawing saved again, stays out too.
+	v2 := ID("44444444444444444444444444444444")
+	_, err := anna.AddAttachment(page.ID, Attachment{ID: v2, Name: "02 Plan.png", Type: "image/png", Size: 3, SHA256: strings.Repeat("cd", 32),
+		Source: &Source{Item: page.ID, Attachment: slide2}})
+	noErr(t, err)
+	listed := func(pics []Picture) map[ID]bool {
+		out := map[ID]bool{}
+		for _, p := range pics {
+			out[p.Attachment.ID] = true
+		}
+		return out
+	}
+	all := func(Attachment) bool { return true }
+	album := listed(anna.Pictures("", all))
+	if album[slide1] || album[slide2] || album[v2] {
+		t.Errorf("the album shows slides: %v", album)
+	}
+	if !album[slide3] || !album[albumPic] {
+		t.Errorf("the album shows the page's picture and the folder's: %v", album)
+	}
+	own := listed(anna.PicturesWithSlides("", all, page.ID))
+	if !own[slide1] || !own[slide2] || !own[v2] || !own[slide3] {
+		t.Errorf("the page's own listing shows its slides: %v", own)
+	}
+	// Replayed from the log, the slides stay out.
+	r, err := Replay(s.Log())
+	noErr(t, err)
+	if again := listed(r.As("anna").Pictures("", all)); again[slide1] || again[slide2] {
+		t.Errorf("after replay the album shows slides: %v", again)
+	}
 }

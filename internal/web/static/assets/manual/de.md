@@ -553,7 +553,7 @@ Der Foliensatz hält die Folien so fest, wie sie beim Speichern waren: Spätere 
 
 Beim Lesen zeigt der Foliensatz die aktuelle Folie, darunter eine Leiste aller Folien. Man blättert mit **Vorherige Folie** und **Nächste Folie** (‹ und ›), mit einem Klick in die Leiste oder, nachdem man in die Folie geklickt hat, mit den Pfeiltasten, Bild auf/ab, Leertaste, Pos1 und Ende. **Vollbild** zeigt die Folie allein. **Präsentieren** öffnet das Referentenfenster mit den Foliennotizen und das Präsentationsfenster für den Projektor, wie im Album (siehe *Bilder präsentieren*); **Beenden** kehrt zum Text zurück.
 
-Die Folien sind Dateien des Eintrags: Sie gelten mit den Rechten des Textes, ein geschützter Foliensatz schützt seine Folien, und der Ordner im Album darf gelöscht werden, ohne dass der Text seine Folien verliert. Die Kopien erscheinen im Album auch als Bilder des Eintrags. Ein Foliensatz, der vor dieser Änderung eingefügt wurde, zeigt den Ordner, wie er jetzt ist, und hält seine Folien beim nächsten Bearbeiten fest. Exporte nennen den Foliensatz mit seiner Beschriftung und der Zahl seiner Folien, statt die Folien zu zeigen.
+Die Folien sind Dateien des Eintrags: Sie gelten mit den Rechten des Textes, ein geschützter Foliensatz schützt seine Folien, und der Ordner im Album darf gelöscht werden, ohne dass der Text seine Folien verliert. Die Kopien erscheinen nicht im Album, auch ältere Kopien nach einer Aktualisierung nicht; sie stehen unter den Dateien des Eintrags. Ein Foliensatz, der vor dieser Änderung eingefügt wurde, zeigt den Ordner, wie er jetzt ist, und hält seine Folien beim nächsten Bearbeiten fest. Exporte nennen den Foliensatz mit seiner Beschriftung und der Zahl seiner Folien, statt die Folien zu zeigen.
 
 ### Folien von Hand ordnen
 

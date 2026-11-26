@@ -1,6 +1,9 @@
 package item
 
-import "slices"
+import (
+	"maps"
+	"slices"
+)
 
 // A slide deck in a text (ADR-0260) is a block of the kind slides that
 // keeps the slides as they were when it was saved: Files names, in the
@@ -118,4 +121,32 @@ func slideSources(d Doc) []ID {
 		}
 	}
 	return out
+}
+
+// noteSlideFiles remembers the files a committed body shows as slides; it
+// runs live and on replay. A file stays a slide once a version of the text
+// showed it as one, so the copies an earlier version keeps stay out of the
+// album too (ADR-0260).
+func (it *Item) noteSlideFiles(d Doc) {
+	for _, b := range d.Blocks {
+		if b.Kind != Slides {
+			continue
+		}
+		for _, f := range b.Files {
+			if it.slideFiles[f] {
+				continue
+			}
+			it.slideFiles = maps.Clone(it.slideFiles)
+			if it.slideFiles == nil {
+				it.slideFiles = map[ID]bool{}
+			}
+			it.slideFiles[f] = true
+		}
+	}
+}
+
+// isSlide reports whether a file, or the first version of its stack, is a
+// slide a version of its item's text kept (ADR-0260).
+func (it *Item) isSlide(a Attachment, first ID) bool {
+	return it.slideFiles[a.ID] || it.slideFiles[first]
 }

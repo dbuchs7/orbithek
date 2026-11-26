@@ -482,6 +482,10 @@ type Item struct {
 	// that protects it (ADR-0160), until that Secret is taken off or
 	// erased. It follows from the log.
 	secretFiles map[ID]ID
+	// slideFiles are the files a slide deck of a committed body showed as
+	// its slides, in any version (ADR-0260); the album leaves them out. It
+	// follows from the log.
+	slideFiles map[ID]bool
 }
 
 // EmbedView is how one embed block of a body renders (ADR-0020). Child is
@@ -794,6 +798,7 @@ func (it *Item) clone() Item {
 	c.ItemOrder = slices.Clone(it.ItemOrder)
 	c.ErasedSecrets = slices.Clone(it.ErasedSecrets)
 	c.secretFiles = maps.Clone(it.secretFiles)
+	c.slideFiles = maps.Clone(it.slideFiles)
 	c.Secrets = make([]Secret, len(it.Secrets))
 	for i, sec := range it.Secrets {
 		c.Secrets[i] = sec.clone()

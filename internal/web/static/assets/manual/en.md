@@ -553,7 +553,7 @@ The deck keeps the slides as they were when it was saved: later changes in the a
 
 While reading, the deck shows the current slide with a strip of every slide below it. Step with **Previous slide** and **Next slide** (‹ and ›), a click in the strip, or, after clicking into the slide, the arrow keys, Page Up and Down, the space bar, Home and End. **Full screen** shows the slide alone. **Present** opens the presenter's window with the speaker's notes and the presentation window for the projector, as in the album (see *Presenting pictures*); **End** returns to the text.
 
-The slides are files of the item: they follow the text's access, a protected deck protects its slides, and the folder in the album may be deleted without the text losing its slides. The copies also show in the album as pictures of the item. A deck inserted before this change shows the folder as it is now and keeps its slides on its next edit. Exports name the deck by its caption and the number of its slides instead of showing the slides.
+The slides are files of the item: they follow the text's access, a protected deck protects its slides, and the folder in the album may be deleted without the text losing its slides. The copies do not show in the album, nor do older copies after an update; they are listed among the item's files. A deck inserted before this change shows the folder as it is now and keeps its slides on its next edit. Exports name the deck by its caption and the number of its slides instead of showing the slides.
 
 ### Ordering slides by hand
 

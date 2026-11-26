@@ -435,7 +435,9 @@ func albumStacks(x *item.Session, f albumFilter) [][]item.Picture {
 	var stacks [][]item.Picture
 	at := map[stackKey]int{}
 	matched := map[int]bool{}
-	for _, p := range x.Pictures(f.space, keep) {
+	// The album leaves out the slides decks keep, unless it lists their
+	// own item, as a deck's presentation does (ADR-0260).
+	for _, p := range x.PicturesWithSlides(f.space, keep, f.folder) {
 		k := stackKey{p.Item.ID, p.First}
 		i, ok := at[k]
 		if !ok {
