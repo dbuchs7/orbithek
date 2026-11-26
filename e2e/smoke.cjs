@@ -2713,7 +2713,9 @@ function webSource() {
       await page.waitForSelector("figure.pm-slides .pm-slides-counter:text-is('1 / 3')");
       check((await page.textContent("figure.pm-slides figcaption")) === "The talk", "the caption shows below the deck");
       // The folder stays while a text shows it.
+      expectedConsole = /status of 409/; // the trash is refused
       const trashed = await page.evaluate(async (id) => (await fetch(`/api/items/${id}/trash`, { method: "POST" })).status, talk);
+      expectedConsole = null;
       check(trashed === 409, "a folder a text shows is not trashed");
       const [show] = await Promise.all([page.waitForEvent("popup"), page.click("figure.pm-slides .pm-slides-present")]);
       show.on("pageerror", (e) => problems.push("presentation window: " + e.message));
