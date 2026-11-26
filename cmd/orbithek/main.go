@@ -484,9 +484,13 @@ func applyBudgets(getenv func(string) string, log *slog.Logger) {
 
 // ensureAdmin creates the first administrator on the first start (ADR-0013):
 // OT_ADMIN_USERNAME (default "admin") with OT_ADMIN_PASSWORD, or with a
-// generated password that is logged this once.
+// generated password that is logged this once. When admin is held only by
+// IDs no account has, it warns and gives the role only to the account
+// OT_ADMIN_USERNAME names, when it is set
+// (ADR-draft-the-start-repairs-only-what-the-operator-names).
 func ensureAdmin(db *storage.DB, log *slog.Logger) error {
-	username := os.Getenv("OT_ADMIN_USERNAME")
+	named := os.Getenv("OT_ADMIN_USERNAME")
+	username := named
 	if username == "" {
 		username = "admin"
 	}
@@ -494,6 +498,19 @@ func ensureAdmin(db *storage.DB, log *slog.Logger) error {
 	switch {
 	case err != nil:
 		return err
+	case len(b.WithoutAccount) > 0 && named == "":
+		log.Warn("no holder of the administrator role has an account, so nobody can administer the installation; "+
+			"set OT_ADMIN_USERNAME to an existing account and start again to give it the role",
+			"holders", strings.Join(b.WithoutAccount, " "))
+	case len(b.WithoutAccount) > 0:
+		u, err := db.RestoreAdmin(named)
+		if err != nil {
+			log.Warn("no holder of the administrator role has an account, and the role was not given: "+err.Error(),
+				"holders", strings.Join(b.WithoutAccount, " "))
+			return nil
+		}
+		log.Warn("no holder of the administrator role had an account; gave the administrator role to the account the operator named",
+			"username", u.Username, "holders", strings.Join(b.WithoutAccount, " "))
 	case b.Password != "":
 		log.Warn("created the first administrator with a generated password; it is shown only now, change it after the first login",
 			"username", b.User.Username, "password", b.Password)

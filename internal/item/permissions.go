@@ -149,15 +149,16 @@ func (s *Store) hasSystemRole(principal, role string) bool { return s.sysRoles[p
 // HasSystemRole reports whether a principal holds a system role.
 func (s *Store) HasSystemRole(principal, role string) bool { return s.hasSystemRole(principal, role) }
 
-// SystemRoleHeld reports whether any principal holds a system role, e.g.
-// whether an administrator exists.
-func (s *Store) SystemRoleHeld(role string) bool {
-	for _, roles := range s.sysRoles {
+// SystemRoleHolders lists the principals holding a system role, sorted.
+func (s *Store) SystemRoleHolders(role string) []string {
+	var out []string
+	for p, roles := range s.sysRoles {
 		if roles[role] {
-			return true
+			out = append(out, p)
 		}
 	}
-	return false
+	slices.Sort(out)
+	return out
 }
 
 // spaceRole is the highest role a principal holds in a space, directly or

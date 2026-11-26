@@ -537,6 +537,65 @@ func TestServeUsesTheGivenAdministrator(t *testing.T) {
 	}
 }
 
+// When admin is held only by IDs no account has, the start warns and
+// repairs nothing by itself; it gives the role to the account
+// OT_ADMIN_USERNAME names, and only when it is set
+// (ADR-draft-the-start-repairs-only-what-the-operator-names).
+func TestServeWarnsWhenNoAdministratorHasAnAccount(t *testing.T) {
+	dir := t.TempDir()
+	db, _, err := storage.Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := db.EnsureAdmin("admin", "the admin's password")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Write(func(s *item.Store) error {
+		if err := s.GrantSystemRole(storage.SystemActor, "0123456789abcdef", item.RoleAdmin); err != nil {
+			return err
+		}
+		return s.RevokeSystemRole(storage.SystemActor, string(b.User.ID), item.RoleAdmin)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	isAdmin := func() bool {
+		db, _, err := storage.Open(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer db.Close()
+		held := false
+		db.Read(func(s *item.Store) { held = s.HasSystemRole(string(b.User.ID), item.RoleAdmin) })
+		return held
+	}
+	serve := func() (int, string) {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		code, _, errOut := runCmd(t, ctx, "serve", "-addr", freeAddr(t), "-data-dir", dir)
+		return code, errOut
+	}
+
+	// Not named: a warning, the account named admin stays as it is.
+	t.Setenv("OT_ADMIN_USERNAME", "")
+	if code, errOut := serve(); code != 0 || !strings.Contains(errOut, "no holder of the administrator role has an account") || !strings.Contains(errOut, "0123456789abcdef") || isAdmin() {
+		t.Fatalf("not named: exit %d, stderr %q", code, errOut)
+	}
+	// Named, but no such account: a warning, and the server runs.
+	t.Setenv("OT_ADMIN_USERNAME", "nobody")
+	if code, errOut := serve(); code != 0 || !strings.Contains(errOut, "there is no account") || !strings.Contains(errOut, "nobody") || isAdmin() {
+		t.Fatalf("named, no account: exit %d, stderr %q", code, errOut)
+	}
+	// Named: the account becomes an administrator.
+	t.Setenv("OT_ADMIN_USERNAME", "admin")
+	if code, errOut := serve(); code != 0 || !strings.Contains(errOut, "gave the administrator role to the account the operator named") || !isAdmin() {
+		t.Fatalf("named: exit %d, stderr %q", code, errOut)
+	}
+}
+
 func TestSingleSignOnConfiguration(t *testing.T) {
 	t.Setenv("OT_ADMIN_PASSWORD", "a given password!")
 	t.Setenv("OT_OIDC_ISSUER", "https://idp.example")

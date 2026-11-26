@@ -163,3 +163,41 @@ func TestAuditListingReachesTheJournal(t *testing.T) {
 		t.Fatalf("%+v, %v", got, err)
 	}
 }
+
+// TestEnsureAdminSeesHoldersWithoutAnAccount covers a role of admin held
+// only by IDs no account has, stored before ADR-0256: the start repairs
+// nothing by itself, says who holds it, and RestoreAdmin gives the role to
+// the account the operator names (ADR-draft-the-start-repairs-only-what-the-operator-names).
+func TestEnsureAdminSeesHoldersWithoutAnAccount(t *testing.T) {
+	db := openFast(t, t.TempDir())
+	defer db.Close()
+	b, err := db.EnsureAdmin("admin", "a given password!")
+	noErr(t, err)
+	const ghost = "0123456789abcdef"
+	noErr(t, db.Write(func(s *item.Store) error {
+		if err := s.GrantSystemRole(SystemActor, ghost, item.RoleAdmin); err != nil {
+			return err
+		}
+		return s.RevokeSystemRole(SystemActor, string(b.User.ID), item.RoleAdmin)
+	}))
+
+	again, err := db.EnsureAdmin("admin", "")
+	noErr(t, err)
+	if again.Created || isAdmin(db, b.User.ID) || len(again.WithoutAccount) != 1 || again.WithoutAccount[0] != ghost {
+		t.Fatalf("only a holder without an account: %+v, admin %v", again, isAdmin(db, b.User.ID))
+	}
+	if _, err := db.RestoreAdmin("nobody"); err == nil {
+		t.Fatal("a role went to an account that does not exist")
+	}
+	u, err := db.RestoreAdmin("admin")
+	noErr(t, err)
+	if u.ID != b.User.ID || !isAdmin(db, b.User.ID) {
+		t.Fatalf("restored %+v", u)
+	}
+	if got := db.Audit.List(0, 1); got[0].Event != audit.SystemRole || got[0].Subject != string(b.User.ID) || got[0].Actor != SystemActor {
+		t.Fatalf("audit %+v", got[0])
+	}
+	if last, err := db.EnsureAdmin("admin", ""); err != nil || len(last.WithoutAccount) != 0 {
+		t.Fatalf("once an account holds it: %+v, %v", last, err)
+	}
+}
