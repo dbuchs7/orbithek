@@ -2450,13 +2450,7 @@ async function homeView() {
       h("strong", { text: t("storage.homeNotice", { level: storageLevel(storage.level) }) }), " ",
       t("storage.free", { free: sizeText(storage.free), total: sizeText(storage.total), share: storage.total ? Math.round((storage.free * 1000) / storage.total) / 10 : "?" })) : "",
     h("section", { class: "home-tiles", "aria-label": t("home.quick") },
-      // My journal first: today's daily note, made in one's daily room on
-      // opening when there is none (ADR-0205).
-      quick("#/journal", t("home.today"), t("home.todayText", { date: todayText }), t("home.tip.today"), "home-today", null, "day", [todayNumber]),
-      // One's personal notes, wherever they were made (ADR-0113), right
-      // beside the journal.
-      quick("#/my-notes", t("note.title"), mine.notes.length ? t("home.myNotesText", { n: mine.notes.length }) : t("home.myNotesNone"), t("home.tip.myNotes"), "home-my-notes", null, "page"),
-      // The starmap: one's rooms as a map of connections (ADR-0157);
+      // The starmap first: one's rooms as a map of connections (ADR-0157);
       // the view opens on every room (ADR-0228).
       quick("#/starmap", t("nav.starmap"), t("home.starmapText"), t("home.tip.starmap"), "home-starmap", null, "starmap"),
       // The rooms follow the starmap and lead to their own overview.
@@ -2472,7 +2466,12 @@ async function homeView() {
       // The shop of a process engine: its catalogues, one's orders and
       // approvals (ADR-0251).
       quick("#/shop", t("shop.title"), t("home.shopText"), t("home.tip.shop"), "home-shop", null, "cart"),
-      quick("#/mcp", t("nav.mcp"), t("home.mcpText"), t("home.tip.mcp"), "home-mcp", null, "protection")),
+      quick("#/mcp", t("nav.mcp"), t("home.mcpText"), t("home.tip.mcp"), "home-mcp", null, "protection"),
+      // My journal, today's daily note, made in one's daily room on opening
+      // when there is none (ADR-0205), and beside it one's personal notes,
+      // wherever they were made (ADR-0113), close the tiles.
+      quick("#/journal", t("home.today"), t("home.todayText", { date: todayText }), t("home.tip.today"), "home-today", null, "day", [todayNumber]),
+      quick("#/my-notes", t("note.title"), mine.notes.length ? t("home.myNotesText", { n: mine.notes.length }) : t("home.myNotesNone"), t("home.tip.myNotes"), "home-my-notes", null, "page")),
     // The rooms are listed on their own overview (#/spaces), reached by
     // their tile; without rooms the start page shows the first steps.
     spaces.length === 0 ? h("h2", { text: t("spaces.title") }) : null,
