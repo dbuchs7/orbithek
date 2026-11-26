@@ -535,6 +535,22 @@ func (h itemHandlers) hasAccount(members []string) bool {
 	return len(h.d.DB.Accounts.Usernames(ids)) > 0
 }
 
+// withoutAccount lists the principals that are not the ID of an account.
+func (h itemHandlers) withoutAccount(principals []string) []string {
+	ids := make([]auth.UserID, len(principals))
+	for i, p := range principals {
+		ids[i] = auth.UserID(p)
+	}
+	known := h.d.DB.Accounts.Usernames(ids)
+	var out []string
+	for _, p := range principals {
+		if _, ok := known[auth.UserID(p)]; !ok {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
 // account refuses a principal that is not the ID of an account.
 func (h itemHandlers) account(principal string) error {
 	if _, ok := h.d.DB.Accounts.Usernames([]auth.UserID{auth.UserID(principal)})[auth.UserID(principal)]; !ok {
@@ -601,7 +617,15 @@ func (h itemHandlers) listGroups(w http.ResponseWriter, r *http.Request) {
 		out := []map[string]any{}
 		groups := s.Groups()
 		for _, name := range slices.Sorted(maps.Keys(groups)) {
-			out = append(out, map[string]any{"name": name, "members": groups[name]})
+			g := map[string]any{"name": name, "members": groups[name]}
+			// Members without an account, stored before ADR-0256, are
+			// named; a group of none but them reaches nobody
+			// (ADR-0257).
+			if unknown := h.withoutAccount(groups[name]); len(unknown) > 0 {
+				g["unknown"] = unknown
+				g["reachesNobody"] = len(unknown) == len(groups[name])
+			}
+			out = append(out, g)
 		}
 		return map[string]any{"groups": out}
 	})
@@ -627,7 +651,11 @@ func (h itemHandlers) listSystemRoles(w http.ResponseWriter, r *http.Request) {
 		holders := s.SystemRoles()
 		for _, p := range slices.Sorted(maps.Keys(holders)) {
 			if len(holders[p]) > 0 {
-				out = append(out, map[string]any{"principal": p, "roles": holders[p]})
+				x := map[string]any{"principal": p, "roles": holders[p]}
+				if h.account(p) != nil {
+					x["unknown"] = true
+				}
+				out = append(out, x)
 			}
 		}
 		return map[string]any{"holders": out}
@@ -638,6 +666,20 @@ func (h itemHandlers) revokeSystemRole(w http.ResponseWriter, r *http.Request) {
 	h.write(w, r, 0, func(_ *item.Session, s *item.Store) (any, error) {
 		if err := h.isAdmin(s, r); err != nil {
 			return nil, err
+		}
+		// The last administrator with an account keeps the role: a holder
+		// without one administers nothing
+		// (ADR-0257).
+		if p := r.PathValue("principal"); r.PathValue("role") == item.RoleAdmin && h.account(p) == nil {
+			var others []string
+			for q, roles := range s.SystemRoles() {
+				if q != p && slices.Contains(roles, item.RoleAdmin) {
+					others = append(others, q)
+				}
+			}
+			if !h.hasAccount(others) {
+				return nil, fmt.Errorf("%w: %s is the last administrator", item.ErrValidation, p)
+			}
 		}
 		if err := s.RevokeSystemRole(who(r), r.PathValue("principal"), r.PathValue("role")); err != nil {
 			return nil, err

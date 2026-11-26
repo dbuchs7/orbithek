@@ -78,4 +78,5 @@ Strongest form: readers are what was found; members and system roles are set by 
 - amends ADR-0088 (protected passages): readers exist
 - amends ADR-0048 (roles are listed and taken back): members and holders of system roles are accounts
 - amends ADR-0255 (a role goes to someone who exists): a group exists when a member has an account
+- amended by ADR-0257 (the administration marks members and holders without an account)
 - relates to ADR-0078 (restrictions for people and groups that exist), ADR-0160 (protected blocks), ADR-0008 (event log), ADR-0027 (accounts)

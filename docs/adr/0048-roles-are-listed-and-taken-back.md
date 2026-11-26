@@ -44,3 +44,4 @@ Chosen option: **1**. Option 2 would avoid three event kinds, but a grant that m
 - amended by [ADR-0111](0111-protecting-removing-and-copying-respect-the-whole-tree.md) (the last space admin role stays)
 - amended by ADR-0255 (a role goes only to an account or a group with members)
 - amended by ADR-0256 (members of groups and holders of system roles are accounts)
+- amended by ADR-0257 (the last administrator is one with an account)
