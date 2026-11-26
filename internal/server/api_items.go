@@ -620,7 +620,7 @@ func (h itemHandlers) listGroups(w http.ResponseWriter, r *http.Request) {
 			g := map[string]any{"name": name, "members": groups[name]}
 			// Members without an account, stored before ADR-0256, are
 			// named; a group of none but them reaches nobody
-			// (ADR-draft-the-administration-marks-principals-without-an-account).
+			// (ADR-0257).
 			if unknown := h.withoutAccount(groups[name]); len(unknown) > 0 {
 				g["unknown"] = unknown
 				g["reachesNobody"] = len(unknown) == len(groups[name])
@@ -669,7 +669,7 @@ func (h itemHandlers) revokeSystemRole(w http.ResponseWriter, r *http.Request) {
 		}
 		// The last administrator with an account keeps the role: a holder
 		// without one administers nothing
-		// (ADR-draft-the-administration-marks-principals-without-an-account).
+		// (ADR-0257).
 		if p := r.PathValue("principal"); r.PathValue("role") == item.RoleAdmin && h.account(p) == nil {
 			var others []string
 			for q, roles := range s.SystemRoles() {

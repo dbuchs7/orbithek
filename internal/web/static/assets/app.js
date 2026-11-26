@@ -6505,7 +6505,7 @@ async function adminView(params) {
       resetCell(u)))), { id: "admin-users", label: t("admin.users"), choices: [{ key: "role", label: t("admin.role") }] }),
     // Holders without an account, stored before ADR-0256, are listed
     // apart so they can be taken out
-    // (ADR-draft-the-administration-marks-principals-without-an-account).
+    // (ADR-0257).
     ghostHolders.length ? h("div", { class: "card", id: "holders-unknown" },
       h("h3", { text: t("admin.holdersUnknown") }),
       h("p", { class: "muted", text: t("admin.holdersUnknownHelp") }),
@@ -6525,7 +6525,7 @@ async function adminView(params) {
     h("p", { class: "muted", text: t("admin.groupsHelp") }),
     // Members without an account are named as stored and marked; a group
     // of none but them reaches nobody
-    // (ADR-draft-the-administration-marks-principals-without-an-account).
+    // (ADR-0257).
     groups.length ? filteredGroups(h("table", { id: "groups" }, groups.map((g) => h("tr", { class: g.reachesNobody ? "unknown" : null },
       h("th", {}, "@" + g.name,
         g.reachesNobody ? [" ", h("span", { class: "badge danger", text: t("secret.reachesNobody"), title: t("admin.groupReachesNobody") })] : null),

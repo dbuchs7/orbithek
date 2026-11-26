@@ -196,7 +196,7 @@ func TestReadersMembersAndSystemRolesExist(t *testing.T) {
 // The administration marks group members and system role holders without
 // an account, stored before ADR-0256; they are taken out from there, and a
 // holder of admin without an account does not count as the administrator
-// who keeps the role (ADR-draft-the-administration-marks-principals-without-an-account).
+// who keeps the role (ADR-0257).
 func TestTheAdministrationMarksPrincipalsWithoutAnAccount(t *testing.T) {
 	w := newWorld(t)
 	adminID := w.admin.expect("GET", "/api/me", "", http.StatusOK)["user"].(map[string]any)["id"].(string)

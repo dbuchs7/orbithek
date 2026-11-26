@@ -1,4 +1,4 @@
-# ADR-DRAFT: The administration marks group members and system role holders without an account
+# ADR-0257: The administration marks group members and system role holders without an account
 
 - **Status:** Proposed
 - **Implementation:** Partial
