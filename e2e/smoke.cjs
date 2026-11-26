@@ -4287,6 +4287,11 @@ function webSource() {
     await page.click("#users tr:has-text('bert') label:has-text('erasure') input");
     await page.waitForSelector("#users tr:has-text('bert') label:has-text('erasure') input:not(:checked)");
     await page.click("#admin-spaces a:has-text('Settings')");
+    // A group nobody belongs to takes no role (ADR-draft-a-role-goes-to-someone-who-exists).
+    await page.fill("#add-role [name=group]", "nobody-here");
+    await page.click("#add-role button[type=submit]");
+    await page.waitForSelector("#add-role .error:has-text('there is no group @nobody-here')");
+    check(await page.locator("#members tr:has-text('@nobody-here')").count() === 0, "a group without members is not granted a role");
     await page.fill("#add-role [name=group]", "ops");
     await page.selectOption("#add-role [name=role]", "editor");
     await page.click("#add-role button[type=submit]");
