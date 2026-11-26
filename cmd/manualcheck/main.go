@@ -11,7 +11,7 @@
 // or when its description holds a line "Manual: not needed — <reason>".
 // See internal/manualcheck for the rules.
 //
-// It also runs Check C (ADR-draft-keeping-the-manual-and-its-pictures-current):
+// It also runs Check C (ADR-0254):
 // a pull request that changes what a picture of the manual shows, as
 // manual/img/sources.txt names it, takes the picture again in every
 // language, or its description holds a line "Pictures: not needed —

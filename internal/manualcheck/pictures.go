@@ -1,6 +1,6 @@
 package manualcheck
 
-// Check C of ADR-draft-keeping-the-manual-and-its-pictures-current: a pull
+// Check C of ADR-0254: a pull
 // request that changes what a picture of the manual shows takes the picture
 // again, in every language, or says in its description why it need not.
 //

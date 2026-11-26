@@ -1,4 +1,4 @@
-# ADR-DRAFT: The manual's pictures are kept current by a check, as its text is
+# ADR-0254: The manual's pictures are kept current by a check, as its text is
 
 - **Status:** Proposed
 - **Implementation:** Partial
@@ -14,7 +14,7 @@ ADR-0185 keeps the manual's text current with two checks:
 - Check A, a test, fails when the manual names a label the UI does not have.
 - Check B, in CI, warns when a pull request changes what people see but not every manual.
 
-ADR-draft-pictures-and-help-links-in-the-manual added screenshots of the UI and the symbols of the modules: twelve pictures per language and ten symbols. It left open how a picture that no longer shows the UI gets noticed. Neither check sees pictures:
+ADR-0253 added screenshots of the UI and the symbols of the modules: twelve pictures per language and ten symbols. It left open how a picture that no longer shows the UI gets noticed. Neither check sees pictures:
 
 - Check A reads only bold text.
 - Check B is satisfied by a change to the manuals' text, though the pictures beside it stay as they were.
@@ -82,7 +82,7 @@ Chosen option: **1**. Option 3 stays welcome as an occasional full pass, not as 
 ### What stays as it is
 
 - Checks A and B of ADR-0185, and the rule in `AGENTS.md` that a change to what people see updates both manuals in the same change.
-- The manual's tests of ADR-draft-pictures-and-help-links-in-the-manual: every manual shows the English one's pictures and anchors, every picture shown exists, every embedded picture is shown.
+- The manual's tests of ADR-0253: every manual shows the English one's pictures and anchors, every picture shown exists, every embedded picture is shown.
 
 ### Consequences
 
@@ -118,4 +118,4 @@ Strongest form: no list, no tooling; authors know which views they changed.
 ## Links
 
 - amends [ADR-0185](0185-the-user-manual-is-kept-current-by-checks.md) (the manual kept current by checks) with a third check
-- relates to ADR-draft-pictures-and-help-links-in-the-manual (the pictures), ADR-0183 (the user manual), ADR-0018 and ADR-0019 (an advisory check first)
+- relates to ADR-0253 (the pictures), ADR-0183 (the user manual), ADR-0018 and ADR-0019 (an advisory check first)

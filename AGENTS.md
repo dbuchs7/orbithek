@@ -310,7 +310,7 @@ both keep the same outline of headings (ADR-0183).
 Two checks hold changes to this (ADR-0185).
 A test fails when a manual names in bold a label its catalogue does not have: rename the label in the manual as the UI now calls it, or list bold text that is no label (a key, a symbol, a concept) in `internal/web/manual_terms.txt` with a reason.
 On pull requests, the job `Manual (user-visible changes)` warns when catalogue values, routes, views or UI modules are added or changed and not every manual is: update the manuals, or write a line of its own `Manual: not needed — <reason>` into the pull request description.
-The same job warns when a pull request changes what a picture of the manual shows, as `internal/web/static/assets/manual/img/sources.txt` names it (a file, a function `app.js#homeView` or a key prefix `key:shop.setup`), and not the picture in every language: take the pictures again with the two commands below, or write a line of its own `Pictures: not needed — <reason>`; a new picture gets a line in `sources.txt`, and a test fails when a line names what has gone (ADR-draft-keeping-the-manual-and-its-pictures-current).
+The same job warns when a pull request changes what a picture of the manual shows, as `internal/web/static/assets/manual/img/sources.txt` names it (a file, a function `app.js#homeView` or a key prefix `key:shop.setup`), and not the picture in every language: take the pictures again with the two commands below, or write a line of its own `Pictures: not needed — <reason>`; a new picture gets a line in `sources.txt`, and a test fails when a line names what has gone (ADR-0254).
 
 **UI code never turns a string into markup or code** (ADR-0014, ADR-0031).
 Create elements with `h()` from `internal/web/static/assets/dom.js`;
@@ -392,7 +392,7 @@ go run ./cmd/orbithek check -data-dir data   # verify a data directory, read-onl
 cd e2e && npm ci && BASE_URL=http://127.0.0.1:8080 ADMIN_PASSWORD=… node smoke.cjs   # UI in Chromium, against a fresh server
                                                      # ENGINE_TOKEN=x, with OT_ENGINE_ATLAS_TOKEN=x, OT_ENGINE_ATLAS_TASKLIST_TOKEN=x and OT_ENGINE_ALLOW_PRIVATE=on on the server, adds the process engine steps
 OT_TOKEN=… go run ./cmd/orbithek mcp -url http://localhost:8080   # MCP tools on stdin/stdout for a local agent
-cd e2e && BASE_URL=http://127.0.0.1:8080 ADMIN_PASSWORD=… node manual-shots.cjs   # the manual's pictures, against a fresh server started with OT_PUBLIC_URL (ADR-draft-pictures-and-help-links-in-the-manual)
+cd e2e && BASE_URL=http://127.0.0.1:8080 ADMIN_PASSWORD=… node manual-shots.cjs   # the manual's pictures, against a fresh server started with OT_PUBLIC_URL (ADR-0253)
 python3 -I e2e/shrink-pictures.py internal/web/static/assets/manual/img   # then shrink them (Pillow); commit the pictures
 go run ./cmd/orbithek version
 GOOS=windows GOARCH=arm64 CGO_ENABLED=0 go build ./cmd/orbithek   # any release platform
@@ -510,7 +510,7 @@ internal/migrate/  prototype of the Jira/Confluence import engine (ADR-0023)
 internal/repoconfig/ tests keeping ruleset, CI workflow and release matrix consistent
 internal/settingsdrift/ comparison of recorded and live GitHub settings (ADR-0003)
 e2e/               browser smoke test of the UI (Playwright; test tool only, not part of the build)
-                   and manual-shots.cjs with shrink-pictures.py, which take the user manual's pictures (ADR-draft-pictures-and-help-links-in-the-manual)
+                   and manual-shots.cjs with shrink-pictures.py, which take the user manual's pictures (ADR-0253)
 docs/architecture/ the invariants with their checks
 docs/brand/        the logo in every format and its generator; the web UI embeds copies
 docs/testing/      the guide for people testing a release; .github/ISSUE_TEMPLATE/ holds the matching report form

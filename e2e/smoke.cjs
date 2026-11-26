@@ -890,7 +890,7 @@ function webSource() {
     check(await page.locator("#manual h1").first().textContent() === "Orbithek-Benutzerhandbuch", "the German manual is a click away");
     check(await page.locator("#manual .ProseMirror[contenteditable=true]").count() === 0, "the manual is read, not edited");
     // Pictures of the UI, and a help link opening the chapter of its place
-    // (ADR-draft-pictures-and-help-links-in-the-manual).
+    // (ADR-0253).
     check(await page.locator("#manual .pm-image img[src^='/assets/manual/img/']").count() > 5, "the manual shows pictures of the UI");
     await page.goto(base + "/#/shop");
     await page.waitForSelector(".page-head .help-link[data-section=shop]");

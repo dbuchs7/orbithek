@@ -11,7 +11,7 @@
 //
 // Check C, in pictures.go, holds the manual's pictures to the same: a pull
 // request that changes what a picture shows takes it again, or says why it
-// need not (ADR-draft-keeping-the-manual-and-its-pictures-current).
+// need not (ADR-0254).
 package manualcheck
 
 import (

@@ -4,7 +4,7 @@
 // does not touch the DOM, so it is tested in Node.js (internal/web/jstest).
 //
 // Two things the manual has that a body does not
-// (ADR-draft-pictures-and-help-links-in-the-manual): pictures served with
+// (ADR-0253): pictures served with
 // the UI, written as a line of their own,
 //
 //   ![The start page](img/en/home.png "60")

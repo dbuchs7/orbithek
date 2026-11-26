@@ -230,7 +230,7 @@ jobs:
   # Check C: a pull request that changes what a picture of the manual shows
   # (manual/img/sources.txt) takes it again, or its description says
   # "Pictures: not needed — <reason>"
-  # (ADR-draft-keeping-the-manual-and-its-pictures-current).
+  # (ADR-0254).
   manual:
     name: Manual (user-visible changes)
     if: github.event_name == 'pull_request'

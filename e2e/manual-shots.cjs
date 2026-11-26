@@ -1,4 +1,4 @@
-// Takes the user manual's pictures (ADR-draft-pictures-and-help-links-in-the-manual)
+// Takes the user manual's pictures (ADR-0253)
 // from a running server in every language of the manual: views of the UI
 // with example content, and the symbols of the start page's modules. It is
 // run by hand when what the manual shows has changed, against a fresh

@@ -2356,7 +2356,7 @@ async function manualView(params) {
   const text = await res.text();
   const { title, blocks, sections } = manualBlocks(text, isSafeLink);
   // The manual's pictures are files served with the UI beside it
-  // (ADR-draft-pictures-and-help-links-in-the-manual).
+  // (ADR-0253).
   const pictures = { url: manualPictureURL, knows: () => true, isDrawing: () => false };
   const body = createEditor({ blocks, embeds: [], editable: false, resolve: async () => null, childPages: [], files: pictures }).element;
   const others = languages.filter((l) => manualLanguages.includes(l.code));

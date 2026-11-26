@@ -3053,7 +3053,7 @@ dialog.palette::backdrop { background: rgba(20, 22, 26, .45); }
 .side-card .shop-fields { grid-template-columns: 1fr; }
 .side-card .shop-fields dd { margin: 0 0 6px; }
 /* A help link opens the manual at its chapter, and the chapter is marked
-   (ADR-draft-pictures-and-help-links-in-the-manual). */
+   (ADR-0253). */
 .help-link { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%;
   border: 1px solid var(--border-strong, var(--border)); color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1;
   text-decoration: none; vertical-align: middle; margin-left: 4px; }

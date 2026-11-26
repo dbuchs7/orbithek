@@ -15,7 +15,7 @@ var manualPicture = regexp.MustCompile(`(?m)^!\[[^\]\n]*\]\((img/[^ )]+)`)
 
 // TestManualPicturesAreShown: every picture embedded for the manual is shown
 // by a manual, so none is shipped in the binary for nothing
-// (ADR-draft-pictures-and-help-links-in-the-manual); that every picture a
+// (ADR-0253); that every picture a
 // manual shows exists is internal/web/jstest/manual.test.mjs's.
 func TestManualPicturesAreShown(t *testing.T) {
 	shown := map[string]bool{}
@@ -55,7 +55,7 @@ func TestManualPicturesAreShown(t *testing.T) {
 
 // TestManualPictureSources keeps manual/img/sources.txt, the list of what
 // each picture of the manual shows, true to the tree
-// (ADR-draft-keeping-the-manual-and-its-pictures-current): every picture
+// (ADR-0254): every picture
 // has a line, every line names pictures that exist in every language, and
 // every source it names exists, so the manual check cannot miss a picture
 // by a name that has gone.

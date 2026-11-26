@@ -1,5 +1,5 @@
 # The pictures of the user manual, and what each shows
-# (ADR-draft-keeping-the-manual-and-its-pictures-current).
+# (ADR-0254).
 #
 # One picture per line: its name, then what draws it. The name has no
 # language: "tasks" is img/<lang>/tasks.png in every language, "icons/shop"

@@ -1,5 +1,5 @@
 // A help link: a small "?" that opens the user manual at the chapter about
-// the place it stands in (ADR-draft-pictures-and-help-links-in-the-manual).
+// the place it stands in (ADR-0253).
 // The chapter is named by its anchor, the same in every language, so the
 // link reads the manual in the UI's language.
 import { h } from "./dom.js";
