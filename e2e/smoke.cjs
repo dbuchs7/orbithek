@@ -6305,7 +6305,10 @@ function webSource() {
     await page.selectOption("select[aria-label='Insert…']", "starmap");
     await page.waitForSelector("#starmap-dialog");
     await page.fill("#starmap-pick-label", "First week");
-    await page.check("#starmap-pick-kinds [data-hide=label] input");
+    // What is ticked shows, as in the map's own filters: every type and kind at first.
+    check(await page.locator("#starmap-pick-types input:not(:checked), #starmap-pick-kinds input:not(:checked)").count() === 0
+      && await page.locator("#starmap-pick-types input:checked").count() > 0, "the dialog ticks every type and kind at first");
+    await page.uncheck("#starmap-pick-kinds [data-show=label] input");
     await page.click("#starmap-dialog-ok");
     await page.waitForSelector("#body .pm-starmap .starmap-canvas .star-node:not([hidden])");
     await page.click("#edit-done");

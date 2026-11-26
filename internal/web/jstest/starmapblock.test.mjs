@@ -8,7 +8,7 @@
 // The block in a page is in e2e/smoke.cjs.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BLOCK_ALL, BLOCK_KINDS, blockFilters, blockSource, filter, nodeHref, starmapBlockOf, withLabel } from "../static/assets/starmap-graph.js";
+import { BLOCK_ALL, BLOCK_KINDS, blockFilters, blockSource, filter, nodeHref, starmapBlockOf, visible, withLabel } from "../static/assets/starmap-graph.js";
 
 const data = {
   nodes: [
@@ -68,4 +68,19 @@ test("a click opens an item, a picture's item, a label's page or a bubble's room
   assert.equal(nodeHref({ kind: "picture", item: "zz" }, byID), "#/item/zz");
   assert.equal(nodeHref(byID.get("label:runbook"), byID), "#/label/runbook");
   assert.equal(nodeHref(byID.get("g"), byID), "#/starmap/OPS");
+});
+
+test("the item a text is about shows with its neighbours, though the filters hide its type", () => {
+  const hidden = blockFilters({ hideTypes: ["page"] }).hidden;
+  // Without keeping it a hidden station leaves nothing, as on the starmap's page (ADR-0158).
+  assert.equal(visible(data, { hidden, trail: ["a"] }).nodes.size, 0);
+  const kept = visible(data, { hidden, trail: ["a"], keep: "a" });
+  assert.deepEqual([...kept.nodes].sort(), ["a", "b", "label:runbook", "picture:a/1"], "the item and its neighbours of shown kinds; the hidden page c stays hidden");
+  // Several types left out: every other type still shows.
+  const several = filter(data, { hidden: blockFilters({ hideTypes: ["task", "page"] }).hidden });
+  assert.deepEqual([...several.nodes].sort(), ["label:runbook", "picture:a/1"], "a bubble of a hidden type hides with it");
+  // A search keeps the item too, and still narrows the rest.
+  const searched = visible(data, { query: "patch", hidden: new Set(), trail: ["a"], keep: "a" });
+  assert.ok(searched.nodes.has("a") && searched.nodes.has("b") && !searched.nodes.has("c"));
+  assert.ok(!searched.matches.has("a"), "the kept item is no match");
 });

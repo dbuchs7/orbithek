@@ -245,15 +245,18 @@ export function matches(node, query) {
 // outside switch; a finished task, the switch of finished tasks); an edge when its group is on and both ends show. With
 // a query, only the matches show and what one shown edge joins to them.
 // It returns the ids of the nodes shown, the indexes of the edges shown
-// and the ids of the matches.
-export function filter(graph, { query = "", hidden = new Set() } = {}) {
-  const on = new Set(graph.nodes.filter((n) => !hidden.has(kindOf(n)) && !(n.outside && hidden.has(outsideKind)) && !(n.done && hidden.has(doneKind))).map((n) => n.id));
+// and the ids of the matches. keep names a node that shows whatever the
+// filters and the query say: the item a starmap in a text is about
+// (ADR-0252).
+export function filter(graph, { query = "", hidden = new Set(), keep = null } = {}) {
+  const on = new Set(graph.nodes.filter((n) => n.id === keep || (!hidden.has(kindOf(n)) && !(n.outside && hidden.has(outsideKind)) && !(n.done && hidden.has(doneKind)))).map((n) => n.id));
   const edgeOn = (e) => !hidden.has(groupOf(e.kind)) && on.has(e.from) && on.has(e.to);
   const found = new Set();
   let shown = on;
   if (fold(query).trim()) {
     for (const n of graph.nodes) if (on.has(n.id) && matches(n, query)) found.add(n.id);
     shown = new Set(found);
+    if (keep !== null && on.has(keep)) shown.add(keep);
     for (const e of graph.edges) {
       if (!edgeOn(e)) continue;
       if (found.has(e.from)) shown.add(e.to);
@@ -324,12 +327,13 @@ export function drillBack(trail, to = trail.length - 2) {
 // when the drill path is not empty, to the neighbourhood of its last
 // station at the given depth. The neighbourhood follows the edges the
 // switches leave on, the query aside, so a search inside a separated
-// neighbourhood narrows it rather than reaching out of it.
-export function visible(graph, { query = "", hidden = new Set(), trail = [], depth = 1 } = {}) {
-  const shown = filter(graph, { query, hidden });
+// neighbourhood narrows it rather than reaching out of it. keep is as for
+// filter: a station the filters hide leaves nothing, unless it is kept.
+export function visible(graph, { query = "", hidden = new Set(), trail = [], depth = 1, keep = null } = {}) {
+  const shown = filter(graph, { query, hidden, keep });
   const at = trail[trail.length - 1];
   if (at === undefined) return shown;
-  const base = filter(graph, { hidden });
+  const base = filter(graph, { hidden, keep });
   const near = base.nodes.has(at) ? around(graph, at, depth, base.edges) : new Set();
   const nodes = new Set([...shown.nodes].filter((id) => near.has(id)));
   const edges = shown.edges.filter((i) => nodes.has(graph.edges[i].from) && nodes.has(graph.edges[i].to));
