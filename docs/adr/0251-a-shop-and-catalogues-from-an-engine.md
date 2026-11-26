@@ -56,6 +56,7 @@ Chosen option: **1**, because it puts the catalogue where it is written and the 
 - Pictures are handed on only as PNG, JPEG, WebP or GIF, never SVG, with `nosniff` and a content security policy that allows nothing.
 - Only people with an account here reach the shop, connected to the engine with their own grant; there is no anonymous ordering.
 - The shop is reached from the module switcher and from a quick access of its own on the start page, with a shopping cart as its symbol.
+- Where the shop is not available yet, the page says so in plain words; administrators see there what to set up, step by step, which engines offer no shop, and a link to the process engines (`#/admin?section=engines`). Connecting says in three steps what happens. The pages of a catalogue and of a product say what goes into each field.
 - The shop page (`#/shop`) shows the catalogues as tiles, a product with its order form, a basket per catalogue release, one's orders with the state of each position, and the approvals one holds.
 
 ### Catalogues as items
@@ -63,6 +64,7 @@ Chosen option: **1**, because it puts the catalogue where it is written and the 
 - Two installation types, set up by an administrator (`POST /api/shop/types`): `shop-catalogue` and `shop-product`.
   A product's workflow is the engine's: draft, active, withdrawn.
   The fields carry what the engine keeps of a catalogue and a product: the engine, the IDs, languages and rank, the audience, the processes that provision and take back, the approval, the order form, price, category, whether a product may be held more than once, how long, when it may be ordered, who may order it, and a name per language.
+- The field `engine` holds the ID of an engine set up here and stays a text field; the web UI draws every text field named `engine` as a choice among the engines set up here, by name and ID, so that the ID is not typed by hand. An ID no engine has any more stays chosen and is marked as not set up.
 - A catalogue's products are the `shop-product` items below it in the page tree, at any depth (D5: the catalogue is the product's home).
   Structure and precedence are relations made by hand with the engine's own words: `composition`, `aggregation`, `requires` and `excludes`.
   A product's labels are its keywords; its text, without protected passages (ADR-0088), is its description in the catalogue's first language.

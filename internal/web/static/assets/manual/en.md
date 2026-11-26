@@ -33,9 +33,11 @@ Sign in with your username and password, or with single sign-on if your organisa
 
 To sign in with an account at a provider your organisation has set up, link it once: open **Account**, find **Sign-in with other accounts**, give your password and choose **Link**; the provider asks you to sign in there and brings you back. From then on that account signs you in to your existing account. Where calendars of other services are allowed, a linked Google account offers **Show the calendars of this account**: Google proposes the same account and asks you to allow reading its calendars, and you choose which calendars the wiki's calendar shows. Apple's calendars are connected under **Other calendars** in the calendar, with an app-specific password. **Unlink** ends the link; an account without a password keeps its only way to sign in. An account at the provider is linked to one account here only; if it already holds an account of its own, an administrator removes that link first, in the user list under **Administration**. If you forgot your password, ask for a reset link by mail; the link lets you choose a new password and ends your other sessions.
 
-### The top bar
+### The top bar {#top-bar}
 
 The bar at the top of every page holds, from left to right:
+
+![The modules behind the nine dots](img/en/modules.png "35 right")
 
 - **Nine dots** (Modules): opens the module switcher with Rooms, Create, Planning, My journal, Comments, Album, Whiteboards, Starmap, AI access, Governance, Account and, for administrators, Administration.
 - **Start page**, **Back** and **Forward**.
@@ -49,11 +51,55 @@ The bar at the top of every page holds, from left to right:
 - **Reading mode** (Ctrl+Shift+F, F11): the page fills the screen; Esc leaves it.
 - Your **profile picture** or initials: opens the account menu with *Account and password*, *AI access*, *Manual*, *Administration* (administrators only) and *Log out*.
 
-### The start page
+### The start page {#start-page}
 
-The start page greets you by your display name (see *Your account*), shows counts of pages, tasks and pictures, and offers quick access to **My journal** (today's daily note, with today's date), right beside it **My notes** (your personal notes), the starmap, the **Rooms** (the overview of your rooms, also reached from the module switcher), your tasks under **Planning**, notifications, the album, the whiteboards, the **Shop** with its shopping cart and AI access.
+The start page greets you by your display name (see *Your account*), shows counts of pages, tasks and pictures, and offers quick access to the starmap, the **Rooms** (the overview of your rooms, also reached from the module switcher), your tasks under **Planning**, notifications, the album, the whiteboards, the **Shop** with its shopping cart, AI access and, at the end, **My journal** (today's daily note, with today's date) and right beside it **My notes** (your personal notes).
 Point at a tile with the mouse to see what it offers.
 The overview of rooms lists your rooms, as tiles or as a list; a star marks a room as a favourite. If there are no rooms yet, administrators find the first steps on the start page: create a room, add types from the ready-made templates (page, task, decision, daily note), and give people a role.
+
+![The tiles of the start page](img/en/home.png)
+
+Each tile wears the symbol of its module, the same as behind the nine dots:
+
+![](img/icons/starmap.png "5 left")
+
+**Starmap**: your rooms as a map of connections.
+
+![](img/icons/spaces.png "5 left")
+
+**Rooms**: the overview of your rooms.
+
+![](img/icons/tasks.png "5 left")
+
+**Planning**: open work across your rooms.
+
+![](img/icons/notes.png "5 left")
+
+**Notifications**: what changed in what you watch.
+
+![](img/icons/album.png "5 left")
+
+**Album**: pictures, drawings and videos.
+
+![](img/icons/whiteboards.png "5 left")
+
+**Whiteboards**: drawing together, live.
+
+![](img/icons/shop.png "5 left")
+
+**Shop**: ordering from a process engine's catalogues.
+
+![](img/icons/mcp.png "5 left")
+
+**AI access**: connecting an AI assistant.
+
+![](img/icons/today.png "5 left")
+
+**My journal**: today's daily note.
+
+![](img/icons/my-notes.png "5 left")
+
+**My notes**: your personal notes.
 
 ## Pages and items
 
@@ -64,6 +110,8 @@ Choose **+ New** in the top bar or **New page** in a room. The creation view ask
 ### Reading an item
 
 An item shows its title, its key, type and state, and its text. The panel **About this item** at the side holds its details:
+
+![A page with its text, its details and its comments](img/en/page.png)
 
 - **Owner and details**: the item's fields, editable by those who may edit.
 - **Status**: the current state and the available transitions (**Change the status**).
@@ -224,7 +272,7 @@ The capture view shows the title, the address and the text, which you may change
 
 ## Working together
 
-### Comments
+### Comments {#comments}
 
 Every item has comments at its end. Write a comment, mention people with @name, and use **Reply** and **Resolve**; resolved threads stay visible under *Resolved* and can be reopened. To comment on a passage, select text within one block and choose **Comment**; the comment shows the passage, and **Show this text in the page** leads back to it.
 
@@ -234,7 +282,7 @@ The module **Comments** gathers comments on the items you watch, your own and th
 
 **Watch** on a page or a room tells you of what happens there: new child pages, edits, changes of state and fields, comments, labels and files. The bell in the top bar leads to your **Notifications**, filtered by *Mentions*, *Comments* and *Changes*, or *Unread only*. You are also told when someone mentions you, answers an access request or when a page you saved was restricted because of sensitive data. Under **Account and password** you set the channels through which messages reach you, such as a mail address.
 
-### Personal notes
+### Personal notes {#notes}
 
 Select a passage while reading and choose **Note** to keep a note on it that only you see. **My notes** on the start page lists all your notes with the passages they belong to.
 
@@ -250,7 +298,7 @@ Several people can edit a text at once. Each block someone is working on is lock
 
 ## Finding information
 
-### Search
+### Search {#search}
 
 Type words of a title, a text or a comment, or a key such as `PLAT-12`, into the search field. Suggestions appear while you type; **Enter** shows all results, ordered by relevance (one to five stars). The search finds only what you may read.
 
@@ -258,7 +306,7 @@ Type words of a title, a text or a comment, or a key such as `PLAT-12`, into the
 
 Ctrl+K (when you are not editing a text, where Ctrl+K inserts a link) or Ctrl+Shift+P opens the **Command palette**. Type part of a title, a key or a command: it finds items, offers your **Recently opened** items (remembered in this browser) and **Commands** such as a new item, today's daily note, a module or room, the query, the calendar, the light or dark look, reading mode and the manual. The letters you type need only appear in order, so `tdn` finds *Today's daily note*. Arrow keys choose, Enter opens, Esc closes.
 
-### Queries
+### Queries {#queries}
 
 A **query** selects items by their fields. Open it from the search results (**Query the fields of the items instead**). Conditions are joined with AND, OR and NOT; parentheses group them:
 
@@ -301,13 +349,15 @@ A label's page shows the items carrying its label as a view: **Table**, **Galler
 
 ## Tasks
 
-### The task list
+### The task list {#tasks}
 
 The module **Planning** lists open work across your rooms: items of the type *task* and of every type with a workflow and an *assignee* or *due* field. The tabs show **Assigned to me**, **Unassigned** and **All open**; filters narrow by room, state, person, due date and labels. **Take over** assigns a task to you, **Give back** releases it. Overdue tasks are marked.
 
+![The task list under Planning](img/en/tasks.png)
+
 The ready-made type *task* has a *start* date beside its *due* date. A new task starts today: when it is created, its start date is filled with the current day, which can be changed or cleared in the form. The same holds for every date field named like a beginning (*start*, *begin*, *kickoff* and the like); a task created in the calendar takes the day chosen there. The calendar and the roadmap show a task with both dates as a bar from its start to its due date. A start date is not a deadline: on a kanban a past start date is not marked as overdue. Types created before gain the field when an administrator adds the ready-made types' new fields on the start page.
 
-### Boards and kanbans
+### Boards and kanbans {#boards}
 
 A **board** shows the items of one type in a room as columns of their workflow states. Dragging a card to another column carries out the workflow's transition.
 
@@ -319,7 +369,7 @@ A **kanban** gathers the tasks of a topic: choose **New kanban** under *Planning
 
 Cards are added with **New card**, opened for their details, and taken off with **Take off this kanban**. **Boards by label** shows every label's tasks as a board without creating a kanban.
 
-### Roadmap and Gantt chart
+### Roadmap and Gantt chart {#roadmap}
 
 **Roadmap** shows items with date fields on a time axis: as a **Roadmap by label** in lanes, or as a **Gantt chart** with one row per item. Choose the room, the types, the **Start** and **End** fields, the labels and the **Scale** (weeks, months, quarters). Items that wait on unfinished items are marked.
 
@@ -327,9 +377,11 @@ Cards are added with **New card**, opened for their details, and taken off with 
 
 **Export** saves the chart as a picture, as **PNG** or **JPEG**, with every row and the whole time axis, also what is scrolled out of sight. The picture shows what you see, in the current look, and is named after the view and the day, such as *Gantt chart PLAT 2026-11-12.png*. A chart too large for a picture the browser can draw is refused with a note; narrow it by labels, type or room, or choose a coarser scale.
 
-### Calendar
+### Calendar {#calendar}
 
 The **Calendar** shows items with date fields as a **Month**, **Week** or **Agenda**. **Filter** chooses the room, the type, who is assigned, the status, words of the text and labels; a sentence above the calendar says what is shown. Under **Advanced** you choose the date fields and an additional query.
+
+![The calendar](img/en/calendar.png)
 
 - Where you may edit, drag an entry to another day, or move it with Shift and an arrow key. In the week view, a meeting dropped at another hour keeps its length.
 - A repeating entry asks whether to move **Only this occurrence** or **The whole series**; Delete cancels one occurrence.
@@ -337,7 +389,7 @@ The **Calendar** shows items with date fields as a **Month**, **Week** or **Agen
 - **Save view…** keeps a view under a name. If calendar feeds are enabled, **Subscribe (iCal)** gives an address for a calendar program. Whoever knows this address sees the entries without signing in; **New address** and **End feed** withdraw it.
 - If your administrator allows it, **Other calendars** shows your calendars of other services beside Orbithek's: iCalendar addresses, Google accounts and CalDAV accounts such as Apple iCloud. They are shown read-only and only to you.
 
-## Album and pictures
+## Album and pictures {#album}
 
 ### Views of the album
 
@@ -499,7 +551,7 @@ In the presenter's window, the slides of the strip are dragged the same way; the
 
 Pictures added later come after the placed ones, by name; a new version of a drawing keeps its place. **Order by name** forgets the order set by hand. To place a picture after the last one shown while more follow, choose **Show more** first.
 
-## Drawings and whiteboards
+## Drawings and whiteboards {#whiteboards}
 
 ### Drawings
 
@@ -511,7 +563,7 @@ Every drawing can be opened with **Open as whiteboard**: up to 20 people and AI 
 
 While people work on a whiteboard, the drawing cannot be edited alone; the page offers to join instead.
 
-## Maps of connections
+## Maps of connections {#starmap}
 
 ### Starmap of a room
 
@@ -562,38 +614,54 @@ When someone saves a password, a key or an account number, Orbithek restricts th
 
 If the page's type has a Word template, the Word export uses it. Lists of items and query results export as CSV.
 
-## Process engines
+## Process engines {#process-engines}
 
 If your administrator has connected a process engine, a text can show its processes as BPMN diagrams, with an operations view of counts, its forms, decisions and architecture sketches, and start forms that start a process when they are sent.
 
+![The process engines under Administration](img/en/engines.png)
+
+![An engine: its ID, name and address](img/en/engine-form.png)
+
+![Connecting this server to the engine](img/en/engine-connect.png)
+
 Tasks of an engine can appear as linked tasks in a room. Under **Account and password → Connected engines** you connect your account to an engine; then you take a task on, give it back and complete it with its form directly in Orbithek (**Take on**, **Give back**, **Complete…**). A linked task's title and fields belong to the engine; it ends when the engine ends it.
 
-### The shop of an engine
+### The shop of an engine {#shop}
 
 If an engine offers a shop, **Shop** in the module switcher, or its tile with the shopping cart on the start page, shows the catalogues you may order from, your orders and the approvals you hold.
 The engine decides what you see, order and approve; you act as yourself.
 The first time, **Connect for the shop** takes you to the engine, where you sign in and allow Orbithek your shop and your tasks.
 A connection made only for tasks is asked to connect again once.
+If the shop is not set up yet, the page says so; administrators see there what to set up, step by step, and a button to the process engines.
+
+![The shop before it is set up, as most people see it](img/en/shop-user.png)
+
+![The same page for administrators, with the steps to set it up](img/en/shop-setup.png)
 
 Under **Catalogues**, **Choose** opens a product with what comes with it, its options, its version and its order form.
 **Add to basket** puts it in the **Basket**; **Place order** places one order per catalogue.
 Under **My orders** you follow each position, **Withdraw order** stops what has not happened yet, and **Give back** returns a delivered position.
 Under **Approvals** you decide the approvals you hold with **Approve** or **Refuse**; a refusal needs a reason, which the person who ordered reads.
 
-### Maintaining a shop catalogue
+### Maintaining a shop catalogue {#shop-catalogue}
 
 A catalogue of an engine's shop can be written in a room.
 An administrator sets up the types once, on the engine's page under **Administration** with **Set up the types**.
-A catalogue is an item of type `shop-catalogue` with the engine, its languages and its rank; its products are items of type `shop-product` below it in the page tree.
+A catalogue is an item of type `shop-catalogue` with the engine, chosen among those set up here, its languages and its rank; its products are items of type `shop-product` below it in the page tree.
 A product names the processes that provision it and take it back, its approval, its order form and price; it is offered once it is active.
 Relations of the types `composition`, `aggregation`, `requires` and `excludes` between products become the catalogue's structure; a product's labels become its keywords and its text, without protected passages, its description.
 
+![Setting up the types once](img/en/shop-types.png "60")
+
+![The card of a catalogue, with what goes into its fields](img/en/shop-catalogue.png "45 right")
+
 On the catalogue's page, the card **Shop catalogue** shows what would be published or what stops it (**Check**).
+The card and the card **Shop product** on a product's page say what goes into each field (**What goes into the fields?**).
 **Dry run** asks the engine whether it would accept the catalogue, without changing anything; **Publish** replaces what the engine holds of it and offers a new release.
 You publish with your own connection to the shop; whether you may maintain catalogues there, the engine decides.
 Afterwards the engine accepts changes to the catalogue only from Orbithek.
 
-## AI assistants
+## AI assistants {#ai}
 
 **AI access** explains how an AI assistant reads, searches and writes pages over the Model Context Protocol (MCP), always with exactly your rights:
 
@@ -602,7 +670,7 @@ Afterwards the engine accepts changes to the catalogue only from Orbithek.
 
 Moving, deleting, restrictions and administration are deliberately not available to assistants.
 
-## Your account
+## Your account {#account}
 
 **Account and password** in the account menu holds:
 
@@ -628,7 +696,7 @@ The module **Governance** shows, for each room you hold a role in, the findings 
 
 The person who changed an item last is named responsible and sees their open findings in the notifications.
 
-## Administration
+## Administration {#administration}
 
 Administrators find under **Administration**:
 
@@ -670,3 +738,5 @@ On a Mac, use Cmd instead of Ctrl.
 ## Getting help
 
 If a function described here is missing, it may be switched off on your server or your role may not allow it; ask your room administrator or an administrator of the installation. The start page shows the version of Orbithek you are using.
+
+A «?» beside a heading opens this manual at the chapter about that place.

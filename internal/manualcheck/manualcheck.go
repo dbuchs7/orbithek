@@ -8,6 +8,10 @@
 // every manual (manual/<lang>.md), or when its description holds a line of
 // its own "Manual: not needed — <reason>". The rules judge by files and
 // catalogue values, not by meaning; cmd/manualcheck reads them from git.
+//
+// Check C, in pictures.go, holds the manual's pictures to the same: a pull
+// request that changes what a picture shows takes it again, or says why it
+// need not (ADR-0254).
 package manualcheck
 
 import (
@@ -43,6 +47,13 @@ type Change struct {
 	Manuals []string
 	// Body is the pull request's description.
 	Body string
+	// Pictures is the manual's list of pictures and what they show, at the
+	// head; Langs the manual's languages.
+	Pictures []Picture
+	Langs    []string
+	// OldSources and NewSources hold, per file a picture's source reads,
+	// its text at the base and at the head.
+	OldSources, NewSources map[string]string
 }
 
 // Report is the outcome of the rules for one pull request.
@@ -59,6 +70,11 @@ type Report struct {
 	Missing []string
 	// Reason is the reason given in the description, if any.
 	Reason string
+	// Stale lists the pictures whose sources changed but which were not
+	// taken again; PicturesReason is the description's reason why they
+	// need not be, if any.
+	Stale          []StalePicture
+	PicturesReason string
 }
 
 // Visible reports whether the pull request changes what people see.
@@ -66,11 +82,20 @@ func (r Report) Visible() bool {
 	return len(r.Keys)+len(r.Routes)+len(r.Views)+len(r.Modules) > 0
 }
 
-// OK reports whether the pull request passes: it changes nothing people
-// see, changes every manual, or gives a reason.
-func (r Report) OK() bool {
+// ManualOK reports whether the pull request passes Check B: it changes
+// nothing people see, changes every manual, or gives a reason.
+func (r Report) ManualOK() bool {
 	return !r.Visible() || len(r.Missing) == 0 || r.Reason != ""
 }
+
+// PicturesOK reports whether the pull request passes Check C: it takes
+// again every picture whose sources it changes, or gives a reason.
+func (r Report) PicturesOK() bool {
+	return len(r.Stale) == 0 || r.PicturesReason != ""
+}
+
+// OK reports whether the pull request passes both checks.
+func (r Report) OK() bool { return r.ManualOK() && r.PicturesOK() }
 
 // Evaluate applies the rules to a change.
 func Evaluate(c Change) (Report, error) {
@@ -99,6 +124,8 @@ func Evaluate(c Change) (Report, error) {
 	}
 	slices.Sort(r.Missing)
 	r.Reason = NotNeeded(c.Body)
+	r.Stale = StalePictures(PictureChange{Pictures: c.Pictures, Old: c.OldSources, New: c.NewSources, Keys: r.Keys, Langs: c.Langs, Changed: c.Changed})
+	r.PicturesReason = PicturesNotNeeded(c.Body)
 	return r, nil
 }
 

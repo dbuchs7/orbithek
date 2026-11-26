@@ -33,9 +33,11 @@ Die Anmeldung erfolgt mit Benutzername und Passwort oder per Single Sign-on, sof
 
 Um sich mit einem Konto bei einem von der Organisation eingerichteten Anbieter anzumelden, verknüpft man es einmal: unter **Konto** im Abschnitt **Anmeldung mit anderen Konten** das Passwort eingeben und **Verknüpfen** wählen; der Anbieter verlangt die Anmeldung dort und leitet zurück. Danach meldet jenes Konto einen am bestehenden Konto an. Sind Kalender anderer Dienste erlaubt, bietet ein verknüpftes Google-Konto **Kalender dieses Kontos anzeigen** an: Google schlägt dasselbe Konto vor und fragt, ob seine Kalender gelesen werden dürfen; danach wählt man, welche Kalender im Kalender des Wikis erscheinen. Kalender von Apple verbindet man im Kalender unter **Andere Kalender**, mit einem app-spezifischen Passwort. **Verknüpfung lösen** beendet die Verknüpfung; ein Konto ohne Passwort behält seinen einzigen Anmeldeweg. Ein Konto beim Anbieter ist mit nur einem Konto hier verknüpft; hat es bereits ein eigenes Konto, entfernt die Administration diese Verknüpfung zuerst in der Benutzerliste unter **Administration**. Bei vergessenem Passwort fordert man einen Link zum Zurücksetzen per E-Mail an; damit wählt man ein neues Passwort, und die übrigen Sitzungen werden beendet.
 
-### Die obere Leiste
+### Die obere Leiste {#top-bar}
 
 Die Leiste oben auf jeder Seite enthält von links nach rechts:
+
+![Die Module hinter den neun Punkten](img/de/modules.png "35 right")
 
 - **Neun Punkte** (Module): öffnet den Modulwechsler mit Räume, Erstellen, Planung, Mein Journal, Kommentare, Album, Whiteboards, Sternenkarte, KI-Zugang, Governance, Konto und, für die Administration, Administration.
 - **Startseite**, **Zurück** und **Vorwärts**.
@@ -49,11 +51,55 @@ Die Leiste oben auf jeder Seite enthält von links nach rechts:
 - Den **Lesemodus** (Ctrl+Shift+F, F11): Die Seite füllt den Bildschirm; Esc beendet ihn.
 - Das **Profilbild** oder die Initialen: öffnet das Kontomenü mit *Konto und Passwort*, *KI-Zugang*, *Handbuch*, *Administration* (nur für die Administration) und *Abmelden*.
 
-### Die Startseite
+### Die Startseite {#start-page}
 
-Die Startseite begrüsst mit dem Anzeigenamen (siehe *Das eigene Konto*), zeigt die Anzahl Seiten, Aufgaben und Bilder und bietet einen Schnellzugriff auf **Mein Journal** (die Tagesnotiz von heute, mit dem heutigen Datum), gleich daneben **Meine Notizen** (die persönlichen Notizen), die Sternenkarte, die **Räume** (die Übersicht der eigenen Räume, auch über den Modulwechsler erreichbar), die eigenen Aufgaben unter **Planung**, Benachrichtigungen, das Album, die Whiteboards, den **Shop** mit dem Einkaufswagen und den KI-Zugang.
+Die Startseite begrüsst mit dem Anzeigenamen (siehe *Das eigene Konto*), zeigt die Anzahl Seiten, Aufgaben und Bilder und bietet einen Schnellzugriff auf die Sternenkarte, die **Räume** (die Übersicht der eigenen Räume, auch über den Modulwechsler erreichbar), die eigenen Aufgaben unter **Planung**, Benachrichtigungen, das Album, die Whiteboards, den **Shop** mit dem Einkaufswagen, den KI-Zugang und am Ende auf **Mein Journal** (die Tagesnotiz von heute, mit dem heutigen Datum) und gleich daneben **Meine Notizen** (die persönlichen Notizen).
 Zeigt man mit der Maus auf eine Kachel, erscheint eine kurze Erklärung, was sie bietet.
 Die Raumübersicht zeigt die eigenen Räume als Kacheln oder als Liste; ein Stern markiert einen Raum als Favorit. Gibt es noch keine Räume, findet die Administration auf der Startseite die ersten Schritte: einen Raum erstellen, mit den Vorlagen Typen hinzufügen (Seite, Aufgabe, Entscheidung, Tagesnotiz) und Personen eine Rolle geben.
+
+![Die Kacheln der Startseite](img/de/home.png)
+
+Jede Kachel trägt das Symbol ihres Moduls, dasselbe wie hinter den neun Punkten:
+
+![](img/icons/starmap.png "5 left")
+
+**Sternenkarte**: die eigenen Räume als Karte der Zusammenhänge.
+
+![](img/icons/spaces.png "5 left")
+
+**Räume**: die Übersicht der eigenen Räume.
+
+![](img/icons/tasks.png "5 left")
+
+**Planung**: offene Arbeit in den eigenen Räumen.
+
+![](img/icons/notes.png "5 left")
+
+**Benachrichtigungen**: was sich an Beobachtetem geändert hat.
+
+![](img/icons/album.png "5 left")
+
+**Album**: Bilder, Zeichnungen und Videos.
+
+![](img/icons/whiteboards.png "5 left")
+
+**Whiteboards**: gemeinsam und live zeichnen.
+
+![](img/icons/shop.png "5 left")
+
+**Shop**: aus den Katalogen einer Prozess-Engine bestellen.
+
+![](img/icons/mcp.png "5 left")
+
+**KI-Zugang**: einen KI-Assistenten verbinden.
+
+![](img/icons/today.png "5 left")
+
+**Mein Journal**: die Tagesnotiz von heute.
+
+![](img/icons/my-notes.png "5 left")
+
+**Meine Notizen**: die persönlichen Notizen.
 
 ## Seiten und Einträge
 
@@ -64,6 +110,8 @@ Man wählt **+ Neu** in der oberen Leiste oder **Neue Seite** in einem Raum. Die
 ### Einen Eintrag lesen
 
 Ein Eintrag zeigt Titel, Schlüssel, Typ und Status sowie seinen Text. Die Seitenleiste **Zu diesem Eintrag** enthält die Angaben:
+
+![Eine Seite mit ihrem Text, ihren Details und ihren Kommentaren](img/de/page.png)
 
 - **Eigner und Details**: die Felder des Eintrags, bearbeitbar für alle mit Bearbeitungsrecht.
 - **Status**: der aktuelle Status und die möglichen Übergänge (**Status ändern**).
@@ -224,7 +272,7 @@ Die Erfassung zeigt Titel, Adresse und Text, die Sie ändern können, und fragt,
 
 ## Zusammenarbeiten
 
-### Kommentare
+### Kommentare {#comments}
 
 Jeder Eintrag hat an seinem Ende Kommentare. Man schreibt einen Kommentar, erwähnt Personen mit @Name und nutzt **Antworten** und **Erledigt**; erledigte Diskussionen bleiben unter *Erledigt* sichtbar und lassen sich wieder öffnen. Für einen Kommentar zu einer Textstelle markiert man Text innerhalb eines Blocks und wählt **Kommentieren**; der Kommentar zeigt die Stelle, und **Diesen Text auf der Seite zeigen** führt zu ihr zurück.
 
@@ -234,7 +282,7 @@ Das Modul **Kommentare** sammelt Kommentare zu beobachteten Einträgen, die eige
 
 **Beobachten** auf einer Seite oder in einem Raum meldet, was dort geschieht: neue Unterseiten, Bearbeitungen, Änderungen von Status und Feldern, Kommentare, Labels und Dateien. Die Glocke in der oberen Leiste führt zu den **Benachrichtigungen**, filterbar nach *Erwähnungen*, *Kommentare* und *Änderungen* oder *Nur ungelesene*. Gemeldet wird auch, wenn jemand einen erwähnt, eine Freigabe-Anfrage beantwortet oder eine selbst gespeicherte Seite wegen schützenswerter Daten eingeschränkt wurde. Unter **Konto und Passwort** legt man die Nachrichtenkanäle fest, etwa eine E-Mail-Adresse.
 
-### Persönliche Notizen
+### Persönliche Notizen {#notes}
 
 Beim Lesen markiert man eine Stelle und wählt **Notiz**, um eine Notiz dazu anzulegen, die nur man selbst sieht. **Meine Notizen** auf der Startseite listet alle eigenen Notizen mit den zugehörigen Stellen auf.
 
@@ -250,7 +298,7 @@ Mehrere Personen können einen Text gleichzeitig bearbeiten. Jeder Block, an dem
 
 ## Informationen finden
 
-### Suche
+### Suche {#search}
 
 Man gibt Wörter aus Titel, Text oder Kommentar oder einen Schlüssel wie `PLAT-12` in das Suchfeld ein. Während der Eingabe erscheinen Vorschläge; **Enter** zeigt alle Treffer, geordnet nach Relevanz (ein bis fünf Sterne). Die Suche findet nur, was man lesen darf.
 
@@ -258,7 +306,7 @@ Man gibt Wörter aus Titel, Text oder Kommentar oder einen Schlüssel wie `PLAT-
 
 Ctrl+K (ausser beim Bearbeiten eines Texts, wo Ctrl+K einen Link einfügt) oder Ctrl+Shift+P öffnet die **Befehlspalette**. Man tippt einen Teil eines Titels, eines Schlüssels oder eines Befehls: Sie findet Einträge, bietet unter **Zuletzt geöffnet** die zuletzt geöffneten Einträge an (in diesem Browser gemerkt) und **Befehle** wie einen neuen Eintrag, die Tagesnotiz von heute, ein Modul oder einen Raum, die Abfrage, den Kalender, die helle oder dunkle Darstellung, den Lesemodus und das Handbuch. Die getippten Buchstaben müssen nur in ihrer Reihenfolge vorkommen, so findet `tvh` die *Tagesnotiz von heute*. Pfeiltasten wählen, Enter öffnet, Esc schliesst.
 
-### Abfragen
+### Abfragen {#queries}
 
 Eine **Abfrage** wählt Einträge nach ihren Feldern aus. Man öffnet sie aus den Suchergebnissen (**Stattdessen die Felder der Einträge abfragen**). Bedingungen werden mit AND, OR und NOT verbunden; Klammern fassen sie zusammen:
 
@@ -301,13 +349,15 @@ Die Seite eines Labels zeigt die Einträge mit ihrem Label als Ansicht: **Tabell
 
 ## Aufgaben
 
-### Die Aufgabenliste
+### Die Aufgabenliste {#tasks}
 
 Das Modul **Planung** listet die offene Arbeit in den eigenen Räumen auf: Einträge vom Typ *task* sowie jedes Typs mit Workflow und einem Feld *assignee* oder *due*. Die Reiter zeigen **Mir zugewiesen**, **Nicht zugewiesen** und **Alle offenen**; Filter schränken nach Raum, Status, Person, Fälligkeit und Labels ein. **Übernehmen** weist eine Aufgabe sich selbst zu, **Zurückgeben** gibt sie frei. Überfällige Aufgaben sind markiert.
 
+![Die Aufgabenliste unter Planung](img/de/tasks.png)
+
 Der vorgefertigte Typ *task* hat neben dem Datum *due* ein Datum *start*. Eine neue Aufgabe beginnt heute: Beim Erstellen wird ihr Startdatum mit dem aktuellen Tag vorbelegt, den man im Formular ändern oder leeren kann. Dasselbe gilt für jedes Datumsfeld, dessen Name einen Beginn bezeichnet (*start*, *begin*, *kickoff* und ähnliche); eine im Kalender erstellte Aufgabe übernimmt den dort gewählten Tag. Kalender und Roadmap zeigen eine Aufgabe mit beiden Daten als Balken vom Beginn bis zur Fälligkeit. Ein Startdatum ist keine Frist: Auf einem Kanban wird ein vergangenes Startdatum nicht als überfällig markiert. Bereits angelegte Typen erhalten das Feld, wenn eine Administratorin oder ein Administrator auf der Startseite die neuen Felder der vorgefertigten Typen hinzufügt.
 
-### Boards und Kanbans
+### Boards und Kanbans {#boards}
 
 Ein **Board** zeigt die Einträge eines Typs in einem Raum als Spalten ihrer Workflow-Status. Das Ziehen einer Karte in eine andere Spalte führt den Übergang des Workflows aus.
 
@@ -319,7 +369,7 @@ Ein **Kanban** fasst die Aufgaben eines Themas zusammen: Unter *Planung → Kanb
 
 Karten werden mit **Neue Karte** hinzugefügt, für ihre Details geöffnet und mit **Vom Kanban nehmen** entfernt. **Boards nach Label** zeigt die Aufgaben jedes Labels als Board, ohne ein Kanban anzulegen.
 
-### Roadmap und Gantt-Diagramm
+### Roadmap und Gantt-Diagramm {#roadmap}
 
 Die **Roadmap** zeigt Einträge mit Datumsfeldern auf einer Zeitachse: als **Roadmap nach Label** in Bahnen oder als **Gantt-Diagramm** mit einer Zeile je Eintrag. Man wählt Raum, Typen, die Felder **Beginn** und **Ende**, die Labels und den **Massstab** (Wochen, Monate, Quartale). Einträge, die auf unerledigte Einträge warten, sind markiert.
 
@@ -327,9 +377,11 @@ Die **Roadmap** zeigt Einträge mit Datumsfeldern auf einer Zeitachse: als **Roa
 
 **Exportieren** speichert das Diagramm als Bild, als **PNG** oder **JPEG**, mit allen Zeilen und der ganzen Zeitachse, auch dem, was ausserhalb des sichtbaren Bereichs liegt. Das Bild zeigt, was man sieht, im aktuellen Erscheinungsbild, und ist nach der Ansicht und dem Tag benannt, etwa *Gantt-Diagramm PLAT 2026-11-12.png*. Ein Diagramm, das für ein Bild zu gross ist, das der Browser zeichnen kann, wird mit einem Hinweis abgelehnt; man schränkt es nach Labels, Typ oder Raum ein oder wählt einen gröberen Massstab.
 
-### Kalender
+### Kalender {#calendar}
 
 Der **Kalender** zeigt Einträge mit Datumsfeldern als **Monat**, **Woche** oder **Agenda**. **Filter** wählt Raum, Typ, Zuständigkeit, Status, Wörter des Textes und Labels; ein Satz über dem Kalender beschreibt, was gezeigt wird. Unter **Erweitert** wählt man die Datumsfelder und eine zusätzliche Abfrage.
+
+![Der Kalender](img/de/calendar.png)
 
 - Wo man bearbeiten darf, zieht man einen Eintrag auf einen anderen Tag oder verschiebt ihn mit Shift und einer Pfeiltaste. In der Wochenansicht behält eine auf eine andere Stunde verschobene Besprechung ihre Dauer.
 - Ein wiederkehrender Eintrag fragt, ob **Nur dieses Vorkommen** oder **Die ganze Serie** verschoben wird; die Taste Entf sagt ein Vorkommen ab.
@@ -337,7 +389,7 @@ Der **Kalender** zeigt Einträge mit Datumsfeldern als **Monat**, **Woche** oder
 - **Ansicht speichern…** legt eine Ansicht unter einem Namen ab. Sind Kalender-Feeds eingeschaltet, liefert **Abonnieren (iCal)** eine Adresse für ein Kalenderprogramm. Wer diese Adresse kennt, sieht die Einträge ohne Anmeldung; **Neue Adresse** und **Feed beenden** ziehen sie zurück.
 - Erlaubt es die Administration, zeigt **Andere Kalender** die eigenen Kalender anderer Dienste neben denen von Orbithek: iCalendar-Adressen, Google-Konten und CalDAV-Konten wie Apple iCloud. Sie werden nur lesend und nur der eigenen Person gezeigt.
 
-## Album und Bilder
+## Album und Bilder {#album}
 
 ### Ansichten des Albums
 
@@ -499,7 +551,7 @@ Im Referentenfenster werden die Folien der Leiste ebenso gezogen; die Reihenfolg
 
 Später hinzugefügte Bilder folgen nach den eingereihten, nach Namen; eine neue Version einer Zeichnung behält ihren Platz. **Nach Namen ordnen** verwirft die von Hand gesetzte Reihenfolge. Um ein Bild hinter das letzte gezeigte zu setzen, während weitere folgen, zuerst **Mehr anzeigen** wählen.
 
-## Zeichnungen und Whiteboards
+## Zeichnungen und Whiteboards {#whiteboards}
 
 ### Zeichnungen
 
@@ -511,7 +563,7 @@ Jede Zeichnung lässt sich mit **Als Whiteboard öffnen** öffnen: Bis zu 20 Per
 
 Solange Personen an einem Whiteboard arbeiten, lässt sich die Zeichnung nicht allein bearbeiten; die Seite bietet stattdessen den Beitritt an.
 
-## Karten der Zusammenhänge
+## Karten der Zusammenhänge {#starmap}
 
 ### Sternenkarte eines Raums
 
@@ -562,38 +614,54 @@ Speichert jemand ein Passwort, einen Schlüssel oder eine Kontonummer, schränkt
 
 Hat der Typ der Seite eine Word-Vorlage, verwendet der Word-Export sie. Listen von Einträgen und Abfrageergebnisse lassen sich als CSV exportieren.
 
-## Prozess-Engines
+## Prozess-Engines {#process-engines}
 
 Hat die Administration eine Prozess-Engine angebunden, kann ein Text deren Prozesse als BPMN-Diagramme zeigen, mit einer Operations-Sicht der Zählungen, sowie ihre Formulare, Entscheidungen und Architekturskizzen und Startformulare, die beim Absenden einen Prozess starten.
 
+![Die Prozess-Engines unter Administration](img/de/engines.png)
+
+![Eine Engine: ihre ID, ihr Name und ihre Adresse](img/de/engine-form.png)
+
+![Diesen Server mit der Engine verbinden](img/de/engine-connect.png)
+
 Tasks einer Engine können als verknüpfte Aufgaben in einem Raum erscheinen. Unter **Konto und Passwort → Verbundene Engines** verbindet man das eigene Konto mit einer Engine; danach übernimmt man einen Task, gibt ihn zurück und schliesst ihn mit seinem Formular direkt in Orbithek ab (**Übernehmen**, **Zurückgeben**, **Abschliessen…**). Titel und Felder einer verknüpften Aufgabe gehören der Engine; sie endet, wenn die Engine sie beendet.
 
-### Der Shop einer Engine
+### Der Shop einer Engine {#shop}
 
 Bietet eine Engine einen Shop an, zeigt **Shop** im Modulwechsler oder seine Kachel mit dem Einkaufswagen auf der Startseite die Kataloge, aus denen man bestellen darf, die eigenen Bestellungen und die Genehmigungen, die man hält.
 Die Engine entscheidet, was man sieht, bestellt und genehmigt; man handelt als man selbst.
 Beim ersten Mal führt **Für den Shop verbinden** zur Engine, wo man sich anmeldet und Orbithek den eigenen Shop und die eigenen Tasks erlaubt.
 Eine Verbindung, die nur für Tasks besteht, wird einmal erneut verbunden.
+Ist der Shop noch nicht eingerichtet, sagt die Seite das; die Administration sieht dort Schritt für Schritt, was einzurichten ist, und einen Knopf zu den Prozess-Engines.
+
+![Der Shop vor der Einrichtung, wie ihn die meisten sehen](img/de/shop-user.png)
+
+![Dieselbe Seite für die Administration, mit den Schritten der Einrichtung](img/de/shop-setup.png)
 
 Unter **Kataloge** öffnet **Auswählen** ein Produkt mit dem, was dazugehört, seinen Optionen, seiner Ausführung und seinem Bestellformular.
 **In den Warenkorb** legt es in den **Warenkorb**; **Bestellen** gibt pro Katalog eine Bestellung auf.
 Unter **Meine Bestellungen** verfolgt man jede Position, **Bestellung zurückziehen** hält an, was noch nicht geschehen ist, und **Zurückgeben** gibt eine gelieferte Position zurück.
 Unter **Genehmigungen** entscheidet man die Genehmigungen, die man hält, mit **Genehmigen** oder **Ablehnen**; eine Ablehnung braucht eine Begründung, welche die bestellende Person liest.
 
-### Einen Shop-Katalog pflegen
+### Einen Shop-Katalog pflegen {#shop-catalogue}
 
 Ein Katalog des Shops einer Engine kann in einem Raum geschrieben werden.
 Die Administration richtet die Typen einmal ein, auf der Seite der Engine unter **Administration** mit **Typen einrichten**.
-Ein Katalog ist ein Eintrag des Typs `shop-catalogue` mit der Engine, seinen Sprachen und seinem Rang; seine Produkte sind Einträge des Typs `shop-product` darunter im Seitenbaum.
+Ein Katalog ist ein Eintrag des Typs `shop-catalogue` mit der Engine, ausgewählt unter den hier eingerichteten, seinen Sprachen und seinem Rang; seine Produkte sind Einträge des Typs `shop-product` darunter im Seitenbaum.
 Ein Produkt nennt die Prozesse, die es bereitstellen und wieder entziehen, seine Genehmigung, sein Bestellformular und seinen Preis; angeboten wird es, sobald es aktiv ist.
 Beziehungen der Typen `composition`, `aggregation`, `requires` und `excludes` zwischen Produkten werden zur Struktur des Katalogs; die Labels eines Produkts werden zu seinen Stichwörtern und sein Text, ohne geschützte Passagen, zu seiner Beschreibung.
 
+![Die Typen einmal einrichten](img/de/shop-types.png "60")
+
+![Die Karte eines Katalogs, mit dem, was in die Felder gehört](img/de/shop-catalogue.png "45 right")
+
 Auf der Seite des Katalogs zeigt die Karte **Shop-Katalog**, was veröffentlicht würde oder was es verhindert (**Prüfen**).
+Diese Karte und die Karte **Shop-Produkt** auf der Seite eines Produkts erklären, was in die Felder gehört (**Was gehört in die Felder?**).
 **Probelauf** fragt die Engine, ob sie den Katalog annehmen würde, ohne etwas zu ändern; **Veröffentlichen** ersetzt, was die Engine davon hält, und bietet ein neues Release an.
 Man veröffentlicht mit der eigenen Verbindung zum Shop; ob man dort Kataloge pflegen darf, entscheidet die Engine.
 Danach nimmt die Engine Änderungen am Katalog nur noch von Orbithek an.
 
-## KI-Assistenten
+## KI-Assistenten {#ai}
 
 **KI-Zugang** erklärt, wie ein KI-Assistent über das Model Context Protocol (MCP) Seiten liest, durchsucht und schreibt, stets mit genau den eigenen Rechten:
 
@@ -602,7 +670,7 @@ Danach nimmt die Engine Änderungen am Katalog nur noch von Orbithek an.
 
 Verschieben, Löschen, Einschränkungen und Administration stehen Assistenten bewusst nicht zur Verfügung.
 
-## Das eigene Konto
+## Das eigene Konto {#account}
 
 **Konto und Passwort** im Kontomenü enthält:
 
@@ -628,7 +696,7 @@ Das Modul **Governance** zeigt für jeden Raum, in dem man eine Rolle hat, die B
 
 Wer einen Eintrag zuletzt geändert hat, gilt als verantwortlich und sieht die eigenen offenen Befunde in den Benachrichtigungen.
 
-## Administration
+## Administration {#administration}
 
 Die Administration findet unter **Administration**:
 
@@ -670,3 +738,5 @@ Auf einem Mac verwendet man Cmd statt Ctrl.
 ## Hilfe erhalten
 
 Fehlt eine hier beschriebene Funktion, ist sie möglicherweise auf dem Server ausgeschaltet oder die eigene Rolle erlaubt sie nicht; in diesem Fall wendet man sich an die Raumadministration oder an die Administration der Installation. Die Startseite zeigt die verwendete Version von Orbithek.
+
+Ein «?» neben einer Überschrift öffnet dieses Handbuch beim Kapitel über diese Stelle.

@@ -88,8 +88,8 @@ func TestRun(t *testing.T) {
 		t.Helper()
 		var out bytes.Buffer
 		inDir(t, dir, func() {
-			ok, err := run(&out, base, "HEAD", body)
-			if err != nil || ok != wantOK {
+			v, err := run(&out, base, "HEAD", body)
+			if ok := v.manual && v.pictures; err != nil || ok != wantOK {
 				t.Errorf("%s: ok=%v err=%v, want %v\n%s", name, ok, err, wantOK, out.String())
 			}
 		})
@@ -140,6 +140,79 @@ func TestRun(t *testing.T) {
 	inDir(t, dir, func() {
 		if _, err := run(&bytes.Buffer{}, base, "HEAD", ""); err == nil {
 			t.Error("broken catalogue: want an error")
+		}
+	})
+}
+
+// TestRunPictures: Check C. A pull request that changes the function a
+// picture shows takes it again in every language, or gives a reason; a
+// change elsewhere in the same file, or to another picture's keys, does not
+// call for it.
+func TestRunPictures(t *testing.T) {
+	dir, gitc, write := gitRepo(t)
+	write(manualcheck.PictureSources, "# picture sources\nhome app.js#homeView key:home.\nicons/shop shop.js\n")
+	write(manualcheck.Shell, "function homeView() {\n  return 1;\n}\nfunction other() {\n  return 1;\n}\n")
+	for _, f := range []string{"en/home.png", "de/home.png", "icons/shop.png"} {
+		write(manualcheck.Pictures+f, "png")
+	}
+	gitc("add", "-A")
+	gitc("commit", "-q", "-m", "pictures")
+	base := gitc("rev-parse", "HEAD")
+	reason := writeBody(t, "Manual: not needed — no new words\n")
+
+	check := func(name, body string, wantOK bool, wantOut string) {
+		t.Helper()
+		var out bytes.Buffer
+		inDir(t, dir, func() {
+			v, err := run(&out, base, "HEAD", body)
+			if err != nil || v.pictures != wantOK {
+				t.Errorf("%s: pictures=%v err=%v, want %v\n%s", name, v.pictures, err, wantOK, out.String())
+			}
+		})
+		if !strings.Contains(out.String(), wantOut) {
+			t.Errorf("%s: the report lacks %q:\n%s", name, wantOut, out.String())
+		}
+	}
+
+	write(manualcheck.Shell, "function homeView() {\n  return 1;\n}\nfunction other() {\n  return 2;\n}\n")
+	gitc("commit", "-q", "-am", "elsewhere")
+	check("another function", reason, true, "no picture of the manual")
+
+	write(manualcheck.Shell, "function homeView() {\n  return 2;\n}\nfunction other() {\n  return 2;\n}\n")
+	gitc("commit", "-q", "-am", "home")
+	check("the function shown", reason, false, "home (because of app.js#homeView)")
+	check("the function shown", reason, false, manualcheck.Pictures+"de/home.png")
+	check("a reason", writeBody(t, "Pictures: not needed – only a comment\n"), true, "only a comment")
+
+	write(manualcheck.Pictures+"en/home.png", "png 2")
+	gitc("commit", "-q", "-am", "en picture")
+	check("one language", reason, false, manualcheck.Pictures+"de/home.png")
+	write(manualcheck.Pictures+"de/home.png", "png 2")
+	gitc("commit", "-q", "-am", "de picture")
+	check("every language", reason, true, "no picture of the manual")
+
+	write(manualcheck.Catalogue, "export default {\n  \"$name\": \"English\",\n  \"common.close\": \"Close\",\n  \"home.quick\": \"Quick\"\n};\n")
+	write(manualcheck.Assets+"shop.js", "export {};\n")
+	gitc("add", "-A")
+	gitc("commit", "-q", "-m", "keys and a file")
+	check("a key and a file", reason, false, "icons/shop (because of shop.js)")
+	// The home picture's key changed too, but the pull request has taken
+	// that picture again already.
+	var out bytes.Buffer
+	inDir(t, dir, func() {
+		if _, err := run(&out, base, "HEAD", reason); err != nil {
+			t.Fatal(err)
+		}
+	})
+	if strings.Contains(out.String(), "- home ") {
+		t.Errorf("a picture taken again is reported stale:\n%s", out.String())
+	}
+
+	write(manualcheck.PictureSources, "home app.js#homeView key:home.\nhome app.js\n")
+	gitc("commit", "-q", "-am", "broken list")
+	inDir(t, dir, func() {
+		if _, err := run(&bytes.Buffer{}, base, "HEAD", reason); err == nil {
+			t.Error("a broken list of pictures: want an error")
 		}
 	})
 }

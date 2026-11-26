@@ -265,3 +265,5 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0250](0250-starmap-items-show-the-page-trees-symbols.md) | Items on the starmap show the page tree's symbols, finished tasks in green | Proposed | Partial |
 | [0251](0251-a-shop-and-catalogues-from-an-engine.md) | A process engine's shop in the wiki, and its catalogues maintained as items | Proposed | Partial |
 | [0252](0252-a-starmap-in-a-text.md) | A starmap in a text, narrowed at first, a click opening the item | Proposed | Partial |
+| [0253](0253-pictures-and-help-links-in-the-manual.md) | Pictures of the UI in the manual, and help links that open its chapters | Proposed | Partial |
+| [0254](0254-the-manuals-pictures-kept-current.md) | The manual's pictures are kept current by a check, as its text is | Accepted | Landed |

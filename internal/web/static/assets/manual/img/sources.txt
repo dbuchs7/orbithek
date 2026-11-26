@@ -1,0 +1,38 @@
+# The pictures of the user manual, and what each shows
+# (ADR-0254).
+#
+# One picture per line: its name, then what draws it. The name has no
+# language: "tasks" is img/<lang>/tasks.png in every language, "icons/shop"
+# the language-neutral img/icons/shop.png. What draws it is a file of the
+# assets directory (calendarview.js), a top-level function or constant of
+# one (app.js#homeView), or a prefix of catalogue keys (key:shop.setup).
+#
+# A pull request that changes one of these takes the picture again
+# (e2e/manual-shots.cjs), or its description says why it need not:
+#   Pictures: not needed — <reason>
+# style.css changes every picture a little and is named by none; the
+# pictures are taken again as a whole when the look changes.
+
+home            app.js#homeView key:home.
+modules         app.js#renderNav key:nav.
+page            app.js#itemView key:item.
+tasks           app.js#tasksView key:tasks.
+calendar        app.js#calendarScreen calendarview.js key:calendar.
+shop-setup      shop.js#setupCard key:shop.setup key:shop.adminNo key:shop.toEngines
+shop-user       shop.js#setupCard key:shop.notReadyTitle key:shop.userNotReady
+shop-catalogue  shop.js#catalogueCard shop.js#fieldHelp app.js#engineInput key:shopcat. key:shopfield.
+engines         app.js#enginesCard key:engine.
+engine-form     app.js#engineEditor key:engine.
+shop-types      shop.js#shopTypesCard key:shopcat.types
+engine-connect  app.js#systemInfo key:engine.system
+
+icons/starmap      app.js#moduleGlyphs app.js#moduleIcon
+icons/spaces       app.js#moduleGlyphs app.js#moduleIcon
+icons/tasks        app.js#moduleGlyphs app.js#moduleIcon
+icons/notes        app.js#moduleGlyphs app.js#moduleIcon
+icons/album        app.js#moduleGlyphs app.js#moduleIcon
+icons/whiteboards  app.js#moduleGlyphs app.js#moduleIcon
+icons/shop         app.js#moduleGlyphs app.js#moduleIcon
+icons/mcp          app.js#moduleGlyphs app.js#moduleIcon
+icons/today        app.js#moduleGlyphs app.js#moduleIcon
+icons/my-notes     app.js#moduleGlyphs app.js#moduleIcon

@@ -35,7 +35,8 @@ import { freshNotice, taskDialog, taskPanel } from "./taskdialog.js";
 import { finishing } from "./taskparts.js";
 import { noteImportCard } from "./noteimport.js";
 import { documentView, upgradeTemplate, wordTemplatesCard } from "./wordtemplates.js";
-import { manualBlocks, manualLanguage, manualLanguages, manualPath } from "./manual.js";
+import { manualBlocks, manualLanguage, manualLanguages, manualPath, manualPictureURL } from "./manual.js";
+import { helpLink } from "./help.js";
 import { configureViews, labelItems, viewScreen } from "./itemview.js";
 import { configureStarmaps } from "./starmapblock.js";
 import { pdfView } from "./pdfview.js";
@@ -52,7 +53,8 @@ import { installPalette, rememberItem } from "./palette.js";
 import { besidePane, installBeside, openBeside } from "./beside.js";
 import { contextSection } from "./context.js";
 import { mentionCreator } from "./mentioncreate.js";
-import { shopView, catalogueCard, shopTypesCard } from "./shop.js";
+import { shopView, catalogueCard, productCard, shopTypesCard } from "./shop.js";
+import { engineChoices } from "./shopparts.js";
 
 const app = document.getElementById("app");
 const nav = document.getElementById("nav");
@@ -309,7 +311,7 @@ async function commentsView(tab = "") {
   await add(first);
   const tabLink = (id, label) => link("#/comments" + (id ? "/" + id : ""), label, id === current ? "tab active" : "tab", "comments-tab-" + (id || "all"));
   show(
-    h("div", { class: "page-head" }, h("h1", { text: t("comments.title") })),
+    h("div", { class: "page-head" }, h("h1", {}, t("comments.title"), " ", helpLink("comments"))),
     h("p", { class: "muted", text: t("comments.help") }),
     h("nav", { class: "tabs", "aria-label": t("comments.title") },
       tabLink("", t("comments.all")), tabLink("watched", kinds.watched), tabLink("mine", kinds.mine), tabLink("mentions", kinds.mentions)),
@@ -1879,7 +1881,7 @@ async function route() {
       case "mcp": return await mcpView();
       case "manual": return await manualView(params);
       case "oauth": return await oauthView(params);
-      case "admin": return await adminView();
+      case "admin": return await adminView(params);
       case "members": return await membersView(arg);
       case "import": return await importView(arg);
       default: return await homeView();
@@ -2132,7 +2134,7 @@ async function searchView(q) {
   const toQuery = h("p", { class: "search-to-query" }, link("#/query?" + new URLSearchParams({ q: q.trim() ? `text ~ "${q.trim().replace(/["\\]/g, "\\$&")}"` : "" }),
     t("search.toQuery"), null, "search-to-query"));
   if (!/[\p{L}\p{N}]/u.test(q)) {
-    show(h("div", { class: "page-head" }, h("h1", { text: t("search.title") })), box,
+    show(h("div", { class: "page-head" }, h("h1", {}, t("search.title"), " ", helpLink("search"))), box,
       h("p", { class: "muted", id: "search-hint", text: q.trim() ? t("search.needsTerm") : t("search.prompt") }), toQuery);
     box.querySelector("input").focus();
     return;
@@ -2194,7 +2196,7 @@ async function searchView(q) {
   };
   addHits(first);
   show(
-    h("div", { class: "page-head" }, h("h1", { text: t("search.title") }),
+    h("div", { class: "page-head" }, h("h1", {}, t("search.title"), " ", helpLink("search")),
       first.total.value ? h("p", { class: "actions" }, csvLink("/api/search.csv?q=" + encodeURIComponent(q), "search-csv")) : null),
     box,
     toQuery,
@@ -2265,7 +2267,7 @@ async function queryView(params) {
     h("p", { class: "muted", text: t("query.examples") }),
     h("ul", { class: "query-examples" }, queryExamples.map((ex) => h("li", {},
       h("button", { type: "button", class: "link", text: ex, onclick: () => { input.value = ex; input.focus(); } })))));
-  const head = h("div", { class: "page-head" }, h("h1", { text: t("query.title") }));
+  const head = h("div", { class: "page-head" }, h("h1", {}, t("query.title"), " ", helpLink("queries")));
   const lead = h("p", { class: "muted", text: t("query.lead") });
   if (!q.trim()) {
     help.open = true;
@@ -2312,7 +2314,7 @@ async function queryView(params) {
   addRows(first);
   const n = first.total.value;
   show(
-    h("div", { class: "page-head" }, h("h1", { text: t("query.title") }),
+    h("div", { class: "page-head" }, h("h1", {}, t("query.title"), " ", helpLink("queries")),
       n ? h("p", { class: "actions" }, csvLink("/api/items.csv?" + new URLSearchParams({ query: q }), "query-csv")) : null),
     lead, box, help,
     h("p", { class: "muted", id: "query-total", role: "status", text: t("query.results", { n }) }),
@@ -2335,7 +2337,7 @@ async function myNotesView() {
     n.anchor?.quote ? h("blockquote", { class: "my-note-quote", text: n.anchor.quote }) : null,
     h("p", { class: "my-note-text", text: n.text }))));
   show(
-    h("div", { class: "page-head" }, h("h1", { text: t("note.title") })),
+    h("div", { class: "page-head" }, h("h1", {}, t("note.title"), " ", helpLink("notes"))),
     h("p", { class: "muted", text: t("note.private") }),
     notes.length ? filtered(list, { id: "mynotes", label: t("note.title") }) : empty(t("note.noneAnywhere"), "my-notes-empty"),
   );
@@ -2352,16 +2354,26 @@ async function manualView(params) {
   const res = await fetch(manualPath(lang), { credentials: "same-origin", cache: "no-cache" });
   if (!res.ok) throw new Error(t("manual.missing"));
   const text = await res.text();
-  const { title, blocks } = manualBlocks(text, isSafeLink);
-  const body = createEditor({ blocks, embeds: [], editable: false, resolve: async () => null, childPages: [], files: null }).element;
+  const { title, blocks, sections } = manualBlocks(text, isSafeLink);
+  // The manual's pictures are files served with the UI beside it
+  // (ADR-0253).
+  const pictures = { url: manualPictureURL, knows: () => true, isDrawing: () => false };
+  const body = createEditor({ blocks, embeds: [], editable: false, resolve: async () => null, childPages: [], files: pictures }).element;
   const others = languages.filter((l) => manualLanguages.includes(l.code));
   show(h("article", { class: "manual", id: "manual", lang },
     h("div", { class: "page-head" }, h("h1", { text: title || t("nav.manual") }),
       h("nav", { class: "manual-languages", id: "manual-languages", "aria-label": t("manual.languages") },
         others.map((l) => (l.code === lang
           ? h("strong", { "aria-current": "page", text: l.name })
-          : link("#/manual?lang=" + encodeURIComponent(l.code), l.name))))),
+          : link("#/manual?" + new URLSearchParams({ lang: l.code, ...(params.get("section") ? { section: params.get("section") } : {}) }).toString(), l.name))))),
     body));
+  // A help link opens the manual at its chapter.
+  const at = sections[params.get("section") || ""];
+  if (at !== undefined) {
+    const heading = body.querySelectorAll("h1, h2, h3")[at];
+    heading?.classList.add("manual-target");
+    heading?.scrollIntoView({ block: "start" });
+  }
 }
 
 // --- spaces ------------------------------------------------------------------
@@ -2449,13 +2461,7 @@ async function homeView() {
       h("strong", { text: t("storage.homeNotice", { level: storageLevel(storage.level) }) }), " ",
       t("storage.free", { free: sizeText(storage.free), total: sizeText(storage.total), share: storage.total ? Math.round((storage.free * 1000) / storage.total) / 10 : "?" })) : "",
     h("section", { class: "home-tiles", "aria-label": t("home.quick") },
-      // My journal first: today's daily note, made in one's daily room on
-      // opening when there is none (ADR-0205).
-      quick("#/journal", t("home.today"), t("home.todayText", { date: todayText }), t("home.tip.today"), "home-today", null, "day", [todayNumber]),
-      // One's personal notes, wherever they were made (ADR-0113), right
-      // beside the journal.
-      quick("#/my-notes", t("note.title"), mine.notes.length ? t("home.myNotesText", { n: mine.notes.length }) : t("home.myNotesNone"), t("home.tip.myNotes"), "home-my-notes", null, "page"),
-      // The starmap: one's rooms as a map of connections (ADR-0157);
+      // The starmap first: one's rooms as a map of connections (ADR-0157);
       // the view opens on every room (ADR-0228).
       quick("#/starmap", t("nav.starmap"), t("home.starmapText"), t("home.tip.starmap"), "home-starmap", null, "starmap"),
       // The rooms follow the starmap and lead to their own overview.
@@ -2471,7 +2477,12 @@ async function homeView() {
       // The shop of a process engine: its catalogues, one's orders and
       // approvals (ADR-0251).
       quick("#/shop", t("shop.title"), t("home.shopText"), t("home.tip.shop"), "home-shop", null, "cart"),
-      quick("#/mcp", t("nav.mcp"), t("home.mcpText"), t("home.tip.mcp"), "home-mcp", null, "protection")),
+      quick("#/mcp", t("nav.mcp"), t("home.mcpText"), t("home.tip.mcp"), "home-mcp", null, "protection"),
+      // My journal, today's daily note, made in one's daily room on opening
+      // when there is none (ADR-0205), and beside it one's personal notes,
+      // wherever they were made (ADR-0113), close the tiles.
+      quick("#/journal", t("home.today"), t("home.todayText", { date: todayText }), t("home.tip.today"), "home-today", null, "day", [todayNumber]),
+      quick("#/my-notes", t("note.title"), mine.notes.length ? t("home.myNotesText", { n: mine.notes.length }) : t("home.myNotesNone"), t("home.tip.myNotes"), "home-my-notes", null, "page")),
     // The rooms are listed on their own overview (#/spaces), reached by
     // their tile; without rooms the start page shows the first steps.
     spaces.length === 0 ? h("h2", { text: t("spaces.title") }) : null,
@@ -3210,7 +3221,7 @@ async function tasksView(tab, params) {
   // its own choices instead.
   const relink = () => tabs.querySelectorAll("a:not(#tab-calendar)").forEach((a) => { a.href = a.getAttribute("href").split("?")[0] + query(); });
   show(
-    h("div", { class: "page-head" }, h("h1", { text: t("tasks.title") }),
+    h("div", { class: "page-head" }, h("h1", {}, t("tasks.title"), " ", helpLink("tasks")),
       h("p", { class: "actions" }, link(newHref(space || here.space, "", taskType(types)), t("tasks.new"), "button primary", "tasks-new"),
         rows.length ? h("button", { type: "button", class: "secondary", id: "tasks-csv", text: t("export.csv"), onclick: () => downloadCSV("tasks.csv", [
           [t("col.item"), t("col.title"), t("tasks.labels"), t("col.state"), t("tasks.assignee"), t("tasks.due"), t("tasks.priority"), t("col.space")],
@@ -3345,7 +3356,7 @@ async function kanbansView() {
   const bySpace = new Map();
   kanbans.forEach((k, i) => bySpace.set(k.space, [...(bySpace.get(k.space) || []), { ...k, count: counts[i] }]));
   show(
-    h("div", { class: "page-head" }, h("h1", { text: t("kanban.title") })),
+    h("div", { class: "page-head" }, h("h1", {}, t("kanban.title"), " ", helpLink("boards"))),
     h("nav", { class: "tabs", "aria-label": t("tasks.title") },
       link("#/planning/mine", t("tasks.mine"), "tab"), link("#/planning/unassigned", t("tasks.unassigned"), "tab"), link("#/planning/all", t("tasks.all"), "tab"),
       link("#/kanbans", t("kanban.tab"), "tab active", "tab-kanbans"), link("#/roadmap", t("roadmap.tab"), "tab", "tab-roadmap"),
@@ -4130,7 +4141,7 @@ async function roadmapScreen(params) {
   const section = h("section", { id: "roadmap" });
   screen()(
     h("p", {}, link("#/planning", t("nav.tasks")), " / " + t("roadmap.tab")),
-    h("div", { class: "page-head" }, h("h1", { text: t("roadmap.title") })),
+    h("div", { class: "page-head" }, h("h1", {}, t("roadmap.title"), " ", helpLink("roadmap"))),
     h("p", { class: "muted", text: t("roadmap.intro") }),
     section);
   await roadmapView(section, params, { readAll, favouritesFirst });
@@ -4141,10 +4152,10 @@ async function roadmapScreen(params) {
 async function shopScreen(params) {
   const section = h("section", { id: "shop" });
   screen()(
-    h("div", { class: "page-head" }, h("h1", { text: t("shop.title") })),
+    h("div", { class: "page-head" }, h("h1", {}, t("shop.title"), " ", helpLink("shop"))),
     h("p", { class: "muted", text: t("shop.intro") }),
     section);
-  await shopView(section, params);
+  await shopView(section, params, { admin: Boolean(me?.admin) });
 }
 
 // viewRoute shows the items of a type as a table, a gallery or a list,
@@ -4166,7 +4177,7 @@ async function calendarScreen(params) {
   const section = h("section", { id: "calendar" });
   screen()(
     h("p", {}, link("#/planning", t("nav.tasks")), " / " + t("calendar.tab")),
-    h("div", { class: "page-head" }, h("h1", { text: t("calendar.title") })),
+    h("div", { class: "page-head" }, h("h1", {}, t("calendar.title"), " ", helpLink("calendar"))),
     h("p", { class: "muted", text: t("calendar.intro") }),
     section);
   // A new entry is made from the calendar with the inputs of item fields
@@ -4243,7 +4254,7 @@ async function paletteCommands() {
 // parameters may ask for the impact of its last station (ADR-0159).
 async function starmapScreen(space, path, params) {
   const section = h("section", { id: "starmap" });
-  screen()(h("h1", { text: t("starmap.title") }), starmapTabs("room"), h("p", { class: "muted", text: t("starmap.intro") }), section);
+  screen()(h("h1", {}, t("starmap.title"), " ", helpLink("starmap")), starmapTabs("room"), h("p", { class: "muted", text: t("starmap.intro") }), section);
   // A node's panel shows the page as an embed shows it (ADR-0106): read-
   // only, protected content veiled, a veiled block asking for access
   // (ADR-0161).
@@ -4290,7 +4301,7 @@ function starmapTabs(current) {
 // share (ADR-0165); its state is the address.
 async function labelmapScreen(params) {
   const section = h("section", { id: "labelmap" });
-  screen()(h("h1", { text: t("starmap.title") }), starmapTabs("labels"), h("p", { class: "muted", text: t("labelmap.intro") }), section);
+  screen()(h("h1", {}, t("starmap.title"), " ", helpLink("starmap")), starmapTabs("labels"), h("p", { class: "muted", text: t("labelmap.intro") }), section);
   await labelmapView(section, params, { favouritesFirst });
 }
 
@@ -4366,7 +4377,7 @@ async function whiteboardsView() {
     })
     : h("p", { class: "muted", text: t("wb.cannotCreate") });
   show(
-    h("h1", { text: t("nav.whiteboards") }),
+    h("h1", {}, t("nav.whiteboards"), " ", helpLink("whiteboards")),
     h("p", { class: "muted", text: t("wb.intro") }),
     h("section", { class: "card" }, h("h2", { text: t("wb.live") }), live),
     create, status,
@@ -4374,7 +4385,7 @@ async function whiteboardsView() {
 }
 
 function albumView() {
-  screen()(h("h1", { text: t("album.title") }), h("p", { class: "muted", text: t("album.intro") }), h("section", { id: "album" }, albumBrowser()));
+  screen()(h("h1", {}, t("album.title"), " ", helpLink("album")), h("p", { class: "muted", text: t("album.intro") }), h("section", { id: "album" }, albumBrowser()));
 }
 
 // presentScreen is the presenter's window of a presentation of the
@@ -4596,8 +4607,28 @@ function propertyInput(f, value, ctx = {}) {
     case "recurrence":
       return recurrenceInput(name, value);
     default:
+      // A text field named engine names a process engine set up here, as
+      // a shop catalogue does (ADR-0251): it is chosen among them, by ID.
+      if (f.kind === "text" && f.name === "engine") return engineInput(name, value);
       return h("input", { name, value: value ?? "" });
   }
+}
+
+// engines are the process engines set up here, read once per page load
+// for every field that chooses one.
+let engines = null;
+const enginesList = () => (engines ||= get("/api/engines").then((r) => r.engines || []).catch(() => { engines = null; return []; }));
+
+// engineInput chooses a process engine by name; the field keeps its ID.
+// The choices arrive after the list is read; until then, and when it
+// cannot be read, the value the field holds stays chosen.
+function engineInput(name, value) {
+  const fill = (list) => select.replaceChildren(...engineChoices(list, value).map((c) =>
+    h("option", { value: c.value, text: c.unknown ? t("shop.engineUnknown", { id: c.value }) : c.text, selected: c.selected })));
+  const select = h("select", { name, class: "engine-input" });
+  fill([]);
+  enginesList().then(fill);
+  return select;
 }
 
 // userInput chooses a person by typing a few letters of the username; the
@@ -5149,7 +5180,8 @@ async function itemView(ref, params = new URLSearchParams()) {
   const engineTask = item.linked && live ? taskPanel(item, () => route()) : null;
   // A catalogue of an engine's shop is published from its page
   // (ADR-0251).
-  const shopCatalogue = item.type === "shop-catalogue" && live && canEdit ? catalogueCard(item) : null;
+  const shopCatalogue = item.type === "shop-catalogue" && live && canEdit ? catalogueCard(item)
+    : item.type === "shop-product" && live && canEdit ? productCard(item) : null;
   // Copying and moving a page with its child pages, to any place one may
   // create in (ADR-0067); dragging in the tree moves within a space.
   const relocate = h("div", { id: "relocate" });
@@ -5894,7 +5926,7 @@ async function accountView() {
   const [{ tokens }, contacts] = await Promise.all([get("/api/tokens"), get("/api/me/contacts")]);
   const secret = h("div");
   show(
-    h("h1", { text: me.user.username }),
+    h("h1", {}, me.user.username, " ", helpLink("account")),
     h("p", { class: "muted", text: t("account.id", { id: me.user.id, via: me.via }) }),
     avatarCard(),
     // The name one is called by (ADR-0246).
@@ -6217,7 +6249,7 @@ async function mcpView() {
     h("p", { class: "muted" }, t("mcp.tokensAt"), " ", link("#/account", t("nav.account"))));
 
   show(
-    h("h1", { text: t("mcp.title") }),
+    h("h1", {}, t("mcp.title"), " ", helpLink("ai")),
     h("p", { text: t("mcp.intro") }),
     connect,
     apps,
@@ -6287,7 +6319,7 @@ function filteredGroups(table) {
   return filtered(table, { id: "admin-groups", label: t("admin.groups"), rows: () => [...table.rows] });
 }
 
-async function adminView() {
+async function adminView(params) {
   const show = screen();
   await loadTypeTemplates();
   const [{ users }, { spaces }, { types }, auditPage, { groups }, { holders }, { requests }, access, sso, delivery, { spaces: trashed }, signIn] = await Promise.all([
@@ -6303,8 +6335,10 @@ async function adminView() {
 
   // The table of contents scrolls to a section; the hash stays the route.
   const sections = [];
+  // Sections the manual has a chapter of their own for link to it.
+  const helpFor = { engines: "process-engines" };
   const section = (id, title, ...content) => {
-    const el = h("section", { class: "card", id: "admin-" + id }, h("h2", { text: title }), ...content);
+    const el = h("section", { class: "card", id: "admin-" + id }, h("h2", {}, title, helpFor[id] ? [" ", helpLink(helpFor[id])] : null), ...content);
     sections.push([el, title]);
     return el;
   };
@@ -6599,7 +6633,7 @@ async function adminView() {
     leaving.push(() => seen.disconnect());
   }
   show(
-    h("h1", { text: t("admin.title") }),
+    h("h1", {}, t("admin.title"), " ", helpLink("administration")),
     h("p", { class: "muted", text: t("admin.lead") }),
     status,
     h("div", { class: "admin-layout" },
@@ -6607,6 +6641,10 @@ async function adminView() {
       h("div", { class: "admin-sections" },
         spacesSection, typesSection, usersSection, requestsSection, groupsSection, grantSection, storageSection, calendarsSection, backupSection, albumSection, catalogSection, enginesSection, designSection, wordTemplatesSection, regulationsSection, importSection, auditSection)),
   );
+  // A link may lead straight to one section, as the shop's help does to
+  // the process engines (ADR-0251).
+  const wanted = params?.get("section");
+  if (wanted) document.getElementById("admin-" + wanted)?.scrollIntoView({ block: "start" });
 }
 
 // placesCard turns the place search of places set by hand off or on

@@ -826,19 +826,19 @@ function webSource() {
     const tileTips = await page.locator(".home-tiles a").evaluateAll((tiles) => tiles.map((a) => a.title));
     check(tileTips.length === 10 && tileTips.every((tip) => tip.length > 40 && !tip.startsWith("home.")) && new Set(tileTips).size === 10,
       "each quick access says on hover what it offers, in a text of its own");
-    // My journal comes first: today's daily note, its date and its
-    // day of the month on the calendar sheet (ADR-0205).
-    check(await page.getAttribute(".home-tiles a:first-child", "id") === "home-today" && await page.getAttribute("#home-today", "href") === "#/journal"
+    // The starmap comes first, the rooms follow it.
+    check(await page.getAttribute(".home-tiles a:first-child", "id") === "home-starmap" && await page.getAttribute("#home-starmap", "href") === "#/starmap"
+      && await page.locator("#home-starmap .module-icon.module-starmap").count() === 1, "the starmap is the first quick access, with its module's symbol");
+    check(await page.getAttribute(".home-tiles a:nth-child(2)", "id") === "home-spaces" && await page.getAttribute("#home-spaces", "href") === "#/spaces"
+      && await page.locator("#home-spaces .module-icon.module-spaces").count() === 1, "the rooms are the second quick access, with their module's symbol");
+    // My journal and one's notes close the tiles: today's daily note, its
+    // date and its day of the month on the calendar sheet (ADR-0205), and
+    // one's notes beside it (ADR-0113).
+    check(await page.getAttribute(".home-tiles a:nth-last-child(2)", "id") === "home-today" && await page.getAttribute("#home-today", "href") === "#/journal"
       && (await page.textContent("#home-today")).includes("My journal")
-      && (await page.textContent("#home-today .module-icon.module-day svg text")) === String(new Date().getDate()), "my journal is the first quick access and leads to today's daily note");
-    // One's notes stand right beside the journal (ADR-0113).
-    check(await page.getAttribute(".home-tiles a:nth-child(2)", "id") === "home-my-notes" && await page.getAttribute("#home-my-notes", "href") === "#/my-notes",
-      "my notes are the second quick access, right beside the journal");
-    check(await page.getAttribute(".home-tiles a:nth-child(3)", "id") === "home-starmap" && await page.getAttribute("#home-starmap", "href") === "#/starmap"
-      && await page.locator("#home-starmap .module-icon.module-starmap").count() === 1, "the starmap is the third quick access, with its module's symbol");
-    // The rooms follow the starmap and lead to their own overview.
-    check(await page.getAttribute(".home-tiles a:nth-child(4)", "id") === "home-spaces" && await page.getAttribute("#home-spaces", "href") === "#/spaces"
-      && await page.locator("#home-spaces .module-icon.module-spaces").count() === 1, "the rooms are the fourth quick access, with their module's symbol");
+      && (await page.textContent("#home-today .module-icon.module-day svg text")) === String(new Date().getDate()), "my journal is the last but one quick access and leads to today's daily note");
+    check(await page.getAttribute(".home-tiles a:last-child", "id") === "home-my-notes" && await page.getAttribute("#home-my-notes", "href") === "#/my-notes",
+      "my notes are the last quick access, right beside the journal");
     await page.click("#home-spaces");
     await page.waitForSelector("h1:text-is('Rooms')");
     check(page.url().endsWith("#/spaces") && await page.locator("#create-space").count() === 1, "the rooms tile leads to the overview of rooms, the first one made there: " + page.url());
@@ -889,6 +889,15 @@ function webSource() {
     await page.waitForSelector("#manual[lang=de] .pm-toc li");
     check(await page.locator("#manual h1").first().textContent() === "Orbithek-Benutzerhandbuch", "the German manual is a click away");
     check(await page.locator("#manual .ProseMirror[contenteditable=true]").count() === 0, "the manual is read, not edited");
+    // Pictures of the UI, and a help link opening the chapter of its place
+    // (ADR-0253).
+    check(await page.locator("#manual .pm-image img[src^='/assets/manual/img/']").count() > 5, "the manual shows pictures of the UI");
+    await page.goto(base + "/#/shop");
+    await page.waitForSelector(".page-head .help-link[data-section=shop]");
+    await page.click(".page-head .help-link[data-section=shop]");
+    await page.waitForSelector("#manual .manual-target");
+    check(await page.evaluate(() => location.hash) === "#/manual?section=shop" && (await page.textContent("#manual .manual-target")).trim() === "The shop of an engine",
+      "the shop's help link opens the manual at the shop's chapter");
     await page.goto(base + "/#/");
     await page.waitForSelector("#welcome, #app h1");
 
