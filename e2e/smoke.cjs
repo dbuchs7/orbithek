@@ -2751,7 +2751,8 @@ function webSource() {
       await page.keyboard.press("Home");
       await page.waitForSelector("figure.pm-slides .pm-slides-counter:text-is('1 / 3')");
       check((await page.textContent("figure.pm-slides figcaption")) === "The talk", "the caption shows below the deck");
-      check(await page.locator("figure.pm-slides .pm-slides-newer").isHidden(), "a deck just kept is not behind its folder");
+      await page.waitForSelector("#body.reading figure.pm-slides .pm-slides-counter");
+      check(await page.locator("#body.reading figure.pm-slides .pm-slides-newer").isHidden(), "a deck just kept is not behind its folder");
       // A note changed in the album: the deck keeps its slides and says so.
       const outlook = await page.evaluate(async (id) => (await (await fetch(`/api/album?folder=${id}&order=slides`)).json()).pictures
         .find((p) => p.attachment.name.startsWith("3 Outlook")), talk);
@@ -2767,8 +2768,9 @@ function webSource() {
         return deck?.files?.length === 3 && !deck.files.includes(before[0]);
       }, [deckPage.key, saved.files]);
       await page.click("#edit-done");
-      await page.waitForSelector("#body.reading figure.pm-slides .pm-slides-present");
-      check(await page.locator("figure.pm-slides .pm-slides-newer").isHidden(), "the deck is up to date after updating from the folder");
+      // The counter shows once the deck has compared itself with its folder.
+      await page.waitForSelector("#body.reading figure.pm-slides .pm-slides-counter");
+      check(await page.locator("#body.reading figure.pm-slides .pm-slides-newer").isHidden(), "the deck is up to date after updating from the folder");
       await setNotes("");
       const [show] = await Promise.all([page.waitForEvent("popup"), page.click("figure.pm-slides .pm-slides-present")]);
       show.on("pageerror", (e) => problems.push("presentation window: " + e.message));
