@@ -426,3 +426,53 @@ func BenchmarkSelect(b *testing.B) {
 		})
 	}
 }
+
+// TestSelectByContributor: contributor names every account that made or
+// changed an item itself, as the field updated counts changes: its content,
+// state, labels, place, comments and files; watching it is no change.
+func TestSelectByContributor(t *testing.T) {
+	s, items := selectFixture(t)
+	env := QueryEnv{Now: at, Users: func(name string) []string {
+		if name == "Pat" {
+			return []string{"pat"}
+		}
+		return nil
+	}}
+	pat := s.As("pat")
+	noErr(t, pat.SetTitle(items["release"].ID, "Plan the release"))
+	_, err := pat.AddComment(items["runbook"].ID, "Replica checked")
+	noErr(t, err)
+	noErr(t, pat.Watch(items["login"].ID, true))
+	cases := []struct {
+		as, query string
+		want      []string
+	}{
+		{"ben", "contributor = pat", []string{"PLAT-3", "PLAT-4"}},
+		{"ben", "contributor = Pat", []string{"PLAT-3", "PLAT-4"}},
+		{"ben", "CONTRIBUTORS = pat", []string{"PLAT-3", "PLAT-4"}},
+		{"ben", "contributor = anna", []string{"PLAT-1", "PLAT-2", "PLAT-3", "PLAT-4", "PLAT-6"}},
+		{"ben", "contributor != pat", []string{"PLAT-1", "PLAT-2", "PLAT-6"}},
+		{"ben", "contributor not in (pat, anna)", []string{}},
+		{"ben", "contributor in (pat, dora)", []string{"PLAT-3", "PLAT-4"}},
+		{"ben", "contributor = currentUser()", []string{}},
+		{"pat", "contributor = currentUser()", []string{"PLAT-3", "PLAT-4"}},
+		{"pat", "contributor = currentUser() and creator != currentUser()", []string{"PLAT-3", "PLAT-4"}},
+		{"dora", "contributor = currentUser()", []string{"OPS-1"}},
+		{"ben", "contributor = nobody", []string{}},
+	}
+	for _, c := range cases {
+		got, err := s.As(c.as).Select(Query{}, c.query, env)
+		if err != nil {
+			t.Errorf("%s: %q: %v", c.as, c.query, err)
+			continue
+		}
+		if keys := keysOf(got); !slices.Equal(keys, c.want) {
+			t.Errorf("%s: %q = %v, want %v", c.as, c.query, keys, c.want)
+		}
+	}
+	for _, q := range []string{"contributor ~ pat", "contributor = now()", "contributor is empty", "contributor > pat", "order by contributor"} {
+		if _, err := s.As("ben").Select(Query{}, q, env); !errors.Is(err, ErrValidation) {
+			t.Errorf("%q: %v", q, err)
+		}
+	}
+}

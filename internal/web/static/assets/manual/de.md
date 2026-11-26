@@ -55,7 +55,7 @@ Die Leiste oben auf jeder Seite enthält von links nach rechts:
 
 Die Startseite begrüsst mit dem Anzeigenamen (siehe *Das eigene Konto*), zeigt die Anzahl Seiten, Aufgaben und Bilder und bietet einen Schnellzugriff auf die Sternenkarte, die **Räume** (die Übersicht der eigenen Räume, auch über den Modulwechsler erreichbar), die eigenen Aufgaben unter **Planung**, Benachrichtigungen, das Album, die Whiteboards, den **Shop** mit dem Einkaufswagen, den KI-Zugang und am Ende auf **Mein Journal** (die Tagesnotiz von heute, mit dem heutigen Datum) und gleich daneben **Meine Notizen** (die persönlichen Notizen).
 Zeigt man mit der Maus auf eine Kachel, erscheint eine kurze Erklärung, was sie bietet.
-Unter den Kacheln listet **Zuletzt erstellt oder geändert** die Einträge der eigenen Räume, die zuletzt erstellt oder geändert wurden, die neuesten zuerst: zehn Zeilen mit Titel, Typ, Raum und Zeitpunkt der Änderung, und mit **Mehr anzeigen** jeweils zehn weitere. Als Änderung zählen Inhalt, Felder, Status, Labels, Verschieben, Kommentare und Dateien; aufgeführt wird nur, was man lesen darf.
+Unter den Kacheln listet **Zuletzt erstellt oder geändert** die Einträge der eigenen Räume, die zuletzt erstellt oder geändert wurden, die neuesten zuerst: zehn Zeilen mit Titel, Typ, Raum und Zeitpunkt der Änderung, und mit **Mehr anzeigen** jeweils zehn weitere. Als Änderung zählen Inhalt, Felder, Status, Labels, Verschieben, Kommentare und Dateien; aufgeführt wird nur, was man lesen darf. Der Umschalter **Alle** | **Durch mich** beschränkt die Liste auf Einträge, die man selbst erstellt oder irgendwann geändert hat; die Wahl merkt sich der Browser.
 Die Raumübersicht zeigt die eigenen Räume als Kacheln oder als Liste; ein Stern markiert einen Raum als Favorit. Gibt es noch keine Räume, findet die Administration auf der Startseite die ersten Schritte: einen Raum erstellen, mit den Vorlagen Typen hinzufügen (Seite, Aufgabe, Entscheidung, Tagesnotiz) und Personen eine Rolle geben.
 
 ![Die Kacheln der Startseite](img/de/home.png)
@@ -315,7 +315,7 @@ Eine **Abfrage** wählt Einträge nach ihren Feldern aus. Man öffnet sie aus de
 - Vergleiche mit `=`, `!=`, `<`, `<=`, `>`, `>=`; `~` findet jedes Wort eines Werts; `IN (a, b)` ist einer aus einer Liste.
 - `IS EMPTY` und `IS NOT EMPTY` finden Einträge ohne bzw. mit Wert.
 - Ein Datum schreibt man `2026-10-01`; `-7d`, `2w`, `+12h` und `-1y` zählen ab jetzt; `now()`, `startOfWeek()` und ähnliche Funktionen stehen zur Verfügung.
-- `currentUser()` steht für die eigene Person.
+- `currentUser()` steht für die eigene Person; `creator` ist, wer einen Eintrag erstellt hat, `contributor` jede Person, die ihn erstellt oder geändert hat, etwa `contributor = currentUser()`.
 - Ein Eintragsfeld nimmt den Schlüssel eines Eintrags, etwa `epic = PLAT-3`; `platforms = web` findet Einträge, die *web* unter mehreren Werten haben; eine Bewertung vergleicht wie eine Zahl, etwa `rating >= 4`.
 - `ORDER BY` sortiert, `ASC` oder `DESC`.
 
