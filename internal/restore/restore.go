@@ -260,8 +260,8 @@ func (p *plan) refs(it item.Item) []item.ID {
 	}
 	add(it.Parent)
 	for _, b := range it.Body.Blocks {
-		if b.Kind == item.Embed {
-			add(b.Ref)
+		if to, ok := b.Embedded(); ok {
+			add(to)
 		}
 		for _, m := range b.Mentions {
 			add(m)
@@ -574,7 +574,7 @@ func (w *writer) body(t *item.Store, it item.Item) item.Doc {
 				continue
 			}
 			b.Ref = to
-		case item.Embed:
+		case item.Embed, item.Slides:
 			if !w.live(t, b.Ref) {
 				w.p.note("%s: the embedded %s is left out: it is not here", it.Key, w.key(b.Ref))
 				continue

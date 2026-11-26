@@ -2680,6 +2680,55 @@ function webSource() {
       await page.waitForSelector("#album-order-hint", { state: "hidden" });
     }
 
+    step("slide deck in a text: a page shows the pictures of an album folder as slides, steps through them and presents them, and ending returns to the page (ADR-draft-a-slide-deck-in-a-text)");
+    {
+      const { item: deckPage } = await page.evaluate(async () => (await fetch("/api/items", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ space: "PLAT", type: "page", title: "Talk page", body: [{ kind: "paragraph", text: "Our talk." }] }) })).json());
+      await page.goto(base + "/#/item/" + deckPage.key + "?edit");
+      await page.waitForSelector(".ProseMirror p:text-is('Our talk.')");
+      await page.click(".ProseMirror p:text-is('Our talk.')");
+      await page.keyboard.press("End");
+      await page.selectOption(".pm-toolbar select:has(option[value=slides])", "slides");
+      await page.waitForSelector("dialog#slides-dialog[open] #slides-pick-folder");
+      const talk = await page.$eval("#slides-pick-folder", (s) => [...s.options].find((o) => o.textContent.endsWith("· Talk"))?.value);
+      check(!!talk, "the dialog offers the album's folder by its room and name");
+      await page.selectOption("#slides-pick-folder", talk);
+      await page.waitForSelector("#slides-pick-preview .slides-pick-thumbs > *");
+      await page.fill("#slides-pick-caption", "The talk");
+      await page.click("#slides-dialog-ok");
+      await page.waitForSelector(".ProseMirror figure.pm-slides .pm-slides-change");
+      check(await page.locator(".ProseMirror figure.pm-slides .pm-slides-present").count() === 0, "editing shows the slides without presenting them");
+      await page.click("#edit-done");
+      await page.waitForSelector("#body.reading figure.pm-slides .pm-slides-present");
+      const saved = await page.evaluate(async (key) => (await (await fetch("/api/items/" + key)).json()).item.body.find((b) => b.kind === "slides"), deckPage.key);
+      check(saved?.ref === talk && saved.text === "The talk", "the deck names the folder by its ID and keeps its caption");
+      await page.waitForSelector("figure.pm-slides .pm-slides-counter:text-is('1 / 3')"); // in the folder's order of slides
+      check(await page.getAttribute("figure.pm-slides .pm-slides-media", "alt") === "2 Plan", "the first slide is the folder's first");
+      await page.click("figure.pm-slides .pm-slides-next");
+      await page.waitForSelector("figure.pm-slides .pm-slides-counter:text-is('2 / 3')");
+      await page.focus("figure.pm-slides .pm-slides-stage");
+      await page.keyboard.press("End");
+      await page.waitForSelector("figure.pm-slides video.pm-slides-media"); // a video is a slide too
+      await page.keyboard.press("Home");
+      await page.waitForSelector("figure.pm-slides .pm-slides-counter:text-is('1 / 3')");
+      check((await page.textContent("figure.pm-slides figcaption")) === "The talk", "the caption shows below the deck");
+      // The folder stays while a text shows it.
+      const trashed = await page.evaluate(async (id) => (await fetch(`/api/items/${id}/trash`, { method: "POST" })).status, talk);
+      check(trashed === 409, "a folder a text shows is not trashed");
+      const [show] = await Promise.all([page.waitForEvent("popup"), page.click("figure.pm-slides .pm-slides-present")]);
+      show.on("pageerror", (e) => problems.push("presentation window: " + e.message));
+      await page.waitForSelector("#present-console #present-name:text-is('2 Plan')");
+      check(await page.textContent("#present-counter") === "1 / 3", "the presentation shows the deck's slides");
+      await Promise.all([show.isClosed() ? null : show.waitForEvent("close"), page.click("#present-end")]);
+      await page.waitForSelector("#body.reading figure.pm-slides");
+      check(page.url().endsWith("#/item/" + deckPage.key), "ending the presentation returns to the page");
+      // The page no longer shows the deck, so the album may delete the folder later.
+      await page.evaluate(async (id) => fetch(`/api/items/${id}/body`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ blocks: [{ kind: "paragraph", text: "Our talk." }] }) }), deckPage.id);
+      await page.goto(base + "/#/album");
+      await page.click("#album .album-folder:has-text('Talk')");
+      await page.waitForSelector("#album .album-card:has(.album-name:text-is('2 Plan'))");
+    }
+
     step("faces: a picture opened is searched for faces in the browser; a face named shows in the viewer, under People and in the person's album (ADR-0194)");
     {
       const planCard = "#album .album-card:has(.album-name:text-is('2 Plan'))";

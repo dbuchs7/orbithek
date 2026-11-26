@@ -2172,6 +2172,26 @@ dialog.note-dialog { max-height: calc(100dvh - 32px); overflow: auto; }
    scrolls past it on touch, filters and legend folded below. */
 .pm-starmap { margin: 0.75rem 0; }
 .pm-starmap .pm-box-title { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: baseline; }
+/* A slide deck in a text (ADR-draft-a-slide-deck-in-a-text): a bar with
+   its name and tools, the slide on black, a strip of every slide. */
+.pm-slides { margin: 0.75rem 0; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+.pm-slides-bar { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+.pm-slides-title { margin-right: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pm-slides-tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pm-slides-tools button { padding: 4px 10px; font-size: 0.875rem; }
+.pm-slides-counter { min-width: 4em; text-align: center; font-variant-numeric: tabular-nums; color: var(--muted); }
+.pm-slides-stage { position: relative; display: grid; place-items: center; aspect-ratio: 16 / 9; background: #111; outline-offset: -3px; }
+.pm-slides-stage:fullscreen { aspect-ratio: auto; width: 100vw; height: 100vh; }
+.pm-slides-media { width: 100%; height: 100%; object-fit: contain; display: block; }
+.pm-slides-message { margin: 0; padding: 1rem; color: #ddd; text-align: center; }
+.pm-slides-strip { display: flex; gap: 6px; overflow-x: auto; list-style: none; margin: 0; padding: 6px 10px; border-top: 1px solid var(--border); background: var(--surface-2); }
+.pm-slides-thumb { position: relative; display: block; width: 5.5rem; height: 3.1rem; padding: 0; border: 2px solid transparent; border-radius: var(--radius-sm); overflow: hidden; background: #111; cursor: pointer; }
+.pm-slides-thumb img { width: 100%; height: 100%; object-fit: contain; }
+.pm-slides-thumb span { position: absolute; left: 4px; bottom: 1px; font-size: 0.7rem; color: #fff; text-shadow: 0 0 3px #000; }
+.pm-slides-thumb.on { border-color: var(--accent); }
+.pm-slides-caption { margin: 0; padding: 6px 12px 8px; color: var(--muted); font-size: 0.875rem; }
+.slides-pick-thumbs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.slides-pick-thumbs img, .slides-pick-thumbs .present-thumb-video { width: 4.5rem; height: 2.5rem; object-fit: cover; border: 1px solid var(--border); border-radius: 4px; background: #111; }
 .starmap-embedded .starmap-canvas { height: 420px; min-height: 0; touch-action: pan-y; }
 .starmap-embedded .starmap-canvas .star-node { cursor: pointer; }
 .starmap-embedded details { margin-top: 0.5rem; }

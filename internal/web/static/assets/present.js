@@ -16,7 +16,7 @@ import { t } from "./i18n.js";
 import { get, put } from "./api.js";
 import { moveWithin, orderDrop } from "./photoparts.js";
 import {
-  LASER_TRAIL, ZOOM_STEP, slidesOf, orderOf, clampView, deckParams, placement, toImage, toView, zoomAt, panBy, keyAction, clock,
+  LASER_TRAIL, ZOOM_STEP, slidesOf, orderOf, backOf, clampView, deckParams, placement, toImage, toView, zoomAt, panBy, keyAction, clock,
   channelName, newId, validMessage, apply,
 } from "./present-parts.js";
 
@@ -41,11 +41,15 @@ let started = null;
 
 // startPresentation opens the presentation window for the album's filters
 // and leads this window to the presenter's view. It is called on a click.
-export function startPresentation(filters) {
+// back names the item whose text the presentation is started from, which
+// ending it returns to (ADR-draft-a-slide-deck-in-a-text); none returns
+// to the album.
+export function startPresentation(filters, back = "") {
   const id = newId(crypto.getRandomValues(new Uint8Array(8)));
   started = { id, win: openWindow(id) };
   const q = deckParams(filters);
   q.set("s", id);
+  if (back) q.set("back", back);
   location.hash = "#/present?" + q;
 }
 
@@ -249,7 +253,7 @@ export async function presenterView({ params, show, onLeave, done }) {
   const container = orderOf(params);
   if (!slides.length) {
     show(h("div", { class: "present-empty" }, h("p", { text: t("present.empty") }),
-      h("button", { type: "button", class: "secondary", text: t("present.back"), onclick: done })));
+      h("button", { type: "button", class: "secondary", text: backOf(params) ? t("present.backToText") : t("present.back"), onclick: done })));
     return;
   }
   // The presentation keeps its id over a reload of this window; the window

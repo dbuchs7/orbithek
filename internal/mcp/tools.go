@@ -70,6 +70,8 @@ const blockFormat = "A body is a list of blocks, each an object with kind and te
 	"starmap (space: a space key, * for every space the reader reads, or absent for the space of the item; label: a label, or absent; search: a search text, or absent; " +
 	"hideTypes: the type names it leaves out, or absent; hideKinds: some of done, label, outside, picture, or absent; depth: 1-3 for the neighbourhood of the item, or absent for the whole map; " +
 	"shows the starmap the reader may read, narrowed so when shown; a click on an item opens it); " +
+	"slides (ref: the ID of an album folder or collection, an item of the type folder or collection; text: a plain caption, or empty; " +
+	"shows the pictures of that folder or collection the reader may read as slides, in its order of slides, to step through and present; implies the relation embeds to it), " +
 	"a bpmn or process block may have view both (the diagram and below it the description of its tasks and decisions) or text (the description only), or none for the diagram alone; " +
 	"a form block alike, with the list of its fields as its description. " +
 	"Paragraphs, headings, quotes and panels may have align center, right or justify. " +

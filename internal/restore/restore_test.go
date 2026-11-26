@@ -230,19 +230,28 @@ func TestALaterBackupFillsAnOlderInstallation(t *testing.T) {
 	noErr(t, s.DefineType("root", item.TypeDef{Name: "page", Body: true}))
 	keep := must[item.Item](t)(s.Create("anna", item.NewItem{Space: "A", Type: "page", Title: "Kept parent"}))
 	lost := must[item.Item](t)(s.Create("anna", item.NewItem{Space: "A", Type: "page", Title: "Lost parent"}))
+	noErr(t, s.DefineType("root", item.TypeDef{Name: item.FolderType}))
+	lostFolder := must[item.Item](t)(s.Create("anna", item.NewItem{Space: "A", Type: item.FolderType, Title: "Lost talk"}))
 	older := s.Log()
 	under := must[item.Item](t)(s.Create("anna", item.NewItem{Space: "A", Type: "page", Parent: keep.ID, Title: "Under kept"}))
 	orphan := must[item.Item](t)(s.Create("anna", item.NewItem{Space: "A", Type: "page", Parent: lost.ID, Title: "Under lost",
 		Body: &item.Doc{Blocks: []item.Block{{Kind: item.Paragraph, Text: "See Lost", Mentions: []item.ID{lost.ID},
 			Marks: []item.Mark{{Type: item.MarkMention, Start: 4, End: 8, Ref: lost.ID}}}, {Kind: item.Embed, Ref: lost.ID}}}}))
 
+	// A slide deck of a folder deleted for good is left out, as an embed
+	// is (ADR-draft-a-slide-deck-in-a-text).
+	deck := must[item.Item](t)(s.Create("anna", item.NewItem{Space: "A", Type: "page", Title: "Deck",
+		Body: &item.Doc{Blocks: []item.Block{{Kind: item.Paragraph, Text: "Slides"}, {Kind: item.Slides, Ref: lostFolder.ID}}}}))
+
 	target := must[*item.Store](t)(item.Replay(older))
 	noErr(t, target.Trash("anna", lost.ID))
 	noErr(t, target.Purge("root", lost.ID))
+	noErr(t, target.Trash("anna", lostFolder.ID))
+	noErr(t, target.Purge("root", lostFolder.ID))
 	other := must[item.Item](t)(target.Create("anna", item.NewItem{Space: "A", Type: "page", Title: "Here only"}))
 	rep, err := Run(dry{target}, Source{Store: s, Instance: "bk2"}, Options{Spaces: []string{"A"}, Actor: "restore"})
 	noErr(t, err)
-	if len(rep.Restored) != 2 {
+	if len(rep.Restored) != 3 {
 		t.Fatalf("restored %+v, skipped %+v", rep.Restored, rep.Skipped)
 	}
 	if got := get(t, target, under.ID); got.Parent != keep.ID {
@@ -256,7 +265,10 @@ func TestALaterBackupFillsAnOlderInstallation(t *testing.T) {
 	if other.Key != under.Key || get(t, target, under.ID).Key == under.Key || got.Key != orphan.Key {
 		t.Fatalf("keys: here %s, under kept %s, under lost %s", other.Key, get(t, target, under.ID).Key, got.Key)
 	}
-	for _, want := range []string{"placed at the top", "plain text now", "embedded " + lost.Key + " is left out", "comes back as"} {
+	if d := get(t, target, deck.ID); len(d.Body.Blocks) != 1 || d.Body.Blocks[0].Kind != item.Paragraph {
+		t.Fatalf("the deck of the lost folder: %+v", d.Body)
+	}
+	for _, want := range []string{"placed at the top", "plain text now", "embedded " + lost.Key + " is left out", "embedded " + lostFolder.Key + " is left out", "comes back as"} {
 		if !slices.ContainsFunc(rep.Notes, func(n string) bool { return strings.Contains(n, want) }) {
 			t.Errorf("no note %q in %v", want, rep.Notes)
 		}

@@ -164,6 +164,7 @@ The menu **Insert…** adds blocks after the cursor:
 - **Embed an item's content…**: shows only the other item's text, without its title, type, state and fields, so that it reads as part of your text;
 - **New task…** (created below the page and shown as a link or whole) and **Task list…** (every task with a label, or the result of a query);
 - **View of items…**: the items of a type as a table, a gallery or a list, grouped by a field (see *Views of items*);
+- **Slide deck…**: the pictures of an album folder as slides, stepped through in the text and presented from it (see *Slide deck in a text*);
 - **Starmap…**: a starmap inside the text, narrowed as you choose (see *Starmap in a text*);
 - **Paste Markdown…** and **Markdown file from a repository…** (if enabled);
 - BPMN diagrams, and processes, forms, decisions, start forms and architecture sketches of a process engine (see *Process engines*).
@@ -542,6 +543,14 @@ Presentation remotes that send Page Up and Page Down work too. **End** closes th
 **Speaker's notes** belong to a picture: on its card in the album, **Add speaker's notes**, or in the presenter's window **Edit notes**. Whoever may edit the picture writes them; whoever sees the picture reads them. Notes stay with every version of a drawing.
 
 Both windows must be in the same browser on the same computer. People elsewhere follow by screen sharing.
+
+### Slide deck in a text
+
+While editing, **Insert…** → **Slide deck…** places the pictures of an album folder or collection in the text as a slide deck. Under **Album folder or collection** the dialog offers the folders you may read, shows the first slides to check, and takes a **Caption**; **Insert the slide deck** places it, and **Change the slide deck…** chooses another folder later. A presentation file (.pptx) is first imported into a folder in the album (see *Importing a PowerPoint presentation*).
+
+While reading, the deck shows the current slide with a strip of every slide below it. Step with **‹** and **›**, a click in the strip, or, after clicking into the slide, the arrow keys, Page Up and Down, the space bar, Home and End. **Full screen** shows the slide alone. **Present** opens the presenter's window with the speaker's notes and the presentation window for the projector, as in the album (see *Presenting pictures*); **End** returns to the text.
+
+The slides, their order and their notes stay in the album: what you change there, every text with this deck shows at once. The folder's name in the deck's bar opens it in the album. Every reader sees the pictures they may read; whoever may not read the folder sees that the deck cannot be shown. As long as a text shows a folder, the folder cannot be deleted. Exports name the deck by its caption instead of showing the slides.
 
 ### Ordering slides by hand
 

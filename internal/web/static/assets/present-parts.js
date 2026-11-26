@@ -50,6 +50,14 @@ export function slidesOf(pictures) {
 // follows, from the album's filters: "" for a deck of neither.
 export const orderOf = (params) => params.get("collection") || params.get("folder") || "";
 
+// backOf is the item whose text a presentation was started from, which
+// ending it returns to (ADR-draft-a-slide-deck-in-a-text): its key or ID
+// in the address's back, or "" for a presentation started in the album.
+export const backOf = (params) => {
+  const back = params.get("back") || "";
+  return /^[A-Za-z0-9-]{1,64}$/.test(back) ? back : "";
+};
+
 // DECK_FILTERS are the album's filters a presentation is chosen by, a
 // collection (ADR-0175) among them.
 export const DECK_FILTERS = ["folder", "collection", "space", "q", "kind", "label", "person"];

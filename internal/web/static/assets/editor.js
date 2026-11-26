@@ -31,6 +31,7 @@ import {
 } from "./tableparts.js";
 import { viewBlock, pickView, viewsReady } from "./itemview.js";
 import { pickStarmap, starmapBlockElement, starmapSummary, starmapsReady } from "./starmapblock.js";
+import { pickSlides, slidesElement, slidesReady } from "./slidesblock.js";
 import { headingNumbers } from "./numbering.js";
 
 // Every block carries bid, its ID in a live session (ADR-0010); it is not
@@ -122,6 +123,9 @@ export const schema = new Schema({
     // block keeps how it is narrowed at first.
     starmap: { group: "block", atom: true, selectable: true, attrs: { ...bid, space: { default: "" }, label: { default: "" }, search: { default: "" },
       depth: { default: 0 }, hideTypes: { default: null }, hideKinds: { default: null } }, toDOM: () => ["div", { class: "pm-starmap" }] },
+    // A slide deck (ADR-draft-a-slide-deck-in-a-text): the album folder or
+    // collection whose pictures are its slides, and a plain caption.
+    slides: { group: "block", atom: true, selectable: true, attrs: { ...bid, ref: {}, text: { default: "" } }, toDOM: () => ["figure", { class: "pm-slides" }] },
     // An image attachment of the item (ADR-0045), with a plain caption.
     // width is percent of the column, 0 for the picture's own size (ADR-0056).
     // align is left or right (the text flows beside it) or center (ADR-0059).
@@ -296,6 +300,7 @@ function plainNode(b, embeds) {
   if (b.kind === "tasklist") return schema.nodes.tasklist.create({ bid: id, label: b.text || "", query: b.query || "" });
   if (b.kind === "view") return schema.nodes.itemview.create({ bid: id, layout: b.layout || "table", itemType: b.itemType || "", space: b.space || "", query: b.query || "",
     group: b.group || "", columns: b.columns?.length ? [...b.columns] : null, sort: b.sort || "" });
+  if (b.kind === "slides") return schema.nodes.slides.create({ bid: id, ref: b.ref, text: b.text || "" });
   if (b.kind === "starmap") {
     return schema.nodes.starmap.create({ bid: id, space: b.space || "", label: b.label || "", search: b.search || "", depth: b.depth || 0,
       hideTypes: b.hideTypes?.length ? [...b.hideTypes] : null, hideKinds: b.hideKinds?.length ? [...b.hideKinds] : null });
@@ -393,6 +398,7 @@ function plainBlock(node) {
     if (a.columns?.length) b.columns = [...a.columns];
     return b;
   }
+  if (node.type === schema.nodes.slides) return { kind: "slides", ref: node.attrs.ref, text: node.attrs.text };
   if (node.type === schema.nodes.starmap) {
     const a = node.attrs;
     const b = { kind: "starmap" };
@@ -1534,6 +1540,23 @@ function starmapView(node, v, getPos, here) {
     update: (n) => n.type === node.type && JSON.stringify(n.attrs) === JSON.stringify(attrs) };
 }
 
+// slidesView shows the slide deck a block names
+// (ADR-draft-a-slide-deck-in-a-text): while reading, a reader steps
+// through it and presents it; while editing, a button changes its folder
+// and caption. The deck takes its own pointer and keys.
+function slidesView(node, v, getPos) {
+  const attrs = node.attrs;
+  const onChange = async () => {
+    const next = await pickSlides({ ref: attrs.ref, text: attrs.text });
+    const pos = getPos();
+    if (!next || typeof pos !== "number") return;
+    v.dispatch(v.state.tr.setNodeMarkup(pos, null, { ...node.attrs, ref: next.ref, text: next.text }));
+  };
+  const dom = slidesElement({ ref: attrs.ref, text: attrs.text }, { editing: v.editable, onChange: v.editable && slidesReady() ? onChange : null });
+  return { dom, ignoreMutation: () => true, stopEvent: (ev) => dom.contains(ev.target) && ev.target !== dom,
+    update: (n) => n.type === node.type && JSON.stringify(n.attrs) === JSON.stringify(attrs) };
+}
+
 // childTree draws child pages as nested lists, each page linked; a page
 // in a left-out item's place names that item beside it (ADR-0240).
 function childTree(pages) {
@@ -1970,6 +1993,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
       tasklist: (node) => taskListView(node, tasks),
       itemview: (node, v, getPos) => itemViewView(node, v, getPos),
       starmap: (node, v, getPos) => starmapView(node, v, getPos, childPages?.here || null),
+      slides: (node, v, getPos) => slidesView(node, v, getPos),
       veiled: (node) => ({ dom: h("div", { class: "pm-veiled", "data-secret": node.attrs.secret, contenteditable: "false" },
         h("span", { class: "pm-veiled-bar", "aria-hidden": "true", text: "▒▒▒▒▒▒▒▒" }), veiledContent(node.attrs.secret)), ...selectable }),
     },
@@ -2036,10 +2060,11 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     else if (kind === "tasklist") taskList();
     else if (kind === "itemview") itemView();
     else if (kind === "starmap") starmapInsert();
+    else if (kind === "slides") slidesInsert();
     else if (kind === "markdownfile") markdownFile("");
     else if (kind) insertBlock(schema.nodes[kind].create());
   } }, [["", t("editor.insert")], ["embed", t("assist.embedItem")], ["embedtext", t("editor.embedTextInsert")], ["markdown", t("editor.markdown")], markdown ? ["markdownfile", t("editor.markdownFile")] : null, tasks?.create ? ["newtask", t("editor.newTask")] : null, tasks?.pickLabel ? ["tasklist", t("editor.taskList")] : null, viewsReady() ? ["itemview", t("views.insert")] : null, starmapsReady() ? ["starmap", t("starmap.blockInsert")] : null, ["table", t("editor.table")], ["divider", t("editor.divider")], ["toc", t("editor.toc")], ["figures", t("editor.figures")], ["tables", t("editor.tables")], ["children", t("editor.children")],
-    files ? ["image", t("editor.image")] : null, files ? ["video", t("editor.video")] : null, files ? ["audio", t("editor.audio")] : null, files && canRecordHere() ? ["record", t("editor.record")] : null, files ? ["drawing", t("draw.insert")] : null, files ? ["album", t("album.fromAlbum")] : null, files ? ["clip", t("editor.copiedPicture")] : null,
+    files ? ["image", t("editor.image")] : null, files ? ["video", t("editor.video")] : null, files ? ["audio", t("editor.audio")] : null, files && canRecordHere() ? ["record", t("editor.record")] : null, files ? ["drawing", t("draw.insert")] : null, files ? ["album", t("album.fromAlbum")] : null, slidesReady() ? ["slides", t("slides.insert")] : null, files ? ["clip", t("editor.copiedPicture")] : null,
     files ? ["bpmnnew", t("bpmn.insertNew")] : null, files ? ["bpmnfile", t("bpmn.insertFile")] : null, ["process", t("bpmn.insertProcess")],
     ["form", t("form.insert")], ["startform", t("start.insert")], ["decision", t("decision.insert")], ["architecture", t("arch.insert")]].filter(Boolean)
     .map(([v, label]) => h("option", { value: v, text: label })));
@@ -2447,6 +2472,18 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
       if (!spec) return view.focus();
       insertBlock(schema.nodes.starmap.create({ space: spec.space || "", label: spec.label || "", search: spec.search || "", depth: spec.depth || 0,
         hideTypes: spec.hideTypes || null, hideKinds: spec.hideKinds || null }));
+    } catch (err) {
+      status.textContent = err.message;
+    }
+  };
+  // A slide deck (ADR-draft-a-slide-deck-in-a-text): its album folder or
+  // collection and caption are chosen in a dialog.
+  const slidesInsert = async () => {
+    status.textContent = "";
+    try {
+      const spec = await pickSlides({});
+      if (!spec) return view.focus();
+      insertBlock(schema.nodes.slides.create({ ref: spec.ref, text: spec.text || "" }));
     } catch (err) {
       status.textContent = err.message;
     }

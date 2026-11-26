@@ -221,7 +221,11 @@ import (
 //     HideKinds and its Space, HideTypes and Depth, sealed with the body
 //     (ADR-0252).
 //     Versions 1 to 69 are still read; their bodies show no starmap.
-const CodecVersion = 70
+//   - 71: the block kind slides, an album folder or collection in Ref
+//     and a plain caption, sealed with the body
+//     (ADR-draft-a-slide-deck-in-a-text).
+//     Versions 1 to 70 are still read; their bodies show no slide deck.
+const CodecVersion = 71
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

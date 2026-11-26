@@ -18,6 +18,7 @@ import { recorderControl } from "./recorder.js";
 import { isAudio } from "./recorderparts.js";
 import { renameInPlace } from "./rename.js";
 import { presenterView, audienceView } from "./present.js";
+import { backOf } from "./present-parts.js";
 import { starmapView } from "./starmap.js";
 import { roadmapView } from "./roadmap.js";
 import { isStartName, startDefaults } from "./timeline.js";
@@ -39,6 +40,7 @@ import { manualBlocks, manualLanguage, manualLanguages, manualPath, manualPictur
 import { helpLink } from "./help.js";
 import { configureViews, labelItems, viewScreen } from "./itemview.js";
 import { configureStarmaps } from "./starmapblock.js";
+import { configureSlides } from "./slidesblock.js";
 import { pdfView } from "./pdfview.js";
 import { attachmentLink, isPdf, onPdf, readerHref } from "./pdfparts.js";
 import { bookmarklet, captureAddress, readCapture } from "./capture.js";
@@ -77,6 +79,9 @@ configureViews({
 // A starmap in a text (ADR-0252) draws the page
 // tree's symbols and asks in the page's dialog.
 configureStarmaps({ symbols: () => starmapSymbols(), formDialog });
+// A slide deck in a text (ADR-draft-a-slide-deck-in-a-text) asks for its
+// folder in the page's dialog.
+configureSlides({ formDialog });
 
 // --- shared pieces -------------------------------------------------------
 
@@ -4395,8 +4400,10 @@ async function presentScreen(params) {
   const show = screen();
   document.body.classList.add("presenting");
   onLeave(() => document.body.classList.remove("presenting"));
-  // Ending returns to the album.
-  await presenterView({ params, show, onLeave, done: () => { location.hash = "#/album"; } });
+  // Ending returns to the album, or to the text it was started from
+  // (ADR-draft-a-slide-deck-in-a-text).
+  const back = backOf(params);
+  await presenterView({ params, show, onLeave, done: () => { location.hash = back ? "#/item/" + encodeURIComponent(back) : "#/album"; } });
 }
 
 function showScreen(params) {
