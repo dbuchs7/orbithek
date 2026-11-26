@@ -424,7 +424,7 @@ func (h itemHandlers) grantRole(w http.ResponseWriter, r *http.Request) {
 	h.write(w, r, 0, func(x *item.Session, s *item.Store) (any, error) {
 		// Whoever administers the room learns whether the principal
 		// exists; whoever does not is refused by Grant as before
-		// (ADR-draft-a-role-goes-to-someone-who-exists).
+		// (ADR-0255).
 		if _, err := x.SpaceGrants(r.PathValue("space")); err == nil {
 			if err := h.existing(s, []string{r.PathValue("principal")}); err != nil {
 				return nil, err
@@ -477,7 +477,7 @@ func (h itemHandlers) listGrants(w http.ResponseWriter, r *http.Request) {
 		Principal string `json:"principal"`
 		Role      string `json:"role"`
 		// Unknown marks a grant that reaches nobody: no account has the
-		// ID, or the group has no members (ADR-draft-a-role-goes-to-someone-who-exists).
+		// ID, or the group has no members (ADR-0255).
 		Unknown bool `json:"unknown,omitempty"`
 	}
 	var out []grantJSON
@@ -502,7 +502,7 @@ func (h itemHandlers) listGrants(w http.ResponseWriter, r *http.Request) {
 // existing refuses principals that reach nobody: a group is named with
 // "@" and has members, anything else is the ID of an account. A grant or
 // a restriction to such a name would open nothing to anyone and look as
-// if it did (ADR-0078, ADR-draft-a-role-goes-to-someone-who-exists).
+// if it did (ADR-0078, ADR-0255).
 func (h itemHandlers) existing(s *item.Store, principals []string) error {
 	var users []auth.UserID
 	for _, p := range principals {

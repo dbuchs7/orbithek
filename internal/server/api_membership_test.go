@@ -48,7 +48,7 @@ func TestAccessIsListedAndTakenBackThroughTheAPI(t *testing.T) {
 // A role goes only to a person with an account or to a group with members:
 // a name that resolves to nobody would be a grant that opens the space to
 // no one, shown in the list as if it worked. A grant made before the check
-// is listed as unknown and can still be taken back (ADR-draft-a-role-goes-to-someone-who-exists).
+// is listed as unknown and can still be taken back (ADR-0255).
 func TestARoleGoesOnlyToPeopleAndGroupsThatExist(t *testing.T) {
 	w := newWorld(t)
 	// A group nobody belongs to, a name its "@" was encoded twice on the

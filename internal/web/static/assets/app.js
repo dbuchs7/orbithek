@@ -7821,7 +7821,7 @@ async function membersView(key) {
     .map(([r, label]) => h("option", { value: r, text: label, selected: r === value })));
   // A grant that reaches nobody — no account has the ID, or the group has
   // no members — is marked; it can only be taken back
-  // (ADR-draft-a-role-goes-to-someone-who-exists).
+  // (ADR-0255).
   const row = (g) => {
     const sel = roleSelect(g.role);
     sel.setAttribute("aria-label", t("admin.role"));

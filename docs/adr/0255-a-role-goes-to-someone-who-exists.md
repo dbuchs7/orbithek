@@ -1,4 +1,4 @@
-# ADR-DRAFT: A role goes to someone who exists, and a grant that reaches nobody is shown as such
+# ADR-0255: A role goes to someone who exists, and a grant that reaches nobody is shown as such
 
 - **Status:** Proposed
 - **Implementation:** Partial

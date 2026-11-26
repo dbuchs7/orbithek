@@ -42,4 +42,4 @@ Chosen option: **1**. Option 2 would avoid three event kinds, but a grant that m
 ## Links
 
 - amended by [ADR-0111](0111-protecting-removing-and-copying-respect-the-whole-tree.md) (the last space admin role stays)
-- amended by ADR-draft-a-role-goes-to-someone-who-exists (a role goes only to an account or a group with members)
+- amended by ADR-0255 (a role goes only to an account or a group with members)
