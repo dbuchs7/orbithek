@@ -5349,7 +5349,7 @@ function bodySection(item, embeds, editing, threads, attachments, protect, edit,
 // protection of an item does (ADR-0078); values() are the user IDs and
 // @groups chosen.
 // unknown names the chosen principals that reach nobody, marked until
-// they are taken out (ADR-draft-readers-and-members-exist).
+// they are taken out (ADR-0256).
 function principalPicker(id, initial, unknown = []) {
   let chosen = [...initial];
   const list = h("ul", { class: "access-entries", id: id + "-entries" });
@@ -5564,7 +5564,7 @@ function secretsSection(path, item, status) {
   const base = (sc) => `${path}/secrets/${encodeURIComponent(sc.id)}`;
   const entry = (sc, i) => {
     // A reader that reaches nobody is named as stored and marked
-    // (ADR-draft-readers-and-members-exist).
+    // (ADR-0256).
     const unknown = sc.unknownReaders || [];
     const reader = (p) => (unknown.includes(p) ? t("secret.unknownReader", { who: p }) : named(p));
     const readers = [named(sc.by), ...(sc.readers || []).map(reader)].join(", ");

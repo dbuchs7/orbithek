@@ -459,7 +459,7 @@ func (h itemHandlers) addMember(w http.ResponseWriter, r *http.Request) {
 		}
 		// A group's member is an account: groups do not hold groups, and
 		// a member no account answers to would make an empty group look
-		// filled (ADR-draft-readers-and-members-exist).
+		// filled (ADR-0256).
 		if err := h.account(r.PathValue("principal")); err != nil {
 			return nil, err
 		}
@@ -482,7 +482,7 @@ func (h itemHandlers) grantSystemRole(w http.ResponseWriter, r *http.Request) {
 		if err := h.isAdmin(s, r); err != nil {
 			return nil, err
 		}
-		// A system role goes to an account (ADR-draft-readers-and-members-exist).
+		// A system role goes to an account (ADR-0256).
 		if err := h.account(r.PathValue("principal")); err != nil {
 			return nil, err
 		}
@@ -523,7 +523,7 @@ func (h itemHandlers) listGrants(w http.ResponseWriter, r *http.Request) {
 }
 
 // hasAccount reports whether one of the members is the ID of an account;
-// a member stored before accounts were checked may be none (ADR-draft-readers-and-members-exist).
+// a member stored before accounts were checked may be none (ADR-0256).
 func (h itemHandlers) hasAccount(members []string) bool {
 	if len(members) == 0 {
 		return false
@@ -545,7 +545,7 @@ func (h itemHandlers) account(principal string) error {
 
 // unknownReaders marks, on each protected passage the caller sees the
 // readers of, those that reach nobody: no account has the ID, or the
-// group has no members (ADR-draft-readers-and-members-exist).
+// group has no members (ADR-0256).
 func (h itemHandlers) unknownReaders(s *item.Store, j itemJSON) itemJSON {
 	for i := range j.Secrets {
 		for _, p := range j.Secrets[i].Readers {
@@ -561,7 +561,7 @@ func (h itemHandlers) unknownReaders(s *item.Store, j itemJSON) itemJSON {
 // "@" and has a member with an account, anything else is the ID of an
 // account. A grant, a restriction or a reader of such a name would open
 // nothing to anyone and look as if it did (ADR-0078, ADR-0255,
-// ADR-draft-readers-and-members-exist).
+// ADR-0256).
 func (h itemHandlers) existing(s *item.Store, principals []string) error {
 	var users []auth.UserID
 	for _, p := range principals {

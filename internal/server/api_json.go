@@ -402,7 +402,7 @@ type secretJSON struct {
 	Blocks  bool     `json:"blocks,omitempty"`
 	Readers []string `json:"readers,omitempty"`
 	// UnknownReaders are the readers that reach nobody: no account has
-	// the ID, or the group has no members (ADR-draft-readers-and-members-exist).
+	// the ID, or the group has no members (ADR-0256).
 	UnknownReaders []string `json:"unknownReaders,omitempty"`
 	Requests       []string `json:"requests,omitempty"`
 	// RequestedAt: when the caller asked, while they wait (ADR-0161).

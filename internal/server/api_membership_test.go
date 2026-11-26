@@ -134,7 +134,7 @@ func TestProtectingAnItemForAGroup(t *testing.T) {
 // Readers of protected passages, members of groups and holders of system
 // roles exist too: a name no account or group answers to is refused, and
 // readers stored before the check are marked as unknown
-// (ADR-draft-readers-and-members-exist).
+// (ADR-0256).
 func TestReadersMembersAndSystemRolesExist(t *testing.T) {
 	w := newWorld(t)
 	it := w.bert.expect("POST", "/api/items", `{"space":"PLAT","type":"task","title":"Pay","properties":{"priority":"low"},

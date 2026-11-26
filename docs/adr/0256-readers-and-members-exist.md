@@ -1,4 +1,4 @@
-# ADR-DRAFT: Readers of protected passages, members of groups and holders of system roles exist
+# ADR-0256: Readers of protected passages, members of groups and holders of system roles exist
 
 - **Status:** Proposed
 - **Implementation:** Partial

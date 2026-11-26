@@ -49,7 +49,7 @@ func (h itemHandlers) protect(w http.ResponseWriter, r *http.Request) {
 	h.change(w, r, func(x *item.Session, s *item.Store, it item.Item) error {
 		// Only people and groups that exist: a reader no account or
 		// group answers to would read nothing. Only whoever may protect
-		// learns which exist (ADR-draft-readers-and-members-exist).
+		// learns which exist (ADR-0256).
 		if x.CanEdit(it.ID) {
 			if err := h.existing(s, req.Readers); err != nil {
 				return err
