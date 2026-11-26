@@ -78,3 +78,21 @@ export function listOf(answer) {
   if (answer && Array.isArray(answer.items)) return answer.items;
   return [];
 }
+
+// engineChoices are the options of a field that names a process engine
+// (ADR-0251): an empty choice, then each engine set up here by its name
+// and ID, the one the field holds chosen; an ID no engine has any more
+// stays chosen as an option of its own, marked unknown, so saving the
+// item does not change it unseen.
+export function engineChoices(engines, value) {
+  const out = [{ value: "", text: "—", selected: !value }];
+  let known = false;
+  for (const e of engines || []) {
+    if (!e?.id) continue;
+    const selected = e.id === value;
+    known = known || selected;
+    out.push({ value: e.id, text: e.name && e.name !== e.id ? `${e.name} (${e.id})` : e.id, selected });
+  }
+  if (value && !known) out.push({ value, text: value, selected: true, unknown: true });
+  return out;
+}

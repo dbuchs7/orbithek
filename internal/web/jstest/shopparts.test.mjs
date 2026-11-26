@@ -7,7 +7,7 @@
 //   node --test "internal/web/jstest/*.test.mjs"
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { textOf, offered, partsOf, answers, orders, settled, listOf, statuses } from "../static/assets/shopparts.js";
+import { textOf, offered, partsOf, answers, orders, settled, listOf, statuses, engineChoices } from "../static/assets/shopparts.js";
 
 test("a text is shown in the language wanted, else in the first one held", () => {
   assert.equal(textOf({ de: "Laptop", fr: "Portable" }, "fr"), "Portable");
@@ -56,4 +56,20 @@ test("settled positions and the lists the engine answers", () => {
   assert.deepEqual(listOf([1]), [1]);
   assert.deepEqual(listOf({ items: [2], total: 1 }), [2]);
   assert.deepEqual(listOf(null), []);
+});
+
+test("a field naming an engine chooses among the engines set up here", () => {
+  const engines = [{ id: "atlas", name: "Atlas Produktion" }, { id: "test", name: "test" }, { name: "no id" }];
+  assert.deepEqual(engineChoices(engines, "atlas"), [
+    { value: "", text: "—", selected: false },
+    { value: "atlas", text: "Atlas Produktion (atlas)", selected: true },
+    { value: "test", text: "test", selected: false },
+  ]);
+  assert.equal(engineChoices(engines, "").find((c) => c.selected).value, "");
+  // An engine no longer set up stays chosen, marked unknown.
+  const gone = engineChoices(engines, "old");
+  assert.deepEqual(gone[gone.length - 1], { value: "old", text: "old", selected: true, unknown: true });
+  assert.equal(gone.filter((c) => c.selected).length, 1);
+  // Before the list is read, the value held stays chosen.
+  assert.deepEqual(engineChoices([], "atlas").map((c) => [c.value, c.selected]), [["", false], ["atlas", true]]);
 });

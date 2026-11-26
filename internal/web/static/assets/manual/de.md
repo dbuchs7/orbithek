@@ -574,6 +574,7 @@ Bietet eine Engine einen Shop an, zeigt **Shop** im Modulwechsler oder seine Kac
 Die Engine entscheidet, was man sieht, bestellt und genehmigt; man handelt als man selbst.
 Beim ersten Mal führt **Für den Shop verbinden** zur Engine, wo man sich anmeldet und Orbithek den eigenen Shop und die eigenen Tasks erlaubt.
 Eine Verbindung, die nur für Tasks besteht, wird einmal erneut verbunden.
+Ist der Shop noch nicht eingerichtet, sagt die Seite das; die Administration sieht dort Schritt für Schritt, was einzurichten ist, und einen Knopf zu den Prozess-Engines.
 
 Unter **Kataloge** öffnet **Auswählen** ein Produkt mit dem, was dazugehört, seinen Optionen, seiner Ausführung und seinem Bestellformular.
 **In den Warenkorb** legt es in den **Warenkorb**; **Bestellen** gibt pro Katalog eine Bestellung auf.
@@ -584,11 +585,12 @@ Unter **Genehmigungen** entscheidet man die Genehmigungen, die man hält, mit **
 
 Ein Katalog des Shops einer Engine kann in einem Raum geschrieben werden.
 Die Administration richtet die Typen einmal ein, auf der Seite der Engine unter **Administration** mit **Typen einrichten**.
-Ein Katalog ist ein Eintrag des Typs `shop-catalogue` mit der Engine, seinen Sprachen und seinem Rang; seine Produkte sind Einträge des Typs `shop-product` darunter im Seitenbaum.
+Ein Katalog ist ein Eintrag des Typs `shop-catalogue` mit der Engine, ausgewählt unter den hier eingerichteten, seinen Sprachen und seinem Rang; seine Produkte sind Einträge des Typs `shop-product` darunter im Seitenbaum.
 Ein Produkt nennt die Prozesse, die es bereitstellen und wieder entziehen, seine Genehmigung, sein Bestellformular und seinen Preis; angeboten wird es, sobald es aktiv ist.
 Beziehungen der Typen `composition`, `aggregation`, `requires` und `excludes` zwischen Produkten werden zur Struktur des Katalogs; die Labels eines Produkts werden zu seinen Stichwörtern und sein Text, ohne geschützte Passagen, zu seiner Beschreibung.
 
 Auf der Seite des Katalogs zeigt die Karte **Shop-Katalog**, was veröffentlicht würde oder was es verhindert (**Prüfen**).
+Diese Karte und die Karte **Shop-Produkt** auf der Seite eines Produkts erklären, was in die Felder gehört (**Was gehört in die Felder?**).
 **Probelauf** fragt die Engine, ob sie den Katalog annehmen würde, ohne etwas zu ändern; **Veröffentlichen** ersetzt, was die Engine davon hält, und bietet ein neues Release an.
 Man veröffentlicht mit der eigenen Verbindung zum Shop; ob man dort Kataloge pflegen darf, entscheidet die Engine.
 Danach nimmt die Engine Änderungen am Katalog nur noch von Orbithek an.

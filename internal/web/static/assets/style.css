@@ -3042,3 +3042,13 @@ dialog.palette::backdrop { background: rgba(20, 22, 26, .45); }
 .shop-dialog { width: min(640px, calc(100vw - 32px)); }
 .shop-orders, .shop-approvals, .shop-basket-lines { list-style: none; padding: 0; }
 .shop-answers { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; }
+/* The shop's help (ADR-0251): numbered steps and what goes into each
+   field, folded until asked for. */
+.shop-steps { padding-left: 1.4em; }
+.shop-steps li { margin: 4px 0; }
+.shop-help { margin: 8px 0; }
+.shop-help summary { cursor: pointer; font-weight: 600; }
+.shop-fields { display: grid; grid-template-columns: minmax(0, max-content) 1fr; gap: 4px 10px; margin: 8px 0; }
+.shop-fields dt code { white-space: normal; word-break: break-word; }
+.side-card .shop-fields { grid-template-columns: 1fr; }
+.side-card .shop-fields dd { margin: 0 0 6px; }

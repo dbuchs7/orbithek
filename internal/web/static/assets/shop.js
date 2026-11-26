@@ -44,17 +44,62 @@ function statusText(s) {
 
 // connectCard asks one to connect one's account for the shop: through the
 // engine, where one approves it, and back to this page.
-function connectCard(st) {
+function connectCard(st, admin) {
   const href = "/api/engines/" + enc(st.engine.id) + "/connect?" + new URLSearchParams({ shop: "1", back: "#/shop?engine=" + st.engine.id }).toString();
+  const name = st.engine.name;
+  if (!st.connectable) {
+    // Nobody can connect yet: this server is not known to the engine.
+    return h("section", { class: "card", id: "shop-connect" },
+      h("h2", { text: t("shop.notReadyTitle") }),
+      h("p", { text: admin ? t("shop.adminNotConnectable", { engine: name }) : t("shop.userNotReady") }),
+      admin ? h("p", {}, h("a", { class: "button primary", id: "shop-admin-link", href: adminEngines, text: t("shop.toEngines") })) : "");
+  }
   return h("section", { class: "card", id: "shop-connect" },
-    h("h2", { text: t("shop.connectTitle", { engine: st.engine.name }) }),
-    h("p", { text: st.connected ? t("shop.connectAgain", { engine: st.engine.name }) : t("shop.connectFirst", { engine: st.engine.name }) }),
-    st.connectable ? h("p", {}, h("a", { class: "button primary", id: "shop-connect-link", href, text: t("shop.connect") }))
-      : h("p", { class: "muted", text: t("shop.notConnectable", { engine: st.engine.name }) }));
+    h("h2", { text: t("shop.connectTitle", { engine: name }) }),
+    h("p", { text: st.connected ? t("shop.connectAgain", { engine: name }) : t("shop.connectFirst", { engine: name }) }),
+    h("ol", { class: "shop-steps" },
+      h("li", { text: t("shop.connectStep1", { engine: name }) }),
+      h("li", { text: t("shop.connectStep2", { engine: name }) }),
+      h("li", { text: t("shop.connectStep3") })),
+    h("p", {}, h("a", { class: "button primary", id: "shop-connect-link", href, text: t("shop.connect") })),
+    h("p", { class: "muted", text: t("shop.connectOnce") }));
 }
 
-// shopView draws the shop into section. params: engine, tab.
-export async function shopView(section, params) {
+// adminEngines is where administrators set up process engines.
+const adminEngines = "#/admin?section=engines";
+
+// setupCard says the shop is not available yet: to everyone in plain
+// words, and to administrators what to set up, with a way there.
+async function setupCard(admin, states) {
+  if (!admin) {
+    return h("section", { class: "card", id: "shop-none" },
+      h("h2", { text: t("shop.notReadyTitle") }),
+      h("p", { text: t("shop.userNotReady") }));
+  }
+  let all = [];
+  try {
+    ({ engines: all } = await get("/api/engines"));
+  } catch { /* the steps say it all */ }
+  const known = new Map(states.map((s) => [s.engine.id, s]));
+  const atlas = (all || []).filter((e) => !e.kind || e.kind === "atlas");
+  const status = !atlas.length ? t("shop.adminNoEngine")
+    : t("shop.adminNoShop", { engines: atlas.map((e) => known.get(e.id)?.engine.name || e.name || e.id).join(", ") });
+  return h("section", { class: "card", id: "shop-none" },
+    h("h2", { text: t("shop.setupTitle") }),
+    h("p", { class: "notice", id: "shop-setup-status", text: status }),
+    h("p", { text: t("shop.setupLead") }),
+    h("ol", { class: "shop-steps" },
+      h("li", { text: t("shop.setupStep1") }),
+      h("li", { text: t("shop.setupStep2") }),
+      h("li", { text: t("shop.setupStep3") }),
+      h("li", { text: t("shop.setupStep4") })),
+    h("p", {}, h("a", { class: "button primary", id: "shop-admin-link", href: adminEngines, text: t("shop.toEngines") })),
+    h("p", { class: "muted", text: t("shop.setupDelay") }));
+}
+
+// shopView draws the shop into section. params: engine, tab; admin says
+// the reader may set up engines, so the help says how.
+export async function shopView(section, params, { admin = false } = {}) {
   section.replaceChildren(h("p", { class: "muted", text: t("autobackup.loading") }));
   let engines;
   try {
@@ -62,12 +107,13 @@ export async function shopView(section, params) {
   } catch (err) {
     return section.replaceChildren(errorBox(err));
   }
-  const states = (await Promise.all((engines || []).map((e) => get(base(e.id)).catch(() => null)))).filter((s) => s && s.offered);
-  if (!states.length) return section.replaceChildren(h("p", { class: "notice", id: "shop-none", text: t("shop.none") }));
+  const every = (await Promise.all((engines || []).map((e) => get(base(e.id)).catch(() => null)))).filter(Boolean);
+  const states = every.filter((s) => s.offered);
+  if (!states.length) return section.replaceChildren(await setupCard(admin, every));
   const st = states.find((s) => s.engine.id === params.get("engine")) || states[0];
   const choose = states.length > 1 ? h("p", { class: "actions-row", id: "shop-engines" }, states.map((s) =>
     h("a", { class: s === st ? "button primary" : "button secondary", href: "#/shop?engine=" + enc(s.engine.id), text: s.engine.name }))) : "";
-  if (!st.shop) return section.replaceChildren(choose, connectCard(st));
+  if (!st.shop) return section.replaceChildren(choose, connectCard(st, admin));
 
   const tab = ["catalogues", "orders", "approvals"].includes(params.get("tab")) ? params.get("tab") : "catalogues";
   const tabLink = (id, label) => h("a", { class: id === tab ? "tab active" : "tab", href: "#/shop?" + new URLSearchParams({ engine: st.engine.id, tab: id }).toString(),
@@ -76,7 +122,7 @@ export async function shopView(section, params) {
   section.replaceChildren(choose,
     h("nav", { class: "tabs", "aria-label": t("shop.title") }, tabLink("catalogues", t("shop.tabCatalogues")), tabLink("orders", t("shop.tabOrders")), tabLink("approvals", t("shop.tabApprovals"))),
     body);
-  const ctx = { engine: st.engine.id, name: st.engine.name, lang: language(), body, reconnect: () => section.replaceChildren(choose, connectCard({ ...st, shop: false, connected: true })) };
+  const ctx = { engine: st.engine.id, name: st.engine.name, lang: language(), body, admin, reconnect: () => section.replaceChildren(choose, connectCard({ ...st, shop: false, connected: true }, admin)) };
   try {
     if (tab === "orders") await ordersTab(ctx);
     else if (tab === "approvals") await approvalsTab(ctx);
@@ -133,7 +179,17 @@ async function cataloguesTab(ctx) {
       } })));
   };
   drawBasket();
-  if (!all.length) return ctx.body.replaceChildren(h("p", { class: "notice", id: "shop-empty", text: t("shop.noCatalogue", { engine: ctx.name }) }));
+  if (!all.length) {
+    return ctx.body.replaceChildren(h("section", { class: "card", id: "shop-empty" },
+      h("h2", { text: t("shop.noCatalogueTitle") }),
+      h("p", { text: t("shop.noCatalogue", { engine: ctx.name }) }),
+      ctx.admin ? h("details", { class: "shop-help" }, h("summary", { text: t("shop.howCatalogue") }),
+        h("ol", { class: "shop-steps" },
+          h("li", { text: t("shop.catalogueStep1") }),
+          h("li", { text: t("shop.catalogueStep2") }),
+          h("li", { text: t("shop.catalogueStep3") }),
+          h("li", { text: t("shop.catalogueStep4") }))) : ""));
+  }
   ctx.body.replaceChildren(status, basketBox, ...all.map(({ catalog, release }) =>
     h("section", { class: "shop-catalogue", "data-catalogue": catalog.id },
       h("h2", { text: textOf(catalog.texts, ctx.lang) || catalog.id }),
@@ -301,7 +357,8 @@ export function catalogueCard(it) {
   const path = "/api/items/" + enc(it.id) + "/shop";
   const out = h("div", { class: "status", role: "status" });
   const card = h("section", { class: "side-card", id: "shop-catalogue" }, h("h2", { text: t("shopcat.title") }),
-    h("p", { class: "muted", text: t("shopcat.note") }), out);
+    h("p", { class: "muted", text: t("shopcat.note") }),
+    fieldHelp("shopcat-help", t("shopcat.helpTitle"), catalogueFields, [t("shopcat.helpProducts"), t("shopcat.helpPublish")]), out);
   const show = (got, dryRun) => {
     const r = got.result || {};
     const names = (xs) => (xs || []).join(", ") || "–";
@@ -342,16 +399,66 @@ export function catalogueCard(it) {
   return card;
 }
 
+// The fields of a catalogue and of a product, each with what belongs in
+// it in plain words; the keys name the help texts.
+const catalogueFields = ["engine", "languages", "rank", "audience", "catalogue-id", "names"];
+const productFields = ["provision-process", "deprovision-process", "approval", "approver", "order-form", "price", "category", "multiple", "max-days", "orderable", "eligible", "product-id", "names"];
+
+// fieldHelp is a folded list of what belongs in each field, with notes
+// below it.
+function fieldHelp(id, title, fields, notes = []) {
+  const label = (f) => f === "names" ? "name-de, name-fr, name-it, name-en" : f === "orderable" ? "orderable-from, orderable-until" : f;
+  const text = {
+    engine: t("shopfield.engine"), languages: t("shopfield.languages"), rank: t("shopfield.rank"), audience: t("shopfield.audience"),
+    "catalogue-id": t("shopfield.catalogueId"), names: t("shopfield.names"), "provision-process": t("shopfield.provision"),
+    "deprovision-process": t("shopfield.deprovision"), approval: t("shopfield.approval"), approver: t("shopfield.approver"),
+    "order-form": t("shopfield.orderForm"), price: t("shopfield.price"), category: t("shopfield.category"), multiple: t("shopfield.multiple"),
+    "max-days": t("shopfield.maxDays"), orderable: t("shopfield.orderable"), eligible: t("shopfield.eligible"), "product-id": t("shopfield.productId"),
+  };
+  return h("details", { class: "shop-help", id },
+    h("summary", { text: title }),
+    h("dl", { class: "shop-fields" }, fields.map((f) => [h("dt", {}, h("code", { text: label(f) })), h("dd", { text: text[f] })])),
+    notes.map((n) => h("p", { class: "muted", text: n })));
+}
+
+// productCard explains a product's fields on its page and leads to the
+// catalogue it is published with.
+export function productCard(it) {
+  const to = h("p", {});
+  const card = h("section", { class: "side-card", id: "shop-product" }, h("h2", { text: t("shopprod.title") }),
+    h("p", { class: "muted", text: t("shopprod.note") }),
+    h("p", { class: "muted", text: it.state === "active" ? t("shopprod.active") : it.state === "withdrawn" ? t("shopprod.withdrawn") : t("shopprod.draft") }),
+    fieldHelp("shopprod-help", t("shopcat.helpTitle"), productFields), to);
+  // The catalogue is the nearest shop-catalogue above it in the page tree.
+  (async () => {
+    let id = it.parent;
+    for (let i = 0; id && i < 20; i++) {
+      const up = (await get("/api/items/" + enc(id)).catch(() => null))?.item;
+      if (!up) break;
+      if (up.type === "shop-catalogue") {
+        return to.replaceChildren(h("a", { href: "#/item/" + enc(up.key), id: "shopprod-catalogue", text: t("shopprod.toCatalogue", { title: up.title || up.key }) }));
+      }
+      id = up.parent;
+    }
+    to.replaceChildren(h("span", { class: "notice warning", text: t("shopprod.noCatalogue") }));
+  })();
+  return card;
+}
+
 // shopTypesCard lets administrators set up the types catalogues are
 // written in.
 export function shopTypesCard() {
   const out = h("div", { class: "status", role: "status" });
   return h("section", { class: "card", id: "shop-types" }, h("h3", { text: t("shopcat.typesTitle") }),
     h("p", { class: "muted", text: t("shopcat.typesNote") }),
+    h("ol", { class: "shop-steps" },
+      h("li", { text: t("shopcat.typesStep1") }),
+      h("li", { text: t("shopcat.typesStep2") }),
+      h("li", { text: t("shopcat.typesStep3") })),
     h("p", {}, h("button", { type: "button", class: "secondary", id: "shop-types-define", text: t("shopcat.typesDefine"), onclick: async () => {
       try {
         const got = await post("/api/shop/types", {});
-        out.replaceChildren(h("p", { class: "notice success", text: got.defined.length ? t("shopcat.typesDefined", { types: got.defined.join(", ") }) : t("shopcat.typesExisting") }));
+        out.replaceChildren(h("p", { class: "notice success", text: (got.defined.length ? t("shopcat.typesDefined", { types: got.defined.join(", ") }) : t("shopcat.typesExisting")) + " " + t("shopcat.typesNext") }));
       } catch (err) {
         out.replaceChildren(errorBox(err));
       }

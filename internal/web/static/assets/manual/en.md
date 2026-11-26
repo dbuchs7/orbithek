@@ -574,6 +574,7 @@ If an engine offers a shop, **Shop** in the module switcher, or its tile with th
 The engine decides what you see, order and approve; you act as yourself.
 The first time, **Connect for the shop** takes you to the engine, where you sign in and allow Orbithek your shop and your tasks.
 A connection made only for tasks is asked to connect again once.
+If the shop is not set up yet, the page says so; administrators see there what to set up, step by step, and a button to the process engines.
 
 Under **Catalogues**, **Choose** opens a product with what comes with it, its options, its version and its order form.
 **Add to basket** puts it in the **Basket**; **Place order** places one order per catalogue.
@@ -584,11 +585,12 @@ Under **Approvals** you decide the approvals you hold with **Approve** or **Refu
 
 A catalogue of an engine's shop can be written in a room.
 An administrator sets up the types once, on the engine's page under **Administration** with **Set up the types**.
-A catalogue is an item of type `shop-catalogue` with the engine, its languages and its rank; its products are items of type `shop-product` below it in the page tree.
+A catalogue is an item of type `shop-catalogue` with the engine, chosen among those set up here, its languages and its rank; its products are items of type `shop-product` below it in the page tree.
 A product names the processes that provision it and take it back, its approval, its order form and price; it is offered once it is active.
 Relations of the types `composition`, `aggregation`, `requires` and `excludes` between products become the catalogue's structure; a product's labels become its keywords and its text, without protected passages, its description.
 
 On the catalogue's page, the card **Shop catalogue** shows what would be published or what stops it (**Check**).
+The card and the card **Shop product** on a product's page say what goes into each field (**What goes into the fields?**).
 **Dry run** asks the engine whether it would accept the catalogue, without changing anything; **Publish** replaces what the engine holds of it and offers a new release.
 You publish with your own connection to the shop; whether you may maintain catalogues there, the engine decides.
 Afterwards the engine accepts changes to the catalogue only from Orbithek.

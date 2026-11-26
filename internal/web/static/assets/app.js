@@ -52,7 +52,8 @@ import { installPalette, rememberItem } from "./palette.js";
 import { besidePane, installBeside, openBeside } from "./beside.js";
 import { contextSection } from "./context.js";
 import { mentionCreator } from "./mentioncreate.js";
-import { shopView, catalogueCard, shopTypesCard } from "./shop.js";
+import { shopView, catalogueCard, productCard, shopTypesCard } from "./shop.js";
+import { engineChoices } from "./shopparts.js";
 
 const app = document.getElementById("app");
 const nav = document.getElementById("nav");
@@ -1879,7 +1880,7 @@ async function route() {
       case "mcp": return await mcpView();
       case "manual": return await manualView(params);
       case "oauth": return await oauthView(params);
-      case "admin": return await adminView();
+      case "admin": return await adminView(params);
       case "members": return await membersView(arg);
       case "import": return await importView(arg);
       default: return await homeView();
@@ -4144,7 +4145,7 @@ async function shopScreen(params) {
     h("div", { class: "page-head" }, h("h1", { text: t("shop.title") })),
     h("p", { class: "muted", text: t("shop.intro") }),
     section);
-  await shopView(section, params);
+  await shopView(section, params, { admin: Boolean(me?.admin) });
 }
 
 // viewRoute shows the items of a type as a table, a gallery or a list,
@@ -4596,8 +4597,28 @@ function propertyInput(f, value, ctx = {}) {
     case "recurrence":
       return recurrenceInput(name, value);
     default:
+      // A text field named engine names a process engine set up here, as
+      // a shop catalogue does (ADR-0251): it is chosen among them, by ID.
+      if (f.kind === "text" && f.name === "engine") return engineInput(name, value);
       return h("input", { name, value: value ?? "" });
   }
+}
+
+// engines are the process engines set up here, read once per page load
+// for every field that chooses one.
+let engines = null;
+const enginesList = () => (engines ||= get("/api/engines").then((r) => r.engines || []).catch(() => { engines = null; return []; }));
+
+// engineInput chooses a process engine by name; the field keeps its ID.
+// The choices arrive after the list is read; until then, and when it
+// cannot be read, the value the field holds stays chosen.
+function engineInput(name, value) {
+  const fill = (list) => select.replaceChildren(...engineChoices(list, value).map((c) =>
+    h("option", { value: c.value, text: c.unknown ? t("shop.engineUnknown", { id: c.value }) : c.text, selected: c.selected })));
+  const select = h("select", { name, class: "engine-input" });
+  fill([]);
+  enginesList().then(fill);
+  return select;
 }
 
 // userInput chooses a person by typing a few letters of the username; the
@@ -5149,7 +5170,8 @@ async function itemView(ref, params = new URLSearchParams()) {
   const engineTask = item.linked && live ? taskPanel(item, () => route()) : null;
   // A catalogue of an engine's shop is published from its page
   // (ADR-0251).
-  const shopCatalogue = item.type === "shop-catalogue" && live && canEdit ? catalogueCard(item) : null;
+  const shopCatalogue = item.type === "shop-catalogue" && live && canEdit ? catalogueCard(item)
+    : item.type === "shop-product" && live && canEdit ? productCard(item) : null;
   // Copying and moving a page with its child pages, to any place one may
   // create in (ADR-0067); dragging in the tree moves within a space.
   const relocate = h("div", { id: "relocate" });
@@ -6287,7 +6309,7 @@ function filteredGroups(table) {
   return filtered(table, { id: "admin-groups", label: t("admin.groups"), rows: () => [...table.rows] });
 }
 
-async function adminView() {
+async function adminView(params) {
   const show = screen();
   await loadTypeTemplates();
   const [{ users }, { spaces }, { types }, auditPage, { groups }, { holders }, { requests }, access, sso, delivery, { spaces: trashed }, signIn] = await Promise.all([
@@ -6607,6 +6629,10 @@ async function adminView() {
       h("div", { class: "admin-sections" },
         spacesSection, typesSection, usersSection, requestsSection, groupsSection, grantSection, storageSection, calendarsSection, backupSection, albumSection, catalogSection, enginesSection, designSection, wordTemplatesSection, regulationsSection, importSection, auditSection)),
   );
+  // A link may lead straight to one section, as the shop's help does to
+  // the process engines (ADR-0251).
+  const wanted = params?.get("section");
+  if (wanted) document.getElementById("admin-" + wanted)?.scrollIntoView({ block: "start" });
 }
 
 // placesCard turns the place search of places set by hand off or on
