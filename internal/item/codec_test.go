@@ -78,7 +78,7 @@ func TestAChangeThatIsNotPersistedDoesNotHappen(t *testing.T) {
 
 func TestDecodeRejectsWhatItCannotReadExactly(t *testing.T) {
 	cases := map[string]string{
-		"newer format":       `[{"v":71,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
+		"newer format":       `[{"v":72,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"no format version":  `[{"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"unknown field":      `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated","colour":"red"}]`,
 		"unknown role":       `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"RoleGranted","role":"owner"}]`,
@@ -209,8 +209,9 @@ func TestPersistedFormatIsStable(t *testing.T) {
 	numberedTypes := numberedTypeLog(t)
 	hidden := hideTypesLog(t)
 	starmaps := starmapBlockLog(t)
+	decks := slidesLog(t)
 	kinds := map[EventKind]bool{}
-	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments, notes, photos, places, renames, geotags, moves, albumVideos, faces, slideOrders, fingerprints, times, turned, highlights, itemViews, kinds55, styledTables, shareFiles, sounds, depths, deepLists, numbered, numberedTypes, hidden, starmaps) {
+	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments, notes, photos, places, renames, geotags, moves, albumVideos, faces, slideOrders, fingerprints, times, turned, highlights, itemViews, kinds55, styledTables, shareFiles, sounds, depths, deepLists, numbered, numberedTypes, hidden, starmaps, decks) {
 		kinds[e.Kind] = true
 	}
 	for _, k := range allEventKinds {
@@ -335,6 +336,8 @@ func TestPersistedFormatIsStable(t *testing.T) {
 		{"events.current.hidetypes.plain.golden.jsonl", nil, hidden},
 		{"events.current.starmapblock.golden.jsonl", fakeSealer{}, starmaps},
 		{"events.current.starmapblock.plain.golden.jsonl", nil, starmaps},
+		{"events.current.slides.golden.jsonl", fakeSealer{}, decks},
+		{"events.current.slides.plain.golden.jsonl", nil, decks},
 	}
 	for _, c := range cases {
 		name, sl, log := c.name, c.sl, c.log
@@ -1954,6 +1957,19 @@ func starmapBlockLog(t *testing.T) []Event {
 		{Kind: StarmapBlock, Label: "onboarding", Search: "plan", HideTypes: []string{"decision"}, HideKinds: []string{"done", "picture"}, Depth: 2},
 		{Kind: StarmapBlock, Space: StarmapAllRooms},
 	}}))
+	return s.Log()
+}
+
+// slidesLog places a slide deck of an album folder in a text, with a
+// caption, so the golden files pin the block kind slides
+// (ADR-draft-a-slide-deck-in-a-text).
+func slidesLog(t *testing.T) []Event {
+	s := setup(t)
+	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))
+	anna := s.As("anna")
+	page := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Review"}))
+	folder := mustItem(t)(anna.CreateFolder("PLAT", "", "Talk"))
+	noErr(t, anna.CommitBody(page.ID, Doc{Blocks: []Block{{Kind: Slides, Ref: folder.ID, Text: "Board, 4 December"}}}))
 	return s.Log()
 }
 

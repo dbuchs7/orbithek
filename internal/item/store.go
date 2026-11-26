@@ -333,6 +333,9 @@ func (s *Store) firstBodyOf(td TypeDef, created Event, d Doc) (Event, error) {
 			return Event{}, invalid("item %s is %s and cannot be newly referenced", target.Key, target.Presence)
 		}
 	}
+	if err := s.checkSlideDecks(d); err != nil {
+		return Event{}, err
+	}
 	body := d.clone()
 	return Event{Kind: BodyCommitted, Item: created.Item, Body: &body}, nil
 }
@@ -773,6 +776,9 @@ func (s *Store) CommitBody(actor string, id ID, d Doc) error {
 		if target.Presence != Live && !kept[r.To] {
 			return invalid("item %s is %s and cannot be newly referenced", target.Key, target.Presence)
 		}
+	}
+	if err := s.checkSlideDecks(d); err != nil {
+		return err
 	}
 	if err := checkSecrets(it, d); err != nil {
 		return err
@@ -1520,6 +1526,10 @@ func checkBlock(b Block, self ID) error {
 		if err := checkStarmapBlock(b); err != nil {
 			return err
 		}
+	case Slides:
+		if err := checkSlidesBlock(b, self); err != nil {
+			return err
+		}
 	case Architecture:
 		switch {
 		case !ValidEngineID(b.Engine):
@@ -1536,8 +1546,8 @@ func checkBlock(b Block, self ID) error {
 	default:
 		return invalid("unknown block kind %q", b.Kind)
 	}
-	if b.Kind != Embed && b.Kind != Image && b.Kind != Video && b.Kind != Audio && b.Kind != BPMN && b.Ref != "" {
-		return invalid("only an embed, an image, a video, a sound or a BPMN diagram has a reference")
+	if b.Kind != Embed && b.Kind != Slides && b.Kind != Image && b.Kind != Video && b.Kind != Audio && b.Kind != BPMN && b.Ref != "" {
+		return invalid("only an embed, a slide deck, an image, a video, a sound or a BPMN diagram has a reference")
 	}
 	if b.Kind != Process && b.Kind != Form && b.Kind != Decision && b.Kind != Architecture && b.Kind != StartForm && b.Engine != "" {
 		return invalid("only a process, a form, a decision, an architecture sketch or a start form names an engine")

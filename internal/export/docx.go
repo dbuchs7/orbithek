@@ -72,6 +72,8 @@ func diagramName(bl item.Block, files map[item.ID]Image) string {
 		return ViewName(bl)
 	case item.StarmapBlock:
 		return StarmapName(bl)
+	case item.Slides:
+		return SlidesName(bl)
 	}
 	return "BPMN: " + files[bl.Ref].Name
 }
@@ -114,10 +116,21 @@ func StarmapName(bl item.Block) string {
 	return name
 }
 
+// SlidesName names a slide deck in a document
+// (ADR-draft-a-slide-deck-in-a-text): a document does not show the
+// slides, which each reader reads with their own rights; it says that a
+// deck stands here, by its caption.
+func SlidesName(bl item.Block) string {
+	if c := strings.TrimSpace(bl.Text); c != "" {
+		return "Slide deck: " + c
+	}
+	return "Slide deck"
+}
+
 // namedByCaption reports whether a block's name in a document is its
 // caption, which is then not written again below it.
 func namedByCaption(bl item.Block) bool {
-	return bl.Kind == item.Architecture || bl.Kind == item.StartForm && bl.Process == ""
+	return bl.Kind == item.Architecture || bl.Kind == item.StartForm && bl.Process == "" || bl.Kind == item.Slides
 }
 
 // listing is what a list of figures (kind Figures) or of tables (Tables)
@@ -593,7 +606,7 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int, num string
 			out += para(b.s("Caption"), "", run(bl.Text, ""))
 		}
 		return out
-	case item.BPMN, item.Process, item.Form, item.Decision, item.Architecture, item.StartForm, item.ItemsView, item.StarmapBlock:
+	case item.BPMN, item.Process, item.Form, item.Decision, item.Architecture, item.StartForm, item.ItemsView, item.StarmapBlock, item.Slides:
 		// A document does not draw a diagram, a form, a decision or a
 		// sketch; it names the file, the process, the form, the decision,
 		// the sketch or the start form (ADR-0129, ADR-0144, ADR-0146,

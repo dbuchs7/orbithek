@@ -264,13 +264,13 @@ func toDoc(blocks []blockJSON, kept func(text string) bool) (item.Doc, error) {
 		switch b.Kind {
 		case item.Paragraph, item.Heading, item.Embed, item.BulletItem, item.OrderedItem, item.Quote, item.CodeBlock,
 			item.TaskItem, item.Panel, item.Table, item.TOC, item.Children, item.Image, item.Video, item.Audio, item.Divider, item.TaskList, item.Figures, item.Tables, item.BPMN, item.Process, item.Form, item.Decision,
-			item.Architecture, item.StartForm, item.ItemsView, item.StarmapBlock:
+			item.Architecture, item.StartForm, item.ItemsView, item.StarmapBlock, item.Slides:
 		case item.Unsupported:
 			if kept == nil || !kept(b.Text) {
 				return d, badInput("block %d: unsupported blocks come only from imports", i+1)
 			}
 		default:
-			return d, badInput("block %d: kind must be paragraph, heading, bullet, ordered, quote, code, task, panel, table, toc, figures, tables, children, divider, image, video, bpmn, process, form, decision, architecture, startform, tasklist, view, starmap or embed", i+1)
+			return d, badInput("block %d: kind must be paragraph, heading, bullet, ordered, quote, code, task, panel, table, toc, figures, tables, children, divider, image, video, bpmn, process, form, decision, architecture, startform, tasklist, view, starmap, slides or embed", i+1)
 		}
 		blk := item.Block{Kind: b.Kind, Text: b.Text, Level: b.Level, Mentions: b.Mentions, Ref: b.Ref, Checked: b.Checked, Tone: b.Tone, Width: b.Width, Align: b.Align, Engine: b.Engine, Process: b.Process, View: b.View,
 			Form: b.Form, Decision: b.Decision, Application: b.Application, Release: b.Release, Link: b.Link, Query: b.Query, Secret: b.Secret,

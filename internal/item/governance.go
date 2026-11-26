@@ -418,7 +418,7 @@ func (p *plausibility) implausible(it *Item, now time.Time) []string {
 
 func bodyEmpty(d Doc) bool {
 	for _, b := range d.Blocks {
-		if strings.TrimSpace(b.Text) != "" || b.Kind == Embed {
+		if strings.TrimSpace(b.Text) != "" || b.Kind == Embed || b.Kind == Slides {
 			return false
 		}
 	}

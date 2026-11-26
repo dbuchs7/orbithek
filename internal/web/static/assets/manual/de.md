@@ -165,6 +165,7 @@ Das Menü **Einfügen…** fügt Blöcke nach dem Cursor ein:
 - **Inhalt eines Eintrags einbetten…**: zeigt nur den Text des anderen Eintrags, ohne Titel, Typ, Status und Felder, sodass er sich wie ein Teil des eigenen Textes liest;
 - **Neue Aufgabe…** (wird unter der Seite angelegt und als Link oder vollständig gezeigt) und **Aufgabenliste…** (alle Aufgaben mit einem Label oder das Ergebnis einer Abfrage);
 - **Ansicht von Einträgen…**: die Einträge eines Typs als Tabelle, Galerie oder Liste, gruppiert nach einem Feld (siehe *Ansichten von Einträgen*);
+- **Foliensatz…**: die Bilder eines Album-Ordners als Folien, die man im Text durchblättert und von dort präsentiert (siehe *Foliensatz in einem Text*);
 - **Sternenkarte…**: eine Sternenkarte im Text, eingegrenzt nach Wahl (siehe *Sternenkarte im Text*);
 - **Markdown einfügen…** und **Markdown-Datei aus einem Repository…** (sofern eingeschaltet);
 - BPMN-Diagramme sowie Prozesse, Formulare, Entscheidungen, Startformulare und Architekturskizzen einer Prozess-Engine (siehe *Prozess-Engines*).
@@ -543,6 +544,14 @@ Präsentations-Fernbedienungen, die Bild auf und Bild ab senden, funktionieren e
 **Foliennotizen** gehören zu einem Bild; auf seiner Karte im Album heissen sie Elementnotizen. Man schreibt sie dort mit **Elementnotizen hinzufügen** oder im Referentenfenster mit **Notizen bearbeiten**. Wer das Bild bearbeiten darf, schreibt sie; wer das Bild sieht, liest sie. Die Notizen bleiben bei allen Versionen einer Zeichnung erhalten.
 
 Beide Fenster müssen im selben Browser auf demselben Computer laufen. Personen an anderen Orten folgen über Bildschirmfreigabe.
+
+### Foliensatz in einem Text
+
+Beim Bearbeiten fügt **Einfügen…** → **Foliensatz…** die Bilder eines Album-Ordners oder einer Sammlung als Foliensatz in den Text ein. Der Dialog bietet unter **Album-Ordner oder Sammlung** die Ordner, die man lesen darf, zeigt die ersten Folien zur Kontrolle und nimmt eine **Beschriftung**; **Foliensatz einfügen** fügt ihn ein, und **Foliensatz ändern…** wählt später einen anderen Ordner. Eine Präsentationsdatei (.pptx) wird zuerst im Album in einen Ordner importiert (siehe *Eine PowerPoint-Präsentation importieren*).
+
+Beim Lesen zeigt der Foliensatz die aktuelle Folie, darunter eine Leiste aller Folien. Man blättert mit **Vorherige Folie** und **Nächste Folie** (‹ und ›), mit einem Klick in die Leiste oder, nachdem man in die Folie geklickt hat, mit den Pfeiltasten, Bild auf/ab, Leertaste, Pos1 und Ende. **Vollbild** zeigt die Folie allein. **Präsentieren** öffnet das Referentenfenster mit den Foliennotizen und das Präsentationsfenster für den Projektor, wie im Album (siehe *Bilder präsentieren*); **Beenden** kehrt zum Text zurück.
+
+Die Folien, ihre Reihenfolge und ihre Notizen bleiben im Album: Was man dort ändert, zeigt jeder Text mit diesem Foliensatz sofort. Der Name des Ordners im Kopf des Foliensatzes öffnet ihn im Album. Jede Leserin und jeder Leser sieht die Bilder, die sie oder er lesen darf; wer den Ordner nicht lesen darf, sieht, dass der Foliensatz nicht angezeigt werden kann. Solange ein Text einen Ordner zeigt, lässt sich der Ordner nicht löschen. Exporte nennen den Foliensatz mit seiner Beschriftung, statt die Folien zu zeigen.
 
 ### Folien von Hand ordnen
 

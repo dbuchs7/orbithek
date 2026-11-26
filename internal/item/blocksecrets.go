@@ -57,8 +57,8 @@ func refSecrets(d Doc) map[string][]ID {
 	var out map[string][]ID
 	for _, b := range d.Blocks {
 		var keys []string
-		if b.Kind == Embed {
-			keys = append(keys, RelEmbeds+"/"+string(b.Ref))
+		if to, ok := b.Embedded(); ok {
+			keys = append(keys, RelEmbeds+"/"+string(to))
 		}
 		for _, m := range b.Mentions {
 			keys = append(keys, RelMentions+"/"+string(m))
