@@ -55,6 +55,7 @@ Die Leiste oben auf jeder Seite enthält von links nach rechts:
 
 Die Startseite begrüsst mit dem Anzeigenamen (siehe *Das eigene Konto*), zeigt die Anzahl Seiten, Aufgaben und Bilder und bietet einen Schnellzugriff auf die Sternenkarte, die **Räume** (die Übersicht der eigenen Räume, auch über den Modulwechsler erreichbar), die eigenen Aufgaben unter **Planung**, Benachrichtigungen, das Album, die Whiteboards, den **Shop** mit dem Einkaufswagen, den KI-Zugang und am Ende auf **Mein Journal** (die Tagesnotiz von heute, mit dem heutigen Datum) und gleich daneben **Meine Notizen** (die persönlichen Notizen).
 Zeigt man mit der Maus auf eine Kachel, erscheint eine kurze Erklärung, was sie bietet.
+Unter den Kacheln listet **Zuletzt erstellt oder geändert** die Einträge der eigenen Räume, die zuletzt erstellt oder geändert wurden, die neuesten zuerst: zehn Zeilen mit Titel, Typ, Raum und Zeitpunkt der Änderung, und mit **Mehr anzeigen** jeweils zehn weitere. Als Änderung zählen Inhalt, Felder, Status, Labels, Verschieben, Kommentare und Dateien; aufgeführt wird nur, was man lesen darf.
 Die Raumübersicht zeigt die eigenen Räume als Kacheln oder als Liste; ein Stern markiert einen Raum als Favorit. Gibt es noch keine Räume, findet die Administration auf der Startseite die ersten Schritte: einen Raum erstellen, mit den Vorlagen Typen hinzufügen (Seite, Aufgabe, Entscheidung, Tagesnotiz) und Personen eine Rolle geben.
 
 ![Die Kacheln der Startseite](img/de/home.png)
@@ -554,7 +555,7 @@ Die Folien, ihre Reihenfolge und ihre Notizen bleiben im Album: Was man dort än
 
 ### Folien von Hand ordnen
 
-Ein Ordner oder eine Sammlung behält eine eigene Reihenfolge der Folien, für alle gleich, die ihn lesen. In einem geöffneten Ordner oder einer Sammlung **Reihenfolge der Folien** statt **Neueste zuerst** wählen: Das Album zeigt die Bilder in der Reihenfolge, in der sie präsentiert werden. Wer den Ordner oder die Sammlung bearbeiten darf, zieht ein Bild auf ein anderes: Auf dessen linke Hälfte fallen gelassen, kommt es davor, auf die rechte Hälfte danach. Ausgewählte Bilder werden gemeinsam verschoben. Ohne Maus bietet das Menü eines Bildes **Eine Stelle nach vorne** und **Eine Stelle nach hinten**.
+Ein Ordner oder eine Sammlung behält eine eigene Reihenfolge der Folien, für alle gleich, die ihn lesen. Ein geöffneter Ordner oder eine Sammlung zeigt die Bilder unter **Reihenfolge der Folien** in der Reihenfolge, in der sie präsentiert werden; das ist die Standardansicht. **Neueste zuerst** zeigt sie stattdessen nach Datum, und dieser Browser behält die Wahl. Wer den Ordner oder die Sammlung bearbeiten darf, zieht ein Bild auf ein anderes: Auf dessen linke Hälfte fallen gelassen, kommt es davor, auf die rechte Hälfte danach. Ausgewählte Bilder werden gemeinsam verschoben. Ohne Maus bietet das Menü eines Bildes **Eine Stelle nach vorne** und **Eine Stelle nach hinten**.
 
 Im Referentenfenster werden die Folien der Leiste ebenso gezogen; die Reihenfolge wird sofort gespeichert, und das Präsentationsfenster folgt.
 

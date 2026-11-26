@@ -55,6 +55,7 @@ The bar at the top of every page holds, from left to right:
 
 The start page greets you by your display name (see *Your account*), shows counts of pages, tasks and pictures, and offers quick access to the starmap, the **Rooms** (the overview of your rooms, also reached from the module switcher), your tasks under **Planning**, notifications, the album, the whiteboards, the **Shop** with its shopping cart, AI access and, at the end, **My journal** (today's daily note, with today's date) and right beside it **My notes** (your personal notes).
 Point at a tile with the mouse to see what it offers.
+Below the tiles, **Recently created or changed** lists the items of your rooms that were created or changed last, newest first: ten rows with title, type, room and the time of the change, and ten more with each **Show more**. Content, fields, state, labels, moving, comments and files count as changes; only what you may read is listed.
 The overview of rooms lists your rooms, as tiles or as a list; a star marks a room as a favourite. If there are no rooms yet, administrators find the first steps on the start page: create a room, add types from the ready-made templates (page, task, decision, daily note), and give people a role.
 
 ![The tiles of the start page](img/en/home.png)
@@ -554,7 +555,7 @@ The slides, their order and their notes stay in the album: what you change there
 
 ### Ordering slides by hand
 
-A folder or a collection keeps its own order of slides, the same for everyone who reads it. In an open folder or collection, choose **Order of the slides** instead of **Newest first**: the album shows the pictures in the order they are presented. Whoever may edit the folder or collection drags a picture onto another one: dropped onto its left half it goes before it, onto its right half after it. Chosen pictures move together. Without a mouse, the menu of a picture offers **Move one place earlier** and **Move one place later**.
+A folder or a collection keeps its own order of slides, the same for everyone who reads it. An open folder or collection shows its pictures under **Order of the slides**, in the order they are presented; this is the default view. **Newest first** shows them by date instead, and this browser keeps the choice. Whoever may edit the folder or collection drags a picture onto another one: dropped onto its left half it goes before it, onto its right half after it. Chosen pictures move together. Without a mouse, the menu of a picture offers **Move one place earlier** and **Move one place later**.
 
 In the presenter's window, the slides of the strip are dragged the same way; the order is kept at once and the presentation window follows.
 
