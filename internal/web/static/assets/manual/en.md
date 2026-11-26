@@ -546,7 +546,7 @@ Both windows must be in the same browser on the same computer. People elsewhere 
 
 ### Ordering slides by hand
 
-A folder or a collection keeps its own order of slides, the same for everyone who reads it. In an open folder or collection, choose **Order of the slides** instead of **Newest first**: the album shows the pictures in the order they are presented. Whoever may edit the folder or collection drags a picture onto another one: dropped onto its left half it goes before it, onto its right half after it. Chosen pictures move together. Without a mouse, the menu of a picture offers **Move one place earlier** and **Move one place later**.
+A folder or a collection keeps its own order of slides, the same for everyone who reads it. An open folder or collection shows its pictures under **Order of the slides**, in the order they are presented; this is the default view. **Newest first** shows them by date instead, and this browser keeps the choice. Whoever may edit the folder or collection drags a picture onto another one: dropped onto its left half it goes before it, onto its right half after it. Chosen pictures move together. Without a mouse, the menu of a picture offers **Move one place earlier** and **Move one place later**.
 
 In the presenter's window, the slides of the strip are dragged the same way; the order is kept at once and the presentation window follows.
 

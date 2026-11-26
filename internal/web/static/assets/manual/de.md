@@ -546,7 +546,7 @@ Beide Fenster müssen im selben Browser auf demselben Computer laufen. Personen 
 
 ### Folien von Hand ordnen
 
-Ein Ordner oder eine Sammlung behält eine eigene Reihenfolge der Folien, für alle gleich, die ihn lesen. In einem geöffneten Ordner oder einer Sammlung **Reihenfolge der Folien** statt **Neueste zuerst** wählen: Das Album zeigt die Bilder in der Reihenfolge, in der sie präsentiert werden. Wer den Ordner oder die Sammlung bearbeiten darf, zieht ein Bild auf ein anderes: Auf dessen linke Hälfte fallen gelassen, kommt es davor, auf die rechte Hälfte danach. Ausgewählte Bilder werden gemeinsam verschoben. Ohne Maus bietet das Menü eines Bildes **Eine Stelle nach vorne** und **Eine Stelle nach hinten**.
+Ein Ordner oder eine Sammlung behält eine eigene Reihenfolge der Folien, für alle gleich, die ihn lesen. Ein geöffneter Ordner oder eine Sammlung zeigt die Bilder unter **Reihenfolge der Folien** in der Reihenfolge, in der sie präsentiert werden; das ist die Standardansicht. **Neueste zuerst** zeigt sie stattdessen nach Datum, und dieser Browser behält die Wahl. Wer den Ordner oder die Sammlung bearbeiten darf, zieht ein Bild auf ein anderes: Auf dessen linke Hälfte fallen gelassen, kommt es davor, auf die rechte Hälfte danach. Ausgewählte Bilder werden gemeinsam verschoben. Ohne Maus bietet das Menü eines Bildes **Eine Stelle nach vorne** und **Eine Stelle nach hinten**.
 
 Im Referentenfenster werden die Folien der Leiste ebenso gezogen; die Reihenfolge wird sofort gespeichert, und das Präsentationsfenster folgt.
 
