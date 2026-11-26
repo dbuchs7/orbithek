@@ -2786,8 +2786,14 @@ function webSource() {
       await Promise.all([show.isClosed() ? null : show.waitForEvent("close"), page.click("#present-end")]);
       await page.waitForSelector("#body.reading figure.pm-slides");
       check(page.url().endsWith("#/item/" + deckPage.key), "ending the presentation returns to the page");
-      // The page no longer shows the deck, so the album may delete the folder later.
-      await page.evaluate(async (id) => fetch(`/api/items/${id}/body`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ blocks: [{ kind: "paragraph", text: "Our talk." }] }) }), deckPage.id);
+      // The page no longer shows the deck, and its copies go, so the album
+      // shows the folder's pictures alone again for the steps that follow.
+      await page.evaluate(async (id) => {
+        await fetch(`/api/items/${id}/body`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ blocks: [{ kind: "paragraph", text: "Our talk." }] }) });
+        for (const a of (await (await fetch(`/api/items/${id}/attachments`)).json()).attachments) {
+          await fetch(`/api/items/${id}/attachments/${a.id}`, { method: "DELETE" });
+        }
+      }, deckPage.id);
       await page.goto(base + "/#/album");
       await page.click("#album .album-folder:has-text('Talk')");
       await page.waitForSelector("#album .album-card:has(.album-name:text-is('2 Plan'))");
