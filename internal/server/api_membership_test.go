@@ -130,3 +130,65 @@ func TestProtectingAnItemForAGroup(t *testing.T) {
 	w.admin.expect("DELETE", "/api/groups/redaktion/members/"+w.ids["vera"], "", http.StatusNoContent)
 	w.vera.expect("GET", "/api/items/"+id, "", http.StatusNotFound)
 }
+
+// Readers of protected passages, members of groups and holders of system
+// roles exist too: a name no account or group answers to is refused, and
+// readers stored before the check are marked as unknown
+// (ADR-draft-readers-and-members-exist).
+func TestReadersMembersAndSystemRolesExist(t *testing.T) {
+	w := newWorld(t)
+	it := w.bert.expect("POST", "/api/items", `{"space":"PLAT","type":"task","title":"Pay","properties":{"priority":"low"},
+		"body":[{"kind":"paragraph","text":"Pay Paul Muster on Friday."}]}`, http.StatusCreated)
+	id, path := field(it, "item", "id").(string), "/api/items/"+field(it, "item", "key").(string)
+
+	// Protecting names only people and groups that exist.
+	for _, readers := range []string{`["%40ops"]`, `["0123456789abcdef"]`, `["@nobody"]`, `["` + w.ids["vera"] + `","@nobody"]`} {
+		w.bert.expect("POST", path+"/secrets", `{"block":0,"start":4,"end":15,"readers":`+readers+`}`, http.StatusBadRequest)
+	}
+	w.bert.expect("POST", path+"/secrets", `{"fromBlock":0,"toBlock":0,"readers":["@nobody"]}`, http.StatusBadRequest)
+	// Whoever may not protect learns nothing about who exists.
+	w.vera.expect("POST", path+"/secrets", `{"block":0,"start":4,"end":15,"readers":["@nobody"]}`, http.StatusForbidden)
+	got := w.bert.expect("POST", path+"/secrets", `{"block":0,"start":4,"end":15,"readers":["`+w.ids["vera"]+`"]}`, http.StatusOK)
+	sec := field(got, "item", "secrets").([]any)[0].(map[string]any)
+	secID := sec["id"].(string)
+	if sec["unknownReaders"] != nil {
+		t.Fatalf("a known reader is marked unknown: %v", sec)
+	}
+	w.bert.expect("PUT", path+"/secrets/"+secID, `{"readers":["%40ops"]}`, http.StatusBadRequest)
+	if code := w.vera.do("PUT", path+"/secrets/"+secID, `{"readers":["%40ops"]}`).Code; code == http.StatusBadRequest || code < 400 {
+		t.Fatalf("vera, who does not decide, is answered %d", code)
+	}
+	w.admin.expect("PUT", "/api/groups/ops/members/"+w.ids["carla"], "", http.StatusNoContent)
+	w.bert.expect("PUT", path+"/secrets/"+secID, `{"readers":["@ops"]}`, http.StatusOK)
+
+	// A group's member and a system role's holder are accounts; whoever
+	// may not change them is refused as before.
+	for _, p := range []string{"0123456789abcdef", "%2540ops", "@ops"} {
+		w.admin.expect("PUT", "/api/groups/ops/members/"+p, "", http.StatusBadRequest)
+		w.admin.expect("PUT", "/api/system-roles/erasure/"+p, "", http.StatusBadRequest)
+	}
+	w.bert.expect("PUT", "/api/groups/ops/members/0123456789abcdef", "", http.StatusForbidden)
+	w.bert.expect("PUT", "/api/system-roles/erasure/0123456789abcdef", "", http.StatusForbidden)
+	w.admin.expect("PUT", "/api/system-roles/owner/"+w.ids["bert"], "", http.StatusBadRequest)
+
+	// Stored before the check: a reader no account has, and a group whose
+	// only member is no account. Both are marked; the group takes no role
+	// and protects nothing for anyone.
+	adminID := w.admin.expect("GET", "/api/me", "", http.StatusOK)["user"].(map[string]any)["id"].(string)
+	if err := w.db.Write(func(s *item.Store) error {
+		if err := s.AddToGroup(adminID, "ghosts", "0123456789abcdef"); err != nil {
+			return err
+		}
+		return s.As(w.ids["bert"]).SetSecretReaders(item.ID(id), item.ID(secID), []string{"@ops", "%40ops", "@ghosts"})
+	}); err != nil {
+		t.Fatal(err)
+	}
+	sec = field(w.bert.expect("GET", path, "", http.StatusOK), "item", "secrets").([]any)[0].(map[string]any)
+	if fmt.Sprint(sec["unknownReaders"]) != "[%40ops @ghosts]" {
+		t.Fatalf("unknown readers %v", sec["unknownReaders"])
+	}
+	w.admin.expect("PUT", "/api/spaces/PLAT/roles/@ghosts", `{"role":"viewer"}`, http.StatusBadRequest)
+	// Saving them again is refused until they are taken out.
+	w.bert.expect("PUT", path+"/secrets/"+secID, `{"readers":["@ops","%40ops","@ghosts"]}`, http.StatusBadRequest)
+	w.bert.expect("PUT", path+"/secrets/"+secID, `{"readers":["@ops"]}`, http.StatusOK)
+}

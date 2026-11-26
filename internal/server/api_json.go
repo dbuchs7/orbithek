@@ -399,9 +399,12 @@ type secretJSON struct {
 	Decides   bool    `json:"decides"`
 	Requested bool    `json:"requested,omitempty"`
 	// Blocks: it protects whole blocks of the body (ADR-0160).
-	Blocks   bool     `json:"blocks,omitempty"`
-	Readers  []string `json:"readers,omitempty"`
-	Requests []string `json:"requests,omitempty"`
+	Blocks  bool     `json:"blocks,omitempty"`
+	Readers []string `json:"readers,omitempty"`
+	// UnknownReaders are the readers that reach nobody: no account has
+	// the ID, or the group has no members (ADR-draft-readers-and-members-exist).
+	UnknownReaders []string `json:"unknownReaders,omitempty"`
+	Requests       []string `json:"requests,omitempty"`
 	// RequestedAt: when the caller asked, while they wait (ADR-0161).
 	RequestedAt *time.Time `json:"requestedAt,omitempty"`
 	// Answers: the caller answers the requests of others, as one who

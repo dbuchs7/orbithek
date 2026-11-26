@@ -18,6 +18,11 @@ func TestProtectedPassagesThroughTheAPI(t *testing.T) {
 	path := "/api/items/" + key
 	w.vera.expect("POST", path+"/secrets", `{"block":0,"start":4,"end":15}`, http.StatusForbidden)
 	w.bert.expect("POST", path+"/secrets", `{"block":3,"start":4,"end":15}`, http.StatusBadRequest)
+	// Readers are people and groups that exist (ADR-draft-readers-and-members-exist):
+	// @hr exists once it has a member, hanna, who has no role in PLAT.
+	w.bert.expect("POST", path+"/secrets", `{"block":0,"start":4,"end":15,"readers":["@hr"]}`, http.StatusBadRequest)
+	hanna := field(w.admin.expect("POST", "/api/users", `{"username":"hanna","password":"hanna's password"}`, http.StatusCreated), "user", "id").(string)
+	w.admin.expect("PUT", "/api/groups/hr/members/"+hanna, "", http.StatusNoContent)
 	got := w.bert.expect("POST", path+"/secrets", `{"block":0,"start":4,"end":15,"readers":["@hr"]}`, http.StatusOK)
 	secrets := field(got, "item", "secrets").([]any)
 	sec := secrets[0].(map[string]any)

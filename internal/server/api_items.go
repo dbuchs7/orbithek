@@ -182,6 +182,19 @@ func (h itemHandlers) read(w http.ResponseWriter, r *http.Request, fn func(*item
 	writeJSON(w, http.StatusOK, out)
 }
 
+// readStore is read for a reader that also needs the store itself, such
+// as the groups a principal names.
+func (h itemHandlers) readStore(w http.ResponseWriter, r *http.Request, fn func(*item.Session, *item.Store) (any, error)) {
+	var out any
+	var err error
+	h.d.DB.Read(func(s *item.Store) { out, err = fn(s.As(who(r)), s) })
+	if err != nil {
+		h.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
 // write runs fn as the single writer and answers its result; a nil result
 // answers 204.
 func (h itemHandlers) write(w http.ResponseWriter, r *http.Request, status int, fn func(*item.Session, *item.Store) (any, error)) {
@@ -444,6 +457,12 @@ func (h itemHandlers) addMember(w http.ResponseWriter, r *http.Request) {
 		if err := h.isAdmin(s, r); err != nil {
 			return nil, err
 		}
+		// A group's member is an account: groups do not hold groups, and
+		// a member no account answers to would make an empty group look
+		// filled (ADR-draft-readers-and-members-exist).
+		if err := h.account(r.PathValue("principal")); err != nil {
+			return nil, err
+		}
 		if err := s.AddToGroup(who(r), r.PathValue("group"), r.PathValue("principal")); err != nil {
 			return nil, err
 		}
@@ -461,6 +480,10 @@ func (h itemHandlers) grantSystemRole(w http.ResponseWriter, r *http.Request) {
 	}
 	h.write(w, r, 0, func(_ *item.Session, s *item.Store) (any, error) {
 		if err := h.isAdmin(s, r); err != nil {
+			return nil, err
+		}
+		// A system role goes to an account (ADR-draft-readers-and-members-exist).
+		if err := h.account(r.PathValue("principal")); err != nil {
 			return nil, err
 		}
 		if err := s.GrantSystemRole(who(r), r.PathValue("principal"), role); err != nil {
@@ -499,15 +522,51 @@ func (h itemHandlers) listGrants(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"roles": out})
 }
 
+// hasAccount reports whether one of the members is the ID of an account;
+// a member stored before accounts were checked may be none (ADR-draft-readers-and-members-exist).
+func (h itemHandlers) hasAccount(members []string) bool {
+	if len(members) == 0 {
+		return false
+	}
+	ids := make([]auth.UserID, len(members))
+	for i, m := range members {
+		ids[i] = auth.UserID(m)
+	}
+	return len(h.d.DB.Accounts.Usernames(ids)) > 0
+}
+
+// account refuses a principal that is not the ID of an account.
+func (h itemHandlers) account(principal string) error {
+	if _, ok := h.d.DB.Accounts.Usernames([]auth.UserID{auth.UserID(principal)})[auth.UserID(principal)]; !ok {
+		return fmt.Errorf("%w: there is no user %s", item.ErrValidation, principal)
+	}
+	return nil
+}
+
+// unknownReaders marks, on each protected passage the caller sees the
+// readers of, those that reach nobody: no account has the ID, or the
+// group has no members (ADR-draft-readers-and-members-exist).
+func (h itemHandlers) unknownReaders(s *item.Store, j itemJSON) itemJSON {
+	for i := range j.Secrets {
+		for _, p := range j.Secrets[i].Readers {
+			if h.existing(s, []string{p}) != nil {
+				j.Secrets[i].UnknownReaders = append(j.Secrets[i].UnknownReaders, p)
+			}
+		}
+	}
+	return j
+}
+
 // existing refuses principals that reach nobody: a group is named with
-// "@" and has members, anything else is the ID of an account. A grant or
-// a restriction to such a name would open nothing to anyone and look as
-// if it did (ADR-0078, ADR-0255).
+// "@" and has a member with an account, anything else is the ID of an
+// account. A grant, a restriction or a reader of such a name would open
+// nothing to anyone and look as if it did (ADR-0078, ADR-0255,
+// ADR-draft-readers-and-members-exist).
 func (h itemHandlers) existing(s *item.Store, principals []string) error {
 	var users []auth.UserID
 	for _, p := range principals {
 		if g, ok := strings.CutPrefix(p, "@"); ok {
-			if s.GroupSize(g) == 0 {
+			if !h.hasAccount(s.GroupMembers(g)) {
 				return fmt.Errorf("%w: there is no group %s", item.ErrValidation, p)
 			}
 		} else {
@@ -932,7 +991,7 @@ func (h itemHandlers) createItem(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h itemHandlers) getItem(w http.ResponseWriter, r *http.Request) {
-	h.read(w, r, func(x *item.Session) (any, error) {
+	h.readStore(w, r, func(x *item.Session, s *item.Store) (any, error) {
 		it, err := resolveItem(x, r.PathValue("ref"))
 		if err != nil {
 			return nil, err
@@ -948,7 +1007,7 @@ func (h itemHandlers) getItem(w http.ResponseWriter, r *http.Request) {
 		} else if it.Presence == item.Trashed {
 			may["restore"], may["purge"] = x.MayRestore(it.ID), x.MayPurge(it.ID)
 		}
-		return map[string]any{"item": withSecrets(x, toItemJSON(it)), "editable": x.CanEdit(it.ID), "may": may}, nil
+		return map[string]any{"item": h.unknownReaders(s, withSecrets(x, toItemJSON(it))), "editable": x.CanEdit(it.ID), "may": may}, nil
 	})
 }
 
@@ -969,7 +1028,7 @@ func (h itemHandlers) change(w http.ResponseWriter, r *http.Request, cmd func(x 
 		if err != nil {
 			return nil, err
 		}
-		return map[string]itemJSON{"item": withSecrets(x, toItemJSON(after))}, nil
+		return map[string]itemJSON{"item": h.unknownReaders(s, withSecrets(x, toItemJSON(after)))}, nil
 	})
 }
 

@@ -596,6 +596,11 @@ Unter **Zugriff** wählt, wer einen Eintrag bearbeiten darf, **Für Personen ode
 
 Einzelne Wörter, Absätze oder ganze Blöcke (eine Überschrift mit ihrem Abschnitt, ein Bild, eine Tabelle) lassen sich schützen: beim Bearbeiten markieren, **Schützen** wählen und die Personen und Gruppen nennen, die sie lesen dürfen. Alle anderen sehen einen Platzhalter, der nennt, wer entscheidet. Eine geschützte Stelle lässt sich für weitere Personen freigeben (**Leser ändern**), entschützen oder endgültig löschen.
 
+Lesen dürfen Personen mit Konto und Gruppen mit mindestens einem Mitglied, das ein Konto hat;
+andere Namen werden abgelehnt.
+Ein Leser, der niemanden erreicht — vor dieser Prüfung genannt oder eine Gruppe, deren letztes Mitglied gegangen ist —, erscheint in der Leserliste als *erreicht niemanden* und ist unter **Leser ändern** als *Erreicht niemanden* markiert;
+man entfernt ihn vor dem Speichern.
+
 ### Freigabe beantragen
 
 Ein Klick auf eine verborgene Stelle oder einen verborgenen Block erklärt sie und bietet **Freigabe beantragen** an. Der Antrag wird zur Aufgabe für die verantwortliche Person der Seite oder für die Person, die den Inhalt geschützt hat; er erscheint in deren Aufgabenliste. **Freigeben** oder **Ablehnen** beantwortet ihn, und die antragstellende Person wird benachrichtigt.
@@ -719,6 +724,9 @@ Eine Rolle geht nur an eine Person mit Konto oder an eine Gruppe mit mindestens 
 alles andere wird mit einer Meldung abgelehnt.
 Eine Rolle, die niemanden erreicht — vor dieser Prüfung vergeben oder an eine Gruppe, deren letztes Mitglied gegangen ist —, ist in der Liste als **Unbekannt** oder **Keine Mitglieder** markiert;
 sie lässt sich nicht ändern, nur entziehen.
+
+Mitglieder von Gruppen und Inhaber von Systemrollen sind Konten;
+eine Gruppe gilt nur dann als Gruppe mit Mitgliedern, wenn eines davon ein Konto hat.
 
 ## Tastenkürzel
 
