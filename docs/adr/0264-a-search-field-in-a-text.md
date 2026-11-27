@@ -1,7 +1,7 @@
 # ADR-0264: A search field in a text, narrowed to a room or to a page and the pages below it
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-27
 - **Deciders:** Project initiators. Request of 2026-11-27: a search field can be placed in an item's text, and its search can be narrowed to the room, the page, the page with its child pages, or the child pages only. The requester chose the same day:
   - the page the search is narrowed to is chosen freely when the field is placed, the page the text is on by default;
@@ -12,6 +12,7 @@
   Request of 2026-11-27, after the first part: the browser smoke test covers the field.
   Request of 2026-11-27, after the smoke test: a search field can also be narrowed, for example to a label.
   Proposed with the implementation: a label and a type, as the search page narrows, chosen when the field is placed and not changed by readers.
+  Built in #413, #415 and #416 and accepted by the requester on 2026-11-27.
 - **Open question:** whether the block should also keep a state, or several labels, to narrow by; whether readers should choose the label and the type too, as they choose the scope; whether a reader's choice of scope should be kept per reader; whether the page a field names should be renamed in exports by its title for readers who read it
 - **Question checked:** 2026-11
 

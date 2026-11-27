@@ -276,4 +276,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0261](0261-a-query-field-for-who-made-or-changed-an-item.md) | A query field for who made or changed an item | Accepted | Landed |
 | [0262](0262-suspending-and-deleting-accounts.md) | Administrators suspend accounts and delete them, leaving the account's ID as deleted | Accepted | Landed |
 | [0263](0263-search-and-starmap-find-items-by-their-creator.md) | Search and starmap find items by their creator; a dropped node stays until released | Accepted | Landed |
-| [0264](0264-a-search-field-in-a-text.md) | A search field in a text, narrowed to a room or to a page and the pages below it | Proposed | Partial |
+| [0264](0264-a-search-field-in-a-text.md) | A search field in a text, narrowed to a room or to a page and the pages below it | Accepted | Landed |
