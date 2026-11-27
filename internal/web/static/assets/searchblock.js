@@ -3,7 +3,9 @@
 // with the pages below it, or the pages below it only — and every reader's
 // browser asks the full-text search (ADR-0033) as that reader, the hits
 // below the field. The reader may choose another scope while reading;
-// nothing of that is kept. A click on a hit opens it.
+// nothing of that is kept. A label and a type the block names narrow
+// every scope; the reader does not change them. A click on a hit opens
+// it.
 //
 // The page shares what this module needs once (configureSearches): its
 // dialog and the stars of a hit.
@@ -11,6 +13,7 @@ import { h } from "./dom.js";
 import { t } from "./i18n.js";
 import { get } from "./api.js";
 import { SCOPES, searchable, searchBlockOf, searchTarget, searchUrl } from "./searchparts.js";
+import { normalLabel } from "./timeline.js";
 
 let shared = null;
 
@@ -36,10 +39,15 @@ async function pageTitle(block) {
   }
 }
 
-// searchSummary says in a line what a block searches, beside its button.
+// searchSummary says in a line what a block searches, beside its button,
+// and the label and type its hits carry.
 export async function searchSummary(block) {
-  if (!block.scope) return t("searchblock.summaryRoom", { room: block.space || t("searchblock.ownRoom") });
-  return t("searchblock.summaryPage", { scope: scopeName(block.scope), page: await pageTitle(block) });
+  const parts = [block.scope
+    ? t("searchblock.summaryPage", { scope: scopeName(block.scope), page: await pageTitle(block) })
+    : t("searchblock.summaryRoom", { room: block.space || t("searchblock.ownRoom") })];
+  if (block.label) parts.push(t("searchblock.summaryLabel", { label: block.label }));
+  if (block.itemType) parts.push(t("searchblock.summaryType", { type: block.itemType }));
+  return parts.join(" · ");
 }
 
 // searchBlockElement draws the field a block names for the item here
@@ -108,7 +116,8 @@ export function searchBlockElement(block, here) {
 // initial (a block), for the item self, and answers the block, or null
 // when cancelled.
 export async function pickSearch(initial = {}, self = "", helpers = shared) {
-  const { spaces } = await get("/api/spaces");
+  const [{ spaces }, { types }, labels] = await Promise.all([get("/api/spaces"), get("/api/types"),
+    get("/api/labels").then((r) => r.labels || []).catch(() => [])]);
   const choice = (label, input) => h("label", { class: "field" }, h("span", { text: label }), input);
   const scope = h("select", { id: "searchblock-pick-scope", name: "scope" }, SCOPES.map((s) => h("option", { value: s, text: scopeName(s) })));
   scope.value = initial.scope || "";
@@ -131,6 +140,15 @@ export async function pickSearch(initial = {}, self = "", helpers = shared) {
     found = (res.hits || []).map((x) => x.item);
     pageList.replaceChildren(...found.map((it) => h("option", { value: `${it.key} ${it.title}` })));
   });
+  // The label and the type every hit carries, none for every one; a type
+  // the block names that is no longer listed stays offered.
+  const label = h("input", { id: "searchblock-pick-label", name: "label", type: "text", list: "searchblock-pick-labels", value: initial.label || "",
+    maxlength: 64, autocomplete: "off", placeholder: t("searchblock.anyLabel") });
+  const labelList = h("datalist", { id: "searchblock-pick-labels" }, labels.map((l) => h("option", { value: l.label })));
+  const names = [...new Set([...types.map((ty) => ty.name), ...(initial.itemType ? [initial.itemType] : [])])].sort();
+  const type = h("select", { id: "searchblock-pick-type", name: "itemType" },
+    h("option", { value: "", text: t("searchblock.anyType") }), names.map((name) => h("option", { value: name, text: name })));
+  type.value = initial.itemType || "";
   const roomField = choice(t("searchblock.room"), room);
   const pageField = h("div", {}, choice(t("searchblock.page"), pageInput), pageList);
   const shown = () => {
@@ -141,6 +159,8 @@ export async function pickSearch(initial = {}, self = "", helpers = shared) {
   shown();
   return helpers.formDialog(t("searchblock.insert"), "searchblock-dialog", [
     choice(t("searchblock.scope"), scope), roomField, pageField,
+    choice(t("searchblock.label"), label), labelList,
+    choice(t("searchblock.type"), type),
     h("p", { class: "muted", text: t("searchblock.hint") }),
   ], async () => {
     const typed = pageInput.value.trim();
@@ -153,6 +173,6 @@ export async function pickSearch(initial = {}, self = "", helpers = shared) {
         ref = item.id;
       }
     }
-    return searchBlockOf({ scope: scope.value, space: room.value, ref }, self);
+    return searchBlockOf({ scope: scope.value, space: room.value, ref, label: normalLabel(label.value), itemType: type.value }, self);
   }, t("searchblock.ok"));
 }

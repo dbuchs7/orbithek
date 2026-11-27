@@ -6554,6 +6554,28 @@ function webSource() {
     check((await viewAPI("GET", "/api/items/" + finder.id)).item.body.find((b) => b.kind === "search").scope === "tree", "the reader's choice is not kept");
     await page.click(`#body .searchblock-hits a[href='#/item/${encodeURIComponent(zChapter.key)}']`);
     await page.waitForFunction((key) => location.hash === "#/item/" + key, zChapter.key);
+    // A label and a type narrow the field in every scope; the reader does not change them.
+    await viewAPI("PUT", `/api/items/${zChapter.id}/labels`, { labels: ["zephyr-guide"] });
+    await page.goto(base + `/#/item/${finder.key}?edit`);
+    await page.waitForSelector("#body .pm-search .pm-search-edit");
+    await page.click("#body .pm-search .pm-search-edit");
+    await page.waitForSelector("#searchblock-dialog");
+    check(await page.inputValue("#searchblock-pick-scope") === "tree" && await page.inputValue("#searchblock-pick-label") === "" && await page.inputValue("#searchblock-pick-type") === "",
+      "changing the field starts from what it keeps, with every label and type");
+    await page.fill("#searchblock-pick-label", "Zephyr Guide");
+    await page.selectOption("#searchblock-pick-type", "story");
+    await page.click("#searchblock-dialog-ok");
+    await page.waitForFunction(() => document.querySelector("#body .pm-search-summary")?.textContent.includes("zephyr-guide"));
+    await page.click("#edit-done");
+    await page.waitForSelector("#body.reading .pm-search .searchblock-q");
+    const guideBlock = (await viewAPI("GET", "/api/items/" + finder.id)).item.body.find((b) => b.kind === "search");
+    check(guideBlock && guideBlock.label === "zephyr-guide" && guideBlock.itemType === "story" && guideBlock.scope === "tree" && guideBlock.ref === zHandbook.id,
+      "the text keeps the label as stored and the type beside the scope and the page: " + JSON.stringify(guideBlock));
+    await page.fill("#body .pm-search .searchblock-q", "zephyr");
+    await page.press("#body .pm-search .searchblock-q", "Enter");
+    check(await searchHits(1) === "Chapter zephyr", "the label narrows the hits below the page");
+    await page.selectOption("#body .pm-search .searchblock-scope", "");
+    check(await searchHits(1) === "Chapter zephyr", "the label narrows the room the reader chooses, too");
 
     step("label pages: a label is described by a page that shows its items, ordered by hand (ADR-0204)");
     await page.goto(base + "/#/label/first-week");

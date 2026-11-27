@@ -167,7 +167,7 @@ The menu **Insert…** adds blocks after the cursor:
 - **View of items…**: the items of a type as a table, a gallery or a list, grouped by a field (see *Views of items*);
 - **Slide deck…**: the pictures of an album folder as slides, stepped through in the text and presented from it (see *Slide deck in a text*);
 - **Starmap…**: a starmap inside the text, narrowed as you choose (see *Starmap in a text*);
-- **Search field…**: a search inside the text, narrowed to a room or to a page and the pages below it (see *Search field in a text*);
+- **Search field…**: a search inside the text, narrowed to a room or to a page and the pages below it, and to a label and a type (see *Search field in a text*);
 - **Paste Markdown…** and **Markdown file from a repository…** (if enabled);
 - BPMN diagrams, and processes, forms, decisions, start forms and architecture sketches of a process engine (see *Process engines*).
 
@@ -319,11 +319,13 @@ The dialog chooses where it searches (**Search in**):
 - **Only the pages below it**: every level below the page, without the page itself.
 
 For the last three, **Page** names the page by its key or a word of its title; left empty, it is the page the field is on, so a moved or copied page takes its search along.
+**Label** narrows the hits to the items that carry a label, suggested from the labels in use, and **Type** to the items of a type; **Any label** and **Every type** leave them out.
 **Place the search field** places it, and **Change the search field…** changes it later.
 A line above the field says what it searches.
 
 Readers type words and press **Search** or Enter; the hits appear below the field, best first, and a click opens one.
 Readers may choose another scope while reading; their choice is not kept, and the field starts again as chosen.
+The label and the type narrow every scope a reader chooses, and readers do not change them.
 The field finds only what the reader may read; a page the reader may not read is named as such.
 Exports name the field instead of searching.
 

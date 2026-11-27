@@ -10,7 +10,9 @@
 
   The rest are defaults proposed with the implementation.
   Request of 2026-11-27, after the first part: the browser smoke test covers the field.
-- **Open question:** whether the block should also keep a type, a state or a label to narrow by, as the search page's filters do; whether a reader's choice of scope should be kept per reader; whether the page a field names should be renamed in exports by its title for readers who read it
+  Request of 2026-11-27, after the smoke test: a search field can also be narrowed, for example to a label.
+  Proposed with the implementation: a label and a type, as the search page narrows, chosen when the field is placed and not changed by readers.
+- **Open question:** whether the block should also keep a state, or several labels, to narrow by; whether readers should choose the label and the type too, as they choose the scope; whether a reader's choice of scope should be kept per reader; whether the page a field names should be renamed in exports by its title for readers who read it
 - **Question checked:** 2026-11
 
 ## Context and problem statement
@@ -44,35 +46,42 @@ Chosen option: **1**, because it keeps nothing that can leak or go stale, narrow
   - `Scope`: none for a room, `page` for the page alone, `tree` for the page and every page below it, `below` for the pages below it only (`item.SearchScopes`);
   - with no scope, `Space`: a room's key, or none for the room of the item the text is on;
   - with a scope, `Ref`: the page, by its ID, or none for the item the text is on, so a page moved or copied takes its search along.
-    A field does not name its own item; it names it as none.
+    A field does not name its own item; it names it as none;
+  - in either case `Label`, one label as stored (ADR-0044), and `ItemType`, a type by its name, which every hit carries; none for every label and every type.
+    They are the block fields a starmap and a view already name a label and a type with, and they narrow as the search page's filters of the same name do.
   The server checks each and refuses a room with a page or a page with a room, so a body says it one way.
   The block is part of the sealed body (ADR-0026).
 - **The page is a mention.** A field that names another page mentions it (`RelMentions`, derived from the body, D4): the page must exist, be live and be readable by the writer when the block is written, the context of the page lists the text that searches it, a backup restore brings it along, and it is not deleted while a field names it (D8), as an embedded or mentioned item is not.
   A protected block's page is told only to the protection's readers (ADR-0160).
 - **Format.** Codec version 73 adds the kind and the block field `Scope`; `Space` and `Ref` gain a meaning for it.
   Versions 1 to 72 are still read.
+  Codec version 74 gives `Label` and `ItemType` a meaning on it; versions 1 to 73 are still read, and their fields find every label and type.
 - **The search.** `GET /api/search` takes `within`, a page by its ID or key, with `scope` `page`, `tree` or `below` (`Query.Within`, `Query.Scope`).
   A scope without a page and a page without a scope are refused; a page the caller does not read is not found (D10).
   An item is below the page when the page is among its ancestors, every level deep, whatever the caller reads of the items between; each hit is still checked on its own (D9, D10).
   The words, the stars, the order and the snippets are the search's own (ADR-0072, ADR-0083).
-  The MCP tool `search_items` names both parameters.
+  The block's label and type are the search's `label` and `type`, which narrow every scope.
+  The MCP tool `search_items` names `within`, `scope` and `label`.
 - **Drawing.** `searchBlockElement` in `assets/searchblock.js` draws a field, a choice of scope and a button; the hits appear below, ten at a time with **More**, each with its stars, key, title, room, type and snippet, as on the search page.
   The search runs on Enter, on the button, on a change of scope and 300 ms after typing stops.
   What needs no browser — the scopes, the block a choice makes, what a reader's scope searches and the search address — is in `assets/searchparts.js`, tested in Node.
   The browser smoke test (`e2e/smoke.cjs`) places a field through the dialog, checks what the text keeps, the hits of every scope and that a click opens a hit.
 - **Reading.** Readers may choose another scope; nothing of that is kept.
   A field of a room searches the item itself when a page is chosen; a field of a page searches the room of the item when the room is chosen.
+  The label and the type narrow every scope a reader chooses; readers do not change them, so a field placed to find a handbook's how-tos finds only those.
+  Letting readers change them too would, at its strongest, give every field the search page's filters without leaving the text; it is not done because the request asked for a narrowing the author sets, and a reader who wants other filters has the search page.
 - **A click** on a hit opens it.
 - **Editing.** **Insert…** → **Search field…** opens a dialog with the scope, the room (for a room) and the page (for a page), found by its key or a word of its title and suggested while typing; **Change the search field…** changes it.
-  A line above the field says what it searches; a page the reader may not read is named as such, without its title.
-- **Exports** name the field (`export.SearchName`), as they name a view: "Search field: the pages below another page".
+  The dialog also asks for a label, suggested from the labels in use and kept as stored, and a type, chosen from the types.
+  A line above the field says what it searches and the label and type it narrows to; a page the reader may not read is named as such, without its title.
+- **Exports** name the field (`export.SearchName`), as they name a view: "Search field: the pages below another page", followed by ", label how-to" and ", type page" where the field names them.
   Another page is not named by its title, which the document's reader may not read.
 
 ### Consequences
 
 - **Positive:** a handbook carries its own search on its start page; each reader finds what they read; the search is the search's own, with its stars and snippets.
-- **Negative / trade-offs accepted:** a page named by a field cannot be deleted while the field names it; narrowing walks each candidate's ancestors on every search, which costs the depth of the tree per item; a field in a text names no type, state or label.
-- **Follow-ups / risks to watch:** filters by type, state and label in the block; keeping a reader's scope.
+- **Negative / trade-offs accepted:** a page named by a field cannot be deleted while the field names it; narrowing walks each candidate's ancestors on every search, which costs the depth of the tree per item; a field in a text names no state and one label at most, as the search page does; a label or a type that is renamed or no longer used leaves a field that finds nothing until it is changed.
+- **Follow-ups / risks to watch:** a state and several labels in the block; letting readers choose the label and the type; keeping a reader's scope.
 
 ## Pros and cons of the options
 

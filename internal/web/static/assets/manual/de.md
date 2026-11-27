@@ -167,7 +167,7 @@ Das Menü **Einfügen…** fügt Blöcke nach dem Cursor ein:
 - **Ansicht von Einträgen…**: die Einträge eines Typs als Tabelle, Galerie oder Liste, gruppiert nach einem Feld (siehe *Ansichten von Einträgen*);
 - **Foliensatz…**: die Bilder eines Album-Ordners als Folien, die man im Text durchblättert und von dort präsentiert (siehe *Foliensatz in einem Text*);
 - **Sternenkarte…**: eine Sternenkarte im Text, eingegrenzt nach Wahl (siehe *Sternenkarte im Text*);
-- **Suchfeld…**: eine Suche im Text, eingegrenzt auf einen Raum oder auf eine Seite und ihre Unterseiten (siehe *Suchfeld im Text*);
+- **Suchfeld…**: eine Suche im Text, eingegrenzt auf einen Raum oder auf eine Seite und ihre Unterseiten sowie auf ein Label und einen Typ (siehe *Suchfeld im Text*);
 - **Markdown einfügen…** und **Markdown-Datei aus einem Repository…** (sofern eingeschaltet);
 - BPMN-Diagramme sowie Prozesse, Formulare, Entscheidungen, Startformulare und Architekturskizzen einer Prozess-Engine (siehe *Prozess-Engines*).
 
@@ -319,11 +319,13 @@ Der Dialog legt fest, wo sie sucht (**Suchen in**):
 - **Nur Unterseiten**: alle Ebenen unter der Seite, ohne die Seite selbst.
 
 Bei den letzten drei nennt **Seite** die Seite über ihren Schlüssel oder ein Wort ihres Titels; bleibt das Feld leer, gilt die Seite, auf der das Suchfeld steht, sodass eine verschobene oder kopierte Seite ihre Suche mitnimmt.
+**Label** grenzt die Treffer auf die Einträge mit einem Label ein, vorgeschlagen aus den verwendeten Labels, und **Typ** auf die Einträge eines Typs; **Jedes Label** und **Alle Typen** lassen sie weg.
 **Suchfeld einfügen** fügt es ein, und **Suchfeld ändern…** ändert es später.
 Eine Zeile über dem Feld nennt, was es durchsucht.
 
 Lesende geben Wörter ein und wählen **Suchen** oder Enter; die Treffer erscheinen unter dem Feld, die besten zuerst, und ein Klick öffnet einen Treffer.
 Lesende können beim Lesen einen anderen Bereich wählen; ihre Wahl wird nicht gespeichert, und das Feld beginnt wieder wie gewählt.
+Label und Typ grenzen jeden Bereich ein, den Lesende wählen, und Lesende ändern sie nicht.
 Das Feld findet nur, was die lesende Person lesen darf; eine Seite, die sie nicht lesen darf, wird als solche genannt.
 Exporte nennen das Feld, statt zu suchen.
 

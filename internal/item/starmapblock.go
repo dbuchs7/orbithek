@@ -37,7 +37,7 @@ func checkStarmapBlock(b Block) error {
 		return invalid("a starmap has no text: it names what it shows")
 	case b.Space != "" && b.Space != StarmapAllRooms && !spaceKeyRE.MatchString(b.Space):
 		return invalid("room %q: a starmap names a room by its key, %s for every room, or none for the room of its item", b.Space, StarmapAllRooms)
-	case b.Label != "" && !validStarmapLabel(b.Label):
+	case b.Label != "" && !validStoredLabel(b.Label):
 		return invalid("label %q: a starmap names one label, as stored (ADR-0044), or none", b.Label)
 	case b.Search != "" && !validViewName(b.Search):
 		return invalid("search %q: a starmap's search text has 1 to %d characters without control characters or surrounding spaces", b.Search, maxViewName)
@@ -60,8 +60,8 @@ func checkStarmapBlock(b Block) error {
 	return nil
 }
 
-// validStarmapLabel reports whether label is a label as it is stored.
-func validStarmapLabel(label string) bool {
+// validStoredLabel reports whether label is a label as it is stored.
+func validStoredLabel(label string) bool {
 	l, ok := NormalLabel(label)
 	return ok && l == label
 }
