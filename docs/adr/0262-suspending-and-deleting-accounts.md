@@ -1,9 +1,9 @@
 # ADR-0262: Administrators suspend accounts and delete them, leaving the account's ID as deleted
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-27
-- **Deciders:** Project initiators. Request of 2026-11-26: administrators can neither delete nor suspend accounts; build it. Asked what deleting means and what happens to an account's roles, the requester chose: suspending is reversible, deleting is final and leaves the ID as a tombstone, and roles, memberships and system roles are taken back automatically.
+- **Deciders:** Project initiators. Request of 2026-11-26: administrators can neither delete nor suspend accounts; build it. Asked what deleting means and what happens to an account's roles, the requester chose: suspending is reversible, deleting is final and leaves the ID as a tombstone, and roles, memberships and system roles are taken back automatically. Built in #409 and accepted by the requester on 2026-11-27.
 - **Open question:** The accounts journal is append-only, so the records written before a deletion still hold the account's username, mail address, profile picture and password hash on disk and in backups. Should a deletion also remove them — by compacting `accounts.wal`, or by sealing personal data with a key per account that a deletion destroys (as ADR-0026 does for items) — and how do backups taken before it follow?
 - **Question checked:** 2026-11
 
