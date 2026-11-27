@@ -325,9 +325,9 @@ func TestSearchFoldsDiacritics(t *testing.T) {
 		"Łódź, Škoda":    "lodz, skoda",
 		"Œuvre, Ærø":     "oeuvre, aero",
 		"Strasse Straße": "strasse strasse",
-		"Zürich":   "zurich", // u with a combining diaeresis
+		"Zürich":        "zurich", // u with a combining diaeresis
 		"naïve façade":   "naive facade",
-		"Ελληνικά, 日本":    "ελληνικά, 日本", // other scripts as they are, lowered
+		"Ελληνικά, 日本":   "ελληνικά, 日本", // other scripts as they are, lowered
 		"plain ASCII 42": "plain ascii 42",
 	} {
 		if got := fold(text); got != want {
