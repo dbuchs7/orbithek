@@ -1,9 +1,9 @@
 # ADR-0261: A query field for who made or changed an item
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-26
-- **Deciders:** Project initiators. Request of 2026-11-26: the start page's list *Recently created or changed* gets a filter *By me*. Asked what *by me* means, the requester chose the items one created or changed at some point (option 1 below), over the items one created (option 2) and the items one changed last (option 3), and a switch *All* | *By me* whose choice the browser keeps.
+- **Deciders:** Project initiators. Request of 2026-11-26: the start page's list *Recently created or changed* gets a filter *By me*. Asked what *by me* means, the requester chose the items one created or changed at some point (option 1 below), over the items one created (option 2) and the items one changed last (option 3), and a switch *All* | *By me* whose choice the browser keeps. Built in #407 and accepted by the requester on 2026-11-27.
 - **Open question:** Should the list *By me* be ordered by one's own last change rather than by anyone's, and should `contributor` be offered as an order (ORDER BY), for which an item has many values?
 - **Question checked:** 2026-11
 
