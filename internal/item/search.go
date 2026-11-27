@@ -69,7 +69,11 @@ func (x *Session) Search(text string, q Query) ([]Hit, error) {
 		}
 		// Passages the principal may not read are not searched (ADR-0088).
 		it = x.s.veiled(x.who, it)
-		if h, ok := m.match(it, terms, wholeKey); ok {
+		creator := ""
+		if q.Names != nil {
+			creator = q.Names(x.s.creatorOf(it))
+		}
+		if h, ok := m.match(it, terms, wholeKey, creator); ok {
 			h.Stars = m.stars(it, terms, phrase, it.Key == wholeKey)
 			for i, f := range m.found {
 				if f.any {
@@ -345,7 +349,9 @@ func (m *matcher) add(text string, score, block, comment int) {
 	m.regions = append(m.regions, region{start, len(m.buf), score, block, comment, len(m.regions) == 0})
 }
 
-func (m *matcher) match(it *Item, terms []string, wholeKey string) (Hit, bool) {
+// match finds the terms in an item; creator is the words its creator is
+// found by, empty for none.
+func (m *matcher) match(it *Item, terms []string, wholeKey, creator string) (Hit, bool) {
 	m.buf, m.regions = m.buf[:0], m.regions[:0]
 	m.add(it.Title, scoreTitle, -1, -1)
 	m.add(it.Key, 0, -1, -1)
@@ -360,6 +366,11 @@ func (m *matcher) match(it *Item, terms []string, wholeKey string) (Hit, bool) {
 	// Labels are found as words, as properties are (ADR-0092).
 	for _, l := range it.Labels {
 		m.add(l, scoreOther, -1, -1)
+	}
+	// The creator's names are found as words, as properties are
+	// (ADR-draft-search-and-starmap-find-items-by-their-creator).
+	if creator != "" {
+		m.add(creator, scoreOther, -1, -1)
 	}
 	// A deleted comment's text is already empty, so it cannot match.
 	for i, c := range it.Comments {

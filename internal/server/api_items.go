@@ -66,6 +66,7 @@ func itemRoutes(d Deps) []Route {
 		{Method: get, Pattern: "/api/items/{ref}", Summary: "Get an item by ID or key", Handler: http.HandlerFunc(h.getItem)},
 		{Method: put, Pattern: "/api/items/{ref}/title", Summary: "Set the title", Handler: http.HandlerFunc(h.setTitle)},
 		{Method: put, Pattern: "/api/items/{ref}/labels", Summary: "Replace the labels", Handler: http.HandlerFunc(h.setLabels)},
+		{Method: get, Pattern: "/api/people", Summary: "The people who made readable items, by username, with how many readable items each made (q: holding it), most items first; only makers of items the caller reads are named (ADR-draft-search-and-starmap-find-items-by-their-creator)", Handler: http.HandlerFunc(h.listPeople)},
 		{Method: get, Pattern: "/api/labels", Summary: "The labels of readable items with how many carry each (space; q: holding it; tasks: count only items whose type has a workflow), most used first; pairs adds how many carry two of them at once", Handler: http.HandlerFunc(h.listLabels)},
 		{Method: put, Pattern: "/api/items/{ref}/properties/{field}", Summary: "Set a property; null unsets it", Handler: http.HandlerFunc(h.setProperty)},
 		{Method: post, Pattern: "/api/items/{ref}/transitions", Summary: "Perform a workflow transition", Handler: http.HandlerFunc(h.transition)},
@@ -856,6 +857,58 @@ func (h itemHandlers) queryEnv() item.QueryEnv {
 	}}
 }
 
+// usernames returns the words a user is found by in a search: their
+// username, never their mail address, nor their display name, which only
+// they see (ADR-0246; ADR-draft-search-and-starmap-find-items-by-their-creator).
+// Each user is looked up once per request.
+func (h itemHandlers) usernames() func(user string) string {
+	known := map[string]string{}
+	return func(user string) string {
+		if user == "" {
+			return ""
+		}
+		if n, ok := known[user]; ok {
+			return n
+		}
+		n := h.d.DB.Accounts.Usernames([]auth.UserID{auth.UserID(user)})[auth.UserID(user)]
+		known[user] = n
+		return n
+	}
+}
+
+// listPeople names the people who made readable items, with how many
+// each made, those whose username holds q, most items first: the
+// suggestions of the search at the top
+// (ADR-draft-search-and-starmap-find-items-by-their-creator). It names only
+// makers of items the caller reads, so it cannot list the accounts.
+func (h itemHandlers) listPeople(w http.ResponseWriter, r *http.Request) {
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	name := h.usernames()
+	h.read(w, r, func(x *item.Session) (any, error) {
+		type person struct {
+			User     string `json:"user"`
+			Username string `json:"username"`
+			Count    int    `json:"count"`
+		}
+		all := []person{}
+		for user, n := range x.Creators() {
+			un := name(user)
+			if un == "" || !item.HasWords(un, q) {
+				continue
+			}
+			all = append(all, person{User: user, Username: un, Count: n})
+		}
+		slices.SortFunc(all, func(a, b person) int {
+			if a.Count != b.Count {
+				return b.Count - a.Count
+			}
+			return strings.Compare(strings.ToLower(a.Username), strings.ToLower(b.Username))
+		})
+		page := all[:min(len(all), budget.Get().PageItems)]
+		return map[string]any{"people": page, "total": map[string]any{"value": len(all), "exact": true}}, nil
+	})
+}
+
 // parseWhere reads the where conditions of a listing (ADR-0074): each
 // where=<field>=<value> requires the field to read as the value, a date as
 // YYYY-MM-DD; e.g. where=source-id=abc finds an item by its identifier in
@@ -887,7 +940,7 @@ func (h itemHandlers) searchItems(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	query := item.Query{Space: q.Get("space"), Type: q.Get("type"), State: q.Get("state"), Label: q.Get("label"), WhereText: where}
+	query := item.Query{Space: q.Get("space"), Type: q.Get("type"), State: q.Get("state"), Label: q.Get("label"), WhereText: where, Names: h.usernames()}
 	h.read(w, r, func(x *item.Session) (any, error) {
 		start := time.Now()
 		all, err := x.Search(q.Get("q"), query)
@@ -1346,6 +1399,9 @@ type starNodeJSON struct {
 	Item    item.ID  `json:"item,omitempty"`
 	Name    string   `json:"name,omitempty"`
 	Count   int      `json:"count,omitempty"`
+	// Creator is the username of whoever made an item
+	// (ADR-draft-search-and-starmap-find-items-by-their-creator).
+	Creator string `json:"creator,omitempty"`
 }
 
 type starEdgeJSON struct {
@@ -1365,8 +1421,9 @@ func (h itemHandlers) starmap(w http.ResponseWriter, r *http.Request) {
 			return nil, err
 		}
 		nodes := make([]starNodeJSON, len(m.Nodes))
+		name := h.usernames()
 		for i, n := range m.Nodes {
-			nodes[i] = toStarNodeJSON(n)
+			nodes[i] = toStarNodeJSON(n, name)
 		}
 		return map[string]any{"nodes": nodes, "edges": toStarEdgesJSON(m.Edges), "truncated": m.Truncated}, nil
 	})
@@ -1379,8 +1436,9 @@ func (h itemHandlers) starmapAll(w http.ResponseWriter, r *http.Request) {
 	h.read(w, r, func(x *item.Session) (any, error) {
 		m := x.StarmapAll(r.URL.Query().Get("label"), budget.Get().StarmapNodes)
 		nodes := make([]starNodeJSON, len(m.Nodes))
+		name := h.usernames()
 		for i, n := range m.Nodes {
-			nodes[i] = toStarNodeJSON(n)
+			nodes[i] = toStarNodeJSON(n, name)
 		}
 		return map[string]any{"nodes": nodes, "edges": toStarEdgesJSON(m.Edges), "truncated": m.Truncated, "grouped": m.Grouped, "items": m.Items}, nil
 	})
@@ -1392,9 +1450,10 @@ type impactNodeJSON struct {
 	Via      []starEdgeJSON `json:"via"`
 }
 
-func toStarNodeJSON(n item.StarNode) starNodeJSON {
+// toStarNodeJSON gives a node with its creator named by name.
+func toStarNodeJSON(n item.StarNode, name func(string) string) starNodeJSON {
 	return starNodeJSON{ID: n.ID, Kind: n.Kind, Key: n.Key, Title: n.Title, Type: n.Type, Space: n.Space, State: n.State,
-		Outside: n.Outside, Labels: n.Labels, Item: n.Item, Name: n.Name, Count: n.Count}
+		Outside: n.Outside, Labels: n.Labels, Item: n.Item, Name: n.Name, Count: n.Count, Creator: name(n.Creator)}
 }
 
 func toStarEdgesJSON(edges []item.StarEdge) []starEdgeJSON {
@@ -1442,8 +1501,9 @@ func (h itemHandlers) impact(w http.ResponseWriter, r *http.Request) {
 			return nil, err
 		}
 		nodes := make([]impactNodeJSON, len(m.Nodes))
+		name := h.usernames()
 		for i, n := range m.Nodes {
-			nodes[i] = impactNodeJSON{starNodeJSON: toStarNodeJSON(n.StarNode), Distance: n.Distance, Via: toStarEdgesJSON(n.Via)}
+			nodes[i] = impactNodeJSON{starNodeJSON: toStarNodeJSON(n.StarNode, name), Distance: n.Distance, Via: toStarEdgesJSON(n.Via)}
 		}
 		var shownDepth any = m.Depth
 		if m.Depth == 0 {

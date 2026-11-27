@@ -88,7 +88,7 @@ func (x *Session) StarmapAll(label string, maxNodes int) Starmap {
 	if len(items) <= maxNodes {
 		b := starBuilder{max: maxNodes, kept: map[string]bool{}}
 		for _, it := range items {
-			b.add(itemNode(it, false))
+			b.add(x.s.itemNode(it, false))
 		}
 		pictures := allStarPictures(pictures(), in, label)
 		for _, p := range pictures {

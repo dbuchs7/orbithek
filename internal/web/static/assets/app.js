@@ -1343,6 +1343,12 @@ function bellIcon(filled = false) {
   return svg;
 }
 
+// creatorQuery is the address of the query that lists what a person made,
+// newest first (ADR-0136; ADR-draft-search-and-starmap-find-items-by-their-creator).
+function creatorQuery(username) {
+  return "#/query?" + new URLSearchParams({ q: `creator = "${username.replace(/["\\]/g, "\\$&")}" ORDER BY created DESC` });
+}
+
 // searchSuggestions offers, while one types in the search at the top, the
 // labels that hold what is typed and the items that answer it best;
 // choosing one opens it (ADR-0092). Arrow keys move through them, Enter
@@ -1387,21 +1393,28 @@ function searchSuggestions(form) {
     if (!/[\p{L}\p{N}]/u.test(typed)) return close();
     timer = setTimeout(async () => {
       const mine = ++asked;
-      const [{ labels }, { hits }] = await Promise.all([
+      const [{ labels }, { people }, { hits }] = await Promise.all([
         get("/api/labels?q=" + encodeURIComponent(typed)).catch(() => ({ labels: [] })),
+        get("/api/people?q=" + encodeURIComponent(typed)).catch(() => ({ people: [] })),
         get("/api/search?limit=5&q=" + encodeURIComponent(typed)).catch(() => ({ hits: [] }))]);
       if (mine !== asked || input.value.trim() !== typed) return;
       n = 0;
       const shownLabels = labels.slice(0, 4);
+      // The people who made readable items, by username: choosing one
+      // lists what they made (ADR-draft-search-and-starmap-find-items-by-their-creator).
+      const shownPeople = (people || []).slice(0, 4);
       list.replaceChildren(
         ...(shownLabels.length ? [group(t("search.labelsGroup")), ...shownLabels.map((l) =>
           option("#/label/" + encodeURIComponent(l.label), { "data-label": l.label },
             h("span", { class: "label", text: l.label }), h("span", { class: "muted", text: t("label.suggestion", { n: l.count }) })))] : []),
+        ...(shownPeople.length ? [group(t("search.peopleGroup")), ...shownPeople.map((p) =>
+          option(creatorQuery(p.username), { "data-person": p.username },
+            h("span", { class: "suggest-person", text: p.username }), h("span", { class: "muted", text: t("search.personItems", { n: p.count }) })))] : []),
         ...(hits.length ? [group(t("search.itemsGroup")), ...hits.map((hit) =>
           option("#/item/" + encodeURIComponent(hit.item.key), { "data-item": hit.item.key },
             h("span", { class: "suggest-item" }, h("span", { class: "suggest-key", text: hit.item.key }), " ", h("span", { text: hit.item.title })),
             h("span", { class: "muted", text: hit.item.type })))] : []));
-      list.hidden = !(shownLabels.length || hits.length);
+      list.hidden = !(shownLabels.length || shownPeople.length || hits.length);
       active = -1;
       input.setAttribute("aria-expanded", String(!list.hidden));
     }, 200);

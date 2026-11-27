@@ -63,6 +63,14 @@ test("a query matches title, key, label and name, every word, without regard to 
   assert.ok(!matches(graph.nodes[1], "  "));
 });
 
+test("a query finds an item by its creator's username, every word as elsewhere", () => {
+  const made = { ...graph.nodes[1], creator: "anna.keller" };
+  assert.ok(matches(made, "keller"));
+  assert.ok(matches(made, "KELLER kernel"));
+  assert.ok(!matches(made, "keller home"));
+  assert.ok(!matches(graph.nodes[1], "keller"), "without a creator nothing is found by one");
+});
+
 test("without filters everything shows", () => {
   const f = filter(graph);
   assert.equal(f.nodes.size, graph.nodes.length);

@@ -304,6 +304,9 @@ Several people can edit a text at once. Each block someone is working on is lock
 
 Type words of a title, a text or a comment, or a key such as `PLAT-12`, into the search field. Suggestions appear while you type; **Enter** shows all results, ordered by relevance (one to five stars). The search finds only what you may read.
 
+A word of a username finds the items that person created, too: usernames only, never mail addresses or display names.
+Under **People**, the suggestions name the people who created items you may read, with how many; choosing one lists what that person created, newest first, as a query (`creator = "…"`).
+
 ### Command palette
 
 Ctrl+K (when you are not editing a text, where Ctrl+K inserts a link) or Ctrl+Shift+P opens the **Command palette**. Type part of a title, a key or a command: it finds items, offers your **Recently opened** items (remembered in this browser) and **Commands** such as a new item, today's daily note, a module or room, the query, the calendar, the light or dark look, reading mode and the manual. The letters you type need only appear in order, so `tdn` finds *Today's daily note*. Arrow keys choose, Enter opens, Esc closes.
@@ -580,6 +583,11 @@ While people work on a whiteboard, the drawing cannot be edited alone; the page 
 ### Starmap of a room
 
 The **Starmap** draws a room's items, pictures and shared labels as a map: items show the symbols of the page tree, a sheet for a page and a ticked box for a task, stacked when items below them are on the map and coloured by type; a finished task is filled green, and green is kept for it; squares for pictures, diamonds for labels, dashed outlines for items of other rooms. Lines show the page tree, relations, mentions, embeds and copies. Drag the map to move it and a node to pull it with its neighbours; turn the mouse wheel to zoom. Choose a node to see its panel. A double-click on a node (or Shift+Enter) shows only it with its neighbourhood at a chosen **Depth** (**Separate**); Escape steps back.
+
+The filters, the panel of the chosen node and the impact list stand in a column at the right of the map, on a narrow screen above it.
+A node you drag stays where you drop it, marked by a glow, until you release it: **Release this node** in its panel, or **Release** on the map for every one.
+**Fit** frames what is shown, dropped nodes included; **Zoom in** and **Zoom out** (+ and −) zoom.
+**Find on the map** also finds items by the username of whoever created them, and an item's panel says who created it.
 
 Under **Show**, **Finished tasks** hides the finished tasks with their lines, so open work stands out; the switch is there while the map holds a finished task.
 

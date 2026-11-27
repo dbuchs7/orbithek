@@ -304,6 +304,9 @@ Mehrere Personen können einen Text gleichzeitig bearbeiten. Jeder Block, an dem
 
 Man gibt Wörter aus Titel, Text oder Kommentar oder einen Schlüssel wie `PLAT-12` in das Suchfeld ein. Während der Eingabe erscheinen Vorschläge; **Enter** zeigt alle Treffer, geordnet nach Relevanz (ein bis fünf Sterne). Die Suche findet nur, was man lesen darf.
 
+Ein Wort eines Benutzernamens findet auch die Einträge, die diese Person erstellt hat: nur Benutzernamen, nie E-Mail-Adressen oder Anzeigenamen.
+Unter **Personen** nennen die Vorschläge die Personen, die Einträge erstellt haben, die man lesen darf, mit deren Anzahl; wählt man eine, erscheint als Abfrage, was diese Person erstellt hat, das Neueste zuerst (`creator = "…"`).
+
 ### Befehlspalette
 
 Ctrl+K (ausser beim Bearbeiten eines Texts, wo Ctrl+K einen Link einfügt) oder Ctrl+Shift+P öffnet die **Befehlspalette**. Man tippt einen Teil eines Titels, eines Schlüssels oder eines Befehls: Sie findet Einträge, bietet unter **Zuletzt geöffnet** die zuletzt geöffneten Einträge an (in diesem Browser gemerkt) und **Befehle** wie einen neuen Eintrag, die Tagesnotiz von heute, ein Modul oder einen Raum, die Abfrage, den Kalender, die helle oder dunkle Darstellung, den Lesemodus und das Handbuch. Die getippten Buchstaben müssen nur in ihrer Reihenfolge vorkommen, so findet `tvh` die *Tagesnotiz von heute*. Pfeiltasten wählen, Enter öffnet, Esc schliesst.
@@ -580,6 +583,11 @@ Solange Personen an einem Whiteboard arbeiten, lässt sich die Zeichnung nicht a
 ### Sternenkarte eines Raums
 
 Die **Sternenkarte** zeichnet die Einträge, Bilder und gemeinsamen Labels eines Raums als Karte: Einträge zeigen die Symbole des Seitenbaums, ein Blatt für eine Seite und eine abgehakte Box für eine Aufgabe, gestapelt, wenn Einträge darunter auf der Karte stehen, und nach Typ eingefärbt; eine erledigte Aufgabe ist grün gefüllt, und Grün bleibt ihr vorbehalten; Quadrate für Bilder, Rauten für Labels, gestrichelte Ränder für Einträge anderer Räume. Linien zeigen Seitenbaum, Beziehungen, Erwähnungen, Einbettungen und Kopien. Ziehen verschiebt die Karte, ein gezogener Knoten nimmt seine Nachbarn mit; das Mausrad zoomt. Wählt man einen Knoten, erscheinen seine Angaben. Ein Doppelklick auf einen Knoten (oder Umschalt+Enter) zeigt nur ihn mit seiner Nachbarschaft bis zu einer gewählten **Tiefe** (**Vertiefen**); Escape geht einen Schritt zurück.
+
+Die Filter, die Angaben des gewählten Knotens und die Liste der Auswirkungen stehen in einer Spalte rechts der Karte, auf einem schmalen Bildschirm darüber.
+Ein gezogener Knoten bleibt, wo man ihn ablegt, und leuchtet, bis man ihn löst: **Diesen Knoten lösen** in seinen Angaben oder **Lösen** auf der Karte für alle.
+**Einpassen** zeigt alles Sichtbare, abgelegte Knoten eingeschlossen; **Vergrössern** und **Verkleinern** (+ und −) zoomen.
+**Auf der Karte suchen** findet Einträge auch über den Benutzernamen der Person, die sie erstellt hat, und die Angaben eines Eintrags nennen, wer ihn erstellt hat.
 
 Unter **Anzeigen** blendet **Erledigte Aufgaben** die erledigten Aufgaben mit ihren Linien aus, sodass die offene Arbeit hervortritt; der Schalter erscheint, solange die Karte eine erledigte Aufgabe zeigt.
 
