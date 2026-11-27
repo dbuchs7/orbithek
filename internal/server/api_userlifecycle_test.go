@@ -26,6 +26,8 @@ func TestAnAdministratorSuspendsAndReactivatesAnAccount(t *testing.T) {
 	w.admin.expect("PUT", "/api/users/"+bert+"/suspended", `{}`, http.StatusBadRequest)
 	w.admin.expect("PUT", "/api/users/nobody/suspended", `{"suspended":true}`, http.StatusNotFound)
 	w.admin.expect("PUT", "/api/users/"+bert+"/suspended", `{"suspended":true}`, http.StatusNoContent)
+	// No reset link is handed out for it: a conflict, not a failure of the server.
+	w.admin.expect("POST", "/api/users/"+bert+"/password-reset", "", http.StatusConflict)
 
 	w.bert.expect("GET", "/api/me", "", http.StatusUnauthorized)
 	script.expect("GET", "/api/me", "", http.StatusUnauthorized)

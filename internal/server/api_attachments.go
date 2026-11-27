@@ -111,7 +111,10 @@ func (h itemHandlers) albumPage(x *item.Session, f *albumFilter, q url.Values, o
 		}
 		return ""
 	}
-	for _, st := range all[min(offset, len(all)):min(offset+limit, len(all))] {
+	// An offset past the end lists nothing; clamped, offset+limit cannot
+	// overflow.
+	offset = min(offset, len(all))
+	for _, st := range all[offset:min(offset+limit, len(all))] {
 		top := h.albumPictureOf(st[0])
 		top.Source = source(st[0])
 		top.Notes = st[0].Notes

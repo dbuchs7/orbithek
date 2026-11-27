@@ -157,6 +157,10 @@ func TestAlbumListsReadableImages(t *testing.T) {
 	for _, bad := range []string{"?kind=audio", "?limit=0", "?limit=201", "?offset=-1"} {
 		w.vera.expect("GET", "/api/album"+bad, "", http.StatusBadRequest)
 	}
+	// An offset past the end, however far, lists nothing.
+	if far := w.bert.expect("GET", "/api/album?offset=9223372036854775807", "", http.StatusOK); len(far["pictures"].([]any)) != 0 || far["next"] != float64(0) {
+		t.Errorf("an offset past the end: %v", far)
+	}
 }
 
 // TestCopiesThroughTheAPI: an upload names its source; the files of an
