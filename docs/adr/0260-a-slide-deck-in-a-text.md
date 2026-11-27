@@ -58,6 +58,7 @@ Chosen option: **2** (the requester's choice), because only copies the text owns
   - its speaker's notes are set on the copy, a video keeps its poster, and a turn made by hand is made on the copy too (`turnBetween`);
   - the editor reports how far copying has come; the deck holds the copies' IDs.
 - **Updating:** when the folder's slides differ from those kept — another number, another picture at a place (by its SHA-256), other notes (`deckChanged`) — the deck says so. While editing, *Update from the folder* copies the folder's slides anew and puts the new copies in the deck. The previous version of the text keeps the copies it showed.
+  A kept slide is its folder's picture when it is a copy of that very file — the album's listing names the file a copy was made from as `source`, to those who read it — or holds the same content; a picture turned or timed by hand, or with its place kept back, is given out rewritten, so its copy never has its source's SHA-256 and would always differ by content alone.
 - **Changing** the deck's folder copies anew; changing only its caption keeps the slides.
 - **Notes** of the kept slides belong to the copies: whoever may edit the text edits them, in the presenter's window or the album.
 

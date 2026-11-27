@@ -119,3 +119,39 @@ func TestACopyLeavesBehindTheSlidesNoTextShows(t *testing.T) {
 		t.Errorf("the copy's text leaves out what has no file: %v", body)
 	}
 }
+
+// TestTheAlbumNamesTheFileACopyWasMadeFrom: a slide a deck keeps is a copy
+// of a picture of its folder. The album's listing names that file, so the
+// deck tells a kept slide is still its folder's even when the picture is
+// given out rewritten — turned by hand — and the copy's content differs
+// (ADR-0260). A source the caller may not read is not named.
+func TestTheAlbumNamesTheFileACopyWasMadeFrom(t *testing.T) {
+	w := newWorld(t)
+	w.admin.expect("POST", "/api/types", `{"name":"page","body":true,"fields":[]}`, http.StatusCreated)
+	home := field(w.bert.expect("POST", "/api/items", `{"space":"PLAT","type":"page","title":"Review"}`, http.StatusCreated), "item", "id").(string)
+	folder := field(w.bert.expect("POST", "/api/album/folders", `{"space":"PLAT","name":"Talk"}`, http.StatusCreated), "item", "id").(string)
+	png := append([]byte("\x89PNG\r\n\x1a\n"), bytes.Repeat([]byte{7}, 100)...)
+	original := w.bert.uploaded(folder, "01-Intro.png", png, "")
+	rec := w.bert.upload("/api/items/"+home+"/attachments?name=01-Intro.png&sourceItem="+folder+"&sourceAttachment="+original, "application/octet-stream", png)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("copy: %d %s", rec.Code, rec.Body)
+	}
+	own := w.bert.uploaded(home, "02-Own.png", png, "")
+	sources := func(c *client) map[string]any {
+		out := map[string]any{}
+		for _, p := range c.expect("GET", "/api/album?folder="+home, "", http.StatusOK)["pictures"].([]any) {
+			out[field(p.(map[string]any), "attachment", "id").(string)] = p.(map[string]any)["source"]
+		}
+		return out
+	}
+	kept := field(decodeBody(t, rec), "attachment", "id").(string)
+	if got := sources(w.bert); got[kept] != original || got[own] != nil {
+		t.Errorf("sources %v, want %s for the copy and none for the item's own picture", got, original)
+	}
+	// Restricted to its maker, the folder is not vera's to read: she is
+	// not told its file.
+	w.bert.expect("PUT", "/api/items/"+folder+"/restriction", `{"read":["`+w.ids["bert"]+`"],"edit":["`+w.ids["bert"]+`"]}`, http.StatusOK)
+	if got := sources(w.vera); got[kept] != nil {
+		t.Errorf("vera is told the file of a folder she may not read: %v", got)
+	}
+}
