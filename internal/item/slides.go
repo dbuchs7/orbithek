@@ -150,3 +150,31 @@ func (it *Item) noteSlideFiles(d Doc) {
 func (it *Item) isSlide(a Attachment, first ID) bool {
 	return it.slideFiles[a.ID] || it.slideFiles[first]
 }
+
+// SlidesLeftBehind names the files of the item that are slides (ADR-0260)
+// and that no block of its text shows any more: the copies an earlier
+// version of a deck kept, and newer versions of a slide. They are the
+// text's own, out of the album, so a copy of the item or its return from a
+// backup leaves them behind; there they would be pictures of the album.
+func (it Item) SlidesLeftBehind() map[ID]bool {
+	if len(it.slideFiles) == 0 {
+		return nil
+	}
+	shown := map[ID]bool{}
+	for _, b := range it.Body.Blocks {
+		for _, f := range b.shownFiles() {
+			shown[f] = true
+		}
+	}
+	var out map[ID]bool
+	for _, a := range it.Attachments {
+		if shown[a.ID] || !it.isSlide(a, firstVersion(&it, a)) {
+			continue
+		}
+		if out == nil {
+			out = map[ID]bool{}
+		}
+		out[a.ID] = true
+	}
+	return out
+}

@@ -72,6 +72,8 @@ Chosen option: **2** (the requester's choice), because only copies the text owns
 ### Elsewhere
 
 - **Copying an item** (ADR-0067) gives its decks the copy's own files; a source the copier cannot read live is forgotten.
+  The slides no block of the text shows any more — the copies an earlier version kept, and newer versions of a slide — stay behind, since no text of the copy ever showed them and they would be pictures of the album there; a deck left without slides and a picture, video, sound or diagram whose file was deleted are left out of the copy's text.
+  Bringing an item back from a backup (ADR-0124) leaves the same slides behind.
 - **Restoring** keeps the slides that came back, forgets a source that is not there, and leaves out a deck without a slide.
 - **Exports** name the deck by its caption and the number of its slides (*Slide deck: … (n slides)*, `export.SlidesName`).
 - **MCP** describes the block in the body format: an agent uploads the copies with their source and names them in `files`.
