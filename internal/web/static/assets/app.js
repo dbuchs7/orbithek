@@ -40,6 +40,7 @@ import { manualBlocks, manualLanguage, manualLanguages, manualPath, manualPictur
 import { helpLink } from "./help.js";
 import { configureViews, labelItems, viewScreen } from "./itemview.js";
 import { configureStarmaps } from "./starmapblock.js";
+import { configureSearches } from "./searchblock.js";
 import { configureSlides } from "./slidesblock.js";
 import { pdfView } from "./pdfview.js";
 import { attachmentLink, isPdf, onPdf, readerHref } from "./pdfparts.js";
@@ -79,6 +80,9 @@ configureViews({
 // A starmap in a text (ADR-0252) draws the page
 // tree's symbols and asks in the page's dialog.
 configureStarmaps({ symbols: () => starmapSymbols(), formDialog });
+// A search field in a text (ADR-0264)
+// asks in the page's dialog and draws its hits' stars as the search does.
+configureSearches({ formDialog, stars: (n) => stars(n) });
 // A slide deck in a text (ADR-0260) asks for its
 // folder in the page's dialog.
 configureSlides({ formDialog });

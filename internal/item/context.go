@@ -144,6 +144,12 @@ func (x *Session) Context(id ID, limit int) (ItemContext, error) {
 				note(it, RelMentions, true, sentenceAround(b.Text, 0, len([]rune(b.Text))))
 				seen = true
 			}
+			// A search field mentions the page it searches within, with no
+			// sentence (ADR-0264).
+			if to, ok := b.Searched(); ok && to == target.ID && mentions[it.ID] && !seen {
+				note(it, RelMentions, true, "")
+				seen = true
+			}
 		}
 	}
 

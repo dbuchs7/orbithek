@@ -1157,6 +1157,13 @@ type Query struct {
 	// (ADR-0263); nil
 	// finds no item by its creator. Only Search reads it.
 	Names func(user string) string
+	// Within and Scope narrow to a page (ScopePage), the page and the
+	// pages below it (ScopeTree) or the pages below it only (ScopeBelow),
+	// as a search field in a text asks
+	// (ADR-0264). Within names the page by its
+	// ID; Scope is read only with it.
+	Within ID
+	Scope  string
 }
 
 // Find returns copies of the matching items in creation order.
@@ -1179,6 +1186,7 @@ func (s *Store) matching(q Query, keep func(*Item) bool) []*Item {
 			(q.State != "" && it.State != q.State) ||
 			(q.Parent != "" && it.Parent != q.Parent) ||
 			(q.Label != "" && !slices.Contains(it.Labels, q.Label)) ||
+			!s.within(it, q.Within, q.Scope) ||
 			!s.whereMatches(it, q.WhereText) ||
 			(q.Text != "" && !HasWords(it.Key+" "+it.Title+" "+it.Type+" "+it.State+" "+strings.Join(it.Labels, " "), q.Text)) {
 			continue
@@ -1358,6 +1366,37 @@ func (s *Store) latest(name string) (TypeDef, bool) {
 	return v[len(v)-1], true
 }
 
+// within reports whether an item lies in the scope of a page: the page
+// itself (ScopePage), the page or a page below it (ScopeTree), or a page
+// below it (ScopeBelow). With no page every item lies within it
+// (ADR-0264). An item is below the page when the
+// page is among its ancestors, whatever the reader may read of the items
+// between: a hit is still checked on its own (D9, D10).
+func (s *Store) within(it *Item, page ID, scope string) bool {
+	if page == "" {
+		return true
+	}
+	if it.ID == page {
+		return scope == ScopePage || scope == ScopeTree
+	}
+	if scope == ScopePage {
+		return false
+	}
+	seen := map[ID]bool{}
+	for p := it.Parent; p != "" && !seen[p]; {
+		if p == page {
+			return true
+		}
+		seen[p] = true
+		up, ok := s.items[p]
+		if !ok {
+			return false
+		}
+		p = up.Parent
+	}
+	return false
+}
+
 // subtree returns an item and all its descendants.
 func (s *Store) subtree(root ID) []ID {
 	out := []ID{root}
@@ -1529,6 +1568,10 @@ func checkBlock(b Block, self ID) error {
 		if err := checkStarmapBlock(b); err != nil {
 			return err
 		}
+	case SearchBlock:
+		if err := checkSearchBlock(b, self); err != nil {
+			return err
+		}
 	case Slides:
 		if err := checkSlidesBlock(b, self); err != nil {
 			return err
@@ -1549,8 +1592,8 @@ func checkBlock(b Block, self ID) error {
 	default:
 		return invalid("unknown block kind %q", b.Kind)
 	}
-	if b.Kind != Embed && b.Kind != Slides && b.Kind != Image && b.Kind != Video && b.Kind != Audio && b.Kind != BPMN && b.Ref != "" {
-		return invalid("only an embed, a slide deck, an image, a video, a sound or a BPMN diagram has a reference")
+	if b.Kind != Embed && b.Kind != Slides && b.Kind != Image && b.Kind != Video && b.Kind != Audio && b.Kind != BPMN && b.Kind != SearchBlock && b.Ref != "" {
+		return invalid("only an embed, a slide deck, an image, a video, a sound, a BPMN diagram or a search field has a reference")
 	}
 	if b.Kind != Process && b.Kind != Form && b.Kind != Decision && b.Kind != Architecture && b.Kind != StartForm && b.Engine != "" {
 		return invalid("only a process, a form, a decision, an architecture sketch or a start form names an engine")
@@ -1570,8 +1613,11 @@ func checkBlock(b Block, self ID) error {
 	if b.Kind != ItemsView && (b.Layout != "" || b.ItemType != "" || b.Group != "" || b.Columns != nil || b.Sort != "") {
 		return invalid("only a view names a layout, a type, a grouping, columns and a sort")
 	}
-	if b.Kind != ItemsView && b.Kind != StarmapBlock && b.Space != "" {
-		return invalid("only a view or a starmap names a room")
+	if b.Kind != ItemsView && b.Kind != StarmapBlock && b.Kind != SearchBlock && b.Space != "" {
+		return invalid("only a view, a starmap or a search field names a room")
+	}
+	if b.Kind != SearchBlock && b.Scope != "" {
+		return invalid("only a search field names a scope")
 	}
 	if b.Kind != Slides && b.Files != nil {
 		return invalid("only a slide deck keeps files as its slides")

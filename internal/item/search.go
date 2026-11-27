@@ -51,6 +51,9 @@ func (x *Session) Search(text string, q Query) ([]Hit, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := x.checkWithin(q); err != nil {
+		return nil, err
+	}
 	shown := typedWords(text, terms)
 	phrase := " " + strings.Join(wordsOf(text), " ") + " "
 	wholeKey := strings.ToUpper(strings.TrimSpace(text))
@@ -63,6 +66,7 @@ func (x *Session) Search(text string, q Query) ([]Hit, error) {
 			(q.State != "" && it.State != q.State) ||
 			(q.Parent != "" && it.Parent != q.Parent) ||
 			(q.Label != "" && !slices.Contains(it.Labels, q.Label)) ||
+			!x.s.within(it, q.Within, q.Scope) ||
 			!x.s.whereMatches(it, q.WhereText) ||
 			!x.s.canRead(x.who, it) {
 			continue
@@ -103,6 +107,23 @@ func (x *Session) Search(text string, q Query) ([]Hit, error) {
 		return b.Item.created - a.Item.created // newer first
 	})
 	return hits, nil
+}
+
+// checkWithin validates the page a search is narrowed to: a scope needs
+// a page and a page a scope, and the page must be one the principal reads,
+// else it is not found, as an item one may not read is not (D10)
+// (ADR-0264).
+func (x *Session) checkWithin(q Query) error {
+	switch {
+	case q.Within == "" && q.Scope == "":
+		return nil
+	case q.Within == "":
+		return invalid("scope %q needs the page it narrows to", q.Scope)
+	case !validScope(q.Scope):
+		return invalid("scope %q: a search within a page searches %s, %s or %s", q.Scope, ScopePage, ScopeTree, ScopeBelow)
+	}
+	_, err := x.readable(q.Within)
+	return err
 }
 
 // appendFold appends text in a comparable form: lower case, and ß as ss,

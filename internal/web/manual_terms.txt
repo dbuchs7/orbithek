@@ -39,7 +39,6 @@ de Workflow — the concept of a type's workflow
 de Räumen — the concept of a room, inflected in the sentence
 en presenter's window — the album's window while presenting; the UI names it so in "Waiting for the presenter's window…"
 de Referentenfenster — the presenter's window; the UI names it so in "Warten auf das Referentenfenster …"
-de Suchfeld — the search field in the header, which has no label of its own
 
 # Parts of labels that a sentence names for several of them.
 en Limit — the column limit; each column's field is labelled "Limit of cards in <column>"

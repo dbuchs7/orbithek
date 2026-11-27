@@ -31,6 +31,7 @@ import {
 } from "./tableparts.js";
 import { viewBlock, pickView, viewsReady } from "./itemview.js";
 import { pickStarmap, starmapBlockElement, starmapSummary, starmapsReady } from "./starmapblock.js";
+import { pickSearch, searchBlockElement, searchSummary, searchesReady } from "./searchblock.js";
 import { hostID, keepSlides, pickSlides, slidesElement, slidesReady } from "./slidesblock.js";
 import { headingNumbers } from "./numbering.js";
 
@@ -123,6 +124,10 @@ export const schema = new Schema({
     // block keeps how it is narrowed at first.
     starmap: { group: "block", atom: true, selectable: true, attrs: { ...bid, space: { default: "" }, label: { default: "" }, search: { default: "" },
       depth: { default: 0 }, hideTypes: { default: null }, hideKinds: { default: null } }, toDOM: () => ["div", { class: "pm-starmap" }] },
+    // A search field (ADR-0264), its hits
+    // computed when asked; the block keeps what it searches.
+    search: { group: "block", atom: true, selectable: true, attrs: { ...bid, scope: { default: "" }, space: { default: "" }, ref: { default: "" } },
+      toDOM: () => ["div", { class: "pm-search" }] },
     // A slide deck (ADR-0260): the slides it keeps, files of the item in
     // their order, the album folder or collection they came from, and a
     // plain caption.
@@ -303,6 +308,7 @@ function plainNode(b, embeds) {
   if (b.kind === "view") return schema.nodes.itemview.create({ bid: id, layout: b.layout || "table", itemType: b.itemType || "", space: b.space || "", query: b.query || "",
     group: b.group || "", columns: b.columns?.length ? [...b.columns] : null, sort: b.sort || "" });
   if (b.kind === "slides") return schema.nodes.slides.create({ bid: id, ref: b.ref || "", files: b.files?.length ? [...b.files] : null, text: b.text || "" });
+  if (b.kind === "search") return schema.nodes.search.create({ bid: id, scope: b.scope || "", space: b.space || "", ref: b.ref || "" });
   if (b.kind === "starmap") {
     return schema.nodes.starmap.create({ bid: id, space: b.space || "", label: b.label || "", search: b.search || "", depth: b.depth || 0,
       hideTypes: b.hideTypes?.length ? [...b.hideTypes] : null, hideKinds: b.hideKinds?.length ? [...b.hideKinds] : null });
@@ -403,6 +409,11 @@ function plainBlock(node) {
   if (node.type === schema.nodes.slides) {
     const a = node.attrs;
     return { kind: "slides", text: a.text, ...(a.ref ? { ref: a.ref } : {}), ...(a.files?.length ? { files: [...a.files] } : {}) };
+  }
+  if (node.type === schema.nodes.search) {
+    const b = { kind: "search" };
+    for (const k of ["scope", "space", "ref"]) if (node.attrs[k]) b[k] = node.attrs[k];
+    return b;
   }
   if (node.type === schema.nodes.starmap) {
     const a = node.attrs;
@@ -1545,6 +1556,31 @@ function starmapView(node, v, getPos, here) {
     update: (n) => n.type === node.type && JSON.stringify(n.attrs) === JSON.stringify(attrs) };
 }
 
+// searchView shows the search field a block names for the item the text
+// is on (ADR-0264), its
+// hits as far as the reader reads them; while editing, a button changes
+// what it searches. The field takes its own keys, so the editor leaves
+// them to it.
+function searchView(node, v, getPos, here) {
+  const attrs = node.attrs;
+  const block = blockFromNode(node);
+  const dom = h("section", { class: "pm-search", contenteditable: "false" });
+  const summary = h("span", { class: "muted pm-search-summary", text: "…" });
+  const head = h("p", { class: "pm-box-title" }, summary);
+  searchSummary(block).then((text) => { summary.textContent = text; }).catch(() => { summary.textContent = ""; });
+  if (v.editable && searchesReady()) {
+    head.append(" ", h("button", { type: "button", class: "link pm-search-edit", text: t("searchblock.change"), onclick: async () => {
+      const next = await pickSearch(block, here?.id || "");
+      const pos = getPos();
+      if (!next || typeof pos !== "number") return;
+      v.dispatch(v.state.tr.setNodeMarkup(pos, null, { ...node.attrs, scope: next.scope || "", space: next.space || "", ref: next.ref || "" }));
+    } }));
+  }
+  dom.append(head, searchBlockElement(block, here));
+  return { dom, ignoreMutation: () => true, stopEvent: (ev) => dom.contains(ev.target),
+    update: (n) => n.type === node.type && JSON.stringify(n.attrs) === JSON.stringify(attrs) };
+}
+
 // slidesView shows the slide deck a block keeps
 // (ADR-0260): while reading, a reader steps
 // through it and presents it; while editing, a button changes its folder
@@ -2026,6 +2062,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
       tasklist: (node) => taskListView(node, tasks),
       itemview: (node, v, getPos) => itemViewView(node, v, getPos),
       starmap: (node, v, getPos) => starmapView(node, v, getPos, childPages?.here || null),
+      search: (node, v, getPos) => searchView(node, v, getPos, childPages?.here || null),
       slides: (node, v, getPos) => slidesView(node, v, getPos, childPages?.here || null, (text) => { status.textContent = text; }),
       veiled: (node) => ({ dom: h("div", { class: "pm-veiled", "data-secret": node.attrs.secret, contenteditable: "false" },
         h("span", { class: "pm-veiled-bar", "aria-hidden": "true", text: "▒▒▒▒▒▒▒▒" }), veiledContent(node.attrs.secret)), ...selectable }),
@@ -2093,10 +2130,11 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     else if (kind === "tasklist") taskList();
     else if (kind === "itemview") itemView();
     else if (kind === "starmap") starmapInsert();
+    else if (kind === "search") searchInsert();
     else if (kind === "slides") slidesInsert();
     else if (kind === "markdownfile") markdownFile("");
     else if (kind) insertBlock(schema.nodes[kind].create());
-  } }, [["", t("editor.insert")], ["embed", t("assist.embedItem")], ["embedtext", t("editor.embedTextInsert")], ["markdown", t("editor.markdown")], markdown ? ["markdownfile", t("editor.markdownFile")] : null, tasks?.create ? ["newtask", t("editor.newTask")] : null, tasks?.pickLabel ? ["tasklist", t("editor.taskList")] : null, viewsReady() ? ["itemview", t("views.insert")] : null, starmapsReady() ? ["starmap", t("starmap.blockInsert")] : null, ["table", t("editor.table")], ["divider", t("editor.divider")], ["toc", t("editor.toc")], ["figures", t("editor.figures")], ["tables", t("editor.tables")], ["children", t("editor.children")],
+  } }, [["", t("editor.insert")], ["embed", t("assist.embedItem")], ["embedtext", t("editor.embedTextInsert")], ["markdown", t("editor.markdown")], markdown ? ["markdownfile", t("editor.markdownFile")] : null, tasks?.create ? ["newtask", t("editor.newTask")] : null, tasks?.pickLabel ? ["tasklist", t("editor.taskList")] : null, viewsReady() ? ["itemview", t("views.insert")] : null, starmapsReady() ? ["starmap", t("starmap.blockInsert")] : null, searchesReady() ? ["search", t("searchblock.insert")] : null, ["table", t("editor.table")], ["divider", t("editor.divider")], ["toc", t("editor.toc")], ["figures", t("editor.figures")], ["tables", t("editor.tables")], ["children", t("editor.children")],
     files ? ["image", t("editor.image")] : null, files ? ["video", t("editor.video")] : null, files ? ["audio", t("editor.audio")] : null, files && canRecordHere() ? ["record", t("editor.record")] : null, files ? ["drawing", t("draw.insert")] : null, files ? ["album", t("album.fromAlbum")] : null, slidesReady() ? ["slides", t("slides.insert")] : null, files ? ["clip", t("editor.copiedPicture")] : null,
     files ? ["bpmnnew", t("bpmn.insertNew")] : null, files ? ["bpmnfile", t("bpmn.insertFile")] : null, ["process", t("bpmn.insertProcess")],
     ["form", t("form.insert")], ["startform", t("start.insert")], ["decision", t("decision.insert")], ["architecture", t("arch.insert")]].filter(Boolean)
@@ -2505,6 +2543,18 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
       if (!spec) return view.focus();
       insertBlock(schema.nodes.starmap.create({ space: spec.space || "", label: spec.label || "", search: spec.search || "", depth: spec.depth || 0,
         hideTypes: spec.hideTypes || null, hideKinds: spec.hideKinds || null }));
+    } catch (err) {
+      status.textContent = err.message;
+    }
+  };
+  // A search field (ADR-0264):
+  // what it searches is chosen in a dialog.
+  const searchInsert = async () => {
+    status.textContent = "";
+    try {
+      const spec = await pickSearch({}, childPages?.here?.id || "");
+      if (!spec) return view.focus();
+      insertBlock(schema.nodes.search.create({ scope: spec.scope || "", space: spec.space || "", ref: spec.ref || "" }));
     } catch (err) {
       status.textContent = err.message;
     }

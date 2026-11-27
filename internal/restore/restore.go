@@ -270,6 +270,11 @@ func (p *plan) refs(it item.Item) []item.ID {
 		for _, m := range b.Mentions {
 			add(m)
 		}
+		// The page a search field searches within
+		// (ADR-0264).
+		if to, ok := b.Searched(); ok {
+			add(to)
+		}
 	}
 	for _, r := range p.src.Relations(it.ID, item.Outgoing) {
 		if !r.Derived || r.Field() != "" {

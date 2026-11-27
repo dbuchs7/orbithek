@@ -74,6 +74,8 @@ func diagramName(bl item.Block, files map[item.ID]Image) string {
 		return StarmapName(bl)
 	case item.Slides:
 		return SlidesName(bl)
+	case item.SearchBlock:
+		return SearchName(bl)
 	}
 	return "BPMN: " + files[bl.Ref].Name
 }
@@ -133,6 +135,30 @@ func SlidesName(bl item.Block) string {
 		name += fmt.Sprintf(" (%d slides)", n)
 	}
 	return name
+}
+
+// SearchName names a search field in a document
+// (ADR-0264): a document
+// cannot search, it says what the field searches. A page other than the
+// item is not named by its title, which the document's reader may not
+// read (D10).
+func SearchName(bl item.Block) string {
+	page := "this page"
+	if bl.Ref != "" {
+		page = "another page"
+	}
+	switch bl.Scope {
+	case item.ScopePage:
+		return "Search field: " + page
+	case item.ScopeTree:
+		return "Search field: " + page + " and the pages below it"
+	case item.ScopeBelow:
+		return "Search field: the pages below " + page
+	}
+	if bl.Space != "" {
+		return "Search field: room " + bl.Space
+	}
+	return "Search field: the item's room"
 }
 
 // namedByCaption reports whether a block's name in a document is its
@@ -614,7 +640,7 @@ func (b *docxBuilder) block(bl item.Block, p Page, base, listNum int, num string
 			out += para(b.s("Caption"), "", run(bl.Text, ""))
 		}
 		return out
-	case item.BPMN, item.Process, item.Form, item.Decision, item.Architecture, item.StartForm, item.ItemsView, item.StarmapBlock, item.Slides:
+	case item.BPMN, item.Process, item.Form, item.Decision, item.Architecture, item.StartForm, item.ItemsView, item.StarmapBlock, item.Slides, item.SearchBlock:
 		// A document does not draw a diagram, a form, a decision or a
 		// sketch; it names the file, the process, the form, the decision,
 		// the sketch or the start form (ADR-0129, ADR-0144, ADR-0146,

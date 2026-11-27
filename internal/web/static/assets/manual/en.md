@@ -167,6 +167,7 @@ The menu **Insert…** adds blocks after the cursor:
 - **View of items…**: the items of a type as a table, a gallery or a list, grouped by a field (see *Views of items*);
 - **Slide deck…**: the pictures of an album folder as slides, stepped through in the text and presented from it (see *Slide deck in a text*);
 - **Starmap…**: a starmap inside the text, narrowed as you choose (see *Starmap in a text*);
+- **Search field…**: a search inside the text, narrowed to a room or to a page and the pages below it (see *Search field in a text*);
 - **Paste Markdown…** and **Markdown file from a repository…** (if enabled);
 - BPMN diagrams, and processes, forms, decisions, start forms and architecture sketches of a process engine (see *Process engines*).
 
@@ -306,6 +307,25 @@ Type words of a title, a text or a comment, or a key such as `PLAT-12`, into the
 
 A word of a username finds the items that person created, too: usernames only, never mail addresses or display names.
 Under **People**, the suggestions name the people who created items you may read, with how many; choosing one lists what that person created, newest first, as a query (`creator = "…"`).
+
+### Search field in a text {#searchblock}
+
+While editing, **Insert…** → **Search field…** places a search in the text.
+The dialog chooses where it searches (**Search in**):
+
+- **The room**: every item of a **Room**, by default **This item's room**;
+- **The page**: the page alone;
+- **The page and the pages below it**: the page and every level of pages below it;
+- **Only the pages below it**: every level below the page, without the page itself.
+
+For the last three, **Page** names the page by its key or a word of its title; left empty, it is the page the field is on, so a moved or copied page takes its search along.
+**Place the search field** places it, and **Change the search field…** changes it later.
+A line above the field says what it searches.
+
+Readers type words and press **Search** or Enter; the hits appear below the field, best first, and a click opens one.
+Readers may choose another scope while reading; their choice is not kept, and the field starts again as chosen.
+The field finds only what the reader may read; a page the reader may not read is named as such.
+Exports name the field instead of searching.
 
 ### Command palette
 

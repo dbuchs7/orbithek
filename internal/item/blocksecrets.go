@@ -63,6 +63,9 @@ func refSecrets(d Doc) map[string][]ID {
 		for _, m := range b.Mentions {
 			keys = append(keys, RelMentions+"/"+string(m))
 		}
+		if to, ok := b.Searched(); ok {
+			keys = append(keys, RelMentions+"/"+string(to))
+		}
 		for _, k := range keys {
 			switch {
 			case b.Secret == "":

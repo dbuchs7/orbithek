@@ -135,6 +135,13 @@ const (
 	// item, Ref names that folder or collection as the source it is
 	// updated from, and Text is the caption.
 	Slides BlockKind = "slides"
+	// SearchBlock is a search field in a text
+	// (ADR-0264): Scope narrows what it
+	// searches to a room or to a page, the page with the pages below it,
+	// or the pages below it only; Space names the room and Ref the page,
+	// none for the item the text is on. Like a view it is computed when
+	// shown and holds no item.
+	SearchBlock BlockKind = "search"
 )
 
 // PrefillSources are what a start form's field may be filled in with
@@ -334,6 +341,10 @@ type Block struct {
 	// Files are, on a slide deck, its slides in their order: files of the
 	// item, each named once (ADR-0260).
 	Files []ID `json:",omitempty"`
+	// Scope is what a search field in a text searches, one of
+	// SearchScopes; none searches a room
+	// (ADR-0264).
+	Scope string `json:",omitempty"`
 }
 
 // MaxChildrenDepth is the most levels a list of child pages names by
@@ -853,6 +864,11 @@ func (d Doc) refs() []struct {
 		}
 		for _, m := range b.Mentions {
 			add(ref{RelMentions, m})
+		}
+		// A search field mentions the page it searches within
+		// (ADR-0264).
+		if to, ok := b.Searched(); ok {
+			add(ref{RelMentions, to})
 		}
 	}
 	return out

@@ -72,7 +72,10 @@ const blockFormat = "A body is a list of blocks, each an object with kind and te
 	"shows the starmap the reader may read, narrowed so when shown; a click on an item opens it); " +
 	"slides (files: the slides in their order, IDs of files of the item, each once, at most 500 — copies of the pictures of an album folder, uploaded to the item with sourceItem and sourceAttachment, with their speaker's notes; " +
 	"ref: the ID of the album folder or collection they were copied from, to update the deck from later; text: a plain caption, or empty; " +
-	"shows the slides as they were kept, to step through and present; a version of the text keeps its slides), " +
+	"shows the slides as they were kept, to step through and present; a version of the text keeps its slides); " +
+	"search (scope: absent to search a space, page for a page alone, tree for a page and every page below it, below for the pages below it only; " +
+	"space: with no scope, a space key, or absent for the space of the item; ref: with a scope, the ID of the page, or absent for the item itself; " +
+	"shows a search field whose hits, the items the reader may read, appear below it; the reader may choose another scope while reading), " +
 	"a bpmn or process block may have view both (the diagram and below it the description of its tasks and decisions) or text (the description only), or none for the diagram alone; " +
 	"a form block alike, with the list of its fields as its description. " +
 	"Paragraphs, headings, quotes and panels may have align center, right or justify. " +
@@ -263,6 +266,8 @@ var tools = []tool{
 			{"space", str, inQuery, false, "Limit to a space key."},
 			{"type", str, inQuery, false, "Limit to a type name."},
 			{"state", str, inQuery, false, "Limit to a workflow state."},
+			{"within", str, inQuery, false, "Limit to a page, by ID or key; needs scope."},
+			{"scope", str, inQuery, false, "With within: page (the page alone), tree (the page and every page below it) or below (the pages below it only)."},
 		}, paging...)},
 	{Name: "get_item", Description: "Get one item: title, type, state, properties and body. A protected passage your caller may not read shows as ▒▒▒▒▒▒▒▒ under a mark of type secret; protected blocks they may not read show as one paragraph ▒▒▒▒▒▒▒▒ whose secret names the protection; secrets says who protected it.", Method: "GET", Path: "/api/items/{ref}",
 		Params: []param{refParam}},
