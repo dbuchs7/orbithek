@@ -7291,36 +7291,33 @@ function webSource() {
 
     step("editor: leaving by the back button keeps what was typed last; back after Done does not open the editor again");
     {
-      const tab = await page.context().newPage();
-      tab.on("pageerror", (e) => problems.push("leave tab error: " + e.message));
-      await tab.goto(base + "/");
-      const made = await tab.evaluate(async () => {
+      await page.goto(base + "/");
+      const made = await page.evaluate(async () => {
         const send = (path, body) => fetch(path, { method: path.endsWith("/body") ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json());
         const it = (await send("/api/items", { space: "PLAT", type: "task", title: "Leaving the editor", properties: { priority: "low" } })).item;
         await send(`/api/items/${it.key}/body`, { blocks: [{ kind: "paragraph", text: "start" }] });
         return it.key;
       });
-      await tab.goto(base + "/#/item/" + made);
-      await tab.click("#edit");
-      await tab.waitForSelector("#body.editing .ProseMirror[contenteditable=true]");
-      await tab.click("#body.editing .ProseMirror p");
-      await tab.keyboard.press("End");
-      await tab.keyboard.type(" typed-then-back", { delay: 5 });
-      await tab.goBack();
-      await tab.waitForFunction(async (key) => {
+      await page.goto(base + "/#/item/" + made);
+      await page.click("#edit");
+      await page.waitForSelector("#body.editing .ProseMirror[contenteditable=true]");
+      await page.click("#body.editing .ProseMirror p");
+      await page.keyboard.press("End");
+      await page.keyboard.type(" typed-then-back", { delay: 5 });
+      await page.goBack();
+      await page.waitForFunction(async (key) => {
         const body = (await (await fetch("/api/items/" + key)).json()).item.body || [];
         return body.some((b) => (b.text || "").includes("typed-then-back"));
       }, made, { timeout: 5000 }).catch(() => {});
-      check(await tab.evaluate(async (key) => ((await (await fetch("/api/items/" + key)).json()).item.body || []).some((b) => (b.text || "").includes("typed-then-back")), made),
+      check(await page.evaluate(async (key) => ((await (await fetch("/api/items/" + key)).json()).item.body || []).some((b) => (b.text || "").includes("typed-then-back")), made),
         "what was typed right before the back button is stored");
-      await tab.click("#edit");
-      await tab.waitForSelector("#body.editing .ProseMirror[contenteditable=true]");
-      await tab.click("button:has-text('Done')");
-      await tab.waitForSelector("#edit");
-      await tab.goBack();
-      await tab.waitForTimeout(300);
-      check(await tab.locator("#body.editing").count() === 0, "back after Done does not open the editor again");
-      await tab.close();
+      await page.click("#edit");
+      await page.waitForSelector("#body.editing .ProseMirror[contenteditable=true]");
+      await page.click("button:has-text('Done')");
+      await page.waitForSelector("#edit");
+      await page.goBack();
+      await page.waitForTimeout(300);
+      check(await page.locator("#body.editing").count() === 0, "back after Done does not open the editor again");
     }
 
     check(problems.length === 0, problems.join("; "));
