@@ -225,6 +225,7 @@ Die Felder eines Eintrags stehen in der Spalte an der Seite und werden gespeiche
 
 - **Verschieben …** setzt eine Seite mit ihren Unterseiten unter eine andere Seite oder auf die oberste Ebene des Raums. Innerhalb eines Raums ändern **Nach oben** und **Nach unten** die Reihenfolge.
 - **Kopieren …** kopiert eine Seite, auf Wunsch **Mit Unterseiten**.
+  Angeboten wird es, wem das Erstellen in einem Raum erlaubt ist; ebenso braucht das Kommentieren einer Stelle das Recht, den Eintrag zu bearbeiten, **Neue Aufgabe** in der Planung einen Raum, in dem man erstellen darf, und der Import von Notizen die Administration des Raums. Was man nicht darf, wird nicht angeboten.
 - **In den Papierkorb** entfernt einen Eintrag aus der Ansicht. Das ist nur möglich, wenn kein anderer Eintrag ausserhalb seines Teilbaums auf ihn verweist. Aus dem Papierkorb lässt er sich mit **Wiederherstellen** zurückholen oder mit **Endgültig löschen** vernichten; das lässt sich nicht rückgängig machen.
   Was in den Papierkorb gelegt wurde, steht im Raum unter **Papierkorb**, das Neueste zuerst, mit dem, der es hineingelegt hat, dem Zeitpunkt und der Zahl der Einträge, die mitgingen; **Wiederherstellen** und **Endgültig löschen** stehen auch dort.
 
