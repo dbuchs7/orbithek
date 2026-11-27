@@ -3,7 +3,8 @@
 // derives the graph per request from what the reader may read; this
 // module seeds a layout (starmap-graph.js), lets it move under a live
 // force simulation (starmap-sim.js) that cools to rest, filters it, and
-// lets one pan, zoom, drag a node with its neighbours, light a node's
+// lets one pan, zoom, drag a node with its neighbours and leave it where
+// it is dropped until it is released, light a node's
 // neighbourhood by pointing at it, focus it, and separate it with its
 // neighbourhood by a double-click. From a node's panel, an impact view
 // (ADR-0159) shows what depends on it, or what it depends on, across
@@ -450,8 +451,12 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
   svg.addEventListener("pointerup", endPan);
   svg.addEventListener("pointercancel", endPan);
 
-  // A node follows the pointer that holds it, pinned while it is held;
-  // its neighbours follow through the springs. Let go, it is free again.
+  // A node follows the pointer that holds it; its neighbours follow
+  // through the springs. Dropped, it stays where it was put, pinned, until
+  // it is released: on its own from its panel, or every one by "Release"
+  // (ADR-0263). The pins
+  // outlast filters, drills and resizes; leaving the map forgets them.
+  const pinned = new Set();
   let nodeDrag = null;
   let suppressClick = false; // the click that ends a drag does not focus
   function grab(ev, i, g) {
@@ -487,13 +492,36 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
     g.classList.remove("dragging");
     suppressClick = ev.type === "pointerup";
     sim.alphaTarget = 0;
-    if (reduced) { sim.reheat(0.3); sim.run(); sim.unpin(i); draw(); } else { sim.unpin(i); wake(); }
+    pinned.add(i);
+    paintPins();
+    if (reduced) { sim.reheat(0.3); sim.run(); draw(); } else wake();
+  }
+  // release lets the pinned nodes at the indexes go back into the
+  // simulation, which moves them again.
+  function release(indexes) {
+    let any = false;
+    for (const i of indexes) if (pinned.delete(i)) { sim.unpin(i); any = true; }
+    if (!any) return;
+    paintPins();
+    reheat(0.3);
+  }
+  // paintPins marks the pinned nodes and enables "Release" while one is.
+  function paintPins() {
+    nodeEls.forEach((el, i) => el.classList.toggle("pinned", pinned.has(i)));
+    releaseAll.disabled = !pinned.size;
+    if (panelRelease) panelRelease.hidden = !(focused && pinned.has(index.get(focused)));
   }
 
-  const zoomButton = (label, cls, act) => h("button", { type: "button", class: "secondary " + cls, title: label, "aria-label": label, onclick: act }, cls === "zoom-in" ? "+" : cls === "zoom-out" ? "−" : "⤢");
-  const zoomIn = zoomButton(t("starmap.zoomIn"), "zoom-in", () => zoomAt(1.25));
-  const zoomOut = zoomButton(t("starmap.zoomOut"), "zoom-out", () => zoomAt(1 / 1.25));
-  const zoomFit = zoomButton(t("starmap.zoomReset"), "zoom-fit", () => { follow = true; if (reduced) settle(); else wake(); });
+  // The controls float over the canvas, as in atlas: zoom in and out,
+  // "Fit" frames what is shown, pinned nodes included, and "Release" lets
+  // every pinned node go.
+  const zoomButton = (id, label, cls, mark, act) => h("button", { type: "button", id: idOf(id), class: "secondary " + cls, title: label, "aria-label": label, onclick: act }, mark);
+  const zoomIn = zoomButton("zoom-in", t("starmap.zoomIn"), "zoom-in", "+", () => zoomAt(1.25));
+  const zoomOut = zoomButton("zoom-out", t("starmap.zoomOut"), "zoom-out", "−", () => zoomAt(1 / 1.25));
+  const zoomFit = zoomButton("fit", t("starmap.zoomReset"), "zoom-fit", t("starmap.fit"), () => { follow = true; if (reduced) settle(); else wake(); });
+  const releaseAll = h("button", { type: "button", id: idOf("release"), class: "secondary zoom-release", disabled: true, title: t("starmap.releaseHelp"),
+    text: t("starmap.release"), onclick: () => release([...pinned]) });
+  const zoomBar = h("div", { class: "starmap-zoom", role: "group", "aria-label": t("starmap.zoom") }, zoomIn, zoomOut, zoomFit, releaseAll);
 
   // --- lighting a neighbourhood: the node under the pointer or the
   // keyboard's focus, its neighbours and their edges; the rest dims ---
@@ -514,6 +542,7 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
   }
 
   // --- the side panel of the focused node ---
+  let panelRelease = null;
   const panel = h("aside", { class: "starmap-panel card", id: idOf("panel"), hidden: true, tabindex: "-1", "aria-labelledby": idOf("panel-title") });
   // What the panel shows of a node is read once while the map is open,
   // when the node is chosen; pointing reads nothing.
@@ -577,6 +606,10 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
         id: idOf("impact-open"), title: t("starmap.impactHelp"), text: t("starmap.impact"),
         onclick: () => { if (!impact) impactReturn = location.hash; } });
     }
+    // A node one has dropped is released here, beside what it is about.
+    const ni = index.get(node.id);
+    panelRelease = h("button", { type: "button", class: "secondary", id: idOf("release-node"), hidden: !pinned.has(ni), text: t("starmap.releaseNode"),
+      title: t("starmap.releaseNodeHelp"), onclick: () => release([ni]) });
     const box = h("div", { class: "starmap-preview-box", id: idOf("preview"), "aria-live": "polite" },
       h("p", { class: "muted", id: idOf("preview-loading"), text: t("starmap.loading") }));
     contentOf(node).then((el) => { if (el) mount(box, el); else box.replaceChildren(); },
@@ -586,7 +619,7 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
         h("button", { type: "button", class: "link", "aria-label": t("common.close"), title: t("common.close"), onclick: () => focus(null) }, "×")),
       // An item says its kind, key, room and state in one line.
       node.kind === "item" ? h("p", { class: "muted starmap-facts-line", id: idOf("facts") },
-        [node.type, node.key, node.space, node.state, impact ? distanceName(node.distance) : null].filter(Boolean).join(" · ")) : null,
+        [node.type, node.key, node.space, node.state, node.creator ? t("starmap.panelCreator", { name: node.creator }) : null, impact ? distanceName(node.distance) : null].filter(Boolean).join(" · ")) : null,
       node.kind === "item" ? null : h("dl", { class: "starmap-facts" },
         row(t("starmap.panelKind"), node.kind === "group" ? node.type : node.kind === "picture" ? t("starmap.kindPicture") : t("starmap.kindLabel")),
         node.kind === "group" ? row(t("starmap.panelCount"), String(node.count)) : null,
@@ -595,10 +628,18 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
         row(t("starmap.panelState"), node.state),
         row(t("starmap.panelSpace"), node.kind === "group" && node.title && node.title !== node.space ? `${node.space} – ${node.title}` : node.space),
         impact ? row(t("starmap.impactDistanceLabel"), distanceName(node.distance)) : null),
-      h("div", { class: "starmap-panel-actions" }, link, drill, impactLink),
+      h("div", { class: "starmap-panel-actions" }, link, drill, impactLink, panelRelease),
       box);
     panel.hidden = false;
     panel.scrollTop = 0;
+    // In the column at the right the panel comes into sight there, by
+    // scrolling the column alone: the page must not move under the
+    // pointer, or the second click of a double-click misses the node.
+    const side = embed ? null : panel.parentElement;
+    if (side) {
+      const a = side.getBoundingClientRect(), b = panel.getBoundingClientRect();
+      if (b.top < a.top || b.bottom > a.bottom) side.scrollTop += b.top - a.top;
+    }
     // The keyboard follows into the panel; Escape closes it as before.
     panel.focus({ preventScroll: true });
   }
@@ -775,13 +816,15 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
       h("li", {}, swatch(s("g", { class: "star-node kind-picture" }, shape("picture"))), h("span", { text: t("starmap.legendPicture") })),
       h("li", {}, swatch(s("g", { class: "star-node kind-label" }, shape("label"))), h("span", { text: t("starmap.legendLabel") })),
       h("li", {}, swatch(s("g", { class: "star-node kind-item outside" }, shape("item"))), h("span", { text: t("starmap.legendOutside") })),
+      h("li", { id: idOf("legend-pinned") }, swatch(s("g", { class: "star-node kind-item tone-0 pinned" }, shape("item"))), h("span", { text: t("starmap.legendPinned") })),
       // A cloud is explained where the map shows clouds (ADR-0230).
       graph.nodes.some((node) => node.kind === "group")
         ? h("li", { id: idOf("legend-group") }, swatch(s("g", { class: "star-node kind-group" }, shape("group", { count: 0 }))), h("span", { text: t("starmap.legendGroup") }))
         : null,
       edgeKinds.map((k) => h("li", {}, lineSwatch(k), h("span", { text: edgeName(k) })))),
     impact ? h("p", { class: "muted", id: idOf("impact-legend"), text: t("starmap.legendImpact") }) : null,
-    h("p", { class: "muted", text: embed ? t("starmap.blockZoom") : t("starmap.help") }));
+    h("p", { class: "muted", text: embed ? t("starmap.blockZoom") : t("starmap.help") }),
+    embed ? null : h("p", { class: "muted", id: idOf("help-pins"), text: t("starmap.helpPins") }));
 
   // --- the impact view's controls and its list (ADR-0159) ---
   let impactTools = null, impactPanel = null;
@@ -829,21 +872,27 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
   const truncated = data.grouped ? h("p", { class: "notice", id: idOf("grouped"), role: "status", text: t("starmap.grouped", { n: data.items }) })
     : data.truncated ? h("p", { class: "notice", id: idOf("truncated"), role: "status", text: t("starmap.truncated") }) : null;
   const body = n
-    ? h("div", { class: "starmap-stage" }, svg, embed ? null : panel)
+    ? h("div", { class: "starmap-stage" }, svg, zoomBar)
     : h("p", { class: "empty", id: idOf("empty"), text: t("starmap.empty") });
   if (embed) {
     // In a text the filters and the legend fold away below the tools.
     mount(root,
-      h("div", { class: "filter-bar starmap-tools", role: "search", "aria-label": t("starmap.blockCanvas") }, search, depthBox, zoomIn, zoomOut, zoomFit, count),
+      h("div", { class: "filter-bar starmap-tools", role: "search", "aria-label": t("starmap.blockCanvas") }, search, depthBox, count),
       extra, crumbs, truncated, body,
       h("details", { class: "starmap-more-filters", id: idOf("filters") }, h("summary", { text: t("starmap.blockFilters") }),
         h("div", { class: "starmap-filters" }, kindBoxes, groupBoxes)),
       h("details", { class: "starmap-more-legend" }, h("summary", { text: t("starmap.legend") }), legend));
   } else mount(root,
-    h("div", { class: "filter-bar starmap-tools", role: "search", "aria-label": t("starmap.title") }, search, select, impactTools || depthBox, zoomIn, zoomOut, zoomFit, count),
-    extra,
-    h("div", { class: "starmap-filters" }, kindBoxes, groupBoxes),
-    crumbs, truncated, body, impactPanel, legend);
+    crumbs, truncated,
+    // The map at the left with its legend below it; the filters, the
+    // focused node's panel and the impact list in a column at the right,
+    // as in atlas (ADR-0263).
+    h("div", { class: "starmap-body" },
+      h("div", { class: "starmap-plot" }, body, legend),
+      h("div", { class: "starmap-side", id: idOf("side") },
+        h("div", { class: "starmap-controls card", id: idOf("controls"), role: "search", "aria-label": t("starmap.title") },
+          search, select, extra, impactTools ? h("div", { class: "starmap-impact-tools" }, impactTools) : depthBox, count, kindBoxes, groupBoxes),
+        panel, impactPanel)));
   if (impact) root.classList.add("impact-mode");
   render();
 

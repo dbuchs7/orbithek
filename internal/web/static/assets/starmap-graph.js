@@ -236,7 +236,9 @@ const fold = (s) => String(s || "").normalize("NFKD").replace(/\p{M}/gu, "").toL
 export function matches(node, query) {
   const words = fold(query).split(/\s+/).filter(Boolean);
   if (!words.length) return false;
-  const text = fold([node.title, node.key, node.name, ...(node.labels || [])].join(" "));
+  // An item is also found by its creator's username
+  // (ADR-0263).
+  const text = fold([node.title, node.key, node.name, node.creator, ...(node.labels || [])].filter(Boolean).join(" "));
   return words.every((w) => text.includes(w));
 }
 

@@ -1152,6 +1152,11 @@ type Query struct {
 	// Text requires every word in the item's key, title, type, state or
 	// labels, as the filter of a list asks (ADR-0098).
 	Text string
+	// Names returns the words a user is found by in a search: their
+	// username. A search finds an item by a word of its creator's names
+	// (ADR-0263); nil
+	// finds no item by its creator. Only Search reads it.
+	Names func(user string) string
 }
 
 // Find returns copies of the matching items in creation order.

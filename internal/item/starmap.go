@@ -56,6 +56,9 @@ type StarNode struct {
 	// Count is how many items a group of the starmap of all spaces stands
 	// for (ADR-0191).
 	Count int
+	// Creator is the user who made an item, derived from the log
+	// (ADR-0263).
+	Creator string
 }
 
 // StarEdge is one edge of a starmap, between two of its nodes.
@@ -126,7 +129,7 @@ func (x *Session) Starmap(space string, maxNodes int) (Starmap, error) {
 	}
 	walk("")
 	for _, it := range inSpace {
-		b.add(itemNode(it, false))
+		b.add(x.s.itemNode(it, false))
 	}
 	for _, it := range inSpace {
 		if it.Parent != "" {
@@ -199,7 +202,7 @@ func (x *Session) Starmap(space string, maxNodes int) (Starmap, error) {
 	})
 	for _, it := range outside {
 		if slices.ContainsFunc(anchors[it.ID], b.has) {
-			b.add(itemNode(it, true))
+			b.add(x.s.itemNode(it, true))
 		}
 	}
 	for _, p := range pictures {
@@ -373,9 +376,9 @@ func (x *Session) copyOrigin(it *Item, first ID) (*Item, *Attachment) {
 	return src, top
 }
 
-func itemNode(it *Item, outside bool) StarNode {
+func (s *Store) itemNode(it *Item, outside bool) StarNode {
 	return StarNode{ID: string(it.ID), Kind: StarItem, Key: it.Key, Title: it.Title, Type: it.Type, Space: it.Space,
-		State: it.State, Outside: outside, Labels: slices.Clone(it.Labels)}
+		State: it.State, Outside: outside, Labels: slices.Clone(it.Labels), Creator: s.creatorOf(it)}
 }
 
 // starBuilder collects a starmap's nodes in the order of their priority,

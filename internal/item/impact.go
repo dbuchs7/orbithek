@@ -93,7 +93,7 @@ func (x *Session) Impact(start, direction string, depth, maxNodes int) (Impact, 
 		nodes[n.ID] = n
 	}
 	for _, it := range items {
-		add(itemNode(it, false))
+		add(x.s.itemNode(it, false))
 	}
 	var edges []StarEdge
 	for _, it := range items {

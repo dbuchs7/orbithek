@@ -526,7 +526,7 @@ func (h itemHandlers) exportItems(w http.ResponseWriter, r *http.Request) {
 
 func (h itemHandlers) exportSearch(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	query := item.Query{Space: q.Get("space"), Type: q.Get("type"), State: q.Get("state"), Label: q.Get("label")}
+	query := item.Query{Space: q.Get("space"), Type: q.Get("type"), State: q.Get("state"), Label: q.Get("label"), Names: h.usernames()}
 	h.sendRows(w, r, "search", func(x *item.Session) ([]item.Item, error) {
 		hits, err := x.Search(q.Get("q"), query)
 		items := make([]item.Item, len(hits))

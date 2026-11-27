@@ -3303,6 +3303,17 @@ function webSource() {
     await settled();
     check(await page.getAttribute(".star-node[data-key='PLAT-2']", "transform") !== placed, "a dragged node moves: " + placed);
     check(await page.isHidden("#starmap-panel"), "a drag chooses no node");
+    // A dropped node stays where it was put until it is released
+    // (ADR-0263).
+    check(await page.locator("#starmap-canvas .star-node.pinned[data-key='PLAT-2']").count() === 1 && !(await page.isDisabled("#starmap-release")), "a dropped node is pinned and Release is offered");
+    const dropped = await page.getAttribute(".star-node[data-key='PLAT-2']", "transform");
+    await page.click("#starmap-fit");
+    await settled();
+    check(await page.getAttribute(".star-node[data-key='PLAT-2']", "transform") === dropped, "Fit frames the map and leaves a dropped node where it is");
+    await page.click("#starmap-release");
+    await settled();
+    check(await page.locator("#starmap-canvas .star-node.pinned").count() === 0 && await page.isDisabled("#starmap-release"), "Release lets every dropped node go");
+    check(await page.locator("#starmap-side #starmap-kinds").count() === 1, "the filters stand in the column at the right");
     at = await centre("PLAT-2");
     await page.mouse.dblclick(at.x, at.y);
     await page.waitForSelector("#starmap-trail:not([hidden]) .starmap-crumb.here:has-text('PLAT-2')");
@@ -4281,6 +4292,14 @@ function webSource() {
     await page.click("#search-suggest:not([hidden]) [role=option][data-item]:has-text('Hero image')");
     await page.waitForFunction(() => location.hash.startsWith("#/item/"));
     await page.waitForSelector("h1:has-text('Hero image'), .page-head :has-text('Hero image')");
+    // They offer the people who made readable items, by username; choosing
+    // one lists what they made as a query
+    // (ADR-0263).
+    const myName = await page.evaluate(async () => (await (await fetch("/api/me")).json()).user.username);
+    await page.locator("#nav .search input").pressSequentially(myName.slice(0, 4));
+    await page.click(`#search-suggest:not([hidden]) [role=option][data-person='${myName}']`);
+    await page.waitForFunction(() => location.hash.startsWith("#/query?") && (new URLSearchParams(location.hash.split("?")[1]).get("q") || "").startsWith("creator ="));
+    await page.waitForSelector("table tr:has-text('Hero image')");
 
     step("task list: tasks on a kanban are listed too, with their label; the labels at the right filter the list");
     await page.goto(base + "/#/planning/all");
