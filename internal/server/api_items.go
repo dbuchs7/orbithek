@@ -937,7 +937,7 @@ func (h itemHandlers) searchItems(w http.ResponseWriter, r *http.Request) {
 	query := item.Query{Space: q.Get("space"), Type: q.Get("type"), State: q.Get("state"), Label: q.Get("label"), WhereText: where, Names: h.usernames(), Scope: q.Get("scope")}
 	h.read(w, r, func(x *item.Session) (any, error) {
 		// A search field in a text narrows to a page, named by its ID or
-		// key (ADR-draft-a-search-field-in-a-text); one the caller does
+		// key (ADR-0264); one the caller does
 		// not read is not found (D10).
 		if ref := q.Get("within"); ref != "" {
 			page, err := resolveItem(x, ref)

@@ -112,7 +112,7 @@ func (x *Session) Search(text string, q Query) ([]Hit, error) {
 // checkWithin validates the page a search is narrowed to: a scope needs
 // a page and a page a scope, and the page must be one the principal reads,
 // else it is not found, as an item one may not read is not (D10)
-// (ADR-draft-a-search-field-in-a-text).
+// (ADR-0264).
 func (x *Session) checkWithin(q Query) error {
 	switch {
 	case q.Within == "" && q.Scope == "":

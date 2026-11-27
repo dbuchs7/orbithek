@@ -1,4 +1,4 @@
-# ADR-DRAFT: A search field in a text, narrowed to a room or to a page and the pages below it
+# ADR-0264: A search field in a text, narrowed to a room or to a page and the pages below it
 
 - **Status:** Proposed
 - **Implementation:** Partial

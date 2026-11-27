@@ -80,7 +80,7 @@ configureViews({
 // A starmap in a text (ADR-0252) draws the page
 // tree's symbols and asks in the page's dialog.
 configureStarmaps({ symbols: () => starmapSymbols(), formDialog });
-// A search field in a text (ADR-draft-a-search-field-in-a-text)
+// A search field in a text (ADR-0264)
 // asks in the page's dialog and draws its hits' stars as the search does.
 configureSearches({ formDialog, stars: (n) => stars(n) });
 // A slide deck in a text (ADR-0260) asks for its

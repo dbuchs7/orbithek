@@ -1,4 +1,4 @@
-// A search field in a text (ADR-draft-a-search-field-in-a-text): a block
+// A search field in a text (ADR-0264): a block
 // of the kind search names what it searches — a room, or a page, the page
 // with the pages below it, or the pages below it only — and every reader's
 // browser asks the full-text search (ADR-0033) as that reader, the hits

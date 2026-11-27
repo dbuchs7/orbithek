@@ -145,7 +145,7 @@ func (x *Session) Context(id ID, limit int) (ItemContext, error) {
 				seen = true
 			}
 			// A search field mentions the page it searches within, with no
-			// sentence (ADR-draft-a-search-field-in-a-text).
+			// sentence (ADR-0264).
 			if to, ok := b.Searched(); ok && to == target.ID && mentions[it.ID] && !seen {
 				note(it, RelMentions, true, "")
 				seen = true

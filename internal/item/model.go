@@ -136,7 +136,7 @@ const (
 	// updated from, and Text is the caption.
 	Slides BlockKind = "slides"
 	// SearchBlock is a search field in a text
-	// (ADR-draft-a-search-field-in-a-text): Scope narrows what it
+	// (ADR-0264): Scope narrows what it
 	// searches to a room or to a page, the page with the pages below it,
 	// or the pages below it only; Space names the room and Ref the page,
 	// none for the item the text is on. Like a view it is computed when
@@ -343,7 +343,7 @@ type Block struct {
 	Files []ID `json:",omitempty"`
 	// Scope is what a search field in a text searches, one of
 	// SearchScopes; none searches a room
-	// (ADR-draft-a-search-field-in-a-text).
+	// (ADR-0264).
 	Scope string `json:",omitempty"`
 }
 
@@ -866,7 +866,7 @@ func (d Doc) refs() []struct {
 			add(ref{RelMentions, m})
 		}
 		// A search field mentions the page it searches within
-		// (ADR-draft-a-search-field-in-a-text).
+		// (ADR-0264).
 		if to, ok := b.Searched(); ok {
 			add(ref{RelMentions, to})
 		}

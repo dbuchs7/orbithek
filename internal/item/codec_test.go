@@ -1950,7 +1950,7 @@ func hideTypesLog(t *testing.T) []Event {
 // searchBlockLog places two search fields in a text, one of the item's
 // room and one of the pages below another page, so the golden files pin
 // the block kind search and its fields
-// (ADR-draft-a-search-field-in-a-text).
+// (ADR-0264).
 func searchBlockLog(t *testing.T) []Event {
 	s := setup(t)
 	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))

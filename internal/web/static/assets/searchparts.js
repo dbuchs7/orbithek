@@ -1,4 +1,4 @@
-// The parts of a search field in a text (ADR-draft-a-search-field-in-a-text)
+// The parts of a search field in a text (ADR-0264)
 // that need no browser: the scopes it offers, the block a choice makes,
 // the search address it asks and how the reader's choice of scope maps
 // onto the page or room it searches. searchblock.js draws them.

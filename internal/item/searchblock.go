@@ -1,6 +1,6 @@
 package item
 
-// A search field in a text (ADR-draft-a-search-field-in-a-text) is a
+// A search field in a text (ADR-0264) is a
 // block of the kind search that names what it searches when it is shown:
 // a room, or a page, the page with the pages below it, or the pages below
 // it only. The room is named by Space and the page by Ref, each none for

@@ -9,7 +9,7 @@ import (
 
 // A search field in a text is named in every document by what it
 // searches; another page is not named by its title, which the reader of
-// the document may not read (ADR-draft-a-search-field-in-a-text).
+// the document may not read (ADR-0264).
 func TestSearchFieldsAreNamedInDocuments(t *testing.T) {
 	cases := map[string]item.Block{
 		"Search field: the item's room":                     {Kind: item.SearchBlock},

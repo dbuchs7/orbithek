@@ -1160,7 +1160,7 @@ type Query struct {
 	// Within and Scope narrow to a page (ScopePage), the page and the
 	// pages below it (ScopeTree) or the pages below it only (ScopeBelow),
 	// as a search field in a text asks
-	// (ADR-draft-a-search-field-in-a-text). Within names the page by its
+	// (ADR-0264). Within names the page by its
 	// ID; Scope is read only with it.
 	Within ID
 	Scope  string
@@ -1369,7 +1369,7 @@ func (s *Store) latest(name string) (TypeDef, bool) {
 // within reports whether an item lies in the scope of a page: the page
 // itself (ScopePage), the page or a page below it (ScopeTree), or a page
 // below it (ScopeBelow). With no page every item lies within it
-// (ADR-draft-a-search-field-in-a-text). An item is below the page when the
+// (ADR-0264). An item is below the page when the
 // page is among its ancestors, whatever the reader may read of the items
 // between: a hit is still checked on its own (D9, D10).
 func (s *Store) within(it *Item, page ID, scope string) bool {

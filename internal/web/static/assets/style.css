@@ -2187,7 +2187,7 @@ dialog.note-dialog { max-height: calc(100dvh - 32px); overflow: auto; }
 .starmap-controls .starmap-label-form input { flex: 1; min-width: 0; }
 .starmap-controls .starmap-filter { flex-direction: column; align-items: start; }
 .starmap-impact-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.starmap-side /* A search field in a text (ADR-draft-a-search-field-in-a-text):
+.starmap-side /* A search field in a text (ADR-0264):
    the field and its scope on one line, the hits below. */
 .pm-search { margin: 0.75rem 0; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
 .pm-search .pm-box-title { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: baseline; margin-top: 0; }

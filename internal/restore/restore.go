@@ -271,7 +271,7 @@ func (p *plan) refs(it item.Item) []item.ID {
 			add(m)
 		}
 		// The page a search field searches within
-		// (ADR-draft-a-search-field-in-a-text).
+		// (ADR-0264).
 		if to, ok := b.Searched(); ok {
 			add(to)
 		}

@@ -8,7 +8,7 @@ import (
 
 // A search field in a text names what it searches: a room, or a page,
 // the page with the pages below it, or the pages below it only
-// (ADR-draft-a-search-field-in-a-text).
+// (ADR-0264).
 func TestASearchBlockNamesItsRoomOrPageAndScope(t *testing.T) {
 	good := []Block{
 		{Kind: SearchBlock},
@@ -80,7 +80,7 @@ func TestASearchBlockIsKeptAndMentionsItsPage(t *testing.T) {
 // A search narrowed to a page finds the page alone, the page with the
 // pages below it, or the pages below it only, every level deep, and never
 // a page beside it; a page the reader may not read is not found as a
-// scope (D10) (ADR-draft-a-search-field-in-a-text).
+// scope (D10) (ADR-0264).
 func TestASearchIsNarrowedToAPageAndThePagesBelowIt(t *testing.T) {
 	s := permFixture(t)
 	anna := s.As("anna")

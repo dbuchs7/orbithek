@@ -1,5 +1,5 @@
 // Unit tests of a search field in a text
-// (ADR-draft-a-search-field-in-a-text): the block a choice makes, what
+// (ADR-0264): the block a choice makes, what
 // the field searches when the reader chooses a scope, and the address of
 // the search it asks. They run in Node.js without a browser:
 //

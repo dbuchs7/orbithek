@@ -231,7 +231,7 @@ import (
 //     and show their folder as it is.
 //   - 73: the block kind search, with the block field Scope and its
 //     Space and Ref, sealed with the body
-//     (ADR-draft-a-search-field-in-a-text).
+//     (ADR-0264).
 //     Versions 1 to 72 are still read; their bodies show no search field.
 const CodecVersion = 73
 

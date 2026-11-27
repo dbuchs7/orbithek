@@ -217,7 +217,7 @@ type blockJSON struct {
 	Files []item.ID `json:"files,omitempty"`
 	// Scope is what a search field in a text searches: none for a room,
 	// page, tree or below for a page
-	// (ADR-draft-a-search-field-in-a-text).
+	// (ADR-0264).
 	Scope string `json:"scope,omitempty"`
 }
 

@@ -11,7 +11,7 @@ import (
 // A search field in a text keeps its scope and the page it names; the
 // search narrows to a page, the page with the pages below it, or the
 // pages below it only; the export names it
-// (ADR-draft-a-search-field-in-a-text).
+// (ADR-0264).
 func TestASearchFieldInATextThroughTheAPI(t *testing.T) {
 	w := newWorld(t)
 	w.admin.expect("POST", "/api/types", `{"name":"page","body":true,"fields":[]}`, http.StatusCreated)

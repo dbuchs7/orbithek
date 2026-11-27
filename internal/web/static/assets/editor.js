@@ -124,7 +124,7 @@ export const schema = new Schema({
     // block keeps how it is narrowed at first.
     starmap: { group: "block", atom: true, selectable: true, attrs: { ...bid, space: { default: "" }, label: { default: "" }, search: { default: "" },
       depth: { default: 0 }, hideTypes: { default: null }, hideKinds: { default: null } }, toDOM: () => ["div", { class: "pm-starmap" }] },
-    // A search field (ADR-draft-a-search-field-in-a-text), its hits
+    // A search field (ADR-0264), its hits
     // computed when asked; the block keeps what it searches.
     search: { group: "block", atom: true, selectable: true, attrs: { ...bid, scope: { default: "" }, space: { default: "" }, ref: { default: "" } },
       toDOM: () => ["div", { class: "pm-search" }] },
@@ -1557,7 +1557,7 @@ function starmapView(node, v, getPos, here) {
 }
 
 // searchView shows the search field a block names for the item the text
-// is on (ADR-draft-a-search-field-in-a-text), its
+// is on (ADR-0264), its
 // hits as far as the reader reads them; while editing, a button changes
 // what it searches. The field takes its own keys, so the editor leaves
 // them to it.
@@ -2547,7 +2547,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
       status.textContent = err.message;
     }
   };
-  // A search field (ADR-draft-a-search-field-in-a-text):
+  // A search field (ADR-0264):
   // what it searches is chosen in a dialog.
   const searchInsert = async () => {
     status.textContent = "";

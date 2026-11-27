@@ -138,7 +138,7 @@ func SlidesName(bl item.Block) string {
 }
 
 // SearchName names a search field in a document
-// (ADR-draft-a-search-field-in-a-text): a document
+// (ADR-0264): a document
 // cannot search, it says what the field searches. A page other than the
 // item is not named by its title, which the document's reader may not
 // read (D10).
