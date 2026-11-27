@@ -59,7 +59,7 @@ The page holds what its blocks can hold; the rest is simplified so that nothing 
 - **Nested lists** become one flat list, items in their order. A paragraph or code block inside an item follows the item.
 - **Numbered lists** count from 1 in every run of numbered items: a list's own start number is not kept, and a block between two items starts the count again.
 - **Lists inside a quote** become quotes that begin with the item's marker (`• `, `1. `, `☐ `, `☑ `).
-- **Table cells** hold plain text: bold and italic are removed, and a link keeps its address in parentheses, e.g. `Docs (https://example.org)`. Missing cells are filled; a row with more cells than the header widens the table. Column alignment is not kept.
+- **Table cells** keep their formats: bold, italic, strike-through, code and links, each within its cell ([ADR-0214](../adr/0214-tables-with-formatted-cells-sizes-and-colours.md)). A line break in a cell becomes a space. Missing cells are filled; a row with more cells than the header widens the table. Column alignment is not kept.
 - **A code block's language** (```` ```python ````) is not kept; the code is.
 - **Pictures** (`![description](https://…)`) become their description, linked to the picture's address: pictures from other servers are not loaded. To show a picture, save it and add it with **Insert… → Image**.
 - **Links** lead only to `http`, `https` and `mailto` addresses. A link to anything else — a relative path, an anchor `#…`, `javascript:` — keeps its text without the link.

@@ -3,6 +3,11 @@
 # Build output
 /orbithek
 /orbithek.exe
+# The repository's own tools, built from cmd/ at the root
+/manualcheck
+/dcocheck
+/adrnumbers
+/settingscheck
 /dist/
 /out/
 *.test
