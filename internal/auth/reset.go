@@ -41,7 +41,7 @@ func (a *Accounts) RequestReset(username, addr string) (token string, u User, em
 	}
 	usr := a.users[id]
 	// An account that signs in elsewhere has no password to reset.
-	if usr.hash == "" || usr.contacts.Email == "" {
+	if usr.hash == "" || usr.contacts.Email == "" || usr.Suspended {
 		return "", User{}, "", ErrNotFound
 	}
 	token, err = a.newReset(id, ResetLifetime)
@@ -58,6 +58,9 @@ func (a *Accounts) HandReset(id UserID) (string, time.Time, error) {
 	defer a.mu.Unlock()
 	if _, ok := a.users[id]; !ok {
 		return "", time.Time{}, ErrNotFound
+	}
+	if !a.active(id) {
+		return "", time.Time{}, ErrSuspended
 	}
 	token, err := a.newReset(id, HandedResetLifetime)
 	if err != nil {
@@ -94,7 +97,7 @@ func (a *Accounts) CompleteReset(token, password string) (User, error) {
 	defer a.mu.Unlock()
 	// Checked again: the token may have been used while hashing.
 	id := a.resetUserLocked(token)
-	if id == "" {
+	if id == "" || !a.active(id) {
 		return User{}, ErrNotFound
 	}
 	if err := a.record(event{Kind: passwordSet, User: id, Hash: hash}); err != nil {

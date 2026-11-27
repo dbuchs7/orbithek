@@ -1077,8 +1077,10 @@ async function learnNames(ids) {
   for (let i = 0; i < missing.length; i += 100) {
     const chunk = missing.slice(i, i + 100);
     const res = await get("/api/users/names?" + chunk.map((id) => "id=" + encodeURIComponent(id)).join("&"));
+    // A deleted account is named as such (ADR-draft-suspending-and-deleting-accounts).
+    const deleted = new Set(res.deleted || []);
     for (const id of chunk) {
-      names.set(id, res.names[id] ?? id);
+      names.set(id, res.names[id] ?? (deleted.has(id) ? t("users.deleted") : id));
       avatars.set(id, res.avatars?.[id] || "");
     }
   }
@@ -1999,7 +2001,7 @@ async function loginView() {
   const signIn = () => card.replaceChildren(
     h("h1", { text: t("login.title") }),
     h("p", { class: "muted login-lead", text: t("login.lead", { name: brand.name || "Orbithek" }) }),
-    params.get("login_error") ? h("p", { class: "error", role: "alert", text: ({ domain: t("login.domain"), unlinked: t("login.unlinked") })[params.get("login_error")] || t("login.failed") }) : "",
+    params.get("login_error") ? h("p", { class: "error", role: "alert", text: ({ domain: t("login.domain"), unlinked: t("login.unlinked"), suspended: t("login.suspended") })[params.get("login_error")] || t("login.failed") }) : "",
     providers.length ? h("div", { class: "login-sso-list" }, ...providers.map((p) =>
       h("a", { class: "button login-sso login-sso-" + (p.kind || "generic"), id: "login-sso-" + p.id, href: "/api/oidc/login?provider=" + encodeURIComponent(p.id) },
         providerMark(p.kind), h("span", { text: t("login.with", { name: p.name }) })))) : "",
@@ -6559,16 +6561,41 @@ async function adminView(params) {
       "aria-label": t("identities.adminRemove", { name: u.username, provider: providerName(id) }),
       onclick: () => confirm(t("identities.adminRemoveConfirm", { name: u.username, provider: providerName(id) })) &&
         action(() => del(`/api/users/${encodeURIComponent(u.id)}/identities/${encodeURIComponent(id)}`), status) }))));
+  // Suspending closes every way in until the account is reactivated;
+  // deleting removes the account for good, after its username is typed
+  // again (ADR-draft-suspending-and-deleting-accounts). One's own account
+  // offers neither.
+  const lifecycleCell = (u) => me && u.id === me.user.id ? h("td") : h("td", { class: "user-lifecycle" },
+    u.suspended
+      ? h("button", { type: "button", class: "link", "data-reactivate": u.username, text: t("admin.reactivate"), "aria-label": t("admin.reactivateFor", { name: u.username }),
+        onclick: () => action(() => put(`/api/users/${encodeURIComponent(u.id)}/suspended`, { suspended: false }), status) })
+      : h("button", { type: "button", class: "link", "data-suspend": u.username, text: t("admin.suspend"), "aria-label": t("admin.suspendFor", { name: u.username }),
+        onclick: () => confirm(t("admin.suspendConfirm", { name: u.username })) &&
+          action(() => put(`/api/users/${encodeURIComponent(u.id)}/suspended`, { suspended: true }), status) }),
+    " ",
+    h("button", { type: "button", class: "link danger", "data-delete-user": u.username, text: t("admin.deleteUser"), "aria-label": t("admin.deleteUserFor", { name: u.username }),
+      onclick: () => {
+        const typed = prompt(t("admin.deleteUserConfirm", { name: u.username }));
+        if (typed === null) return;
+        if (typed.trim() !== u.username) {
+          status.replaceChildren(h("p", { class: "error", role: "alert", text: t("admin.deleteUserMismatch") }));
+          return;
+        }
+        action(() => del(`/api/users/${encodeURIComponent(u.id)}`), status);
+      } }));
   const usersSection = section("users", t("admin.users"),
     h("p", { class: "muted", text: t("admin.usersHelp") }),
-    filtered(h("table", { id: "users" }, users.map((u) => h("tr", { "data-filter-text": `${u.username} ${u.email || ""}`,
-      "data-f-role": [rolesOf(u.id).includes("admin") ? t("admin.roleAdmin") : "", rolesOf(u.id).includes("erasure") ? t("admin.roleErasure") : ""].filter(Boolean).join("|") },
-      h("td", { text: u.username }),
+    h("p", { class: "muted", id: "users-lifecycle-help", text: t("admin.usersLifecycleHelp") }),
+    filtered(h("table", { id: "users" }, users.map((u) => h("tr", { "data-filter-text": `${u.username} ${u.email || ""}`, class: u.suspended ? "suspended" : null,
+      "data-f-role": [rolesOf(u.id).includes("admin") ? t("admin.roleAdmin") : "", rolesOf(u.id).includes("erasure") ? t("admin.roleErasure") : ""].filter(Boolean).join("|"),
+      "data-f-status": u.suspended ? t("admin.suspended") : t("admin.active") },
+      h("td", {}, h("span", { text: u.username }), u.suspended ? [" ", h("span", { class: "badge danger", text: t("admin.suspended") })] : null),
       emailCell(u),
       identitiesCell(u),
       h("td", {}, sysToggle(u, "admin", t("admin.roleAdmin"))),
       h("td", {}, sysToggle(u, "erasure", t("admin.roleErasure"))),
-      resetCell(u)))), { id: "admin-users", label: t("admin.users"), choices: [{ key: "role", label: t("admin.role") }] }),
+      resetCell(u),
+      lifecycleCell(u)))), { id: "admin-users", label: t("admin.users"), choices: [{ key: "role", label: t("admin.role") }, { key: "status", label: t("admin.status") }] }),
     // Holders without an account, stored before ADR-0256, are listed
     // apart so they can be taken out
     // (ADR-0257).

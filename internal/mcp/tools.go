@@ -120,6 +120,9 @@ var (
 // accounts and linking an account to a sign-in elsewhere (ADR-0229); and
 // everything about credentials. An agent with an administrator's token still cannot reach
 // them through this adapter.
+// Suspending, reactivating and deleting accounts are not offered either
+// (ADR-draft-suspending-and-deleting-accounts): they decide who may sign
+// in at all, and deleting cannot be undone.
 //
 // A page as Markdown (ADR-0131) is offered as a read: it gives an agent the
 // text as a person reads it, protected passages veiled, with exactly the

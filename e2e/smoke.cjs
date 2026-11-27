@@ -4391,7 +4391,35 @@ function webSource() {
     await page.waitForSelector("#audit-chain .notice.success");
     check(/^[0-9a-f]{64}$/.test(await page.textContent("#audit-chain code")), "the newest entry's hash is shown");
 
-    step("administration: groups, a group's role in a space, system roles");
+    step("administration: an account is suspended, reactivated and deleted (ADR-draft-suspending-and-deleting-accounts)");
+    await page.goto(base + "/#/admin");
+    await page.waitForSelector("#users-lifecycle-help");
+    answer = true;
+    await page.click("#users button[data-suspend=dana]");
+    await page.waitForSelector("#users tr:has-text('dana') .badge:has-text('Suspended')");
+    const lockedCtx = await browser.newContext();
+    const locked = await lockedCtx.newPage();
+    locked.on("dialog", async (d) => { problems.push("locked dialog: " + d.message()); await d.dismiss(); });
+    await locked.goto(base + "/");
+    await locked.fill("#login [name=username]", "dana");
+    await locked.fill("#login [name=password]", process.env.SMTP_SINK_PORT ? "dana's second password" : "dana's password");
+    await locked.click("#login button[type=submit]");
+    await locked.waitForSelector("#login .error:has-text('suspended')");
+    await page.click("#users button[data-reactivate=dana]");
+    await page.waitForSelector("#users button[data-suspend=dana]");
+    check(await page.locator("#users tr:has-text('dana') .badge:has-text('Suspended')").count() === 0, "a reactivated account is not marked");
+    await locked.click("#login button[type=submit]");
+    await locked.waitForSelector("#account-button");
+    await lockedCtx.close();
+    answer = "not dana";
+    await page.click("#users button[data-delete-user=dana]");
+    await page.waitForSelector(".status .error:has-text('does not match')");
+    check(await page.locator("#users button[data-delete-user=dana]").count() === 1, "a mistyped username deletes nothing");
+    answer = "dana";
+    await page.click("#users button[data-delete-user=dana]");
+    await page.waitForSelector("#users button[data-delete-user=dana]", { state: "detached" });
+    check(await page.locator("#users button[data-delete-user=admin]").count() === 0, "one's own account offers no deletion");
+
     await page.click("#account-button");
     await page.click("#account-menu a[href='#/admin']");
     await page.fill("#add-member [name=group]", "ops");

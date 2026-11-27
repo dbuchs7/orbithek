@@ -67,6 +67,9 @@ type userJSON struct {
 	// Identities names the sign-in providers the account is linked to,
 	// for administrators only (ADR-0229).
 	Identities []string `json:"identities,omitempty"`
+	// Suspended says the account may not sign in
+	// (ADR-draft-suspending-and-deleting-accounts).
+	Suspended bool `json:"suspended,omitempty"`
 }
 
 type tokenJSON struct {
@@ -108,6 +111,12 @@ func (h authHandlers) login(w http.ResponseWriter, r *http.Request) {
 		h.record(audit.Entry{Event: audit.LoginThrottled, Addr: addr, Detail: map[string]string{"username": req.Username}})
 		w.Header().Set("Retry-After", strconv.Itoa(int(throttled.Wait.Seconds())+1))
 		writeError(w, http.StatusTooManyRequests, "too many failed attempts; try again later")
+		return
+	case errors.Is(err, auth.ErrSuspended):
+		// Said only to whoever knows the password
+		// (ADR-draft-suspending-and-deleting-accounts).
+		h.record(audit.Entry{Event: audit.LoginFailed, Addr: addr, Detail: map[string]string{"username": req.Username, "reason": "suspended"}})
+		writeError(w, http.StatusForbidden, "this account is suspended; ask an administrator")
 		return
 	case err != nil:
 		h.record(audit.Entry{Event: audit.LoginFailed, Addr: addr, Detail: map[string]string{"username": req.Username}})
@@ -266,7 +275,7 @@ func (h authHandlers) listUsers(w http.ResponseWriter, r *http.Request) {
 	out := []userJSON{}
 	admin := h.isAdmin(p)
 	for _, u := range h.d.DB.Accounts.Users() {
-		j := userJSON{ID: u.ID, Username: u.Username}
+		j := userJSON{ID: u.ID, Username: u.Username, Suspended: u.Suspended}
 		if admin {
 			c := h.d.DB.Accounts.Contacts(u.ID)
 			j.Email, j.Channels = c.Email, c.Channels()
@@ -370,7 +379,14 @@ func (h authHandlers) userNames(w http.ResponseWriter, r *http.Request) {
 			avatars[id] = tag
 		}
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"names": names, "avatars": avatars})
+	// deleted names the IDs of deleted accounts, so the UI says so
+	// instead of showing an ID (ADR-draft-suspending-and-deleting-accounts).
+	deleted := []auth.UserID{}
+	for id := range h.d.DB.Accounts.Deleted(ids) {
+		deleted = append(deleted, id)
+	}
+	slices.Sort(deleted)
+	writeJSON(w, http.StatusOK, map[string]any{"names": names, "avatars": avatars, "deleted": deleted})
 }
 
 // searchLimit bounds the matches a user search answers with.
