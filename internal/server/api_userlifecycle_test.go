@@ -5,6 +5,9 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/dbuchs7/orbithek/internal/engineconn"
+	"github.com/dbuchs7/orbithek/internal/extcal"
 )
 
 // TestAnAdministratorSuspendsAndReactivatesAnAccount: a suspended account's
@@ -89,8 +92,26 @@ func TestADeletedAccountIsGoneButItsIDStays(t *testing.T) {
 	w.admin.expect("PUT", "/api/groups/ops/members/"+bert, "", http.StatusNoContent)
 	w.admin.expect("PUT", "/api/system-roles/erasure/"+bert, "", http.StatusNoContent)
 
+	// What the account keeps outside the accounts ends with it.
+	if _, err := w.db.Connections.Connect(bert, "atlas", engineconn.Profile{Subject: "s-bert", Username: "bert"}, "a refresh token"); err != nil {
+		t.Fatal(err)
+	}
+	acc, err := w.db.Calendars.Connect(bert, extcal.Account{Kind: extcal.KindCalDAV, Name: "bert", Server: "https://dav.example.org/"}, "a password")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.db.Calendars.AddCalendar(bert, acc.ID, "https://dav.example.org/bert/work/", "Work", "#1a2b3c"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.db.Calendars.AddICS(bert, "Holidays", "#1a2b3c", "https://example.org/holidays.ics"); err != nil {
+		t.Fatal(err)
+	}
+
 	w.vera.expect("DELETE", "/api/users/"+bert, "", http.StatusForbidden)
 	w.admin.expect("DELETE", "/api/users/"+bert, "", http.StatusNoContent)
+	if len(w.db.Connections.Of(bert, "")) != 0 || len(w.db.Calendars.Accounts(bert)) != 0 || len(w.db.Calendars.Sources(bert)) != 0 {
+		t.Fatal("a connection or calendar outlived the account")
+	}
 	w.admin.expect("DELETE", "/api/users/"+bert, "", http.StatusNotFound)
 
 	w.bert.expect("GET", "/api/me", "", http.StatusUnauthorized)
