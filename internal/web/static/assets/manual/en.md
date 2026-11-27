@@ -55,7 +55,7 @@ The bar at the top of every page holds, from left to right:
 
 The start page greets you by your display name (see *Your account*), shows counts of pages, tasks and pictures, and offers quick access to the starmap, the **Rooms** (the overview of your rooms, also reached from the module switcher), your tasks under **Planning**, notifications, the album, the whiteboards, the **Shop** with its shopping cart, AI access and, at the end, **My journal** (today's daily note, with today's date) and right beside it **My notes** (your personal notes).
 Point at a tile with the mouse to see what it offers.
-Below the tiles, **Recently created or changed** lists the items of your rooms that were created or changed last, newest first: ten rows with title, type, room and the time of the change, and ten more with each **Show more**. Content, fields, state, labels, moving, comments and files count as changes; only what you may read is listed.
+Below the tiles, **Recently created or changed** lists the items of your rooms that were created or changed last, newest first: ten rows with title, type, room and the time of the change, and ten more with each **Show more**. Content, fields, state, labels, moving, comments and files count as changes; only what you may read is listed. The switch **All** | **By me** narrows the list to the items you created or changed at some point; the browser remembers the choice.
 The overview of rooms lists your rooms, as tiles or as a list; a star marks a room as a favourite. If there are no rooms yet, administrators find the first steps on the start page: create a room, add types from the ready-made templates (page, task, decision, daily note), and give people a role.
 
 ![The tiles of the start page](img/en/home.png)
@@ -315,7 +315,7 @@ A **query** selects items by their fields. Open it from the search results (**Qu
 - Compare with `=`, `!=`, `<`, `<=`, `>`, `>=`; `~` finds every word of a value; `IN (a, b)` is one of a list.
 - `IS EMPTY` and `IS NOT EMPTY` find items without or with a value.
 - Dates are written `2026-10-01`; `-7d`, `2w`, `+12h` and `-1y` count from now; `now()`, `startOfWeek()` and similar functions are available.
-- `currentUser()` stands for you.
+- `currentUser()` stands for you; `creator` is who created an item, `contributor` everyone who created or changed it, such as `contributor = currentUser()`.
 - An item field takes an item's key, such as `epic = PLAT-3`; `platforms = web` finds items that have *web* among several values; a rating compares as a number, such as `rating >= 4`.
 - `ORDER BY` sorts, `ASC` or `DESC`.
 

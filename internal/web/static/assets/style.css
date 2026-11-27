@@ -1350,6 +1350,9 @@ section.hold .chip, #governance .chip { font-size: 11px; padding: 1px 8px; borde
 .welcome-art { flex: none; width: min(360px, 34vw); height: auto; }
 .home-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 22px; }
 /* What was made or changed last, below the tiles of the start page. */
+.recent-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin: 0 0 12px; }
+.recent-head h2 { margin: 0; }
+.recent-head .segmented { margin: 0; }
 .recent-list td { padding: 7px 12px; }
 .recent-list td:last-child, .recent-list th:last-child { white-space: nowrap; }
 .recent-list .key { font-size: 12px; }

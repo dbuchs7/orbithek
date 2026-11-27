@@ -2229,7 +2229,7 @@ const queryExamples = [
 
 // queryFields are the fields every item has.
 const queryFields = ["key", "title", "type", "space", "state", "label", "text", "body", "comment", "parent", "ancestor",
-  "created", "updated", "creator", "finished"];
+  "created", "updated", "creator", "contributor", "finished"];
 
 // queryView selects items with the query language (ADR-0136): conditions
 // on their fields, and an order. The query is kept in the address, so it
@@ -2512,13 +2512,17 @@ async function homeView() {
 // rooms one may read, newest first: ten rows, and ten more on each "Show
 // more". It asks the item listing for the query language's order by the
 // field updated (ADR-0136, ADR-0203), so an item made counts as changed and
-// the server's permission check decides what is listed (D10). The rows are
+// the server's permission check decides what is listed (D10). "By me"
+// narrows it to the items one made or changed oneself, by the field
+// contributor (ADR-0261);
+// the choice is each reader's own, kept in the browser. The rows are
 // loaded after the start page is shown.
 function recentCard(spaces) {
   const pageSize = 10;
   const names = new Map(spaces.map((s) => [s.key, s.name]));
+  let mine = recentFilter.get() === "mine";
   const url = (after) => {
-    const p = new URLSearchParams({ query: "ORDER BY updated DESC", limit: pageSize });
+    const p = new URLSearchParams({ query: (mine ? "contributor = currentUser() " : "") + "ORDER BY updated DESC", limit: pageSize });
     if (after) p.set("after", after);
     return "/api/items?" + p;
   };
@@ -2527,9 +2531,12 @@ function recentCard(spaces) {
     h("thead", {}, h("tr", {},
       h("th", { text: t("col.title") }), h("th", { text: t("col.type") }), h("th", { text: t("col.space") }), h("th", { text: t("home.recentChanged") }))),
     rows);
-  const none = h("p", { class: "empty", id: "home-recent-none", hidden: true, text: t("home.recentNone") });
+  const none = h("p", { class: "empty", id: "home-recent-none", hidden: true });
   const more = h("div", { class: "recent-more" });
   const status = h("div", { class: "status" });
+  // Each load counts, so the answer of a filter one has since left is
+  // dropped instead of mixed into the rows of the one chosen after it.
+  let loading = 0;
   const add = (page) => {
     for (const it of page.items) {
       rows.append(h("tr", { "data-key": it.key },
@@ -2540,8 +2547,10 @@ function recentCard(spaces) {
     }
     table.hidden = rows.childElementCount === 0;
     none.hidden = rows.childElementCount > 0;
+    none.textContent = mine ? t("home.recentNoneMine") : t("home.recentNone");
     more.replaceChildren();
     if (page.next) {
+      const at = loading;
       const button = h("button", { type: "button", class: "secondary", id: "home-recent-more", text: t("home.recentMore"),
         // The next rows are added in place; the start page is not drawn
         // again, so the rows already shown stay.
@@ -2549,7 +2558,8 @@ function recentCard(spaces) {
           button.disabled = true;
           status.replaceChildren();
           try {
-            add(await get(url(page.next)));
+            const next = await get(url(page.next));
+            if (at === loading) add(next);
           } catch (err) {
             button.disabled = false;
             status.replaceChildren(errorBox(err));
@@ -2558,11 +2568,42 @@ function recentCard(spaces) {
       more.append(button);
     }
   };
-  get(url()).then(add).catch((err) => status.replaceChildren(errorBox(err)));
+  // The rows shown stay until the answer of the new choice replaces them,
+  // so the card does not flicker empty.
+  const load = () => {
+    const n = ++loading;
+    more.replaceChildren();
+    status.replaceChildren();
+    get(url()).then((page) => {
+      if (n !== loading) return;
+      rows.replaceChildren();
+      add(page);
+    }).catch((err) => { if (n === loading) status.replaceChildren(errorBox(err)); });
+  };
+  const toggle = (value, label) => h("button", { type: "button", class: "segment", id: "home-recent-" + value,
+    "aria-pressed": String(mine === (value === "mine")), text: label,
+    onclick: (ev) => {
+      if (mine === (value === "mine")) return;
+      mine = value === "mine";
+      recentFilter.set(value);
+      for (const b of ev.currentTarget.parentElement.children) b.setAttribute("aria-pressed", String(b === ev.currentTarget));
+      load();
+    } });
+  load();
   return h("section", { class: "card recent-card", id: "home-recent" },
-    h("h2", { text: t("home.recent") }),
+    h("div", { class: "recent-head" },
+      h("h2", { text: t("home.recent") }),
+      h("div", { class: "segmented", role: "group", "aria-label": t("home.recentFilter") },
+        toggle("all", t("home.recentAll")), toggle("mine", t("home.recentMine")))),
     table, none, more, status);
 }
+
+// recentFilter is whose changes the start page lists, everyone's or one's
+// own; each reader's own choice, kept in the browser.
+const recentFilter = {
+  get() { try { return localStorage.getItem("ot.recent") === "mine" ? "mine" : "all"; } catch { return "all"; } },
+  set(v) { try { localStorage.setItem("ot.recent", v); } catch { /* the choice lasts for this page only */ } },
+};
 
 // spacesView is the overview of one's rooms at #/spaces: the start page's
 // list of them, as tiles or as a list, with favourites first and, for

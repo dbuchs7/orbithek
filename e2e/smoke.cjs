@@ -1248,6 +1248,25 @@ function webSource() {
     await page.waitForSelector("#home-recent tbody tr[data-key='FAKE-13']");
     check(await page.locator("#home-recent tbody tr").count() === 13 && await page.locator("#home-recent-more").count() === 0,
       "Show more adds the next rows below the first, and goes when there are no more");
+    // By me narrows the list to what one created or changed, asked by the
+    // field contributor; the choice is kept in the browser.
+    await page.route("**/api/items?*", (r) => {
+      const u = new URL(r.request().url());
+      if (u.searchParams.get("query") !== "contributor = currentUser() ORDER BY updated DESC") return r.fallback();
+      return r.fulfill({ contentType: "application/json", body: JSON.stringify({ total: { value: 1, exact: true }, items: [fakeItem(42)] }) });
+    });
+    check(await page.getAttribute("#home-recent-all", "aria-pressed") === "true" && await page.getAttribute("#home-recent-mine", "aria-pressed") === "false",
+      "the list starts with everyone's changes");
+    await page.click("#home-recent-mine");
+    await page.waitForSelector("#home-recent tbody tr[data-key='FAKE-42']");
+    check(await page.locator("#home-recent tbody tr").count() === 1 && await page.getAttribute("#home-recent-mine", "aria-pressed") === "true",
+      "By me lists only what one created or changed");
+    await page.reload();
+    await page.waitForSelector("#home-recent tbody tr[data-key='FAKE-42']");
+    check(await page.getAttribute("#home-recent-mine", "aria-pressed") === "true", "the choice By me is kept after a reload");
+    await page.click("#home-recent-all");
+    await page.waitForSelector("#home-recent tbody tr[data-key='FAKE-1']");
+    check(await page.evaluate(() => localStorage.getItem("ot.recent")) === "all", "All is chosen again and kept");
     await page.unroute("**/api/items?*");
     await page.evaluate((h) => { location.hash = h; }, beforeRecent);
     await page.waitForSelector("text=mentions (from the body)");
