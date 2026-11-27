@@ -75,3 +75,47 @@ func TestASlideDeckInATextThroughTheAPI(t *testing.T) {
 		t.Errorf("export:\n%s", md)
 	}
 }
+
+// TestACopyLeavesBehindTheSlidesNoTextShows: the copies an earlier version
+// of a deck kept are the text's own and out of the album. A copy of the
+// item takes the slides its text shows and leaves the others behind, where
+// they would be pictures of the album; a deck or a picture whose file was
+// deleted is left out of the copy's text (ADR-0260).
+func TestACopyLeavesBehindTheSlidesNoTextShows(t *testing.T) {
+	w := newWorld(t)
+	w.admin.expect("POST", "/api/types", `{"name":"page","body":true,"fields":[]}`, http.StatusCreated)
+	home := field(w.bert.expect("POST", "/api/items", `{"space":"PLAT","type":"page","title":"Review"}`, http.StatusCreated), "item", "id").(string)
+	folder := field(w.bert.expect("POST", "/api/album/folders", `{"space":"PLAT","name":"Talk"}`, http.StatusCreated), "item", "id").(string)
+	png := func(b byte) []byte { return append([]byte("\x89PNG\r\n\x1a\n"), bytes.Repeat([]byte{b}, 100)...) }
+	old := w.bert.uploaded(home, "01-Old.png", png(1), "")
+	current := w.bert.uploaded(home, "01-New.png", png(2), "")
+	w.bert.expect("PUT", "/api/items/"+home+"/body", `{"blocks":[{"kind":"slides","ref":"`+folder+`","files":["`+old+`"]}]}`, http.StatusOK)
+	// Updated from the folder: the deck keeps another copy, the first stays a file.
+	w.bert.expect("PUT", "/api/items/"+home+"/body", `{"blocks":[{"kind":"slides","ref":"`+folder+`","files":["`+current+`"]}]}`, http.StatusOK)
+
+	made := w.bert.expect("POST", "/api/items/"+home+"/copy", `{"space":"PLAT","title":"Review (copy)"}`, http.StatusCreated)
+	copyID := field(made, "item", "id").(string)
+	files := w.bert.expect("GET", "/api/items/"+copyID+"/attachments", "", http.StatusOK)["attachments"].([]any)
+	if len(files) != 1 || files[0].(map[string]any)["name"] != "01-New.png" {
+		t.Fatalf("the copy holds the slide its text shows and no other: %v", files)
+	}
+	deck := field(w.bert.expect("GET", "/api/items/"+copyID, "", http.StatusOK), "item", "body").([]any)[0].(map[string]any)
+	if !reflect.DeepEqual(deck["files"], []any{files[0].(map[string]any)["id"]}) {
+		t.Errorf("the copy's deck shows its own slide: %v", deck)
+	}
+	for _, p := range w.bert.expect("GET", "/api/album?space=PLAT", "", http.StatusOK)["pictures"].([]any) {
+		t.Errorf("the album shows a slide: %v", p)
+	}
+
+	// A deck whose only slide was deleted, and a picture whose file was:
+	// the copy's text leaves them out instead of failing half made.
+	pic := w.bert.uploaded(home, "chart.png", png(3), "")
+	w.bert.expect("PUT", "/api/items/"+home+"/body", `{"blocks":[{"kind":"paragraph","text":"Read me"},{"kind":"slides","ref":"`+folder+`","files":["`+current+`"]},{"kind":"image","ref":"`+pic+`"}]}`, http.StatusOK)
+	w.bert.expect("DELETE", "/api/items/"+home+"/attachments/"+current, "", http.StatusOK)
+	w.bert.expect("DELETE", "/api/items/"+home+"/attachments/"+pic, "", http.StatusOK)
+	made = w.bert.expect("POST", "/api/items/"+home+"/copy", `{"space":"PLAT","title":"Review (second copy)"}`, http.StatusCreated)
+	body, _ := field(w.bert.expect("GET", "/api/items/"+field(made, "item", "id").(string), "", http.StatusOK), "item", "body").([]any)
+	if len(body) != 1 || body[0].(map[string]any)["kind"] != "paragraph" {
+		t.Errorf("the copy's text leaves out what has no file: %v", body)
+	}
+}

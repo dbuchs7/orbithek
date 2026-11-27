@@ -526,8 +526,12 @@ func (w *writer) key(id item.ID) string {
 func (w *writer) copyFiles(it item.Item) error {
 	moved := map[item.ID]item.ID{}
 	w.files[it.ID] = moved
+	// The slides an earlier version of a deck kept stay behind: here no
+	// text ever showed them, so they would be pictures of the album
+	// (ADR-0260).
+	behind := it.SlidesLeftBehind()
 	for _, a := range it.Attachments {
-		if a.Deleted {
+		if a.Deleted || behind[a.ID] {
 			continue
 		}
 		// An entry of a file share has no file here; the share's next run

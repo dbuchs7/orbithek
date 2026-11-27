@@ -245,6 +245,12 @@ func TestALaterBackupFillsAnOlderInstallation(t *testing.T) {
 	slideSum := sha256.Sum256(slide)
 	must[item.Attachment](t)(s.AddAttachment("anna", deck.ID, item.Attachment{ID: pic, Name: "01 Intro.png", Type: "image/png",
 		Size: int64(len(slide)), SHA256: hex.EncodeToString(slideSum[:])}))
+	// A slide an earlier version of the deck kept stays behind: here it
+	// would be a picture of the album.
+	earlier := item.ID("fedcba98765432100123456789abcdef")
+	must[item.Attachment](t)(s.AddAttachment("anna", deck.ID, item.Attachment{ID: earlier, Name: "01 Draft.png", Type: "image/png",
+		Size: int64(len(slide)), SHA256: hex.EncodeToString(slideSum[:])}))
+	noErr(t, s.CommitBody("anna", deck.ID, item.Doc{Blocks: []item.Block{{Kind: item.Slides, Ref: lostFolder.ID, Files: []item.ID{earlier}}}}))
 	noErr(t, s.CommitBody("anna", deck.ID, item.Doc{Blocks: []item.Block{{Kind: item.Paragraph, Text: "Slides"}, {Kind: item.Slides, Ref: lostFolder.ID, Files: []item.ID{pic}}}}))
 
 	target := must[*item.Store](t)(item.Replay(older))
@@ -272,6 +278,9 @@ func TestALaterBackupFillsAnOlderInstallation(t *testing.T) {
 	}
 	if d := get(t, target, deck.ID); len(d.Body.Blocks) != 2 || d.Body.Blocks[1].Kind != item.Slides || d.Body.Blocks[1].Ref != "" || len(d.Body.Blocks[1].Files) != 1 {
 		t.Fatalf("the deck of the lost folder: %+v", d.Body)
+	}
+	if d := get(t, target, deck.ID); len(d.Attachments) != 1 || d.Attachments[0].Name != "01 Intro.png" {
+		t.Fatalf("the deck's files: %+v", d.Attachments)
 	}
 	for _, want := range []string{"placed at the top", "plain text now", "embedded " + lost.Key + " is left out", "comes back as"} {
 		if !slices.ContainsFunc(rep.Notes, func(n string) bool { return strings.Contains(n, want) }) {

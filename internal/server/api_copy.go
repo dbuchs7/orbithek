@@ -167,8 +167,12 @@ func (h itemHandlers) copyOne(r *http.Request, space string, t copyTask) (item.I
 	// The files are copied first, each remembering its source (ADR-0055),
 	// so the body can show them under their new IDs.
 	renamed := map[item.ID]item.ID{}
+	// The slides an earlier version of a deck kept stay behind: in the
+	// copy no text ever showed them, so they would be pictures of the
+	// album (ADR-0260).
+	behind := src.SlidesLeftBehind()
 	for _, f := range files {
-		if f.Deleted {
+		if f.Deleted || behind[f.ID] {
 			continue
 		}
 		// A place its uploader keeps from the copier stays behind (ADR-0178).
@@ -213,34 +217,45 @@ func (h itemHandlers) copyOne(r *http.Request, space string, t copyTask) (item.I
 	}
 	// A numbered body is copied numbered, even without blocks (ADR-0241).
 	if len(src.Body.Blocks) > 0 || src.Body.Numbered {
-		body := item.Doc{Blocks: make([]item.Block, len(src.Body.Blocks)), Numbered: src.Body.Numbered}
-		copy(body.Blocks, src.Body.Blocks)
-		for i, b := range body.Blocks {
-			if b.Kind == item.Image || b.Kind == item.Video || b.Kind == item.Audio || b.Kind == item.BPMN {
-				if to, ok := renamed[b.Ref]; ok {
-					body.Blocks[i].Ref = to
+		body := item.Doc{Numbered: src.Body.Numbered}
+		for _, b := range src.Body.Blocks {
+			switch b.Kind {
+			case item.Image, item.Video, item.Audio, item.BPMN:
+				// A block whose file was deleted is left out: the copy
+				// has no file for it to show.
+				to, ok := renamed[b.Ref]
+				if !ok {
+					continue
 				}
-			}
-			if b.Kind == item.Slides && b.Files != nil {
+				b.Ref = to
+			case item.Slides:
+				if b.Files == nil {
+					break
+				}
 				// A slide deck shows the copy's own slides (ADR-0260);
-				// a slide whose file was deleted is left out, and a
-				// source the copier cannot read live is forgotten.
+				// a slide whose file was deleted is left out, a deck
+				// left without slides too, and a source the copier
+				// cannot read live is forgotten.
 				var files []item.ID
 				for _, f := range b.Files {
 					if to, ok := renamed[f]; ok {
 						files = append(files, to)
 					}
 				}
-				body.Blocks[i].Files = files
+				if len(files) == 0 {
+					continue
+				}
+				b.Files = files
 				live := false
 				h.d.DB.Read(func(s *item.Store) {
 					src, err := s.As(who(r)).Get(b.Ref)
 					live = err == nil && src.Presence == item.Live
 				})
 				if !live {
-					body.Blocks[i].Ref = ""
+					b.Ref = ""
 				}
 			}
+			body.Blocks = append(body.Blocks, b)
 		}
 		if err := h.d.DB.Write(func(s *item.Store) error { return s.As(who(r)).CommitBody(made.ID, body) }); err != nil {
 			return made, err
