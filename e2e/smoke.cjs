@@ -4560,6 +4560,7 @@ function webSource() {
     check((await page.request.post(base + "/api/spaces/ZFAV/purge", { data: { confirm: "ZFAV" } })).ok(), "and is deleted for good");
     await page.click("#account-button");
     await page.click("#account-menu a[href='#/admin']");
+    answer = true; // taking a person out of a group asks first
     await page.click("#groups button[aria-label^='Take bert out']");
     await page.waitForSelector("#admin-groups p:has-text('No groups yet.')");
 
