@@ -3354,5 +3354,12 @@ export default {
   "shopcat.typesStep2": "Legen Sie danach in einem Raum einen Katalog an: «Erstellen», Typ shop-catalogue.",
   "shopcat.typesStep3": "Legen Sie darunter für jedes Produkt eine Unterseite vom Typ shop-product an.",
   "shopcat.typesNext": "Als Nächstes legen Sie in einem Raum mit «Erstellen» einen Eintrag vom Typ shop-catalogue an.",
-  "help.manual": "Das Handbuch bei diesem Thema öffnen"
+  "help.manual": "Das Handbuch bei diesem Thema öffnen",
+  "trash.title": "Papierkorb",
+  "trash.of": "Papierkorb von {name}",
+  "trash.note": "Was in diesem Raum in den Papierkorb gelegt wurde, das Neueste zuerst. Wiederherstellen bringt einen Eintrag mit allem zurück, was mit ihm hineingelegt wurde.",
+  "trash.none": "Der Papierkorb dieses Raums ist leer.",
+  "trash.below": "und {n} darunter",
+  "trash.restoreOf": "{name} wiederherstellen",
+  "trash.purgeOf": "{name} endgültig löschen"
 };

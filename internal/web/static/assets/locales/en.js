@@ -3356,5 +3356,12 @@ export default {
   "shopcat.typesStep2": "Then create a catalogue in a room: «Create», type shop-catalogue.",
   "shopcat.typesStep3": "Below it, create a child page of the type shop-product for each product.",
   "shopcat.typesNext": "Next, create a catalogue in a room with «Create» and the type shop-catalogue.",
-  "help.manual": "Open the manual at this topic"
+  "help.manual": "Open the manual at this topic",
+  "trash.title": "Trash",
+  "trash.of": "Trash of {name}",
+  "trash.note": "What was moved to the trash in this room, newest first. Restore brings an item back with everything that was moved with it.",
+  "trash.none": "The trash of this room is empty.",
+  "trash.below": "and {n} below it",
+  "trash.restoreOf": "Restore {name}",
+  "trash.purgeOf": "Delete {name} for good"
 };

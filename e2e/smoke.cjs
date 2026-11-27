@@ -7320,6 +7320,24 @@ function webSource() {
       check(await page.locator("#body.editing").count() === 0, "back after Done does not open the editor again");
     }
 
+    step("trash: an item moved to the trash is found again in its room's trash and restored from there (ADR-0021)");
+    {
+      await page.goto(base + "/");
+      const trashed = await page.evaluate(async () => {
+        const post = (path, body) => fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined }).then((r) => r.json());
+        const it = (await post("/api/items", { space: "PLAT", type: "task", title: "Thrown away by mistake", properties: { priority: "low" } })).item;
+        await post(`/api/items/${it.id}/trash`);
+        return it.key;
+      });
+      await page.goto(base + "/#/space/PLAT");
+      await page.click("#space-trash-link");
+      await page.waitForSelector(`#trash tr[data-trashed="${trashed}"]`);
+      check((await page.textContent(`#trash tr[data-trashed="${trashed}"]`)).includes("Thrown away by mistake"), "the room's trash lists the item");
+      await page.click("button[aria-label='Restore Thrown away by mistake']");
+      await page.waitForSelector(`#trash tr[data-trashed="${trashed}"]`, { state: "detached" });
+      check(await page.evaluate(async (key) => (await (await fetch("/api/items/" + key)).json()).item.presence === "live", trashed), "restored from the trash, the item is live again");
+    }
+
     check(problems.length === 0, problems.join("; "));
     console.log("ok");
   } catch (err) {

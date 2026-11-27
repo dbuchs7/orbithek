@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/dbuchs7/orbithek/internal/audit"
 	"github.com/dbuchs7/orbithek/internal/item"
@@ -12,6 +13,7 @@ import (
 func spaceTrashRoutes(h itemHandlers) []Route {
 	return []Route{
 		{Method: http.MethodDelete, Pattern: "/api/spaces/{space}", Summary: "Put a space with everything in it into the trash, out of everyone's sight (administrators)", Handler: http.HandlerFunc(h.trashSpace)},
+		{Method: http.MethodGet, Pattern: "/api/spaces/{space}/trash", Summary: "The trash of a space: the readable items the trash started from, newest first, paged, each with who trashed it and when, how many readable items went with it (below) and whether the caller may restore or purge it (may) (ADR-0021)", Handler: http.HandlerFunc(h.spaceTrash)},
 		{Method: http.MethodGet, Pattern: "/api/spaces/trash", Summary: "The spaces in the trash, with how many items each holds (administrators)", Handler: http.HandlerFunc(h.trashedSpaces)},
 		{Method: http.MethodPost, Pattern: "/api/spaces/{space}/restore", Summary: "Bring a space back from the trash as it was (administrators)", Handler: http.HandlerFunc(h.restoreSpace)},
 		{Method: http.MethodPost, Pattern: "/api/spaces/{space}/purge", Summary: "Delete a space in the trash for good; confirm repeats its key. Its items become tombstones and its key is not used again (administrators)", Handler: http.HandlerFunc(h.purgeSpace)},
@@ -92,4 +94,44 @@ func (h itemHandlers) trashedSpaces(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"spaces": out})
+}
+
+// trashEntryJSON is an entry of a space's trash (ADR-0021).
+type trashEntryJSON struct {
+	ID     item.ID         `json:"id"`
+	Key    string          `json:"key"`
+	Title  string          `json:"title"`
+	Type   string          `json:"type"`
+	Parent item.ID         `json:"parent,omitempty"`
+	At     time.Time       `json:"at"`
+	By     string          `json:"by"`
+	Below  int             `json:"below"`
+	May    map[string]bool `json:"may"`
+}
+
+// spaceTrash lists what lies in a space's trash, so that an item put
+// there is found again (ADR-0021).
+func (h itemHandlers) spaceTrash(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	limit, ok := parseLimit(w, q)
+	if !ok {
+		return
+	}
+	h.read(w, r, func(x *item.Session) (any, error) {
+		all, err := x.TrashOf(r.PathValue("space"))
+		if err != nil {
+			return nil, err
+		}
+		page, res, err := paged(all, func(e item.TrashEntry) item.ID { return e.Item.ID }, item.ID(q.Get("after")), limit)
+		if err != nil {
+			return nil, err
+		}
+		out := []trashEntryJSON{}
+		for _, e := range page {
+			out = append(out, trashEntryJSON{ID: e.Item.ID, Key: e.Item.Key, Title: e.Item.Title, Type: e.Item.Type, Parent: e.Item.Parent,
+				At: e.At, By: e.By, Below: e.Below, May: map[string]bool{"restore": e.MayRestore, "purge": e.MayPurge}})
+		}
+		res["items"] = out
+		return res, nil
+	})
 }
