@@ -139,8 +139,9 @@ const (
 	// (ADR-0264): Scope narrows what it
 	// searches to a room or to a page, the page with the pages below it,
 	// or the pages below it only; Space names the room and Ref the page,
-	// none for the item the text is on. Like a view it is computed when
-	// shown and holds no item.
+	// none for the item the text is on; Label and ItemType narrow it to
+	// the items that carry a label and are of a type. Like a view it is
+	// computed when shown and holds no item.
 	SearchBlock BlockKind = "search"
 )
 
@@ -296,6 +297,8 @@ type Block struct {
 	// reads), narrowed by Query; grouped by the state, the labels or a
 	// field; the columns shown, in their order (none for the default);
 	// and the column it is sorted by, - before it for the other way.
+	// On a search field in a text ItemType is the type its hits are of,
+	// none for every type (ADR-0264).
 	Layout   string   `json:",omitempty"`
 	ItemType string   `json:",omitempty"`
 	Space    string   `json:",omitempty"`
@@ -335,6 +338,8 @@ type Block struct {
 	// and without the kinds of node among StarmapKinds it names, sorted.
 	// Its Space names the room, its HideTypes the types it leaves out and
 	// its Depth the neighbourhood of the item it is on.
+	// On a search field in a text Label is the label its hits carry, none
+	// for every label (ADR-0264).
 	Label     string   `json:",omitempty"`
 	Search    string   `json:",omitempty"`
 	HideKinds []string `json:",omitempty"`

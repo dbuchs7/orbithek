@@ -8,8 +8,9 @@ import (
 )
 
 // A search field in a text is named in every document by what it
-// searches; another page is not named by its title, which the reader of
-// the document may not read (ADR-0264).
+// searches and the label and type its hits carry; another page is not
+// named by its title, which the reader of the document may not read
+// (ADR-0264).
 func TestSearchFieldsAreNamedInDocuments(t *testing.T) {
 	cases := map[string]item.Block{
 		"Search field: the item's room":                     {Kind: item.SearchBlock},
@@ -17,6 +18,9 @@ func TestSearchFieldsAreNamedInDocuments(t *testing.T) {
 		"Search field: this page":                           {Kind: item.SearchBlock, Scope: item.ScopePage},
 		"Search field: another page and the pages below it": {Kind: item.SearchBlock, Scope: item.ScopeTree, Ref: "x"},
 		"Search field: the pages below this page":           {Kind: item.SearchBlock, Scope: item.ScopeBelow},
+		"Search field: room PLAT, label how-to":             {Kind: item.SearchBlock, Space: "PLAT", Label: "how-to"},
+		"Search field: this page, type page":                {Kind: item.SearchBlock, Scope: item.ScopePage, ItemType: "page"},
+		"Search field: the item's room, label a, type task": {Kind: item.SearchBlock, Label: "a", ItemType: "task"},
 	}
 	for want, b := range cases {
 		if got := SearchName(b); got != want {

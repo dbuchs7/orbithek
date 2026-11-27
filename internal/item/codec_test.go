@@ -78,7 +78,7 @@ func TestAChangeThatIsNotPersistedDoesNotHappen(t *testing.T) {
 
 func TestDecodeRejectsWhatItCannotReadExactly(t *testing.T) {
 	cases := map[string]string{
-		"newer format":       `[{"v":74,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
+		"newer format":       `[{"v":75,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"no format version":  `[{"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"unknown field":      `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated","colour":"red"}]`,
 		"unknown role":       `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"RoleGranted","role":"owner"}]`,
@@ -1947,9 +1947,10 @@ func hideTypesLog(t *testing.T) []Event {
 	return s.Log()
 }
 
-// searchBlockLog places two search fields in a text, one of the item's
-// room and one of the pages below another page, so the golden files pin
-// the block kind search and its fields
+// searchBlockLog places three search fields in a text, one of the item's
+// room, one of the pages below another page and one of the page itself
+// narrowed to a label and a type, so the golden files pin the block kind
+// search and its fields
 // (ADR-0264).
 func searchBlockLog(t *testing.T) []Event {
 	s := setup(t)
@@ -1960,6 +1961,7 @@ func searchBlockLog(t *testing.T) []Event {
 	noErr(t, anna.CommitBody(page.ID, Doc{Blocks: []Block{
 		{Kind: SearchBlock, Space: "PLAT"},
 		{Kind: SearchBlock, Scope: ScopeBelow, Ref: handbook.ID},
+		{Kind: SearchBlock, Scope: ScopeTree, Label: "how-to", ItemType: "page"},
 	}}))
 	return s.Log()
 }
