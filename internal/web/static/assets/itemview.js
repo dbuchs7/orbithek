@@ -245,7 +245,10 @@ export function itemsView(state, items, type, o) {
   const content = state.group ? groups.map((g) => h("details", { class: "iv-group", open: true, "data-group": g.key === "" ? "" : String(g.key) },
     h("summary", {}, h("span", { class: "iv-group-name", text: g.name || t("views.noValue") }), " ", h("span", { class: "muted iv-count", text: t("views.count", { n: g.items.length }) })),
     draw(g))) : [draw(groups[0])];
-  return h("div", { class: "iv iv-" + state.layout }, opts.ordering ? h("p", { class: "muted iv-order-hint", text: t("views.orderHint") }) : null, content);
+  // The wrapper names its layout apart from the list inside it: as
+  // "iv-gallery" it took the gallery's grid and held every card in its
+  // first, narrow column.
+  return h("div", { class: "iv iv-layout-" + state.layout }, opts.ordering ? h("p", { class: "muted iv-order-hint", text: t("views.orderHint") }) : null, content);
 }
 
 // readItems reads what a view shows, as far as the boards' limit; a query

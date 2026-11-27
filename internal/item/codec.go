@@ -233,7 +233,12 @@ import (
 //     Space and Ref, sealed with the body
 //     (ADR-0264).
 //     Versions 1 to 72 are still read; their bodies show no search field.
-const CodecVersion = 73
+//   - 74: a search field may carry Label and ItemType, a label and a type
+//     its hits carry, sealed with the body
+//     (ADR-0264).
+//     Versions 1 to 73 are still read; their search fields find every
+//     label and type.
+const CodecVersion = 74
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

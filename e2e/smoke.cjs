@@ -6455,6 +6455,8 @@ function webSource() {
     await page.click("#view-layout-gallery");
     await page.waitForSelector("#view .iv-gallery .iv-card");
     check(await page.locator("#view .iv-card").count() === 3, "the gallery shows a card per story");
+    const cardTops = await page.locator("#view .iv-card").evaluateAll((cards) => cards.map((c) => Math.round(c.getBoundingClientRect().top)));
+    check(new Set(cardTops).size < cardTops.length, "the gallery sets its cards side by side where the width allows: " + JSON.stringify(cardTops));
     const titleField = `#view .iv-card[data-key='${billing.key}'] .iv-field[data-col=title]`;
     await page.hover(titleField);
     await page.click(titleField + " .iv-edit");
@@ -6484,6 +6486,8 @@ function webSource() {
     await page.waitForSelector("#body .pm-itemview .iv-gallery .iv-card");
     await page.click("#edit-done");
     await page.waitForSelector("#body.reading .pm-itemview details.iv-group[data-group=doing] .iv-card");
+    const todoTops = await page.locator("#body.reading .pm-itemview details.iv-group[data-group=todo] .iv-card").evaluateAll((cards) => cards.map((c) => Math.round(c.getBoundingClientRect().top)));
+    check(todoTops.length >= 2 && new Set(todoTops).size < todoTops.length, "a gallery in a text sets its cards side by side where the column allows: " + JSON.stringify(todoTops));
     const viewBlock = (await viewAPI("GET", "/api/items/" + overview.id)).item.body.find((b) => b.kind === "view");
     check(viewBlock && viewBlock.layout === "gallery" && viewBlock.itemType === "story" && viewBlock.group === "state", "the text keeps what the view shows: " + JSON.stringify(viewBlock));
 
@@ -6554,6 +6558,28 @@ function webSource() {
     check((await viewAPI("GET", "/api/items/" + finder.id)).item.body.find((b) => b.kind === "search").scope === "tree", "the reader's choice is not kept");
     await page.click(`#body .searchblock-hits a[href='#/item/${encodeURIComponent(zChapter.key)}']`);
     await page.waitForFunction((key) => location.hash === "#/item/" + key, zChapter.key);
+    // A label and a type narrow the field in every scope; the reader does not change them.
+    await viewAPI("PUT", `/api/items/${zChapter.id}/labels`, { labels: ["zephyr-guide"] });
+    await page.goto(base + `/#/item/${finder.key}?edit`);
+    await page.waitForSelector("#body .pm-search .pm-search-edit");
+    await page.click("#body .pm-search .pm-search-edit");
+    await page.waitForSelector("#searchblock-dialog");
+    check(await page.inputValue("#searchblock-pick-scope") === "tree" && await page.inputValue("#searchblock-pick-label") === "" && await page.inputValue("#searchblock-pick-type") === "",
+      "changing the field starts from what it keeps, with every label and type");
+    await page.fill("#searchblock-pick-label", "Zephyr Guide");
+    await page.selectOption("#searchblock-pick-type", "story");
+    await page.click("#searchblock-dialog-ok");
+    await page.waitForFunction(() => document.querySelector("#body .pm-search-summary")?.textContent.includes("zephyr-guide"));
+    await page.click("#edit-done");
+    await page.waitForSelector("#body.reading .pm-search .searchblock-q");
+    const guideBlock = (await viewAPI("GET", "/api/items/" + finder.id)).item.body.find((b) => b.kind === "search");
+    check(guideBlock && guideBlock.label === "zephyr-guide" && guideBlock.itemType === "story" && guideBlock.scope === "tree" && guideBlock.ref === zHandbook.id,
+      "the text keeps the label as stored and the type beside the scope and the page: " + JSON.stringify(guideBlock));
+    await page.fill("#body .pm-search .searchblock-q", "zephyr");
+    await page.press("#body .pm-search .searchblock-q", "Enter");
+    check(await searchHits(1) === "Chapter zephyr", "the label narrows the hits below the page");
+    await page.selectOption("#body .pm-search .searchblock-scope", "");
+    check(await searchHits(1) === "Chapter zephyr", "the label narrows the room the reader chooses, too");
 
     step("blocks with content of their own: a click in their content chooses them, outlined, and Enter puts a line after them (ADR-0042)");
     const { item: chooser } = await viewAPI("POST", "/api/items", { space: "VIEWS", type: "story", title: "Chooser", properties: {},

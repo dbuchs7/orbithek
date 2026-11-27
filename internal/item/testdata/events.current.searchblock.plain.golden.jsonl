@@ -8,4 +8,4 @@
 [{"v":"current","seq":8,"at":"2026-10-16T09:00:07Z","actor":"anna","kind":"Watched","item":"id001","batch":7,"principal":"anna"}]
 [{"v":"current","seq":9,"at":"2026-10-16T09:00:08Z","actor":"anna","kind":"ItemCreated","item":"id002","batch":9,"space":"PLAT","typeName":"page","typeVersion":1,"title":"Find"}]
 [{"v":"current","seq":10,"at":"2026-10-16T09:00:08Z","actor":"anna","kind":"Watched","item":"id002","batch":9,"principal":"anna"}]
-[{"v":"current","seq":11,"at":"2026-10-16T09:00:09Z","actor":"anna","kind":"BodyCommitted","item":"id002","body":{"Blocks":[{"Kind":"search","Text":"","Mentions":null,"Ref":"","Space":"PLAT"},{"Kind":"search","Text":"","Mentions":null,"Ref":"id001","Scope":"below"}]}}]
+[{"v":"current","seq":11,"at":"2026-10-16T09:00:09Z","actor":"anna","kind":"BodyCommitted","item":"id002","body":{"Blocks":[{"Kind":"search","Text":"","Mentions":null,"Ref":"","Space":"PLAT"},{"Kind":"search","Text":"","Mentions":null,"Ref":"id001","Scope":"below"},{"Kind":"search","Text":"","Mentions":null,"Ref":"","ItemType":"page","Label":"how-to","Scope":"tree"}]}}]

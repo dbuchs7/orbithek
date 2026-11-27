@@ -7,7 +7,8 @@ import (
 )
 
 // A search field in a text names what it searches: a room, or a page,
-// the page with the pages below it, or the pages below it only
+// the page with the pages below it, or the pages below it only, and
+// optionally a label and a type every hit carries
 // (ADR-0264).
 func TestASearchBlockNamesItsRoomOrPageAndScope(t *testing.T) {
 	good := []Block{
@@ -16,6 +17,9 @@ func TestASearchBlockNamesItsRoomOrPageAndScope(t *testing.T) {
 		{Kind: SearchBlock, Scope: ScopePage},
 		{Kind: SearchBlock, Scope: ScopeTree, Ref: "other"},
 		{Kind: SearchBlock, Scope: ScopeBelow, Ref: "other"},
+		{Kind: SearchBlock, Label: "how-to"},
+		{Kind: SearchBlock, Space: "PLAT", ItemType: "page"},
+		{Kind: SearchBlock, Scope: ScopeTree, Label: "how-to", ItemType: "task"},
 	}
 	for i, b := range good {
 		if err := checkBlock(b, "self"); err != nil {
@@ -36,7 +40,10 @@ func TestASearchBlockNamesItsRoomOrPageAndScope(t *testing.T) {
 		"scope elsewhere":   {Block{Kind: Paragraph, Scope: ScopeTree}, "only a search field"},
 		"ref elsewhere":     {Block{Kind: Paragraph, Ref: "other"}, "reference"},
 		"query on a search": {Block{Kind: SearchBlock, Query: "state = open"}, "query"},
-		"label on a search": {Block{Kind: SearchBlock, Label: "x"}, "only a starmap"},
+		"label not stored":  {Block{Kind: SearchBlock, Label: "How To"}, "label"},
+		"bad type":          {Block{Kind: SearchBlock, ItemType: " page"}, "type"},
+		"search text":       {Block{Kind: SearchBlock, Search: "x"}, "only a starmap"},
+		"layout":            {Block{Kind: SearchBlock, Layout: "table"}, "only a view"},
 	}
 	for name, c := range bad {
 		isInvalid(t, name, checkBlock(c.b, "self"), c.want)

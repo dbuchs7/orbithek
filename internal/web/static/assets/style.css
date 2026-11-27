@@ -2202,7 +2202,6 @@ dialog.note-dialog { max-height: calc(100dvh - 32px); overflow: auto; }
 .searchblock-form .searchblock-scope, .searchblock-form button { flex: 0 1 auto; width: auto; max-width: 100%; }
 .searchblock-hits:empty { display: none; }
 .searchblock-total:empty { display: none; }
-.starmap-panel { position: static; width: auto; max-height: none; overflow: visible; box-shadow: none; }
 .starmap-side .starmap-impact { margin-top: 0; }
 @media (max-width: 900px) {
   .starmap-body { grid-template-columns: minmax(0, 1fr); }

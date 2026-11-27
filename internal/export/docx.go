@@ -139,26 +139,35 @@ func SlidesName(bl item.Block) string {
 
 // SearchName names a search field in a document
 // (ADR-0264): a document
-// cannot search, it says what the field searches. A page other than the
-// item is not named by its title, which the document's reader may not
-// read (D10).
+// cannot search, it says what the field searches and the label and type
+// its hits carry. A page other than the item is not named by its title,
+// which the document's reader may not read (D10).
 func SearchName(bl item.Block) string {
 	page := "this page"
 	if bl.Ref != "" {
 		page = "another page"
 	}
+	var name string
 	switch bl.Scope {
 	case item.ScopePage:
-		return "Search field: " + page
+		name = "Search field: " + page
 	case item.ScopeTree:
-		return "Search field: " + page + " and the pages below it"
+		name = "Search field: " + page + " and the pages below it"
 	case item.ScopeBelow:
-		return "Search field: the pages below " + page
+		name = "Search field: the pages below " + page
+	default:
+		name = "Search field: the item's room"
+		if bl.Space != "" {
+			name = "Search field: room " + bl.Space
+		}
 	}
-	if bl.Space != "" {
-		return "Search field: room " + bl.Space
+	if bl.Label != "" {
+		name += ", label " + bl.Label
 	}
-	return "Search field: the item's room"
+	if bl.ItemType != "" {
+		name += ", type " + bl.ItemType
+	}
+	return name
 }
 
 // namedByCaption reports whether a block's name in a document is its
