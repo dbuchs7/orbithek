@@ -1,6 +1,6 @@
 // The UI shell (ADR-0009, ADR-0031): hash routes, one view per route, all
 // data through the HTTP API. Plain ES modules, no build step.
-import { api, get, post, put, del, download, upload, ApiError } from "./api.js";
+import { api, get, post, put, del, download, upload, ApiError, setNamer } from "./api.js";
 import { h, mount, when } from "./dom.js";
 import { createEditor, isSafeLink, setSecretClass, setVeiledContent } from "./editor.js";
 import { protectChoices } from "./protect.js";
@@ -1096,6 +1096,9 @@ const accessActor = "access-request:";
 
 // person names a user: "you", their username, or the ID as given; the
 // access-request mechanism by the person it acted for.
+// An error names people by their usernames, not their IDs.
+setNamer((id) => (me && id === me.user.id ? me.user.username : names.get(id)));
+
 function person(id) {
   if (!id) return "—";
   if (id.startsWith(accessActor)) return t("accessRequest.actor", { who: person(id.slice(accessActor.length)) });
@@ -3564,7 +3567,7 @@ async function kanbanView(space, id) {
       await post(kpath + "/place", { card: it.id, column: col.id, before: before || "" });
       route();
     } catch (err) {
-      if (col.state && /no transition from/.test(err.message)) moveRefused(status, err, type, it, col.state, again);
+      if (col.state && /no transition from/.test(err.detail || err.message)) moveRefused(status, err, type, it, col.state, again);
       else status.replaceChildren(errorBox(err));
     }
   };

@@ -47,6 +47,7 @@ The bar at the top of every page holds, from left to right:
 - **Today**: your daily note of today (Alt+Shift+D); see *Daily notes*. On a narrow screen it is in the module switcher as **My journal**.
 - The **bell**: your notifications, with the number of unread ones.
 - **DE** and **EN**: the language of the interface.
+  When something cannot be done, the interface says in your language what kind of failure it is — not accepted, not allowed, not found — and adds the server's detail after it, which is in English and names people by their usernames.
 - The **light and dark mode** switch.
 - **Reading mode** (Ctrl+Shift+F, F11): the page fills the screen; Esc leaves it.
 - Your **profile picture** or initials: opens the account menu with *Account and password*, *AI access*, *Manual*, *Administration* (administrators only) and *Log out*.

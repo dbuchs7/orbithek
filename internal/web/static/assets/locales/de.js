@@ -3361,5 +3361,15 @@ export default {
   "trash.none": "Der Papierkorb dieses Raums ist leer.",
   "trash.below": "und {n} darunter",
   "trash.restoreOf": "{name} wiederherstellen",
-  "trash.purgeOf": "{name} endgültig löschen"
+  "trash.purgeOf": "{name} endgültig löschen",
+  "error.credentials": "Benutzername oder Passwort stimmen nicht",
+  "error.signedOut": "Sie sind nicht angemeldet, oder Ihre Sitzung ist beendet",
+  "error.invalid": "Das wurde nicht angenommen",
+  "error.forbidden": "Das ist Ihnen nicht erlaubt",
+  "error.notFound": "Nicht gefunden",
+  "error.conflict": "Das passt nicht zum Bestehenden",
+  "error.tooLarge": "Zu gross",
+  "error.tooMany": "Zu viele Versuche",
+  "error.storage": "Der Speicher ist fast voll",
+  "error.server": "Der Server konnte das nicht ausführen"
 };
