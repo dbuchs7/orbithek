@@ -6514,6 +6514,47 @@ function webSource() {
     await page.click(`#body .pm-starmap .starmap-canvas .star-node[data-key='${signIn.key}']`, { force: true });
     await page.waitForFunction((key) => location.hash === "#/item/" + key, signIn.key);
 
+    step("search fields in a text: narrowed to a page and the pages below it, the scope the reader's, a click opens the hit (ADR-0264)");
+    const zephyr = async (title, parent) => (await viewAPI("POST", "/api/items", { space: "VIEWS", type: "story", title, properties: {}, ...(parent ? { parent } : {}) })).item;
+    const zHandbook = await zephyr("Handbook zephyr");
+    const zChapter = await zephyr("Chapter zephyr", zHandbook.id);
+    await zephyr("Section zephyr", zChapter.id);
+    await zephyr("Elsewhere zephyr");
+    const { item: finder } = await viewAPI("POST", "/api/items", { space: "VIEWS", type: "story", title: "Finder", properties: {} });
+    await page.goto(base + `/#/item/${finder.key}?edit`);
+    await page.waitForSelector("#body .ProseMirror[contenteditable=true]");
+    await page.selectOption("select[aria-label='Insert…']", "search");
+    await page.waitForSelector("#searchblock-dialog");
+    check(await page.inputValue("#searchblock-pick-scope") === "" && await page.isVisible("#searchblock-pick-space") && !(await page.isVisible("#searchblock-pick-page")),
+      "the dialog starts with the room, which names no page");
+    await page.selectOption("#searchblock-pick-scope", "tree");
+    check(await page.isVisible("#searchblock-pick-page") && !(await page.isVisible("#searchblock-pick-space")), "a page's scope asks for the page, not the room");
+    await page.fill("#searchblock-pick-page", zHandbook.key);
+    await page.click("#searchblock-dialog-ok");
+    await page.waitForSelector("#body .pm-search .searchblock-q");
+    await page.click("#edit-done");
+    await page.waitForSelector("#body.reading .pm-search .searchblock-q");
+    const finderBlock = (await viewAPI("GET", "/api/items/" + finder.id)).item.body.find((b) => b.kind === "search");
+    check(finderBlock && finderBlock.scope === "tree" && finderBlock.ref === zHandbook.id && !finderBlock.space, "the text keeps the scope and the page by its ID: " + JSON.stringify(finderBlock));
+    await page.waitForFunction((key) => document.querySelector("#body .pm-search-summary")?.textContent.includes(key), zHandbook.key);
+    const searchHits = async (n) => {
+      await page.waitForFunction((n) => document.querySelectorAll("#body .searchblock-hits li").length === n, n);
+      return (await page.$$eval("#body .searchblock-hits li strong", (els) => els.map((el) => el.textContent))).sort().join();
+    };
+    await page.fill("#body .pm-search .searchblock-q", "zephyr");
+    await page.press("#body .pm-search .searchblock-q", "Enter");
+    check(await searchHits(3) === "Chapter zephyr,Handbook zephyr,Section zephyr", "the field finds the page and every page below it, and nothing beside it");
+    // The reader chooses another scope; nothing is kept.
+    await page.selectOption("#body .pm-search .searchblock-scope", "below");
+    check(await searchHits(2) === "Chapter zephyr,Section zephyr", "only the pages below it leave the page out");
+    await page.selectOption("#body .pm-search .searchblock-scope", "page");
+    check(await searchHits(1) === "Handbook zephyr", "the page alone");
+    await page.selectOption("#body .pm-search .searchblock-scope", "");
+    check(await searchHits(4) === "Chapter zephyr,Elsewhere zephyr,Handbook zephyr,Section zephyr", "the room finds every item of the item's room");
+    check((await viewAPI("GET", "/api/items/" + finder.id)).item.body.find((b) => b.kind === "search").scope === "tree", "the reader's choice is not kept");
+    await page.click(`#body .searchblock-hits a[href='#/item/${encodeURIComponent(zChapter.key)}']`);
+    await page.waitForFunction((key) => location.hash === "#/item/" + key, zChapter.key);
+
     step("label pages: a label is described by a page that shows its items, ordered by hand (ADR-0204)");
     await page.goto(base + "/#/label/first-week");
     await page.click("#label-describe");
