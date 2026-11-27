@@ -944,6 +944,13 @@ function webSource() {
     await page.click("#grant button[type=submit]");
     await page.waitForSelector("#grant >> text=Granted.");
     await page.waitForSelector("td:has-text('role.grant')", { state: "attached" }).catch(() => {});
+    // A reset link to hand over is shown once, and stays until it is read:
+    // the page is not drawn again over it.
+    await page.click("button[aria-label='Make a reset link for bert']");
+    await page.waitForSelector("#reset-handed code");
+    await page.waitForTimeout(500);
+    check((await page.locator("#reset-handed code").textContent().catch(() => "") || "").includes("/#/reset/"),
+      "a reset link handed out stays on the page");
 
     step("administration: the storage shows how full it is and what takes the space; its thresholds warn on the start page (ADR-0150)");
     await page.waitForSelector("#storage-level");

@@ -92,6 +92,9 @@ func (h authHandlers) handReset(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case errors.Is(err, auth.ErrNotFound):
 		writeError(w, http.StatusNotFound, "no such user")
+	case errors.Is(err, auth.ErrSuspended):
+		// No way in is opened to a suspended account (ADR-0262).
+		writeError(w, http.StatusConflict, "the account is suspended; reactivate it first")
 	case err != nil:
 		writeError(w, http.StatusInternalServerError, "no link made")
 	default:

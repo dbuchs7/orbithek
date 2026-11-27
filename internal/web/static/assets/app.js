@@ -6597,13 +6597,21 @@ async function adminView(params) {
   // A reset link to hand over, for someone without a mail address or when
   // mail is not set up (ADR-0064).
   const resetCell = (u) => h("td", {}, h("button", { type: "button", class: "link", text: t("reset.link"), "aria-label": t("reset.linkFor", { name: u.username }),
-    onclick: () => action(async () => {
-      const { token, expires } = await post(`/api/users/${encodeURIComponent(u.id)}/password-reset`);
-      const url = `${location.origin}/#/reset/${token}`;
-      status.replaceChildren(h("div", { class: "notice", id: "reset-handed" },
-        h("p", { text: t("reset.linkMade", { name: u.username, when: when(expires) }) }),
-        h("code", { class: "copyable", text: url })));
-    }, status) }));
+    // Not through action(): it draws the page again, and the link, shown
+    // once, would be gone before it is read.
+    onclick: async () => {
+      try {
+        const { token, expires } = await post(`/api/users/${encodeURIComponent(u.id)}/password-reset`);
+        const url = `${location.origin}/#/reset/${token}`;
+        status.replaceChildren(h("div", { class: "notice", id: "reset-handed" },
+          h("p", { text: t("reset.linkMade", { name: u.username, when: when(expires) }) }),
+          h("code", { class: "copyable", text: url })));
+      } catch (err) {
+        status.replaceChildren(errorBox(err));
+      }
+      // The status stands at the top of a long page.
+      status.scrollIntoView({ block: "center" });
+    } }));
   const emailCell = (u) => h("td", {},
     h("span", { class: "muted", text: u.email || t("contacts.noEmail") }), " ",
     h("button", { type: "button", class: "link", text: t("common.edit"), "aria-label": t("contacts.editEmail", { name: u.username }), onclick: () => {
