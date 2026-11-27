@@ -177,3 +177,38 @@ func principalsOf(roles map[string]any) []string {
 	}
 	return out
 }
+
+// TestAUsernameTakenAgainInheritsNoMentions: a username is free again once
+// its account is deleted. Mentions are told by "@username" in the text,
+// so what was written before the new account was made names the earlier
+// holder of the name, and is not told to the new one (ADR-0262).
+func TestAUsernameTakenAgainInheritsNoMentions(t *testing.T) {
+	w := newWorld(t)
+	made := w.bert.expect("POST", "/api/items", `{"space":"PLAT","type":"task","title":"Plan","properties":{"priority":"low"}}`, http.StatusCreated)
+	key := field(made, "item", "key").(string)
+	w.admin.expect("POST", "/api/items/"+key+"/comments", `{"text":"ping @bert"}`, http.StatusCreated)
+	mentions := func(c *client) (told, listed int) {
+		for _, n := range c.expect("GET", "/api/notifications", "", http.StatusOK)["notifications"].([]any) {
+			if n.(map[string]any)["mentioned"] == true {
+				told++
+			}
+		}
+		return told, len(c.expect("GET", "/api/comments?only=mentions", "", http.StatusOK)["comments"].([]any))
+	}
+	if told, listed := mentions(w.bert); told != 1 || listed != 1 {
+		t.Fatalf("bert is told the mention: %d told, %d listed", told, listed)
+	}
+	w.admin.expect("DELETE", "/api/users/"+w.ids["bert"], "", http.StatusNoContent)
+	u := w.admin.expect("POST", "/api/users", `{"username":"bert","password":"another bert's password"}`, http.StatusCreated)
+	w.admin.expect("PUT", "/api/spaces/PLAT/roles/"+field(u, "user", "id").(string), `{"role":"viewer"}`, http.StatusNoContent)
+	again := &client{t: t, h: w.admin.h}
+	again.login("bert", "another bert's password")
+	if told, listed := mentions(again); told != 0 || listed != 0 {
+		t.Errorf("the new bert inherits mentions of the earlier one: %d told, %d listed", told, listed)
+	}
+	// What is written from now on names the new account.
+	w.admin.expect("POST", "/api/items/"+key+"/comments", `{"text":"welcome @bert"}`, http.StatusCreated)
+	if told, listed := mentions(again); told != 1 || listed != 1 {
+		t.Errorf("the new bert is told a mention written after the account was made: %d told, %d listed", told, listed)
+	}
+}

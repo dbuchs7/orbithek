@@ -639,6 +639,16 @@ func (a *Accounts) SetPassword(id UserID, current, next string) error {
 	return nil
 }
 
+// Made is when an account was made; zero for an unknown one.
+func (a *Accounts) Made(id UserID) time.Time {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if u, ok := a.users[id]; ok {
+		return u.Created
+	}
+	return time.Time{}
+}
+
 // Users lists the accounts, ordered by username.
 func (a *Accounts) Users() []User {
 	a.mu.Lock()

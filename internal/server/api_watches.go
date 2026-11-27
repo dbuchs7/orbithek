@@ -177,7 +177,7 @@ func (h itemHandlers) notifications(w http.ResponseWriter, r *http.Request) {
 	}
 	p, _ := PrincipalFrom(r.Context())
 	h.read(w, r, func(x *item.Session) (any, error) {
-		x = x.Named(p.Username)
+		x = x.Named(p.Username).Since(h.d.DB.Accounts.Made(p.User))
 		list, more := x.NotificationsWhere(before, limit, keep)
 		out := []notificationJSON{}
 		for _, n := range list {

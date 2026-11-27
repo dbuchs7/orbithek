@@ -3,6 +3,7 @@ package item
 import (
 	"slices"
 	"strings"
+	"time"
 	"unicode"
 	"unicode/utf8"
 )
@@ -60,7 +61,9 @@ func (x *Session) CommentFeedWhere(username, only string, offset, limit int, kee
 			if c.Author == x.who {
 				why = append(why, FeedMine)
 			}
-			if Mentions(c.Text, username) {
+			// A comment last written before the account was made names
+			// whoever had the username then (ADR-0262).
+			if Mentions(c.Text, username) && !lastWritten(c).Before(x.since) {
 				why = append(why, FeedMentions)
 			}
 			if len(why) == 0 || (only != "" && !slices.Contains(why, only)) {
@@ -109,4 +112,13 @@ func Mentions(text, username string) bool {
 		}
 		i = end
 	}
+}
+
+// lastWritten is when a comment's text was last written: when it was
+// edited, else when it was made.
+func lastWritten(c Comment) time.Time {
+	if c.Edited.After(c.Created) {
+		return c.Edited
+	}
+	return c.Created
 }

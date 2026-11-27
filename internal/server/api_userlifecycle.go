@@ -137,6 +137,12 @@ func (h authHandlers) deleteUser(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		err = h.d.DB.Accounts.Delete(target)
 	}
+	if err == nil {
+		// A role or membership granted between the two steps, while the
+		// account still stood, is taken back too: from here on nothing
+		// is granted to the ID any more.
+		err = h.d.DB.Write(func(s *item.Store) error { return s.RevokeAll(string(p.User), string(target)) })
+	}
 	switch {
 	case refused(w, err):
 		return
