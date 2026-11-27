@@ -9,13 +9,16 @@ import (
 	"encoding/json"
 	"io"
 	"log/slog"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 	_ "time/tzdata" // TestNextAt reads Europe/Zurich wherever it runs
@@ -69,15 +72,48 @@ func TestVersion(t *testing.T) {
 	}
 }
 
+// freePortLow and freePortHigh bound the ports freeAddr chooses from: below
+// every common ephemeral range (Linux 32768–60999, macOS and Windows
+// 49152–65535), from which the system hands out port 0 and the source
+// ports of outgoing connections.
+const (
+	freePortLow  = 20000
+	freePortHigh = 32768
+)
+
+// freePorts are the ports freeAddr has handed out in this run.
+var freePorts = struct {
+	sync.Mutex
+	given map[int]bool
+}{given: map[int]bool{}}
+
+// freeAddr returns a loopback address with a port nobody listens on, for
+// serve to bind. serve binds it only after freeAddr has let it go, so a
+// port the system hands out could be taken in between by any process
+// asking for port 0, such as the tests of another package running at the
+// same time ("bind: address already in use"). freeAddr therefore chooses a
+// port outside the ephemeral range, which the system hands to nobody
+// unasked, and gives each port once per run.
 func freeAddr(t *testing.T) string {
 	t.Helper()
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
+	freePorts.Lock()
+	defer freePorts.Unlock()
+	for range 1000 {
+		port := freePortLow + rand.IntN(freePortHigh-freePortLow)
+		if freePorts.given[port] {
+			continue
+		}
+		addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
+		ln, err := net.Listen("tcp", addr)
+		if err != nil {
+			continue // taken by someone else
+		}
+		ln.Close()
+		freePorts.given[port] = true
+		return addr
 	}
-	addr := ln.Addr().String()
-	ln.Close()
-	return addr
+	t.Fatalf("no free port in [%d, %d)", freePortLow, freePortHigh)
+	return ""
 }
 
 // TestServeAndHealthcheck runs the binary's two halves against each other:
