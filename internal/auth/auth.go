@@ -616,6 +616,16 @@ func (a *Accounts) SetPassword(id UserID, current, next string) error {
 	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	// Checked again: the account may have been deleted, or its password
+	// changed, while hashing. Recording a password for an account that is
+	// gone would leave a journal no start can replay.
+	u, ok = a.users[id]
+	if !ok {
+		return ErrNotFound
+	}
+	if u.hash != old {
+		return ErrUnauthorized
+	}
 	if err := a.record(event{Kind: passwordSet, User: id, Hash: hash}); err != nil {
 		return err
 	}

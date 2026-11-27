@@ -204,3 +204,43 @@ func TestADeletedAccountLeavesOnlyItsID(t *testing.T) {
 		t.Error("the new account counts as deleted")
 	}
 }
+
+// A password change hashes outside the lock. An account deleted meanwhile
+// must not get a password recorded: the journal would name a user no replay
+// knows, and the server would not start again.
+func TestSetPasswordOfAnAccountDeletedMeanwhileRecordsNothing(t *testing.T) {
+	a, j, c := newAccounts(t)
+	u, err := a.CreateUser("anna", pw)
+	noErr(t, err)
+	random := a.random
+	a.random = func(b []byte) error { // called while the new password is hashed
+		noErr(t, a.Delete(u.ID))
+		return random(b)
+	}
+	if err := a.SetPassword(u.ID, pw, "another long password"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("got %v, want ErrNotFound", err)
+	}
+	a.random = random
+	if _, err := New(j.records, (&memJournal{}).append, WithClock(c.now), WithIterations(1000)); err != nil {
+		t.Fatalf("the journal no longer replays: %v", err)
+	}
+}
+
+// Two changes of one password at once: the second was checked against a
+// password that is no longer the account's.
+func TestSetPasswordChangedMeanwhileIsRefused(t *testing.T) {
+	a, _, _ := newAccounts(t)
+	u, err := a.CreateUser("anna", pw)
+	noErr(t, err)
+	random, inner := a.random, false
+	a.random = func(b []byte) error {
+		if !inner {
+			inner = true
+			noErr(t, a.SetPassword(u.ID, pw, "the first new password"))
+		}
+		return random(b)
+	}
+	if err := a.SetPassword(u.ID, pw, "the second new password"); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("got %v, want ErrUnauthorized", err)
+	}
+}
