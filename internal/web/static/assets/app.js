@@ -5236,7 +5236,9 @@ async function itemView(ref, params = new URLSearchParams()) {
       done.disabled = false;
       return;
     }
-    try { if (session) await session.finish(); } finally { location.hash = itemHref; }
+    // The reading view takes the editor's place in the history, so the
+    // back button does not open the editor again.
+    try { if (session) await session.finish(); } finally { location.replace(itemHref); }
   } });
   // The item's buttons, and the bell always last (ADR-0112).
   const headActions = h("p", { class: "actions" },
@@ -5467,7 +5469,10 @@ function bodySection(item, embeds, editing, threads, attachments, protect, edit,
   const session = liveBody({ ref: item.id, embeds, resolve, childPages: childPagesOf(item), files: filesOf(item, attachments),
     extra: [threads.plugin], comment: threads.start, actions: edit ? [edit] : [], embedContent: embedLoader([item.id]), tasks: taskTools(item, true), markdown: markdownTools(item), weblinks: weblinkTools(item), onPresence,
     create: mentionCreator(item, storagePaused) });
-  onLeave(session.dispose);
+  // Left by the back button or a link, the editor sends what is not yet
+  // saved before it is taken down, as Done does: the last keystrokes wait
+  // for a timer that closing alone would drop.
+  onLeave(() => session.finish().catch(() => {}).finally(session.dispose));
   return { element: h("section", { id: "body", class: "editing" }, session.element), session };
 }
 
