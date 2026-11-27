@@ -50,3 +50,53 @@ func TestDeletingASpaceTakesTwoSteps(t *testing.T) {
 		}
 	}
 }
+
+// TestTheTrashOfASpaceThroughTheAPI: an item put into the trash is found
+// again in its space's trash and restored from there; a caller without a
+// role in the space is answered as for a space that does not exist
+// (ADR-0021).
+func TestTheTrashOfASpaceThroughTheAPI(t *testing.T) {
+	w := newWorld(t)
+	mk := func(title, parent string) string {
+		it := w.bert.expect("POST", "/api/items", `{"space":"PLAT","type":"task","title":"`+title+`","parent":"`+parent+`","properties":{"priority":"low"}}`, http.StatusCreated)
+		return field(it, "item", "id").(string)
+	}
+	guide := mk("Guide", "")
+	mk("Step", guide)
+	alone := mk("Alone", "")
+	w.bert.expect("POST", "/api/items/"+alone+"/trash", "", http.StatusOK)
+	w.bert.expect("POST", "/api/items/"+guide+"/trash", "", http.StatusOK)
+
+	got := w.bert.expect("GET", "/api/spaces/PLAT/trash", "", http.StatusOK)
+	items := got["items"].([]any)
+	if len(items) != 2 || field(got, "total", "value") != float64(2) {
+		t.Fatalf("trash %v", got)
+	}
+	first := items[0].(map[string]any)
+	if first["id"] != guide || first["title"] != "Guide" || first["below"] != float64(1) || first["by"] != w.ids["bert"] ||
+		field(first, "may", "restore") != true || field(first, "may", "purge") != false {
+		t.Errorf("the newest entry %v", first)
+	}
+	// Paged by the entry before.
+	page := w.bert.expect("GET", "/api/spaces/PLAT/trash?limit=1", "", http.StatusOK)
+	if len(page["items"].([]any)) != 1 || page["next"] != guide {
+		t.Errorf("first page %v", page)
+	}
+	if rest := w.bert.expect("GET", "/api/spaces/PLAT/trash?limit=1&after="+guide, "", http.StatusOK); field(rest["items"].([]any)[0].(map[string]any), "id") != alone || rest["next"] != nil {
+		t.Errorf("second page %v", rest)
+	}
+	// A viewer reads the trash and may change nothing in it.
+	if v := w.vera.expect("GET", "/api/spaces/PLAT/trash", "", http.StatusOK)["items"].([]any)[0].(map[string]any); field(v, "may", "restore") != false {
+		t.Errorf("vera may restore: %v", v)
+	}
+	// No role in the space reads as no such space.
+	noRole := w.carla.do("GET", "/api/spaces/PLAT/trash", "")
+	noSpace := w.carla.do("GET", "/api/spaces/NONE/trash", "")
+	if noRole.Code != http.StatusNotFound || noSpace.Code != http.StatusNotFound {
+		t.Errorf("no role %d, no space %d, want 404 for both", noRole.Code, noSpace.Code)
+	}
+	w.bert.expect("POST", "/api/items/"+guide+"/restore", "", http.StatusOK)
+	if left := w.bert.expect("GET", "/api/spaces/PLAT/trash", "", http.StatusOK)["items"].([]any); len(left) != 1 {
+		t.Errorf("after restoring: %v", left)
+	}
+}

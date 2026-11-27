@@ -1907,6 +1907,7 @@ async function route() {
       case "oauth": return await oauthView(params);
       case "admin": return await adminView(params);
       case "members": return await membersView(arg);
+      case "trash": return await trashView(arg);
       case "import": return await importView(arg);
       default: return await homeView();
     }
@@ -2950,6 +2951,7 @@ async function spaceView(key) {
         csv,
         watchButton("/api/spaces/" + encodeURIComponent(key), watches.some((w) => !w.item && w.space === key), status))),
     h("nav", { class: "subnav", "aria-label": t("space.views") }, [...boards, ...views, link(`#/roadmap?space=${encodeURIComponent(key)}`, t("roadmap.tab")), link(`#/calendar?space=${encodeURIComponent(key)}`, t("calendar.tab")), link(`#/links/${encodeURIComponent(key)}`, t("space.linkCheck")), link(`#/governance/${encodeURIComponent(key)}`, t("nav.governance")),
+      link(`#/trash/${encodeURIComponent(key)}`, t("trash.title"), null, "space-trash-link"),
       sp.role === "space-admin" ? link(`#/members/${encodeURIComponent(key)}`, t("members.title")) : null,
       sp.role === "space-admin" ? link(`#/import/${encodeURIComponent(key)}`, t("notesImport.title"), null, "space-import") : null].filter(Boolean)),
     status,
@@ -7993,6 +7995,46 @@ async function importView(key) {
 // membersView lists who holds which role in a space, for its
 // administrators (ADR-0048): change a role, take it back, grant one to a
 // person or a group.
+// trashView lists what lies in a room's trash, newest first, so that an
+// item moved there is found again: each entry is restored or, by a room's
+// administrator, deleted for good, as its own page offers it (ADR-0021).
+async function trashView(key) {
+  const show = screen();
+  const base = `/api/spaces/${encodeURIComponent(key)}/trash`;
+  const [{ spaces }, first] = await Promise.all([get("/api/spaces"), get(base)]);
+  here.space = key;
+  const sp = spaces.find((s) => s.key === key) || { name: key };
+  const status = h("div", { class: "status" });
+  const rows = h("tbody");
+  const more = h("p");
+  const row = (e) => h("tr", { "data-trashed": e.key },
+    h("td", {}, link("#/item/" + encodeURIComponent(e.key), e.title), " ", h("span", { class: "muted", text: e.key })),
+    h("td", { class: "muted", text: e.type }),
+    h("td", { class: "muted", text: e.below ? t("trash.below", { n: e.below }) : "" }),
+    h("td", { class: "muted" }, person(e.by), ", " + when(e.at)),
+    h("td", {},
+      e.may.restore ? h("button", { type: "button", class: "link", text: t("item.restore"), "aria-label": t("trash.restoreOf", { name: e.title }),
+        onclick: () => action(() => post(`/api/items/${e.id}/restore`), status) }) : null, " ",
+      e.may.purge ? h("button", { type: "button", class: "link danger", text: t("item.purge"), "aria-label": t("trash.purgeOf", { name: e.title }),
+        onclick: () => confirm(t("item.purgeConfirm")) && action(() => post(`/api/items/${e.id}/purge`), status) }) : null));
+  const add = async (page) => {
+    await learnNames(page.items.map((e) => e.by));
+    rows.append(...page.items.map(row));
+    more.replaceChildren(page.next ? h("button", { type: "button", class: "secondary", id: "trash-more", text: t("common.more"),
+      onclick: async () => {
+        try { await add(await get(`${base}?after=${encodeURIComponent(page.next)}`)); } catch (err) { status.replaceChildren(errorBox(err)); }
+      } }) : "");
+  };
+  await add(first);
+  show(
+    h("p", {}, link("#/spaces", t("nav.spaces")), " / ", link("#/space/" + encodeURIComponent(key), key), " / " + t("trash.title")),
+    h("h1", { text: t("trash.of", { name: sp.name }) }),
+    h("p", { class: "muted", text: t("trash.note") }),
+    status,
+    first.items.length ? h("table", { id: "trash" }, rows) : empty(t("trash.none"), "trash-none"),
+    more);
+}
+
 async function membersView(key) {
   const show = screen();
   await loadTypeTemplates();
