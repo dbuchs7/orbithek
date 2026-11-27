@@ -166,6 +166,7 @@ var builtins = map[string]string{
 	"parent": "parent", "ancestor": "ancestor", "label": "label", "labels": "label",
 	"text": "text", "body": "body", "comment": "comment",
 	"created": "created", "updated": "updated", "creator": "creator", "finished": "finished",
+	"contributor": "contributor", "contributors": "contributor",
 }
 
 // negated are the negative comparisons and what they negate: a != v holds
@@ -319,6 +320,8 @@ func (c *compiler) clause(cl *query.Clause, op query.Op) (pred, error) {
 		return c.set(cl, op, func(it *Item) []string { return it.Labels }, func(v query.Value) (string, bool) { return v.Text, !v.Func }, query.Empty)
 	case "creator":
 		return c.users(cl, op, func(it *Item) string { return s.log[it.created-1].Actor })
+	case "contributor":
+		return c.contributors(cl, op)
 	case "finished":
 		if err := takes(cl, op, query.Eq, query.In, query.Empty); err != nil {
 			return nil, err
@@ -579,6 +582,16 @@ func (c *compiler) words(cl *query.Clause, op query.Op, empty bool, add func([]b
 // users compiles a condition on a user: currentUser() is the principal,
 // a name the users it stands for.
 func (c *compiler) users(cl *query.Clause, op query.Op, get func(*Item) string) (pred, error) {
+	want, err := c.userSet(cl, op)
+	if err != nil {
+		return nil, err
+	}
+	return func(it *Item) bool { return want[get(it)] }, nil
+}
+
+// userSet reads the users a condition on a user names, by ID; it takes =
+// and IN (and so != and NOT IN).
+func (c *compiler) userSet(cl *query.Clause, op query.Op) (map[string]bool, error) {
 	if err := takes(cl, op, equality...); err != nil {
 		return nil, err
 	}
@@ -592,7 +605,33 @@ func (c *compiler) users(cl *query.Clause, op query.Op, get func(*Item) string) 
 			want[id] = true
 		}
 	}
-	return func(it *Item) bool { return want[get(it)] }, nil
+	return want, nil
+}
+
+// contributors compiles a condition on who made or changed an item: its
+// creator and the actor of every event that changed the item itself, as the
+// field updated counts changes (changesItem). It holds when one of them is
+// a user the condition names.
+func (c *compiler) contributors(cl *query.Clause, op query.Op) (pred, error) {
+	want, err := c.userSet(cl, op)
+	if err != nil {
+		return nil, err
+	}
+	s := c.x.s
+	return func(it *Item) bool {
+		if len(want) == 0 {
+			return false
+		}
+		if want[s.log[it.created-1].Actor] {
+			return true
+		}
+		for _, i := range s.touching[it.ID] {
+			if e := s.log[i]; e.Item == it.ID && changesItem[e.Kind] && want[e.Actor] {
+				return true
+			}
+		}
+		return false
+	}, nil
 }
 
 // times compiles a condition on a point in time of every item.

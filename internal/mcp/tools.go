@@ -93,7 +93,8 @@ const fieldValues = "By kind: text, url, enum and user (a user ID) as strings; n
 const queryLanguage = "A query is conditions joined with AND, OR, NOT and parentheses, then optionally ORDER BY field [ASC|DESC], further fields after commas. " +
 	"A condition is field = value, !=, <, <=, >, >=, ~ (every word of the value occurs), !~, field IN (a, b), field NOT IN (...), field IS EMPTY, field IS NOT EMPTY. " +
 	"Fields: id, key, title, type, space, state, parent and ancestor (an item's key or ID), label, text (title, key, body, text properties, labels, comments; ~ only), " +
-	"body and comment (~ and IS EMPTY), created, updated, creator, finished (true when the workflow is done), and any property by its name, as list_types names them; " +
+	"body and comment (~ and IS EMPTY), created, updated, creator, contributor (every user who created or changed the item), finished (true when the workflow is done), " +
+	"and any property by its name, as list_types names them; " +
 	"quote a name with spaces, or a property whose name is also a built-in field's, e.g. \"due date\". Values with spaces or commas are quoted. " +
 	"Dates are 2026-10-01, a time is RFC 3339, -7d, 2w, +12h and -1y count from now; functions: now(), startOfDay(), endOfDay(), startOfWeek(), endOfWeek(), " +
 	"startOfMonth(), endOfMonth(), startOfYear(), endOfYear(), each with an optional offset such as -1, and currentUser(), your caller. " +
