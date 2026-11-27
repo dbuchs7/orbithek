@@ -3363,5 +3363,15 @@ export default {
   "trash.none": "The trash of this room is empty.",
   "trash.below": "and {n} below it",
   "trash.restoreOf": "Restore {name}",
-  "trash.purgeOf": "Delete {name} for good"
+  "trash.purgeOf": "Delete {name} for good",
+  "error.credentials": "Wrong username or password",
+  "error.signedOut": "You are not signed in, or your session has ended",
+  "error.invalid": "That was not accepted",
+  "error.forbidden": "You may not do that",
+  "error.notFound": "Not found",
+  "error.conflict": "That does not fit what is there",
+  "error.tooLarge": "Too large",
+  "error.tooMany": "Too many attempts",
+  "error.storage": "The storage is almost full",
+  "error.server": "The server could not do that"
 };

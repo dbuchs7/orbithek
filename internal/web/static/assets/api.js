@@ -1,15 +1,55 @@
 // A thin client of the HTTP API (ADR-0028). Requests carry the session
 // cookie; bodies are always JSON, which is also the CSRF defence (ADR-0027).
 
+import { t } from "./i18n.js";
+
+// nameOf answers a person's name for their ID, or nothing; the app sets it
+// once it knows names, so that an error names a person and not their ID.
+let nameOf = () => null;
+export function setNamer(fn) { nameOf = fn; }
+
+// errorDetail is the server's own words for a failure, in English, made
+// readable: without the class it begins with, which the lead says in the
+// reader's language, and with people named instead of their IDs.
+export function errorDetail(message) {
+  return String(message || "")
+    .replace(/^(?:forbidden|not found|validation failed|bad input): /, "")
+    .replace(/\b[0-9a-f]{32}\b/g, (id) => nameOf(id) || id);
+}
+
+// wordError words a failed request for the reader (ADR-0017): what kind
+// of failure it is, in their language, by its status, followed by the
+// server's detail where it tells more. path names the request, since a
+// refused sign-in is not an ended session.
+export function wordError(status, message, path = "") {
+  const detail = errorDetail(message);
+  const say = (lead, more = detail) => (more ? `${lead}: ${more}` : `${lead}.`);
+  switch (true) {
+    case status === 401 && path === "/api/login": return say(t("error.credentials"), "");
+    case status === 401: return say(t("error.signedOut"), "");
+    case status === 400 || status === 422: return say(t("error.invalid"));
+    case status === 403: return say(t("error.forbidden"));
+    case status === 404: return say(t("error.notFound"));
+    case status === 409: return say(t("error.conflict"));
+    case status === 413: return say(t("error.tooLarge"));
+    case status === 429: return say(t("error.tooMany"));
+    case status === 507: return say(t("error.storage"));
+    case status >= 500: return say(t("error.server"));
+    default: return detail;
+  }
+}
+
 export class ApiError extends Error {
-  // at is where a mistake in a query is, in characters from 0 (ADR-0136);
-  // code names a failure the UI words itself, such as a calendar server
-  // refusing a password (ADR-0174); body is the whole answer, such as the
-  // problems an engine names with a refusal
-  // (ADR-0251).
-  constructor(status, message, at, code, body) {
-    super(message);
+  // The message is worded for the reader (wordError); detail keeps the
+  // server's own words. A failure the UI words itself keeps them as its
+  // message: one with at, where a mistake in a query is, in characters
+  // from 0 (ADR-0136), or with code, such as a calendar server refusing a
+  // password (ADR-0174). body is the whole answer, such as the problems an
+  // engine names with a refusal (ADR-0251); path names the request.
+  constructor(status, message, at, code, body, path) {
+    super(at === undefined && !code ? wordError(status, message, path) : message);
     this.status = status;
+    this.detail = message;
     this.at = at;
     this.code = code;
     this.body = body;
@@ -34,7 +74,7 @@ export async function api(method, path, body) {
       }
     }
   }
-  if (!res.ok) throw new ApiError(res.status, (data && data.error) || res.statusText, data?.at, data?.code, data);
+  if (!res.ok) throw new ApiError(res.status, (data && data.error) || res.statusText, data?.at, data?.code, data, path);
   return data;
 }
 
