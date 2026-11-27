@@ -277,7 +277,7 @@ func (h itemHandlers) commentFeed(w http.ResponseWriter, r *http.Request) {
 				return item.HasWords(e.Key+" "+e.Title+" "+e.Comment.Text+" "+author, text)
 			}
 		}
-		list, more := x.CommentFeedWhere(p.Username, only, offset, limit, keep)
+		list, more := x.Since(h.d.DB.Accounts.Made(p.User)).CommentFeedWhere(p.Username, only, offset, limit, keep)
 		out := []feedEntryJSON{}
 		for _, e := range list {
 			out = append(out, feedEntryJSON{Item: e.Item, Key: e.Key, Title: e.Title, Space: e.Space, Comment: toCommentJSON(e.Comment), Why: e.Why})

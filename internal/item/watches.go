@@ -265,7 +265,7 @@ func (x *Session) scan(before, after int, fn func(Notification) bool) {
 // deleted or erased since is no longer told. A text names them when an
 // edit by someone else adds the name to it (ADR-0096).
 func (x *Session) mentioned(e Event) bool {
-	if (e.Kind != CommentAdded && e.Kind != BodyCommitted) || x.name == "" || e.Actor == x.who {
+	if (e.Kind != CommentAdded && e.Kind != BodyCommitted) || x.name == "" || e.Actor == x.who || e.At.Before(x.since) {
 		return false
 	}
 	it := x.s.items[e.Item]

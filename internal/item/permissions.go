@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 )
 
 // Role is a principal's role in a space (ADR-0022). Higher includes lower.
@@ -245,6 +246,20 @@ type Session struct {
 	// name is the principal's username, for the comments that mention
 	// them by @username; empty when not known.
 	name string
+	// since is when the principal's account was made; zero when not
+	// known. What was written before it names whoever had the username
+	// then, not them (ADR-0262).
+	since time.Time
+}
+
+// Since returns the session with the time the principal's account was
+// made, so that a comment or text written before it does not count as
+// mentioning them: a username is free again once its account is deleted
+// (ADR-0262).
+func (x *Session) Since(made time.Time) *Session {
+	y := *x
+	y.since = made
+	return &y
 }
 
 // Named returns the session with the principal's username, so their
