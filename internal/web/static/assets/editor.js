@@ -614,8 +614,8 @@ function markActive(state, type) {
 const selectable = { stopEvent: (ev) => Boolean(ev.target.closest?.("a, button, input, select")), ignoreMutation: () => true };
 
 // OWN_CLICK names the parts of a block that take a click for themselves:
-// its controls and its fields.
-const OWN_CLICK = "a, button, input, select, textarea, label, [contenteditable=true]";
+// its controls, its fields and the players of a video or a sound.
+const OWN_CLICK = "a, button, input, select, textarea, label, video, audio, [contenteditable=true]";
 
 // clickedBlock returns the position of the block a click on target
 // selects, or null when the click is left to the editor or to the block.

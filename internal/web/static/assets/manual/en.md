@@ -175,7 +175,7 @@ Pictures can be placed left or right with text beside them, centred, and resized
 
 A click anywhere on an inserted block chooses it, also inside the content it shows, such as an embedded item, a view, a task list, a search field, a starmap or a slide deck: the block is outlined.
 Enter then puts a new line after it, **Insert…** puts the next block after it, and the chosen block can be cut, copied or deleted.
-A click on the block's own buttons, links and fields still does what they do.
+A click on the block's own buttons, links, fields and players still does what they do.
 
 **Table of contents** first asks how deep it lists the headings: under **Depth**, **Heading 1 only**, **Headings 1 to 2** or **Headings 1 to 3 (all)**. While you edit, the same choice stands on the table of contents itself and changes it at any time. Word, PDF and Markdown exports list the same headings.
 

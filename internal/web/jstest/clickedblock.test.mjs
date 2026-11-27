@@ -60,7 +60,7 @@ test("a click inside a view, a search field or an embedded text selects the bloc
   assert.equal(clickedBlock(view, embedText), offsets[3], "the text of an embedded item");
 });
 
-test("a click on a block's controls and fields is left to them", () => {
+test("a click on a block's controls, fields and players is left to them", () => {
   const button = el("button");
   const inButton = el("span");
   const field = el("input");
@@ -69,8 +69,11 @@ test("a click on a block's controls and fields is left to them", () => {
   const area = el("textarea");
   const caption = el("figcaption", { contenteditable: "true" });
   const searchDOM = el("section", { contenteditable: "false" }, el("p", {}, button, el("button", {}, inButton)), field, link, choice, area, caption);
-  const { view } = page([{ kind: "search" }], [searchDOM]);
-  for (const target of [button, inButton, field, link, choice, area, caption]) assert.equal(clickedBlock(view, target), null, target.tag);
+  const player = el("video", { controls: "" });
+  const sound = el("audio", { controls: "" });
+  const { view } = page([{ kind: "search" }, { kind: "video", ref: "f1" }, { kind: "audio", ref: "f2" }],
+    [searchDOM, el("figure", { contenteditable: "false" }, player), el("figure", { contenteditable: "false" }, sound)]);
+  for (const target of [button, inButton, field, link, choice, area, caption, player, sound]) assert.equal(clickedBlock(view, target), null, target.tag);
 });
 
 test("text, a table's cells and the space between blocks are left to the editor", () => {
