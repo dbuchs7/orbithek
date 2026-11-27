@@ -76,6 +76,11 @@ test("a deck's folder differs when its slides, their pictures or their notes dif
   assert.equal(deckChanged(kept, [pic("s2", "y", "B"), pic("s1", "x", "A")]), true);
   assert.equal(deckChanged(kept, [pic("s1", "x", "A"), pic("s2", "v", "B")]), true);
   assert.equal(deckChanged(kept, [pic("s1", "x", "A"), pic("s2", "y", "B, louder")]), true);
+  // A picture given out rewritten (turned by hand): its copy holds other
+  // content, and is its source's all the same while it names that file.
+  const turned = [{ ...pic("c1", "rewritten", "A"), source: "s1" }, pic("c2", "y", "B")];
+  assert.equal(deckChanged(turned, [pic("s1", "x", "A"), pic("s2", "y", "B")]), false);
+  assert.equal(deckChanged(turned, [pic("s1v2", "x2", "A"), pic("s2", "y", "B")]), true); // a new version of the source
 });
 
 test("a copy is turned as its source was turned by hand, unless the orientations mirror", () => {

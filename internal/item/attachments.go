@@ -427,6 +427,8 @@ type FileOrigin struct {
 	// the principal; nothing else is told then.
 	Readable bool
 	Item     Item
+	// Attachment is the file copied, the very version of it.
+	Attachment ID
 	// Latest is the newest version of the source file in its item, when it
 	// is newer than the one copied (a drawing edited since).
 	Latest *Attachment
@@ -461,7 +463,7 @@ func (x *Session) FileOrigin(id, attachment ID) (o FileOrigin, ok bool, err erro
 	if err != nil || src.Presence != Live || !x.s.readsFile(x.who, src, a.Source.Attachment) {
 		return FileOrigin{}, true, nil
 	}
-	o = FileOrigin{Readable: true, Item: Item{ID: src.ID, Key: src.Key, Title: src.Title, Space: src.Space, Type: src.Type}}
+	o = FileOrigin{Readable: true, Item: Item{ID: src.ID, Key: src.Key, Title: src.Title, Space: src.Space, Type: src.Type}, Attachment: a.Source.Attachment}
 	if latest := latestVersion(src, a.Source.Attachment); latest != nil && latest.ID != a.Source.Attachment && x.s.readsFile(x.who, src, latest.ID) {
 		l := seenBy(x.who, *latest)
 		o.Latest = &l

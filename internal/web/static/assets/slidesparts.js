@@ -69,11 +69,15 @@ export function keptSlides(pictures, files) {
 
 // deckChanged tells whether the slides of a deck's source differ from
 // those the deck keeps: another number of slides, another picture at a
-// place (by its content), or other notes. Both are album pictures in the
-// order of the slides.
+// place, or other notes. A kept slide is its source's picture when it is
+// a copy of that very file (source), or holds the same content: a picture
+// turned or timed by hand, or with its place kept back, is given out
+// rewritten, so its copy never has its source's content. Both are album
+// pictures in the order of the slides.
 export function deckChanged(kept, source) {
   if ((kept || []).length !== (source || []).length) return true;
-  return kept.some((k, i) => k.attachment.sha256 !== source[i].attachment.sha256 || (k.notes || "") !== (source[i].notes || ""));
+  const same = (k, s) => (!!k.source && k.source === s.attachment.id) || k.attachment.sha256 === s.attachment.sha256;
+  return kept.some((k, i) => !same(k, source[i]) || (k.notes || "") !== (source[i].notes || ""));
 }
 
 // QUARTERS are the quarter turns clockwise of the orientations of a

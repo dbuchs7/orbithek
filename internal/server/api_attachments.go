@@ -103,8 +103,17 @@ func (h itemHandlers) albumPage(x *item.Session, f *albumFilter, q url.Values, o
 	all := albumStacks(x, *f)
 	// Ordered only when a picture listed has a place in it (ADR-0195).
 	ordered := placed(all, f.ranks)
+	// source names the file a copy was made from, as far as the caller
+	// reads it (ADR-0055).
+	source := func(p item.Picture) item.ID {
+		if o, ok, err := x.FileOrigin(p.Item.ID, p.Attachment.ID); err == nil && ok && o.Readable {
+			return o.Attachment
+		}
+		return ""
+	}
 	for _, st := range all[min(offset, len(all)):min(offset+limit, len(all))] {
 		top := h.albumPictureOf(st[0])
+		top.Source = source(st[0])
 		top.Notes = st[0].Notes
 		taken := takenOf(st[0].Attachment)
 		top.Taken = &taken
@@ -114,7 +123,9 @@ func (h itemHandlers) albumPage(x *item.Session, f *albumFilter, q url.Values, o
 			top.Retention = &rule
 		}
 		for _, p := range st[1:] {
-			top.Versions = append(top.Versions, h.albumPictureOf(p))
+			v := h.albumPictureOf(p)
+			v.Source = source(p)
+			top.Versions = append(top.Versions, v)
 		}
 		*out = append(*out, top)
 	}
@@ -157,7 +168,12 @@ type albumPicture struct {
 	// First is the first version of the file, which names its
 	// stack; Favourite whether the caller marked it; Taken when it
 	// was taken, as the album sorts it (ADR-0177).
-	First     item.ID    `json:"first"`
+	First item.ID `json:"first"`
+	// Source is the file of another item this one is a copy of, the
+	// very version copied (ADR-0055); absent for a file that is no copy
+	// and for a source the caller may not read. A slide deck tells by
+	// it that a kept slide is still its folder's (ADR-0260).
+	Source    item.ID    `json:"source,omitempty"`
 	Favourite bool       `json:"favourite"`
 	Taken     *takenJSON `json:"taken,omitempty"`
 	// Versions are the older versions of the file, newest first
