@@ -776,6 +776,7 @@ Under **Groups**, a member stored without an account is shown with its ID and ma
 take them out with ×.
 System roles held by IDs without an account are listed under **Users and system roles** as **System roles without an account**, with a button to take each back;
 such a holder does not count as the last administrator.
+Taking a system role back, taking a person out of a group and withdrawing an assistant's approval ask before they are done, as taking back a room's role does.
 
 Under **Users and system roles**, **Suspend** ends an account's sessions at once and keeps it from signing in — by password, single sign-on, API tokens or connected assistants — until **Reactivate**;
 the account keeps its roles, tokens and settings, and is marked **Suspended**.

@@ -4473,6 +4473,7 @@ function webSource() {
     await page.waitForSelector("#groups th:text-is('@ops')");
     await page.click("#users tr:has-text('bert') label:has-text('erasure') input");
     await page.waitForSelector("#users tr:has-text('bert') label:has-text('erasure') input:checked");
+    answer = true; // taking a system role back asks first
     await page.click("#users tr:has-text('bert') label:has-text('erasure') input");
     await page.waitForSelector("#users tr:has-text('bert') label:has-text('erasure') input:not(:checked)");
     await page.click("#admin-spaces a:has-text('Settings')");
@@ -4559,6 +4560,7 @@ function webSource() {
     check((await page.request.post(base + "/api/spaces/ZFAV/purge", { data: { confirm: "ZFAV" } })).ok(), "and is deleted for good");
     await page.click("#account-button");
     await page.click("#account-menu a[href='#/admin']");
+    answer = true; // taking a person out of a group asks first
     await page.click("#groups button[aria-label^='Take bert out']");
     await page.waitForSelector("#admin-groups p:has-text('No groups yet.')");
 
@@ -4726,6 +4728,7 @@ function webSource() {
     step("AI access: the person withdraws the approval; local clients still use an API token");
     await page.goto(base + "/#/mcp");
     await page.waitForSelector("#aiaccess-grants td:has-text('read and write')");
+    answer = true; // withdrawing an approval asks first
     await page.click("#aiaccess-grants button:has-text('Withdraw')");
     await page.waitForSelector("#aiaccess-grants p:has-text('not approved any application')");
     await page.click("#aiaccess-token summary");

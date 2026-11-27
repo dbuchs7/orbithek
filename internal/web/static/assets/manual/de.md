@@ -776,6 +776,7 @@ Unter **Gruppen** erscheint ein Mitglied, das ohne Konto gespeichert wurde, mit 
 man entfernt sie mit ×.
 Systemrollen, die von IDs ohne Konto gehalten werden, stehen unter **Benutzer und Systemrollen** als **Systemrollen ohne Konto**, mit einer Schaltfläche zum Entziehen jeder Rolle;
 ein solcher Inhaber zählt nicht als letzte Administratorin oder letzter Administrator.
+Das Entziehen einer Systemrolle, das Entfernen einer Person aus einer Gruppe und das Widerrufen der Freigabe eines Assistenten fragen vorher nach, wie das Entziehen einer Raumrolle.
 
 Unter **Benutzer und Systemrollen** beendet **Sperren** die Sitzungen eines Kontos sofort und verhindert jede Anmeldung — mit Passwort, Single Sign-on, API-Token oder verbundenen Assistenten — bis **Reaktivieren**;
 das Konto behält seine Rollen, Token und Einstellungen und ist als **Gesperrt** markiert.
