@@ -361,6 +361,9 @@ func (a *Accounts) IssueCode(user UserID, clientID, redirect, challenge, resourc
 	if _, ok := a.users[user]; !ok {
 		return "", ErrNotFound
 	}
+	if !a.active(user) {
+		return "", ErrSuspended
+	}
 	s, now := a.oauth(), a.now()
 	for k, c := range s.codes {
 		if !now.Before(c.expires) {
@@ -463,6 +466,11 @@ func (a *Accounts) ThrottleOAuth(addr string, run func() (OAuthTokens, error)) (
 // issueTokens records the grant with a new refresh token and makes an
 // access token; callers hold a.mu.
 func (a *Accounts) issueTokens(user UserID, client, target string, scope Scope, kind string) (OAuthTokens, error) {
+	// A suspended or deleted account's approvals give nothing
+	// (ADR-0262).
+	if !a.active(user) {
+		return OAuthTokens{}, ErrInvalidGrant
+	}
 	rawA, err := a.newID(32)
 	if err != nil {
 		return OAuthTokens{}, err
@@ -496,7 +504,7 @@ func (a *Accounts) OAuthPrincipal(token string) (Principal, string, bool) {
 		delete(a.oauth().access, h)
 		return Principal{}, "", false
 	}
-	if _, ok := a.users[t.user]; !ok {
+	if !a.active(t.user) {
 		return Principal{}, "", false
 	}
 	return a.principal(t.user, t.scope, "oauth", ""), t.target, true

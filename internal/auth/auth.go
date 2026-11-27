@@ -55,6 +55,9 @@ type User struct {
 	ID       UserID
 	Username string
 	Created  time.Time
+	// Suspended says the account may not sign in until it is reactivated
+	// (ADR-0262).
+	Suspended bool
 }
 
 // Token is an API token as listed; its secret is shown only at creation.
@@ -123,6 +126,9 @@ type Accounts struct {
 	sessions map[string]*session // by secret hash
 	external map[string]UserID   // issuer + "\x00" + subject -> user (ADR-0030)
 	feeds    map[string]feedRef  // calendar feeds by secret hash (ADR-0168)
+	// deleted are the IDs of deleted accounts, kept so that what refers
+	// to them can say so (ADR-0262).
+	deleted  map[UserID]bool
 	throttle throttle
 	dummy    string // hash checked for unknown usernames, at the same cost
 }
@@ -198,7 +204,7 @@ func New(records [][]byte, j Journal, opts ...Option) (*Accounts, error) {
 		users: map[UserID]*user{}, byName: map[string]UserID{},
 		tokens: map[string]*token{}, tokenIDs: map[string]*token{}, sessions: map[string]*session{},
 		external: map[string]UserID{}, requests: map[string]*request{}, resets: map[UserID]*reset{},
-		feeds: map[string]feedRef{},
+		feeds: map[string]feedRef{}, deleted: map[UserID]bool{},
 	}
 	for _, o := range opts {
 		o(a)
@@ -380,6 +386,8 @@ func (a *Accounts) apply(e event) error {
 		u.displayName, u.displayNameChosen = e.DisplayName, true
 	case pictureFavouriteSet:
 		return a.applyPictureFavourite(e)
+	case accountSuspended, accountReactivated, accountDeleted:
+		return a.applyLifecycle(e)
 	case digestSent:
 		u, ok := a.users[e.User]
 		if !ok {
@@ -662,6 +670,9 @@ func (a *Accounts) Login(username, password, addr string) (secret string, p Prin
 		return "", Principal{}, ErrUnauthorized
 	}
 	a.throttle.reset("user:" + fold(username))
+	if !a.active(id) {
+		return "", Principal{}, ErrSuspended
+	}
 	return a.openSession(id)
 }
 
@@ -709,7 +720,7 @@ func (a *Accounts) Session(secret string) (Principal, bool) {
 	if !ok {
 		return Principal{}, false
 	}
-	if !a.now().Before(s.expires) {
+	if !a.now().Before(s.expires) || !a.active(s.user) {
 		delete(a.sessions, h)
 		return Principal{}, false
 	}
@@ -783,7 +794,7 @@ func (a *Accounts) TokenPrincipal(secret string) (Principal, bool) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	t, ok := a.tokens[hashSecret(secret)]
-	if !ok || !a.now().Before(t.Expires) {
+	if !ok || !a.now().Before(t.Expires) || !a.active(t.User) {
 		return Principal{}, false
 	}
 	return a.principal(t.User, t.Scope, "token", ""), true
@@ -861,6 +872,9 @@ func (a *Accounts) StartSession(id UserID) (string, Principal, error) {
 	defer a.mu.Unlock()
 	if _, ok := a.users[id]; !ok {
 		return "", Principal{}, ErrNotFound
+	}
+	if !a.active(id) {
+		return "", Principal{}, ErrSuspended
 	}
 	return a.openSession(id)
 }

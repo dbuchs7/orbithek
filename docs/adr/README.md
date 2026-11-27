@@ -274,3 +274,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0259](0259-a-folder-is-shown-in-the-order-of-its-slides.md) | A folder or collection is shown in the order of its slides by default | Accepted | Landed |
 | [0260](0260-a-slide-deck-in-a-text.md) | A slide deck in a text, kept as it was saved and presented from the text | Proposed | Partial |
 | [0261](0261-a-query-field-for-who-made-or-changed-an-item.md) | A query field for who made or changed an item | Accepted | Landed |
+| [0262](0262-suspending-and-deleting-accounts.md) | Administrators suspend accounts and delete them, leaving the account's ID as deleted | Proposed | Partial |
