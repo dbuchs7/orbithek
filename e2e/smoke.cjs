@@ -6455,6 +6455,8 @@ function webSource() {
     await page.click("#view-layout-gallery");
     await page.waitForSelector("#view .iv-gallery .iv-card");
     check(await page.locator("#view .iv-card").count() === 3, "the gallery shows a card per story");
+    const cardTops = await page.locator("#view .iv-card").evaluateAll((cards) => cards.map((c) => Math.round(c.getBoundingClientRect().top)));
+    check(new Set(cardTops).size < cardTops.length, "the gallery sets its cards side by side where the width allows: " + JSON.stringify(cardTops));
     const titleField = `#view .iv-card[data-key='${billing.key}'] .iv-field[data-col=title]`;
     await page.hover(titleField);
     await page.click(titleField + " .iv-edit");
@@ -6484,6 +6486,8 @@ function webSource() {
     await page.waitForSelector("#body .pm-itemview .iv-gallery .iv-card");
     await page.click("#edit-done");
     await page.waitForSelector("#body.reading .pm-itemview details.iv-group[data-group=doing] .iv-card");
+    const todoTops = await page.locator("#body.reading .pm-itemview details.iv-group[data-group=todo] .iv-card").evaluateAll((cards) => cards.map((c) => Math.round(c.getBoundingClientRect().top)));
+    check(todoTops.length >= 2 && new Set(todoTops).size < todoTops.length, "a gallery in a text sets its cards side by side where the column allows: " + JSON.stringify(todoTops));
     const viewBlock = (await viewAPI("GET", "/api/items/" + overview.id)).item.body.find((b) => b.kind === "view");
     check(viewBlock && viewBlock.layout === "gallery" && viewBlock.itemType === "story" && viewBlock.group === "state", "the text keeps what the view shows: " + JSON.stringify(viewBlock));
 
