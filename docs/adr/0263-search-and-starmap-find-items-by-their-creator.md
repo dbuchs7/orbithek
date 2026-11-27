@@ -1,9 +1,9 @@
 # ADR-0263: Search and starmap find items by their creator; a dropped node stays until released
 
-- **Status:** Proposed
-- **Implementation:** Partial
+- **Status:** Accepted
+- **Implementation:** Landed
 - **Date:** 2026-11-27
-- **Deciders:** Project initiators (request of 2026-11-27 that the search finds the items of an author by part of the author's name, also on the starmap, without searching mail addresses; that nodes of the starmap can be moved by mouse with "Fit" and "Release" as in atlas; and that the starmap's filters stand in a column at the right as in atlas)
+- **Deciders:** Project initiators (request of 2026-11-27 that the search finds the items of an author by part of the author's name, also on the starmap, without searching mail addresses; that nodes of the starmap can be moved by mouse with "Fit" and "Release" as in atlas; and that the starmap's filters stand in a column at the right as in atlas). Built in #410 and accepted by the requester on 2026-11-27.
 - **Open question:** whether the display name (ADR-0246) is searched too, which needs other people to see it and so a record of its own; and whether people who changed an item, not only its creator, find it
 - **Question checked:** 2026-11
 
