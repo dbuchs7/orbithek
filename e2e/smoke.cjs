@@ -4298,7 +4298,7 @@ function webSource() {
     const myName = await page.evaluate(async () => (await (await fetch("/api/me")).json()).user.username);
     await page.locator("#nav .search input").pressSequentially(myName.slice(0, 4));
     await page.click(`#search-suggest:not([hidden]) [role=option][data-person='${myName}']`);
-    await page.waitForFunction(() => location.hash.startsWith("#/query?") && decodeURIComponent(location.hash).includes("creator ="));
+    await page.waitForFunction(() => location.hash.startsWith("#/query?") && (new URLSearchParams(location.hash.split("?")[1]).get("q") || "").startsWith("creator ="));
     await page.waitForSelector("table tr:has-text('Hero image')");
 
     step("task list: tasks on a kanban are listed too, with their label; the labels at the right filter the list");
