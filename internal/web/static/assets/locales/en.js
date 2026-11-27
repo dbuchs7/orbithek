@@ -200,7 +200,6 @@ export default {
   "links.since": "Checking since {when}…",
   "links.usedIn": "Used in",
 
-  "item.body": "Body",
   "item.erased": "(erased)",
   "item.guarded": "Restricted automatically: this item seems to contain sensitive data, such as a password. Only its author and the room administrators can read it until an administrator lifts the restriction under Governance.",
   "item.detached": "This task is no longer followed by the engine {engine}; it is the wiki's again and is worked as any item.",
@@ -214,7 +213,6 @@ export default {
   "item.status": "Status",
   "item.stateMove": "Change to {state} ({transition})",
   "item.stateMoves": "Change the status",
-  "item.transitions": "Transitions: ",
   "item.trash": "Move to trash",
   "item.version": " · version {n}",
 
@@ -272,8 +270,6 @@ export default {
   "admin.badJson": "not valid JSON: {error}",
   "admin.createSpace": "Create room",
   "admin.createUser": "Create user",
-  "admin.define": "Define",
-  "admin.defineType": "Define a type",
   "admin.removeType": "Remove",
   "admin.removeTypeConfirm": "Remove the type {name}? It is no longer offered. This works only when no item and no kanban uses it; delete those first.",
   "admin.differ": "The passphrases differ.",
@@ -290,7 +286,6 @@ export default {
   "admin.role": "Role",
   "admin.saved": "Saved {name}. Restore it with: orbithek restore -from {name}",
   "admin.title": "Administration",
-  "admin.typeJson": "Type as JSON",
   "admin.user": "User",
   "admin.keyHint": "Capital letters and digits, starting with a letter, e.g. DOCS",
 
@@ -1527,7 +1522,6 @@ export default {
   "admin.typeBody": "with body",
   "admin.typeFields": "fields: {list}",
   "admin.typeStates": "states: {list}",
-  "admin.typeHelp": "A type is defined as JSON: name, body (true or false), fields (name, kind text, number, bool, date, datetime (a point in time), recurrence (how it repeats), user or enum with values, required) and an optional workflow (initial, states, transitions with name, from, to and requires). Defining an existing name makes a new version; items keep the version they were created with. Edit copies a type into the field. Remove takes out a type that no item and no kanban uses.",
   "admin.users": "Users and system roles",
   "admin.usersHelp": "Administrators manage everything and act as room administrators in every room. The erasure role may redact content at once, for legal deletion requests. The last administrator keeps the role.",
   "admin.usersLifecycleHelp": "Suspend ends an account's sessions and keeps it from signing in, by password, single sign-on, tokens or connected assistants, until it is reactivated; nothing else changes. Delete removes an account for good: its roles, group memberships, sign-ins, tokens, connections and personal settings go, and its content stays, naming it as a deleted account. Neither is offered for one's own account or the last administrator who can sign in.",
@@ -1621,7 +1615,6 @@ export default {
   "kanban.meta": "{type} · label {label}",
   "kanban.metaLong": "{space} · {type} · label {label}",
   "kanban.cards": {"one": "{n} card", "other": "{n} cards"},
-  "kanban.missing": "This kanban does not exist (any more).",
   "kanban.newCard": "New card: title",
   "kanban.newCardIn": "New card in {column}",
   "kanban.add": "Add",

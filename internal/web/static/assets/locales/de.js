@@ -198,7 +198,6 @@ export default {
   "links.since": "Prüfung läuft seit {when}…",
   "links.usedIn": "Verwendet in",
 
-  "item.body": "Inhalt",
   "item.erased": "(gelöscht)",
   "item.guarded": "Automatisch eingeschränkt: Dieser Eintrag scheint schützenswerte Daten zu enthalten, etwa ein Passwort. Nur die verfassende Person und die Raumadministratoren können ihn lesen, bis eine Administratorin oder ein Administrator die Einschränkung unter Governance aufhebt.",
   "item.detached": "Dieser Task wird von der Engine {engine} nicht mehr verfolgt; der Eintrag gehört wieder dem Wiki und wird wie jeder andere bearbeitet.",
@@ -212,7 +211,6 @@ export default {
   "item.status": "Status",
   "item.stateMove": "Wechseln zu {state} ({transition})",
   "item.stateMoves": "Status ändern",
-  "item.transitions": "Übergänge: ",
   "item.trash": "In den Papierkorb",
   "item.version": " · Version {n}",
 
@@ -270,8 +268,6 @@ export default {
   "admin.badJson": "kein gültiges JSON: {error}",
   "admin.createSpace": "Raum erstellen",
   "admin.createUser": "Benutzer erstellen",
-  "admin.define": "Definieren",
-  "admin.defineType": "Typ definieren",
   "admin.removeType": "Entfernen",
   "admin.removeTypeConfirm": "Typ {name} entfernen? Er wird nicht mehr angeboten. Das geht nur, wenn kein Eintrag und kein Kanban ihn verwendet; diese zuerst löschen.",
   "admin.differ": "Die Passphrasen stimmen nicht überein.",
@@ -288,7 +284,6 @@ export default {
   "admin.role": "Rolle",
   "admin.saved": "{name} gespeichert. Wiederherstellen mit: orbithek restore -from {name}",
   "admin.title": "Administration",
-  "admin.typeJson": "Typ als JSON",
   "admin.user": "Benutzer",
   "admin.keyHint": "Grossbuchstaben und Ziffern, beginnend mit einem Buchstaben, z. B. DOCS",
 
@@ -1525,7 +1520,6 @@ export default {
   "admin.typeBody": "mit Inhalt",
   "admin.typeFields": "Felder: {list}",
   "admin.typeStates": "Zustände: {list}",
-  "admin.typeHelp": "Ein Typ wird als JSON definiert: name, body (true oder false), fields (name, kind text, number, bool, date, datetime (ein Zeitpunkt), recurrence (Wiederholung), user oder enum mit values, required) und ein optionaler workflow (initial, states, transitions mit name, from, to und requires). Ein bestehender Name ergibt eine neue Version; Einträge behalten die Version, mit der sie erstellt wurden. Bearbeiten kopiert einen Typ in das Feld. Entfernen nimmt einen Typ heraus, den kein Eintrag und kein Kanban verwendet.",
   "admin.users": "Benutzer und Systemrollen",
   "admin.usersHelp": "Administratorinnen und Administratoren verwalten alles und sind in jedem Raum Raumadministration. Die Rolle Löschung darf Inhalte sofort schwärzen, für rechtliche Löschbegehren. Die letzte Administratorin oder der letzte Administrator behält die Rolle.",
   "admin.usersLifecycleHelp": "Sperren beendet die Sitzungen eines Kontos und verhindert jede Anmeldung, ob mit Passwort, Single Sign-on, Token oder verbundenen Assistenten, bis es reaktiviert wird; sonst ändert sich nichts. Löschen entfernt ein Konto endgültig: Rollen, Gruppenmitgliedschaften, Anmeldungen, Token, Verbindungen und persönliche Einstellungen gehen, die Inhalte bleiben und nennen es als gelöschtes Konto. Beides wird weder für das eigene Konto noch für die letzte Administratorin oder den letzten Administrator angeboten, die sich anmelden können.",
@@ -1619,7 +1613,6 @@ export default {
   "kanban.meta": "{type} · Label {label}",
   "kanban.metaLong": "{space} · {type} · Label {label}",
   "kanban.cards": {"one": "{n} Karte", "other": "{n} Karten"},
-  "kanban.missing": "Dieses Kanban gibt es nicht (mehr).",
   "kanban.newCard": "Neue Karte: Titel",
   "kanban.newCardIn": "Neue Karte in {column}",
   "kanban.add": "Hinzufügen",
