@@ -78,7 +78,7 @@ func TestAChangeThatIsNotPersistedDoesNotHappen(t *testing.T) {
 
 func TestDecodeRejectsWhatItCannotReadExactly(t *testing.T) {
 	cases := map[string]string{
-		"newer format":       `[{"v":73,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
+		"newer format":       `[{"v":74,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"no format version":  `[{"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated"}]`,
 		"unknown field":      `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"SpaceCreated","colour":"red"}]`,
 		"unknown role":       `[{"v":1,"seq":1,"at":"2026-01-01T00:00:00Z","kind":"RoleGranted","role":"owner"}]`,
@@ -210,8 +210,9 @@ func TestPersistedFormatIsStable(t *testing.T) {
 	hidden := hideTypesLog(t)
 	starmaps := starmapBlockLog(t)
 	decks := slidesLog(t)
+	searches := searchBlockLog(t)
 	kinds := map[EventKind]bool{}
-	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments, notes, photos, places, renames, geotags, moves, albumVideos, faces, slideOrders, fingerprints, times, turned, highlights, itemViews, kinds55, styledTables, shareFiles, sounds, depths, deepLists, numbered, numberedTypes, hidden, starmaps, decks) {
+	for _, e := range slices.Concat(log, rich, comments, tree, blocks, labels, files, watches, inline, access, provenance, sizes, holds, layout, kanbans, spaces, catalog, columns, names, secrets, erasure, album, removal, video, retention, tasklist, lists, diagrams, look, lanes, views, engines, sketches, starts, linked, queried, sections, tasks, moments, templates, series, drawingComments, notes, photos, places, renames, geotags, moves, albumVideos, faces, slideOrders, fingerprints, times, turned, highlights, itemViews, kinds55, styledTables, shareFiles, sounds, depths, deepLists, numbered, numberedTypes, hidden, starmaps, decks, searches) {
 		kinds[e.Kind] = true
 	}
 	for _, k := range allEventKinds {
@@ -338,6 +339,8 @@ func TestPersistedFormatIsStable(t *testing.T) {
 		{"events.current.starmapblock.plain.golden.jsonl", nil, starmaps},
 		{"events.current.slides.golden.jsonl", fakeSealer{}, decks},
 		{"events.current.slides.plain.golden.jsonl", nil, decks},
+		{"events.current.searchblock.golden.jsonl", fakeSealer{}, searches},
+		{"events.current.searchblock.plain.golden.jsonl", nil, searches},
 	}
 	for _, c := range cases {
 		name, sl, log := c.name, c.sl, c.log
@@ -1941,6 +1944,23 @@ func hideTypesLog(t *testing.T) []Event {
 	anna := s.As("anna")
 	page := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Handbook"}))
 	noErr(t, anna.CommitBody(page.ID, Doc{Blocks: []Block{{Kind: Children, Depth: 2, HideTypes: []string{"decision", "task"}}}}))
+	return s.Log()
+}
+
+// searchBlockLog places two search fields in a text, one of the item's
+// room and one of the pages below another page, so the golden files pin
+// the block kind search and its fields
+// (ADR-draft-a-search-field-in-a-text).
+func searchBlockLog(t *testing.T) []Event {
+	s := setup(t)
+	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))
+	anna := s.As("anna")
+	handbook := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Handbook"}))
+	page := mustItem(t)(anna.Create(NewItem{Space: "PLAT", Type: "page", Title: "Find"}))
+	noErr(t, anna.CommitBody(page.ID, Doc{Blocks: []Block{
+		{Kind: SearchBlock, Space: "PLAT"},
+		{Kind: SearchBlock, Scope: ScopeBelow, Ref: handbook.ID},
+	}}))
 	return s.Log()
 }
 

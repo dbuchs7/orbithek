@@ -229,7 +229,11 @@ import (
 //     its item, sealed with the body (ADR-0260).
 //     Versions 1 to 71 are still read; their slide decks keep no slides
 //     and show their folder as it is.
-const CodecVersion = 72
+//   - 73: the block kind search, with the block field Scope and its
+//     Space and Ref, sealed with the body
+//     (ADR-draft-a-search-field-in-a-text).
+//     Versions 1 to 72 are still read; their bodies show no search field.
+const CodecVersion = 73
 
 // Sealer encrypts the content of events with a key per item, so that
 // destroying the key makes the content unrecoverable (crypto-shredding,

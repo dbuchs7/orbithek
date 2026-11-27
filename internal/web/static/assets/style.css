@@ -2187,7 +2187,16 @@ dialog.note-dialog { max-height: calc(100dvh - 32px); overflow: auto; }
 .starmap-controls .starmap-label-form input { flex: 1; min-width: 0; }
 .starmap-controls .starmap-filter { flex-direction: column; align-items: start; }
 .starmap-impact-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.starmap-side .starmap-panel { position: static; width: auto; max-height: none; overflow: visible; box-shadow: none; }
+.starmap-side /* A search field in a text (ADR-draft-a-search-field-in-a-text):
+   the field and its scope on one line, the hits below. */
+.pm-search { margin: 0.75rem 0; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.pm-search .pm-box-title { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: baseline; margin-top: 0; }
+.searchblock-form { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.searchblock-form .searchblock-q { flex: 1 1 14rem; min-width: 0; }
+.searchblock-form .searchblock-scope, .searchblock-form button { flex: 0 1 auto; width: auto; max-width: 100%; }
+.searchblock-hits:empty { display: none; }
+.searchblock-total:empty { display: none; }
+.starmap-panel { position: static; width: auto; max-height: none; overflow: visible; box-shadow: none; }
 .starmap-side .starmap-impact { margin-top: 0; }
 @media (max-width: 900px) {
   .starmap-body { grid-template-columns: minmax(0, 1fr); }

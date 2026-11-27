@@ -215,6 +215,10 @@ type blockJSON struct {
 	// Files are a slide deck's slides, files of the item in their order
 	// (ADR-0260).
 	Files []item.ID `json:"files,omitempty"`
+	// Scope is what a search field in a text searches: none for a room,
+	// page, tree or below for a page
+	// (ADR-draft-a-search-field-in-a-text).
+	Scope string `json:"scope,omitempty"`
 }
 
 type cellJSON struct {
@@ -242,7 +246,7 @@ func toBlockJSON(b item.Block) blockJSON {
 	j := blockJSON{Kind: b.Kind, Text: b.Text, Level: b.Level, Mentions: b.Mentions, Ref: b.Ref, Checked: b.Checked, Tone: b.Tone, Width: b.Width, Align: b.Align, Engine: b.Engine, Process: b.Process, View: b.View,
 		Form: b.Form, Decision: b.Decision, Application: b.Application, Release: b.Release, Layers: b.Layers, Link: b.Link, Query: b.Query, Secret: b.Secret,
 		Layout: b.Layout, ItemType: b.ItemType, Space: b.Space, Group: b.Group, Columns: b.Columns, Sort: b.Sort, Depth: b.Depth, HideTypes: b.HideTypes,
-		Label: b.Label, Search: b.Search, HideKinds: b.HideKinds, Files: b.Files}
+		Label: b.Label, Search: b.Search, HideKinds: b.HideKinds, Files: b.Files, Scope: b.Scope}
 	for _, m := range b.Marks {
 		j.Marks = append(j.Marks, markJSON{Type: m.Type, Start: m.Start, End: m.End, Href: m.Href, Ref: m.Ref, Value: m.Value})
 	}
@@ -267,18 +271,18 @@ func toDoc(blocks []blockJSON, kept func(text string) bool) (item.Doc, error) {
 		switch b.Kind {
 		case item.Paragraph, item.Heading, item.Embed, item.BulletItem, item.OrderedItem, item.Quote, item.CodeBlock,
 			item.TaskItem, item.Panel, item.Table, item.TOC, item.Children, item.Image, item.Video, item.Audio, item.Divider, item.TaskList, item.Figures, item.Tables, item.BPMN, item.Process, item.Form, item.Decision,
-			item.Architecture, item.StartForm, item.ItemsView, item.StarmapBlock, item.Slides:
+			item.Architecture, item.StartForm, item.ItemsView, item.StarmapBlock, item.Slides, item.SearchBlock:
 		case item.Unsupported:
 			if kept == nil || !kept(b.Text) {
 				return d, badInput("block %d: unsupported blocks come only from imports", i+1)
 			}
 		default:
-			return d, badInput("block %d: kind must be paragraph, heading, bullet, ordered, quote, code, task, panel, table, toc, figures, tables, children, divider, image, video, bpmn, process, form, decision, architecture, startform, tasklist, view, starmap, slides or embed", i+1)
+			return d, badInput("block %d: kind must be paragraph, heading, bullet, ordered, quote, code, task, panel, table, toc, figures, tables, children, divider, image, video, bpmn, process, form, decision, architecture, startform, tasklist, view, starmap, slides, search or embed", i+1)
 		}
 		blk := item.Block{Kind: b.Kind, Text: b.Text, Level: b.Level, Mentions: b.Mentions, Ref: b.Ref, Checked: b.Checked, Tone: b.Tone, Width: b.Width, Align: b.Align, Engine: b.Engine, Process: b.Process, View: b.View,
 			Form: b.Form, Decision: b.Decision, Application: b.Application, Release: b.Release, Link: b.Link, Query: b.Query, Secret: b.Secret,
 			Layout: b.Layout, ItemType: b.ItemType, Space: b.Space, Group: b.Group, Sort: b.Sort, Depth: b.Depth,
-			Label: b.Label, Search: b.Search, Files: b.Files}
+			Label: b.Label, Search: b.Search, Files: b.Files, Scope: b.Scope}
 		if len(b.HideKinds) > 0 {
 			// Named once each, in their order; an empty list hides
 			// nothing, as none does (ADR-0252).

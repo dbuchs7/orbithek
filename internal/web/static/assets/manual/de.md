@@ -167,6 +167,7 @@ Das Menü **Einfügen…** fügt Blöcke nach dem Cursor ein:
 - **Ansicht von Einträgen…**: die Einträge eines Typs als Tabelle, Galerie oder Liste, gruppiert nach einem Feld (siehe *Ansichten von Einträgen*);
 - **Foliensatz…**: die Bilder eines Album-Ordners als Folien, die man im Text durchblättert und von dort präsentiert (siehe *Foliensatz in einem Text*);
 - **Sternenkarte…**: eine Sternenkarte im Text, eingegrenzt nach Wahl (siehe *Sternenkarte im Text*);
+- **Suchfeld…**: eine Suche im Text, eingegrenzt auf einen Raum oder auf eine Seite und ihre Unterseiten (siehe *Suchfeld im Text*);
 - **Markdown einfügen…** und **Markdown-Datei aus einem Repository…** (sofern eingeschaltet);
 - BPMN-Diagramme sowie Prozesse, Formulare, Entscheidungen, Startformulare und Architekturskizzen einer Prozess-Engine (siehe *Prozess-Engines*).
 
@@ -306,6 +307,25 @@ Man gibt Wörter aus Titel, Text oder Kommentar oder einen Schlüssel wie `PLAT-
 
 Ein Wort eines Benutzernamens findet auch die Einträge, die diese Person erstellt hat: nur Benutzernamen, nie E-Mail-Adressen oder Anzeigenamen.
 Unter **Personen** nennen die Vorschläge die Personen, die Einträge erstellt haben, die man lesen darf, mit deren Anzahl; wählt man eine, erscheint als Abfrage, was diese Person erstellt hat, das Neueste zuerst (`creator = "…"`).
+
+### Suchfeld im Text {#searchblock}
+
+Beim Bearbeiten fügt **Einfügen…** → **Suchfeld…** eine Suche in den Text ein.
+Der Dialog legt fest, wo sie sucht (**Suchen in**):
+
+- **Raum**: alle Einträge eines Raums, standardmässig **Raum dieses Eintrags**;
+- **Seite**: nur die Seite;
+- **Seite und Unterseiten**: die Seite und alle Ebenen darunter;
+- **Nur Unterseiten**: alle Ebenen unter der Seite, ohne die Seite selbst.
+
+Bei den letzten drei nennt **Seite** die Seite über ihren Schlüssel oder ein Wort ihres Titels; bleibt das Feld leer, gilt die Seite, auf der das Suchfeld steht, sodass eine verschobene oder kopierte Seite ihre Suche mitnimmt.
+**Suchfeld einfügen** fügt es ein, und **Suchfeld ändern…** ändert es später.
+Eine Zeile über dem Feld nennt, was es durchsucht.
+
+Lesende geben Wörter ein und wählen **Suchen** oder Enter; die Treffer erscheinen unter dem Feld, die besten zuerst, und ein Klick öffnet einen Treffer.
+Lesende können beim Lesen einen anderen Bereich wählen; ihre Wahl wird nicht gespeichert, und das Feld beginnt wieder wie gewählt.
+Das Feld findet nur, was die lesende Person lesen darf; eine Seite, die sie nicht lesen darf, wird als solche genannt.
+Exporte nennen das Feld, statt zu suchen.
 
 ### Befehlspalette
 
