@@ -6555,6 +6555,27 @@ function webSource() {
     await page.click(`#body .searchblock-hits a[href='#/item/${encodeURIComponent(zChapter.key)}']`);
     await page.waitForFunction((key) => location.hash === "#/item/" + key, zChapter.key);
 
+    step("blocks with content of their own: a click in their content chooses them, outlined, and Enter puts a line after them (ADR-0042)");
+    const { item: chooser } = await viewAPI("POST", "/api/items", { space: "VIEWS", type: "story", title: "Chooser", properties: {},
+      body: [{ kind: "paragraph", text: "Before." }, { kind: "view", layout: "table", itemType: "story", space: "VIEWS" }, { kind: "search" }, { kind: "paragraph", text: "After." }] });
+    await page.goto(base + `/#/item/${chooser.key}?edit`);
+    await page.waitForSelector("#body .ProseMirror[contenteditable=true] .pm-itemview table th");
+    await page.click("#body .pm-itemview table th", { position: { x: 2, y: 2 } });
+    await page.waitForSelector("#body .pm-itemview.ProseMirror-selectednode");
+    check(await page.$eval("#body .pm-itemview", (el) => getComputedStyle(el).outlineStyle) === "solid", "the chosen view is outlined");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("Below the view.");
+    await page.click("#body .pm-search .pm-search-summary", { position: { x: 2, y: 2 } });
+    await page.waitForSelector("#body .pm-search.ProseMirror-selectednode");
+    check(await page.locator("#body .ProseMirror-selectednode").count() === 1, "one block is chosen at a time");
+    await page.click("#body .pm-search .searchblock-q");
+    await page.keyboard.type("kept");
+    check(await page.inputValue("#body .pm-search .searchblock-q") === "kept", "the block's field keeps its clicks and keys");
+    await page.click("#edit-done");
+    await page.waitForSelector("#body.reading");
+    check((await viewAPI("GET", "/api/items/" + chooser.id)).item.body.map((b) => b.kind === "paragraph" ? b.text : b.kind).join("|") === "Before.|view|Below the view.|search|After.",
+      "the new line is after the chosen view, before the search field");
+
     step("label pages: a label is described by a page that shows its items, ordered by hand (ADR-0204)");
     await page.goto(base + "/#/label/first-week");
     await page.click("#label-describe");

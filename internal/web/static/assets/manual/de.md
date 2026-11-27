@@ -173,6 +173,10 @@ Das Menü **Einfügen…** fügt Blöcke nach dem Cursor ein:
 
 Bilder lassen sich links oder rechts mit Text daneben oder zentriert platzieren und durch Ziehen in der Grösse ändern; eine Bildunterschrift nummeriert sie im Bildverzeichnis.
 
+Ein Klick irgendwo auf einen eingefügten Block wählt ihn, auch einer in den Inhalt, den er zeigt, etwa einen eingebetteten Eintrag, eine Ansicht, eine Aufgabenliste, ein Suchfeld, eine Sternenkarte oder einen Foliensatz: Der Block wird umrandet.
+Enter fügt dann eine neue Zeile nach ihm ein, **Einfügen…** den nächsten Block nach ihm, und der gewählte Block lässt sich ausschneiden, kopieren oder löschen.
+Ein Klick auf die eigenen Schaltflächen, Links und Felder des Blocks tut weiterhin, was sie tun.
+
 **Inhaltsverzeichnis** fragt zuerst, wie tief es die Überschriften listet: unter **Tiefe** **Nur Überschrift 1**, **Überschriften 1 bis 2** oder **Überschriften 1 bis 3 (alle)**. Beim Bearbeiten steht dieselbe Wahl am Inhaltsverzeichnis selbst und ändert es jederzeit. Die Exporte nach Word, PDF und Markdown listen dieselben Überschriften.
 
 Ein eingebetteter Eintrag zeigt entweder **Den ganzen Eintrag** oder **Nur den Inhalt**; beim Bearbeiten wechselt die Wahl **Zeigt** an der Einbettung zwischen beiden, und eine schmale Zeile nennt den Eintrag, dessen Inhalt gezeigt wird. Lesende sehen den Inhalt dann genau so, als wäre er direkt in der Seite geschrieben: ohne Rahmen und Namen, mit denselben Abständen und Schriften, und Inhaltsverzeichnis, Bildverzeichnis und Tabellenverzeichnis der Seite zählen seine Überschriften, Bilder und Tabellen wie die eigenen. Der Inhalt bleibt der des anderen Eintrags: Er ist immer aktuell, lässt sich nicht an Ort und Stelle bearbeiten und zeigt allen nur, was sie lesen dürfen. Wer den Eintrag nicht lesen darf, sieht wie bei einer vollständigen Einbettung, dass dort ein Eintrag verborgen ist. Die Exporte schreiben den Inhalt ebenso allein.

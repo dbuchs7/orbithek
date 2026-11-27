@@ -7,7 +7,7 @@
 // refuses.
 import {
   Schema, EditorState, EditorView, Plugin, PluginKey, Decoration, DecorationSet, keymap, baseKeymap, toggleMark, setBlockType,
-  splitBlockAs, chainCommands, history, undo, redo, inputRules, textblockTypeInputRule, TextSelection,
+  splitBlockAs, chainCommands, history, undo, redo, inputRules, textblockTypeInputRule, TextSelection, NodeSelection,
 } from "../vendor/prosemirror.js";
 import { h, safeHref } from "./dom.js";
 import { t } from "./i18n.js";
@@ -611,6 +611,32 @@ function markActive(state, type) {
 // on the block selects it, like any block, so it can be cut, moved or
 // deleted.
 const selectable = { stopEvent: (ev) => Boolean(ev.target.closest?.("a, button, input, select")), ignoreMutation: () => true };
+
+// OWN_CLICK names the parts of a block that take a click for themselves:
+// its controls and its fields.
+const OWN_CLICK = "a, button, input, select, textarea, label, [contenteditable=true]";
+
+// clickedBlock returns the position of the block a click on target
+// selects, or null when the click is left to the editor or to the block.
+// Blocks that show content of their own — an embedded item, a view, a
+// search field, a starmap, a slide deck, a diagram — keep the events in
+// that content for it, so ProseMirror never sees a click there; without
+// this, such a block could be chosen only on its frame, and a person
+// could not tell which block the next line goes after. A click on the
+// block's controls and fields stays theirs, and a table's cells are
+// edited and chosen in the table (ADR-0214).
+export function clickedBlock(view, target) {
+  if (!target?.closest) return null;
+  let found = null;
+  view.state.doc.forEach((node, offset) => {
+    if (found !== null || !node.isAtom || !node.type.spec.selectable || node.type === schema.nodes.table) return;
+    const dom = view.nodeDOM(offset);
+    if (!dom?.contains?.(target)) return;
+    const own = target.closest(OWN_CLICK);
+    found = own && dom.contains(own) ? false : offset;
+  });
+  return typeof found === "number" ? found : null;
+}
 
 // taskView draws a task's checkbox; ticking it changes the task.
 function taskView(node, view, getPos) {
@@ -2038,11 +2064,19 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     handleKeyDown: (v, ev) => { plain = ev.shiftKey && (ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "v"; return false; },
     handlePaste: (v, ev) => { const asText = plain; plain = false; return onPaste(ev, asText); },
   } });
+  // keptViews finds a block's node view by its element, to ask it whether
+  // it keeps a click for its content.
+  const keptViews = new WeakMap();
+  const keeping = (views) => Object.fromEntries(Object.entries(views).map(([name, make]) => [name, (...args) => {
+    const made = make(...args);
+    keptViews.set(made.dom, made);
+    return made;
+  }]));
   const view = new EditorView(mount, {
     state: EditorState.create({ doc: docFromBlocks(blocks, embeds), plugins: [...extra, ...(editable ? [pastePlugin, ...aids.plugins, aidKeys] : []), ...plugins(), numberingPlugin(numbered), tocPlugin, statePlugin] }),
     editable: () => editable,
     attributes: { "aria-label": t("editor.body"), role: "textbox", "aria-multiline": "true" },
-    nodeViews: {
+    nodeViews: keeping({
       task: taskView,
       table: tableView,
       toc: (node, v, getPos) => tocView(node, v, getPos, tocs),
@@ -2066,9 +2100,24 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
       slides: (node, v, getPos) => slidesView(node, v, getPos, childPages?.here || null, (text) => { status.textContent = text; }),
       veiled: (node) => ({ dom: h("div", { class: "pm-veiled", "data-secret": node.attrs.secret, contenteditable: "false" },
         h("span", { class: "pm-veiled-bar", "aria-hidden": "true", text: "▒▒▒▒▒▒▒▒" }), veiledContent(node.attrs.secret)), ...selectable }),
-    },
+    }),
     ...viewProps,
   });
+  // A click inside a block's own content selects the block, as a click on
+  // its frame does (clickedBlock): it is outlined, Enter puts a new line
+  // after it, and Insert puts a block there. Only a click the block keeps
+  // for its content is meant, one ProseMirror does not see; the click
+  // itself stays the content's.
+  if (editable) {
+    view.dom.addEventListener("mousedown", (ev) => {
+      if (ev.button !== 0 || ev.shiftKey || !view.editable) return;
+      const pos = clickedBlock(view, ev.target);
+      if (pos === null || !keptViews.get(view.nodeDOM(pos))?.stopEvent?.(ev)) return;
+      const sel = view.state.selection;
+      if (sel instanceof NodeSelection && sel.from === pos) return;
+      view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, pos)));
+    }, true);
+  }
   // An embed's text, loaded after the editor is shown, joins the tables
   // of contents and lists of this text and of every text around it.
   view.dom.addEventListener("pm-embed-loaded", () => tocs.forEach((f) => f()));

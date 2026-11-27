@@ -173,6 +173,10 @@ The menu **Insert…** adds blocks after the cursor:
 
 Pictures can be placed left or right with text beside them, centred, and resized by dragging; a caption numbers them in the list of figures.
 
+A click anywhere on an inserted block chooses it, also inside the content it shows, such as an embedded item, a view, a task list, a search field, a starmap or a slide deck: the block is outlined.
+Enter then puts a new line after it, **Insert…** puts the next block after it, and the chosen block can be cut, copied or deleted.
+A click on the block's own buttons, links and fields still does what they do.
+
 **Table of contents** first asks how deep it lists the headings: under **Depth**, **Heading 1 only**, **Headings 1 to 2** or **Headings 1 to 3 (all)**. While you edit, the same choice stands on the table of contents itself and changes it at any time. Word, PDF and Markdown exports list the same headings.
 
 An embedded item shows either **The whole item** or **The content only**; while you edit, the choice **Shows** on the embed switches between them, and a slim line names the item whose content is shown. Readers then see the content exactly as if it were written in the page: no frame, no name, the same spacing and fonts, and a table of contents, a list of figures and a list of tables of the page count its headings, pictures and tables as the page's own. The content stays the other item's: it is always current, cannot be edited in place, and shows only what each reader may read. A reader who may not read the item sees that an item is hidden there, as with a whole embed. Exports write the content alone in the same way.

@@ -605,6 +605,11 @@ span.tree-toggle { cursor: default; }
 .pm-toc-numbered ul { list-style: none; padding-left: 0; }
 .pm-ico-num { font-size: 0.85em; font-variant-numeric: tabular-nums; }
 .pm-table.ProseMirror-selectednode, .pm-toc.ProseMirror-selectednode, .pm-figures.ProseMirror-selectednode, .pm-tables.ProseMirror-selectednode, .pm-children.ProseMirror-selectednode { outline: 2px solid var(--accent); }
+/* The blocks that show content of their own are outlined when chosen,
+   too, also those without a frame, such as a view or a starmap: a click
+   anywhere in them chooses them (ADR-0042). */
+.pm-tasklist.ProseMirror-selectednode, .pm-itemview.ProseMirror-selectednode, .pm-starmap.ProseMirror-selectednode, .pm-search.ProseMirror-selectednode,
+.pm-slides.ProseMirror-selectednode, .pm-audio.ProseMirror-selectednode, .pm-veiled.ProseMirror-selectednode, .pm-unsupported.ProseMirror-selectednode { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Comparing versions of a body (ADR-0043). */
 .diff { font-family: var(--font-mono); font-size: 13px; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
@@ -2187,7 +2192,8 @@ dialog.note-dialog { max-height: calc(100dvh - 32px); overflow: auto; }
 .starmap-controls .starmap-label-form input { flex: 1; min-width: 0; }
 .starmap-controls .starmap-filter { flex-direction: column; align-items: start; }
 .starmap-impact-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.starmap-side /* A search field in a text (ADR-0264):
+.starmap-side .starmap-panel { position: static; width: auto; max-height: none; overflow: visible; box-shadow: none; }
+/* A search field in a text (ADR-0264):
    the field and its scope on one line, the hits below. */
 .pm-search { margin: 0.75rem 0; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
 .pm-search .pm-box-title { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: baseline; margin-top: 0; }
