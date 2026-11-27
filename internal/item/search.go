@@ -368,7 +368,7 @@ func (m *matcher) match(it *Item, terms []string, wholeKey, creator string) (Hit
 		m.add(l, scoreOther, -1, -1)
 	}
 	// The creator's names are found as words, as properties are
-	// (ADR-draft-search-and-starmap-find-items-by-their-creator).
+	// (ADR-0263).
 	if creator != "" {
 		m.add(creator, scoreOther, -1, -1)
 	}

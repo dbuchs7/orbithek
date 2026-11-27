@@ -66,7 +66,7 @@ func itemRoutes(d Deps) []Route {
 		{Method: get, Pattern: "/api/items/{ref}", Summary: "Get an item by ID or key", Handler: http.HandlerFunc(h.getItem)},
 		{Method: put, Pattern: "/api/items/{ref}/title", Summary: "Set the title", Handler: http.HandlerFunc(h.setTitle)},
 		{Method: put, Pattern: "/api/items/{ref}/labels", Summary: "Replace the labels", Handler: http.HandlerFunc(h.setLabels)},
-		{Method: get, Pattern: "/api/people", Summary: "The people who made readable items, by username, with how many readable items each made (q: holding it), most items first; only makers of items the caller reads are named (ADR-draft-search-and-starmap-find-items-by-their-creator)", Handler: http.HandlerFunc(h.listPeople)},
+		{Method: get, Pattern: "/api/people", Summary: "The people who made readable items, by username, with how many readable items each made (q: holding it), most items first; only makers of items the caller reads are named (ADR-0263)", Handler: http.HandlerFunc(h.listPeople)},
 		{Method: get, Pattern: "/api/labels", Summary: "The labels of readable items with how many carry each (space; q: holding it; tasks: count only items whose type has a workflow), most used first; pairs adds how many carry two of them at once", Handler: http.HandlerFunc(h.listLabels)},
 		{Method: put, Pattern: "/api/items/{ref}/properties/{field}", Summary: "Set a property; null unsets it", Handler: http.HandlerFunc(h.setProperty)},
 		{Method: post, Pattern: "/api/items/{ref}/transitions", Summary: "Perform a workflow transition", Handler: http.HandlerFunc(h.transition)},
@@ -853,7 +853,7 @@ func (h itemHandlers) queryEnv() item.QueryEnv {
 
 // usernames returns the words a user is found by in a search: their
 // username, never their mail address, nor their display name, which only
-// they see (ADR-0246; ADR-draft-search-and-starmap-find-items-by-their-creator).
+// they see (ADR-0246; ADR-0263).
 // Each user is looked up once per request.
 func (h itemHandlers) usernames() func(user string) string {
 	known := map[string]string{}
@@ -873,7 +873,7 @@ func (h itemHandlers) usernames() func(user string) string {
 // listPeople names the people who made readable items, with how many
 // each made, those whose username holds q, most items first: the
 // suggestions of the search at the top
-// (ADR-draft-search-and-starmap-find-items-by-their-creator). It names only
+// (ADR-0263). It names only
 // makers of items the caller reads, so it cannot list the accounts.
 func (h itemHandlers) listPeople(w http.ResponseWriter, r *http.Request) {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
@@ -1394,7 +1394,7 @@ type starNodeJSON struct {
 	Name    string   `json:"name,omitempty"`
 	Count   int      `json:"count,omitempty"`
 	// Creator is the username of whoever made an item
-	// (ADR-draft-search-and-starmap-find-items-by-their-creator).
+	// (ADR-0263).
 	Creator string `json:"creator,omitempty"`
 }
 

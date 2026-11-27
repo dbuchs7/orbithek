@@ -454,7 +454,7 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
   // A node follows the pointer that holds it; its neighbours follow
   // through the springs. Dropped, it stays where it was put, pinned, until
   // it is released: on its own from its panel, or every one by "Release"
-  // (ADR-draft-search-and-starmap-find-items-by-their-creator). The pins
+  // (ADR-0263). The pins
   // outlast filters, drills and resizes; leaving the map forgets them.
   const pinned = new Set();
   let nodeDrag = null;
@@ -886,7 +886,7 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
     crumbs, truncated,
     // The map at the left with its legend below it; the filters, the
     // focused node's panel and the impact list in a column at the right,
-    // as in atlas (ADR-draft-search-and-starmap-find-items-by-their-creator).
+    // as in atlas (ADR-0263).
     h("div", { class: "starmap-body" },
       h("div", { class: "starmap-plot" }, body, legend),
       h("div", { class: "starmap-side", id: idOf("side") },

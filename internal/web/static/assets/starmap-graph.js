@@ -237,7 +237,7 @@ export function matches(node, query) {
   const words = fold(query).split(/\s+/).filter(Boolean);
   if (!words.length) return false;
   // An item is also found by its creator's username
-  // (ADR-draft-search-and-starmap-find-items-by-their-creator).
+  // (ADR-0263).
   const text = fold([node.title, node.key, node.name, node.creator, ...(node.labels || [])].filter(Boolean).join(" "));
   return words.every((w) => text.includes(w));
 }

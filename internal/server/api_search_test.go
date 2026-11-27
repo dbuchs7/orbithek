@@ -58,7 +58,7 @@ func TestSearchThroughTheAPI(t *testing.T) {
 // A search finds an item by its creator's username, and the people who
 // made readable items are suggested by it, never their mail address, nor
 // anyone whose items the caller does not read
-// (ADR-draft-search-and-starmap-find-items-by-their-creator).
+// (ADR-0263).
 func TestSearchFindsItemsByTheirCreator(t *testing.T) {
 	w := newWorld(t)
 	w.bert.expect("PUT", "/api/me/display-name", `{"displayName":"Robert Huber"}`, http.StatusNoContent)

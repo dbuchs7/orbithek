@@ -2,7 +2,7 @@ package item
 
 // creatorOf is the user who made an item: the actor of its creating event.
 // It is derived from the log, never stored on the item, so it cannot be
-// changed or drift from what happened (ADR-draft-search-and-starmap-find-items-by-their-creator).
+// changed or drift from what happened (ADR-0263).
 func (s *Store) creatorOf(it *Item) string {
 	if it.created < 1 || it.created > len(s.log) {
 		return ""

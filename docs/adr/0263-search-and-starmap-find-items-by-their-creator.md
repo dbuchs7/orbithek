@@ -1,4 +1,4 @@
-# ADR-DRAFT: Search and starmap find items by their creator; a dropped node stays until released
+# ADR-0263: Search and starmap find items by their creator; a dropped node stays until released
 
 - **Status:** Proposed
 - **Implementation:** Partial

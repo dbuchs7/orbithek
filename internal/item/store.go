@@ -1154,7 +1154,7 @@ type Query struct {
 	Text string
 	// Names returns the words a user is found by in a search: their
 	// username. A search finds an item by a word of its creator's names
-	// (ADR-draft-search-and-starmap-find-items-by-their-creator); nil
+	// (ADR-0263); nil
 	// finds no item by its creator. Only Search reads it.
 	Names func(user string) string
 }

@@ -1346,7 +1346,7 @@ function bellIcon(filled = false) {
 }
 
 // creatorQuery is the address of the query that lists what a person made,
-// newest first (ADR-0136; ADR-draft-search-and-starmap-find-items-by-their-creator).
+// newest first (ADR-0136; ADR-0263).
 function creatorQuery(username) {
   return "#/query?" + new URLSearchParams({ q: `creator = "${username.replace(/["\\]/g, "\\$&")}" ORDER BY created DESC` });
 }
@@ -1403,7 +1403,7 @@ function searchSuggestions(form) {
       n = 0;
       const shownLabels = labels.slice(0, 4);
       // The people who made readable items, by username: choosing one
-      // lists what they made (ADR-draft-search-and-starmap-find-items-by-their-creator).
+      // lists what they made (ADR-0263).
       const shownPeople = (people || []).slice(0, 4);
       list.replaceChildren(
         ...(shownLabels.length ? [group(t("search.labelsGroup")), ...shownLabels.map((l) =>

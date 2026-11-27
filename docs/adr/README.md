@@ -275,3 +275,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0260](0260-a-slide-deck-in-a-text.md) | A slide deck in a text, kept as it was saved and presented from the text | Proposed | Partial |
 | [0261](0261-a-query-field-for-who-made-or-changed-an-item.md) | A query field for who made or changed an item | Accepted | Landed |
 | [0262](0262-suspending-and-deleting-accounts.md) | Administrators suspend accounts and delete them, leaving the account's ID as deleted | Proposed | Partial |
+| [0263](0263-search-and-starmap-find-items-by-their-creator.md) | Search and starmap find items by their creator; a dropped node stays until released | Proposed | Partial |

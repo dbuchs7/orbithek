@@ -57,7 +57,7 @@ type StarNode struct {
 	// for (ADR-0191).
 	Count int
 	// Creator is the user who made an item, derived from the log
-	// (ADR-draft-search-and-starmap-find-items-by-their-creator).
+	// (ADR-0263).
 	Creator string
 }
 

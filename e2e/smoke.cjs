@@ -3304,7 +3304,7 @@ function webSource() {
     check(await page.getAttribute(".star-node[data-key='PLAT-2']", "transform") !== placed, "a dragged node moves: " + placed);
     check(await page.isHidden("#starmap-panel"), "a drag chooses no node");
     // A dropped node stays where it was put until it is released
-    // (ADR-draft-search-and-starmap-find-items-by-their-creator).
+    // (ADR-0263).
     check(await page.locator("#starmap-canvas .star-node.pinned[data-key='PLAT-2']").count() === 1 && !(await page.isDisabled("#starmap-release")), "a dropped node is pinned and Release is offered");
     const dropped = await page.getAttribute(".star-node[data-key='PLAT-2']", "transform");
     await page.click("#starmap-fit");
@@ -4294,7 +4294,7 @@ function webSource() {
     await page.waitForSelector("h1:has-text('Hero image'), .page-head :has-text('Hero image')");
     // They offer the people who made readable items, by username; choosing
     // one lists what they made as a query
-    // (ADR-draft-search-and-starmap-find-items-by-their-creator).
+    // (ADR-0263).
     const myName = await page.evaluate(async () => (await (await fetch("/api/me")).json()).user.username);
     await page.locator("#nav .search input").pressSequentially(myName.slice(0, 4));
     await page.click(`#search-suggest:not([hidden]) [role=option][data-person='${myName}']`);

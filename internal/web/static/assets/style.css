@@ -2177,7 +2177,7 @@ dialog.note-dialog { max-height: calc(100dvh - 32px); overflow: auto; }
 .starmap-stage { position: relative; }
 /* The map at the left, its filters, panel and impact list in a column at
    the right, as in atlas; one column on narrow screens
-   (ADR-draft-search-and-starmap-find-items-by-their-creator). */
+   (ADR-0263). */
 .starmap-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 340px); gap: 12px; align-items: start; }
 .starmap-plot { min-width: 0; }
 .starmap-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
