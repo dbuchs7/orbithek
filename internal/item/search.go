@@ -129,7 +129,7 @@ func (x *Session) checkWithin(q Query) error {
 // appendFold appends text in a comparable form: lower case, ß as ss, the
 // Swiss spelling, and a letter with a diacritic as the letter without it,
 // so that "Zurich" finds "Zürich" and "cafe" finds "Café"
-// (ADR-draft-search-folds-diacritics). It allocates only when buf has to
+// (ADR-0265). It allocates only when buf has to
 // grow, so a search can fold every item into one buffer.
 func appendFold(buf []byte, text string) []byte {
 	for i := 0; i < len(text); {

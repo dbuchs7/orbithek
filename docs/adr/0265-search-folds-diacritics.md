@@ -1,4 +1,4 @@
-# ADR-DRAFT: Search compares a letter with a diacritic as the letter without it
+# ADR-0265: Search compares a letter with a diacritic as the letter without it
 
 - **Status:** Proposed
 - **Implementation:** Partial

@@ -317,7 +317,7 @@ func TestSpacedIsTheJoinedWords(t *testing.T) {
 
 // TestSearchFoldsDiacritics: a letter with a diacritic is compared as the
 // letter without it, both ways, so a search does not depend on how a name
-// is typed (ADR-draft-search-folds-diacritics).
+// is typed (ADR-0265).
 func TestSearchFoldsDiacritics(t *testing.T) {
 	for text, want := range map[string]string{
 		"Zürich":         "zurich",
