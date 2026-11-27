@@ -3376,5 +3376,6 @@ export default {
   "error.server": "The server could not do that",
   "admin.revokeSystemRoleConfirm": "Take the system role {role} back from {name}?",
   "admin.removeMemberConfirm": "Take {name} out of the group {group}? They lose what the group is granted.",
-  "aiaccess.withdrawConfirm": "Withdraw the approval of {name}? The application loses its access at once."
+  "aiaccess.withdrawConfirm": "Withdraw the approval of {name}? The application loses its access at once.",
+  "notesImport.adminOnly": "Only an administrator of this room imports notes into it."
 };

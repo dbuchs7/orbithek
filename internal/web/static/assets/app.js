@@ -3351,7 +3351,8 @@ async function tasksView(tab, params) {
   const relink = () => tabs.querySelectorAll("a:not(#tab-calendar)").forEach((a) => { a.href = a.getAttribute("href").split("?")[0] + query(); });
   show(
     h("div", { class: "page-head" }, h("h1", {}, t("tasks.title"), " ", helpLink("tasks")),
-      h("p", { class: "actions" }, link(newHref(space || here.space, "", taskType(types)), t("tasks.new"), "button primary", "tasks-new"),
+      // A new task needs a room one may create in.
+      h("p", { class: "actions" }, mayEditIn.size ? link(newHref(space || here.space, "", taskType(types)), t("tasks.new"), "button primary", "tasks-new") : null,
         rows.length ? h("button", { type: "button", class: "secondary", id: "tasks-csv", text: t("export.csv"), onclick: () => downloadCSV("tasks.csv", [
           [t("col.item"), t("col.title"), t("tasks.labels"), t("col.state"), t("tasks.assignee"), t("tasks.due"), t("tasks.priority"), t("col.space")],
           ...rows.filter(([, tr]) => !tr.hidden).map(([it]) => {
@@ -5319,7 +5320,8 @@ async function itemView(ref, params = new URLSearchParams()) {
   // create in (ADR-0067); dragging in the tree moves within a space.
   const relocate = h("div", { id: "relocate" });
   const relocateButtons = live ? [
-    h("button", { type: "button", id: "item-copy", text: t("copy.open"), onclick: () => relocateForm(relocate, item, "copy", spaces, status) }),
+    // Offered only to whoever may create somewhere: a copy needs a room to go to.
+    spaces.some((sp) => mayEdit(sp.role)) ? h("button", { type: "button", id: "item-copy", text: t("copy.open"), onclick: () => relocateForm(relocate, item, "copy", spaces, status) }) : null,
     canEdit ? h("button", { type: "button", id: "item-move", text: t("move.open"), onclick: () => relocateForm(relocate, item, "move", spaces, status) }) : null,
     canEdit ? h("button", { type: "button", id: "item-collect", text: t("topic.addTo"), onclick: () => addToCollection(item, path, status) }) : null,
   ] : [];
@@ -5434,7 +5436,7 @@ function bodySection(item, embeds, editing, threads, attachments, protect, edit,
   if (!editing) {
     // The files are known, so a drawing shows its processes live (ADR-0142).
     const view = createEditor({ blocks: item.body, numbered: Boolean(item.numbered), embeds, editable: false, resolve, childPages: childPagesOf(item), files: filesOf(item, attachments, !!edit),
-      extra: item.presence === "live" ? [threads.plugin, ...(notes ? [notes.plugin] : [])] : [], comment: item.presence === "live" ? threads.start : undefined,
+      extra: item.presence === "live" ? [threads.plugin, ...(notes ? [notes.plugin] : [])] : [], comment: item.presence === "live" && threads.mayComment ? threads.start : undefined,
       note: notes ? notes.start : undefined, protect: protect || undefined,
       actions: edit ? [edit] : [], embedContent: embedLoader([item.id]), tasks: taskTools(item, false) });
     const section = h("section", { id: "body", class: "reading" }, view.element);
@@ -6013,7 +6015,7 @@ function commentThreads(path, page, live, files = [], key = "") {
       setTimeout(() => el.classList.remove("comment-focus"), 1500);
     },
   });
-  return { section, plugin, start };
+  return { section, plugin, start, mayComment: live };
 }
 
 // historySection lists an item's history. A change of the body can be
@@ -8004,7 +8006,10 @@ async function importView(key) {
   show(
     h("p", {}, link("#/spaces", t("nav.spaces")), " / ", link("#/space/" + encodeURIComponent(key), key), " / " + t("notesImport.title")),
     h("h1", { text: t("notesImport.heading", { space: sp.name }) }),
-    noteImportCard({ space: key, types: types.filter((ty) => ty.body), lang: language(), keyLink: itemLink }),
+    // Importing is a room administrator's (ADR-0211): others are told so,
+    // not shown a form the server refuses.
+    sp.role === "space-admin" ? noteImportCard({ space: key, types: types.filter((ty) => ty.body), lang: language(), keyLink: itemLink })
+      : empty(t("notesImport.adminOnly"), "import-admin-only"),
   );
 }
 

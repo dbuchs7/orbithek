@@ -3374,5 +3374,6 @@ export default {
   "error.server": "Der Server konnte das nicht ausführen",
   "admin.revokeSystemRoleConfirm": "{name} die Systemrolle {role} entziehen?",
   "admin.removeMemberConfirm": "{name} aus der Gruppe {group} entfernen? Damit entfällt, was der Gruppe gewährt ist.",
-  "aiaccess.withdrawConfirm": "Die Freigabe von {name} widerrufen? Die Anwendung verliert den Zugriff sofort."
+  "aiaccess.withdrawConfirm": "Die Freigabe von {name} widerrufen? Die Anwendung verliert den Zugriff sofort.",
+  "notesImport.adminOnly": "Nur wer diesen Raum administriert, importiert Notizen in ihn."
 };
