@@ -170,6 +170,10 @@ func (h oidcHandlers) callback(w http.ResponseWriter, r *http.Request) {
 		h.log.Warn("display name from single sign-on not saved", "err", err)
 	}
 	secret, p, err := accounts.StartSession(u.ID)
+	if errors.Is(err, auth.ErrSuspended) {
+		h.fail(w, r, "suspended", nil, "suspended")
+		return
+	}
 	if err != nil {
 		h.fail(w, r, "session", err)
 		return

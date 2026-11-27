@@ -753,6 +753,15 @@ man entfernt sie mit ×.
 Systemrollen, die von IDs ohne Konto gehalten werden, stehen unter **Benutzer und Systemrollen** als **Systemrollen ohne Konto**, mit einer Schaltfläche zum Entziehen jeder Rolle;
 ein solcher Inhaber zählt nicht als letzte Administratorin oder letzter Administrator.
 
+Unter **Benutzer und Systemrollen** beendet **Sperren** die Sitzungen eines Kontos sofort und verhindert jede Anmeldung — mit Passwort, Single Sign-on, API-Token oder verbundenen Assistenten — bis **Reaktivieren**;
+das Konto behält seine Rollen, Token und Einstellungen und ist als **Gesperrt** markiert.
+**Löschen** entfernt ein Konto endgültig, nachdem sein Benutzername nochmals eingegeben wurde:
+Rollen in Räumen, Gruppenmitgliedschaften, Systemrollen, Anmeldungen, Token, Freigaben für Assistenten, Verbindungen zu Prozess-Engines, Kalender anderer Dienste und persönliche Einstellungen gehen, und der Benutzername ist für ein neues Konto frei.
+Inhalte und Verlauf bleiben und nennen es als **Gelöschtes Konto**.
+Beides wird weder für das eigene Konto noch für die letzte Administratorin oder den letzten Administrator angeboten, die sich anmelden können;
+eine gesperrte Administratorin oder ein gesperrter Administrator zählt nicht.
+Frühere Einträge des Kontenjournals und Sicherungen enthalten weiterhin, was sie enthielten, bis sie ersetzt werden.
+
 ## Tastenkürzel
 
 | Tasten | Aktion |

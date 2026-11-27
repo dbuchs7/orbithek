@@ -54,3 +54,41 @@ func TestAccessIsListedAndTakenBack(t *testing.T) {
 		t.Fatalf("system roles %v", roles)
 	}
 }
+
+// TestEverythingGrantedToAPrincipalIsTakenBackInOneBatch: when an account
+// is deleted, its roles in rooms, its memberships of groups and its system
+// roles go in one batch; the last administrator keeps the role
+// (ADR-0262).
+func TestEverythingGrantedToAPrincipalIsTakenBackInOneBatch(t *testing.T) {
+	s := permFixture(t)
+	noErr(t, s.GrantRole("root", "OPS", "dora", Viewer))
+	noErr(t, s.AddToGroup("root", "leads", "dora"))
+	noErr(t, s.GrantSystemRole("root", "dora", RoleErasure))
+	noErr(t, s.GrantSystemRole("root", "dora", RoleAdmin))
+	noErr(t, s.GrantSystemRole("root", "root", RoleAdmin))
+	before := len(s.Log())
+
+	noErr(t, s.RevokeAll("root", "dora"))
+	log := s.Log()[before:]
+	if len(log) != 5 || log[0].Batch == 0 || log[len(log)-1].Batch != log[0].Batch {
+		t.Fatalf("not one batch of five: %+v", log)
+	}
+	if s.GrantedRole("OPS", "dora") != 0 || len(s.SystemRoles()["dora"]) != 0 {
+		t.Fatalf("roles left: %v %v", s.GrantedRole("OPS", "dora"), s.SystemRoles()["dora"])
+	}
+	for g, members := range s.Groups() {
+		if slices.Contains(members, "dora") {
+			t.Fatalf("still a member of %s", g)
+		}
+	}
+	if s.GrantedRole("OPS", "@ops") != Editor || s.GrantedRole("PLAT", "anna") != Editor {
+		t.Fatal("other grants were taken back")
+	}
+	noErr(t, s.RevokeAll("root", "dora")) // nothing left: nothing recorded
+	if len(s.Log()) != before+5 {
+		t.Fatal("an empty revocation was recorded")
+	}
+	if err := s.RevokeAll("root", "root"); !errors.Is(err, ErrValidation) {
+		t.Fatalf("the last administrator lost the role: %v", err)
+	}
+}

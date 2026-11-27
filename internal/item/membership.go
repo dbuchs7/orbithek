@@ -1,6 +1,7 @@
 package item
 
 import (
+	"maps"
 	"slices"
 	"strings"
 )
@@ -184,4 +185,36 @@ func (x *Session) AdministersASpace() bool {
 		}
 	}
 	return false
+}
+
+// RevokeAll takes back, in one batch, every role a principal was granted
+// in a space, every group it belongs to and every system role it holds, as
+// when its account is deleted
+// (ADR-0262). The last administrator
+// keeps the role; then nothing is taken back.
+func (s *Store) RevokeAll(actor, principal string) error {
+	var events []Event
+	for _, space := range slices.Sorted(maps.Keys(s.spaceRoles)) {
+		if _, ok := s.spaceRoles[space][principal]; ok {
+			events = append(events, Event{Kind: RoleRevoked, Space: space, Principal: principal})
+		}
+	}
+	for _, group := range slices.Sorted(maps.Keys(s.groups)) {
+		if s.groups[group][principal] {
+			events = append(events, Event{Kind: GroupMemberRemoved, Group: group, Principal: principal})
+		}
+	}
+	for _, role := range slices.Sorted(maps.Keys(s.sysRoles[principal])) {
+		if !s.sysRoles[principal][role] {
+			continue
+		}
+		if role == RoleAdmin && len(s.SystemRoleHolders(RoleAdmin)) == 1 {
+			return invalid("%s is the last administrator", principal)
+		}
+		events = append(events, Event{Kind: SystemRoleRevoked, Principal: principal, SystemRole: role})
+	}
+	if len(events) == 0 {
+		return nil
+	}
+	return s.recordBatch(actor, events...)
 }

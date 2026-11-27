@@ -753,6 +753,15 @@ take them out with ×.
 System roles held by IDs without an account are listed under **Users and system roles** as **System roles without an account**, with a button to take each back;
 such a holder does not count as the last administrator.
 
+Under **Users and system roles**, **Suspend** ends an account's sessions at once and keeps it from signing in — by password, single sign-on, API tokens or connected assistants — until **Reactivate**;
+the account keeps its roles, tokens and settings, and is marked **Suspended**.
+**Delete** removes an account for good after its username is typed again:
+its roles in rooms, group memberships, system roles, sign-ins, tokens, approvals of assistants, connections to process engines, calendars of other services and personal settings go, and its username is free for a new account.
+Its content and history stay and name it as **Deleted account**.
+Neither is offered for one's own account, nor for the last administrator who can sign in;
+a suspended administrator does not count as one.
+Earlier records of the accounts journal and backups still hold what they held until they are replaced.
+
 ## Keyboard shortcuts
 
 | Keys | Action |
