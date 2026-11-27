@@ -9,7 +9,8 @@
   - readers may choose another scope while reading, without the item being saved.
 
   The rest are defaults proposed with the implementation.
-- **Open question:** whether the block should also keep a type, a state or a label to narrow by, as the search page's filters do; whether a reader's choice of scope should be kept per reader; whether the page a field names should be renamed in exports by its title for readers who read it; whether the browser end-to-end test should cover the field
+  Request of 2026-11-27, after the first part: the browser smoke test covers the field.
+- **Open question:** whether the block should also keep a type, a state or a label to narrow by, as the search page's filters do; whether a reader's choice of scope should be kept per reader; whether the page a field names should be renamed in exports by its title for readers who read it
 - **Question checked:** 2026-11
 
 ## Context and problem statement
@@ -58,6 +59,7 @@ Chosen option: **1**, because it keeps nothing that can leak or go stale, narrow
 - **Drawing.** `searchBlockElement` in `assets/searchblock.js` draws a field, a choice of scope and a button; the hits appear below, ten at a time with **More**, each with its stars, key, title, room, type and snippet, as on the search page.
   The search runs on Enter, on the button, on a change of scope and 300 ms after typing stops.
   What needs no browser — the scopes, the block a choice makes, what a reader's scope searches and the search address — is in `assets/searchparts.js`, tested in Node.
+  The browser smoke test (`e2e/smoke.cjs`) places a field through the dialog, checks what the text keeps, the hits of every scope and that a click opens a hit.
 - **Reading.** Readers may choose another scope; nothing of that is kept.
   A field of a room searches the item itself when a page is chosen; a field of a page searches the room of the item when the room is chosen.
 - **A click** on a hit opens it.
@@ -70,7 +72,7 @@ Chosen option: **1**, because it keeps nothing that can leak or go stale, narrow
 
 - **Positive:** a handbook carries its own search on its start page; each reader finds what they read; the search is the search's own, with its stars and snippets.
 - **Negative / trade-offs accepted:** a page named by a field cannot be deleted while the field names it; narrowing walks each candidate's ancestors on every search, which costs the depth of the tree per item; a field in a text names no type, state or label.
-- **Follow-ups / risks to watch:** filters by type, state and label in the block; keeping a reader's scope; an end-to-end step in `e2e/smoke.cjs`.
+- **Follow-ups / risks to watch:** filters by type, state and label in the block; keeping a reader's scope.
 
 ## Pros and cons of the options
 
