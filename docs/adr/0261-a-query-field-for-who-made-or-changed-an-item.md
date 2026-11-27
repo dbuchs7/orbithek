@@ -1,4 +1,4 @@
-# ADR-DRAFT: A query field for who made or changed an item
+# ADR-0261: A query field for who made or changed an item
 
 - **Status:** Proposed
 - **Implementation:** Partial

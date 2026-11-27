@@ -2512,7 +2512,7 @@ async function homeView() {
 // field updated (ADR-0136, ADR-0203), so an item made counts as changed and
 // the server's permission check decides what is listed (D10). "By me"
 // narrows it to the items one made or changed oneself, by the field
-// contributor (ADR-draft-a-query-field-for-who-made-or-changed-an-item);
+// contributor (ADR-0261);
 // the choice is each reader's own, kept in the browser. The rows are
 // loaded after the start page is shown.
 function recentCard(spaces) {
