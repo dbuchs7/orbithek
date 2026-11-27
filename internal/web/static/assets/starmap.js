@@ -632,8 +632,14 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
       box);
     panel.hidden = false;
     panel.scrollTop = 0;
-    // In the column at the right the panel comes into sight there.
-    if (!embed) panel.scrollIntoView?.({ block: "nearest" });
+    // In the column at the right the panel comes into sight there, by
+    // scrolling the column alone: the page must not move under the
+    // pointer, or the second click of a double-click misses the node.
+    const side = embed ? null : panel.parentElement;
+    if (side) {
+      const a = side.getBoundingClientRect(), b = panel.getBoundingClientRect();
+      if (b.top < a.top || b.bottom > a.bottom) side.scrollTop += b.top - a.top;
+    }
     // The keyboard follows into the panel; Escape closes it as before.
     panel.focus({ preventScroll: true });
   }
