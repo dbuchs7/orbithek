@@ -126,9 +126,11 @@ func (x *Session) checkWithin(q Query) error {
 	return err
 }
 
-// appendFold appends text in a comparable form: lower case, and ß as ss,
-// the Swiss spelling. It allocates only when buf has to grow, so a search
-// can fold every item into one buffer.
+// appendFold appends text in a comparable form: lower case, ß as ss, the
+// Swiss spelling, and a letter with a diacritic as the letter without it,
+// so that "Zurich" finds "Zürich" and "cafe" finds "Café"
+// (ADR-0265). It allocates only when buf has to
+// grow, so a search can fold every item into one buffer.
 func appendFold(buf []byte, text string) []byte {
 	for i := 0; i < len(text); {
 		c := text[i]
@@ -141,15 +143,43 @@ func appendFold(buf []byte, text string) []byte {
 			continue
 		}
 		r, n := utf8.DecodeRuneInString(text[i:])
-		if r == 'ß' || r == 'ẞ' {
-			buf = append(buf, "ss"...)
-		} else {
-			buf = utf8.AppendRune(buf, unicode.ToLower(r))
-		}
 		i += n
+		r = unicode.ToLower(r)
+		switch {
+		case r == 'ß':
+			buf = append(buf, "ss"...)
+		case 0x0300 <= r && r <= 0x036f:
+			// A combining mark: the letter before it stands without it.
+		case r >= firstFolded && int(r-firstFolded) < len(baseLetters) && baseLetters[r-firstFolded] != "":
+			buf = append(buf, baseLetters[r-firstFolded]...)
+		default:
+			buf = utf8.AppendRune(buf, r)
+		}
 	}
 	return buf
 }
+
+// firstFolded is the first letter baseLetters knows: à.
+const firstFolded = 0x00e0
+
+// baseLetters names, for the lower-case letters from à (U+00E0) to ž
+// (U+017E), the letter or letters each is compared as; a letter that
+// stands for itself has none. The capitals are lowered before. It covers
+// the Latin letters of the languages of Western and Central Europe; other
+// scripts are compared as they are.
+var baseLetters = func() [0x017f - firstFolded]string {
+	var t [0x017f - firstFolded]string
+	for base, letters := range map[string]string{
+		"a": "àáâãäåāăą", "ae": "æ", "c": "çćĉċč", "d": "ďđ", "e": "èéêëēĕėęě", "g": "ĝğġģ", "h": "ĥħ",
+		"i": "ìíîïĩīĭįı", "j": "ĵ", "k": "ķ", "l": "ĺļľŀł", "n": "ñńņň", "o": "òóôõöøōŏő", "oe": "œ",
+		"r": "ŕŗř", "s": "śŝşš", "t": "ţťŧ", "u": "ùúûüũūŭůűų", "w": "ŵ", "y": "ýÿŷ", "z": "źżž",
+	} {
+		for _, r := range letters {
+			t[r-firstFolded] = base
+		}
+	}
+	return t
+}()
 
 func fold(text string) string { return string(appendFold(nil, text)) }
 

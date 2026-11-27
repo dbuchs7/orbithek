@@ -307,6 +307,7 @@ Mehrere Personen können einen Text gleichzeitig bearbeiten. Jeder Block, an dem
 ### Suche {#search}
 
 Man gibt Wörter aus Titel, Text oder Kommentar oder einen Schlüssel wie `PLAT-12` in das Suchfeld ein. Während der Eingabe erscheinen Vorschläge; **Enter** zeigt alle Treffer, geordnet nach Relevanz (ein bis fünf Sterne). Die Suche findet nur, was man lesen darf.
+Gross- und Kleinschreibung und Akzente spielen keine Rolle: `zurich` findet *Zürich*, `cafe` findet *Café*, und `strasse` findet auch die Schreibweise mit Eszett.
 
 Ein Wort eines Benutzernamens findet auch die Einträge, die diese Person erstellt hat: nur Benutzernamen, nie E-Mail-Adressen oder Anzeigenamen.
 Unter **Personen** nennen die Vorschläge die Personen, die Einträge erstellt haben, die man lesen darf, mit deren Anzahl; wählt man eine, erscheint als Abfrage, was diese Person erstellt hat, das Neueste zuerst (`creator = "…"`).

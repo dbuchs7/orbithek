@@ -277,3 +277,4 @@ ADR-0004 to ADR-0017 were adopted from the reference project [pblumer/atlas](htt
 | [0262](0262-suspending-and-deleting-accounts.md) | Administrators suspend accounts and delete them, leaving the account's ID as deleted | Accepted | Landed |
 | [0263](0263-search-and-starmap-find-items-by-their-creator.md) | Search and starmap find items by their creator; a dropped node stays until released | Accepted | Landed |
 | [0264](0264-a-search-field-in-a-text.md) | A search field in a text, narrowed to a room or to a page and the pages below it | Accepted | Landed |
+| [0265](0265-search-folds-diacritics.md) | Search compares a letter with a diacritic as the letter without it | Proposed | Partial |

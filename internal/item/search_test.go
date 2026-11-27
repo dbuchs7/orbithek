@@ -314,3 +314,41 @@ func TestSpacedIsTheJoinedWords(t *testing.T) {
 		}
 	}
 }
+
+// TestSearchFoldsDiacritics: a letter with a diacritic is compared as the
+// letter without it, both ways, so a search does not depend on how a name
+// is typed (ADR-0265).
+func TestSearchFoldsDiacritics(t *testing.T) {
+	for text, want := range map[string]string{
+		"Zürich":         "zurich",
+		"CAFÉ Crème":     "cafe creme",
+		"Łódź, Škoda":    "lodz, skoda",
+		"Œuvre, Ærø":     "oeuvre, aero",
+		"Strasse Straße": "strasse strasse",
+		"Zürich":        "zurich", // u with a combining diaeresis
+		"naïve façade":   "naive facade",
+		"Ελληνικά, 日本":   "ελληνικά, 日本", // other scripts as they are, lowered
+		"plain ASCII 42": "plain ascii 42",
+	} {
+		if got := fold(text); got != want {
+			t.Errorf("fold(%q) = %q, want %q", text, got, want)
+		}
+	}
+	s := setup(t)
+	noErr(t, s.GrantRole("admin", "PLAT", "anna", Editor))
+	anna := s.As("anna")
+	page := mustItem(t)(s.Create("anna", NewItem{Space: "PLAT", Type: "page", Title: "Ausflug nach Zürich"}))
+	noErr(t, s.CommitBody("anna", page.ID, Doc{Blocks: []Block{{Kind: Paragraph, Text: "Treffpunkt beim Café am Bürkliplatz."}}}))
+	plain := mustItem(t)(s.Create("anna", NewItem{Space: "PLAT", Type: "page", Title: "Zurich office"}))
+	for query, want := range map[string]int{"zurich": 2, "Zürich": 2, "cafe": 1, "café": 1, "burkliplatz": 1, "bürkli": 1, "zuerich": 0} {
+		hits, err := anna.Search(query, Query{})
+		noErr(t, err)
+		if len(hits) != want {
+			t.Errorf("search %q: %d hits, want %d", query, len(hits), want)
+		}
+	}
+	// The list's filter compares the same way (ADR-0098).
+	if !HasWords("Ausflug nach Zürich", "zurich") || !HasWords(plain.Title, "ZÜRICH") {
+		t.Error("the filter of a list folds diacritics too")
+	}
+}
