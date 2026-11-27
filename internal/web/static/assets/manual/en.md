@@ -307,6 +307,7 @@ Several people can edit a text at once. Each block someone is working on is lock
 ### Search {#search}
 
 Type words of a title, a text or a comment, or a key such as `PLAT-12`, into the search field. Suggestions appear while you type; **Enter** shows all results, ordered by relevance (one to five stars). The search finds only what you may read.
+Upper and lower case and accents do not matter: `zurich` finds *Zürich*, `cafe` finds *Café*, and `strasse` finds *Straße*.
 
 A word of a username finds the items that person created, too: usernames only, never mail addresses or display names.
 Under **People**, the suggestions name the people who created items you may read, with how many; choosing one lists what that person created, newest first, as a query (`creator = "…"`).
