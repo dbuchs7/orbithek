@@ -314,3 +314,52 @@ func TestSpacedIsTheJoinedWords(t *testing.T) {
 		}
 	}
 }
+
+// BenchmarkSearchByContributors is BenchmarkSearch with the names of who
+// made or changed each item searched too: an editor changed every
+// hundredth page, and the word is in the editor's username only, so the
+// same pages are found, and each search walks every item's changes
+// (ADR-draft-search-and-starmap-find-items-by-their-contributors).
+func BenchmarkSearchByContributors(b *testing.B) {
+	s := NewStore()
+	for _, td := range builtinTypes() {
+		if err := s.DefineType("admin", td); err != nil {
+			b.Fatal(err)
+		}
+	}
+	if err := s.CreateSpace("admin", "PLAT", "Platform"); err != nil {
+		b.Fatal(err)
+	}
+	if err := s.GrantRole("admin", "PLAT", "editor", Editor); err != nil {
+		b.Fatal(err)
+	}
+	para := strings.Repeat("Lorem ipsum dolor sit amet, consectetur adipiscing elit. ", 20) // about 1 KB
+	const n = 10000
+	for i := range n {
+		it, err := s.Create("admin", NewItem{Space: "PLAT", Type: "page", Title: "Page"})
+		if err != nil {
+			b.Fatal(err)
+		}
+		who := "admin"
+		if i%100 == 0 {
+			who = "editor"
+		}
+		if err := s.CommitBody(who, it.ID, Doc{Blocks: []Block{{Kind: Paragraph, Text: para}}}); err != nil {
+			b.Fatal(err)
+		}
+	}
+	if err := s.GrantSystemRole("admin", "admin", RoleAdmin); err != nil {
+		b.Fatal(err)
+	}
+	x := s.As("admin")
+	names := func(user string) string {
+		return map[string]string{"admin": "administrator", "editor": "needle.editor"}[user]
+	}
+	b.ResetTimer()
+	for b.Loop() {
+		hits, err := x.Search("needle", Query{Names: names})
+		if err != nil || len(hits) != n/100 {
+			b.Fatalf("%d hits, %v", len(hits), err)
+		}
+	}
+}

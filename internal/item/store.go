@@ -1153,9 +1153,10 @@ type Query struct {
 	// labels, as the filter of a list asks (ADR-0098).
 	Text string
 	// Names returns the words a user is found by in a search: their
-	// username. A search finds an item by a word of its creator's names
-	// (ADR-0263); nil
-	// finds no item by its creator. Only Search reads it.
+	// username. A search finds an item by a word of the names of whoever
+	// made or changed it (ADR-0263,
+	// ADR-draft-search-and-starmap-find-items-by-their-contributors); nil
+	// finds no item by who made or changed it. Only Search reads it.
 	Names func(user string) string
 	// Within and Scope narrow to a page (ScopePage), the page and the
 	// pages below it (ScopeTree) or the pages below it only (ScopeBelow),

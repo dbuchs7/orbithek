@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -93,4 +94,37 @@ func TestSearchFindsItemsByTheirCreator(t *testing.T) {
 			t.Fatalf("node %v names creator %v", m["key"], m["creator"])
 		}
 	}
+}
+
+// A search, the people suggested and the starmap also name whoever changed
+// an item, not only its creator
+// (ADR-draft-search-and-starmap-find-items-by-their-contributors).
+func TestSearchFindsItemsByWhoChangedThem(t *testing.T) {
+	w := newWorld(t)
+	w.bert.expect("POST", "/api/items", `{"space":"PLAT","type":"task","title":"Runbook","properties":{"priority":"low"}}`, http.StatusCreated)
+	w.bert.expect("POST", "/api/items", `{"space":"PLAT","type":"task","title":"Release notes","properties":{"priority":"low"}}`, http.StatusCreated)
+	w.admin.expect("PUT", "/api/items/PLAT-1/title", `{"title":"Runbook, checked"}`, http.StatusOK)
+
+	res := w.vera.expect("GET", "/api/search?q=admin", "", http.StatusOK)
+	if got := strings.Join(searchKeys(t, res), ","); got != "PLAT-1" {
+		t.Fatalf("hits by who changed them %q", got)
+	}
+	people := w.vera.expect("GET", "/api/people?q=admin", "", http.StatusOK)["people"].([]any)
+	if len(people) != 1 || field(people[0].(map[string]any), "count") != 1.0 {
+		t.Fatalf("people %v", people)
+	}
+	if got := w.vera.expect("GET", "/api/people?q=bert", "", http.StatusOK)["people"].([]any); len(got) != 1 || field(got[0].(map[string]any), "count") != 2.0 {
+		t.Fatalf("bert counts %v", got)
+	}
+	nodes := w.vera.expect("GET", "/api/spaces/PLAT/starmap", "", http.StatusOK)["nodes"].([]any)
+	for _, n := range nodes {
+		m := n.(map[string]any)
+		if m["key"] == "PLAT-1" {
+			if m["creator"] != "bert" || fmt.Sprint(m["contributors"]) != "[admin]" {
+				t.Fatalf("PLAT-1 names creator %v, contributors %v", m["creator"], m["contributors"])
+			}
+			return
+		}
+	}
+	t.Fatal("PLAT-1 is not on the starmap")
 }

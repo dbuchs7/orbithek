@@ -59,6 +59,10 @@ type StarNode struct {
 	// Creator is the user who made an item, derived from the log
 	// (ADR-0263).
 	Creator string
+	// Contributors are the others who changed an item, in the order of
+	// their first change, derived from the log
+	// (ADR-draft-search-and-starmap-find-items-by-their-contributors).
+	Contributors []string
 }
 
 // StarEdge is one edge of a starmap, between two of its nodes.
@@ -377,8 +381,13 @@ func (x *Session) copyOrigin(it *Item, first ID) (*Item, *Attachment) {
 }
 
 func (s *Store) itemNode(it *Item, outside bool) StarNode {
+	creator := s.creatorOf(it)
+	others := s.contributorsOf(it)
+	if len(others) > 0 && others[0] == creator {
+		others = others[1:]
+	}
 	return StarNode{ID: string(it.ID), Kind: StarItem, Key: it.Key, Title: it.Title, Type: it.Type, Space: it.Space,
-		State: it.State, Outside: outside, Labels: slices.Clone(it.Labels), Creator: s.creatorOf(it)}
+		State: it.State, Outside: outside, Labels: slices.Clone(it.Labels), Creator: creator, Contributors: others}
 }
 
 // starBuilder collects a starmap's nodes in the order of their priority,

@@ -4292,13 +4292,13 @@ function webSource() {
     await page.click("#search-suggest:not([hidden]) [role=option][data-item]:has-text('Hero image')");
     await page.waitForFunction(() => location.hash.startsWith("#/item/"));
     await page.waitForSelector("h1:has-text('Hero image'), .page-head :has-text('Hero image')");
-    // They offer the people who made readable items, by username; choosing
-    // one lists what they made as a query
-    // (ADR-0263).
+    // They offer the people who made or changed readable items, by
+    // username; choosing one lists what they made or changed as a query
+    // (ADR-0263, ADR-draft-search-and-starmap-find-items-by-their-contributors).
     const myName = await page.evaluate(async () => (await (await fetch("/api/me")).json()).user.username);
     await page.locator("#nav .search input").pressSequentially(myName.slice(0, 4));
     await page.click(`#search-suggest:not([hidden]) [role=option][data-person='${myName}']`);
-    await page.waitForFunction(() => location.hash.startsWith("#/query?") && (new URLSearchParams(location.hash.split("?")[1]).get("q") || "").startsWith("creator ="));
+    await page.waitForFunction(() => location.hash.startsWith("#/query?") && (new URLSearchParams(location.hash.split("?")[1]).get("q") || "").startsWith("contributor ="));
     await page.waitForSelector("table tr:has-text('Hero image')");
 
     step("task list: tasks on a kanban are listed too, with their label; the labels at the right filter the list");

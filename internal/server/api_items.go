@@ -66,7 +66,7 @@ func itemRoutes(d Deps) []Route {
 		{Method: get, Pattern: "/api/items/{ref}", Summary: "Get an item by ID or key", Handler: http.HandlerFunc(h.getItem)},
 		{Method: put, Pattern: "/api/items/{ref}/title", Summary: "Set the title", Handler: http.HandlerFunc(h.setTitle)},
 		{Method: put, Pattern: "/api/items/{ref}/labels", Summary: "Replace the labels", Handler: http.HandlerFunc(h.setLabels)},
-		{Method: get, Pattern: "/api/people", Summary: "The people who made readable items, by username, with how many readable items each made (q: holding it), most items first; only makers of items the caller reads are named (ADR-0263)", Handler: http.HandlerFunc(h.listPeople)},
+		{Method: get, Pattern: "/api/people", Summary: "The people who made or changed readable items, by username, with how many readable items each made or changed (q: holding it), most items first; only contributors to items the caller reads are named (ADR-0263, ADR-draft-search-and-starmap-find-items-by-their-contributors)", Handler: http.HandlerFunc(h.listPeople)},
 		{Method: get, Pattern: "/api/labels", Summary: "The labels of readable items with how many carry each (space; q: holding it; tasks: count only items whose type has a workflow), most used first; pairs adds how many carry two of them at once", Handler: http.HandlerFunc(h.listLabels)},
 		{Method: put, Pattern: "/api/items/{ref}/properties/{field}", Summary: "Set a property; null unsets it", Handler: http.HandlerFunc(h.setProperty)},
 		{Method: post, Pattern: "/api/items/{ref}/transitions", Summary: "Perform a workflow transition", Handler: http.HandlerFunc(h.transition)},
@@ -870,11 +870,12 @@ func (h itemHandlers) usernames() func(user string) string {
 	}
 }
 
-// listPeople names the people who made readable items, with how many
-// each made, those whose username holds q, most items first: the
-// suggestions of the search at the top
-// (ADR-0263). It names only
-// makers of items the caller reads, so it cannot list the accounts.
+// listPeople names the people who made or changed readable items, with
+// how many each made or changed, those whose username holds q, most items
+// first: the suggestions of the search at the top (ADR-0263,
+// ADR-draft-search-and-starmap-find-items-by-their-contributors). It names
+// only contributors to items the caller reads, so it cannot list the
+// accounts.
 func (h itemHandlers) listPeople(w http.ResponseWriter, r *http.Request) {
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	name := h.usernames()
@@ -885,7 +886,7 @@ func (h itemHandlers) listPeople(w http.ResponseWriter, r *http.Request) {
 			Count    int    `json:"count"`
 		}
 		all := []person{}
-		for user, n := range x.Creators() {
+		for user, n := range x.Contributors() {
 			un := name(user)
 			if un == "" || !item.HasWords(un, q) {
 				continue
@@ -1406,6 +1407,9 @@ type starNodeJSON struct {
 	// Creator is the username of whoever made an item
 	// (ADR-0263).
 	Creator string `json:"creator,omitempty"`
+	// Contributors are the usernames of the others who changed an item
+	// (ADR-draft-search-and-starmap-find-items-by-their-contributors).
+	Contributors []string `json:"contributors,omitempty"`
 }
 
 type starEdgeJSON struct {
@@ -1454,10 +1458,22 @@ type impactNodeJSON struct {
 	Via      []starEdgeJSON `json:"via"`
 }
 
-// toStarNodeJSON gives a node with its creator named by name.
+// usernamesOf names each user by name, leaving out those name does not know.
+func usernamesOf(users []string, name func(string) string) []string {
+	var out []string
+	for _, u := range users {
+		if n := name(u); n != "" {
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
+// toStarNodeJSON gives a node with its creator and contributors named by
+// name.
 func toStarNodeJSON(n item.StarNode, name func(string) string) starNodeJSON {
 	return starNodeJSON{ID: n.ID, Kind: n.Kind, Key: n.Key, Title: n.Title, Type: n.Type, Space: n.Space, State: n.State,
-		Outside: n.Outside, Labels: n.Labels, Item: n.Item, Name: n.Name, Count: n.Count, Creator: name(n.Creator)}
+		Outside: n.Outside, Labels: n.Labels, Item: n.Item, Name: n.Name, Count: n.Count, Creator: name(n.Creator), Contributors: usernamesOf(n.Contributors, name)}
 }
 
 func toStarEdgesJSON(edges []item.StarEdge) []starEdgeJSON {

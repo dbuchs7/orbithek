@@ -305,8 +305,8 @@ Mehrere Personen können einen Text gleichzeitig bearbeiten. Jeder Block, an dem
 
 Man gibt Wörter aus Titel, Text oder Kommentar oder einen Schlüssel wie `PLAT-12` in das Suchfeld ein. Während der Eingabe erscheinen Vorschläge; **Enter** zeigt alle Treffer, geordnet nach Relevanz (ein bis fünf Sterne). Die Suche findet nur, was man lesen darf.
 
-Ein Wort eines Benutzernamens findet auch die Einträge, die diese Person erstellt hat: nur Benutzernamen, nie E-Mail-Adressen oder Anzeigenamen.
-Unter **Personen** nennen die Vorschläge die Personen, die Einträge erstellt haben, die man lesen darf, mit deren Anzahl; wählt man eine, erscheint als Abfrage, was diese Person erstellt hat, das Neueste zuerst (`creator = "…"`).
+Ein Wort eines Benutzernamens findet auch die Einträge, die diese Person erstellt oder geändert hat: nur Benutzernamen, nie E-Mail-Adressen oder Anzeigenamen.
+Unter **Personen** nennen die Vorschläge die Personen, die Einträge erstellt oder geändert haben, die man lesen darf, mit deren Anzahl; wählt man eine, erscheint als Abfrage, was diese Person erstellt oder geändert hat, das zuletzt Geänderte zuerst (`contributor = "…"`).
 
 ### Suchfeld im Text {#searchblock}
 
@@ -609,7 +609,7 @@ Die **Sternenkarte** zeichnet die Einträge, Bilder und gemeinsamen Labels eines
 Die Filter, die Angaben des gewählten Knotens und die Liste der Auswirkungen stehen in einer Spalte rechts der Karte, auf einem schmalen Bildschirm darüber.
 Ein gezogener Knoten bleibt, wo man ihn ablegt, und leuchtet, bis man ihn löst: **Diesen Knoten lösen** in seinen Angaben oder **Lösen** auf der Karte für alle.
 **Einpassen** zeigt alles Sichtbare, abgelegte Knoten eingeschlossen; **Vergrössern** und **Verkleinern** (+ und −) zoomen.
-**Auf der Karte suchen** findet Einträge auch über den Benutzernamen der Person, die sie erstellt hat, und die Angaben eines Eintrags nennen, wer ihn erstellt hat.
+**Auf der Karte suchen** findet Einträge auch über den Benutzernamen der Personen, die sie erstellt oder geändert haben, und die Angaben eines Eintrags nennen, wer ihn erstellt und wer ihn geändert hat.
 
 Unter **Anzeigen** blendet **Erledigte Aufgaben** die erledigten Aufgaben mit ihren Linien aus, sodass die offene Arbeit hervortritt; der Schalter erscheint, solange die Karte eine erledigte Aufgabe zeigt.
 

@@ -59,6 +59,9 @@ func (x *Session) Search(text string, q Query) ([]Hit, error) {
 	wholeKey := strings.ToUpper(strings.TrimSpace(text))
 	var hits []Hit
 	var m matcher
+	// known holds, per user, the folded username when it holds a term of
+	// the search, else "", so each user is named and compared once.
+	known := map[string]string{}
 	for _, it := range x.s.items {
 		if (!q.IncludeDeleted && it.Presence != Live) ||
 			(q.Type != "" && it.Type != q.Type) ||
@@ -73,11 +76,11 @@ func (x *Session) Search(text string, q Query) ([]Hit, error) {
 		}
 		// Passages the principal may not read are not searched (ADR-0088).
 		it = x.s.veiled(x.who, it)
-		creator := ""
+		people := ""
 		if q.Names != nil {
-			creator = q.Names(x.s.creatorOf(it))
+			people = x.s.peopleWords(it, q.Names, terms, known)
 		}
-		if h, ok := m.match(it, terms, wholeKey, creator); ok {
+		if h, ok := m.match(it, terms, wholeKey, people); ok {
 			h.Stars = m.stars(it, terms, phrase, it.Key == wholeKey)
 			for i, f := range m.found {
 				if f.any {
@@ -124,6 +127,34 @@ func (x *Session) checkWithin(q Query) error {
 	}
 	_, err := x.readable(q.Within)
 	return err
+}
+
+// peopleWords are the usernames of those who made or changed an item that
+// hold a term of the search, joined by spaces: the creator and every
+// contributor (eachContributor). A username that holds no term is left
+// out, so it adds nothing to compare.
+func (s *Store) peopleWords(it *Item, names func(string) string, terms []string, known map[string]string) string {
+	var out []byte
+	s.eachContributor(it, func(user string) {
+		w, ok := known[user]
+		if !ok {
+			n := fold(names(user))
+			for _, t := range terms {
+				if n != "" && strings.Contains(n, t) {
+					w = n
+					break
+				}
+			}
+			known[user] = w
+		}
+		if w != "" {
+			if len(out) > 0 {
+				out = append(out, ' ')
+			}
+			out = append(out, w...)
+		}
+	})
+	return string(out)
 }
 
 // appendFold appends text in a comparable form: lower case, and ß as ss,
@@ -370,9 +401,9 @@ func (m *matcher) add(text string, score, block, comment int) {
 	m.regions = append(m.regions, region{start, len(m.buf), score, block, comment, len(m.regions) == 0})
 }
 
-// match finds the terms in an item; creator is the words its creator is
-// found by, empty for none.
-func (m *matcher) match(it *Item, terms []string, wholeKey, creator string) (Hit, bool) {
+// match finds the terms in an item; people is the words of those who made
+// or changed it that hold a term, empty for none.
+func (m *matcher) match(it *Item, terms []string, wholeKey, people string) (Hit, bool) {
 	m.buf, m.regions = m.buf[:0], m.regions[:0]
 	m.add(it.Title, scoreTitle, -1, -1)
 	m.add(it.Key, 0, -1, -1)
@@ -388,10 +419,11 @@ func (m *matcher) match(it *Item, terms []string, wholeKey, creator string) (Hit
 	for _, l := range it.Labels {
 		m.add(l, scoreOther, -1, -1)
 	}
-	// The creator's names are found as words, as properties are
-	// (ADR-0263).
-	if creator != "" {
-		m.add(creator, scoreOther, -1, -1)
+	// The names of those who made or changed the item are found as words,
+	// as properties are (ADR-0263,
+	// ADR-draft-search-and-starmap-find-items-by-their-contributors).
+	if people != "" {
+		m.add(people, scoreOther, -1, -1)
 	}
 	// A deleted comment's text is already empty, so it cannot match.
 	for i, c := range it.Comments {

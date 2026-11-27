@@ -71,6 +71,14 @@ test("a query finds an item by its creator's username, every word as elsewhere",
   assert.ok(!matches(graph.nodes[1], "keller"), "without a creator nothing is found by one");
 });
 
+test("a query finds an item by the username of whoever changed it", () => {
+  const changed = { ...graph.nodes[1], creator: "anna.keller", contributors: ["pat.meier", "lea.frei"] };
+  assert.ok(matches(changed, "meier"));
+  assert.ok(matches(changed, "frei kernel"));
+  assert.ok(matches(changed, "keller"), "the creator still finds it");
+  assert.ok(!matches(changed, "huber"));
+});
+
 test("without filters everything shows", () => {
   const f = filter(graph);
   assert.equal(f.nodes.size, graph.nodes.length);

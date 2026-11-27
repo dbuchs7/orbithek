@@ -305,8 +305,8 @@ Several people can edit a text at once. Each block someone is working on is lock
 
 Type words of a title, a text or a comment, or a key such as `PLAT-12`, into the search field. Suggestions appear while you type; **Enter** shows all results, ordered by relevance (one to five stars). The search finds only what you may read.
 
-A word of a username finds the items that person created, too: usernames only, never mail addresses or display names.
-Under **People**, the suggestions name the people who created items you may read, with how many; choosing one lists what that person created, newest first, as a query (`creator = "…"`).
+A word of a username finds the items that person created or changed, too: usernames only, never mail addresses or display names.
+Under **People**, the suggestions name the people who created or changed items you may read, with how many; choosing one lists what that person created or changed, the last changed first, as a query (`contributor = "…"`).
 
 ### Search field in a text {#searchblock}
 
@@ -609,7 +609,7 @@ The **Starmap** draws a room's items, pictures and shared labels as a map: items
 The filters, the panel of the chosen node and the impact list stand in a column at the right of the map, on a narrow screen above it.
 A node you drag stays where you drop it, marked by a glow, until you release it: **Release this node** in its panel, or **Release** on the map for every one.
 **Fit** frames what is shown, dropped nodes included; **Zoom in** and **Zoom out** (+ and −) zoom.
-**Find on the map** also finds items by the username of whoever created them, and an item's panel says who created it.
+**Find on the map** also finds items by the username of whoever created or changed them, and an item's panel says who created it and who changed it.
 
 Under **Show**, **Finished tasks** hides the finished tasks with their lines, so open work stands out; the switch is there while the map holds a finished task.
 

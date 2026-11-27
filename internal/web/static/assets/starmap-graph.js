@@ -236,9 +236,9 @@ const fold = (s) => String(s || "").normalize("NFKD").replace(/\p{M}/gu, "").toL
 export function matches(node, query) {
   const words = fold(query).split(/\s+/).filter(Boolean);
   if (!words.length) return false;
-  // An item is also found by its creator's username
-  // (ADR-0263).
-  const text = fold([node.title, node.key, node.name, node.creator, ...(node.labels || [])].filter(Boolean).join(" "));
+  // An item is also found by the usernames of whoever made or changed it
+  // (ADR-0263, ADR-draft-search-and-starmap-find-items-by-their-contributors).
+  const text = fold([node.title, node.key, node.name, node.creator, ...(node.contributors || []), ...(node.labels || [])].filter(Boolean).join(" "));
   return words.every((w) => text.includes(w));
 }
 

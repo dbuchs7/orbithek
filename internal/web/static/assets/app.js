@@ -1349,10 +1349,11 @@ function bellIcon(filled = false) {
   return svg;
 }
 
-// creatorQuery is the address of the query that lists what a person made,
-// newest first (ADR-0136; ADR-0263).
-function creatorQuery(username) {
-  return "#/query?" + new URLSearchParams({ q: `creator = "${username.replace(/["\\]/g, "\\$&")}" ORDER BY created DESC` });
+// contributorQuery is the address of the query that lists what a person
+// made or changed, the last changed first (ADR-0136, ADR-0261;
+// ADR-0263, ADR-draft-search-and-starmap-find-items-by-their-contributors).
+function contributorQuery(username) {
+  return "#/query?" + new URLSearchParams({ q: `contributor = "${username.replace(/["\\]/g, "\\$&")}" ORDER BY updated DESC` });
 }
 
 // searchSuggestions offers, while one types in the search at the top, the
@@ -1406,15 +1407,16 @@ function searchSuggestions(form) {
       if (mine !== asked || input.value.trim() !== typed) return;
       n = 0;
       const shownLabels = labels.slice(0, 4);
-      // The people who made readable items, by username: choosing one
-      // lists what they made (ADR-0263).
+      // The people who made or changed readable items, by username:
+      // choosing one lists what they made or changed (ADR-0263,
+      // ADR-draft-search-and-starmap-find-items-by-their-contributors).
       const shownPeople = (people || []).slice(0, 4);
       list.replaceChildren(
         ...(shownLabels.length ? [group(t("search.labelsGroup")), ...shownLabels.map((l) =>
           option("#/label/" + encodeURIComponent(l.label), { "data-label": l.label },
             h("span", { class: "label", text: l.label }), h("span", { class: "muted", text: t("label.suggestion", { n: l.count }) })))] : []),
         ...(shownPeople.length ? [group(t("search.peopleGroup")), ...shownPeople.map((p) =>
-          option(creatorQuery(p.username), { "data-person": p.username },
+          option(contributorQuery(p.username), { "data-person": p.username },
             h("span", { class: "suggest-person", text: p.username }), h("span", { class: "muted", text: t("search.personItems", { n: p.count }) })))] : []),
         ...(hits.length ? [group(t("search.itemsGroup")), ...hits.map((hit) =>
           option("#/item/" + encodeURIComponent(hit.item.key), { "data-item": hit.item.key },
