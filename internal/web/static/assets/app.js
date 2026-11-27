@@ -6348,9 +6348,11 @@ async function mcpView() {
     appsBox) : null;
 
   // Everybody's own approvals, to see and to withdraw.
+  const grantStatus = h("div", { class: "status" });
   const approvals = h("section", { class: "card", id: "aiaccess-grants" },
     h("h2", { text: t("aiaccess.grantsTitle") }),
     h("p", { class: "muted", text: t("aiaccess.grantsNote") }),
+    grantStatus,
     grants.grants.length
       ? filtered(h("table", {}, h("thead", {}, h("tr", {}, h("th", { text: t("aiaccess.app") }), h("th", { text: t("aiaccess.access") }), h("th", { text: t("aiaccess.approved") }), h("th", { text: t("aiaccess.lastUsed") }), h("th", {}))),
         h("tbody", {}, grants.grants.map((g) => h("tr", {},
@@ -6358,10 +6360,11 @@ async function mcpView() {
           h("td", { text: g.scope === "read" ? t("mcp.scopeRead") : t("mcp.scopeFull") }),
           h("td", { class: "muted", text: when(g.created) }),
           h("td", { class: "muted", text: when(g.last_used) }),
-          h("td", {}, h("button", { type: "button", class: "link danger", text: t("aiaccess.withdraw"), onclick: async () => {
-            await del("/api/oauth/grants/" + encodeURIComponent(g.client));
-            route();
-          } })))))), { id: "aiaccess-grants", label: t("aiaccess.grantsTitle") })
+          h("td", {}, h("button", { type: "button", class: "link danger", text: t("aiaccess.withdraw"),
+            // Asked first, and a failure is shown: the application loses
+            // its access at once.
+            onclick: () => confirm(t("aiaccess.withdrawConfirm", { name: g.name || g.client }))
+              && action(() => del("/api/oauth/grants/" + encodeURIComponent(g.client)), grantStatus) })))))), { id: "aiaccess-grants", label: t("aiaccess.grantsTitle") })
       : h("p", { class: "muted", text: t("aiaccess.noGrants") }));
 
   // Local clients: an API token.
@@ -6558,7 +6561,15 @@ async function adminView(params) {
 
   const sysToggle = (u, role, label) => {
     const box = h("input", { type: "checkbox", checked: rolesOf(u.id).includes(role), "aria-label": `${label}: ${u.username}` });
-    box.addEventListener("change", () => action(() => (box.checked ? put : del)(`/api/system-roles/${role}/${encodeURIComponent(u.id)}`), status));
+    box.addEventListener("change", () => {
+      // Taking a system role back changes what a person may do: it asks
+      // first, as taking back a room's role does.
+      if (!box.checked && !confirm(t("admin.revokeSystemRoleConfirm", { role: label, name: u.username }))) {
+        box.checked = true;
+        return;
+      }
+      action(() => (box.checked ? put : del)(`/api/system-roles/${role}/${encodeURIComponent(u.id)}`), status);
+    });
     return h("label", { class: "check" }, box, " ", label);
   };
   // Account requests made at the sign-in page (ADR-0061): whether they
@@ -6682,7 +6693,8 @@ async function adminView(params) {
         h("td", {}, h("span", { text: x.principal }), " ", h("span", { class: "badge danger", text: t("admin.noAccount") })),
         h("td", {}, x.roles.map((role) => h("button", { type: "button", class: "link danger",
           text: t("admin.revokeSystemRole", { role: role === "admin" ? t("admin.roleAdmin") : t("admin.roleErasure") }),
-          onclick: () => action(() => del(`/api/system-roles/${encodeURIComponent(role)}/${encodeURIComponent(x.principal)}`), status) }))))))) : null,
+          onclick: () => confirm(t("admin.revokeSystemRoleConfirm", { role: role === "admin" ? t("admin.roleAdmin") : t("admin.roleErasure"), name: x.principal }))
+            && action(() => del(`/api/system-roles/${encodeURIComponent(role)}/${encodeURIComponent(x.principal)}`), status) }))))))) : null,
     form({ id: "new-user" }, [
       h("h3", { text: t("admin.newUser") }),
       field(t("field.username"), h("input", { name: "username", required: true })),
@@ -6702,7 +6714,8 @@ async function adminView(params) {
         (g.unknown || []).includes(m) ? [m, " ", h("span", { class: "badge danger", text: t("admin.noAccount"), title: t("admin.memberNoAccount") })] : person(m),
         h("button", { type: "button", class: "link", text: "×", title: t("admin.removeMember", { name: person(m), group: g.name }),
           "aria-label": t("admin.removeMember", { name: person(m), group: g.name }),
-          onclick: () => action(() => del(`/api/groups/${encodeURIComponent(g.name)}/members/${encodeURIComponent(m)}`), status) })))))))) : h("p", { class: "muted", text: t("admin.noGroups") }),
+          onclick: () => confirm(t("admin.removeMemberConfirm", { name: person(m), group: g.name }))
+            && action(() => del(`/api/groups/${encodeURIComponent(g.name)}/members/${encodeURIComponent(m)}`), status) })))))))) : h("p", { class: "muted", text: t("admin.noGroups") }),
     form({ id: "add-member" }, [
       field(t("admin.group"), h("input", { name: "group", required: true, pattern: "[A-Za-z0-9][A-Za-z0-9._\\-]*", list: "group-names" })),
       h("datalist", { id: "group-names" }, groups.map((g) => h("option", { value: g.name }))),

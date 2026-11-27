@@ -3373,5 +3373,8 @@ export default {
   "error.tooLarge": "Too large",
   "error.tooMany": "Too many attempts",
   "error.storage": "The storage is almost full",
-  "error.server": "The server could not do that"
+  "error.server": "The server could not do that",
+  "admin.revokeSystemRoleConfirm": "Take the system role {role} back from {name}?",
+  "admin.removeMemberConfirm": "Take {name} out of the group {group}? They lose what the group is granted.",
+  "aiaccess.withdrawConfirm": "Withdraw the approval of {name}? The application loses its access at once."
 };

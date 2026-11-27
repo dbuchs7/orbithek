@@ -4473,6 +4473,7 @@ function webSource() {
     await page.waitForSelector("#groups th:text-is('@ops')");
     await page.click("#users tr:has-text('bert') label:has-text('erasure') input");
     await page.waitForSelector("#users tr:has-text('bert') label:has-text('erasure') input:checked");
+    answer = true; // taking a system role back asks first
     await page.click("#users tr:has-text('bert') label:has-text('erasure') input");
     await page.waitForSelector("#users tr:has-text('bert') label:has-text('erasure') input:not(:checked)");
     await page.click("#admin-spaces a:has-text('Settings')");
@@ -4726,6 +4727,7 @@ function webSource() {
     step("AI access: the person withdraws the approval; local clients still use an API token");
     await page.goto(base + "/#/mcp");
     await page.waitForSelector("#aiaccess-grants td:has-text('read and write')");
+    answer = true; // withdrawing an approval asks first
     await page.click("#aiaccess-grants button:has-text('Withdraw')");
     await page.waitForSelector("#aiaccess-grants p:has-text('not approved any application')");
     await page.click("#aiaccess-token summary");
