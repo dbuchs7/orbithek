@@ -5,7 +5,9 @@ package item
 // a room, or a page, the page with the pages below it, or the pages below
 // it only. The room is named by Space and the page by Ref, each none for
 // the item the text is on, so a page moved or copied takes its search
-// along. The block holds no item and no copy of one (D4): every reader's
+// along. Label and ItemType narrow it further to the items that carry a
+// label and are of a type, as the search page's filters do; the reader
+// does not change them. The block holds no item and no copy of one (D4): every reader's
 // browser asks the full-text search (ADR-0033) as that reader, so a hit
 // is an item the reader reads (D10). The reader may choose another scope
 // while reading; nothing of that is kept.
@@ -50,6 +52,10 @@ func checkSearchBlock(b Block, self ID) error {
 		return invalid("room %q: a search field names a room by its key, or none for the room of its item", b.Space)
 	case b.Ref != "" && b.Ref == self:
 		return invalid("a search field names its own item as none")
+	case b.Label != "" && !validStoredLabel(b.Label):
+		return invalid("label %q: a search field names one label, as stored (ADR-0044), or none", b.Label)
+	case b.ItemType != "" && !validViewName(b.ItemType):
+		return invalid("type %q: a search field names a type by its name, or none for every type", b.ItemType)
 	}
 	return nil
 }

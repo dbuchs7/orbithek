@@ -126,7 +126,8 @@ export const schema = new Schema({
       depth: { default: 0 }, hideTypes: { default: null }, hideKinds: { default: null } }, toDOM: () => ["div", { class: "pm-starmap" }] },
     // A search field (ADR-0264), its hits
     // computed when asked; the block keeps what it searches.
-    search: { group: "block", atom: true, selectable: true, attrs: { ...bid, scope: { default: "" }, space: { default: "" }, ref: { default: "" } },
+    search: { group: "block", atom: true, selectable: true, attrs: { ...bid, scope: { default: "" }, space: { default: "" }, ref: { default: "" },
+      label: { default: "" }, itemType: { default: "" } },
       toDOM: () => ["div", { class: "pm-search" }] },
     // A slide deck (ADR-0260): the slides it keeps, files of the item in
     // their order, the album folder or collection they came from, and a
@@ -308,7 +309,7 @@ function plainNode(b, embeds) {
   if (b.kind === "view") return schema.nodes.itemview.create({ bid: id, layout: b.layout || "table", itemType: b.itemType || "", space: b.space || "", query: b.query || "",
     group: b.group || "", columns: b.columns?.length ? [...b.columns] : null, sort: b.sort || "" });
   if (b.kind === "slides") return schema.nodes.slides.create({ bid: id, ref: b.ref || "", files: b.files?.length ? [...b.files] : null, text: b.text || "" });
-  if (b.kind === "search") return schema.nodes.search.create({ bid: id, scope: b.scope || "", space: b.space || "", ref: b.ref || "" });
+  if (b.kind === "search") return schema.nodes.search.create({ bid: id, scope: b.scope || "", space: b.space || "", ref: b.ref || "", label: b.label || "", itemType: b.itemType || "" });
   if (b.kind === "starmap") {
     return schema.nodes.starmap.create({ bid: id, space: b.space || "", label: b.label || "", search: b.search || "", depth: b.depth || 0,
       hideTypes: b.hideTypes?.length ? [...b.hideTypes] : null, hideKinds: b.hideKinds?.length ? [...b.hideKinds] : null });
@@ -412,7 +413,7 @@ function plainBlock(node) {
   }
   if (node.type === schema.nodes.search) {
     const b = { kind: "search" };
-    for (const k of ["scope", "space", "ref"]) if (node.attrs[k]) b[k] = node.attrs[k];
+    for (const k of ["scope", "space", "ref", "label", "itemType"]) if (node.attrs[k]) b[k] = node.attrs[k];
     return b;
   }
   if (node.type === schema.nodes.starmap) {
@@ -1573,7 +1574,8 @@ function searchView(node, v, getPos, here) {
       const next = await pickSearch(block, here?.id || "");
       const pos = getPos();
       if (!next || typeof pos !== "number") return;
-      v.dispatch(v.state.tr.setNodeMarkup(pos, null, { ...node.attrs, scope: next.scope || "", space: next.space || "", ref: next.ref || "" }));
+      v.dispatch(v.state.tr.setNodeMarkup(pos, null, { ...node.attrs, scope: next.scope || "", space: next.space || "", ref: next.ref || "",
+        label: next.label || "", itemType: next.itemType || "" }));
     } }));
   }
   dom.append(head, searchBlockElement(block, here));
@@ -2554,7 +2556,7 @@ export function createEditor({ blocks, embeds, editable, resolve, childPages, fi
     try {
       const spec = await pickSearch({}, childPages?.here?.id || "");
       if (!spec) return view.focus();
-      insertBlock(schema.nodes.search.create({ scope: spec.scope || "", space: spec.space || "", ref: spec.ref || "" }));
+      insertBlock(schema.nodes.search.create({ scope: spec.scope || "", space: spec.space || "", ref: spec.ref || "", label: spec.label || "", itemType: spec.itemType || "" }));
     } catch (err) {
       status.textContent = err.message;
     }

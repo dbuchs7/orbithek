@@ -1610,8 +1610,11 @@ func checkBlock(b Block, self ID) error {
 	if b.Kind != TaskList && b.Kind != ItemsView && b.Query != "" {
 		return invalid("only a task list or a view has a query")
 	}
-	if b.Kind != ItemsView && (b.Layout != "" || b.ItemType != "" || b.Group != "" || b.Columns != nil || b.Sort != "") {
-		return invalid("only a view names a layout, a type, a grouping, columns and a sort")
+	if b.Kind != ItemsView && (b.Layout != "" || b.Group != "" || b.Columns != nil || b.Sort != "") {
+		return invalid("only a view names a layout, a grouping, columns and a sort")
+	}
+	if b.Kind != ItemsView && b.Kind != SearchBlock && b.ItemType != "" {
+		return invalid("only a view or a search field names a type")
 	}
 	if b.Kind != ItemsView && b.Kind != StarmapBlock && b.Kind != SearchBlock && b.Space != "" {
 		return invalid("only a view, a starmap or a search field names a room")
@@ -1622,8 +1625,11 @@ func checkBlock(b Block, self ID) error {
 	if b.Kind != Slides && b.Files != nil {
 		return invalid("only a slide deck keeps files as its slides")
 	}
-	if b.Kind != StarmapBlock && (b.Label != "" || b.Search != "" || b.HideKinds != nil) {
-		return invalid("only a starmap names a label, a search text and kinds it leaves out")
+	if b.Kind != StarmapBlock && (b.Search != "" || b.HideKinds != nil) {
+		return invalid("only a starmap names a search text and kinds it leaves out")
+	}
+	if b.Kind != StarmapBlock && b.Kind != SearchBlock && b.Label != "" {
+		return invalid("only a starmap or a search field names a label")
 	}
 	switch {
 	case b.View == "":
