@@ -669,7 +669,7 @@ func (h itemHandlers) revokeSystemRole(w http.ResponseWriter, r *http.Request) {
 		}
 		// The last administrator with an account keeps the role: a holder
 		// without one administers nothing (ADR-0257), and neither does a
-		// suspended account (ADR-draft-suspending-and-deleting-accounts).
+		// suspended account (ADR-0262).
 		if p := r.PathValue("principal"); r.PathValue("role") == item.RoleAdmin && h.account(p) == nil {
 			if !(authHandlers{d: h.d}).otherAdminSignsIn(s, auth.UserID(p)) {
 				return nil, fmt.Errorf("%w: %s is the last administrator", item.ErrValidation, p)

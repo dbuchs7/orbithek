@@ -6,7 +6,7 @@ import (
 )
 
 // Suspending and deleting accounts
-// (ADR-draft-suspending-and-deleting-accounts).
+// (ADR-0262).
 //
 // A suspended account keeps everything it has, but no way in works: its
 // sessions end, and its password, single sign-on, API tokens, OAuth tokens

@@ -1,4 +1,4 @@
-# ADR-DRAFT: Administrators suspend accounts and delete them, leaving the account's ID as deleted
+# ADR-0262: Administrators suspend accounts and delete them, leaving the account's ID as deleted
 
 - **Status:** Proposed
 - **Implementation:** Partial

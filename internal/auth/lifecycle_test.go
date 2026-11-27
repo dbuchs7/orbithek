@@ -10,7 +10,7 @@ import (
 // ends its sessions and refuses every way in — password, single sign-on,
 // API tokens, a password reset — while keeping the account, its tokens and
 // its data; reactivating it opens them again, and a reload of the journal
-// gives the same state (ADR-draft-suspending-and-deleting-accounts).
+// gives the same state (ADR-0262).
 func TestASuspendedAccountCannotSignInUntilReactivated(t *testing.T) {
 	a, j, c := newAccounts(t)
 	u, err := a.CreateUser("anna", pw)
@@ -103,7 +103,7 @@ func TestASuspendedAccountsOAuthTokensStop(t *testing.T) {
 // and removes its credentials and personal data from the accounts; its ID
 // stays known as deleted and is never reused, its username is free, and a
 // reload of the journal gives the same state
-// (ADR-draft-suspending-and-deleting-accounts).
+// (ADR-0262).
 func TestADeletedAccountLeavesOnlyItsID(t *testing.T) {
 	a, j, _ := newAccounts(t)
 	u, err := a.CreateUser("bruno", pw)

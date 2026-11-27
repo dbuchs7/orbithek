@@ -11,7 +11,7 @@ import (
 )
 
 // userLifecycleRoutes let administrators suspend, reactivate and delete
-// accounts (ADR-draft-suspending-and-deleting-accounts).
+// accounts (ADR-0262).
 func userLifecycleRoutes(d Deps) []Route {
 	h := authHandlers{d: d}
 	return []Route{
@@ -61,7 +61,7 @@ func (h authHandlers) mayEnd(s *item.Store, caller, target auth.UserID) error {
 
 // otherAdminSignsIn reports whether someone besides principal holds the
 // system role admin and can sign in: an account that is not suspended
-// (ADR-0257, ADR-draft-suspending-and-deleting-accounts).
+// (ADR-0257, ADR-0262).
 func (h authHandlers) otherAdminSignsIn(s *item.Store, principal auth.UserID) bool {
 	var others []auth.UserID
 	for _, p := range s.SystemRoleHolders(item.RoleAdmin) {

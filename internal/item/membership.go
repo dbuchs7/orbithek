@@ -190,7 +190,7 @@ func (x *Session) AdministersASpace() bool {
 // RevokeAll takes back, in one batch, every role a principal was granted
 // in a space, every group it belongs to and every system role it holds, as
 // when its account is deleted
-// (ADR-draft-suspending-and-deleting-accounts). The last administrator
+// (ADR-0262). The last administrator
 // keeps the role; then nothing is taken back.
 func (s *Store) RevokeAll(actor, principal string) error {
 	var events []Event

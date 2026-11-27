@@ -80,7 +80,7 @@ const (
 	UserCreated    = "user.create"
 	// UserSuspended, UserReactivated and UserDeleted record an
 	// administrator suspending, reactivating and deleting an account
-	// (ADR-draft-suspending-and-deleting-accounts).
+	// (ADR-0262).
 	UserSuspended   = "user.suspend"
 	UserReactivated = "user.reactivate"
 	UserDeleted     = "user.delete"

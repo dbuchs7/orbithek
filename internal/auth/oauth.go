@@ -467,7 +467,7 @@ func (a *Accounts) ThrottleOAuth(addr string, run func() (OAuthTokens, error)) (
 // access token; callers hold a.mu.
 func (a *Accounts) issueTokens(user UserID, client, target string, scope Scope, kind string) (OAuthTokens, error) {
 	// A suspended or deleted account's approvals give nothing
-	// (ADR-draft-suspending-and-deleting-accounts).
+	// (ADR-0262).
 	if !a.active(user) {
 		return OAuthTokens{}, ErrInvalidGrant
 	}

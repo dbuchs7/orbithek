@@ -56,7 +56,7 @@ type User struct {
 	Username string
 	Created  time.Time
 	// Suspended says the account may not sign in until it is reactivated
-	// (ADR-draft-suspending-and-deleting-accounts).
+	// (ADR-0262).
 	Suspended bool
 }
 
@@ -127,7 +127,7 @@ type Accounts struct {
 	external map[string]UserID   // issuer + "\x00" + subject -> user (ADR-0030)
 	feeds    map[string]feedRef  // calendar feeds by secret hash (ADR-0168)
 	// deleted are the IDs of deleted accounts, kept so that what refers
-	// to them can say so (ADR-draft-suspending-and-deleting-accounts).
+	// to them can say so (ADR-0262).
 	deleted  map[UserID]bool
 	throttle throttle
 	dummy    string // hash checked for unknown usernames, at the same cost

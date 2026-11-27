@@ -4410,7 +4410,7 @@ function webSource() {
     await page.waitForSelector("#audit-chain .notice.success");
     check(/^[0-9a-f]{64}$/.test(await page.textContent("#audit-chain code")), "the newest entry's hash is shown");
 
-    step("administration: an account is suspended, reactivated and deleted (ADR-draft-suspending-and-deleting-accounts)");
+    step("administration: an account is suspended, reactivated and deleted (ADR-0262)");
     await page.goto(base + "/#/admin");
     await page.waitForSelector("#users-lifecycle-help");
     answer = true;

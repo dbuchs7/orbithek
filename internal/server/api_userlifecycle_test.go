@@ -14,7 +14,7 @@ import (
 // session and token stop at once, its password is answered with the
 // reason, and reactivating it lets it in again; only administrators
 // decide, never about their own account
-// (ADR-draft-suspending-and-deleting-accounts).
+// (ADR-0262).
 func TestAnAdministratorSuspendsAndReactivatesAnAccount(t *testing.T) {
 	w := newWorld(t)
 	bert := w.ids["bert"]
@@ -56,7 +56,7 @@ func TestAnAdministratorSuspendsAndReactivatesAnAccount(t *testing.T) {
 // TestTheLastAdministratorWhoCanSignInStays: an administrator suspends
 // or deletes neither their own account nor the last other administrator
 // who can sign in, and does not give up the role while the only other
-// holder is suspended (ADR-0257, ADR-draft-suspending-and-deleting-accounts).
+// holder is suspended (ADR-0257, ADR-0262).
 func TestTheLastAdministratorWhoCanSignInStays(t *testing.T) {
 	w := newWorld(t)
 	me := w.admin.expect("GET", "/api/me", "", http.StatusOK)
@@ -83,7 +83,7 @@ func TestTheLastAdministratorWhoCanSignInStays(t *testing.T) {
 // TestADeletedAccountIsGoneButItsIDStays: deleting an account takes back
 // its roles and memberships, ends its ways in, frees its username and
 // leaves its ID known as deleted, so its work still says who did it
-// (ADR-draft-suspending-and-deleting-accounts).
+// (ADR-0262).
 func TestADeletedAccountIsGoneButItsIDStays(t *testing.T) {
 	w := newWorld(t)
 	bert := w.ids["bert"]

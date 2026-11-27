@@ -1077,7 +1077,7 @@ async function learnNames(ids) {
   for (let i = 0; i < missing.length; i += 100) {
     const chunk = missing.slice(i, i + 100);
     const res = await get("/api/users/names?" + chunk.map((id) => "id=" + encodeURIComponent(id)).join("&"));
-    // A deleted account is named as such (ADR-draft-suspending-and-deleting-accounts).
+    // A deleted account is named as such (ADR-0262).
     const deleted = new Set(res.deleted || []);
     for (const id of chunk) {
       names.set(id, res.names[id] ?? (deleted.has(id) ? t("users.deleted") : id));
@@ -6604,7 +6604,7 @@ async function adminView(params) {
         action(() => del(`/api/users/${encodeURIComponent(u.id)}/identities/${encodeURIComponent(id)}`), status) }))));
   // Suspending closes every way in until the account is reactivated;
   // deleting removes the account for good, after its username is typed
-  // again (ADR-draft-suspending-and-deleting-accounts). One's own account
+  // again (ADR-0262). One's own account
   // offers neither.
   const lifecycleCell = (u) => me && u.id === me.user.id ? h("td") : h("td", { class: "user-lifecycle" },
     u.suspended

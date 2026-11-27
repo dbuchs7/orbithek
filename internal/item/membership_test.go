@@ -58,7 +58,7 @@ func TestAccessIsListedAndTakenBack(t *testing.T) {
 // TestEverythingGrantedToAPrincipalIsTakenBackInOneBatch: when an account
 // is deleted, its roles in rooms, its memberships of groups and its system
 // roles go in one batch; the last administrator keeps the role
-// (ADR-draft-suspending-and-deleting-accounts).
+// (ADR-0262).
 func TestEverythingGrantedToAPrincipalIsTakenBackInOneBatch(t *testing.T) {
 	s := permFixture(t)
 	noErr(t, s.GrantRole("root", "OPS", "dora", Viewer))
