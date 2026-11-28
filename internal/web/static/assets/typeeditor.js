@@ -11,6 +11,7 @@ import { t } from "./i18n.js";
 import {
   fieldKinds, presetWorkflow, emptyDraft, newField, draftOf, definitionOf, problems, moved, renamedState,
 } from "./typeparts.js";
+import { askConfirm } from "./dialogs.js";
 
 const uniqueKinds = ["text", "url", "number"];
 
@@ -233,7 +234,7 @@ export function roomTypesCard({ space, types, templates = [], onChange }) {
     box.querySelector("input:not([disabled])")?.focus();
   };
   const remove = async (ty) => {
-    if (!confirm(t("admin.removeTypeConfirm", { name: ty.name }))) return;
+    if (!(await askConfirm(t("admin.removeTypeConfirm", { name: ty.name })))) return;
     try {
       await del(`/api/types/${encodeURIComponent(ty.name)}`);
       onChange();

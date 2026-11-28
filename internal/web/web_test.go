@@ -82,6 +82,35 @@ func TestNoMarkupFromStrings(t *testing.T) {
 	}
 }
 
+// TestTheUIAsksInItsOwnDialogs: the UI asks, has a line typed and says what
+// needs no answer through assets/dialogs.js, never through the browser's
+// confirm, prompt and alert, which block the page, look as the browser
+// pleases and differ from every other dialog of the app.
+func TestTheUIAsksInItsOwnDialogs(t *testing.T) {
+	native := regexp.MustCompile(`(^|[^A-Za-z0-9_$.])(confirm|prompt|alert)\(`)
+	err := fs.WalkDir(FS(), ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".js") || strings.HasPrefix(path, "vendor/") || strings.HasPrefix(path, "assets/locales/") {
+			return err
+		}
+		data, err := fs.ReadFile(FS(), path)
+		if err != nil {
+			return err
+		}
+		for i, line := range strings.Split(string(data), "\n") {
+			if strings.HasPrefix(strings.TrimSpace(line), "//") {
+				continue
+			}
+			if m := native.FindStringSubmatch(line); m != nil {
+				t.Errorf("%s:%d calls the browser's %s(); use askConfirm, askText or tell of assets/dialogs.js", path, i+1, m[2])
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 // TestPalettesAreCredited: every palette of the drawing editor (ADR-0117)
 // is a library of named shapes, and its license file names where it comes
 // from and carries the MIT license it is published under.

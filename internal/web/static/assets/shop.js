@@ -13,6 +13,7 @@ import { helpLink } from "./help.js";
 import { loadForm } from "./engineviews.js";
 import { engineOnly } from "./taskparts.js";
 import { textOf, offered, partsOf, answers, orders as basketOrders, settled, listOf, statuses } from "./shopparts.js";
+import { askConfirm, askText } from "./dialogs.js";
 
 const errorBox = (err) => h("p", { class: "error", role: "alert", text: err instanceof Error ? err.message : String(err) });
 const enc = encodeURIComponent;
@@ -292,7 +293,7 @@ async function ordersTab(ctx) {
   if (!list.length) return ctx.body.replaceChildren(h("p", { class: "muted", id: "shop-no-orders", text: t("shop.noOrders") }));
   const status = h("div", { class: "status", role: "status" });
   const act = (question, fn, done) => async (ev) => {
-    if (!confirm(question)) return;
+    if (!(await askConfirm(question))) return;
     ev.currentTarget.disabled = true;
     try {
       await fn();
@@ -329,7 +330,7 @@ async function approvalsTab(ctx) {
   const decide = (a, approved) => async (ev) => {
     let reason = "";
     if (!approved) {
-      reason = prompt(t("shop.refuseReason")) || "";
+      reason = await askText(t("shop.refuseReason")) || "";
       if (!reason.trim()) return;
     }
     ev.currentTarget.disabled = true;
@@ -370,7 +371,7 @@ export function catalogueCard(it) {
   };
   const run = (dryRun) => async (ev) => {
     const button = ev.currentTarget;
-    if (!dryRun && !confirm(t("shopcat.confirm"))) return;
+    if (!dryRun && !(await askConfirm(t("shopcat.confirm")))) return;
     button.disabled = true;
     out.replaceChildren(h("p", { class: "muted", text: t("shopcat.sending") }));
     try {

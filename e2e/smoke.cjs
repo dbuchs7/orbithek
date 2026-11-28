@@ -14,6 +14,31 @@ const base = process.env.BASE_URL || "http://127.0.0.1:8080";
 const adminPassword = process.env.ADMIN_PASSWORD;
 const hostile = `<img src=x onerror="alert('xss')">`;
 
+// watchDialogs answers the app's own questions (assets/dialogs.js) on a
+// page as answerFor(message) says: true goes on, a string is typed and then
+// goes on, false cancels. It must be called before the page first loads.
+async function watchDialogs(pg, answerFor) {
+  await pg.exposeFunction("__otAsk", answerFor);
+  await pg.addInitScript(() => {
+    const seen = new WeakSet();
+    const look = async () => {
+      for (const d of document.querySelectorAll("dialog.ask-dialog[open]")) {
+        if (seen.has(d)) continue;
+        seen.add(d);
+        const a = await window.__otAsk(d.querySelector(".ask-text").textContent);
+        if (a === false) {
+          d.close();
+          continue;
+        }
+        const input = d.querySelector("input[name=answer]");
+        if (input && typeof a === "string") input.value = a;
+        d.querySelector("[data-ask=ok]").click();
+      }
+    };
+    new MutationObserver(look).observe(document, { childList: true, subtree: true });
+  });
+}
+
 function check(cond, msg) {
   if (!cond) throw new Error("check failed: " + msg);
 }
@@ -783,6 +808,17 @@ function webSource() {
     problems.push("dialog: " + d.message());
     await d.dismiss();
   });
+  // The app asks its own questions in dialogs of its own; they are
+  // answered the same way.
+  await watchDialogs(page, (message) => {
+    if (answer !== null) {
+      const a = answer;
+      answer = null;
+      return a;
+    }
+    problems.push("dialog: " + message);
+    return false;
+  });
   // The step running now, named in the report of a failure.
   let current = "";
   const step = (name) => {
@@ -1167,6 +1203,7 @@ function webSource() {
     const other = await browser.newPage();
     other.on("pageerror", (e) => problems.push("bert's page error: " + e.message));
     other.on("dialog", async (d) => { problems.push("bert's dialog: " + d.message()); await d.dismiss(); });
+    await watchDialogs(other, (message) => { problems.push("bert's dialog: " + message); return false; });
     await other.goto(base + "/");
     await other.fill("#login [name=username]", "bert");
     await other.fill("#login [name=password]", "bert's password");
@@ -3565,6 +3602,7 @@ function webSource() {
     const holder = await browser.newPage();
     holder.on("pageerror", (e) => problems.push("bert's page error: " + e.message));
     holder.on("dialog", async (d) => { problems.push("bert's dialog: " + d.message()); await d.dismiss(); });
+    await watchDialogs(holder, (message) => { problems.push("bert's dialog: " + message); return false; });
     await holder.goto(base + "/");
     await holder.fill("#login [name=username]", "bert");
     await holder.fill("#login [name=password]", "bert's password");
@@ -4367,6 +4405,7 @@ function webSource() {
     const guest = await guestCtx.newPage();
     guest.on("pageerror", (e) => problems.push("guest page error: " + e.message));
     guest.on("dialog", async (d) => { problems.push("guest dialog: " + d.message()); await d.dismiss(); });
+    await watchDialogs(guest, (message) => { problems.push("guest dialog: " + message); return false; });
     await guest.goto(base + "/");
     await guest.click("#signup-open");
     await guest.fill("#signup [name=username]", "dana");
@@ -4445,6 +4484,7 @@ function webSource() {
     const lockedCtx = await browser.newContext();
     const locked = await lockedCtx.newPage();
     locked.on("dialog", async (d) => { problems.push("locked dialog: " + d.message()); await d.dismiss(); });
+    await watchDialogs(locked, (message) => { problems.push("locked dialog: " + message); return false; });
     await locked.goto(base + "/");
     await locked.fill("#login [name=username]", "dana");
     await locked.fill("#login [name=password]", process.env.SMTP_SINK_PORT ? "dana's second password" : "dana's password");
@@ -6266,6 +6306,7 @@ function webSource() {
     const boardAdmin = await boardCtx.newPage();
     boardAdmin.on("pageerror", (e) => problems.push("admin's whiteboard error: " + e.message));
     boardAdmin.on("dialog", async (d) => { problems.push("admin's dialog: " + d.message()); await d.dismiss(); });
+    await watchDialogs(boardAdmin, (message) => { problems.push("admin's dialog: " + message); return false; });
     await boardAdmin.goto(boardURL);
     const boardOther = boardAdmin.frameLocator("#whiteboard-frame");
     await boardOther.locator("body[data-live=on][data-state=open][data-elements='2']").waitFor();
@@ -6953,6 +6994,7 @@ function webSource() {
       const rtCtx = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
       const rt = await rtCtx.newPage();
       rt.on("dialog", (d) => d.accept());
+      await watchDialogs(rt, () => true);
       await rt.goto(base + "/");
       await rt.fill("#login [name=username]", "admin");
       await rt.fill("#login [name=password]", adminPassword);

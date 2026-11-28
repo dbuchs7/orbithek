@@ -7,6 +7,7 @@ import { ApiError, del, get, post, put } from "./api.js";
 import { h, when } from "./dom.js";
 import { t } from "./i18n.js";
 import { chromeOf, fieldText, knownClass, pictureSource, points, runStyle, tabSegments } from "./wordframe.js";
+import { askConfirm, askText } from "./dialogs.js";
 
 // ensureStylesheet links a template version's stylesheet once.
 function ensureStylesheet(href) {
@@ -161,13 +162,13 @@ export async function wordTemplatesCard() {
       h("p", { class: "muted", text: t("wt.used", { types: tp.types.join(", ") || "–", items: tp.items }) }),
       h("div", { class: "actions" },
         h("label", { class: "wt-upload" }, h("span", { class: "muted", text: t("wt.newVersion") }), file),
-        h("button", { type: "button", class: "link", text: t("wt.rename"), onclick: () => {
-          const name = prompt(t("wt.renamePrompt"), tp.name);
+        h("button", { type: "button", class: "link", text: t("wt.rename"), onclick: async () => {
+          const name = await askText(t("wt.renamePrompt"), { value: tp.name });
           if (name) act(async () => { await put(`/api/word-templates/${encodeURIComponent(tp.id)}`, { name }); });
         } }),
         newest.version ? h("a", { href: `/api/word-templates/${encodeURIComponent(tp.id)}/versions/${newest.version}/file`, download: "", text: t("wt.download") }) : null,
-        h("button", { type: "button", class: "link danger", text: t("wt.remove"), disabled: used, title: used ? t("wt.inUse") : undefined, onclick: () =>
-          confirm(t("wt.removeConfirm", { name: tp.name })) && act(async () => { await del(`/api/word-templates/${encodeURIComponent(tp.id)}`); }) })));
+        h("button", { type: "button", class: "link danger", text: t("wt.remove"), disabled: used, title: used ? t("wt.inUse") : undefined, onclick: async () =>
+          (await askConfirm(t("wt.removeConfirm", { name: tp.name }))) && act(async () => { await del(`/api/word-templates/${encodeURIComponent(tp.id)}`); }) })));
   };
   const load = async () => {
     const data = await get("/api/word-templates");

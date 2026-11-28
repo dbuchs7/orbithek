@@ -324,6 +324,7 @@ The same job fails when a pull request changes what a picture of the manual show
 **UI code never turns a string into markup or code** (ADR-0014, ADR-0031).
 Create elements with `h()` from `internal/web/static/assets/dom.js`;
 `TestNoMarkupFromStrings` forbids `innerHTML` and its relatives.
+The UI asks a question, has a line typed and says what needs no answer through `assets/dialogs.js` (`askConfirm`, `askText`, `tell`), one dialog of one look and behaviour; `TestTheUIAsksInItsOwnDialogs` forbids the browser's `confirm`, `prompt` and `alert`.
 A UI change that adds a flow extends `e2e/smoke.cjs`.
 
 **The product ships as one binary** (ADR-0009, ADR-0024): pure Go, no CGO, web assets embedded with `go:embed`, cross-compiled for every release platform.
