@@ -1046,14 +1046,48 @@ function attachmentsSection(path, files, live) {
 const whiteboardHref = (path, file) => `#/whiteboard/${encodeURIComponent(decodeURIComponent(path.split("/").pop()))}/${file}`;
 
 async function action(fn, status) {
+  // What the action itself sends — the field used, and the form it stands
+  // in — is not a draft to keep.
   try {
     await fn();
-    route();
+    await route();
   } catch (err) {
-    if (status) status.replaceChildren(errorBox(err));
+    if (status) say(status, errorBox(err));
     else tell(err.message);
   }
 }
+
+// say shows a message in a view's status and brings it into sight: on a
+// long page the status may stand far from the control that was used, and
+// a message nobody sees is no answer.
+function say(status, node) {
+  status.replaceChildren(node);
+  // To the middle: at an edge it would lie under the bar at the top.
+  status.scrollIntoView?.({ block: "center" });
+}
+
+// typed lists what is typed into the view's text fields and not yet sent,
+// each field named by what stays the same when the view is drawn again:
+// its ID, its form, its name, its label and its place among its like.
+function typed() {
+  const seen = new Map();
+  const out = [];
+  for (const el of app.querySelectorAll("textarea, input[type=text], input:not([type])")) {
+    const key = [el.tagName, el.id, el.form?.id || el.form?.className || "", el.name, el.getAttribute("aria-label") || ""].join("|");
+    const n = seen.get(key) || 0;
+    seen.set(key, n + 1);
+    out.push({ key: key + "|" + n, el });
+  }
+  return out;
+}
+
+// typedDrafts notes what is typed and not yet sent, but for what the
+// action itself sends: the field used, and the form it stands in.
+function typedDrafts(used = null) {
+  const sent = (el) => el === used || (used?.form && el.form === used.form);
+  return new Map(typed().filter(({ el }) => el.value && el.value !== el.defaultValue && !sent(el)).map(({ key, el }) => [key, el.value]));
+}
+
 
 // moveItem makes a transition of an item; for a linked item moved to a
 // finished state it opens the task dialog instead, as the engine decides
@@ -1825,7 +1859,23 @@ function refreshStorage() {
 // the one it has now (ADR-0249).
 const movedSections = { tasks: "planning", daily: "journal" };
 
+// route draws the view the address names. Drawn again at the same address
+// — after a change made on the page — it puts back what was typed and not
+// yet sent: a comment half written is not lost because a label was added
+// beside it. A field the new view fills itself keeps its own value.
+let drawnAt = null;
 async function route() {
+  const again = location.hash === drawnAt;
+  drawnAt = location.hash;
+  const drafts = again ? typedDrafts(document.activeElement) : null;
+  await draw();
+  if (!drafts?.size || location.hash !== drawnAt) return;
+  for (const { key, el } of typed()) {
+    if (drafts.has(key) && !el.value) el.value = drafts.get(key);
+  }
+}
+
+async function draw() {
   const hash = location.hash.replace(/^#/, "") || "/";
   for (const fn of leaving) fn();
   leaving = [];
@@ -6668,7 +6718,7 @@ async function adminView(params) {
         const typed = await askText(t("admin.deleteUserConfirm", { name: u.username }), { ok: t("admin.deleteUser"), danger: true });
         if (typed === null) return;
         if (typed.trim() !== u.username) {
-          status.replaceChildren(h("p", { class: "error", role: "alert", text: t("admin.deleteUserMismatch") }));
+          say(status, h("p", { class: "error", role: "alert", text: t("admin.deleteUserMismatch") }));
           return;
         }
         action(() => del(`/api/users/${encodeURIComponent(u.id)}`), status);

@@ -49,6 +49,7 @@ Die Leiste oben auf jeder Seite enthält von links nach rechts:
 - **DE** und **EN**: die Sprache der Oberfläche.
   Lässt sich etwas nicht ausführen, sagt die Oberfläche in Ihrer Sprache, um welche Art von Fehler es sich handelt — nicht angenommen, nicht erlaubt, nicht gefunden — und fügt die Angabe des Servers an; diese ist englisch und nennt Personen mit ihrem Benutzernamen.
   Eine Rückfrage der Oberfläche — vor dem Löschen, vor dem Entziehen eines Rechts, für eine Zeile Text — öffnet sich als eigenes kleines Fenster: seine Schaltfläche heisst nach dem, was sie tut — **Löschen**, **Sperren**, **Umbenennen** — und ist rot, wo sich das nicht rückgängig machen lässt; die Schaltfläche oder **Enter** führt aus, **Abbrechen** oder die Escape-Taste lässt alles, wie es war.
+  Was getippt und noch nicht abgeschickt ist — ein halb geschriebener Kommentar — bleibt stehen, wenn die Seite nach einer anderen Änderung neu gezeichnet wird, etwa nach dem Hinzufügen eines Labels.
 - Den Umschalter für **hellen und dunklen Modus**.
 - Den **Lesemodus** (Ctrl+Shift+F, F11): Die Seite füllt den Bildschirm; Esc beendet ihn.
 - Das **Profilbild** oder die Initialen: öffnet das Kontomenü mit *Konto und Passwort*, *KI-Zugang*, *Handbuch*, *Administration* (nur für die Administration) und *Abmelden*.
