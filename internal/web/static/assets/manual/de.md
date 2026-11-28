@@ -384,7 +384,7 @@ Die Seite eines Labels zeigt die Einträge mit ihrem Label als Ansicht: **Tabell
 
 ### Die Aufgabenliste {#tasks}
 
-Das Modul **Planung** listet die offene Arbeit in den eigenen Räumen auf: Einträge vom Typ *task* sowie jedes Typs mit Workflow und einem Feld *assignee* oder *due*. Die Reiter zeigen **Mir zugewiesen**, **Nicht zugewiesen** und **Alle offenen**; Filter schränken nach Raum, Status, Person, Fälligkeit und Labels ein. **Übernehmen** weist eine Aufgabe sich selbst zu, **Zurückgeben** gibt sie frei. Überfällige Aufgaben sind markiert.
+Das Modul **Planung** listet die offene Arbeit in den eigenen Räumen auf: Einträge vom Typ *task* sowie jedes Typs mit Workflow und einem Feld *assignee* oder *due*. Die Reiter zeigen **Mir zugewiesen**, **Nicht zugewiesen** und **Alle offenen**; Filter schränken nach Raum, Status, Person, Fälligkeit und Labels ein. **Mir zuweisen** weist eine Aufgabe sich selbst zu, **Zurückgeben** gibt sie frei. Überfällige Aufgaben sind markiert.
 
 ![Die Aufgabenliste unter Planung](img/de/tasks.png)
 
@@ -437,7 +437,7 @@ Das **Album** zeigt die Bilder und Zeichnungen aller Seiten und Aufgaben, die ma
 
 Man sucht nach Name, Label, Schlüssel oder Titel und schränkt nach Art, Raum und Label ein. Die Suche nimmt auch ein Datum und findet die Bilder, die dann aufgenommen wurden, oder, wenn ein Bild keine Zeit nennt, dann hinzugefügt wurden: ein Jahr (*2026*), einen Monat (*11.2026*, *2026-11*, *November 2026*), einen Tag (*10.11.2026*, *2026-11-10*, *10. November 2026*) oder einen Tag oder Monat ohne Jahr (*10.11.*, *November*), der in jedem Jahr gefunden wird.
 
-In der Ansicht **Ordner** steht über dem Inhalt der Pfad zum offenen Ordner, daneben, was den Ordner selbst ändert: **Neuer Ordner**, **Neue Sammlung** und **Ordner löschen**, in einer Sammlung **Regel ändern** und **Sammlung löschen**. Darunter folgen die Wege, Bilder hinzuzufügen, dann die Ordner und direkt über den Bildern ihre Zahl, **Mehrere auswählen** und **N Bilder präsentieren**.
+In der Ansicht **Ordner** steht über dem Inhalt der Pfad zum offenen Ordner, daneben, was den Ordner selbst ändert: **Neuer Ordner**, **Neue Sammlung** und **Ordner in den Papierkorb**, in einer Sammlung **Regel ändern** und **Sammlung in den Papierkorb**. Darunter folgen die Wege, Bilder hinzuzufügen, dann die Ordner und direkt über den Bildern ihre Zahl, **Mehrere auswählen** und **N Bilder präsentieren**.
 
 ### Hochladen und importieren
 
@@ -514,11 +514,11 @@ Erlaubt ein Administrator einem S3-Share signierte Links, öffnet **Original öf
 
 **Ordner verschieben** in einem offenen Ordner verschiebt ihn mit seinen Ordnern, Bildern und Videos in einen anderen Ordner oder auf die oberste Ebene eines Raums. Den Ort unter **Verschieben nach…** wählen und **Verschieben** klicken; der Pfad führt danach zum Ordner an seinem neuen Ort. Ein Ordner lässt sich auch auf einen daneben aufgeführten Ordner oder auf einen übergeordneten Ordner im Pfad ziehen; auf **Alle Bilder** gezogen, kommt er auf die oberste Ebene seines Raums. Wird der Ordner in einen anderen Raum verschoben, fragt das Album zuerst nach: Danach entscheidet dieser Raum, wer ihn sehen und ändern darf. Verschieben darf einen Ordner nur, wer ihn und alles darin ändern und am Ziel etwas erstellen darf; in sich selbst oder einen Ordner darunter lässt er sich nicht verschieben.
 
-### Einen Ordner löschen
+### Einen Ordner in den Papierkorb verschieben
 
-**Ordner löschen** in einem offenen Ordner verschiebt ihn mit seinen Ordnern, Bildern und Videos in den Papierkorb, nachdem gesagt wurde, wie viel mitgeht. Seine Seite stellt ihn mit **Wiederherstellen** wieder her. Ein Ordner wird nicht gelöscht, solange etwas ausserhalb, etwa eine Seite, noch verwendet, was darin ist; das Album nennt es.
+**Ordner in den Papierkorb** in einem offenen Ordner verschiebt ihn mit seinen Ordnern, Bildern und Videos in den Papierkorb, nachdem gesagt wurde, wie viel mitgeht. Seine Seite stellt ihn mit **Wiederherstellen** wieder her. Ein Ordner wird nicht verschoben, solange etwas ausserhalb, etwa eine Seite, noch verwendet, was darin ist; das Album nennt es.
 
-**Sammlung löschen** in einer offenen Sammlung verschiebt nur die Sammlung in den Papierkorb. Ihre Bilder und Videos bleiben, wo sie sind, mit ihren Labels; ihre Seite stellt sie mit **Wiederherstellen** wieder her.
+**Sammlung in den Papierkorb** in einer offenen Sammlung verschiebt nur die Sammlung in den Papierkorb. Ihre Bilder und Videos bleiben, wo sie sind, mit ihren Labels; ihre Seite stellt sie mit **Wiederherstellen** wieder her.
 
 ### Eine PowerPoint-Präsentation importieren
 

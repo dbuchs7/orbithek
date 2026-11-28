@@ -389,7 +389,7 @@ export function openModeler(xml = "", store = async (out) => out) {
   return new Promise((resolve) => {
     const status = h("span", { class: "error", role: "status" });
     const save = h("button", { type: "button", class: "primary", text: t("bpmn.save"), disabled: true });
-    const cancel = h("button", { type: "button", text: t("draw.cancel") });
+    const cancel = h("button", { type: "button", text: t("common.cancel") });
     const container = h("div", { class: "bpmn-modeler-canvas" });
     const dialog = h("dialog", { class: "drawing bpmn-modeler", "aria-label": t("bpmn.title") },
       h("div", { class: "drawing-bar" }, h("strong", { text: t("bpmn.title") }), status, cancel, save), container);

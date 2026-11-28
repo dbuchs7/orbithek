@@ -3282,7 +3282,7 @@ async function tasksView(tab, params) {
     const claim = canAct && f.assignee
       ? (who === me.user.id
         ? h("button", { class: "link", text: t("tasks.unclaim"), onclick: () => setAssignee(it, null) })
-        : h("button", { class: "link", text: t("tasks.claim"), onclick: () => setAssignee(it, me.user.id) }))
+        : h("button", { class: "link", text: t("tasks.assignMe"), onclick: () => setAssignee(it, me.user.id) }))
       : null;
     const moves = canAct ? ty.workflow.transitions.filter((tr) => tr.from.includes(it.state))
       .map((tr) => h("button", { class: "link", text: tr.name, onclick: () => moveItem(ty.workflow, it, tr, () => post(`/api/items/${it.id}/transitions`, { name: tr.name }), status) })) : [];

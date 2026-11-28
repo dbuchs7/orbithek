@@ -1878,7 +1878,7 @@ export function pickFromAlbum() {
       resolve(p);
     };
     const dialog = h("dialog", { class: "album-dialog", "aria-label": t("album.title") },
-      h("div", { class: "drawing-bar" }, h("strong", { text: t("album.title") }), h("button", { type: "button", text: t("draw.cancel"), onclick: () => finish(null) })),
+      h("div", { class: "drawing-bar" }, h("strong", { text: t("album.title") }), h("button", { type: "button", text: t("common.cancel"), onclick: () => finish(null) })),
       h("div", { class: "album-dialog-body" }, albumBrowser({ pick: finish })));
     dialog.addEventListener("cancel", () => finish(null));
     document.body.append(dialog);

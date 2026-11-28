@@ -1444,7 +1444,7 @@ function webSource() {
     await page.fill("#tasks input[aria-label='Filter Title']", "tidy");
     await page.waitForSelector("#tasks tbody tr:has-text('Renew the certificate')", { state: "hidden" });
     await page.fill("#tasks input[aria-label='Filter Title']", "");
-    await page.click("#tasks tr:has-text('Renew the certificate') button:has-text('Take over')");
+    await page.click("#tasks tr:has-text('Renew the certificate') button:has-text('Assign to me')");
     await page.goto(base + "/#/planning/mine");
     await page.waitForSelector("#tasks tr:has-text('Renew the certificate') td:has-text('you')");
     await page.click("#tasks tr:has-text('Renew the certificate') button:has-text('close')");
