@@ -48,6 +48,7 @@ Die Leiste oben auf jeder Seite enthält von links nach rechts:
 - Die **Glocke**: die Benachrichtigungen, mit der Anzahl ungelesener.
 - **DE** und **EN**: die Sprache der Oberfläche.
   Lässt sich etwas nicht ausführen, sagt die Oberfläche in Ihrer Sprache, um welche Art von Fehler es sich handelt — nicht angenommen, nicht erlaubt, nicht gefunden — und fügt die Angabe des Servers an; diese ist englisch und nennt Personen mit ihrem Benutzernamen.
+  Eine Rückfrage der Oberfläche — vor dem Löschen, vor dem Entziehen eines Rechts, für eine Zeile Text — öffnet sich als eigenes kleines Fenster: **OK** oder **Enter** führt aus, **Abbrechen** oder die Escape-Taste lässt alles, wie es war.
 - Den Umschalter für **hellen und dunklen Modus**.
 - Den **Lesemodus** (Ctrl+Shift+F, F11): Die Seite füllt den Bildschirm; Esc beendet ihn.
 - Das **Profilbild** oder die Initialen: öffnet das Kontomenü mit *Konto und Passwort*, *KI-Zugang*, *Handbuch*, *Administration* (nur für die Administration) und *Abmelden*.
