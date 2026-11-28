@@ -408,7 +408,7 @@ function savedBar(container, params, helpers, state, today, views, feeds, after)
   } },
   name,
   h("button", { type: "submit", class: "primary", id: "calendar-saved-save", text: t("calendar.save") }),
-  h("button", { type: "button", class: "link", text: t("calendar.cancel"), onclick: () => { saveForm.hidden = true; saveButton.hidden = false; } }));
+  h("button", { type: "button", class: "link", text: t("common.cancel"), onclick: () => { saveForm.hidden = true; saveButton.hidden = false; } }));
   const saveButton = h("button", { type: "button", class: "secondary", id: "calendar-saved-new", text: t("calendar.saveAs"), onclick: () => {
     saveForm.hidden = false;
     saveButton.hidden = true;
@@ -416,7 +416,7 @@ function savedBar(container, params, helpers, state, today, views, feeds, after)
     name.select();
   } });
   const remove = active ? h("button", { type: "button", class: "link danger", id: "calendar-saved-remove", text: t("calendar.deleteView"), onclick: async () => {
-    const ok = await ask(t("calendar.deleteView"), t("calendar.deleteViewConfirm", { name: active.name }), [["yes", t("calendar.deleteView"), "danger"], ["", t("calendar.cancel"), "link"]]);
+    const ok = await ask(t("calendar.deleteView"), t("calendar.deleteViewConfirm", { name: active.name }), [["yes", t("calendar.deleteView"), "danger"], ["", t("common.cancel"), "link"]]);
     if (ok === "yes") run(async () => { await del("/api/me/calendar-views/" + active.id); return {}; }, t("calendar.viewDeleted", { name: active.name }));
   } }) : null;
   // A server with feeds turned off offers none; a feed made before can
@@ -463,7 +463,7 @@ function othersBar(container, params, helpers, cals, after) {
   const next = COLOURS[sources.length % COLOURS.length];
   const accountOf = (id) => accounts.find((a) => a.id === id);
   const confirmThen = async (title, text, label, fn, okText) => {
-    if (await ask(title, text, [["yes", label, "danger"], ["", t("calendar.cancel"), "link"]]) === "yes") run(fn, okText);
+    if (await ask(title, text, [["yes", label, "danger"], ["", t("common.cancel"), "link"]]) === "yes") run(fn, okText);
   };
 
   const list = sources.length ? h("ul", { class: "cal-others-list", id: "calendar-others-list" }, sources.map((s) =>
@@ -661,7 +661,7 @@ function createDialog({ day, minutes, fields, typeOf, rooms, state, helpers }) {
     h("p", { class: "actions" },
       h("button", { type: "submit", class: "primary", id: "calendar-new-create", value: "stay", text: t("calendar.create") }),
       h("button", { type: "submit", class: "secondary", id: "calendar-new-open", value: "open", text: t("calendar.createOpen") }),
-      h("button", { type: "button", class: "link", text: t("calendar.cancel"), onclick: () => dialog.close() })));
+      h("button", { type: "button", class: "link", text: t("common.cancel"), onclick: () => dialog.close() })));
     const dialog = h("dialog", { class: "cal-dialog cal-new", id: "calendar-new", "aria-labelledby": "calendar-new-heading" },
       h("h2", { id: "calendar-new-heading", text: t("calendar.newTitle", { when }) }), form);
     dialog.addEventListener("close", () => {
@@ -760,13 +760,13 @@ export async function calendarView(container, params, helpers, after = {}) {
     place: async (e, n, minutes) => {
       if (!e.occurrence) return ctx.change(e, n, minutes === undefined ? moves(e, n) : retime(e, n, minutes));
       const scope = await ask(t("calendar.scopeTitle"), t("calendar.scopeText", { key: e.item.key, date: dateText(e.from) }),
-        [["one", t("calendar.scopeOne"), "primary"], ["all", t("calendar.scopeAll")], ["", t("calendar.cancel"), "link"]]);
+        [["one", t("calendar.scopeOne"), "primary"], ["all", t("calendar.scopeAll")], ["", t("common.cancel"), "link"]]);
       if (scope === "one") return ctx.change(e, n, occurrenceChanges(e, n, minutes));
       if (scope === "all") return ctx.change(e, n, seriesChanges(e, n, minutes));
     },
     cancel: async (e) => {
       const ok = await ask(t("calendar.cancelTitle"), t("calendar.cancelText", { key: e.item.key, date: dateText(e.from) }),
-        [["yes", t("calendar.cancelConfirm"), "danger"], ["", t("calendar.cancel"), "link"]]);
+        [["yes", t("calendar.cancelConfirm"), "danger"], ["", t("common.cancel"), "link"]]);
       if (ok === "yes") return ctx.change(e, 0, cancelChanges(e), t("calendar.cancelled", { key: e.item.key, date: dateText(e.from) }));
     },
     change: async (e, n, changes, told) => {

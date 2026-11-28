@@ -313,6 +313,8 @@ Offering a new route as a tool is a decision: destructive, permission-changing a
 Write `t("area.key", { name })` and add the key to `internal/web/static/assets/locales/en.js`, the source;
 add the German text to `de.js` in the same change, in Swiss spelling (ss, never ß).
 Keys are literals so the tests can find them.
+One action has one name wherever it appears, and a test holds the catalogue to it:
+*Sign in* and *Sign out* (never "log in"); *Assign to me* for taking an item on; *Move to trash* for what can be restored, *Delete* only for what is gone for good; one *Cancel*, `common.cancel`.
 Content (titles, type, field and state names) is not translated.
 A change to what people see or can do updates the user manual, `internal/web/static/assets/manual/en.md` and `de.md`, in the same change;
 both keep the same outline of headings (ADR-0183).

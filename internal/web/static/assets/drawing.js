@@ -28,7 +28,7 @@ export function openDrawing(scene = null, store = async (png) => png, process = 
     const frame = h("iframe", { src: "/draw", title: t("draw.title"), class: "drawing-frame" });
     const status = h("span", { class: "error", role: "status" });
     const save = h("button", { type: "button", class: "primary", text: t("draw.save"), disabled: true });
-    const cancel = h("button", { type: "button", text: t("draw.cancel") });
+    const cancel = h("button", { type: "button", text: t("common.cancel") });
     const dialog = h("dialog", { class: "drawing", "aria-label": t("draw.title") },
       h("div", { class: "drawing-bar" }, h("strong", { text: t("draw.title") }), status, cancel, save), frame);
     let done = false;

@@ -52,7 +52,7 @@ The bar at the top of every page holds, from left to right:
   What you have typed and not yet sent — a comment half written — stays when the page is drawn again after another change on it, such as a label added.
 - The **light and dark mode** switch.
 - **Reading mode** (Ctrl+Shift+F, F11): the page fills the screen; Esc leaves it.
-- Your **profile picture** or initials: opens the account menu with *Account and password*, *AI access*, *Manual*, *Administration* (administrators only) and *Log out*.
+- Your **profile picture** or initials: opens the account menu with *Account and password*, *AI access*, *Manual*, *Administration* (administrators only) and *Sign out*.
 
 ### The start page {#start-page}
 
@@ -384,7 +384,7 @@ A label's page shows the items carrying its label as a view: **Table**, **Galler
 
 ### The task list {#tasks}
 
-The module **Planning** lists open work across your rooms: items of the type *task* and of every type with a workflow and an *assignee* or *due* field. The tabs show **Assigned to me**, **Unassigned** and **All open**; filters narrow by room, state, person, due date and labels. **Take over** assigns a task to you, **Give back** releases it. Overdue tasks are marked.
+The module **Planning** lists open work across your rooms: items of the type *task* and of every type with a workflow and an *assignee* or *due* field. The tabs show **Assigned to me**, **Unassigned** and **All open**; filters narrow by room, state, person, due date and labels. **Assign to me** assigns a task to you, **Give back** releases it. Overdue tasks are marked.
 
 ![The task list under Planning](img/en/tasks.png)
 
@@ -437,7 +437,7 @@ The **Album** shows the pictures and drawings of every page and task you may rea
 
 Search by name, label, key or title, and narrow by kind, room and label. The search also takes a date and finds the pictures taken then, or added then when a picture tells no time: a year (*2026*), a month (*11.2026*, *2026-11*, *November 2026*), a day (*10.11.2026*, *2026-11-10*, *10 November 2026*), or a day or month without a year (*10.11.*, *November*), which finds it in every year.
 
-In the **Folders** view, the path to the open folder stands above its contents, with what changes the folder itself beside it: **New folder**, **New collection** and **Delete folder**, or **Change rule** and **Delete collection** in a collection. Below it are the ways to add pictures, then the folders, and right above the pictures their number, **Choose several** and **Present N pictures**.
+In the **Folders** view, the path to the open folder stands above its contents, with what changes the folder itself beside it: **New folder**, **New collection** and **Move folder to trash**, or **Change rule** and **Move collection to trash** in a collection. Below it are the ways to add pictures, then the folders, and right above the pictures their number, **Choose several** and **Present N pictures**.
 
 ### Uploading and importing
 
@@ -514,11 +514,11 @@ If an administrator lets an S3 share sign links, **Open original** opens the ori
 
 **Move folder** in an open folder moves it with its folders, pictures and videos into another folder or to the top level of a room. Choose the place under **Move to…** and click **Move**; the path then leads to the folder where it went. A folder can also be dragged onto a folder listed beside it or onto a folder above it in the path; dragged onto **All pictures**, it goes to the top level of its room. Moved into another room, the folder is asked about first: afterwards that room decides who may see and change it. A folder is moved only by someone who may change it and everything in it and may create where it goes; it cannot go into itself or a folder below it.
 
-### Deleting a folder
+### Moving a folder to the trash
 
-**Delete folder** in an open folder moves it to the trash with its folders, pictures and videos, after saying how many go with it. Its page restores it with **Restore**. A folder is not deleted while something outside it, such as a page, still uses what is in it; the album names it.
+**Move folder to trash** in an open folder moves it to the trash with its folders, pictures and videos, after saying how many go with it. Its page restores it with **Restore**. A folder is not moved while something outside it, such as a page, still uses what is in it; the album names it.
 
-**Delete collection** in an open collection moves only the collection to the trash. Its pictures and videos stay where they are, with their labels; its page restores it with **Restore**.
+**Move collection to trash** in an open collection moves only the collection to the trash. Its pictures and videos stay where they are, with their labels; its page restores it with **Restore**.
 
 ### Importing a PowerPoint presentation
 
