@@ -7383,6 +7383,25 @@ function webSource() {
       check(await page.evaluate(async (key) => (await (await fetch("/api/items/" + key)).json()).item.presence === "live", trashed), "restored from the trash, the item is live again");
     }
 
+    step("drafts: what is typed and not yet sent stays when the page is drawn again after a change");
+    {
+      await page.goto(base + "/");
+      const drafted = await page.evaluate(async () => {
+        const r = await fetch("/api/items", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ space: "PLAT", type: "task", title: "A comment half written", properties: { priority: "low" } }) });
+        return (await r.json()).item.key;
+      });
+      await page.goto(base + "/#/item/" + drafted);
+      await page.waitForSelector("textarea[aria-label='Comment']");
+      await page.fill("textarea[aria-label='Comment']", "half written");
+      await page.fill(".label-add input[name=label]", "kept-draft");
+      await page.press(".label-add input[name=label]", "Enter");
+      await page.waitForSelector("#app :text-is('kept-draft')");
+      await page.waitForFunction(() => document.querySelector("textarea[aria-label='Comment']")?.value === "half written", null, { timeout: 5000 }).catch(() => {});
+      check(await page.inputValue("textarea[aria-label='Comment']") === "half written", "a comment half written stays when a label is added");
+      check(await page.inputValue(".label-add input[name=label]") === "", "the field that was sent is empty again");
+    }
+
     check(problems.length === 0, problems.join("; "));
     console.log("ok");
   } catch (err) {
