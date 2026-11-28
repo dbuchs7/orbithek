@@ -40,8 +40,11 @@ function engineRow(e, reload) {
     h("p", { class: "muted", text: t("engineconn.since", { when: when(c.connected) }) }),
     h("p", {},
       h("button", { type: "button", class: "link danger", text: t("engineconn.disconnect"), onclick: async (ev) => {
+        // Kept before the question: an event names its current target
+        // only while it is handled.
+        const button = ev.currentTarget;
         if (!(await askConfirm(t("engineconn.disconnectConfirm", { name: e.name })))) return;
-        ev.currentTarget.disabled = true;
+        button.disabled = true;
         try {
           await del("/api/me/engines/" + encodeURIComponent(e.id));
           reload();

@@ -293,8 +293,11 @@ async function ordersTab(ctx) {
   if (!list.length) return ctx.body.replaceChildren(h("p", { class: "muted", id: "shop-no-orders", text: t("shop.noOrders") }));
   const status = h("div", { class: "status", role: "status" });
   const act = (question, fn, done) => async (ev) => {
+    // Kept before the question: an event names its current target only
+    // while it is handled.
+    const button = ev.currentTarget;
     if (!(await askConfirm(question))) return;
-    ev.currentTarget.disabled = true;
+    button.disabled = true;
     try {
       await fn();
       done();
@@ -328,12 +331,13 @@ async function approvalsTab(ctx) {
   const status = h("div", { class: "status", role: "status" });
   const reload = () => approvalsTab(ctx).catch((err) => ctx.body.replaceChildren(errorBox(err)));
   const decide = (a, approved) => async (ev) => {
+    const button = ev.currentTarget;
     let reason = "";
     if (!approved) {
       reason = await askText(t("shop.refuseReason")) || "";
       if (!reason.trim()) return;
     }
-    ev.currentTarget.disabled = true;
+    button.disabled = true;
     try {
       await post(base(ctx.engine) + "/approvals/decide", { approved, reason, taskKeys: [a.task.key] });
       reload();
