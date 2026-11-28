@@ -6,6 +6,7 @@ import { h, when } from "./dom.js";
 import { get, del } from "./api.js";
 import { t } from "./i18n.js";
 import { helpLink } from "./help.js";
+import { askConfirm } from "./dialogs.js";
 
 const errorBox = (err) => h("p", { class: "error", role: "alert", text: err instanceof Error ? err.message : String(err) });
 
@@ -39,8 +40,11 @@ function engineRow(e, reload) {
     h("p", { class: "muted", text: t("engineconn.since", { when: when(c.connected) }) }),
     h("p", {},
       h("button", { type: "button", class: "link danger", text: t("engineconn.disconnect"), onclick: async (ev) => {
-        if (!confirm(t("engineconn.disconnectConfirm", { name: e.name }))) return;
-        ev.currentTarget.disabled = true;
+        // Kept before the question: an event names its current target
+        // only while it is handled.
+        const button = ev.currentTarget;
+        if (!(await askConfirm(t("engineconn.disconnectConfirm", { name: e.name })))) return;
+        button.disabled = true;
         try {
           await del("/api/me/engines/" + encodeURIComponent(e.id));
           reload();

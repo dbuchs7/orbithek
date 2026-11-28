@@ -7,6 +7,7 @@ import { h, when } from "./dom.js";
 import { t } from "./i18n.js";
 import { get, post, put, del } from "./api.js";
 import { locate } from "./anchors.js";
+import { askConfirm } from "./dialogs.js";
 
 const key = new PluginKey("notes");
 
@@ -39,7 +40,7 @@ export function personalNotes(path, initial) {
     const done = () => dialog.close();
     const save = h("button", { type: "submit", class: "primary", id: "note-save", text: t("note.save") });
     const remove = note ? h("button", { type: "button", class: "danger", id: "note-delete", text: t("common.delete"), onclick: async () => {
-      if (!confirm(t("note.deleteConfirm"))) return;
+      if (!(await askConfirm(t("note.deleteConfirm")))) return;
       try { await del(`${path}/notes/${note.id}`); done(); await refresh(); } catch (err) { fail(err); }
     } }) : null;
     const f = h("form", { method: "dialog", class: "note-form" },

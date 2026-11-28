@@ -58,6 +58,7 @@ import { contextSection } from "./context.js";
 import { mentionCreator } from "./mentioncreate.js";
 import { shopView, catalogueCard, productCard, shopTypesCard } from "./shop.js";
 import { engineChoices } from "./shopparts.js";
+import { askConfirm, askText, tell } from "./dialogs.js";
 
 const app = document.getElementById("app");
 const nav = document.getElementById("nav");
@@ -1013,7 +1014,7 @@ function attachmentsSection(path, files, live) {
           } catch (err) { status.replaceChildren(errorBox(err)); throw err; }
           route();
         } }) }) : null,
-    live ? h("button", { class: "link danger", text: t("common.delete"), onclick: () => confirm(t("att.deleteConfirm", { name: a.name }))
+    live ? h("button", { class: "link danger", text: t("common.delete"), onclick: async () => (await askConfirm(t("att.deleteConfirm", { name: a.name })))
       && action(() => del(`${path}/attachments/${a.id}`), status) }) : null);
   // A new whiteboard is an empty drawing at the end of the body (ADR-0169).
   const board = live ? h("button", { type: "button", id: "new-whiteboard", class: "secondary", text: t("wb.new"), onclick: () => action(async () => {
@@ -1050,7 +1051,7 @@ async function action(fn, status) {
     route();
   } catch (err) {
     if (status) status.replaceChildren(errorBox(err));
-    else alert(err.message);
+    else tell(err.message);
   }
 }
 
@@ -2679,7 +2680,7 @@ function spacesOverview(spaces) {
         try {
           if (s.favourite) await del(path); else await put(path);
         } catch (err) {
-          return alert(err.message);
+          return tell(err.message);
         }
         // Drawn again in place, the star keeps the focus where it went.
         s.favourite = !s.favourite;
@@ -3168,7 +3169,7 @@ async function requestsCard() {
         h("td", { class: "task-actions" },
           h("button", { type: "button", class: "approve", text: t("requests.approve"), onclick: decide(() => post(`/api/account-requests/${rq.id}/approve`)) }), " · ",
           h("button", { type: "button", class: "link", text: t("requests.reject"),
-            onclick: decide(() => confirm(t("requests.rejectConfirm", { name: rq.username })) ? del(`/api/account-requests/${rq.id}`) : false) })))))),
+            onclick: decide(async () => (await askConfirm(t("requests.rejectConfirm", { name: rq.username }))) ? del(`/api/account-requests/${rq.id}`) : false) })))))),
     { id: "task-requests", label: t("requests.title") }),
     status);
 }
@@ -4260,7 +4261,7 @@ function kanbanSettings(k, type, columns, kpath) {
     h("section", { class: "kanban-settings-remove" },
       h("h3", { text: t("kanban.remove") }),
       h("p", { class: "muted", text: t("kanban.removeHelp") }),
-      h("button", { type: "button", class: "danger", id: "kanban-remove", text: t("kanban.remove"), onclick: () => confirm(t("kanban.removeConfirm", { name: k.name }))
+      h("button", { type: "button", class: "danger", id: "kanban-remove", text: t("kanban.remove"), onclick: async () => (await askConfirm(t("kanban.removeConfirm", { name: k.name })))
         && action(async () => { await del(kpath); location.hash = "#/kanbans"; }, status) })));
   return dialog;
 }
@@ -5003,7 +5004,7 @@ function webLinkPanel(item, attachments, type, canEdit, status) {
     };
     const again = h("button", { type: "button", id: "weblink-refresh", text: t("weblink.refresh"), onclick: () => run(false, again) });
     const take = h("button", { type: "button", id: "weblink-text", text: t("weblink.takeText"), title: t("weblink.takeTextHint"),
-      onclick: () => (!item.body.length || confirm(t("weblink.takeTextConfirm"))) && run(true, take) });
+      onclick: async () => (!item.body.length || (await askConfirm(t("weblink.takeTextConfirm")))) && run(true, take) });
     buttons.append(again, take);
   }).catch(() => {});
   return card;
@@ -5223,7 +5224,7 @@ async function itemView(ref, params = new URLSearchParams()) {
     ? [may.trash ? h("button", { text: t("item.trash"), onclick: () => action(() => post(path + "/trash"), status) }) : null].filter(Boolean)
     : item.presence === "trashed"
       ? [may.restore ? h("button", { text: t("item.restore"), onclick: () => action(() => post(path + "/restore"), status) }) : null,
-        may.purge ? h("button", { class: "danger", text: t("item.purge"), onclick: () => confirm(t("item.purgeConfirm")) && action(() => post(path + "/purge"), status) }) : null].filter(Boolean)
+        may.purge ? h("button", { class: "danger", text: t("item.purge"), onclick: async () => (await askConfirm(t("item.purgeConfirm"))) && action(() => post(path + "/purge"), status) }) : null].filter(Boolean)
       : [];
 
   const lastRestriction = history.events.filter((e) => e.kind === "RestrictionSet").pop();
@@ -5739,11 +5740,11 @@ function secretsSection(path, item, status) {
         h("p", { class: "actions-row" },
           h("button", { type: "button", text: t("common.save"), onclick: () => action(() => put(base(sc), { readers: picker.values() }), status) }),
           h("button", { type: "button", class: "danger secret-unprotect", text: t("secret.unprotect"),
-            onclick: () => confirm(sc.blocks ? t("secret.unprotectBlocksConfirm") : t("secret.unprotectConfirm")) && action(() => del(base(sc)), status) }),
+            onclick: async () => (await askConfirm(sc.blocks ? t("secret.unprotectBlocksConfirm") : t("secret.unprotectConfirm"))) && action(() => del(base(sc)), status) }),
           // Erasing destroys the passage's own key: no version holds it
           // any more (ADR-0089).
           h("button", { type: "button", class: "danger secret-erase", text: t("secret.erase"),
-            onclick: () => confirm(sc.blocks ? t("secret.eraseBlocksConfirm") : t("secret.eraseConfirm")) && action(() => post(base(sc) + "/erase"), status) }))));
+            onclick: async () => (await askConfirm(sc.blocks ? t("secret.eraseBlocksConfirm") : t("secret.eraseConfirm"))) && action(() => post(base(sc) + "/erase"), status) }))));
     }
     return h("li", { class: "secret-entry", "data-secret": sc.id }, ...parts);
   };
@@ -5810,9 +5811,9 @@ async function accessSection(path, item, canEdit, spaceAdmin) {
       h("button", { type: "button", class: "secondary", text: t("access.onlyMeEdits"), onclick: () => set({ read: read, edit: [me.user.id] }) }),
       restricted ? h("button", { type: "button", class: "secondary", text: t("access.lift"), onclick: () => set({ read: [], edit: [] }) }) : null) : null,
     canEdit ? protectForm(path, read, edit, spaceAdmin, named) : null,
-    me.erasure && item.presence !== "purged" ? h("p", {}, h("button", { type: "button", class: "danger", text: t("access.redact"), onclick: () => {
-      const reason = prompt(t("access.redactReason"));
-      if (reason && reason.trim() && confirm(t("access.redactConfirm", { key: item.key }))) action(() => post(path + "/redact", { reason: reason.trim() }), status);
+    me.erasure && item.presence !== "purged" ? h("p", {}, h("button", { type: "button", class: "danger", text: t("access.redact"), onclick: async () => {
+      const reason = await askText(t("access.redactReason"));
+      if (reason && reason.trim() && (await askConfirm(t("access.redactConfirm", { key: item.key })))) action(() => post(path + "/redact", { reason: reason.trim() }), status);
     } })) : null,
     status);
 }
@@ -5918,7 +5919,7 @@ function commentThreads(path, page, live, files = [], key = "") {
     li.append(head, h("p", { class: "comment-text", text: c.text }), status, mine
       ? h("p", {},
         h("button", { class: "link", text: t("common.edit"), onclick: edit }), " · ",
-        h("button", { class: "link danger", text: t("common.delete"), onclick: () => confirm(t("comment.deleteConfirm")) && action(() => del(`${path}/comments/${c.id}`), status) }))
+        h("button", { class: "link danger", text: t("common.delete"), onclick: async () => (await askConfirm(t("comment.deleteConfirm"))) && action(() => del(`${path}/comments/${c.id}`), status) }))
       : ""); // append() would write a null out as the word "null"
     return li;
   };
@@ -6114,7 +6115,7 @@ async function accountView() {
       filtered(h("table", {}, tokens.map((tok) => h("tr", { "data-f-scope": tok.scope },
         h("td", { text: tok.name }), h("td", { text: tok.scope }), h("td", { text: t("account.expires", { when: when(tok.expires) }) }),
         h("td", {}, h("button", { type: "button", class: "link danger", text: t("account.revoke"),
-          onclick: () => confirm(t("account.revokeConfirm")) && action(() => del("/api/tokens/" + tok.id)) })),
+          onclick: async () => (await askConfirm(t("account.revokeConfirm"))) && action(() => del("/api/tokens/" + tok.id)) })),
       ))), { id: "tokens", label: t("account.tokens"), choices: [{ key: "scope", label: t("account.scope") }] }),
       form({ id: "new-token" }, [
         field(t("field.name"), h("input", { name: "name", required: true })),
@@ -6297,7 +6298,7 @@ async function mcpView() {
     h("td", { class: "muted", text: c.redirects.join(", ") }),
     h("td", { class: "muted", text: when(c.created) }),
     h("td", {}, h("button", { type: "button", class: "link danger", text: t("aiaccess.remove"), onclick: async () => {
-      if (!confirm(t("aiaccess.removeConfirm", { name: c.name }))) return;
+      if (!(await askConfirm(t("aiaccess.removeConfirm", { name: c.name })))) return;
       await del("/api/oauth/clients/" + encodeURIComponent(c.id));
       route();
     } })));
@@ -6365,7 +6366,7 @@ async function mcpView() {
           h("td", {}, h("button", { type: "button", class: "link danger", text: t("aiaccess.withdraw"),
             // Asked first, and a failure is shown: the application loses
             // its access at once.
-            onclick: () => confirm(t("aiaccess.withdrawConfirm", { name: g.name || g.client }))
+            onclick: async () => (await askConfirm(t("aiaccess.withdrawConfirm", { name: g.name || g.client })))
               && action(() => del("/api/oauth/grants/" + encodeURIComponent(g.client)), grantStatus) })))))), { id: "aiaccess-grants", label: t("aiaccess.grantsTitle") })
       : h("p", { class: "muted", text: t("aiaccess.noGrants") }));
 
@@ -6508,7 +6509,7 @@ async function adminView(params) {
       h("td", {}, link("#/space/" + encodeURIComponent(sp.key), sp.name)), h("td", { class: "muted", text: sp.key }),
       h("td", {}, link("#/members/" + encodeURIComponent(sp.key), t("admin.members"))),
       h("td", {}, h("button", { type: "button", class: "link danger", "data-trash-space": sp.key, text: t("admin.trashSpace"), onclick: spaceAction(async () => {
-        if (!confirm(t("admin.trashSpaceConfirm", { name: sp.name }))) return false;
+        if (!(await askConfirm(t("admin.trashSpaceConfirm", { name: sp.name })))) return false;
         await del("/api/spaces/" + encodeURIComponent(sp.key));
       }) }))))), { id: "admin-spaces", label: t("admin.spaces") }) : empty(t("admin.none")),
     spaceStatus,
@@ -6520,7 +6521,7 @@ async function adminView(params) {
         h("td", { class: "muted", text: t("admin.spaceItems", { n: sp.items }) }),
         h("td", {}, h("button", { type: "button", class: "link", text: t("admin.restoreSpace"), onclick: spaceAction(() => post("/api/spaces/" + encodeURIComponent(sp.key) + "/restore")) }),
           " ", h("button", { type: "button", class: "link danger", text: t("admin.purgeSpace"), onclick: spaceAction(async () => {
-            const typed = prompt(t("admin.purgeSpaceConfirm", { name: sp.name, key: sp.key }));
+            const typed = await askText(t("admin.purgeSpaceConfirm", { name: sp.name, key: sp.key }));
             if (typed === null) return false;
             await post("/api/spaces/" + encodeURIComponent(sp.key) + "/purge", { confirm: typed.trim() });
           }) }))))), { id: "admin-trash", label: t("admin.spaceTrash") })) : null,
@@ -6554,8 +6555,8 @@ async function adminView(params) {
       h("td", {}, h("strong", { text: ty.name }), ` v${ty.version}`), h("td", { class: "muted", text: describe(ty) }),
       h("td", {}, h("button", { type: "button", class: "link", text: t("common.edit"), onclick: () => openTypeEditor({ type: ty }) }), " ",
       // A type no item and no kanban uses can be removed (ADR-0094).
-      h("button", { type: "button", class: "link danger", text: t("admin.removeType"), onclick: () =>
-        confirm(t("admin.removeTypeConfirm", { name: ty.name })) &&
+      h("button", { type: "button", class: "link danger", text: t("admin.removeType"), onclick: async () =>
+        (await askConfirm(t("admin.removeTypeConfirm", { name: ty.name }))) &&
         action(async () => { await del(`/api/types/${encodeURIComponent(ty.name)}`); route(); }, status) }))))),
       { id: "admin-types", label: t("admin.types"), choices: [{ key: "kind", label: t("filter.kind") }, { key: "room", label: t("types.belongsTo") }] }) : null,
     h("p", {}, h("button", { type: "button", class: "primary", id: "new-type", text: t("types.new"), onclick: () => openTypeEditor({}) })),
@@ -6563,10 +6564,10 @@ async function adminView(params) {
 
   const sysToggle = (u, role, label) => {
     const box = h("input", { type: "checkbox", checked: rolesOf(u.id).includes(role), "aria-label": `${label}: ${u.username}` });
-    box.addEventListener("change", () => {
+    box.addEventListener("change", async () => {
       // Taking a system role back changes what a person may do: it asks
       // first, as taking back a room's role does.
-      if (!box.checked && !confirm(t("admin.revokeSystemRoleConfirm", { role: label, name: u.username }))) {
+      if (!box.checked && !(await askConfirm(t("admin.revokeSystemRoleConfirm", { role: label, name: u.username })))) {
         box.checked = true;
         return;
       }
@@ -6613,7 +6614,7 @@ async function adminView(params) {
         h("td", {},
           h("button", { type: "button", class: "approve", text: t("requests.approve"), onclick: () => action(() => post(`/api/account-requests/${rq.id}/approve`), status) }), " ",
           h("button", { type: "button", class: "link", text: t("requests.reject"),
-            onclick: () => confirm(t("requests.rejectConfirm", { name: rq.username })) && action(() => del(`/api/account-requests/${rq.id}`), status) }))))),
+            onclick: async () => (await askConfirm(t("requests.rejectConfirm", { name: rq.username }))) && action(() => del(`/api/account-requests/${rq.id}`), status) }))))),
       { id: "admin-requests", label: t("requests.title") }) :
       empty(t("requests.none"), "no-requests"));
 
@@ -6637,8 +6638,8 @@ async function adminView(params) {
     } }));
   const emailCell = (u) => h("td", {},
     h("span", { class: "muted", text: u.email || t("contacts.noEmail") }), " ",
-    h("button", { type: "button", class: "link", text: t("common.edit"), "aria-label": t("contacts.editEmail", { name: u.username }), onclick: () => {
-      const email = prompt(t("contacts.editEmail", { name: u.username }), u.email || "");
+    h("button", { type: "button", class: "link", text: t("common.edit"), "aria-label": t("contacts.editEmail", { name: u.username }), onclick: async () => {
+      const email = await askText(t("contacts.editEmail", { name: u.username }), { value: u.email || "" });
       if (email !== null) action(() => put(`/api/users/${encodeURIComponent(u.id)}/email`, { email: email.trim() }), status);
     } }));
   // The sign-in providers an account is linked to (ADR-0229); an
@@ -6648,7 +6649,7 @@ async function adminView(params) {
     providerName(id),
     h("button", { type: "button", class: "link", text: "×", title: t("identities.adminRemove", { name: u.username, provider: providerName(id) }),
       "aria-label": t("identities.adminRemove", { name: u.username, provider: providerName(id) }),
-      onclick: () => confirm(t("identities.adminRemoveConfirm", { name: u.username, provider: providerName(id) })) &&
+      onclick: async () => (await askConfirm(t("identities.adminRemoveConfirm", { name: u.username, provider: providerName(id) }))) &&
         action(() => del(`/api/users/${encodeURIComponent(u.id)}/identities/${encodeURIComponent(id)}`), status) }))));
   // Suspending closes every way in until the account is reactivated;
   // deleting removes the account for good, after its username is typed
@@ -6659,12 +6660,12 @@ async function adminView(params) {
       ? h("button", { type: "button", class: "link", "data-reactivate": u.username, text: t("admin.reactivate"), "aria-label": t("admin.reactivateFor", { name: u.username }),
         onclick: () => action(() => put(`/api/users/${encodeURIComponent(u.id)}/suspended`, { suspended: false }), status) })
       : h("button", { type: "button", class: "link", "data-suspend": u.username, text: t("admin.suspend"), "aria-label": t("admin.suspendFor", { name: u.username }),
-        onclick: () => confirm(t("admin.suspendConfirm", { name: u.username })) &&
+        onclick: async () => (await askConfirm(t("admin.suspendConfirm", { name: u.username }))) &&
           action(() => put(`/api/users/${encodeURIComponent(u.id)}/suspended`, { suspended: true }), status) }),
     " ",
     h("button", { type: "button", class: "link danger", "data-delete-user": u.username, text: t("admin.deleteUser"), "aria-label": t("admin.deleteUserFor", { name: u.username }),
-      onclick: () => {
-        const typed = prompt(t("admin.deleteUserConfirm", { name: u.username }));
+      onclick: async () => {
+        const typed = await askText(t("admin.deleteUserConfirm", { name: u.username }));
         if (typed === null) return;
         if (typed.trim() !== u.username) {
           status.replaceChildren(h("p", { class: "error", role: "alert", text: t("admin.deleteUserMismatch") }));
@@ -6695,7 +6696,7 @@ async function adminView(params) {
         h("td", {}, h("span", { text: x.principal }), " ", h("span", { class: "badge danger", text: t("admin.noAccount") })),
         h("td", {}, x.roles.map((role) => h("button", { type: "button", class: "link danger",
           text: t("admin.revokeSystemRole", { role: role === "admin" ? t("admin.roleAdmin") : t("admin.roleErasure") }),
-          onclick: () => confirm(t("admin.revokeSystemRoleConfirm", { role: role === "admin" ? t("admin.roleAdmin") : t("admin.roleErasure"), name: x.principal }))
+          onclick: async () => (await askConfirm(t("admin.revokeSystemRoleConfirm", { role: role === "admin" ? t("admin.roleAdmin") : t("admin.roleErasure"), name: x.principal })))
             && action(() => del(`/api/system-roles/${encodeURIComponent(role)}/${encodeURIComponent(x.principal)}`), status) }))))))) : null,
     form({ id: "new-user" }, [
       h("h3", { text: t("admin.newUser") }),
@@ -6716,7 +6717,7 @@ async function adminView(params) {
         (g.unknown || []).includes(m) ? [m, " ", h("span", { class: "badge danger", text: t("admin.noAccount"), title: t("admin.memberNoAccount") })] : person(m),
         h("button", { type: "button", class: "link", text: "×", title: t("admin.removeMember", { name: person(m), group: g.name }),
           "aria-label": t("admin.removeMember", { name: person(m), group: g.name }),
-          onclick: () => confirm(t("admin.removeMemberConfirm", { name: person(m), group: g.name }))
+          onclick: async () => (await askConfirm(t("admin.removeMemberConfirm", { name: person(m), group: g.name })))
             && action(() => del(`/api/groups/${encodeURIComponent(g.name)}/members/${encodeURIComponent(m)}`), status) })))))))) : h("p", { class: "muted", text: t("admin.noGroups") }),
     form({ id: "add-member" }, [
       field(t("admin.group"), h("input", { name: "group", required: true, pattern: "[A-Za-z0-9][A-Za-z0-9._\\-]*", list: "group-names" })),
@@ -6892,7 +6893,7 @@ async function facesCard() {
       h("button", { type: "submit", text: t("common.save") }),
     ], async (d) => {
       const on = d.get("recognition") === "on";
-      if (s.recognition && !on && !confirm(t("faces.adminOffConfirm"))) return draw(s);
+      if (s.recognition && !on && !(await askConfirm(t("faces.adminOffConfirm")))) return draw(s);
       const r = await put("/api/settings/faces", { recognition: on });
       forgetRecognition();
       const turnedOn = on && !s.recognition;
@@ -6940,12 +6941,12 @@ async function sharesCard() {
       h("div", { class: "row" },
         h("button", { type: "button", class: "secondary share-run", text: t("shares.runNow"), disabled: s.status.running, onclick: () => runNow(s, {}).catch(fail) }),
         h("button", { type: "button", class: "secondary share-dry", text: t("shares.dryRun"), disabled: s.status.running, onclick: () => runNow(s, { dryRun: true }).catch(fail) }),
-        last?.held ? h("button", { type: "button", class: "danger share-confirm", text: t("shares.confirm"), disabled: s.status.running, onclick: () => {
-          if (confirm(t("shares.confirmAsk", { n: last.held, name: s.name }))) runNow(s, { confirm: true }).catch(fail);
+        last?.held ? h("button", { type: "button", class: "danger share-confirm", text: t("shares.confirm"), disabled: s.status.running, onclick: async () => {
+          if ((await askConfirm(t("shares.confirmAsk", { n: last.held, name: s.name })))) runNow(s, { confirm: true }).catch(fail);
         } }) : null,
         h("button", { type: "button", class: "link share-edit", text: t("common.edit"), onclick: () => fill(s) }),
         h("button", { type: "button", class: "link danger share-remove", text: t("shares.remove"), disabled: s.status.running, onclick: async () => {
-          if (!confirm(t("shares.removeConfirm", { name: s.name, n: s.entries }))) return;
+          if (!(await askConfirm(t("shares.removeConfirm", { name: s.name, n: s.entries })))) return;
           try { await del(`/api/shares/${encodeURIComponent(s.id)}`); load(); } catch (err) { fail(err); }
         } })));
   };
@@ -7154,7 +7155,7 @@ async function regulationsCard() {
         h("p", { class: "muted", text: t("dp.categoriesHint") }),
         h("p", { class: "actions-row" },
           h("button", { type: "submit", class: "primary", text: t("common.save") }),
-          isNew ? null : h("button", { type: "button", class: "danger", text: t("common.delete"), onclick: () => confirm(t("dp.deleteConfirm", { name: r.name })) && action(() => del("/api/regulations/" + r.id), status) })),
+          isNew ? null : h("button", { type: "button", class: "danger", text: t("common.delete"), onclick: async () => (await askConfirm(t("dp.deleteConfirm", { name: r.name }))) && action(() => del("/api/regulations/" + r.id), status) })),
       ], async (d) => {
         const id = isNew ? d.get("id").trim() : r.id;
         const categories = fromText(cats.value);
@@ -7298,7 +7299,7 @@ function systemInfo(e, reopen) {
     h("p", { class: "actions-row" },
       h("button", { type: "button", class: "secondary", id: "engine-system-reconnect", text: t("engine.systemReconnect"), onclick: () => location.assign(path + "/connect") }),
       h("button", { type: "button", class: "link danger", id: "engine-system-disconnect", text: t("engine.systemDisconnect"), onclick: async () => {
-        if (!confirm(t("engine.systemDisconnectConfirm", { name: e.name }))) return;
+        if (!(await askConfirm(t("engine.systemDisconnectConfirm", { name: e.name })))) return;
         try {
           await del(path);
           reopen(e.id);
@@ -7344,7 +7345,7 @@ function engineEditor(e, kinds, taken, reopen) {
             }
           } }),
         e.isNew ? "" : h("button", { type: "button", class: "link danger", id: "engine-delete", text: t("engine.remove"), onclick: async () => {
-          if (!confirm(t("engine.removeConfirm", { name: e.name }))) return;
+          if (!(await askConfirm(t("engine.removeConfirm", { name: e.name })))) return;
           try {
             await del(path(e.id));
             reopen(null);
@@ -7637,7 +7638,7 @@ function connectorEditor(c, data, spaces, users, list, reopen) {
   ];
   // The cut-over: the items become people's, the schedule stops.
   const release = () => h("button", { type: "button", class: "secondary", id: "connector-release", disabled: st.running, text: t("atlassian.release"), onclick: async () => {
-    if (!confirm(t("atlassian.releaseConfirm", { name: c.name }))) return;
+    if (!(await askConfirm(t("atlassian.releaseConfirm", { name: c.name })))) return;
     runStatus.replaceChildren();
     try {
       await post(path + "/release", {});
@@ -7698,7 +7699,7 @@ function connectorEditor(c, data, spaces, users, list, reopen) {
       h("div", { class: "actions-row" }, h("button", { type: "submit", class: "primary", text: t("autobackup.save") }),
         c.isNew ? h("button", { type: "button", class: "link", text: t("common.cancel"), onclick: () => reopen(null) })
           : h("button", { type: "button", class: "link danger", id: "connector-delete", text: t("connector.remove"), onclick: async () => {
-            if (!confirm(t("connector.removeConfirm", { name: c.name }))) return;
+            if (!(await askConfirm(t("connector.removeConfirm", { name: c.name })))) return;
             try {
               await del(path);
               reopen(null);
@@ -8037,7 +8038,7 @@ async function trashView(key) {
       e.may.restore ? h("button", { type: "button", class: "link", text: t("item.restore"), "aria-label": t("trash.restoreOf", { name: e.title }),
         onclick: () => action(() => post(`/api/items/${e.id}/restore`), status) }) : null, " ",
       e.may.purge ? h("button", { type: "button", class: "link danger", text: t("item.purge"), "aria-label": t("trash.purgeOf", { name: e.title }),
-        onclick: () => confirm(t("item.purgeConfirm")) && action(() => post(`/api/items/${e.id}/purge`), status) }) : null));
+        onclick: async () => (await askConfirm(t("item.purgeConfirm"))) && action(() => post(`/api/items/${e.id}/purge`), status) }) : null));
   const add = async (page) => {
     await learnNames(page.items.map((e) => e.by));
     rows.append(...page.items.map(row));
@@ -8085,7 +8086,7 @@ async function membersView(key) {
           title: t(group ? "members.emptyGroupHelp" : "members.unknownHelp") })] : null),
       h("td", {}, sel),
       h("td", {}, h("button", { type: "button", class: "link danger", text: t("members.revoke"),
-        onclick: () => confirm(t("members.revokeConfirm", { name: g.principal.startsWith("@") ? g.principal : person(g.principal) }))
+        onclick: async () => (await askConfirm(t("members.revokeConfirm", { name: g.principal.startsWith("@") ? g.principal : person(g.principal) })))
           && action(() => del(base + encodeURIComponent(g.principal)), status) })));
   };
   const known = new Set(roles.map((r) => r.principal));

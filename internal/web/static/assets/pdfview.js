@@ -12,6 +12,7 @@ import { h } from "./dom.js";
 import { t } from "./i18n.js";
 import { get, post, put, del } from "./api.js";
 import { COLORS, readState, readerHref, normRects, locate, squash, highlightsOf, highlightsMarkdown, zoomIn, zoomOut, clampPage } from "./pdfparts.js";
+import { askConfirm, askText } from "./dialogs.js";
 
 // pdf.js is loaded once, when the first PDF is read; its worker comes from
 // this server too, so the UI's content security policy holds.
@@ -149,8 +150,8 @@ export async function pdfView(ref, file, params, { show, person, nameOf, learnNa
     url: fileURL, isEvalSupported: false, enableXfa: false, useWasm: false,
     wasmUrl: "/vendor/pdfjs/wasm/", cMapUrl: "/vendor/pdfjs/cmaps/", cMapPacked: true, standardFontDataUrl: "/vendor/pdfjs/standard_fonts/",
   });
-  task.onPassword = (update) => {
-    const pw = prompt(t("pdf.password"));
+  task.onPassword = async (update) => {
+    const pw = await askText(t("pdf.password"), { password: true });
     if (pw === null) task.destroy();
     else update(pw);
   };
@@ -459,7 +460,7 @@ export async function pdfView(ref, file, params, { show, person, nameOf, learnNa
           ? h("button", { type: "button", class: "link", text: t("comment.reopen"), onclick: () => act(() => del(`${path}/comments/${root.id}/resolved`)) })
           : h("button", { type: "button", class: "link", text: t("comment.resolve"), onclick: () => act(() => put(`${path}/comments/${root.id}/resolved`)) }),
         mine ? [" · ", h("button", { type: "button", class: "link danger", text: t("common.delete"),
-          onclick: () => confirm(t("comment.deleteConfirm")) && act(() => del(`${path}/comments/${root.id}`)) })] : null) : null,
+          onclick: async () => (await askConfirm(t("comment.deleteConfirm"))) && act(() => del(`${path}/comments/${root.id}`)) })] : null) : null,
       h("p", {}, h("a", { href: "#/item/" + encodeURIComponent(item.key), class: "pdf-discuss", text: t("pdf.discuss") })),
       replyBox, st);
   }

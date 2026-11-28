@@ -6,6 +6,7 @@
 import { h } from "./dom.js";
 import { get, post, del } from "./api.js";
 import { t } from "./i18n.js";
+import { askConfirm } from "./dialogs.js";
 
 const errorBox = (err) => h("p", { class: "error", role: "alert", text: err instanceof Error ? err.message : String(err) });
 
@@ -77,7 +78,7 @@ export function identitiesCard() {
         text: t("identities.calendar") }), " ");
       li.append(h("button", { type: "button", class: "link identity-unlink", text: t("identities.unlink"),
         onclick: async () => {
-          if (!confirm(t("identities.unlinkConfirm", { name: p.name }))) return;
+          if (!(await askConfirm(t("identities.unlinkConfirm", { name: p.name })))) return;
           status.replaceChildren();
           try {
             await del("/api/me/identities/" + encodeURIComponent(p.id));
