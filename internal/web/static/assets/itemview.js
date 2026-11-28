@@ -16,9 +16,9 @@
 // fields, person names a user, learnNames learns names, mayEditSpace says
 // whether one may edit in a room, formDialog asks in a modal, and route
 // shows the address again.
-import { h } from "./dom.js";
+import { h, when } from "./dom.js";
 import { fieldView, isRich } from "./fields.js";
-import { t, language } from "./i18n.js";
+import { t } from "./i18n.js";
 import { get, post, put } from "./api.js";
 import { BUILTINS, FIELD, LAYOUTS, address, columnsOf, coverOf, editableColumn, fieldOf, fieldText, fromBlock, groupChoices, groupItems, listURL,
   readState, shownColumns, sortItems, toBlock, transitionsFrom, valueOf } from "./itemviews.js";
@@ -42,10 +42,7 @@ export function columnName(column) {
 }
 
 // moment writes a point in time where the reader is.
-const moment = (v) => {
-  const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? String(v) : d.toLocaleString(language() || undefined, { dateStyle: "medium", timeStyle: "short" });
-};
+const moment = when;
 
 // valueText is the text of an item's value in a column.
 function valueText(it, column, type, helpers) {

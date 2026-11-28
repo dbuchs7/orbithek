@@ -1,7 +1,7 @@
 // The UI shell (ADR-0009, ADR-0031): hash routes, one view per route, all
 // data through the HTTP API. Plain ES modules, no build step.
 import { api, get, post, put, del, download, upload, ApiError, setNamer } from "./api.js";
-import { h, mount, when } from "./dom.js";
+import { day, h, mount, when } from "./dom.js";
 import { createEditor, isSafeLink, setSecretClass, setVeiledContent } from "./editor.js";
 import { protectChoices } from "./protect.js";
 import { liveBody, watchLive } from "./live.js";
@@ -899,7 +899,7 @@ function taskTools(item, editing) {
     const draw = () => body.replaceChildren(...[...rows].sort(order).map((it) => h("tr", { "data-f-state": it.state || "", "data-f-space": it.space },
       h("td", {}, link("#/item/" + encodeURIComponent(it.key), it.key, "key")), h("td", { text: it.title }),
       h("td", {}, it.state ? h("span", { class: "chip", text: it.state }) : ""), h("td", { text: it.space }),
-      cols.some(([k]) => k === "due") ? h("td", { class: "task-due", text: it.due }) : null,
+      cols.some(([k]) => k === "due") ? h("td", { class: "task-due", text: day(it.due) }) : null,
       cols.some(([k]) => k === "who") ? h("td", { class: "task-who", text: it.who }) : null)));
     const head = h("tr", {}, cols.map(([k, name]) => h("th", { scope: "col", "aria-sort": k === by ? (up ? "ascending" : "descending") : "none" },
       h("button", { type: "button", class: "link sort", "data-sort": k, text: name, onclick: (ev) => {
@@ -3296,7 +3296,7 @@ async function tasksView(tab, params) {
       })),
       h("td", { text: it.state }),
       h("td", { text: who === null ? "" : who ? person(who) : t("tasks.nobody") }),
-      h("td", {}, due ? h("span", { class: due < today ? "badge danger" : due === today ? "badge" : "", text: due < today ? t("tasks.overdue", { date: due }) : due }) : ""),
+      h("td", {}, due ? h("span", { class: due < today ? "badge danger" : due === today ? "badge" : "", text: due < today ? t("tasks.overdue", { date: day(due) }) : day(due), title: due }) : ""),
       h("td", { text: f.priority ? it.properties[f.priority.name] || "" : "" }),
       h("td", {}, link(`#/board/${encodeURIComponent(it.space)}/${encodeURIComponent(it.type)}`, it.space)),
       h("td", { class: "task-actions" }, [claim, ...moves].filter(Boolean).flatMap((b, k) => k ? [" · ", b] : [b])));
@@ -3982,7 +3982,7 @@ async function cardBoard(o) {
   const openDetail = async (it) => {
     const type = typeOf(it);
     detail.hidden = false;
-    detail.replaceChildren(h("p", { class: "muted", text: t("kanban.loading") }));
+    detail.replaceChildren(h("p", { class: "muted", text: t("common.loading") }));
     let item, embeds, out, inc;
     try {
       [{ item }, { embeds }, out, inc] = await Promise.all([get("/api/items/" + it.id), get(`/api/items/${it.id}/embeds`),
@@ -4376,7 +4376,7 @@ async function dailyScreen(arg, params) {
 // read, which only the notifications page does.
 function notificationsCard() {
   const card = h("section", { class: "side-card", id: "daily-notifications" },
-    h("h2", { text: t("notif.title") }), h("p", { class: "muted", text: t("daily.loading") }));
+    h("h2", { text: t("notif.title") }), h("p", { class: "muted", text: t("common.loading") }));
   get("/api/notifications?limit=5").then(async (page) => {
     await learnNames(page.notifications.map((n) => n.actor));
     mount(card,
@@ -7291,7 +7291,7 @@ function infoButton(help) {
 // environment variable; the card says which one and whether it is set,
 // and checks the engine by listing its processes.
 function enginesCard() {
-  const card = h("div", { id: "engines" }, h("p", { class: "muted", text: t("autobackup.loading") }));
+  const card = h("div", { id: "engines" }, h("p", { class: "muted", text: t("common.loading") }));
   // How connecting this server to an engine went, said once (ADR-0152).
   const q = new URLSearchParams(location.search);
   const back = { system: q.get("engine_system"), error: q.get("engine_error") };
@@ -7386,7 +7386,7 @@ function engineEditor(e, kinds, taken, reopen) {
       h("div", { class: "actions-row" }, h("button", { type: "submit", class: "primary", text: t("engine.save") }),
         e.isNew ? h("button", { type: "button", class: "link", text: t("common.cancel"), onclick: () => reopen(null) })
           : h("button", { type: "button", class: "secondary", id: "engine-check-now", text: t("engine.check"), onclick: async () => {
-            checkStatus.replaceChildren(h("p", { class: "muted", text: t("autobackup.loading") }));
+            checkStatus.replaceChildren(h("p", { class: "muted", text: t("common.loading") }));
             try {
               const { processes } = await get(path(e.id) + "/processes");
               checkStatus.replaceChildren(h("p", { class: "notice", text: t("engine.checkOk", { n: processes.length }) }));
@@ -7422,7 +7422,7 @@ function engineEditor(e, kinds, taken, reopen) {
 // up and run it (ADR-0077). A dry run reports what a run would change;
 // while one runs the card looks again.
 function connectorsCard(spaces, users) {
-  const card = h("div", { id: "connectors" }, h("p", { class: "muted", text: t("autobackup.loading") }));
+  const card = h("div", { id: "connectors" }, h("p", { class: "muted", text: t("common.loading") }));
   let timer = 0;
   // The connector open in the editor: its ID, or a template for a new one.
   let open = null;
@@ -7867,7 +7867,7 @@ function autoBackupCard() {
           fullDays: Number(d.get("fullDays")), incrementalDays: Number(d.get("incrementalDays")), keep: Number(d.get("keep")),
         });
         await load();
-        card.querySelector("#autobackup-settings .status")?.replaceChildren(h("p", { class: "notice", text: t("autobackup.saved") }));
+        card.querySelector("#autobackup-settings .status")?.replaceChildren(h("p", { class: "notice success", text: t("common.saved") }));
       }),
       h("p", { id: "autobackup-next" }, st.running
         ? t("autobackup.running", { kind: kindText(st.running) })

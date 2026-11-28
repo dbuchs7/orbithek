@@ -314,7 +314,7 @@ export function decisionView(node, view, getPos) {
 export function pickFromEngine(what) {
   const isForm = what === "forms";
   return new Promise((resolve) => {
-    const status = h("p", { class: "muted", role: "status", text: t("bpmn.loading") });
+    const status = h("p", { class: "muted", role: "status", text: t("common.loading") });
     const engines = h("select", { "aria-label": t("bpmn.engine"), class: "bpmn-engine" });
     const filterLabel = isForm ? t("form.filter") : t("decision.filter");
     const search = h("input", { type: "search", placeholder: filterLabel, "aria-label": filterLabel });
@@ -345,7 +345,7 @@ export function pickFromEngine(what) {
     const show = async (read, none) => {
       shown = [];
       list.replaceChildren();
-      status.textContent = t("bpmn.loading");
+      status.textContent = t("common.loading");
       try {
         shown = await read();
         status.textContent = shown.length ? "" : none;
@@ -525,7 +525,7 @@ export function startFormView(node, view, getPos, files) {
 // null when closed.
 export function editPrefill(a, fresh = false) {
   return new Promise((resolve) => {
-    const status = h("p", { class: "muted", role: "status", text: t("bpmn.loading") });
+    const status = h("p", { class: "muted", role: "status", text: t("common.loading") });
     const rows = h("div", { class: "pm-prefill-rows" });
     const close = h("button", { type: "button", text: t("common.cancel") });
     const ok = h("button", { type: "button", class: "primary", text: t("common.save"), disabled: true });
@@ -570,7 +570,7 @@ export function editPrefill(a, fresh = false) {
 // resolves to {engine, link, process, name} or to null when closed.
 export function pickStartLink() {
   return new Promise((resolve) => {
-    const status = h("p", { class: "muted", role: "status", text: t("bpmn.loading") });
+    const status = h("p", { class: "muted", role: "status", text: t("common.loading") });
     const engines = h("select", { "aria-label": t("bpmn.engine"), class: "bpmn-engine" });
     const list = h("ul", { class: "bpmn-processes" });
     const paste = h("input", { type: "text", placeholder: t("start.pastePlaceholder"), "aria-label": t("start.paste"), autocomplete: "off", spellcheck: "false" });
@@ -593,7 +593,7 @@ export function pickStartLink() {
     const load = async () => {
       links = [];
       list.replaceChildren();
-      status.textContent = t("bpmn.loading");
+      status.textContent = t("common.loading");
       try {
         links = (await get(`/api/engines/${enc(engines.value)}/public-links`)).links;
         status.textContent = links.length ? "" : t("start.none");

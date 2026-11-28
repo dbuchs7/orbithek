@@ -1440,7 +1440,7 @@ section.hold .chip, #governance .chip { font-size: 11px; padding: 1px 8px; borde
 
 /* Spaces on the start page (ADR-0062): tiles or a list, each with the
    space's icon or, without one, its key. */
-.segmented { display: inline-flex; margin: 0 0 12px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.segmented { display: inline-flex; margin: 0 0 12px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; max-width: 100%; flex-wrap: wrap; }
 .segmented .segment { border: 0; border-radius: 0; background: var(--surface); color: var(--text); padding: 4px 12px; font-size: 13px; }
 .segmented .segment[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink, #fff); }
 /* The start page's rooms: the layout switch and, for administrators, a new room beside it. */

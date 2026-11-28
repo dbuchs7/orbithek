@@ -159,8 +159,8 @@ export async function dailyView(show, arg, params, tools) {
     h("p", { class: "muted daily-legend" }, h("span", { class: "daily-dot", "aria-hidden": "true" }), " " + t("daily.legend")));
 
   // What was made or changed that day, and what the calendar puts on it.
-  const activity = h("section", { class: "side-card", id: "daily-activity" }, h("h2", { text: t("daily.activity") }), h("p", { class: "muted", text: t("daily.loading") }));
-  const agenda = h("section", { class: "side-card", id: "daily-calendar" }, h("h2", { text: t("daily.calendar") }), h("p", { class: "muted", text: t("daily.loading") }));
+  const activity = h("section", { class: "side-card", id: "daily-activity" }, h("h2", { text: t("daily.activity") }), h("p", { class: "muted", text: t("common.loading") }));
+  const agenda = h("section", { class: "side-card", id: "daily-calendar" }, h("h2", { text: t("daily.calendar") }), h("p", { class: "muted", text: t("common.loading") }));
   const entry = (it, extra) => h("li", { "data-key": it.key }, h("a", { href: "#/item/" + encodeURIComponent(it.key) }, h("span", { class: "context-key", text: it.key }), " ", it.title || it.key),
     extra ? h("span", { class: "muted", text: " · " + extra }) : null);
   get("/api/items?limit=50&query=" + encodeURIComponent(activityQuery(day))).then(({ items }) => {

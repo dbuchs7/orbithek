@@ -1933,7 +1933,7 @@ export async function retentionCard() {
   const save = h("button", { type: "button", class: "primary", id: "album-retention-save", text: t("retention.saveDefault"), onclick: async () => {
     try {
       await put("/api/album/retention", { automatic: automatic.checked, ...rule() });
-      status.replaceChildren(h("p", { class: "notice", text: t("retention.saved") }));
+      status.replaceChildren(h("p", { class: "notice success", text: t("common.saved") }));
       showPreview();
     } catch (err) { fail(err); }
   } });

@@ -92,7 +92,7 @@ function connectInfo(c) {
 // taskLinksCard is the task links of an engine.
 export function taskLinksCard(engine) {
   const path = "/api/engines/" + encodeURIComponent(engine.id) + "/task-links";
-  const card = h("div", { id: "task-links", class: "connector-editor" }, h("p", { class: "muted", text: t("autobackup.loading") }));
+  const card = h("div", { id: "task-links", class: "connector-editor" }, h("p", { class: "muted", text: t("common.loading") }));
   const load = async (report) => {
     let links, spaces, types;
     try {
@@ -117,7 +117,7 @@ export function taskLinksCard(engine) {
     const act = (fn) => async (ev) => {
       const button = ev.currentTarget;
       button.disabled = true;
-      status.replaceChildren(h("p", { class: "muted", text: t("autobackup.loading") }));
+      status.replaceChildren(h("p", { class: "muted", text: t("common.loading") }));
       try {
         await fn();
       } catch (err) {

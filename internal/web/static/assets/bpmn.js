@@ -447,7 +447,7 @@ export function openModeler(xml = "", store = async (out) => out) {
 // operations to what it resolves to.
 export function pickProcess({ operations = false } = {}) {
   return new Promise((resolve) => {
-    const status = h("p", { class: "muted", role: "status", text: t("bpmn.loading") });
+    const status = h("p", { class: "muted", role: "status", text: t("common.loading") });
     const engines = h("select", { "aria-label": t("bpmn.engine"), class: "bpmn-engine" });
     const search = h("input", { type: "search", placeholder: t("bpmn.filter"), "aria-label": t("bpmn.filter") });
     const list = h("ul", { class: "bpmn-processes" });
@@ -479,7 +479,7 @@ export function pickProcess({ operations = false } = {}) {
       shown = [];
       list.replaceChildren();
       opsField.hidden = !operations || !allowed();
-      status.textContent = t("bpmn.loading");
+      status.textContent = t("common.loading");
       try {
         shown = (await get(`/api/engines/${enc(engines.value)}/processes`)).processes;
         status.textContent = shown.length ? "" : t("bpmn.noProcesses");

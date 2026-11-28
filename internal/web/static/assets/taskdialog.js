@@ -54,7 +54,7 @@ export function taskDialog(it, state) {
   return new Promise((resolve) => {
     let done = false;
     let form = null;
-    const body = h("div", { class: "task-dialog-body" }, h("p", { class: "muted", text: t("autobackup.loading") }));
+    const body = h("div", { class: "task-dialog-body" }, h("p", { class: "muted", text: t("common.loading") }));
     const status = h("div", { class: "status", role: "status" });
     const actions = h("div", { class: "actions-row" });
     const dialog = h("dialog", { class: "task-dialog", id: "task-dialog" },
@@ -128,7 +128,7 @@ export function taskDialog(it, state) {
 // engine, take it on or give it back, complete it. reload shows the page
 // anew after a change.
 export function taskPanel(it, reload) {
-  const panel = h("section", { class: "card engine-task", id: "engine-task" }, h("p", { class: "muted", text: t("autobackup.loading") }));
+  const panel = h("section", { class: "card engine-task", id: "engine-task" }, h("p", { class: "muted", text: t("common.loading") }));
   const status = h("div", { class: "status" });
   const act = (fn) => async (ev) => {
     ev.currentTarget.disabled = true;
