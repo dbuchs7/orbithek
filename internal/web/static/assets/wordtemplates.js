@@ -163,12 +163,12 @@ export async function wordTemplatesCard() {
       h("div", { class: "actions" },
         h("label", { class: "wt-upload" }, h("span", { class: "muted", text: t("wt.newVersion") }), file),
         h("button", { type: "button", class: "link", text: t("wt.rename"), onclick: async () => {
-          const name = await askText(t("wt.renamePrompt"), { value: tp.name });
+          const name = await askText(t("wt.renamePrompt"), { value: tp.name, ok: t("wt.rename") });
           if (name) act(async () => { await put(`/api/word-templates/${encodeURIComponent(tp.id)}`, { name }); });
         } }),
         newest.version ? h("a", { href: `/api/word-templates/${encodeURIComponent(tp.id)}/versions/${newest.version}/file`, download: "", text: t("wt.download") }) : null,
         h("button", { type: "button", class: "link danger", text: t("wt.remove"), disabled: used, title: used ? t("wt.inUse") : undefined, onclick: async () =>
-          (await askConfirm(t("wt.removeConfirm", { name: tp.name }))) && act(async () => { await del(`/api/word-templates/${encodeURIComponent(tp.id)}`); }) })));
+          (await askConfirm(t("wt.removeConfirm", { name: tp.name }), { ok: t("wt.remove"), danger: true })) && act(async () => { await del(`/api/word-templates/${encodeURIComponent(tp.id)}`); }) })));
   };
   const load = async () => {
     const data = await get("/api/word-templates");

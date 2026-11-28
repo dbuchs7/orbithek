@@ -234,7 +234,7 @@ export function roomTypesCard({ space, types, templates = [], onChange }) {
     box.querySelector("input:not([disabled])")?.focus();
   };
   const remove = async (ty) => {
-    if (!(await askConfirm(t("admin.removeTypeConfirm", { name: ty.name })))) return;
+    if (!(await askConfirm(t("admin.removeTypeConfirm", { name: ty.name }), { ok: t("admin.removeType"), danger: true }))) return;
     try {
       await del(`/api/types/${encodeURIComponent(ty.name)}`);
       onChange();

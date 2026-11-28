@@ -52,11 +52,12 @@ export function askConfirm(text, { ok, danger = false } = {}) {
 
 // askText asks for a line of text and resolves to it, or to null when the
 // person cancels, as prompt does. value is what the field holds at first;
-// password hides what is typed.
-export function askText(text, { value = "", ok, password = false } = {}) {
+// password hides what is typed; ok and danger are as for askConfirm, for a
+// line typed to confirm what cannot be undone.
+export function askText(text, { value = "", ok, danger = false, password = false } = {}) {
   const input = h("input", { type: password ? "password" : "text", name: "answer", value, "aria-label": text,
     autocomplete: password ? "current-password" : "off" });
-  return open(text, { field: h("label", { class: "field" }, input), ok, answer: () => input.value, none: null });
+  return open(text, { field: h("label", { class: "field" }, input), ok, danger, answer: () => input.value, none: null });
 }
 
 // tell says something that needs no answer, such as a failure with no

@@ -40,7 +40,7 @@ export function personalNotes(path, initial) {
     const done = () => dialog.close();
     const save = h("button", { type: "submit", class: "primary", id: "note-save", text: t("note.save") });
     const remove = note ? h("button", { type: "button", class: "danger", id: "note-delete", text: t("common.delete"), onclick: async () => {
-      if (!(await askConfirm(t("note.deleteConfirm")))) return;
+      if (!(await askConfirm(t("note.deleteConfirm"), { ok: t("common.delete"), danger: true }))) return;
       try { await del(`${path}/notes/${note.id}`); done(); await refresh(); } catch (err) { fail(err); }
     } }) : null;
     const f = h("form", { method: "dialog", class: "note-form" },

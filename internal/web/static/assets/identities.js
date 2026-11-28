@@ -78,7 +78,7 @@ export function identitiesCard() {
         text: t("identities.calendar") }), " ");
       li.append(h("button", { type: "button", class: "link identity-unlink", text: t("identities.unlink"),
         onclick: async () => {
-          if (!(await askConfirm(t("identities.unlinkConfirm", { name: p.name })))) return;
+          if (!(await askConfirm(t("identities.unlinkConfirm", { name: p.name }), { ok: t("identities.unlink"), danger: true }))) return;
           status.replaceChildren();
           try {
             await del("/api/me/identities/" + encodeURIComponent(p.id));
