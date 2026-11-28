@@ -292,11 +292,12 @@ async function ordersTab(ctx) {
   } catch { /* names fall back to the product IDs */ }
   if (!list.length) return ctx.body.replaceChildren(h("p", { class: "muted", id: "shop-no-orders", text: t("shop.noOrders") }));
   const status = h("div", { class: "status", role: "status" });
-  const act = (question, fn, done) => async (ev) => {
+  // ok names the button that goes on, as the button that asked is named.
+  const act = (question, ok, fn, done) => async (ev) => {
     // Kept before the question: an event names its current target only
     // while it is handled.
     const button = ev.currentTarget;
-    if (!(await askConfirm(question))) return;
+    if (!(await askConfirm(question, ok))) return;
     button.disabled = true;
     try {
       await fn();
@@ -316,10 +317,10 @@ async function ordersTab(ctx) {
         h("strong", { text: names.get(l.itemId) || l.itemId }), " ",
         h("span", { class: "chip", "data-status": l.status, text: statusText(l.status) }),
         l.reason ? h("span", { class: "muted", text: " " + l.reason }) : "", " ",
-        l.status === "done" ? h("button", { type: "button", class: "link", text: t("shop.return"), onclick: act(t("shop.returnConfirm", { name: names.get(l.itemId) || l.itemId }), async () => {
+        l.status === "done" ? h("button", { type: "button", class: "link", text: t("shop.return"), onclick: act(t("shop.returnConfirm", { name: names.get(l.itemId) || l.itemId }), { ok: t("shop.return") }, async () => {
           await post(base(ctx.engine) + "/orders/" + enc(o.id) + "/lines/" + enc(l.itemId) + "/return", {});
         }, reload) }) : ""))),
-      open ? h("p", {}, h("button", { type: "button", class: "link danger", text: t("shop.cancel"), onclick: act(t("shop.cancelConfirm"), async () => {
+      open ? h("p", {}, h("button", { type: "button", class: "link danger", text: t("shop.cancel"), onclick: act(t("shop.cancelConfirm"), { ok: t("shop.cancel"), danger: true }, async () => {
         await post(base(ctx.engine) + "/orders/" + enc(o.id) + "/cancel", {});
       }, reload) })) : "");
   })));
@@ -334,7 +335,7 @@ async function approvalsTab(ctx) {
     const button = ev.currentTarget;
     let reason = "";
     if (!approved) {
-      reason = await askText(t("shop.refuseReason")) || "";
+      reason = await askText(t("shop.refuseReason"), { ok: t("shop.refuse") }) || "";
       if (!reason.trim()) return;
     }
     button.disabled = true;
@@ -375,7 +376,7 @@ export function catalogueCard(it) {
   };
   const run = (dryRun) => async (ev) => {
     const button = ev.currentTarget;
-    if (!dryRun && !(await askConfirm(t("shopcat.confirm")))) return;
+    if (!dryRun && !(await askConfirm(t("shopcat.confirm"), { ok: t("shopcat.publish") }))) return;
     button.disabled = true;
     out.replaceChildren(h("p", { class: "muted", text: t("shopcat.sending") }));
     try {

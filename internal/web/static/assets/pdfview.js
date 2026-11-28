@@ -460,7 +460,7 @@ export async function pdfView(ref, file, params, { show, person, nameOf, learnNa
           ? h("button", { type: "button", class: "link", text: t("comment.reopen"), onclick: () => act(() => del(`${path}/comments/${root.id}/resolved`)) })
           : h("button", { type: "button", class: "link", text: t("comment.resolve"), onclick: () => act(() => put(`${path}/comments/${root.id}/resolved`)) }),
         mine ? [" · ", h("button", { type: "button", class: "link danger", text: t("common.delete"),
-          onclick: async () => (await askConfirm(t("comment.deleteConfirm"))) && act(() => del(`${path}/comments/${root.id}`)) })] : null) : null,
+          onclick: async () => (await askConfirm(t("comment.deleteConfirm"), { ok: t("common.delete"), danger: true })) && act(() => del(`${path}/comments/${root.id}`)) })] : null) : null,
       h("p", {}, h("a", { href: "#/item/" + encodeURIComponent(item.key), class: "pdf-discuss", text: t("pdf.discuss") })),
       replyBox, st);
   }

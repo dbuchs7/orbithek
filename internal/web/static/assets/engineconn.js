@@ -43,7 +43,7 @@ function engineRow(e, reload) {
         // Kept before the question: an event names its current target
         // only while it is handled.
         const button = ev.currentTarget;
-        if (!(await askConfirm(t("engineconn.disconnectConfirm", { name: e.name })))) return;
+        if (!(await askConfirm(t("engineconn.disconnectConfirm", { name: e.name }), { ok: t("engineconn.disconnect"), danger: true }))) return;
         button.disabled = true;
         try {
           await del("/api/me/engines/" + encodeURIComponent(e.id));

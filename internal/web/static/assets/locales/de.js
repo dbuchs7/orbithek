@@ -3368,5 +3368,6 @@ export default {
   "admin.revokeSystemRoleConfirm": "{name} die Systemrolle {role} entziehen?",
   "admin.removeMemberConfirm": "{name} aus der Gruppe {group} entfernen? Damit entfällt, was der Gruppe gewährt ist.",
   "aiaccess.withdrawConfirm": "Die Freigabe von {name} widerrufen? Die Anwendung verliert den Zugriff sofort.",
-  "notesImport.adminOnly": "Nur wer diesen Raum administriert, importiert Notizen in ihn."
+  "notesImport.adminOnly": "Nur wer diesen Raum administriert, importiert Notizen in ihn.",
+  "faces.adminOffOk": "Vergessen"
 };

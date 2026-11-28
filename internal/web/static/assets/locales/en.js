@@ -3370,5 +3370,6 @@ export default {
   "admin.revokeSystemRoleConfirm": "Take the system role {role} back from {name}?",
   "admin.removeMemberConfirm": "Take {name} out of the group {group}? They lose what the group is granted.",
   "aiaccess.withdrawConfirm": "Withdraw the approval of {name}? The application loses its access at once.",
-  "notesImport.adminOnly": "Only an administrator of this room imports notes into it."
+  "notesImport.adminOnly": "Only an administrator of this room imports notes into it.",
+  "faces.adminOffOk": "Forget"
 };

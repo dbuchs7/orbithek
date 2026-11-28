@@ -183,7 +183,7 @@ export function albumBrowser({ pick, pickText } = {}) {
   const orderHint = h("span", { class: "muted album-order-hint", id: "album-order-hint", hidden: true, text: t("album.orderHint") });
   const orderReset = h("button", { type: "button", class: "link", id: "album-order-reset", hidden: true, text: t("album.orderReset"), title: t("album.orderResetTitle"),
     onclick: async () => {
-      if (!(await askConfirm(t("album.orderResetConfirm")))) return;
+      if (!(await askConfirm(t("album.orderResetConfirm"), { ok: t("album.orderReset"), danger: true }))) return;
       try {
         await del(`/api/album/order/${encodeURIComponent(here().id)}`);
         say(t("album.orderCleared"), "notice");
@@ -365,7 +365,7 @@ export function albumBrowser({ pick, pickText } = {}) {
       fixed ? null : h("button", { type: "button", class: "link danger album-delete", text: t("album.delete"), disabled: p.used,
         onclick: async () => {
           m.open = false;
-          if (!(await askConfirm(t("album.deleteConfirm", { name: p.attachment.name })))) return;
+          if (!(await askConfirm(t("album.deleteConfirm", { name: p.attachment.name }), { ok: t("album.delete"), danger: true }))) return;
           try {
             await del(`/api/items/${p.item.id}/attachments/${p.attachment.id}`);
             await loadLabels();
@@ -688,7 +688,7 @@ export function albumBrowser({ pick, pickText } = {}) {
       show();
     }) });
     clean.addEventListener("click", act(async () => {
-      if (!(await askConfirm(t("retention.cleanConfirm", { n: plan.remove.length, name })))) return;
+      if (!(await askConfirm(t("retention.cleanConfirm", { n: plan.remove.length, name }), { ok: t("retention.clean", { n: plan.remove.length }), danger: true }))) return;
       plan = { ...(await post(base + "/clean", rule())), own: plan.own };
       show();
       dstatus.replaceChildren(h("p", { class: "notice", text: t("retention.cleaned") }));
@@ -908,7 +908,7 @@ export function albumBrowser({ pick, pickText } = {}) {
   // they are, with their labels.
   const deleteCollection = async () => {
     const c = here();
-    if (!(await askConfirm(t("album.collectionDeleteConfirm", { name: c.name })))) return;
+    if (!(await askConfirm(t("album.collectionDeleteConfirm", { name: c.name }), { ok: t("album.collectionDelete"), danger: true }))) return;
     try {
       await post(`/api/items/${encodeURIComponent(c.id)}/trash`, {});
     } catch (err) { return fail(err); }
@@ -1013,7 +1013,7 @@ export function albumBrowser({ pick, pickText } = {}) {
       };
       await walk(f.id, 0);
     } catch (err) { return fail(err); }
-    if (!(await askConfirm(t("album.folderDeleteConfirm", { name: f.name, folders, pictures })))) return;
+    if (!(await askConfirm(t("album.folderDeleteConfirm", { name: f.name, folders, pictures }), { ok: t("album.folderDelete"), danger: true }))) return;
     try {
       await post(`/api/items/${encodeURIComponent(f.id)}/trash`, {});
     } catch (err) { return fail(err); }
@@ -1047,7 +1047,7 @@ export function albumBrowser({ pick, pickText } = {}) {
   // has; the server decides as for any item. Into another room it asks
   // first, since that room's access holds afterwards.
   const moveFolder = async (f, to) => {
-    if (to.space !== f.space && !(await askConfirm(t("album.folderMoveRoom", { name: f.name, room: to.space })))) return false;
+    if (to.space !== f.space && !(await askConfirm(t("album.folderMoveRoom", { name: f.name, room: to.space }), { ok: t("album.folderMove") }))) return false;
     try {
       await post(`/api/items/${encodeURIComponent(f.id)}/move`, { space: to.space, parent: to.parent });
     } catch (err) {
@@ -1485,7 +1485,7 @@ export function albumBrowser({ pick, pickText } = {}) {
       } }),
       h("button", { type: "button", class: "danger", id: "album-bulk-delete", disabled: !any, text: t("album.delete"), onclick: async () => {
         const may = list.filter((p) => p.editable && !p.used && !onShare(p));
-        if (!(await askConfirm(t("photos.deleteConfirm", { n: may.length, kept: list.length - may.length })))) return;
+        if (!(await askConfirm(t("photos.deleteConfirm", { n: may.length, kept: list.length - may.length }), { ok: t("album.delete"), danger: true }))) return;
         await together("photos.deleted", async (p) => { if (!p.editable || p.used || onShare(p)) return false; await del(fileURL(p)); return true; });
         chosen.clear();
         await loadLabels();
@@ -1938,7 +1938,7 @@ export async function retentionCard() {
     } catch (err) { fail(err); }
   } });
   const run = h("button", { type: "button", class: "danger", id: "album-retention-run", text: t("retention.runNow"), onclick: async () => {
-    if (!(await askConfirm(t("retention.runConfirm")))) return;
+    if (!(await askConfirm(t("retention.runConfirm"), { ok: t("retention.runNow"), danger: true }))) return;
     try {
       const r = await post("/api/album/retention/run");
       status.replaceChildren(h("p", { class: "notice", text: `${t("retention.ran", { n: r.versions })} ${t("retention.inPictures", { n: r.stacks })}` }));
