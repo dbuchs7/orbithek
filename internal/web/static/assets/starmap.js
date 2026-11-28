@@ -611,7 +611,7 @@ function drawMap(data, space, select, { path, depth: askedDepth, impact = null, 
     panelRelease = h("button", { type: "button", class: "secondary", id: idOf("release-node"), hidden: !pinned.has(ni), text: t("starmap.releaseNode"),
       title: t("starmap.releaseNodeHelp"), onclick: () => release([ni]) });
     const box = h("div", { class: "starmap-preview-box", id: idOf("preview"), "aria-live": "polite" },
-      h("p", { class: "muted", id: idOf("preview-loading"), text: t("starmap.loading") }));
+      h("p", { class: "muted", id: idOf("preview-loading"), text: t("common.loading") }));
     contentOf(node).then((el) => { if (el) mount(box, el); else box.replaceChildren(); },
       () => { previews.delete(node.id); mount(box, h("p", { class: "muted", id: idOf("preview-none"), text: t("starmap.unavailable") })); });
     mount(panel,

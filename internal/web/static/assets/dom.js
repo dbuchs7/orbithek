@@ -62,8 +62,20 @@ export function mount(container, ...children) {
   append(container, children);
 }
 
-// when formats a time in the UI language (ADR-0017), which i18n.js sets
-// on the document.
+// when writes a point in time where the reader is, in the UI language
+// (ADR-0017), which i18n.js sets on the document: the date and the time to
+// the minute, the same in every view. What is no time stays as it is.
 export function when(iso) {
-  return iso ? new Date(iso).toLocaleString(document.documentElement.lang || undefined) : "";
+  if (!iso) return "";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleString(document.documentElement.lang || undefined, { dateStyle: "medium", timeStyle: "short" });
+}
+
+// day writes a calendar day, YYYY-MM-DD, in the UI language. A day has no
+// time zone: it is the same day wherever it is read. A point in time is
+// written as when writes it, and what is no date stays as it is.
+export function day(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
+  if (!m) return /^\d{4}-\d{2}-\d{2}T/.test(String(iso || "")) ? when(iso) : String(iso || "");
+  return new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString(document.documentElement.lang || undefined, { dateStyle: "medium" });
 }

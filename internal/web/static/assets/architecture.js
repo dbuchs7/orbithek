@@ -206,7 +206,7 @@ export function architectureView(node, view, getPos) {
 export function pickArchitecture(current = null) {
   return new Promise((resolveChoice) => {
     const title = t("arch.pickTitle");
-    const status = h("p", { class: "muted arch-status", role: "status", text: t("bpmn.loading") });
+    const status = h("p", { class: "muted arch-status", role: "status", text: t("common.loading") });
     const engines = h("select", { class: "bpmn-engine arch-engine", "aria-label": t("bpmn.engine") });
     const apps = h("select", { class: "arch-application", "aria-label": t("arch.application"), disabled: true });
     const releases = h("select", { class: "arch-release", "aria-label": t("arch.release"), disabled: true });
@@ -265,7 +265,7 @@ export function pickArchitecture(current = null) {
       releases.replaceChildren();
       layers.replaceChildren();
       apps.disabled = releases.disabled = apply.disabled = true;
-      status.textContent = t("bpmn.loading");
+      status.textContent = t("common.loading");
       try {
         list = (await get(listPath(engines.value))).applications;
         status.textContent = list.length ? "" : t("arch.none");

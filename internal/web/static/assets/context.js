@@ -16,7 +16,7 @@ const kindName = (kind) => ({ mentions: t("context.mentions"), embeds: t("contex
 // contextSection returns the section, filled once the context is read;
 // beside(key) opens an item beside the current one.
 export function contextSection(item, beside) {
-  const body = h("div", { class: "context-body" }, h("p", { class: "muted", text: t("context.loading") }));
+  const body = h("div", { class: "context-body" }, h("p", { class: "muted", text: t("common.loading") }));
   const section = h("section", { id: "context", class: "context" }, h("h2", { text: t("context.title") }), body);
   const entry = (it, ...extra) => h("li", { class: "context-entry", "data-key": it.key },
     h("a", { href: "#/item/" + encodeURIComponent(it.key), class: "context-link" }, h("span", { class: "context-key", text: it.key }), " ", it.title || it.key),

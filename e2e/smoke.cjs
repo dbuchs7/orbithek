@@ -1024,7 +1024,7 @@ function webSource() {
       await page.fill("#autobackup-destination", process.env.AUTOBACKUP_DIR);
       await page.fill("#autobackup-settings [name=keep]", "2");
       await page.click("#autobackup-settings button[type=submit]");
-      await page.waitForSelector("#autobackup-settings >> text=Saved.");
+      await page.waitForSelector("#autobackup-settings >> text=Saved");
       await page.click("#autobackup-check-button");
       await page.waitForSelector("#autobackup-check >> text=The destination works");
       await page.click("#autobackup-run-full");
@@ -1427,9 +1427,9 @@ function webSource() {
     // The old address #/tasks still leads there, sent on to #/planning with its filters.
     await page.goto(base + "/#/tasks/unassigned?space=PLAT");
     await page.waitForFunction(() => location.hash.startsWith("#/planning/unassigned") && location.hash.includes("space=PLAT"));
-    await page.waitForSelector("#tasks tr.overdue:has-text('Renew the certificate') .badge:has-text('overdue since 2020-01-31')");
+    await page.waitForSelector("#tasks tr.overdue:has-text('Renew the certificate') .badge:has-text('overdue since Jan 31, 2020')"); // a day of the reader's language, not the raw value
     await page.goto(base + "/#/planning/unassigned");
-    await page.waitForSelector("#tasks tr.overdue:has-text('Renew the certificate') .badge:has-text('overdue since 2020-01-31')");
+    await page.waitForSelector("#tasks tr.overdue:has-text('Renew the certificate') .badge:has-text('overdue since Jan 31, 2020')");
     // Every column filters; the filters stay in the address and across a reload.
     await page.selectOption("#tasks select[aria-label='Filter Due']", "overdue");
     await page.waitForSelector("#tasks tbody tr:has-text('Tidy the wiki')", { state: "hidden" });

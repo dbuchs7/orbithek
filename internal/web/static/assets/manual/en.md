@@ -384,7 +384,7 @@ A label's page shows the items carrying its label as a view: **Table**, **Galler
 
 ### The task list {#tasks}
 
-The module **Planning** lists open work across your rooms: items of the type *task* and of every type with a workflow and an *assignee* or *due* field. The tabs show **Assigned to me**, **Unassigned** and **All open**; filters narrow by room, state, person, due date and labels. **Assign to me** assigns a task to you, **Give back** releases it. Overdue tasks are marked.
+The module **Planning** lists open work across your rooms: items of the type *task* and of every type with a workflow and an *assignee* or *due* field. The tabs show **Assigned to me**, **Unassigned** and **All open**; filters narrow by room, state, person, due date and labels. **Assign to me** assigns a task to you, **Give back** releases it. Overdue tasks are marked. A due date is written as a date in your language; a point in time reads the same in every view, to the minute.
 
 ![The task list under Planning](img/en/tasks.png)
 

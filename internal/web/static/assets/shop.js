@@ -102,7 +102,7 @@ async function setupCard(admin, states) {
 // shopView draws the shop into section. params: engine, tab; admin says
 // the reader may set up engines, so the help says how.
 export async function shopView(section, params, { admin = false } = {}) {
-  section.replaceChildren(h("p", { class: "muted", text: t("autobackup.loading") }));
+  section.replaceChildren(h("p", { class: "muted", text: t("common.loading") }));
   let engines;
   try {
     ({ engines } = await get("/api/me/engines"));
@@ -120,7 +120,7 @@ export async function shopView(section, params, { admin = false } = {}) {
   const tab = ["catalogues", "orders", "approvals"].includes(params.get("tab")) ? params.get("tab") : "catalogues";
   const tabLink = (id, label) => h("a", { class: id === tab ? "tab active" : "tab", href: "#/shop?" + new URLSearchParams({ engine: st.engine.id, tab: id }).toString(),
     id: "shop-tab-" + id, "aria-current": id === tab ? "page" : null, text: label });
-  const body = h("div", { id: "shop-body" }, h("p", { class: "muted", text: t("autobackup.loading") }));
+  const body = h("div", { id: "shop-body" }, h("p", { class: "muted", text: t("common.loading") }));
   section.replaceChildren(choose,
     h("nav", { class: "tabs", "aria-label": t("shop.title") }, tabLink("catalogues", t("shop.tabCatalogues")), tabLink("orders", t("shop.tabOrders")), tabLink("approvals", t("shop.tabApprovals"))),
     body);
@@ -259,7 +259,7 @@ function productDialog(ctx, release, it, add) {
   };
   const addButton = (onclick) => actions.prepend(h("button", { type: "button", class: "primary", id: "shop-add", text: t("shop.add"), onclick }));
   if (!it.configForm) return addButton(() => put({}));
-  canvas.append(h("p", { class: "muted", text: t("autobackup.loading") }));
+  canvas.append(h("p", { class: "muted", text: t("common.loading") }));
   (async () => {
     try {
       const [schema, Form] = await Promise.all([get(base(ctx.engine) + "/forms/" + enc(it.configForm)), loadForm()]);

@@ -75,7 +75,7 @@ export function openBeside(key) {
 export function besidePane(params, tools) {
   const key = params.get(BESIDE);
   if (!key) return null;
-  const body = h("div", { class: "beside-body" }, h("p", { class: "muted", text: t("beside.loading") }));
+  const body = h("div", { class: "beside-body" }, h("p", { class: "muted", text: t("common.loading") }));
   const close = h("button", { type: "button", class: "icon-btn beside-close", id: "beside-close", title: t("beside.close"), "aria-label": t("beside.close"),
     text: "×", onclick: () => { location.hash = withBeside(location.hash, ""); } });
   const head = h("div", { class: "beside-head" }, h("span", { class: "muted", text: t("beside.title") }), close);
