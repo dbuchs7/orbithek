@@ -6029,8 +6029,8 @@ function webSource() {
 
     step("protected passages: admin erases the passage for good; it is gone from the text (ADR-0089)");
     await boss.click("#secrets .secret-edit summary");
-    boss.once("dialog", (d) => d.accept());
     await boss.click("#secrets .secret-erase");
+    await boss.click("dialog.ask-dialog [data-ask=ok]"); // erasing asks first, in the app's own dialog
     await boss.waitForSelector("#secrets", { state: "detached" });
     await bossCtx.close();
     await page.reload();
